@@ -1,0 +1,24 @@
+﻿<?xml version="1.0"?>
+
+<KeyMap Version="1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="Keymap.xsd">
+    <Group Name="MemEngineWindow" DisplayName="MemEngine Window" Description="The entire mem engine window">
+        <Shortcut Name="ConnectToConsole" CommandId="commands.memengine.ConnectToConsoleCommand">
+            <KeyStroke Mods="CTRL" Key="O"/>
+        </Shortcut>
+        
+        <!-- TODO: implement history -->
+        <Shortcut Name="UndoShortcut" CommandId="commands.generic.UndoCommand">
+            <KeyStroke Mods="CTRL" Key="Z"/>
+        </Shortcut>
+        <Shortcut Name="RedoShortcut1" CommandId="commands.generic.RedoCommand">
+            <KeyStroke Mods="CTRL+SHIFT" Key="Z"/>
+        </Shortcut>
+        <Shortcut Name="RedoShortcut2" CommandId="commands.generic.RedoCommand">
+            <KeyStroke Mods="CTRL" Key="Y"/>
+        </Shortcut>
+
+        <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
+            <KeyStroke Mods="CTRL+ALT" Key="S"/>
+        </Shortcut>
+    </Group>
+</KeyMap>
