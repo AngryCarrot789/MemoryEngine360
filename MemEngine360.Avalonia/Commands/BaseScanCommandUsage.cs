@@ -5,31 +5,25 @@ using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Avalonia.Commands;
 
-public class BaseScanCommandUsage : SimpleButtonCommandUsage {
-    private MemoryEngine360? engine;
-    
+public class BaseScanCommandUsage : MemEngineButtonCommandUsage {
     public BaseScanCommandUsage(string commandId) : base(commandId) {
         
     }
 
-    protected override void OnContextChanged() {
-        base.OnContextChanged();
-        MemoryEngine360? newEngine = null;
-        bool hasEngine = this.GetContextData() is IContextData data && MemoryEngine360.DataKey.TryGetContext(data, out newEngine);
-        if (hasEngine && this.engine == newEngine) {
-            return;
-        }
-        
-        if (this.engine != null) {
-            this.engine.ScanningProcessor.IsScanningChanged -= this.OnIsScanningChanged;
-            this.engine.ScanningProcessor.HasFirstScanChanged -= this.OnHasFirstScanChanged;
-            this.engine.ConnectionChanged -= this.OnConnectionChanged;
+    protected override void OnEngineChanged(MemoryEngine360? oldEngine, MemoryEngine360? newEngine) {
+        base.OnEngineChanged(oldEngine, newEngine);
+        if (oldEngine != null) {
+            oldEngine.ScanningProcessor.IsScanningChanged -= this.OnIsScanningChanged;
+            oldEngine.ScanningProcessor.HasFirstScanChanged -= this.OnHasFirstScanChanged;
+            oldEngine.IsBusyChanged -= this.OnIsBusyChanged;
+            oldEngine.ConnectionChanged -= this.OnConnectionChanged;
         }
 
-        if ((this.engine = newEngine) != null) {
-            this.engine.ScanningProcessor.IsScanningChanged += this.OnIsScanningChanged;
-            this.engine.ScanningProcessor.HasFirstScanChanged += this.OnHasFirstScanChanged;
-            this.engine.ConnectionChanged += this.OnConnectionChanged;
+        if (newEngine != null) {
+            newEngine.ScanningProcessor.IsScanningChanged += this.OnIsScanningChanged;
+            newEngine.ScanningProcessor.HasFirstScanChanged += this.OnHasFirstScanChanged;
+            newEngine.IsBusyChanged += this.OnIsBusyChanged;
+            newEngine.ConnectionChanged += this.OnConnectionChanged;
         }
     }
 
@@ -38,6 +32,10 @@ public class BaseScanCommandUsage : SimpleButtonCommandUsage {
     }
 
     private void OnIsScanningChanged(ScanningProcessor sender) {
+        this.UpdateCanExecuteLater();
+    }
+    
+    private void OnIsBusyChanged(MemoryEngine360 sender) {
         this.UpdateCanExecuteLater();
     }
     

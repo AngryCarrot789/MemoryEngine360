@@ -14,7 +14,11 @@ namespace MemEngine360.Commands;
 
 public class ConnectToConsoleCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return e.ContextData.ContainsKey(MemoryEngine360.DataKey) ? Executability.Valid : Executability.Invalid;
+        if (!MemoryEngine360.DataKey.TryGetContext(e.ContextData, out MemoryEngine360? engine)) {
+            return Executability.Invalid;
+        }
+        
+        return !engine.IsConnectionBusy ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -23,6 +27,11 @@ public class ConnectToConsoleCommand : Command {
         }
 
         if (engine.Connection != null) {
+            if (engine.IsConnectionBusy) {
+                await IMessageDialogService.Instance.ShowMessage("Busy", "Connection is currently busy. Cannot disconnect");
+                return;
+            }
+            
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to an xbox. Close existing connection and then connect", MessageBoxButton.OKCancel, MessageBoxResult.OK);
             if (result != MessageBoxResult.OK) {
                 return;

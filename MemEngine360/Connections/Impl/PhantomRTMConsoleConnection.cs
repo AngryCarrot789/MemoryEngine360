@@ -16,11 +16,12 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
 
         public BusyToken(PhantomRTMConsoleConnection connection) {
             this.connection = connection;
-            this.connection.busyStack++;
         }
 
         public void Dispose() {
-            this.connection.busyStack--;
+            int value = Interlocked.Decrement(ref this.connection.busyStack);
+            if (value < 0)
+                Debugger.Break();
         }
     }
 
@@ -30,7 +31,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
     private readonly TcpClient client;
     private readonly StreamReader stream;
     private bool isConnected;
-    private int busyStack;
+    private volatile int busyStack;
 
     public EndPoint? EndPoint => this.client.Connected ? this.client.Client.RemoteEndPoint : null;
 
@@ -44,8 +45,11 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         this.isConnected = true;
     }
 
-    private BusyToken CreateBusyToken() => new(this);
-    
+    private BusyToken CreateBusyToken() {
+        Interlocked.Increment(ref this.busyStack);
+        return new BusyToken(this);
+    }
+
     private void EnsureNotBusy() {
         if (this.busyStack > 0) {
             throw new InvalidOperationException("Busy performing another operation");
@@ -362,7 +366,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
 
         this.EnsureNotBusy();
         using BusyToken x = CreateBusyToken();
-        
+
         byte[] output = new byte[count];
         try {
             string? command = null;
@@ -528,10 +532,10 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
     public async Task WriteByte(uint Offset, byte[] Bytes) {
         if (!this.isConnected)
             throw new ObjectDisposedException("This connection has been closed");
-        
+
         this.EnsureNotBusy();
         using BusyToken x = CreateBusyToken();
-        
+
         string str = "setmem addr=0x" + Offset.ToString("X8") + " data=";
         foreach (byte b in Bytes)
             str += b.ToString("X2");

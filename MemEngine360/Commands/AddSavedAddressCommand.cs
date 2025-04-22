@@ -16,12 +16,20 @@ public class AddSavedAddressCommand : Command {
             return;
         }
 
+        uint initialAddress = 0;
+        if (IMemEngineUI.DataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+            IList<ScanResultViewModel> list = ui.ScanResultSelectionManager.SelectedItemList;
+            if (list.Count > 0)
+                initialAddress = list[list.Count - 1].Address;
+        }
+
         DoubleUserInputInfo info = new DoubleUserInputInfo() {
             Caption = "Add address",
             LabelA = "Memory address (hex)",
             LabelB = "Description (optional)",
+            TextA = initialAddress.ToString("X"),
             ValidateA = (args) => {
-                if (!uint.TryParse(args.Input, NumberStyles.HexNumber, null, out uint address))
+                if (!uint.TryParse(args.Input, NumberStyles.HexNumber, null, out _))
                     args.Errors.Add("Invalid memory address");
             }
         };

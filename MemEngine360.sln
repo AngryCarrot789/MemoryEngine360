@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PFXToolKitUI", "PFXToolKitU
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PFXToolKitUI.Avalonia", "PFXToolKitUI\PFXToolKitUI.Avalonia\PFXToolKitUI.Avalonia.csproj", "{AE7705B6-AF12-1729-7FD9-CF99013A4FCB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "submodules", "submodules", "{41FD8850-2EFD-4067-A016-B1AB043C9DE8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,5 +41,9 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {68A7AAB5-B80F-4BDF-A7AA-3E9D245B98E0}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{AE7705B6-AF12-1729-7FD9-CF99013A4FCB} = {41FD8850-2EFD-4067-A016-B1AB043C9DE8}
+		{717549BD-8C73-5F2C-26F8-C1073B35E942} = {41FD8850-2EFD-4067-A016-B1AB043C9DE8}
 	EndGlobalSection
 EndGlobal

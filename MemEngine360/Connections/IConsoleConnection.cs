@@ -5,6 +5,8 @@ using ConsoleColor = MemEngine360.Connections.Impl.ConsoleColor;
 
 namespace MemEngine360.Connections;
 
+public delegate void ConsoleConnectionEventHandler(IConsoleConnection connection);
+
 public interface IConsoleConnection : IDisposable {
     bool IsReallyConnected { get; }
     bool IsBusy { get; }

@@ -16,7 +16,8 @@ public class MemoryEngine360 {
     public static readonly DataKey<MemoryEngine360> DataKey = DataKey<MemoryEngine360>.Create("MemoryEngine360");
 
     private IConsoleConnection? connection;
-    private bool isBusy;
+    private readonly object busyCounterLock = new object();
+    private volatile int isBusyCount;
 
     /// <summary>
     /// Gets or sets the current console connection
@@ -25,35 +26,49 @@ public class MemoryEngine360 {
         get => this.connection;
         set {
             IConsoleConnection? oldConnection = this.connection;
-            if (oldConnection == value)
+            if (oldConnection == value) {
                 return;
+            }
 
+            if (oldConnection != null && this.IsConnectionBusy) {
+                throw new InvalidOperationException("Cannot change connection because we are currently busy");
+            }
+            
             this.connection = value;
             this.ConnectionChanged?.Invoke(this, oldConnection, value);
         }
     }
 
     /// <summary>
-    /// Gets or sets if the memory engine is currently busy, e.g. reading or writing data
+    /// Gets or sets if the memory engine is currently busy, e.g. reading or writing data.
     /// </summary>
-    public bool IsBusy {
-        get => this.isBusy;
-        set {
-            if (this.isBusy == value)
-                return;
-
-            this.isBusy = value;
-            this.IsBusyChanged?.Invoke(this);
-        }
-    }
+    public bool IsConnectionBusy => this.isBusyCount > 0;
 
     public ScanningProcessor ScanningProcessor { get; }
 
     public event MemoryEngine360ConnectionChangedEventHandler? ConnectionChanged;
+    
+    /// <summary>
+    /// Fired when the <see cref="IsConnectionBusy"/> state changes. It is crucial that no 'busy' operations
+    /// are performed in the event handlers, otherwise, a deadlock could occur
+    /// </summary>
     public event MemoryEngine360EventHandler? IsBusyChanged;
 
     public MemoryEngine360() {
         this.ScanningProcessor = new ScanningProcessor(this);
+    }
+
+    /// <summary>
+    /// Begins a busy operation that uses the <see cref="Connection"/>. Dispose to finish the busy operation
+    /// </summary>
+    /// <returns></returns>
+    public IDisposable? BeginBusyOperation() {
+        if (this.connection == null)
+            throw new InvalidOperationException("No connection is present. Cannot begin busy operation");
+
+        lock (this.busyCounterLock) {
+            return this.isBusyCount == 0 ? new BusyToken(this) : null;
+        }
     }
 
     public enum NumericDisplayType {
@@ -98,6 +113,25 @@ public class MemoryEngine360 {
             case DataType.Double: return connection.WriteDouble(address, displayType == NumericDisplayType.Hexadecimal ? BitConverter.Int64BitsToDouble(long.Parse(value, style, null)) : double.Parse(value, style, null)); break;
             case DataType.String: return connection.WriteString(address, value.Substring(0, Math.Min(Math.Max((int) stringLength, 0), value.Length))); break;
             default:              throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+    }
+
+    private class BusyToken : IDisposable {
+        private readonly MemoryEngine360 engine;
+
+        public BusyToken(MemoryEngine360 engine) {
+            this.engine = engine;
+            if (Interlocked.Increment(ref this.engine.isBusyCount) == 1) {
+                this.engine.IsBusyChanged?.Invoke(this.engine);
+            }
+        }
+
+        public void Dispose() {
+            lock (this.engine.busyCounterLock) {
+                if (Interlocked.Decrement(ref this.engine.isBusyCount) == 0) {
+                    this.engine.IsBusyChanged?.Invoke(this.engine);
+                }   
+            }
         }
     }
 }

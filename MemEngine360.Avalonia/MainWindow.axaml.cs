@@ -27,7 +27,7 @@ using PFXToolKitUI.Utils.RDA;
 
 namespace MemEngine360.Avalonia;
 
-public partial class MainWindow : WindowEx, ILatestActivityView {
+public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
     #region BINDERS
 
     // PFX framework uses binders to simplify "binding" model values to controls
@@ -72,8 +72,8 @@ public partial class MainWindow : WindowEx, ILatestActivityView {
     private readonly IBinder<ScanningProcessor> inputValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> inputBetweenABinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> inputBetweenBBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputBChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputB, (b) => b.Model.InputB = ((TextBox) b.Control).Text ?? "");
-    private readonly IBinder<ScanningProcessor> startAddressBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.StartAddressChanged), (b) => ((MainWindow) b.Control).PART_ScanOption_StartAddress.Text = b.Model.StartAddress.ToString("X"));
-    private readonly IBinder<ScanningProcessor> endAddressBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.EndAddressChanged), (b) => ((MainWindow) b.Control).PART_ScanOption_EndAddress.Text = b.Model.EndAddress.ToString("X"));
+    private readonly IBinder<ScanningProcessor> startAddressBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.StartAddressChanged), (b) => ((MainWindow) b.Control).PART_ScanOption_StartAddress.Content = b.Model.StartAddress.ToString("X"));
+    private readonly IBinder<ScanningProcessor> endAddressBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.EndAddressChanged), (b) => ((MainWindow) b.Control).PART_ScanOption_EndAddress.Content = b.Model.EndAddress.ToString("X"));
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> int_isHexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.IsIntInputHexadecimalChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.IsIntInputHexadecimal, (b) => b.Model.IsIntInputHexadecimal = ((ToggleButton) b.Control).IsChecked == true);
     private readonly EventPropertyEnumBinder<FloatScanOption> floatScanModeBinder = new EventPropertyEnumBinder<FloatScanOption>(typeof(ScanningProcessor), nameof(ScanningProcessor.FloatScanModeChanged), (x) => ((ScanningProcessor) x).FloatScanOption, (x, v) => ((ScanningProcessor) x).FloatScanOption = v);
@@ -86,6 +86,9 @@ public partial class MainWindow : WindowEx, ILatestActivityView {
     #endregion
 
     public MemoryEngine360 MemoryEngine360 { get; }
+    
+    public IResultListSelectionManager<ScanResultViewModel> ScanResultSelectionManager { get; }
+    public IResultListSelectionManager<SavedAddressViewModel> SavedAddressesSelectionManager { get; }
 
     public string Activity {
         get => this.latestActivityText;
@@ -106,13 +109,15 @@ public partial class MainWindow : WindowEx, ILatestActivityView {
         }, TimeSpan.FromMilliseconds(50));
 
         this.MemoryEngine360 = new MemoryEngine360();
+        this.ScanResultSelectionManager = new DataGridSelectionManager<ScanResultViewModel>(this.PART_ScanListResults);
+        this.SavedAddressesSelectionManager = new DataGridSelectionManager<SavedAddressViewModel>(this.PART_SavedAddressList);
+        
         using (MultiChangeToken change = DataManager.GetContextData(this).BeginChange())
-            change.Context.Set(MemoryEngine360.DataKey, this.MemoryEngine360).Set(ILatestActivityView.DataKey, this);
-
+            change.Context.Set(MemoryEngine360.DataKey, this.MemoryEngine360).Set(IMemEngineUI.DataKey, this).Set(ILatestActivityView.DataKey, this);
+        
         this.Activity = "Welcome to MemEngine360.";
         this.PART_SavedAddressList.ItemsSource = this.MemoryEngine360.ScanningProcessor.SavedAddresses;
         this.PART_ScanListResults.ItemsSource = this.MemoryEngine360.ScanningProcessor.ScanResults;
-
         this.floatScanModeBinder.Assign(this.PART_DTFloat_UseExactValue, FloatScanOption.UseExactValue);
         this.floatScanModeBinder.Assign(this.PART_DTFloat_Truncate, FloatScanOption.TruncateToQuery);
         this.floatScanModeBinder.Assign(this.PART_DTFloat_RoundToQuery, FloatScanOption.RoundToQuery);

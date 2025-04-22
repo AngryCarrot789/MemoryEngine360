@@ -164,16 +164,17 @@ public class ScanningProcessor {
             this.NumericScanTypeChanged?.Invoke(this);
         }
     }
-
-    public bool CanPerformFirstScan => !this.IsScanning && !this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
-    public bool CanPerformNextScan => !this.IsScanning && this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
+    
+    public bool CanPerformFirstScan => !this.IsScanning && !this.HasDoneFirstScan && this.MemoryEngine360.Connection != null && !this.MemoryEngine360.IsConnectionBusy;
+    public bool CanPerformNextScan => !this.IsScanning && this.HasDoneFirstScan && this.MemoryEngine360.Connection != null && !this.MemoryEngine360.IsConnectionBusy;
     public bool CanPerformReset => !this.IsScanning && this.HasDoneFirstScan;
     public bool IsSecondInputRequired => this.numericScanType == NumericScanType.Between && this.DataType.IsNumeric();
 
     public ObservableCollection<ScanResultViewModel> ScanResults { get; } = new ObservableCollection<ScanResultViewModel>();
-
     public ObservableCollection<SavedAddressViewModel> SavedAddresses { get; } = new ObservableCollection<SavedAddressViewModel>();
-
+    
+    public ObservableList<ScanResultViewModel> SelectedResults { get; } = new ObservableList<ScanResultViewModel>();
+    
     public MemoryEngine360 MemoryEngine360 { get; }
 
     public event ScanningProcessorEventHandler? InputAChanged;
@@ -222,10 +223,12 @@ public class ScanningProcessor {
     public async Task ScanNext() {
         if (this.isScanning)
             throw new InvalidOperationException("Currently scanning");
+        
+        using IDisposable? token = this.MemoryEngine360.BeginBusyOperation();
+        if (token == null)
+            throw new InvalidOperationException("Engine is currently busy. Cannot scan");
 
         this.IsScanning = true;
-        this.MemoryEngine360.IsBusy = true;
-
         DefaultProgressTracker progress = new DefaultProgressTracker {
             Caption = "Scan", Text = "Beginning scan"
         };
@@ -269,9 +272,9 @@ public class ScanningProcessor {
             return success;
         }, progress, cts);
 
+        cts.Dispose();
         this.HasDoneFirstScan = success;
         this.IsScanning = false;
-        this.MemoryEngine360.IsBusy = false;
     }
 
     public void ResetScan() {
@@ -337,14 +340,19 @@ public class ScanningProcessor {
         if (this.IsScanning || (connection = this.MemoryEngine360.Connection) == null || connection.IsBusy) {
             return; // concurrent operations are dangerous and can corrupt the communication pipe until restarting connection
         }
+
+        using IDisposable? token = this.MemoryEngine360.BeginBusyOperation();
+        if (token == null) {
+            return; // do not modify connection while busy
+        }
         
         foreach (SavedAddressViewModel address in this.SavedAddresses) {
-            address.Value = await MemoryEngine360.ReadAsText(connection, address.Address, address.DataType, 
-                address.DisplayAsHex 
-                    ? MemoryEngine360.NumericDisplayType.Hexadecimal 
-                    : (address.DisplayAsUnsigned 
-                        ? MemoryEngine360.NumericDisplayType.Unsigned 
-                        : MemoryEngine360.NumericDisplayType.Normal), 
+            address.Value = await MemoryEngine360.ReadAsText(connection, address.Address, address.DataType,
+                address.DisplayAsHex
+                    ? MemoryEngine360.NumericDisplayType.Hexadecimal
+                    : (address.DisplayAsUnsigned
+                        ? MemoryEngine360.NumericDisplayType.Unsigned
+                        : MemoryEngine360.NumericDisplayType.Normal),
                 (uint) address.StringLength);
         }
     }

@@ -95,7 +95,7 @@
                             <ComboBox x:Name="PART_DataTypeCombo" Grid.Column="2" Grid.Row="2" FontFamily="Consolas" Background="{DynamicResource ABrush.Tone3.Background.Static}" Padding="4,1" VerticalContentAlignment="Center"/>
                             <TabControl Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="4"
                                         x:Name="PART_ScanSettingsTabControl"
-                                        Background="{DynamicResource PanelBackground3}"
+                                        Background="{DynamicResource PanelBackground2}"
                                         BorderThickness="1"
                                         BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}">
                                 <TabItem Header="Integer">
@@ -159,20 +159,22 @@
                                 BorderBrush="{DynamicResource PanelBackground0}"
                                 BorderThickness="1">
                         <StackPanel>
-                            <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="40,5,*" RowDefinitions="24,3,24,3,20" Margin="3">
+                            <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,20" Margin="3">
                                 <TextBlock Grid.Column="0" Grid.Row="0" Text="Start" VerticalAlignment="Center" Padding="4,0"/>
-                                <TextBlock Grid.Column="0" Grid.Row="2" Text="Stop" VerticalAlignment="Center" Padding="4,0"/>
+                                <TextBlock Grid.Column="0" Grid.Row="2" Text="Length" VerticalAlignment="Center" Padding="4,0"/>
 
-                                <TextBlock Grid.Column="2" Grid.Row="0" FontFamily="Consolas"
-                                           x:Name="PART_ScanOption_StartAddress"
-                                           VerticalAlignment="Center"
-                                           ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                           DoubleTapped="PART_ScanOption_StartAddress_OnDoubleTapped" ToolTip.Tip="Double click to modify"/>
-                                <TextBlock Grid.Column="2" Grid.Row="2" FontFamily="Consolas"
-                                           x:Name="PART_ScanOption_EndAddress"
-                                           VerticalAlignment="Center"
-                                           ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                           DoubleTapped="PART_ScanOption_EndAddress_OnDoubleTapped" ToolTip.Tip="Double click to modify"/>
+                                <Label Grid.Column="2" Grid.Row="0" FontFamily="Consolas"
+                                       x:Name="PART_ScanOption_StartAddress"
+                                       VerticalAlignment="Stretch" VerticalContentAlignment="Center"
+                                       HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                       ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                       DoubleTapped="PART_ScanOption_StartAddress_OnDoubleTapped" ToolTip.Tip="Double click to modify"/>
+                                <Label Grid.Column="2" Grid.Row="2" FontFamily="Consolas"
+                                       x:Name="PART_ScanOption_EndAddress"
+                                       VerticalAlignment="Stretch" VerticalContentAlignment="Center"
+                                       HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                       ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                       DoubleTapped="PART_ScanOption_EndAddress_OnDoubleTapped" ToolTip.Tip="Double click to modify"/>
                                 <CheckBox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="4"
                                           x:Name="PART_ScanOption_PauseConsole"
                                           Content="DEBUG PAUSE while scanning"
@@ -225,7 +227,7 @@
                             <Button Content="Refresh" Padding="5,1"
                                     Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                    cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.RefreshSavedAddressesCommand"/>
+                                    cmdu:CommandUsageManager.UsageClassType="{x:Type ac:RefreshSavedAddressesCommandUsage}"/>
                             <Button Content="Add Entry" Padding="5,1"
                                     Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
