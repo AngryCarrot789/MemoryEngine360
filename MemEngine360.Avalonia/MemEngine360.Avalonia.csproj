@@ -33,4 +33,10 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Avalonia.Themes.Simple">
+        <HintPath>C:\Users\kettl\.nuget\packages\avalonia.themes.simple\11.3.0-beta1\lib\net8.0\Avalonia.Themes.Simple.dll</HintPath>
+      </Reference>
+    </ItemGroup>
 </Project>

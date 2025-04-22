@@ -1,4 +1,23 @@
-﻿using System.Threading.Tasks;
+﻿// 
+// Copyright (c) 2024-2025 REghZy
+// 
+// This file is part of MemEngine360.
+// 
+// MemEngine360 is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either
+// version 3.0 of the License, or (at your option) any later version.
+// 
+// MemEngine360 is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+// Lesser General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// 
+
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -49,7 +68,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         base.RegisterServices(manager);
         
         manager.RegisterConstant<IIconPreferences>(new IconPreferencesImpl());
-        manager.RegisterConstant<IStartupManager>(new StartupManagerFramePFX());
+        manager.RegisterConstant<IStartupManager>(new StartupManagerMemEngine360());
         manager.RegisterConstant<IDesktopService>(new DesktopServiceImpl(this.Application));
         manager.RegisterConstant(new ConsoleConnectionService());
         manager.RegisterConstant<IAboutService>(new AboutServiceImpl());
@@ -83,7 +102,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         public bool UseAntiAliasing { get; set; }
     }
     
-    private class StartupManagerFramePFX : IStartupManager {
+    private class StartupManagerMemEngine360 : IStartupManager {
         public async Task OnApplicationStartupWithArgs(string[] args) {
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
                 MainWindow window = new MainWindow();
