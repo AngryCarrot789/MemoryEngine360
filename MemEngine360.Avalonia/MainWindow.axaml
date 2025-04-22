@@ -25,6 +25,16 @@
             <MenuItem Header="File">
                 <ams:CommandMenuItem Header="Connect to console..." CommandId="commands.memengine.ConnectToConsoleCommand"/>
             </MenuItem>
+            <MenuItem Header="Remote Controls">
+                <ams:CommandMenuItem Header="List all commands in popup" CommandId="commands.memengine.remote.ListHelpCommand"/>
+                <Separator/>
+                <ams:CommandMenuItem Header="Open Disk Tray" CommandId="commands.memengine.remote.EjectDiskTrayCommand"/>
+                <ams:CommandMenuItem Header="Debug Freeze" CommandId="commands.memengine.remote.DebugFreezeCommand"/>
+                <ams:CommandMenuItem Header="Debug Un-freeze" CommandId="commands.memengine.remote.DebugUnfreezeCommand"/>
+                <ams:CommandMenuItem Header="Soft Reboot (restart title)" CommandId="commands.memengine.remote.SoftRebootCommand"/>
+                <ams:CommandMenuItem Header="Cold Reboot" CommandId="commands.memengine.remote.ColdRebootCommand"/>
+                <ams:CommandMenuItem Header="Shutdown" CommandId="commands.memengine.remote.ShutdownCommand"/>
+            </MenuItem>
             <MenuItem Header="About">
                 <ams:CommandMenuItem Header="About MemEngine360" CommandId="commands.application.AboutApplicationCommand"/>
             </MenuItem>

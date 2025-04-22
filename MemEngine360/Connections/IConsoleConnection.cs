@@ -1,12 +1,11 @@
-﻿using System.Net.Sockets;
+﻿using System.Net;
+using System.Net.Sockets;
 using System.Numerics;
 using MemEngine360.Connections.Impl;
 using MemEngine360.Connections.Impl.Threads;
 using ConsoleColor = MemEngine360.Connections.Impl.ConsoleColor;
 
 namespace MemEngine360.Connections;
-
-public delegate void ConsoleConnectionEventHandler(IConsoleConnection connection);
 
 public interface IConsoleConnection : IDisposable {
     /// <summary>
@@ -28,12 +27,13 @@ public interface IConsoleConnection : IDisposable {
     /// <summary>
     /// Sends the eject command to toggle the disk tray
     /// </summary>
-    ValueTask Eject();
-    
+    ValueTask OpenDiskTray();
+
     /// <summary>
     /// Sends the cold reboot command to restart the console
     /// </summary>
-    ValueTask Reboot();
+    /// <param name="cold">True to fully reboot console, False to only reboot title</param>
+    ValueTask RebootConsole(bool cold = true);
     
     /// <summary>
     /// Sends the shutdown command to the console
@@ -97,7 +97,7 @@ public interface IConsoleConnection : IDisposable {
     /// <summary>
     /// Gets the 'alt address' of the xbox, typically the IP address as a uint
     /// </summary>
-    ValueTask<uint> GetTitleAddress();
+    ValueTask<IPAddress> GetTitleIPAddress();
     
     /// <summary>
     /// Sets the console colour property

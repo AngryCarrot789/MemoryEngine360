@@ -10,7 +10,9 @@ using MemEngine360.Connections.Impl.Threads;
 
 namespace MemEngine360.Connections.Impl;
 
-// https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
+// Rewrite with fixes and performance improvements, based on:
+// https://github.com/XeClutch/Cheat-Engine-For-Xbox-360/blob/master/Cheat%20Engine%20for%20Xbox%20360/PhantomRTM.cs
+
 public class PhantomRTMConsoleConnection : IConsoleConnection {
     private readonly struct BusyToken : IDisposable {
         private readonly PhantomRTMConsoleConnection connection;
@@ -30,8 +32,8 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
 
     private readonly TcpClient client;
     private readonly StreamReader stream;
-    private bool isNotDisposed;
     private volatile int busyStack;
+    private bool isDisposed;
 
     public EndPoint? EndPoint => this.client.Connected ? this.client.Client.RemoteEndPoint : null;
 
@@ -42,21 +44,18 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
     public PhantomRTMConsoleConnection(TcpClient client, StreamReader stream) {
         this.client = client;
         this.stream = stream;
-        this.isNotDisposed = true;
     }
 
     public void Dispose() {
         this.EnsureNotBusy();
         byte[] bytes = Encoding.ASCII.GetBytes("bye\r\n");
         this.client.GetStream().Write(bytes, 0, bytes.Length);
-        this.isNotDisposed = false;
+        this.isDisposed = true;
         this.client.Client.Close();
     }
 
     public async ValueTask<ConsoleResponse> SendCommand(string command) {
-        if (!this.isNotDisposed)
-            throw new ObjectDisposedException("Connection is closed");
-
+        this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
@@ -146,8 +145,8 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         return threads;
     }
 
-    public async ValueTask Reboot() {
-        await this.SendCommand("magicboot cold");
+    public async ValueTask RebootConsole(bool cold = true) {
+        await this.SendCommand("magicboot" + (cold ? " cold" : ""));
         this.Dispose();
     }
 
@@ -156,7 +155,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         this.Dispose();
     }
 
-    public async ValueTask Eject() {
+    public async ValueTask OpenDiskTray() {
         await this.SendCommand("dvdeject");
     }
 
@@ -234,11 +233,11 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
     }
 
-    public async ValueTask<uint> GetTitleAddress() {
+    public async ValueTask<IPAddress> GetTitleIPAddress() {
         uint value = uint.Parse((await this.SendCommand("altaddr")).Message.Substring(5).Replace("0x", ""), NumberStyles.HexNumber);
-        return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
+        return new IPAddress(BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value);
     }
-    
+
     public async ValueTask SetConsoleColor(ConsoleColor colour) {
         await this.SendCommand("setcolor name=" + colour.ToString().ToLower());
     }
@@ -246,11 +245,9 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
     public async ValueTask SetDebugName(string newName) {
         await this.SendCommand("dbgname name=" + newName);
     }
-    
-    public async ValueTask ReadBytes(uint address, byte[] buffer, int offset, uint count) {
-        if (!this.isNotDisposed)
-            throw new ObjectDisposedException("Connection is closed");
 
+    public async ValueTask ReadBytes(uint address, byte[] buffer, int offset, uint count) {
+        this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
@@ -285,20 +282,20 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
             Debug.Assert(false, "What is this bullshit who patched this bug???");
         }
     }
-    
+
     public async ValueTask<byte[]> ReadBytes(uint address, uint count) {
         byte[] buffer = new byte[count];
         await this.ReadBytes(address, buffer, 0, count);
         return buffer;
     }
-    
+
     public async ValueTask<byte> ReadByte(uint Offset) {
         await this.ReadBytes(Offset, ONE_BYTE, 0, 1);
         return ONE_BYTE[0];
     }
 
     public async ValueTask<bool> ReadBool(uint address) => await this.ReadByte(address) != 0;
-    
+
     public async ValueTask<char> ReadChar(uint address) => (char) await this.ReadByte(address);
 
     public async ValueTask<T> ReadValue<T>(uint address) where T : unmanaged {
@@ -307,13 +304,13 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
             Array.Reverse(buffer);
         return Unsafe.ReadUnaligned<T>(ref buffer[0]);
     }
-    
+
     public async ValueTask<T> ReadStruct<T>(uint address, params int[] fields) where T : unmanaged {
         if (!BitConverter.IsLittleEndian) {
             // TODO: I don't have a big endian computer nor a big enough brain to know if this works
             return await this.ReadValue<T>(address);
         }
-        
+
         int offset = 0;
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
@@ -325,19 +322,17 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         if (offset != buffer.Length) {
             Debugger.Break();
         }
-        
+
         return Unsafe.ReadUnaligned<T>(ref buffer[0]);
     }
-    
+
     public async ValueTask<string> ReadString(uint address, uint count) {
         byte[] buffer = await this.ReadBytes(address, count);
         return Encoding.ASCII.GetString(buffer);
     }
-    
-    public async ValueTask WriteBytes(uint address, byte[] bytes) {
-        if (!this.isNotDisposed)
-            throw new ObjectDisposedException("This connection has been closed");
 
+    public async ValueTask WriteBytes(uint address, byte[] bytes) {
+        this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
@@ -345,9 +340,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
     }
 
     public ValueTask WriteByte(uint address, byte value) {
-        if (!this.isNotDisposed)
-            throw new ObjectDisposedException("This connection has been closed");
-
+        this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
@@ -362,22 +355,22 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
     public ValueTask WriteChar(uint address, char value) {
         return this.WriteByte(address, (byte) value);
     }
-    
+
     public ValueTask WriteValue<T>(uint address, T value) where T : unmanaged {
         byte[] bytes = new byte[Unsafe.SizeOf<T>()];
         Unsafe.As<byte, T>(ref bytes[0]) = value;
         if (BitConverter.IsLittleEndian)
             Array.Reverse(bytes);
-        
+
         return this.WriteBytes(address, bytes);
     }
-    
+
     public async ValueTask WriteStruct<T>(uint address, T value, params int[] fields) where T : unmanaged {
         if (!BitConverter.IsLittleEndian) {
             // TODO: I don't have a big endian computer nor a big enough brain to know if this works
             await this.WriteValue<T>(address, value);
         }
-        
+
         int offset = 0;
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
@@ -392,15 +385,13 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
 
         await this.WriteBytes(address, buffer);
     }
-    
+
     public ValueTask WriteString(uint address, string value) {
         return this.WriteBytes(address, Encoding.ASCII.GetBytes(value));
     }
 
     public async ValueTask WriteFile(uint address, string filePath) {
-        if (!this.isNotDisposed)
-            throw new ObjectDisposedException("This connection has been closed");
-
+        this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
@@ -445,12 +436,12 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
     public ValueTask WriteNOP(uint address) {
         return this.WriteBytes(address, [0x60, 0x00, 0x00, 0x00]);
     }
-    
+
     private async ValueTask<ConsoleResponse> ReadResponseCore() {
         string responseText = await this.stream.ReadLineAsync() ?? "";
         return ConsoleResponse.FromFirstLine(responseText);
     }
-    
+
     private async ValueTask WriteBytesAndGetResponseInternal(uint address, byte[] bytes) {
         string str = "setmem addr=0x" + address.ToString("X8") + " data=";
         foreach (byte b in bytes)
@@ -479,19 +470,25 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
 
         return response;
     }
-    
+
     private BusyToken CreateBusyToken() {
         Interlocked.Increment(ref this.busyStack);
         return new BusyToken(this);
     }
-    
+
     private void EnsureNotBusy() {
         if (this.busyStack > 0) {
             throw new InvalidOperationException("Busy performing another operation");
         }
     }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] 
+
+    private void EnsureNotDisposed() {
+        if (this.isDisposed) {
+            throw new ObjectDisposedException(nameof(PhantomRTMConsoleConnection), "Connection is disposed");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int CharToInteger(char c) => c <= '9' ? (c - '0') : ((c & ~0x20 /* LOWER TO UPPER CASE */) - 'A' + 10);
 
     public ValueTask WriteVector2(uint Offset, Vector2 Vector2) {
@@ -524,12 +521,11 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         Array.Copy(z, 0, bytes, 8, 4);
         return this.WriteBytes(Offset, bytes);
     }
-    
-    // Cannot get it to work nicely
-    public async ValueTask<byte[]> ReadBytesEx_BARELY_WORKS(uint address, uint count) {
-        if (!this.isNotDisposed)
-            throw new ObjectDisposedException("Connection is closed");
 
+    // Is getmemex even for reading RAM? it could be reading shit from usb which
+    // is why when you request 0x400 bytes, you can only read like 80 or something arbitrary 
+    public async ValueTask<byte[]> ReadBytesEx_BARELY_WORKS_ReadMemoryInDataOrSomething(uint address, uint count) {
+        this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
@@ -540,6 +536,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
             while (length >= 0x400) {
                 if (command == null)
                     command = "getmemex addr=0x" + address.ToString("X8") + " length=0x400" + "\r\n";
+                
                 ConsoleResponse response = await this.SendCommandCore(command);
                 if (response.ResponseType != ResponseType.BinaryResponse) {
                     return output;

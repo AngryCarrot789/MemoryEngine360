@@ -36,6 +36,13 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.EditSavedAddressDataTypeCommand", new EditSavedAddressDataTypeCommand());
         manager.Register("commands.memengine.RefreshSavedAddressesCommand", new RefreshSavedAddressesCommand());
         manager.Register("commands.memengine.AddSelectedScanResultsToSavedAddressListCommand", new AddSelectedScanResultsToSavedAddressListCommand());
+        manager.Register("commands.memengine.remote.EjectDiskTrayCommand", new EjectDiskTrayCommand());
+        manager.Register("commands.memengine.remote.ShutdownCommand", new ShutdownCommand());
+        manager.Register("commands.memengine.remote.SoftRebootCommand", new SoftRebootCommand());
+        manager.Register("commands.memengine.remote.ColdRebootCommand", new ColdRebootCommand());
+        manager.Register("commands.memengine.remote.DebugFreezeCommand", new DebugFreezeCommand());
+        manager.Register("commands.memengine.remote.DebugUnfreezeCommand", new DebugUnfreezeCommand());
+        manager.Register("commands.memengine.remote.ListHelpCommand", new ListHelpCommand());
     }
 
     protected override void RegisterServices(ServiceManager manager) {

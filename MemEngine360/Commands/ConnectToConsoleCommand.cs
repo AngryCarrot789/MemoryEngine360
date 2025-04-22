@@ -52,13 +52,13 @@ public class ConnectToConsoleCommand : Command {
 
             string debugName = await connection.GetDebugName();
             ExecutionState execState = await connection.GetExecutionState();
-            uint currTitleAddr = await connection.GetTitleAddress();
+            IPAddress currTitleAddr = await connection.GetTitleIPAddress();
             uint currProcId = await connection.GetProcessID();
 
             StringBuilder sb = new StringBuilder();
             sb.Append("Debug Name: ").Append(debugName).AppendLine();
             sb.Append("Execution State: ").Append(execState).AppendLine();
-            sb.Append("Current Title Addr: ").Append(new IPAddress(currTitleAddr)).AppendLine();
+            sb.Append("Current Title IP: ").Append(currTitleAddr).AppendLine();
             sb.Append("Current Process ID: ").Append(currProcId.ToString("X8")).AppendLine();
             sb.AppendLine("Named Threads below");
             foreach (ConsoleThread info in await connection.GetThreadDump()) {
