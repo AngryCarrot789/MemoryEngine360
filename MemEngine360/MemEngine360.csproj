@@ -6,12 +6,12 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\..\..\VSProjsV3\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
+	<ItemGroup>
       <Folder Include="Connections\XBOX\" />
     </ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj" />
+	</ItemGroup>
 
 </Project>
