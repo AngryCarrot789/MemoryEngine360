@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using MemEngine360.Connections.Impl.Threads;
 
@@ -25,81 +26,53 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         }
     }
 
-    // Structures
+    private static readonly byte[] ONE_BYTE = new byte[1]; // Since access is synchronized, it's safe to do this
 
-    // Variables
     private readonly TcpClient client;
     private readonly StreamReader stream;
-    private bool isConnected;
+    private bool isNotDisposed;
     private volatile int busyStack;
 
     public EndPoint? EndPoint => this.client.Connected ? this.client.Client.RemoteEndPoint : null;
 
-    public bool IsReallyConnected => this.client.Connected;
+    public bool IsConnected => this.client.Connected;
 
     public bool IsBusy => this.busyStack > 0;
 
     public PhantomRTMConsoleConnection(TcpClient client, StreamReader stream) {
         this.client = client;
         this.stream = stream;
-        this.isConnected = true;
-    }
-
-    private BusyToken CreateBusyToken() {
-        Interlocked.Increment(ref this.busyStack);
-        return new BusyToken(this);
-    }
-
-    private void EnsureNotBusy() {
-        if (this.busyStack > 0) {
-            throw new InvalidOperationException("Busy performing another operation");
-        }
+        this.isNotDisposed = true;
     }
 
     public void Dispose() {
         this.EnsureNotBusy();
         byte[] bytes = Encoding.ASCII.GetBytes("bye\r\n");
         this.client.GetStream().Write(bytes, 0, bytes.Length);
-        this.isConnected = false;
+        this.isNotDisposed = false;
         this.client.Client.Close();
     }
 
-    private async ValueTask<ConsoleResponse> ReadResponseCore() {
-        string responseText = await this.stream.ReadLineAsync() ?? "";
-        return ConsoleResponse.FromFirstLine(responseText);
-    }
-
-    private async Task<ConsoleResponse> SendCommandCore(string command) {
-        byte[] buffer = Encoding.ASCII.GetBytes(command + "\r\n");
-        await this.client.GetStream().WriteAsync(buffer);
-        ConsoleResponse response = await this.ReadResponseCore();
-        if (response.ResponseType == ResponseType.UnknownCommand) {
-            // Sometimes the xbox randomly says unknown command for specific things
-            if (this.client.Available > 0) {
-                string responseText = await this.stream.ReadLineAsync() ?? "";
-                response = ConsoleResponse.FromFirstLine(responseText);
-            }
-        }
-
-        return response;
-    }
-
-    public async Task<ConsoleResponse> SendCommand(string command) {
-        if (!this.isConnected)
+    public async ValueTask<ConsoleResponse> SendCommand(string command) {
+        if (!this.isNotDisposed)
             throw new ObjectDisposedException("Connection is closed");
 
         this.EnsureNotBusy();
-        using BusyToken x = CreateBusyToken();
+        using BusyToken x = this.CreateBusyToken();
 
         return await this.SendCommandCore(command);
     }
 
-    public async Task<List<string>> SendCommandAndReceiveLines(string Text) {
+    public async ValueTask<List<string>> SendCommandAndReceiveLines(string command) {
         this.EnsureNotBusy();
-        using BusyToken x = CreateBusyToken();
+        using BusyToken x = this.CreateBusyToken();
 
-        ConsoleResponse response = await this.SendCommandCore(Text);
-        if (response.ResponseType != ResponseType.UnknownCommand && response.ResponseType != ResponseType.MultiResponse) {
+        ConsoleResponse response = await this.SendCommandCore(command);
+        if (response.ResponseType == ResponseType.UnknownCommand) {
+            throw new Exception("Unknown command: " + command);
+        }
+
+        if (response.ResponseType != ResponseType.MultiResponse) {
             return new List<string>();
         }
 
@@ -112,7 +85,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         return list;
     }
 
-    public async Task<List<KeyValuePair<string, string>>> SendCommandAndReceiveLines2(string Text) {
+    public async ValueTask<List<KeyValuePair<string, string>>> SendCommandAndReceiveLines2(string Text) {
         return (await this.SendCommandAndReceiveLines(Text)).Select(x => {
             int split = x.IndexOf(':');
             return new KeyValuePair<string, string>(
@@ -121,7 +94,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         }).ToList();
     }
 
-    public async Task<List<int>> GetThreads() {
+    public async ValueTask<List<int>> GetThreads() {
         List<string> list = await this.SendCommandAndReceiveLines("threads");
         return list.Select(int.Parse).ToList();
         // foreach (string line in await this.SendCommandAndReceiveLines("threads")) {
@@ -130,7 +103,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         // }
     }
 
-    public async Task<List<ConsoleThread>> GetThreadDump() {
+    public async ValueTask<List<ConsoleThread>> GetThreadDump() {
         List<string> list = await this.SendCommandAndReceiveLines("threads");
         List<ConsoleThread> threads = new List<ConsoleThread>(list.Count);
         foreach (string threadId in list) {
@@ -173,57 +146,57 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         return threads;
     }
 
-    public async Task Reboot() {
+    public async ValueTask Reboot() {
         await this.SendCommand("magicboot cold");
         this.Dispose();
     }
 
-    public async Task ShutdownConsole() {
+    public async ValueTask ShutdownConsole() {
         await this.SendCommand("shutdown");
         this.Dispose();
     }
 
-    public async Task Eject() {
+    public async ValueTask Eject() {
         await this.SendCommand("dvdeject");
     }
 
-    public async Task DebugFreeze() {
+    public async ValueTask DebugFreeze() {
         await this.SendCommand("stop");
     }
 
-    public async Task DebugUnFreeze() {
+    public async ValueTask DebugUnFreeze() {
         await this.SendCommand("go");
     }
 
-    public async Task DeleteFile(string Path) {
-        string[] lines = Path.Split("\\".ToCharArray());
+    public async ValueTask DeleteFile(string path) {
+        string[] lines = path.Split("\\".ToCharArray());
         string Directory = "";
         for (int i = 0; i < (lines.Length - 1); i++)
             Directory += lines[i] + "\\";
-        await this.SendCommand("delete title=\"" + Path + "\" dir=\"" + Directory + "\"");
+        await this.SendCommand("delete title=\"" + path + "\" dir=\"" + Directory + "\"");
     }
 
-    public async Task LaunchFile(string Path) {
-        string[] lines = Path.Split("\\".ToCharArray());
+    public async ValueTask LaunchFile(string path) {
+        string[] lines = path.Split("\\".ToCharArray());
         string Directory = "";
         for (int i = 0; i < lines.Length - 1; i++)
             Directory += lines[i] + "\\";
-        await this.SendCommand("magicboot title=\"" + Path + "\" directory=\"" + Directory + "\"");
+        await this.SendCommand("magicboot title=\"" + path + "\" directory=\"" + Directory + "\"");
     }
 
-    public async Task<string> GetConsoleID() {
+    public async ValueTask<string> GetConsoleID() {
         return (await this.SendCommand("getconsoleid")).Message.Substring(10);
     }
 
-    public async Task<string> GetCPUKey() {
+    public async ValueTask<string> GetCPUKey() {
         return (await this.SendCommand("getcpukey")).Message;
     }
 
-    public async Task<string> GetDebugName() {
+    public async ValueTask<string> GetDebugName() {
         return (await this.SendCommand("dbgname")).Message;
     }
 
-    public async Task<ExecutionState> GetExecutionState() {
+    public async ValueTask<ExecutionState> GetExecutionState() {
         string str = (await this.SendCommand("getexecstate")).Message;
         switch (str) {
             case "pending":       return ExecutionState.Pending;
@@ -236,7 +209,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         }
     }
 
-    public async Task<HardwareInfo> GetHardwareInfo() {
+    public async ValueTask<HardwareInfo> GetHardwareInfo() {
         List<KeyValuePair<string, string>> lines = await this.SendCommandAndReceiveLines2("hwinfo");
         HardwareInfo info;
         info.Flags = uint.Parse(lines[0].Value.AsSpan(2, 8), NumberStyles.HexNumber);
@@ -256,116 +229,309 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         return info;
     }
 
-    public async Task<uint> GetProcessID() {
+    public async ValueTask<uint> GetProcessID() {
         uint value = uint.Parse((await this.SendCommand("getpid")).Message.Substring(4).Replace("0x", ""), NumberStyles.HexNumber);
         return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
     }
 
-    public async Task<uint> GetTitleAddress() {
+    public async ValueTask<uint> GetTitleAddress() {
         uint value = uint.Parse((await this.SendCommand("altaddr")).Message.Substring(5).Replace("0x", ""), NumberStyles.HexNumber);
         return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
     }
-
-    public async Task<bool> ReadBool(uint Offset) {
-        return await this.ReadByte(Offset) != 0;
+    
+    public async ValueTask SetConsoleColor(ConsoleColor colour) {
+        await this.SendCommand("setcolor name=" + colour.ToString().ToLower());
     }
 
-    public async Task<byte> ReadByte(uint Offset) {
-        return (await this.ReadBytes(Offset, 1))[0];
+    public async ValueTask SetDebugName(string newName) {
+        await this.SendCommand("dbgname name=" + newName);
     }
-
-    public async Task<byte[]> ReadBytes(uint address, uint count) {
-        if (!this.isConnected)
+    
+    public async ValueTask ReadBytes(uint address, byte[] buffer, int offset, uint count) {
+        if (!this.isNotDisposed)
             throw new ObjectDisposedException("Connection is closed");
 
         this.EnsureNotBusy();
-        using BusyToken x = CreateBusyToken();
+        using BusyToken x = this.CreateBusyToken();
 
         ConsoleResponse response = await this.SendCommandCore("getmem addr=0x" + address.ToString("X8") + " length=0x" + count.ToString("X8") + "\r\n");
         if (response.ResponseType != ResponseType.MultiResponse) {
-            return new byte[count];
+            throw new Exception($"Xbox responded to getmem without {nameof(ResponseType.MultiResponse)}, which is unexpected");
         }
 
-        // Using the dual task technique does not necessarily improve performance, since
-        // most of the time we are just waiting for the xbox to send more data over tcp.
-        // long begin = Time.GetSystemTicks();
-        // CancellationTokenSource cts = new CancellationTokenSource();
-        // ConcurrentQueue<string> lines = new ConcurrentQueue<string>();
-        // Task<byte[]> processLinesTask = Task.Run(async () => {
-        //     byte[] output = new byte[count];
-        //     byte[]? lineBytes = null;
-        //     int offset = 0;
-        //     while (true) {
-        //         if (cts.IsCancellationRequested && lines.IsEmpty) {
-        //             break;
-        //         }
-        //         
-        //         while (lines.TryDequeue(out string? line)) {
-        //             int hexTextCount = line.Length / 2; // typically 128 when reading big chunks
-        //             if (lineBytes == null || lineBytes.Length != hexTextCount) {
-        //                 lineBytes = new byte[hexTextCount];
-        //             }
-        //             
-        //             for (int i = 0, j = 0; i < hexTextCount; i++, j += 2) {
-        //                 if (line[j] == '?')
-        //                     continue; // protected memory maybe?
-        //                 lineBytes[i] = byte.TryParse(line.AsSpan(j, 2), NumberStyles.HexNumber, null, out byte b) ? b : (byte) 0;
-        //             }
-        //             
-        //             Array.Copy(lineBytes, 0, output, offset, hexTextCount);
-        //             offset += hexTextCount;
-        //         }
-        //         
-        //         await Task.Yield();
-        //     }
-        //     return output;
-        // });
-        // 
-        // string? hexText;
-        // while ((hexText = await this.stream.ReadLineAsync(CancellationToken.None)) != ".") {
-        //     int available = this.client.Available;
-        //     lines.Enqueue(hexText!);
-        // }
-        // 
-        // await cts.CancelAsync();
-
-        byte[] output = new byte[count];
         byte[]? lineBytes = null;
-        int offset = 0;
-        string? hexText;
-        while ((hexText = await this.stream.ReadLineAsync(CancellationToken.None)) != ".") {
-            int hexTextCount = hexText!.Length / 2; // typically 128 when reading big chunks
-            if (lineBytes == null || lineBytes.Length != hexTextCount) {
-                lineBytes = new byte[hexTextCount];
+        string? data;
+        while ((data = await this.stream.ReadLineAsync(CancellationToken.None)) != ".") {
+            int cbData = data!.Length / 2; // typically 128 when reading big chunks
+            if (lineBytes == null || lineBytes.Length != cbData) {
+                lineBytes = new byte[cbData];
             }
 
-            for (int i = 0, j = 0; i < hexTextCount; i++, j += 2) {
-                if (hexText[j] == '?')
-                    continue; // protected memory maybe? 
-
-                lineBytes[i] = byte.TryParse(hexText.AsSpan(j, 2), NumberStyles.HexNumber, null, out byte b) ? b : (byte) 0;
+            for (int i = 0, j = 0; i < cbData; i++, j += 2) {
+                if (data[j] == '?') {
+                    lineBytes[i] = 0; // protected memory maybe?
+                }
+                else {
+                    lineBytes[i] = (byte) ((CharToInteger(data[j]) << 4) | CharToInteger(data[j + 1]));
+                }
             }
 
-            Array.Copy(lineBytes, 0, output, offset, hexTextCount);
-            offset += hexTextCount;
+            Array.Copy(lineBytes, 0, buffer, offset, cbData);
+            offset += cbData;
         }
 
         ConsoleResponse failedResponse = await this.ReadResponseCore();
         if (failedResponse.ResponseType != ResponseType.UnknownCommand) {
             Debug.Assert(false, "What is this bullshit who patched this bug???");
         }
-
-        return output;
-        // return await processLinesTask;
+    }
+    
+    public async ValueTask<byte[]> ReadBytes(uint address, uint count) {
+        byte[] buffer = new byte[count];
+        await this.ReadBytes(address, buffer, 0, count);
+        return buffer;
+    }
+    
+    public async ValueTask<byte> ReadByte(uint Offset) {
+        await this.ReadBytes(Offset, ONE_BYTE, 0, 1);
+        return ONE_BYTE[0];
     }
 
+    public async ValueTask<bool> ReadBool(uint address) => await this.ReadByte(address) != 0;
+    
+    public async ValueTask<char> ReadChar(uint address) => (char) await this.ReadByte(address);
+
+    public async ValueTask<T> ReadValue<T>(uint address) where T : unmanaged {
+        byte[] buffer = await this.ReadBytes(address, (uint) Unsafe.SizeOf<T>());
+        if (BitConverter.IsLittleEndian)
+            Array.Reverse(buffer);
+        return Unsafe.ReadUnaligned<T>(ref buffer[0]);
+    }
+    
+    public async ValueTask<T> ReadStruct<T>(uint address, params int[] fields) where T : unmanaged {
+        if (!BitConverter.IsLittleEndian) {
+            // TODO: I don't have a big endian computer nor a big enough brain to know if this works
+            return await this.ReadValue<T>(address);
+        }
+        
+        int offset = 0;
+        byte[] buffer = new byte[Unsafe.SizeOf<T>()];
+        foreach (int cbField in fields) {
+            await this.ReadBytes((uint) (address + offset), buffer, offset, (uint) cbField);
+            Array.Reverse(buffer, offset, cbField);
+            offset += cbField;
+        }
+
+        if (offset != buffer.Length) {
+            Debugger.Break();
+        }
+        
+        return Unsafe.ReadUnaligned<T>(ref buffer[0]);
+    }
+    
+    public async ValueTask<string> ReadString(uint address, uint count) {
+        byte[] buffer = await this.ReadBytes(address, count);
+        return Encoding.ASCII.GetString(buffer);
+    }
+    
+    public async ValueTask WriteBytes(uint address, byte[] bytes) {
+        if (!this.isNotDisposed)
+            throw new ObjectDisposedException("This connection has been closed");
+
+        this.EnsureNotBusy();
+        using BusyToken x = this.CreateBusyToken();
+
+        await this.WriteBytesAndGetResponseInternal(address, bytes);
+    }
+
+    public ValueTask WriteByte(uint address, byte value) {
+        if (!this.isNotDisposed)
+            throw new ObjectDisposedException("This connection has been closed");
+
+        this.EnsureNotBusy();
+        using BusyToken x = this.CreateBusyToken();
+
+        ONE_BYTE[0] = value;
+        return this.WriteBytes(address, ONE_BYTE);
+    }
+
+    public ValueTask WriteBool(uint address, bool value) {
+        return this.WriteByte(address, (byte) (value ? 0x01 : 0x00));
+    }
+
+    public ValueTask WriteChar(uint address, char value) {
+        return this.WriteByte(address, (byte) value);
+    }
+    
+    public ValueTask WriteValue<T>(uint address, T value) where T : unmanaged {
+        byte[] bytes = new byte[Unsafe.SizeOf<T>()];
+        Unsafe.As<byte, T>(ref bytes[0]) = value;
+        if (BitConverter.IsLittleEndian)
+            Array.Reverse(bytes);
+        
+        return this.WriteBytes(address, bytes);
+    }
+    
+    public async ValueTask WriteStruct<T>(uint address, T value, params int[] fields) where T : unmanaged {
+        if (!BitConverter.IsLittleEndian) {
+            // TODO: I don't have a big endian computer nor a big enough brain to know if this works
+            await this.WriteValue<T>(address, value);
+        }
+        
+        int offset = 0;
+        byte[] buffer = new byte[Unsafe.SizeOf<T>()];
+        foreach (int cbField in fields) {
+            Unsafe.As<byte, T>(ref buffer[offset]) = value;
+            Array.Reverse(buffer, offset, cbField);
+            offset += cbField;
+        }
+
+        if (offset != buffer.Length) {
+            Debugger.Break();
+        }
+
+        await this.WriteBytes(address, buffer);
+    }
+    
+    public ValueTask WriteString(uint address, string value) {
+        return this.WriteBytes(address, Encoding.ASCII.GetBytes(value));
+    }
+
+    public async ValueTask WriteFile(uint address, string filePath) {
+        if (!this.isNotDisposed)
+            throw new ObjectDisposedException("This connection has been closed");
+
+        this.EnsureNotBusy();
+        using BusyToken x = this.CreateBusyToken();
+
+        byte[] buffer = await File.ReadAllBytesAsync(filePath);
+        await this.WriteBytesAndGetResponseInternal(address, buffer);
+    }
+
+    public ValueTask WriteHook(uint address, uint destination, bool isLinked) {
+        uint[] Func = new uint[4];
+        if ((destination & 0x8000) != 0)
+            Func[0] = 0x3D600000 + (((destination >> 16) & 0xFFFF) + 1);
+        else
+            Func[0] = 0x3D600000 + ((destination >> 16) & 0xFFFF);
+        Func[1] = 0x396B0000 + (destination & 0xFFFF);
+        Func[2] = 0x7D6903A6;
+        Func[3] = 0x4E800420;
+        if (isLinked)
+            Func[3]++;
+        byte[] buffer = new byte[0x10];
+        byte[] f1 = BitConverter.GetBytes(Func[0]);
+        byte[] f2 = BitConverter.GetBytes(Func[1]);
+        byte[] f3 = BitConverter.GetBytes(Func[2]);
+        byte[] f4 = BitConverter.GetBytes(Func[3]);
+        if (BitConverter.IsLittleEndian) {
+            Array.Reverse(f1);
+            Array.Reverse(f2);
+            Array.Reverse(f3);
+            Array.Reverse(f4);
+        }
+
+        for (int i = 0; i < 4; i++)
+            buffer[i] = f1[i];
+        for (int i = 4; i < 8; i++)
+            buffer[i] = f2[i - 4];
+        for (int i = 8; i < 0xC; i++)
+            buffer[i] = f3[i - 8];
+        for (int i = 0xC; i < 0x10; i++)
+            buffer[i] = f4[i - 0xC];
+        return this.WriteBytes(address, buffer);
+    }
+
+    public ValueTask WriteNOP(uint address) {
+        return this.WriteBytes(address, [0x60, 0x00, 0x00, 0x00]);
+    }
+    
+    private async ValueTask<ConsoleResponse> ReadResponseCore() {
+        string responseText = await this.stream.ReadLineAsync() ?? "";
+        return ConsoleResponse.FromFirstLine(responseText);
+    }
+    
+    private async ValueTask WriteBytesAndGetResponseInternal(uint address, byte[] bytes) {
+        string str = "setmem addr=0x" + address.ToString("X8") + " data=";
+        foreach (byte b in bytes)
+            str += b.ToString("X2");
+        str += "\r\n";
+
+        byte[] buffer = Encoding.ASCII.GetBytes(str);
+        await this.client.GetStream().WriteAsync(buffer);
+        ConsoleResponse response = await this.ReadResponseCore();
+        if (response.ResponseType != ResponseType.SingleResponse) {
+            throw new Exception($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
+        }
+    }
+
+    private async ValueTask<ConsoleResponse> SendCommandCore(string command) {
+        byte[] buffer = Encoding.ASCII.GetBytes(command + "\r\n");
+        await this.client.GetStream().WriteAsync(buffer);
+        ConsoleResponse response = await this.ReadResponseCore();
+        if (response.ResponseType == ResponseType.UnknownCommand) {
+            // Sometimes the xbox randomly says unknown command for specific things
+            if (this.client.Available > 0) {
+                string responseText = await this.stream.ReadLineAsync() ?? "";
+                response = ConsoleResponse.FromFirstLine(responseText);
+            }
+        }
+
+        return response;
+    }
+    
+    private BusyToken CreateBusyToken() {
+        Interlocked.Increment(ref this.busyStack);
+        return new BusyToken(this);
+    }
+    
+    private void EnsureNotBusy() {
+        if (this.busyStack > 0) {
+            throw new InvalidOperationException("Busy performing another operation");
+        }
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] 
+    private static int CharToInteger(char c) => c <= '9' ? (c - '0') : ((c & ~0x20 /* LOWER TO UPPER CASE */) - 'A' + 10);
+
+    public ValueTask WriteVector2(uint Offset, Vector2 Vector2) {
+        byte[] bytes = new byte[8];
+        byte[] x = BitConverter.GetBytes(Vector2.X);
+        byte[] y = BitConverter.GetBytes(Vector2.Y);
+        if (BitConverter.IsLittleEndian) {
+            Array.Reverse(x);
+            Array.Reverse(y);
+        }
+
+        Array.Copy(x, 0, bytes, 0, 4);
+        Array.Copy(y, 0, bytes, 4, 4);
+        return this.WriteBytes(Offset, bytes);
+    }
+
+    public ValueTask WriteVector3(uint Offset, Vector3 Vector3) {
+        byte[] bytes = new byte[12];
+        byte[] x = BitConverter.GetBytes(Vector3.X);
+        byte[] y = BitConverter.GetBytes(Vector3.Y);
+        byte[] z = BitConverter.GetBytes(Vector3.Z);
+        if (BitConverter.IsLittleEndian) {
+            Array.Reverse(x);
+            Array.Reverse(y);
+            Array.Reverse(z);
+        }
+
+        Array.Copy(x, 0, bytes, 0, 4);
+        Array.Copy(y, 0, bytes, 4, 4);
+        Array.Copy(z, 0, bytes, 8, 4);
+        return this.WriteBytes(Offset, bytes);
+    }
+    
     // Cannot get it to work nicely
-    public async Task<byte[]> ReadBytesEx_BARELY_WORKS(uint address, uint count) {
-        if (!this.isConnected)
+    public async ValueTask<byte[]> ReadBytesEx_BARELY_WORKS(uint address, uint count) {
+        if (!this.isNotDisposed)
             throw new ObjectDisposedException("Connection is closed");
 
         this.EnsureNotBusy();
-        using BusyToken x = CreateBusyToken();
+        using BusyToken x = this.CreateBusyToken();
 
         byte[] output = new byte[count];
         try {
@@ -384,7 +550,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
                     return output;
                 }
 
-                ushort value = BinaryPrimitives.ReadUInt16BigEndian(new ReadOnlySpan<byte>(output, 0, 2));
+                ushort flag = BinaryPrimitives.ReadUInt16BigEndian(new ReadOnlySpan<byte>(output, 0, 2));
                 cbRead = await this.client.GetStream().ReadAsync(output, offset, 0x400);
                 if (cbRead == 22) { // 22 is the message length of UnknownCommand
                     offset += 22;
@@ -417,7 +583,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
                     return output;
                 }
 
-                ushort value = BinaryPrimitives.ReadUInt16BigEndian(new ReadOnlySpan<byte>(output, 0, 2));
+                ushort flag = BinaryPrimitives.ReadUInt16BigEndian(new ReadOnlySpan<byte>(output, 0, 2));
                 cbRead = await this.client.GetStream().ReadAsync(output, offset, length);
                 if (cbRead != 22 && cbRead == length) {
                     ConsoleResponse failedResponse = await this.ReadResponseCore();
@@ -432,265 +598,5 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         catch (Exception e) {
             return output;
         }
-    }
-
-    public async Task<char> ReadChar(uint Offset) {
-        return (char) await this.ReadByte(Offset);
-    }
-
-    public async Task<double> ReadDouble(uint Offset) {
-        byte[] buffer = await this.ReadBytes(Offset, 8);
-        Array.Reverse(buffer);
-        return BitConverter.ToDouble(buffer, 0);
-    }
-
-    public async Task<float> ReadFloat(uint Offset) {
-        byte[] buffer = await this.ReadBytes(Offset, 4);
-        Array.Reverse(buffer);
-        return BitConverter.ToSingle(buffer, 0);
-    }
-
-    public async Task<short> ReadInt16(uint Offset) {
-        byte[] buffer = await this.ReadBytes(Offset, 2);
-        Array.Reverse(buffer);
-        return BitConverter.ToInt16(buffer, 0);
-    }
-
-    public async Task<int> ReadInt32(uint Offset) {
-        byte[] buffer = await this.ReadBytes(Offset, 4);
-        Array.Reverse(buffer);
-        return BitConverter.ToInt32(buffer, 0);
-    }
-
-    public async Task<long> ReadInt64(uint Offset) {
-        byte[] buffer = await this.ReadBytes(Offset, 8);
-        Array.Reverse(buffer);
-        return BitConverter.ToInt64(buffer, 0);
-    }
-
-    public async Task<sbyte> ReadSByte(uint Offset) {
-        return (sbyte) await this.ReadByte(Offset);
-    }
-
-    public async Task<string> ReadString(uint Offset, uint Length) {
-        byte[] buffer = await this.ReadBytes(Offset, Length);
-        string str = "";
-        foreach (byte b in buffer)
-            str += b.ToString("X2");
-        return HexString2Ascii(str);
-    }
-
-    public async Task<ushort> ReadUInt16(uint Offset) {
-        byte[] buffer = await this.ReadBytes(Offset, 2);
-        Array.Reverse(buffer);
-        return BitConverter.ToUInt16(buffer, 0);
-    }
-
-    public async Task<uint> ReadUInt32(uint Offset) {
-        byte[] buffer = await this.ReadBytes(Offset, 4);
-        Array.Reverse(buffer);
-        return BitConverter.ToUInt32(buffer, 0);
-    }
-
-    public async Task<ulong> ReadUInt64(uint Offset) {
-        byte[] buffer = await this.ReadBytes(Offset, 8);
-        Array.Reverse(buffer);
-        return BitConverter.ToUInt64(buffer, 0);
-    }
-
-    public async Task<Vector2> ReadVector2(uint Offset) {
-        Vector2 vec;
-        vec.X = await this.ReadFloat(Offset);
-        vec.Y = await this.ReadFloat(Offset + 4);
-        return vec;
-    }
-
-    public async Task<Vector3> ReadVector3(uint Offset) {
-        Vector3 vec;
-        vec.X = await this.ReadFloat(Offset);
-        vec.Y = await this.ReadFloat(Offset + 4);
-        vec.Z = await this.ReadFloat(Offset + 8);
-        return vec;
-    }
-
-    public async Task SetConsoleColor(ConsoleColor Color) {
-        await this.SendCommand("setcolor name=" + Color.ToString().ToLower());
-    }
-
-    public async Task SetDebugName(string DebugName) {
-        await this.SendCommand("dbgname name=" + DebugName);
-    }
-
-    public Task WriteBool(uint Offset, bool Bool) {
-        return this.WriteByte(Offset, (byte) (Bool ? 0x01 : 0x00));
-    }
-
-    public Task WriteByte(uint Offset, byte Byte) {
-        return this.WriteByte(Offset, [Byte]);
-    }
-
-    public async Task WriteByte(uint Offset, byte[] Bytes) {
-        if (!this.isConnected)
-            throw new ObjectDisposedException("This connection has been closed");
-
-        this.EnsureNotBusy();
-        using BusyToken x = CreateBusyToken();
-
-        string str = "setmem addr=0x" + Offset.ToString("X8") + " data=";
-        foreach (byte b in Bytes)
-            str += b.ToString("X2");
-        str += "\r\n";
-
-        byte[] buffer = Encoding.ASCII.GetBytes(str);
-        await this.client.GetStream().WriteAsync(buffer);
-        ConsoleResponse response = await this.ReadResponseCore();
-    }
-
-    public Task WriteChar(uint Offset, char Char) {
-        return this.WriteByte(Offset, (byte) Char);
-    }
-
-    public Task WriteDouble(uint Offset, double Double) {
-        byte[] bytes = BitConverter.GetBytes(Double);
-        if (BitConverter.IsLittleEndian)
-            Array.Reverse(bytes);
-        return this.WriteByte(Offset, bytes);
-    }
-
-    public Task WriteFile(uint Offset, string Path) {
-        return this.WriteByte(Offset, File.ReadAllBytes(Path));
-    }
-
-    public Task WriteFloat(uint Offset, float Float) {
-        byte[] bytes = BitConverter.GetBytes(Float);
-        if (BitConverter.IsLittleEndian)
-            Array.Reverse(bytes);
-        return this.WriteByte(Offset, bytes);
-    }
-
-    public Task WriteHook(uint Offset, uint Destination, bool Linked) {
-        uint[] Func = new uint[4];
-        if ((Destination & 0x8000) != 0)
-            Func[0] = 0x3D600000 + (((Destination >> 16) & 0xFFFF) + 1);
-        else
-            Func[0] = 0x3D600000 + ((Destination >> 16) & 0xFFFF);
-        Func[1] = 0x396B0000 + (Destination & 0xFFFF);
-        Func[2] = 0x7D6903A6;
-        Func[3] = 0x4E800420;
-        if (Linked)
-            Func[3]++;
-        byte[] buffer = new byte[0x10];
-        byte[] f1 = BitConverter.GetBytes(Func[0]);
-        byte[] f2 = BitConverter.GetBytes(Func[1]);
-        byte[] f3 = BitConverter.GetBytes(Func[2]);
-        byte[] f4 = BitConverter.GetBytes(Func[3]);
-        if (BitConverter.IsLittleEndian) {
-            Array.Reverse(f1);
-            Array.Reverse(f2);
-            Array.Reverse(f3);
-            Array.Reverse(f4);
-        }
-
-        for (int i = 0; i < 4; i++)
-            buffer[i] = f1[i];
-        for (int i = 4; i < 8; i++)
-            buffer[i] = f2[i - 4];
-        for (int i = 8; i < 0xC; i++)
-            buffer[i] = f3[i - 8];
-        for (int i = 0xC; i < 0x10; i++)
-            buffer[i] = f4[i - 0xC];
-        return this.WriteByte(Offset, buffer);
-    }
-
-    public Task WriteInt16(uint Offset, short Int16) {
-        byte[] bytes = BitConverter.GetBytes(Int16);
-        if (BitConverter.IsLittleEndian)
-            Array.Reverse(bytes);
-        return this.WriteByte(Offset, bytes);
-    }
-
-    public Task WriteInt32(uint Offset, int Int32) {
-        byte[] bytes = BitConverter.GetBytes(Int32);
-        if (BitConverter.IsLittleEndian)
-            Array.Reverse(bytes);
-        return this.WriteByte(Offset, bytes);
-    }
-
-    public Task WriteInt64(uint Offset, long Int64) {
-        byte[] bytes = BitConverter.GetBytes(Int64);
-        if (BitConverter.IsLittleEndian)
-            Array.Reverse(bytes);
-        return this.WriteByte(Offset, bytes);
-    }
-
-    public Task WriteNOP(uint Offset) {
-        return this.WriteByte(Offset, [0x60, 0x00, 0x00, 0x00]);
-    }
-
-    public Task WriteString(uint Offset, string String) {
-        return this.WriteByte(Offset, Encoding.ASCII.GetBytes(String));
-    }
-
-    public Task WriteSByte(uint Offset, sbyte SByte) {
-        return this.WriteByte(Offset, [(byte) SByte]);
-    }
-
-    public Task WriteUInt16(uint Offset, ushort UInt16) {
-        byte[] bytes = BitConverter.GetBytes(UInt16);
-        if (BitConverter.IsLittleEndian)
-            Array.Reverse(bytes);
-        return this.WriteByte(Offset, bytes);
-    }
-
-    public Task WriteUInt32(uint Offset, uint UInt32) {
-        byte[] bytes = BitConverter.GetBytes(UInt32);
-        if (BitConverter.IsLittleEndian)
-            Array.Reverse(bytes);
-        return this.WriteByte(Offset, bytes);
-    }
-
-    public Task WriteUInt64(uint Offset, ulong UInt64) {
-        byte[] bytes = BitConverter.GetBytes(UInt64);
-        if (BitConverter.IsLittleEndian)
-            Array.Reverse(bytes);
-        return this.WriteByte(Offset, bytes);
-    }
-
-    public Task WriteVector2(uint Offset, Vector2 Vector2) {
-        byte[] bytes = new byte[8];
-        byte[] x = BitConverter.GetBytes(Vector2.X);
-        byte[] y = BitConverter.GetBytes(Vector2.Y);
-        if (BitConverter.IsLittleEndian) {
-            Array.Reverse(x);
-            Array.Reverse(y);
-        }
-
-        Array.Copy(x, 0, bytes, 0, 4);
-        Array.Copy(y, 0, bytes, 4, 4);
-        return this.WriteByte(Offset, bytes);
-    }
-
-    public Task WriteVector3(uint Offset, Vector3 Vector3) {
-        byte[] bytes = new byte[12];
-        byte[] x = BitConverter.GetBytes(Vector3.X);
-        byte[] y = BitConverter.GetBytes(Vector3.Y);
-        byte[] z = BitConverter.GetBytes(Vector3.Z);
-        if (BitConverter.IsLittleEndian) {
-            Array.Reverse(x);
-            Array.Reverse(y);
-            Array.Reverse(z);
-        }
-
-        Array.Copy(x, 0, bytes, 0, 4);
-        Array.Copy(y, 0, bytes, 4, 4);
-        Array.Copy(z, 0, bytes, 8, 4);
-        return this.WriteByte(Offset, bytes);
-    }
-
-    private static string HexString2Ascii(string hexString) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i <= hexString.Length - 2; i += 2)
-            sb.Append((char) (uint) int.Parse(hexString.AsSpan(i, 2), NumberStyles.HexNumber));
-        return sb.ToString();
     }
 }

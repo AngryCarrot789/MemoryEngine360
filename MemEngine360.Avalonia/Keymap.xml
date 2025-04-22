@@ -6,6 +6,18 @@
             <KeyStroke Mods="CTRL" Key="O"/>
         </Shortcut>
         
+        <Group Name="ScanResultList">
+            <Shortcut Name="EditScanResultValue" CommandId="commands.memengine.EditScanResultValueCommand">
+                <KeyStroke Mods="CTRL" Key="E"/>
+            </Shortcut>
+        </Group>
+
+        <Group Name="SavedAddressList">
+            <Shortcut Name="EditSavedAddressValue" CommandId="commands.memengine.EditSavedAddressValueCommand">
+                <KeyStroke Mods="CTRL" Key="E"/>
+            </Shortcut>
+        </Group>
+        
         <!-- TODO: implement history -->
         <Shortcut Name="UndoShortcut" CommandId="commands.generic.UndoCommand">
             <KeyStroke Mods="CTRL" Key="Z"/>

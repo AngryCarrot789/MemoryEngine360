@@ -6,7 +6,6 @@ using MemEngine360.Connections.Impl.Threads;
 using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 
@@ -38,7 +37,7 @@ public class ConnectToConsoleCommand : Command {
             }
             
             engine.Connection.Dispose();
-            engine.Connection = null;
+            engine.SetConnection(null, ConnectionChangeCause.User);
             
             if (ILatestActivityView.DataKey.TryGetContext(e.ContextData, out ILatestActivityView? view))
                 view.Activity = "Disconnected from xbox 360";
@@ -47,7 +46,7 @@ public class ConnectToConsoleCommand : Command {
         DefaultProgressTracker progressTracker = new DefaultProgressTracker();
         IConsoleConnection? connection = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionService>().OpenDialogAndConnect(progressTracker);
         if (connection != null) {
-            engine.Connection = connection;
+            engine.SetConnection(connection, ConnectionChangeCause.User);
             if (ILatestActivityView.DataKey.TryGetContext(e.ContextData, out ILatestActivityView? view))
                 view.Activity = "Connected to xbox 360.";
 
@@ -67,7 +66,6 @@ public class ConnectToConsoleCommand : Command {
                     sb.AppendLine(info.ToString());
                 }
             }
-            
             
             await IMessageDialogService.Instance.ShowMessage("Information", "Console Information as follows", sb.ToString());
         }

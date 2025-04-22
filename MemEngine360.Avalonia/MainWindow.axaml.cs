@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -18,8 +19,11 @@ using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
+using PFXToolKitUI.Avalonia.Interactivity.Selecting;
 using PFXToolKitUI.Avalonia.Themes.Controls;
 using PFXToolKitUI.DataTransfer;
+using PFXToolKitUI.Interactivity;
+using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Commands;
@@ -86,9 +90,10 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
     #endregion
 
     public MemoryEngine360 MemoryEngine360 { get; }
+
+    public IListSelectionManager<ScanResultViewModel> ScanResultSelectionManager { get; }
     
-    public IResultListSelectionManager<ScanResultViewModel> ScanResultSelectionManager { get; }
-    public IResultListSelectionManager<SavedAddressViewModel> SavedAddressesSelectionManager { get; }
+    public IListSelectionManager<SavedAddressViewModel> SavedAddressesSelectionManager { get; }
 
     public string Activity {
         get => this.latestActivityText;
@@ -111,10 +116,10 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         this.MemoryEngine360 = new MemoryEngine360();
         this.ScanResultSelectionManager = new DataGridSelectionManager<ScanResultViewModel>(this.PART_ScanListResults);
         this.SavedAddressesSelectionManager = new DataGridSelectionManager<SavedAddressViewModel>(this.PART_SavedAddressList);
-        
+
         using (MultiChangeToken change = DataManager.GetContextData(this).BeginChange())
             change.Context.Set(MemoryEngine360.DataKey, this.MemoryEngine360).Set(IMemEngineUI.DataKey, this).Set(ILatestActivityView.DataKey, this);
-        
+
         this.Activity = "Welcome to MemEngine360.";
         this.PART_SavedAddressList.ItemsSource = this.MemoryEngine360.ScanningProcessor.SavedAddresses;
         this.PART_ScanListResults.ItemsSource = this.MemoryEngine360.ScanningProcessor.ScanResults;
@@ -154,7 +159,7 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         this.MemoryEngine360.ScanningProcessor.NumericScanTypeChanged += p => {
             this.UpdateUIForScanTypeAndDataType();
         };
-        
+
         this.MemoryEngine360.ScanningProcessor.ScanResults.CollectionChanged += (sender, args) => {
             this.PART_Run_CountResults.Text = ((ObservableCollection<ScanResultViewModel>) sender!).Count.ToString();
         };
@@ -213,7 +218,7 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
             this.PART_ValueOrBetweenTextBlock.Text = "Between";
             if (this.inputValueBinder.IsFullyAttached)
                 this.inputValueBinder.Detach();
-                    
+
             if (!this.inputBetweenABinder.IsFullyAttached)
                 this.inputBetweenABinder.Attach(this.PART_Input_BetweenA, sp);
             if (!this.inputBetweenBBinder.IsFullyAttached)
@@ -225,10 +230,10 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
             this.PART_ValueOrBetweenTextBlock.Text = "Value";
             if (this.inputBetweenABinder.IsFullyAttached)
                 this.inputBetweenABinder.Detach();
-                    
+
             if (this.inputBetweenBBinder.IsFullyAttached)
                 this.inputBetweenBBinder.Detach();
-                    
+
             if (!this.inputValueBinder.IsFullyAttached)
                 this.inputValueBinder.Attach(this.PART_Input_Value1, this.MemoryEngine360.ScanningProcessor);
         }
@@ -249,12 +254,26 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         this.scanTypeBinder1.Attach(this.PART_ScanTypeCombo1, this.MemoryEngine360.ScanningProcessor);
         this.scanTypeBinder2.Attach(this.PART_ScanTypeCombo2, this.MemoryEngine360.ScanningProcessor);
         this.PART_ActiveBackgroundTaskGrid.IsVisible = false;
+        this.MemoryEngine360.ConnectionChanged += this.OnConnectionChanged;
 
         this.UpdateUIForScanTypeAndDataType();
 
         ActivityManager activityManager = ActivityManager.Instance;
         activityManager.TaskStarted += this.OnTaskStarted;
         activityManager.TaskCompleted += this.OnTaskCompleted;
+    }
+
+    private void OnConnectionChanged(MemoryEngine360 sender, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
+        switch (cause) {
+            case ConnectionChangeCause.User:
+            case ConnectionChangeCause.Custom: {
+                this.Activity = newConn != null ? "Connected to console" : "Disconnected from console";
+                break;
+            }
+            case ConnectionChangeCause.ClosingWindow:  break;
+            case ConnectionChangeCause.LostConnection: this.Activity = "Lost connection to console"; break;
+            default:                                   throw new ArgumentOutOfRangeException(nameof(cause), cause, null);
+        }
     }
 
     protected override void OnUnloaded(RoutedEventArgs e) {
@@ -271,7 +290,7 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         this.dataTypeBinder.Detach();
         this.scanTypeBinder1.Detach();
         this.scanTypeBinder2.Detach();
-        
+
         if (this.inputValueBinder.IsFullyAttached)
             this.inputValueBinder.Detach();
         if (this.inputBetweenABinder.IsFullyAttached)
@@ -280,11 +299,55 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
             this.inputBetweenBBinder.Detach();
     }
 
-    protected override Task<bool> OnClosingAsync(WindowCloseReason reason) {
+    protected override async Task<bool> OnClosingAsync(WindowCloseReason reason) {
+        if (this.MemoryEngine360.ScanningProcessor.IsScanning) {
+            ActivityTask? activity = this.MemoryEngine360.ScanningProcessor.ScanningActivity;
+            if (activity != null && activity.TryCancel()) {
+                await activity;
+                
+                if (this.MemoryEngine360.ScanningProcessor.IsScanning) {
+                    await IMessageDialogService.Instance.ShowMessage("Busy", "Rare: still busy. Please wait for scan to complete");
+                    return true;
+                }
+            }
+        }
+        
         IConsoleConnection? connection = this.MemoryEngine360.Connection;
-        this.MemoryEngine360.Connection = null;
+        if (connection != null && this.MemoryEngine360.IsConnectionBusy) {
+            using CancellationTokenSource cts = new CancellationTokenSource();
+            ActivityTask task = ActivityManager.Instance.RunTask(async () => {
+                ActivityTask activity = ActivityManager.Instance.CurrentTask;
+                activity.Progress.Caption = "Busy";
+                activity.Progress.Text = "Waiting for operations to complete";
+                activity.Progress.IsIndeterminate = true;
+                
+                await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                    return this.MemoryEngine360.WaitAndDisconnectAsync(ConnectionChangeCause.ClosingWindow, activity.CancellationToken);
+                });
+            }, cts);
+
+            await task;
+
+            // there's a tiny window between cancellation signal and task actually exiting.
+            // it's possible the connection was closed even when cancelled for a few microseconds or so
+            if (this.MemoryEngine360.IsConnectionBusy) {
+                MessageBoxInfo info = new MessageBoxInfo() {
+                    Caption = "Engine busy", Message = "Engine is still busy elsewhere. Do you want to force close the window?",
+                    Buttons = MessageBoxButton.YesNo, NoText = "No (do nothing)"
+                };
+
+                MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
+                if (result == MessageBoxResult.Yes) {
+                    return false; // let TCP pipes auto-timeout
+                }
+                
+                return true; // cancel window closing
+            }
+        }
+
+        this.MemoryEngine360.SetConnection(null, ConnectionChangeCause.User);
         connection?.Dispose();
-        return Task.FromResult(false);
+        return false;
     }
 
     #region Task Manager and Activity System
@@ -311,7 +374,7 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
             prog.IsIndeterminateChanged -= this.OnPrimaryActivityIndeterminateChanged;
             if (this.primaryActivity.IsDirectlyCancellable)
                 this.PART_CancelActivityButton.IsVisible = false;
-            
+
             prog = null;
         }
 
@@ -323,7 +386,7 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
             prog.IsIndeterminateChanged += this.OnPrimaryActivityIndeterminateChanged;
             if (task.IsDirectlyCancellable)
                 this.PART_CancelActivityButton.IsVisible = true;
-            
+
             this.PART_ActiveBackgroundTaskGrid.IsVisible = true;
         }
         else {

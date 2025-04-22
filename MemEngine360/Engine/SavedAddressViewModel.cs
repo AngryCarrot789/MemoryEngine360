@@ -7,7 +7,7 @@ namespace MemEngine360.Engine;
 
 public class SavedAddressViewModel : INotifyPropertyChanged {
     public static readonly DataKey<SavedAddressViewModel> DataKey = DataKey<SavedAddressViewModel>.Create("SavedAddressViewModel");
-    
+
     private string value = "", description = "";
     private DataType dataType = DataType.Byte;
     private StringScanOption stringScanOption = StringScanOption.UTF8;
@@ -20,21 +20,44 @@ public class SavedAddressViewModel : INotifyPropertyChanged {
 
     public string Value { get => this.value; set => this.SetField(ref this.value, value ?? ""); }
     public string Description { get => this.description; set => this.SetField(ref this.description, value ?? ""); }
-    public DataType DataType { get => this.dataType; set => this.SetField(ref this.dataType, value); } 
-    public StringScanOption StringScanOption { get => this.stringScanOption; set => this.SetField(ref this.stringScanOption, value); } 
+    public DataType DataType { get => this.dataType; set => this.SetField(ref this.dataType, value); }
+    public StringScanOption StringScanOption { get => this.stringScanOption; set => this.SetField(ref this.stringScanOption, value); }
     public int StringLength { get => this.stringLength; set => this.SetField(ref this.stringLength, value); }
     public bool DisplayAsHex { get => this.hex; set => this.SetField(ref this.hex, value); }
     public bool DisplayAsUnsigned { get => this.unsigned; set => this.SetField(ref this.unsigned, value); }
-    
+
     public ScanningProcessor ScanningProcessor { get; set; }
-    
+
+    public MemoryEngine360.NumericDisplayType NumericDisplayType {
+        get {
+            if (this.DisplayAsHex)
+                return MemoryEngine360.NumericDisplayType.Hexadecimal;
+            if (this.DisplayAsUnsigned)
+                return MemoryEngine360.NumericDisplayType.Unsigned;
+            return MemoryEngine360.NumericDisplayType.Normal;
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public SavedAddressViewModel(ScanningProcessor scanningProcessor, uint address) {
         this.ScanningProcessor = scanningProcessor;
         this.Address = address;
     }
-    
+
+    public SavedAddressViewModel(ScanResultViewModel result) {
+        this.ScanningProcessor = result.ScanningProcessor;
+        this.Address = result.Address;
+        this.dataType = result.DataType;
+        this.value = result.CurrentValue;
+        switch (result.NumericDisplayType) {
+            case MemoryEngine360.NumericDisplayType.Normal:      break;
+            case MemoryEngine360.NumericDisplayType.Unsigned:    this.unsigned = true; break;
+            case MemoryEngine360.NumericDisplayType.Hexadecimal: this.hex = true; break;
+            default:                                             throw new ArgumentOutOfRangeException();
+        }
+    }
+
     protected void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
         this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }

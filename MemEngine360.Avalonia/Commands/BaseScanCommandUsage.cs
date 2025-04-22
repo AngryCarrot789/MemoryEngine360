@@ -1,7 +1,5 @@
 ﻿using MemEngine360.Connections;
 using MemEngine360.Engine;
-using PFXToolKitUI.Avalonia.CommandUsages;
-using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Avalonia.Commands;
 
@@ -27,7 +25,7 @@ public class BaseScanCommandUsage : MemEngineButtonCommandUsage {
         }
     }
 
-    private void OnConnectionChanged(MemoryEngine360 sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection) {
+    private void OnConnectionChanged(MemoryEngine360 sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
         this.UpdateCanExecuteLater();
     }
 

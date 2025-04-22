@@ -10,7 +10,7 @@ public class RefreshSavedAddressesCommand : Command {
             return Executability.Invalid;
         }
 
-        if (engine.Connection == null || engine.ScanningProcessor.IsScanning)
+        if (engine.Connection == null || engine.IsConnectionBusy)
             return Executability.ValidButCannotExecute;
 
         return Executability.Valid;
@@ -21,7 +21,7 @@ public class RefreshSavedAddressesCommand : Command {
             return Task.CompletedTask;
         }
 
-        if (engine.ScanningProcessor.IsScanning) {
+        if (engine.IsConnectionBusy) {
             return IMessageDialogService.Instance.ShowMessage("Busy", "Connection is currently busy elsewhere");
         }
         

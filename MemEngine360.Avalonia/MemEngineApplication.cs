@@ -32,8 +32,10 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.ClearSavedAddressesCommand", new ClearSavedAddressesCommand());
         manager.Register("commands.memengine.AddSavedAddressCommand", new AddSavedAddressCommand());
         manager.Register("commands.memengine.EditScanResultValueCommand", new EditScanResultValueCommand());
+        manager.Register("commands.memengine.EditSavedAddressValueCommand", new EditSavedAddressValueCommand());
         manager.Register("commands.memengine.EditSavedAddressDataTypeCommand", new EditSavedAddressDataTypeCommand());
         manager.Register("commands.memengine.RefreshSavedAddressesCommand", new RefreshSavedAddressesCommand());
+        manager.Register("commands.memengine.AddSelectedScanResultsToSavedAddressListCommand", new AddSelectedScanResultsToSavedAddressListCommand());
     }
 
     protected override void RegisterServices(ServiceManager manager) {

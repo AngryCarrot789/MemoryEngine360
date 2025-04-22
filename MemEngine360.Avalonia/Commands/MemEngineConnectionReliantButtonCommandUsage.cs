@@ -1,5 +1,6 @@
 ﻿using MemEngine360.Connections;
 using MemEngine360.Engine;
+using PFXToolKitUI.Interactivity;
 
 namespace MemEngine360.Avalonia.Commands;
 
@@ -18,7 +19,7 @@ public abstract class MemEngineConnectionReliantButtonCommandUsage : MemEngineBu
             newEngine.ConnectionChanged += this.OnConnectionChanged;
     }
     
-    protected virtual void OnConnectionChanged(MemoryEngine360 sender, IConsoleConnection? oldConnection, IConsoleConnection? newConnection) {
+    protected virtual void OnConnectionChanged(MemoryEngine360 sender, IConsoleConnection? oldConnection, IConsoleConnection? newConnection, ConnectionChangeCause cause) {
         this.UpdateCanExecuteLater();
     }
 }
@@ -36,6 +37,23 @@ public class RefreshSavedAddressesCommandUsage : MemEngineConnectionReliantButto
     }
 
     private void ConnectionOnIsBusyChanged(MemoryEngine360 sender) {
+        this.UpdateCanExecuteLater();
+    }
+}
+
+public class AddSelectedScanResultsToSavedAddressListCommandUsage : MemUIButtonCommandUsage {
+    public AddSelectedScanResultsToSavedAddressListCommandUsage() : base("commands.memengine.AddSelectedScanResultsToSavedAddressListCommand") {
+    }
+
+    protected override void OnEngineChanged(IMemEngineUI? oldUI, IMemEngineUI? newUI) {
+        base.OnEngineChanged(oldUI, newUI);
+        if (oldUI != null)
+            oldUI.ScanResultSelectionManager.LightSelectionChanged -= this.OnSelectionChanged;
+        if (newUI != null)
+            newUI.ScanResultSelectionManager.LightSelectionChanged += this.OnSelectionChanged;
+    }
+
+    private void OnSelectionChanged(ILightSelectionManager<ScanResultViewModel> sender) {
         this.UpdateCanExecuteLater();
     }
 }

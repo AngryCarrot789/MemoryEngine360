@@ -151,7 +151,7 @@ public static class ValueScannerCore {
                 }
 
                 if (matched) {
-                    results.Add(new ScanResultViewModel(p, addr + (uint) i, dt, value.ToString() ?? ""));
+                    results.Add(new ScanResultViewModel(p, addr + (uint) i, dt, MemoryEngine360.NumericDisplayType.Normal, value.ToString() ?? ""));
                 }
             }
         }
@@ -223,7 +223,7 @@ public static class ValueScannerCore {
                 }
 
                 if (matched) {
-                    results.Add(new ScanResultViewModel(p, addr + (uint) i, dt, value.ToString() ?? ""));
+                    results.Add(new ScanResultViewModel(p, addr + (uint) i, dt, MemoryEngine360.NumericDisplayType.Normal, value.ToString() ?? ""));
                 }
             }
         }
@@ -290,7 +290,7 @@ public static class ValueScannerCore {
                 }
 
                 if (bufferString.Equals(input)) {
-                    results.Add(new ScanResultViewModel(p, addr + (uint) i, dt, bufferString));
+                    results.Add(new ScanResultViewModel(p, addr + (uint) i, dt, MemoryEngine360.NumericDisplayType.Normal, bufferString));
                 }
             }
         }

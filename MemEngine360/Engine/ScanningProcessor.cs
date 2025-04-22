@@ -28,6 +28,8 @@ public class ScanningProcessor {
     private DataType dataType;
     private NumericScanType numericScanType;
 
+    public ActivityTask? ScanningActivity { get; private set; }
+
     /// <summary>
     /// Gets the primary input
     /// </summary>
@@ -41,7 +43,7 @@ public class ScanningProcessor {
             }
         }
     }
-    
+
     /// <summary>
     /// Gets the secondary input, used when <see cref="NumericScanType"/> is <see cref="Modes.NumericScanType.Between"/>
     /// </summary>
@@ -164,7 +166,7 @@ public class ScanningProcessor {
             this.NumericScanTypeChanged?.Invoke(this);
         }
     }
-    
+
     public bool CanPerformFirstScan => !this.IsScanning && !this.HasDoneFirstScan && this.MemoryEngine360.Connection != null && !this.MemoryEngine360.IsConnectionBusy;
     public bool CanPerformNextScan => !this.IsScanning && this.HasDoneFirstScan && this.MemoryEngine360.Connection != null && !this.MemoryEngine360.IsConnectionBusy;
     public bool CanPerformReset => !this.IsScanning && this.HasDoneFirstScan;
@@ -172,9 +174,9 @@ public class ScanningProcessor {
 
     public ObservableCollection<ScanResultViewModel> ScanResults { get; } = new ObservableCollection<ScanResultViewModel>();
     public ObservableCollection<SavedAddressViewModel> SavedAddresses { get; } = new ObservableCollection<SavedAddressViewModel>();
-    
+
     public ObservableList<ScanResultViewModel> SelectedResults { get; } = new ObservableList<ScanResultViewModel>();
-    
+
     public MemoryEngine360 MemoryEngine360 { get; }
 
     public event ScanningProcessorEventHandler? InputAChanged;
@@ -216,7 +218,7 @@ public class ScanningProcessor {
                 this.ScanResults.Add(result);
             }
         }, TimeSpan.FromMilliseconds(200));
-        
+
         this.rldaRefreshSavedAddressList = RateLimitedDispatchActionBase.ForDispatcherAsync(this.RefreshSavedAddressesAsync, TimeSpan.FromMilliseconds(200));
     }
 
@@ -224,57 +226,77 @@ public class ScanningProcessor {
         if (this.isScanning)
             throw new InvalidOperationException("Currently scanning");
         
+        if (this.MemoryEngine360.Connection == null)
+            throw new InvalidOperationException("No console connection");
+        
         using IDisposable? token = this.MemoryEngine360.BeginBusyOperation();
         if (token == null)
             throw new InvalidOperationException("Engine is currently busy. Cannot scan");
 
-        this.IsScanning = true;
+        bool debugFreeze = this.PauseConsoleDuringScan;
         DefaultProgressTracker progress = new DefaultProgressTracker {
             Caption = "Scan", Text = "Beginning scan"
         };
 
         CancellationTokenSource cts = new CancellationTokenSource();
-        bool success = await ActivityManager.Instance.RunTask(async () => {
+        this.ScanningActivity = ActivityManager.Instance.RunTask(async () => {
+            await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+                this.IsScanning = true;
+                if (debugFreeze)
+                    await (this.MemoryEngine360.Connection?.DebugFreeze() ?? ValueTask.CompletedTask);
+            });
+            
+            bool result;
+            ActivityTask thisTask = ActivityManager.Instance.CurrentTask;
             bool success = await this.ScanNextInternal(progress);
-            if (!success && !this.MemoryEngine360.Connection!.IsReallyConnected) {
+            if (!success && !this.MemoryEngine360.CheckConnection()) {
                 this.resultBuffer.Clear();
                 this.ScanResults.Clear();
-                
-                this.MemoryEngine360.Connection.Dispose();
-                this.MemoryEngine360.Connection = null;
-                return false;
+                result = false;
+            }
+            else {
+                progress.Text = "Updating result list...";
+                int count = this.resultBuffer.Count;
+                const int chunkSize = 200;
+                int range = count / chunkSize;
+                using PopCompletionStateRangeToken x = progress.CompletionState.PushCompletionRange(0.0, 1.0 / range);
+                result = await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+                    while (!this.resultBuffer.IsEmpty) {
+                        for (int i = 0; i < chunkSize && this.resultBuffer.TryDequeue(out ScanResultViewModel? result); i++) {
+                            this.ScanResults.Add(result);
+                        }
+
+                        progress.CompletionState.OnProgress(1.0);
+                        try {
+                            await Task.Delay(50, thisTask.CancellationToken);
+                        }
+                        catch (OperationCanceledException) {
+                            this.resultBuffer.Clear();
+                            return success;
+                        }
+                    }
+                    
+                    return success;
+                });
             }
 
-            progress.Text = "Updating result list...";
-            int count = this.resultBuffer.Count;
-            const int chunkSize = 200;
-            int range = count / chunkSize;
-            using PopCompletionStateRangeToken x = progress.CompletionState.PushCompletionRange(0.0, 1.0 / range);
             await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-                while (!this.resultBuffer.IsEmpty) {
-                    for (int i = 0; i < chunkSize && this.resultBuffer.TryDequeue(out ScanResultViewModel? result); i++) {
-                        this.ScanResults.Add(result);
-                    }
-
-                    progress.CompletionState.OnProgress(1.0);
-                    try {
-                        await Task.Delay(50, cts.Token);
-                    }
-                    catch (OperationCanceledException) {
-                        this.resultBuffer.Clear();
-                        return success;
-                    }
-                }
-
-                return success;
+                this.HasDoneFirstScan = result;
+                this.IsScanning = false;
+                if (debugFreeze)
+                    await (this.MemoryEngine360.Connection?.DebugUnFreeze() ?? ValueTask.CompletedTask);
+                this.MemoryEngine360.CheckConnection();
             });
-
-            return success;
         }, progress, cts);
 
+        try {
+            await this.ScanningActivity;
+        }
+        finally {
+            this.ScanningActivity = null;
+        }
+
         cts.Dispose();
-        this.HasDoneFirstScan = success;
-        this.IsScanning = false;
     }
 
     public void ResetScan() {
@@ -287,7 +309,7 @@ public class ScanningProcessor {
 
     private async Task<bool> ScanNextInternal(IActivityProgress activity) {
         if (string.IsNullOrEmpty(this.InputA)) {
-            await IMessageDialogService.Instance.ShowMessage("Input format", this.IsSecondInputRequired ? "'From' input is empty" :"Input is empty");
+            await IMessageDialogService.Instance.ShowMessage("Input format", this.IsSecondInputRequired ? "'From' input is empty" : "Input is empty");
             return false;
         }
 
@@ -334,7 +356,7 @@ public class ScanningProcessor {
     public void RefreshSavedAddresses() {
         this.rldaRefreshSavedAddressList.InvokeAsync();
     }
-    
+
     private async Task RefreshSavedAddressesAsync() {
         IConsoleConnection? connection;
         if (this.IsScanning || (connection = this.MemoryEngine360.Connection) == null || connection.IsBusy) {
@@ -345,7 +367,7 @@ public class ScanningProcessor {
         if (token == null) {
             return; // do not modify connection while busy
         }
-        
+
         foreach (SavedAddressViewModel address in this.SavedAddresses) {
             address.Value = await MemoryEngine360.ReadAsText(connection, address.Address, address.DataType,
                 address.DisplayAsHex
