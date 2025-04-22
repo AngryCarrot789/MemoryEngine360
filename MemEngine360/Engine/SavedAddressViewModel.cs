@@ -14,6 +14,8 @@ public class SavedAddressViewModel : INotifyPropertyChanged {
     private int stringLength = 0;
     private bool hex, unsigned;
 
+    // This class needs a re-work. We shouldn't use a raw address like this,
+    // since cheat engine doesn't appear to do that (since you have use base address + a list of offsets)
     public uint Address { get; }
 
     public string Value { get => this.value; set => this.SetField(ref this.value, value ?? ""); }

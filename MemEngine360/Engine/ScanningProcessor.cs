@@ -20,7 +20,7 @@ public class ScanningProcessor {
     private string inputA, inputB;
     private bool hasDoneFirstScan;
     private bool isScanning;
-    private uint startAddress, endAddress;
+    private uint startAddress, scanLength;
     private bool pauseConsoleDuringScan;
     private bool isIntInputHexadecimal;
     private FloatScanOption floatScanOption;
@@ -88,14 +88,14 @@ public class ScanningProcessor {
         }
     }
 
-    public uint EndAddress {
-        get => this.endAddress;
+    public uint ScanLength {
+        get => this.scanLength;
         set {
-            uint oldValue = this.endAddress;
+            uint oldValue = this.scanLength;
             if (oldValue != value) {
-                this.endAddress = value;
-                this.EndAddressChanged?.Invoke(this, oldValue, value);
-                BasicApplicationConfiguration.Instance.EndAddress = value;
+                this.scanLength = value;
+                this.ScanLengthChanged?.Invoke(this, oldValue, value);
+                BasicApplicationConfiguration.Instance.ScanLength = value;
             }
         }
     }
@@ -182,7 +182,7 @@ public class ScanningProcessor {
     public event ScanningProcessorEventHandler? HasFirstScanChanged;
     public event ScanningProcessorEventHandler? IsScanningChanged;
     public event ScanningProcessorAddressChangedEventHandler? StartAddressChanged;
-    public event ScanningProcessorAddressChangedEventHandler? EndAddressChanged;
+    public event ScanningProcessorAddressChangedEventHandler? ScanLengthChanged;
     public event ScanningProcessorEventHandler? PauseConsoleDuringScanChanged;
     public event ScanningProcessorEventHandler? IsIntInputHexadecimalChanged;
     public event ScanningProcessorEventHandler? FloatScanModeChanged;
@@ -202,7 +202,7 @@ public class ScanningProcessor {
         this.dataType = DataType.Int32;
         this.numericScanType = NumericScanType.Equals;
         this.startAddress = cfg.StartAddress;
-        this.endAddress = cfg.EndAddress;
+        this.scanLength = cfg.ScanLength;
         this.pauseConsoleDuringScan = cfg.PauseConsoleDuringScan;
         this.isIntInputHexadecimal = cfg.DTInt_UseHexValue;
         this.floatScanOption = cfg.DTFloat_Mode;

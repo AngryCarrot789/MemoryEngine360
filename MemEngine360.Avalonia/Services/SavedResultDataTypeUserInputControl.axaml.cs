@@ -1,6 +1,7 @@
 ﻿using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using MemEngine360.Commands;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Avalonia.Bindings;
@@ -37,8 +38,8 @@ public partial class SavedResultDataTypeUserInputControl : UserControl, IUserInp
         }
     }, null);
     
-    private readonly IBinder<SavedResultDataTypeUserInputInfo> displayAsHexBinder = new AvaloniaPropertyToEventPropertyBinder<SavedResultDataTypeUserInputInfo>(CheckBox.IsCheckedProperty, nameof(SavedResultDataTypeUserInputInfo.DisplayAsHexChanged), (b) => ((RadioButton) b.Control).IsChecked = b.Model.DisplayAsHex, (b) => b.Model.DisplayAsHex = ((RadioButton) b.Control).IsChecked == true);
-    private readonly IBinder<SavedResultDataTypeUserInputInfo> displayAsUnsignedBinder = new AvaloniaPropertyToEventPropertyBinder<SavedResultDataTypeUserInputInfo>(CheckBox.IsCheckedProperty, nameof(SavedResultDataTypeUserInputInfo.DisplayAsUnsignedChanged), (b) => ((RadioButton) b.Control).IsChecked = b.Model.DisplayAsUnsigned, (b) => b.Model.DisplayAsUnsigned = ((RadioButton) b.Control).IsChecked == true);
+    private readonly IBinder<SavedResultDataTypeUserInputInfo> displayAsHexBinder = new AvaloniaPropertyToEventPropertyBinder<SavedResultDataTypeUserInputInfo>(CheckBox.IsCheckedProperty, nameof(SavedResultDataTypeUserInputInfo.DisplayAsHexChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.DisplayAsHex, (b) => b.Model.DisplayAsHex = ((ToggleButton) b.Control).IsChecked == true);
+    private readonly IBinder<SavedResultDataTypeUserInputInfo> displayAsUnsignedBinder = new AvaloniaPropertyToEventPropertyBinder<SavedResultDataTypeUserInputInfo>(CheckBox.IsCheckedProperty, nameof(SavedResultDataTypeUserInputInfo.DisplayAsUnsignedChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.DisplayAsUnsigned, (b) => b.Model.DisplayAsUnsigned = ((ToggleButton) b.Control).IsChecked == true);
     private readonly EventPropertyEnumBinder<StringScanOption> stringScanModeBinder = new EventPropertyEnumBinder<StringScanOption>(typeof(SavedResultDataTypeUserInputInfo), nameof(SavedResultDataTypeUserInputInfo.StringScanOptionChanged), (x) => ((SavedResultDataTypeUserInputInfo) x).StringScanOption, (x, v) => ((SavedResultDataTypeUserInputInfo) x).StringScanOption = v);
 
     public int StringLength {

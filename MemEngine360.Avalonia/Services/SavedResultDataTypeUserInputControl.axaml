@@ -3,9 +3,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:services="clr-namespace:MemEngine360.Avalonia.Services"
-             mc:Ignorable="d" Width="200" Height="200"
+             mc:Ignorable="d" MinHeight="200"
              x:Class="MemEngine360.Avalonia.Services.SavedResultDataTypeUserInputControl">
-    <Grid RowDefinitions="5,Auto,3,Auto,5,*,5" ColumnDefinitions="5,*,5">
+    <Grid RowDefinitions="0,Auto,3,Auto,5,*,0" ColumnDefinitions="0,*,0">
         <TextBlock Grid.Row="1" Grid.Column="1" Text="Select new data type"/>
         <ComboBox Grid.Row="3" Grid.Column="1" x:Name="PART_DataTypeComboBox"/>
 

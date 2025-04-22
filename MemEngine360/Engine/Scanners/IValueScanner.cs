@@ -114,13 +114,13 @@ public class StringValueScanner : IValueScanner {
 public static class ValueScannerCore {
     public static async Task ScanInteger<T>(T inputA, T inputB, ScanningProcessor p, ObservableList<ScanResultViewModel> results, IActivityProgress activity) where T : IBinaryNumber<T> {
         DataType dt = p.DataType;
-        uint addr = p.StartAddress, totalRange = p.EndAddress - addr, range = totalRange;
+        uint addr = p.StartAddress, scanLen = p.ScanLength, range = scanLen;
         int totalChunks = (int) (range / 65535) + 1;
-        for (int j = 0, c = 1; j < totalRange; j += 65535, c++) {
+        for (int j = 0, c = 1; j < scanLen; j += 65535, c++) {
             ActivityManager.Instance.CurrentTask.CheckCancelled();
             activity.Text = $"Reading chunk {c}/{totalChunks}...";
             activity.IsIndeterminate = true;
-            byte[] bytes = await p.MemoryEngine360.Connection!.ReadBytes((uint) (addr + j), Math.Min(65535, (uint) Math.Max((int) totalRange - j, 0)));
+            byte[] bytes = await p.MemoryEngine360.Connection!.ReadBytes((uint) (addr + j), Math.Min(65535, (uint) Math.Max((int) scanLen - j, 0)));
 
             activity.Text = $"Scanning chunk {c}/{totalChunks}...";
             activity.IsIndeterminate = false;
@@ -159,13 +159,13 @@ public static class ValueScannerCore {
 
     public static async Task ScanFloat<T>(T inputA, T inputB, ScanningProcessor p, ObservableList<ScanResultViewModel> results, IActivityProgress activity) where T : IFloatingPoint<T> {
         DataType dt = p.DataType;
-        uint addr = p.StartAddress, totalRange = p.EndAddress - addr, range = totalRange;
+        uint addr = p.StartAddress, scanLen = p.ScanLength, range = scanLen;
         int totalChunks = (int) (range / 65535) + 1;
-        for (int j = 0, c = 1; j < totalRange; j += 65535, c++) {
+        for (int j = 0, c = 1; j < scanLen; j += 65535, c++) {
             ActivityManager.Instance.CurrentTask.CheckCancelled();
             activity.Text = $"Reading chunk {c}/{totalChunks}...";
             activity.IsIndeterminate = true;
-            byte[] bytes = await p.MemoryEngine360.Connection!.ReadBytes((uint) (addr + j), Math.Min(65535, (uint) Math.Max((int) totalRange - j, 0)));
+            byte[] bytes = await p.MemoryEngine360.Connection!.ReadBytes((uint) (addr + j), Math.Min(65535, (uint) Math.Max((int) scanLen - j, 0)));
 
             activity.Text = $"Scanning chunk {c}/{totalChunks}...";
             activity.IsIndeterminate = false;
@@ -246,13 +246,13 @@ public static class ValueScannerCore {
             throw new Exception("Input string is too long. Console memory is read in chunks of 64KB, therefore, the string cannot contain more than that many bytes");
         }
 
-        uint addr = p.StartAddress, totalRange = p.EndAddress - addr, range = totalRange;
+        uint addr = p.StartAddress, scanLen = p.ScanLength, range = scanLen;
         int totalChunks = (int) (range / 65535) + 1;
-        for (int j = 0, c = 1; j < totalRange; j += 65535, c++) {
+        for (int j = 0, c = 1; j < scanLen; j += 65535, c++) {
             ActivityManager.Instance.CurrentTask.CheckCancelled();
             activity.Text = $"Reading chunk {c}/{totalChunks}...";
             activity.IsIndeterminate = true;
-            byte[] bytes = await p.MemoryEngine360.Connection!.ReadBytes((uint) (addr + j), Math.Min(65535, (uint) Math.Max((int) totalRange - j, 0)));
+            byte[] bytes = await p.MemoryEngine360.Connection!.ReadBytes((uint) (addr + j), Math.Min(65535, (uint) Math.Max((int) scanLen - j, 0)));
 
             activity.Text = $"Scanning chunk {c}/{totalChunks}...";
             activity.IsIndeterminate = false;

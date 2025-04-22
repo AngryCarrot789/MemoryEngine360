@@ -73,7 +73,7 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
     private readonly IBinder<ScanningProcessor> inputBetweenABinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> inputBetweenBBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputBChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputB, (b) => b.Model.InputB = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> startAddressBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.StartAddressChanged), (b) => ((MainWindow) b.Control).PART_ScanOption_StartAddress.Content = b.Model.StartAddress.ToString("X"));
-    private readonly IBinder<ScanningProcessor> endAddressBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.EndAddressChanged), (b) => ((MainWindow) b.Control).PART_ScanOption_EndAddress.Content = b.Model.EndAddress.ToString("X"));
+    private readonly IBinder<ScanningProcessor> addrLengthBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanLengthChanged), (b) => ((MainWindow) b.Control).PART_ScanOption_Length.Content = b.Model.ScanLength.ToString("X"));
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> int_isHexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.IsIntInputHexadecimalChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.IsIntInputHexadecimal, (b) => b.Model.IsIntInputHexadecimal = ((ToggleButton) b.Control).IsChecked == true);
     private readonly EventPropertyEnumBinder<FloatScanOption> floatScanModeBinder = new EventPropertyEnumBinder<FloatScanOption>(typeof(ScanningProcessor), nameof(ScanningProcessor.FloatScanModeChanged), (x) => ((ScanningProcessor) x).FloatScanOption, (x, v) => ((ScanningProcessor) x).FloatScanOption = v);
@@ -162,48 +162,47 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         this.editAddressRangeCommand = new AsyncRelayCommand(async () => {
             ScanningProcessor p = this.MemoryEngine360.ScanningProcessor;
 
-            DoubleUserInputInfo info = new DoubleUserInputInfo(p.StartAddress.ToString("X"), p.EndAddress.ToString("X")) {
+            DoubleUserInputInfo info = new DoubleUserInputInfo(p.StartAddress.ToString("X"), p.ScanLength.ToString("X")) {
                 Caption = "Edit start and end addresses",
-                LabelA = "Start Address",
-                LabelB = "End Address"
+                LabelA = "Start Address (hex)",
+                LabelB = "Bytes to scan (hex)"
             };
 
             info.ValidateA = (e) => {
-                if (!uint.TryParse(e.Input, NumberStyles.HexNumber, null, out uint newStart))
+                if (!uint.TryParse(e.Input, NumberStyles.HexNumber, null, out _))
                     e.Errors.Add("Invalid memory address");
-                else if (info.TextErrorsB == null && newStart >= uint.Parse(info.TextB, NumberStyles.HexNumber))
-                    e.Errors.Add("Start address >= end address");
-                info.UpdateTextBError(false);
             };
 
             info.ValidateB = (e) => {
-                if (!uint.TryParse(e.Input, NumberStyles.HexNumber, null, out uint newEnd))
-                    e.Errors.Add("Invalid memory address");
-                else if (info.TextErrorsA == null && newEnd <= uint.Parse(info.TextA, NumberStyles.HexNumber))
-                    e.Errors.Add("End address <= start address");
-                info.UpdateTextAError(false);
+                if (!uint.TryParse(e.Input, NumberStyles.HexNumber, null, out _))
+                    e.Errors.Add("Invalid unsigned integer");
             };
 
             // We don't need to unregister the handler because info will
             // get garbage collected soon, since it's not accessed outside this command
-            DataParameterValueChangedEventHandler change = (_, owner) => UpdateMemoryRangeText((DoubleUserInputInfo) owner);
+            DataParameterValueChangedEventHandler change = (_, owner) => UpdateMemoryRangeFooterText((DoubleUserInputInfo) owner);
             DoubleUserInputInfo.TextAParameter.AddValueChangedHandler(info, change);
             DoubleUserInputInfo.TextBParameter.AddValueChangedHandler(info, change);
 
-            UpdateMemoryRangeText(info);
+            UpdateMemoryRangeFooterText(info);
             if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
                 p.StartAddress = uint.Parse(info.TextA, NumberStyles.HexNumber);
-                p.EndAddress = uint.Parse(info.TextB, NumberStyles.HexNumber);
+                p.ScanLength = uint.Parse(info.TextB, NumberStyles.HexNumber);
                 BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
             }
         });
     }
 
-    private static void UpdateMemoryRangeText(DoubleUserInputInfo theInfo) {
-        theInfo.Footer = "Memory Range: " +
-                         (theInfo.TextErrorsA != null || theInfo.TextErrorsB != null ? 
-                             "<out of range>" : 
-                             (uint.Parse(theInfo.TextB, NumberStyles.HexNumber) - uint.Parse(theInfo.TextA, NumberStyles.HexNumber)).ToString());
+    private static void UpdateMemoryRangeFooterText(DoubleUserInputInfo theInfo) {
+        const string prefix = "Scan Range (inclusive):";
+        if (theInfo.TextErrorsA != null || theInfo.TextErrorsB != null) {
+            theInfo.Footer = $"{prefix} <errors present>";
+        }
+        else {
+            uint addr = uint.Parse(theInfo.TextA, NumberStyles.HexNumber);
+            uint len = uint.Parse(theInfo.TextB, NumberStyles.HexNumber);
+            theInfo.Footer = $"{prefix} {addr:X8} -> {(addr + (len - 1)):X8}";
+        }
     }
 
     private void UpdateUIForScanTypeAndDataType() {
@@ -241,7 +240,7 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         // this.isBusyBinder.Attach(this.PART_BusyIndicator, this.MemoryEngine360);
         this.isScanningBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.startAddressBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
-        this.endAddressBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
+        this.addrLengthBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, this.MemoryEngine360.ScanningProcessor);
         this.int_isHexBinder.Attach(this.PART_DTInt_IsHex, this.MemoryEngine360.ScanningProcessor);
         this.floatScanModeBinder.Attach(this.MemoryEngine360.ScanningProcessor);
@@ -264,7 +263,7 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         // this.isBusyBinder.Detach();
         this.isScanningBinder.Detach();
         this.startAddressBinder.Detach();
-        this.endAddressBinder.Detach();
+        this.addrLengthBinder.Detach();
         this.pauseXboxBinder.Detach();
         this.int_isHexBinder.Detach();
         this.floatScanModeBinder.Detach();
@@ -355,7 +354,7 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         this.editAddressRangeCommand.Execute(null);
     }
 
-    private void PART_ScanOption_EndAddress_OnDoubleTapped(object? sender, TappedEventArgs e) {
+    private void PART_ScanOption_Length_OnDoubleTapped(object? sender, TappedEventArgs e) {
         this.editAddressRangeCommand.Execute(null);
     }
 

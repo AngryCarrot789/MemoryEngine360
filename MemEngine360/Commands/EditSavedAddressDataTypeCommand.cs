@@ -21,16 +21,18 @@ public class EditSavedAddressDataTypeCommand : Command {
         }
 
         SavedResultDataTypeUserInputInfo info = new SavedResultDataTypeUserInputInfo(result) {
-            Caption = "Modify saved address"
+            Caption = "Modify data type"
         };
         
-        if (ApplicationPFX.Instance.ServiceManager.TryGetService(out IEditSavedAddressService? service) && await service.ShowDialog(info) == true) {
-            result.DisplayAsHex = info.DisplayAsHex;
-            result.DisplayAsUnsigned = info.DisplayAsUnsigned;
-            result.DataType = info.DataType;
-            result.StringScanOption = info.StringScanOption;
-            result.StringLength = info.StringLength;
-            result.ScanningProcessor.RefreshSavedAddresses();
+        if (ApplicationPFX.Instance.ServiceManager.TryGetService(out IEditSavedAddressService? service)) {
+            if (await service.ShowDialog(info) == true) {
+                result.DisplayAsHex = info.DisplayAsHex;
+                result.DisplayAsUnsigned = info.DisplayAsUnsigned;
+                result.DataType = info.DataType;
+                result.StringScanOption = info.StringScanOption;
+                result.StringLength = info.StringLength;
+                result.ScanningProcessor.RefreshSavedAddresses();
+            }
         }
     }
 }

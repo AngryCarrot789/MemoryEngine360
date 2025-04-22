@@ -170,11 +170,11 @@
                                        ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
                                        DoubleTapped="PART_ScanOption_StartAddress_OnDoubleTapped" ToolTip.Tip="Double click to modify"/>
                                 <Label Grid.Column="2" Grid.Row="2" FontFamily="Consolas"
-                                       x:Name="PART_ScanOption_EndAddress"
+                                       x:Name="PART_ScanOption_Length"
                                        VerticalAlignment="Stretch" VerticalContentAlignment="Center"
                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                                        ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                       DoubleTapped="PART_ScanOption_EndAddress_OnDoubleTapped" ToolTip.Tip="Double click to modify"/>
+                                       DoubleTapped="PART_ScanOption_Length_OnDoubleTapped" ToolTip.Tip="Double click to modify"/>
                                 <CheckBox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="4"
                                           x:Name="PART_ScanOption_PauseConsole"
                                           Content="DEBUG PAUSE while scanning"
@@ -208,7 +208,7 @@
                         <e:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
                                                 Header="Value" Width="80" Binding="{Binding CurrentValue, Mode=OneWay}"
                                                 IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditScanResultValueCommand"
-                                                TextBlockDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"/>
+                                                CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"/>
                         <DataGridTextColumn Header="Previous" Width="80" Binding="{Binding PreviousValue, Mode=OneWay}" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True"/>
                         <DataGridTextColumn Header="First" Width="80" Binding="{Binding FirstValue, Mode=OneTime}" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True"/>
                     </DataGrid.Columns>
@@ -242,13 +242,20 @@
                 </c:GroupBox.Header>
                 <DataGrid x:Name="PART_SavedAddressList" Background="Transparent" BorderThickness="0">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Address (hex)" Width="100" Binding="{Binding Address, Mode=OneTime, StringFormat=X}" x:DataType="{x:Type engine:SavedAddressViewModel}" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Description" Width="200" Binding="{Binding Description, Mode=TwoWay}" x:DataType="{x:Type engine:SavedAddressViewModel}"/>
+                        <DataGridTextColumn Header="Address (hex)" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}" 
+                                            Binding="{Binding Address, Mode=OneTime, StringFormat=X}" 
+                                            IsReadOnly="True"/>
+                        
+                        <DataGridTextColumn Header="Description" Width="200" x:DataType="{x:Type engine:SavedAddressViewModel}" 
+                                            Binding="{Binding Description, Mode=TwoWay}"/>
+                        
                         <e:DataGridTextColumnEx Header="Data Type" Width="80" x:DataType="{x:Type engine:SavedAddressViewModel}"
                                                 Binding="{Binding DataType, Mode=OneWay}"
                                                 IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressDataTypeCommand"
-                                                TextBlockDataKeyForDC="{x:Static engine:SavedAddressViewModel.DataKey}"/>
-                        <DataGridTextColumn Header="Value" Width="100" Binding="{Binding Value, Mode=OneWay}" x:DataType="{x:Type engine:SavedAddressViewModel}" IsReadOnly="True"/>
+                                                CellDataKeyForDC="{x:Static engine:SavedAddressViewModel.DataKey}"/>
+                        <DataGridTextColumn Header="Value" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}" 
+                                            Binding="{Binding Value, Mode=OneWay}" 
+                                            IsReadOnly="True"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </c:GroupBox>
