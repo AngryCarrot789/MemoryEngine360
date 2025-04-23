@@ -252,12 +252,12 @@ public static class ValueScannerCore {
         DataType dt = p.DataType;
         int cbInputString;
         switch (p.StringScanOption) {
-            case StringScanOption.ASCII:
-            case StringScanOption.UTF8:
+            case StringType.ASCII:
+            case StringType.UTF8:
                 cbInputString = input.Length;
             break;
-            case StringScanOption.UTF16: cbInputString = input.Length * 2; break;
-            case StringScanOption.UTF32: cbInputString = input.Length * 4; break;
+            case StringType.UTF16: cbInputString = input.Length * 2; break;
+            case StringType.UTF32: cbInputString = input.Length * 4; break;
             default:                     throw new ArgumentOutOfRangeException();
         }
 
@@ -289,19 +289,19 @@ public static class ValueScannerCore {
 
                 string bufferString;
                 switch (p.StringScanOption) {
-                    case StringScanOption.ASCII: {
+                    case StringType.ASCII: {
                         bufferString = Encoding.ASCII.GetString(new ReadOnlySpan<byte>(bytes, i, cbInputString));
                         break;
                     }
-                    case StringScanOption.UTF8: {
+                    case StringType.UTF8: {
                         bufferString = Encoding.UTF8.GetString(new ReadOnlySpan<byte>(bytes, i, cbInputString));
                         break;
                     }
-                    case StringScanOption.UTF16: {
+                    case StringType.UTF16: {
                         bufferString = Encoding.Unicode.GetString(new ReadOnlySpan<byte>(bytes, i, cbInputString));
                         break;
                     }
-                    case StringScanOption.UTF32: {
+                    case StringType.UTF32: {
                         bufferString = Encoding.UTF32.GetString(new ReadOnlySpan<byte>(bytes, i, cbInputString));
                         break;
                     }

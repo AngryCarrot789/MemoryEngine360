@@ -48,7 +48,7 @@ public class EditSavedAddressDataTypeCommand : Command {
                 result.DisplayAsHex = info.DisplayAsHex;
                 result.DisplayAsUnsigned = info.DisplayAsUnsigned;
                 result.DataType = info.DataType;
-                result.StringScanOption = info.StringScanOption;
+                result.StringType = info.StringScanOption;
                 result.StringLength = info.StringLength;
                 result.ScanningProcessor.RefreshSavedAddresses();
             }
@@ -60,7 +60,7 @@ public delegate void SavedResultDataTypeUserInputInfoEventHandler(SavedResultDat
 
 public class SavedResultDataTypeUserInputInfo : UserInputInfo {
     private DataType dataType;
-    private StringScanOption stringScanOption;
+    private StringType stringScanOption;
     private int stringLength;
     private bool displayAsHex, displayAsSigned;
 
@@ -75,7 +75,7 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
         }
     }
 
-    public StringScanOption StringScanOption {
+    public StringType StringScanOption {
         get => this.stringScanOption;
         set {
             if (this.stringScanOption == value)
@@ -133,7 +133,7 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
         this.displayAsHex = result.DisplayAsHex;
         this.displayAsSigned = result.DisplayAsUnsigned;
         this.dataType = result.DataType;
-        this.stringScanOption = result.StringScanOption;
+        this.stringScanOption = result.StringType;
     }
 
     public override bool HasErrors() => false;

@@ -30,7 +30,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public static readonly PersistentProperty<bool> PauseConsoleDuringScanProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("PauseConsoleDuringScan", defaultValue: false, owner => owner.pauseConsoleDuringScan, (x, y) => x.pauseConsoleDuringScan = y, false);
     public static readonly PersistentProperty<bool> DTInt_UseHexValueProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("DTInt_UseHexValue", defaultValue: false, owner => owner.dtInt_UseHexValueProperty, (x, y) => x.dtInt_UseHexValueProperty = y, false);
     public static readonly PersistentProperty<byte> DTFloat_ModeProperty = PersistentProperty.RegisterParsable<byte, BasicApplicationConfiguration>("DTFloat_Mode", defaultValue: (byte) FloatScanOption.TruncateToQuery, owner => owner.dtFloat_Mode, (x, y) => x.dtFloat_Mode = y, false);
-    public static readonly PersistentProperty<byte> DTString_ModeProperty = PersistentProperty.RegisterParsable<byte, BasicApplicationConfiguration>("DTString_Mode", defaultValue: (byte) StringScanOption.UTF8, owner => owner.dtString_Mode, (x, y) => x.dtString_Mode = y, false);
+    public static readonly PersistentProperty<byte> DTString_ModeProperty = PersistentProperty.RegisterParsable<byte, BasicApplicationConfiguration>("DTString_Mode", defaultValue: (byte) StringType.UTF8, owner => owner.dtString_Mode, (x, y) => x.dtString_Mode = y, false);
     
     public static BasicApplicationConfiguration Instance => ApplicationPFX.Instance.PersistentStorageManager.GetConfiguration<BasicApplicationConfiguration>();
 
@@ -79,8 +79,8 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
         set => DTFloat_ModeProperty.SetValue(this, (byte) value);
     }
 
-    public StringScanOption DTString_Mode {
-        get => (StringScanOption) DTString_ModeProperty.GetValue(this);
+    public StringType DTString_Mode {
+        get => (StringType) DTString_ModeProperty.GetValue(this);
         set => DTString_ModeProperty.SetValue(this, (byte) value);
     }
 

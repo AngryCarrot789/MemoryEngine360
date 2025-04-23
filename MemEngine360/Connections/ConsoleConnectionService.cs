@@ -42,7 +42,10 @@ public sealed class ConsoleConnectionService {
         if (string.IsNullOrWhiteSpace(lastIp))
             lastIp = "192.168.1.";
 
-        SingleUserInputInfo info = new SingleUserInputInfo("Connect to Xbox 360", "Ensure you have xbdm running as a plugin on your console!", "IP/Hostname Address", lastIp) {
+        SingleUserInputInfo info = new SingleUserInputInfo(lastIp) {
+            Caption = "Connect to Xbox 360",
+            Message = "Ensure you have xbdm running as a plugin on your console!",
+            Label = "IP/Hostname Address",
             ConfirmText = "Connect", CancelText = "Cancel", DefaultButton = true,
             Validate = (args) => {
                 if (string.IsNullOrWhiteSpace(args.Input))
@@ -71,7 +74,18 @@ public sealed class ConsoleConnectionService {
                 catch (OperationCanceledException) {
                     return null;
                 }
-                catch {
+                catch (SocketException e) {
+                    string message;
+                    switch (e.SocketErrorCode) {
+                        case SocketError.InvalidArgument:    message = "Console IP/hostname is invalid"; break;
+                        case SocketError.TooManyOpenSockets: message = "System has too many sockets open"; break;
+                        case SocketError.TimedOut:           message = "Timeout while connecting. Is the console running?"; break;
+                        case SocketError.ConnectionRefused:  message = "Connection refused. Is the console running xbdm?"; break;
+                        case SocketError.TryAgain:           message = "Could not identify hostname. Try again later"; break;
+                        default:                             message = e.Message; break;
+                    }
+
+                    await IMessageDialogService.Instance.ShowMessage("Error", message, defaultButtons:MessageBoxResult.OK);
                     return null;
                 }
 

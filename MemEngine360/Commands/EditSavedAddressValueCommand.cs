@@ -37,8 +37,9 @@ public class EditSavedAddressValueCommand : Command {
             return Executability.ValidButCannotExecute;
 
         IConsoleConnection? connection = result.ScanningProcessor.MemoryEngine360.Connection;
-        if (connection == null || connection.IsBusy)
+        if (connection == null || result.ScanningProcessor.MemoryEngine360.IsConnectionBusy) {
             return Executability.ValidButCannotExecute;
+        }
 
         return Executability.Valid;
     }
@@ -97,27 +98,9 @@ public class EditSavedAddressValueCommand : Command {
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) == true) {
             MemoryEngine360 engine = result.ScanningProcessor.MemoryEngine360;
-            IDisposable? token = engine.BeginBusyOperation();
+            IDisposable? token = await engine.BeginBusyOperationActivityAsync();
             if (token == null) {
-                using CancellationTokenSource cts = new CancellationTokenSource();
-                ActivityTask task = ActivityManager.Instance.RunTask(async () => {
-                    ActivityTask task = ActivityManager.Instance.CurrentTask;
-                    task.Progress.Caption = "Busy";
-                    task.Progress.Text = "Waiting for busy operations...";
-
-                    do {
-                        await Task.Delay(100, task.CancellationToken);
-                    } while ((token = engine.BeginBusyOperation()) == null);
-                }, cts);
-
-                await task;
-                
-                // I'm pretty sure token can never be null at this point if cancelled, since if we
-                // get the lock when not busy then we get the token and the task completes successfully.
-                if (task.IsCancelled || token == null) {
-                    token?.Dispose();
-                    return;
-                }
+                return;
             }
 
             try {

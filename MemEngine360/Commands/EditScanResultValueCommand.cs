@@ -44,9 +44,9 @@ public class EditScanResultValueCommand : Command {
         if (processor.IsScanning)
             return Executability.ValidButCannotExecute;
 
-        IConsoleConnection? connection = processor.MemoryEngine360.Connection;
-        if (connection == null || connection.IsBusy)
+        if (processor.MemoryEngine360.Connection == null || processor.MemoryEngine360.IsConnectionBusy) {
             return Executability.ValidButCannotExecute;
+        }
 
         return Executability.Valid;
     }
@@ -163,27 +163,9 @@ public class EditScanResultValueCommand : Command {
             return;
         }
 
-        IDisposable? token = memoryEngine360.BeginBusyOperation();
+        IDisposable? token = await memoryEngine360.BeginBusyOperationActivityAsync();
         if (token == null) {
-            using CancellationTokenSource cts = new CancellationTokenSource();
-            ActivityTask task = ActivityManager.Instance.RunTask(async () => {
-                ActivityTask task = ActivityManager.Instance.CurrentTask;
-                task.Progress.Caption = "Busy";
-                task.Progress.Text = "Waiting for busy operations...";
-
-                do {
-                    await Task.Delay(100, task.CancellationToken);
-                } while ((token = memoryEngine360.BeginBusyOperation()) == null);
-            }, cts);
-
-            await task;
-
-            // I'm pretty sure token can never be null at this point if cancelled, since if we
-            // get the lock when not busy then we get the token and the task completes successfully.
-            if (task.IsCancelled || token == null) {
-                token?.Dispose();
-                return;
-            }
+            return;
         }
 
         try {

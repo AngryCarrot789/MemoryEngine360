@@ -17,20 +17,59 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Xml.Serialization;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Shortcuts;
+using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands;
 
 public abstract class RemoteXboxCommand : BaseMemoryEngineCommand {
+    protected abstract string ActivityText { get; }
+
     protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
         return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
-        if (engine.Connection != null && engine.Connection.IsConnected && !engine.IsConnectionBusy) {
-            await this.ExecuteRemoteCommand(engine, engine.Connection, e);
+        engine.CheckConnection();
+        if (engine.Connection == null || !engine.Connection.IsConnected) {
+            IEnumerable<ShortcutEntry> scList = ShortcutManager.Instance.GetShortcutsByCommandId("commands.memengine.ConnectToConsoleCommand") ?? ReadOnlyCollection<ShortcutEntry>.Empty;
+            string shortcuts = string.Join(Environment.NewLine, scList.Select(x => x.Shortcut.ToString()));
+            if (!string.IsNullOrEmpty(shortcuts))
+                shortcuts = " Use the shortcut(s) to connect: " + Environment.NewLine + shortcuts;
+
+            await IMessageDialogService.Instance.ShowMessage("Disconnected", "Not connected to a console." + shortcuts);
+        }
+        else if (engine.ScanningProcessor.IsScanning) {
+            await IMessageDialogService.Instance.ShowMessage("Disconnected", "Scan in progress");
+        }
+        else {
+            using IDisposable? token = engine.BeginBusyOperation();
+            if (token == null) {
+                await IMessageDialogService.Instance.ShowMessage("Disconnected", "Connection is busy elsewhere");
+            }
+            else {
+                await ActivityManager.Instance.RunTask(async () => {
+                    IActivityProgress prog = ActivityManager.Instance.GetCurrentProgressOrEmpty();
+                    prog.Caption = "Remote Command";
+                    prog.Text = this.ActivityText;
+                    try {
+                        await this.ExecuteRemoteCommand(engine, engine.Connection, e);
+                    }
+                    catch (Exception exception) {
+                        await IMessageDialogService.Instance.ShowMessage("Error", "Error while executing remote command", exception.GetToString());
+                    }
+                });
+                
+                engine.CheckConnection();
+            }
         }
     }
 
@@ -38,37 +77,49 @@ public abstract class RemoteXboxCommand : BaseMemoryEngineCommand {
 }
 
 public class EjectDiskTrayCommand : RemoteXboxCommand {
-    protected override ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        return connection.OpenDiskTray();
+    protected override string ActivityText => "Ejecting disk tray...";
+
+    protected override async ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        await connection.OpenDiskTray();
     }
 }
 
 public class ShutdownCommand : RemoteXboxCommand {
-    protected override ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        return connection.ShutdownConsole();
+    protected override string ActivityText => "Shutting down console...";
+    
+    protected override async ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        await connection.ShutdownConsole();
     }
 }
 
 public class SoftRebootCommand : RemoteXboxCommand {
-    protected override ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        return connection.RebootConsole(false);
+    protected override string ActivityText => "Rebooting title...";
+    
+    protected override async ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        await connection.RebootConsole(false);
     }
 }
 
 public class ColdRebootCommand : RemoteXboxCommand {
-    protected override ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        return connection.RebootConsole(true);
+    protected override string ActivityText => "Rebooting console...";
+
+    protected override async ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        await connection.RebootConsole(true);
     }
 }
 
 public class DebugFreezeCommand : RemoteXboxCommand {
-    protected override ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        return connection.DebugFreeze();
+    protected override string ActivityText => "Freezing console...";
+    
+    protected override async ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        await connection.DebugFreeze();
     }
 }
 
 public class DebugUnfreezeCommand : RemoteXboxCommand {
-    protected override ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        return connection.DebugUnFreeze();
+    protected override string ActivityText => "Unfreezing console...";
+    
+    protected override async ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        await connection.DebugUnFreeze();
     }
 }

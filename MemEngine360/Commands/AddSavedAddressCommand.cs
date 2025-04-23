@@ -19,6 +19,7 @@
 
 using System.Globalization;
 using MemEngine360.Engine;
+using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.UserInputs;
@@ -42,7 +43,7 @@ public class AddSavedAddressCommand : Command {
                 initialAddress = list[list.Count - 1].Address;
         }
 
-        DoubleUserInputInfo info = new DoubleUserInputInfo() {
+        DoubleUserInputInfo addrDescInfo = new DoubleUserInputInfo() {
             Caption = "Add address",
             LabelA = "Memory address (hex)",
             LabelB = "Description (optional)",
@@ -53,12 +54,27 @@ public class AddSavedAddressCommand : Command {
             }
         };
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-            SavedAddressViewModel vm = new SavedAddressViewModel(engine.ScanningProcessor, uint.Parse(info.TextA, NumberStyles.HexNumber, null)) {
-                Description = info.TextB
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(addrDescInfo) == true) {
+            SavedAddressViewModel result = new SavedAddressViewModel(engine.ScanningProcessor, uint.Parse(addrDescInfo.TextA, NumberStyles.HexNumber, null)) {
+                Description = addrDescInfo.TextB
+            };
+            
+            SavedResultDataTypeUserInputInfo dataTypeInfo = new SavedResultDataTypeUserInputInfo(result) {
+                Caption = "Modify data type"
             };
 
-            engine.ScanningProcessor.SavedAddresses.Add(vm);
+            if (ApplicationPFX.Instance.ServiceManager.TryGetService(out IEditSavedAddressService? service)) {
+                if (await service.ShowDialog(dataTypeInfo) == true) {
+                    result.DisplayAsHex = dataTypeInfo.DisplayAsHex;
+                    result.DisplayAsUnsigned = dataTypeInfo.DisplayAsUnsigned;
+                    result.DataType = dataTypeInfo.DataType;
+                    result.StringType = dataTypeInfo.StringScanOption;
+                    result.StringLength = dataTypeInfo.StringLength;
+                    result.ScanningProcessor.RefreshSavedAddresses();
+                }
+            }
+
+            engine.ScanningProcessor.SavedAddresses.Add(result);
             engine.ScanningProcessor.RefreshSavedAddresses();
         }
     }

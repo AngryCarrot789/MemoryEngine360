@@ -67,8 +67,11 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
 
     public void Dispose() {
         this.EnsureNotBusy();
-        byte[] bytes = Encoding.ASCII.GetBytes("bye\r\n");
-        this.client.GetStream().Write(bytes, 0, bytes.Length);
+        if (this.client.Connected) {
+            byte[] bytes = Encoding.ASCII.GetBytes("bye\r\n");
+            this.client.GetStream().Write(bytes, 0, bytes.Length);
+        }
+
         this.isDisposed = true;
         this.client.Client.Close();
     }
@@ -78,14 +81,32 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
-        return await this.SendCommandCore(command);
+        return await this.SendCommandAndGetResponse(command);
+    }
+
+    private async ValueTask<string> ReadLineFromStream(CancellationToken token = default) {
+        string? result;
+        try {
+            result = await this.stream.ReadLineAsync(token);
+        }
+        catch (IOException e) {
+            this.client.Client.Close();
+            this.isDisposed = true;
+            throw new IOException("IOError while reading bytes", e);
+        }
+
+        if (result == null) {
+            throw new EndOfStreamException("No more bytes to read");
+        }
+
+        return result;
     }
 
     public async ValueTask<List<string>> SendCommandAndReceiveLines(string command) {
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
-        ConsoleResponse response = await this.SendCommandCore(command);
+        ConsoleResponse response = await this.SendCommandAndGetResponse(command);
         if (response.ResponseType == ResponseType.UnknownCommand) {
             throw new Exception("Unknown command: " + command);
         }
@@ -95,9 +116,16 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         }
 
         List<string> list = new List<string>();
-        string? line;
-        while ((line = await this.stream.ReadLineAsync()) != "." && line != null) {
-            list.Add(line);
+        try {
+            string line;
+            while ((line = await this.ReadLineFromStream()) != ".") {
+                list.Add(line);
+            }
+        }
+        catch (IOException e) {
+            this.client.Client.Close();
+            this.isDisposed = true;
+            throw new IOException("IOError while reading bytes", e);
         }
 
         return list;
@@ -170,7 +198,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
     }
 
     public async ValueTask ShutdownConsole() {
-        await this.SendCommand("shutdown");
+        await this.WriteCommand("shutdown");
         this.Dispose();
     }
 
@@ -270,30 +298,30 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
-        ConsoleResponse response = await this.SendCommandCore("getmem addr=0x" + address.ToString("X8") + " length=0x" + count.ToString("X8") + "\r\n");
+        ConsoleResponse response = await this.SendCommandAndGetResponse("getmem addr=0x" + address.ToString("X8") + " length=0x" + count.ToString("X8") + "\r\n");
         if (response.ResponseType != ResponseType.MultiResponse) {
             throw new Exception($"Xbox responded to getmem without {nameof(ResponseType.MultiResponse)}, which is unexpected");
         }
 
         byte[]? lineBytes = null;
-        string? data;
-        while ((data = await this.stream.ReadLineAsync(CancellationToken.None)) != ".") {
-            int cbData = data!.Length / 2; // typically 128 when reading big chunks
-            if (lineBytes == null || lineBytes.Length != cbData) {
-                lineBytes = new byte[cbData];
+        string line;
+        while ((line = await this.ReadLineFromStream()) != ".") {
+            int cbLine = line.Length / 2; // typically 128 when reading big chunks
+            if (lineBytes == null || lineBytes.Length != cbLine) {
+                lineBytes = new byte[cbLine];
             }
 
-            for (int i = 0, j = 0; i < cbData; i++, j += 2) {
-                if (data[j] == '?') {
+            for (int i = 0, j = 0; i < cbLine; i++, j += 2) {
+                if (line[j] == '?') {
                     lineBytes[i] = 0; // protected memory maybe?
                 }
                 else {
-                    lineBytes[i] = (byte) ((CharToInteger(data[j]) << 4) | CharToInteger(data[j + 1]));
+                    lineBytes[i] = (byte) ((CharToInteger(line[j]) << 4) | CharToInteger(line[j + 1]));
                 }
             }
 
-            Array.Copy(lineBytes, 0, buffer, offset, cbData);
-            offset += cbData;
+            Array.Copy(lineBytes, 0, buffer, offset, cbLine);
+            offset += cbLine;
         }
 
         ConsoleResponse failedResponse = await this.ReadResponseCore();
@@ -358,13 +386,13 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         await this.WriteBytesAndGetResponseInternal(address, bytes);
     }
 
-    public ValueTask WriteByte(uint address, byte value) {
+    public async ValueTask WriteByte(uint address, byte value) {
         this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
         ONE_BYTE[0] = value;
-        return this.WriteBytes(address, ONE_BYTE);
+        await this.WriteBytes(address, ONE_BYTE);
     }
 
     public ValueTask WriteBool(uint address, bool value) {
@@ -457,32 +485,41 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
     }
 
     private async ValueTask<ConsoleResponse> ReadResponseCore() {
-        string responseText = await this.stream.ReadLineAsync() ?? "";
+        string responseText = await this.ReadLineFromStream();
         return ConsoleResponse.FromFirstLine(responseText);
     }
 
+    private async ValueTask WriteCommand(string command) {
+        byte[] buffer = Encoding.ASCII.GetBytes(command + "\r\n");
+        try {
+            await this.client.GetStream().WriteAsync(buffer);
+        }
+        catch (IOException e) {
+            this.client.Client.Close();
+            this.isDisposed = true;
+            throw new IOException("IOError while writing bytes", e);
+        }
+    }
+    
     private async ValueTask WriteBytesAndGetResponseInternal(uint address, byte[] bytes) {
         string str = "setmem addr=0x" + address.ToString("X8") + " data=";
         foreach (byte b in bytes)
             str += b.ToString("X2");
-        str += "\r\n";
 
-        byte[] buffer = Encoding.ASCII.GetBytes(str);
-        await this.client.GetStream().WriteAsync(buffer);
+        await this.WriteCommand(str);
         ConsoleResponse response = await this.ReadResponseCore();
         if (response.ResponseType != ResponseType.SingleResponse) {
             throw new Exception($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
         }
     }
 
-    private async ValueTask<ConsoleResponse> SendCommandCore(string command) {
-        byte[] buffer = Encoding.ASCII.GetBytes(command + "\r\n");
-        await this.client.GetStream().WriteAsync(buffer);
+    private async ValueTask<ConsoleResponse> SendCommandAndGetResponse(string command) {
+        await this.WriteCommand(command);
         ConsoleResponse response = await this.ReadResponseCore();
         if (response.ResponseType == ResponseType.UnknownCommand) {
             // Sometimes the xbox randomly says unknown command for specific things
             if (this.client.Available > 0) {
-                string responseText = await this.stream.ReadLineAsync() ?? "";
+                string responseText = await this.ReadLineFromStream() ?? "";
                 response = ConsoleResponse.FromFirstLine(responseText);
             }
         }
@@ -556,7 +593,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
                 if (command == null)
                     command = "getmemex addr=0x" + address.ToString("X8") + " length=0x400" + "\r\n";
                 
-                ConsoleResponse response = await this.SendCommandCore(command);
+                ConsoleResponse response = await this.SendCommandAndGetResponse(command);
                 if (response.ResponseType != ResponseType.BinaryResponse) {
                     return output;
                 }
@@ -589,7 +626,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
 
             if (length > 0) {
                 command = "getmemex addr=0x" + address.ToString("X8") + " length=0x" + length.ToString("X8") + "\r\n";
-                ConsoleResponse response = await this.SendCommandCore(command);
+                ConsoleResponse response = await this.SendCommandAndGetResponse(command);
                 if (response.ResponseType != ResponseType.BinaryResponse) {
                     return output;
                 }

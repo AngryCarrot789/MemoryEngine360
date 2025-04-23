@@ -29,7 +29,7 @@ public class SavedAddressViewModel : INotifyPropertyChanged {
 
     private string value = "", description = "";
     private DataType dataType = DataType.Byte;
-    private StringScanOption stringScanOption = StringScanOption.UTF8;
+    private StringType stringType = StringType.UTF8;
     private int stringLength = 0;
     private bool hex, unsigned;
 
@@ -37,16 +37,49 @@ public class SavedAddressViewModel : INotifyPropertyChanged {
     // since cheat engine doesn't appear to do that (since you have use base address + a list of offsets)
     public uint Address { get; }
 
+    /// <summary>
+    /// Gets or sets the current presented value
+    /// </summary>
     public string Value { get => this.value; set => this.SetField(ref this.value, value ?? ""); }
+    
+    /// <summary>
+    /// Gets or sets the description for this saved address
+    /// </summary>
     public string Description { get => this.description; set => this.SetField(ref this.description, value ?? ""); }
+    
+    /// <summary>
+    /// Gets or sets the type of data this address points to
+    /// </summary>
     public DataType DataType { get => this.dataType; set => this.SetField(ref this.dataType, value); }
-    public StringScanOption StringScanOption { get => this.stringScanOption; set => this.SetField(ref this.stringScanOption, value); }
+    
+    /// <summary>
+    /// Gets or sets how to interpolate bytes at the address as a string
+    /// </summary>
+    public StringType StringType { get => this.stringType; set => this.SetField(ref this.stringType, value); }
+    
+    /// <summary>
+    /// Gets or sets the number of characters in the string
+    /// </summary>
     public int StringLength { get => this.stringLength; set => this.SetField(ref this.stringLength, value); }
+    
+    /// <summary>
+    /// Gets or sets if we should display the value as hexidecimal. Takes priority over <see cref="DisplayAsUnsigned"/>
+    /// </summary>
     public bool DisplayAsHex { get => this.hex; set => this.SetField(ref this.hex, value); }
+    
+    /// <summary>
+    /// Gets or sets if the integer value is displayed as unsigned. Does nothing for <see cref="Modes.DataType.Byte"/>
+    /// </summary>
     public bool DisplayAsUnsigned { get => this.unsigned; set => this.SetField(ref this.unsigned, value); }
-
+    
+    /// <summary>
+    /// Gets the scanning processor that owns this saved address
+    /// </summary>
     public ScanningProcessor ScanningProcessor { get; set; }
 
+    /// <summary>
+    /// Gets the numeric display type based on <see cref="DisplayAsHex"/> and <see cref="DisplayAsUnsigned"/>
+    /// </summary>
     public MemoryEngine360.NumericDisplayType NumericDisplayType {
         get {
             if (this.DisplayAsHex)
@@ -69,6 +102,11 @@ public class SavedAddressViewModel : INotifyPropertyChanged {
         this.Address = result.Address;
         this.dataType = result.DataType;
         this.value = result.CurrentValue;
+        if (this.dataType == DataType.String) {
+            this.stringType = this.ScanningProcessor.StringScanOption;
+            this.stringLength = this.value.Length;
+        }
+        
         switch (result.NumericDisplayType) {
             case MemoryEngine360.NumericDisplayType.Normal:      break;
             case MemoryEngine360.NumericDisplayType.Unsigned:    this.unsigned = true; break;

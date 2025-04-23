@@ -43,7 +43,7 @@ public class ScanningProcessor {
     private bool pauseConsoleDuringScan;
     private bool isIntInputHexadecimal;
     private FloatScanOption floatScanOption;
-    private StringScanOption stringScanOption;
+    private StringType stringScanOption;
     private DataType dataType;
     private NumericScanType numericScanType;
 
@@ -154,7 +154,7 @@ public class ScanningProcessor {
         }
     }
 
-    public StringScanOption StringScanOption {
+    public StringType StringScanOption {
         get => this.stringScanOption;
         set {
             if (this.stringScanOption != value) {
@@ -186,8 +186,8 @@ public class ScanningProcessor {
         }
     }
 
-    public bool CanPerformFirstScan => !this.IsScanning && !this.HasDoneFirstScan && this.MemoryEngine360.Connection != null && !this.MemoryEngine360.IsConnectionBusy;
-    public bool CanPerformNextScan => !this.IsScanning && this.HasDoneFirstScan && this.MemoryEngine360.Connection != null && !this.MemoryEngine360.IsConnectionBusy;
+    public bool CanPerformFirstScan => !this.IsScanning && !this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
+    public bool CanPerformNextScan => !this.IsScanning && this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
     public bool CanPerformReset => !this.IsScanning && this.HasDoneFirstScan;
     public bool IsSecondInputRequired => this.numericScanType == NumericScanType.Between && this.DataType.IsNumeric();
 
@@ -248,9 +248,9 @@ public class ScanningProcessor {
         if (this.MemoryEngine360.Connection == null)
             throw new InvalidOperationException("No console connection");
         
-        using IDisposable? token = this.MemoryEngine360.BeginBusyOperation();
+        using IDisposable? token = await this.MemoryEngine360.BeginBusyOperationActivityAsync();
         if (token == null)
-            throw new InvalidOperationException("Engine is currently busy. Cannot scan");
+            return; // user cancelled scan
 
         bool debugFreeze = this.PauseConsoleDuringScan;
         DefaultProgressTracker progress = new DefaultProgressTracker {
@@ -281,8 +281,8 @@ public class ScanningProcessor {
                 using PopCompletionStateRangeToken x = progress.CompletionState.PushCompletionRange(0.0, 1.0 / range);
                 result = await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
                     while (!this.resultBuffer.IsEmpty) {
-                        for (int i = 0; i < chunkSize && this.resultBuffer.TryDequeue(out ScanResultViewModel? result); i++) {
-                            this.ScanResults.Add(result);
+                        for (int i = 0; i < chunkSize && this.resultBuffer.TryDequeue(out ScanResultViewModel? scanResult); i++) {
+                            this.ScanResults.Add(scanResult);
                         }
 
                         progress.CompletionState.OnProgress(1.0);
@@ -378,13 +378,13 @@ public class ScanningProcessor {
 
     private async Task RefreshSavedAddressesAsync() {
         IConsoleConnection? connection;
-        if (this.IsScanning || (connection = this.MemoryEngine360.Connection) == null || connection.IsBusy) {
+        if (this.IsScanning || this.MemoryEngine360.IsConnectionBusy || (connection = this.MemoryEngine360.Connection) == null) {
             return; // concurrent operations are dangerous and can corrupt the communication pipe until restarting connection
         }
 
         using IDisposable? token = this.MemoryEngine360.BeginBusyOperation();
         if (token == null) {
-            return; // do not modify connection while busy
+            return; // do not read while connection busy
         }
 
         foreach (SavedAddressViewModel address in this.SavedAddresses) {

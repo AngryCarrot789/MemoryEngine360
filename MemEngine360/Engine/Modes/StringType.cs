@@ -19,7 +19,7 @@
 
 namespace MemEngine360.Engine.Modes;
 
-public enum StringScanOption {
+public enum StringType {
     ASCII,
     UTF8,
     UTF16,
