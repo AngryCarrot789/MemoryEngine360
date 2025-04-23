@@ -216,7 +216,8 @@
                         HorizontalHeaderAlignment="Stretch"
                         BorderBrush="{DynamicResource PanelBackground0}"
                         BorderThickness="1"
-                        Grid.Column="1" Grid.Row="1">
+                        Grid.Column="1" Grid.Row="1"
+                        avalonia:UIInputManager.FocusPath="MemEngineWindow/ScanResultList">
                 <c:GroupBox.Header>
                     <DockPanel>
                         <TextBlock Text="Scan Results" DockPanel.Dock="Left"/>
@@ -247,7 +248,8 @@
                         BorderThickness="1"
                         HorizontalHeaderAlignment="Stretch"
                         Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="3"
-                        x:Name="PART_SavedAddressGroupBox">
+                        x:Name="PART_SavedAddressGroupBox"
+                        avalonia:UIInputManager.FocusPath="MemEngineWindow/SavedAddressList">
                 <c:GroupBox.Header>
                     <DockPanel>
                         <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
