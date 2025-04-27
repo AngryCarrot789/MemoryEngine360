@@ -10,7 +10,7 @@ Clone repo: `git clone --recursive https://github.com/AngryCarrot789/MemEngine36
 Open `MemEngine360.sln` and build/run 
 
 # How to use
-Your console needs to be running xmdb. Press `CTRL + O` or go to `File>Connect to console`. Specify the console's IP address and click `Connect`
+Your console needs to be running XBDM. Press `CTRL + O` or go to `File>Connect to console`. Specify the console's IP address and click `Connect`
 
 ![](MemEngine360.Avalonia_2025-04-23_00.40.36.png)
 
@@ -30,7 +30,7 @@ Then, specify a start address in the `Memory Scanning Options` panel and also ho
 You can also click the little green memory button to open a dialog, which lets you select a memory region to scan
 
 ![](MemEngine360-DesktopUI_2025-04-27_22.02.37.png)
-~~~~
+
 If you wish, you can enable DEBUG PAUSE which will freeze the xbox during scan (speeds up scan and useful if you don't want values to change during scan). 
 If you wish, you can disable Scan Memory Pages, though there isn't much point of doing so.
 
@@ -44,7 +44,6 @@ Otherwise it shows only one message:
 - `Region a/b (c/d)` -- It's processing region A out of B, and has read C out of D bytes from the console 
 
 Then once the scan is complete, it may show `Updating result list...`. This is where it adds the results into the UI at a steady pace to prevent the UI freezing (rate of about 2000/s (system performance dependent))
-
 
 Then, if you want to check if any results' current value have changed, click `Next Scan` and it will read the current value of all results
 and compare it to the value field(s) and remove any results that no longer match (because the value changed)
