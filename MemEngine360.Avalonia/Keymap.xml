@@ -13,11 +13,17 @@
             <Shortcut Name="CopyResultsToClipboardCSV" CommandId="commands.memengine.CopyScanResultsToClipboardCommand">
                 <KeyStroke Mods="CTRL" Key="C"/>
             </Shortcut>
+            <Shortcut Name="DeleteSelections" CommandId="commands.memengine.DeleteSelectedScanResultsCommand">
+                <KeyStroke Key="Delete"/>
+            </Shortcut>
         </Group>
 
         <Group Name="SavedAddressList">
             <Shortcut Name="EditSavedAddressValue" CommandId="commands.memengine.EditSavedAddressValueCommand">
                 <KeyStroke Mods="CTRL" Key="E"/>
+            </Shortcut>
+            <Shortcut Name="DeleteSelections" CommandId="commands.memengine.DeleteSelectedSavedAddressesCommand">
+                <KeyStroke Key="Delete"/>
             </Shortcut>
         </Group>
         

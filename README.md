@@ -22,16 +22,25 @@ such as connection status, read/write operation status, scan status, and more.
 Enter a value in the `Value` field, select the data type you wish to scan for (e.g. Byte, Int32, String), then below that, you can 
 specify search options such as the `Scan Type` (match equal values, less than, between and more), and string type (ASCII, UTF32, etc.)
 
-Then, specify a start address in the `Memory Scanning Options` panel and also how many bytes you want to read (default is 0x10000 or 65536 bytes).
-If you wish, you can enable DEBUG PAUSE which will freeze the xbox during scan (useful if you don't want values to change during scan).
+Then, specify a start address in the `Memory Scanning Options` panel and also how many bytes you want to read (default is `0x10000000` or 256MB).
+If you wish, you can enable DEBUG PAUSE which will freeze the xbox during scan (speeds up scan and useful if you don't want values to change during scan).
 
-Then, click `First Scan`. The activity status (bottom right) shows the scan progress. 
-- `Reading chunk x/x` - We read data from the console in chunks of 65536 bytes. So if you scan for 200,000 bytes, it requires 4 chunks to be read
-- `Scanning chunk x/x` - The program is scanning for the value in the chunk. This is typically extremely fast compared to Reading Chunk so it will only flash for a split second
-- `Updating result list...` - To prevent the UI freezing if 100000s of results are found, results are added to the list at a rate of about 2000/s (system performance dependent). This shows if there's a huge number results found after the scan has completed
+If you wish, you can disable Scan Memory Pages, though there isn't much point of doing so.
 
-Then, if you want to check if any results' current value have changed, click `Next Scan` and it will do basically the same
-thing as the first scan, except it scans the results in your current result list, rather than scanning the configured memory region
+Then, click `First Scan`. The activity status (bottom right) shows the scan progress. You can cancel the scan by clicking the X.
+
+If Scan Memory Pages is disabled, the status will show 2 messages:
+- `Reading chunk x/y` - We read data from the console in chunks of 65536 bytes. So if you scan for 200,000 bytes, it requires 4 chunks to be read
+- `Scanning chunk x/y` - The program is scanning for the value in the chunk. This is typically extremely fast compared to Reading Chunk so it will only flash for a split second
+
+Otherwise it shows only one message:
+- `Region a/b (c/d)` -- It's processing region A out of B, and has read C out of D bytes from the console 
+
+Then once the scan is complete, it may show `Updating result list...`. This is where it adds the results into the UI at a steady pace to prevent the UI freezing (rate of about 2000/s (system performance dependent))
+
+
+Then, if you want to check if any results' current value have changed, click `Next Scan` and it will read the current value of all results
+and compare it to the value field(s) and remove any results that no longer match (because the value changed)
 
 ### Saved addresses
 If you wish to keep an eye on specific addresses, you can add entries in here. 
@@ -44,6 +53,12 @@ shows a popup to modify the data type. You can specify the length of a string in
 ### Changing values
 You can double click the cell in the `Value` column in both the scan results panel and saved addresses panel. In the scan results panel,
 you can select multiple entries and click CTRL+E to modify the value of all entries. Currently not supported in the saved address panel
+
+### Copying scan results
+Select any number of scan results and press `CTRL + C`. A dialog will show the results formatted in CSV
+
+### Deleting rows
+Select any scan result or saved address rows and press the Delete key to remove them.
 
 ![](MemEngine360.Avalonia_2025-04-23_01.04.01.png)
 

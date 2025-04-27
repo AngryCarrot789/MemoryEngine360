@@ -333,15 +333,18 @@
                             <Button Content="Refresh" Padding="5,1"
                                     Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                    cmdu:CommandUsageManager.UsageClassType="{x:Type ac:RefreshSavedAddressesCommandUsage}"/>
-                            <Button Content="Add Entry" Padding="5,1"
+                                    cmdu:CommandUsageManager.UsageClassType="{x:Type ac:RefreshSavedAddressesCommandUsage}"
+                                    ToolTip.Tip="Refresh the values. This is done automatically every 2 seconds"/>
+                            <Button Content="Add Entry..." Padding="5,1"
                                     Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                    cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.AddSavedAddressCommand"/>
+                                    cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.AddSavedAddressCommand"
+                                    ToolTip.Tip="Adds a row manually"/>
                             <Button Content="Clear List" Padding="4,1"
                                     Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                    cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.ClearSavedAddressesCommand"/>
+                                    cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.ClearSavedAddressesCommand"
+                                    ToolTip.Tip="Clears all rows"/>
                         </StackPanel>
                         <Border/>
                     </DockPanel>

@@ -17,7 +17,14 @@
             <TextBlock Text="Memory Engine 360" HorizontalAlignment="Center" FontSize="32" FontWeight="Bold"/>
             <TextBlock Text="Cheat Engine, but for xbox 360s" HorizontalAlignment="Center" FontSize="18" FontWeight="Medium"/>
             <WrapPanel Orientation="Horizontal">
-                <TextBlock Text="This is an Avalonia remake of XeClutch's program. It can be found at: " FontSize="12"/>
+                <TextBlock Text="Source code can be found at " FontSize="12" TextWrapping="Wrap"/>
+                <HyperlinkButton Content="https://github.com/AngryCarrot789/MemEngine360"
+                                 NavigateUri="https://github.com/AngryCarrot789/MemEngine360"
+                                 Padding="0" Margin="0,-1,0,0"
+                                 VerticalAlignment="Center"/>
+            </WrapPanel>
+            <WrapPanel Orientation="Horizontal">
+                <TextBlock Text="This is an Avalonia remake of XeClutch's program, with performance improvements and utilises asynchronous programming. XeClutch's version can be found at " FontSize="12" TextWrapping="Wrap"/>
                 <HyperlinkButton Content="https://github.com/XeClutch/Cheat-Engine-For-Xbox-360"
                                  NavigateUri="https://github.com/XeClutch/Cheat-Engine-For-Xbox-360"
                                  Padding="0" Margin="0,-1,0,0"
