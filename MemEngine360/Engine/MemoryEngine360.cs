@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI;
@@ -97,6 +98,8 @@ public class MemoryEngine360 {
     public MemoryEngine360() {
         this.ScanningProcessor = new ScanningProcessor(this);
         Task.Run(async () => {
+            long timeSinceRefreshedAddresses = DateTime.Now.Ticks;
+            BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
             while (true) {
                 IConsoleConnection? conn = this.connection;
                 if (conn != null && !conn.IsConnected) {
@@ -107,9 +110,13 @@ public class MemoryEngine360 {
                         }
                     });
                 }
-
-                this.ScanningProcessor.RefreshSavedAddressesLater();
-                await Task.Delay(1000);
+                
+                await Task.Delay(250);
+                long ticksNow = DateTime.Now.Ticks;
+                if ((ticksNow - timeSinceRefreshedAddresses) >= (cfg.RefreshRateMillis * Time.TICK_PER_MILLIS)) {
+                    this.ScanningProcessor.RefreshSavedAddressesLater();
+                    timeSinceRefreshedAddresses = ticksNow;
+                }
             }
         });
     }

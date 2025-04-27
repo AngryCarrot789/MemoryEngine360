@@ -248,6 +248,17 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         return (await this.SendCommand("dbgname")).Message;
     }
 
+    public async Task<string?> GetXbeInfo(string? executable) {
+        List<string> result = await this.SendCommandAndReceiveLines($"xbeinfo {(executable != null ? ("name=" + executable) : "running")}");
+        foreach (string line in result) {
+            if (line.StartsWith("name=")) {
+                return line.Substring(6, line.Length - 7);
+            }
+        }
+        
+        return null;
+    }
+    
     public async Task<List<MemoryRegion>> GetMemoryRegions() {
         List<string> list = await this.SendCommandAndReceiveLines("walkmem");
         return list.Select(line => {

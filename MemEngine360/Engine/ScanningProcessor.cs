@@ -47,6 +47,7 @@ public class ScanningProcessor {
     private StringType stringScanOption;
     private DataType dataType;
     private NumericScanType numericScanType;
+    private bool isRefreshingAddresses;
 
     public ActivityTask? ScanningActivity { get; private set; }
 
@@ -134,7 +135,7 @@ public class ScanningProcessor {
             if (this.alignment != value) {
                 if (value == 0)
                     throw new ArgumentOutOfRangeException(nameof(value), value, "Alignment cannot be zero");
-                
+
                 this.alignment = value;
                 this.AlignmentChanged?.Invoke(this);
             }
@@ -155,7 +156,7 @@ public class ScanningProcessor {
             }
         }
     }
-    
+
     /// <summary>
     /// Gets or sets if we should read the console's registered memory pages,
     /// rather than blindly scanning the entirety of the configured memory region
@@ -227,6 +228,17 @@ public class ScanningProcessor {
         }
     }
 
+    public bool IsRefreshingAddresses {
+        get => this.isRefreshingAddresses;
+        private set {
+            if (this.isRefreshingAddresses == value)
+                return;
+
+            this.isRefreshingAddresses = value;
+            this.IsRefreshingAddressesChanged?.Invoke(this);
+        }
+    }
+
     public bool CanPerformFirstScan => !this.IsScanning && !this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
     public bool CanPerformNextScan => !this.IsScanning && this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
     public bool CanPerformReset => !this.IsScanning && this.HasDoneFirstScan;
@@ -253,6 +265,7 @@ public class ScanningProcessor {
     public event ScanningProcessorEventHandler? NumericScanTypeChanged;
     public event ScanningProcessorEventHandler? AlignmentChanged;
     public event ScanningProcessorEventHandler? ScanMemoryPagesChanged;
+    public event ScanningProcessorEventHandler? IsRefreshingAddressesChanged;
 
     private readonly ConcurrentQueue<ScanResultViewModel> resultBuffer;
     private readonly RateLimitedDispatchAction rldaMoveBufferIntoResultList;
@@ -283,7 +296,7 @@ public class ScanningProcessor {
             }
         }, TimeSpan.FromMilliseconds(200));
 
-        this.rldaRefreshSavedAddressList = RateLimitedDispatchActionBase.ForDispatcherAsync(this.RefreshSavedAddressesAsync, TimeSpan.FromMilliseconds(200));
+        this.rldaRefreshSavedAddressList = RateLimitedDispatchActionBase.ForDispatcherAsync(this.RefreshSavedAddressesAsync, TimeSpan.FromMilliseconds(100));
     }
 
     public static uint GetAlignmentFromDataType(DataType type) {
@@ -476,7 +489,7 @@ public class ScanningProcessor {
     }
 
     public async Task RefreshSavedAddressesAsync() {
-        if (this.IsScanning || this.MemoryEngine360.IsConnectionBusy || this.MemoryEngine360.Connection == null) {
+        if (this.IsScanning || this.IsRefreshingAddresses || this.MemoryEngine360.IsConnectionBusy || this.MemoryEngine360.Connection == null) {
             return; // concurrent operations are dangerous and can corrupt the communication pipe until restarting connection
         }
 
@@ -495,27 +508,43 @@ public class ScanningProcessor {
     /// <exception cref="InvalidOperationException">No connection is present</exception>
     public async Task RefreshSavedAddressesAsync(IDisposable busyOperationToken) {
         Validate.NotNull(busyOperationToken);
-
-        IConsoleConnection connection = this.MemoryEngine360.Connection ?? throw new InvalidOperationException("No connection present");
-        // TODO: maybe batch together results whose addresses are close by, and read a single chunk?
-        // May be faster if the console is not debug frozen and we have to update 100s of results...
-        foreach (SavedAddressViewModel address in this.SavedAddresses) {
-            address.Value = await MemoryEngine360.ReadAsText(connection, address.Address, address.DataType,
-                address.DisplayAsHex
-                    ? NumericDisplayType.Hexadecimal
-                    : (address.DisplayAsUnsigned
-                        ? NumericDisplayType.Unsigned
-                        : NumericDisplayType.Normal),
-                address.StringLength);
+        if (this.IsRefreshingAddresses) {
+            throw new InvalidOperationException("Already refreshing");
         }
 
-        // safety net -- we still need to implement logic to notify view models when they're visible in the
-        // UI, although this does kind of break the MVVM pattern but oh well
-        if (this.ScanResults.Count < 100) {
-            foreach (ScanResultViewModel result in this.ScanResults) {
-                result.PreviousValue = result.CurrentValue;
-                result.CurrentValue = await MemoryEngine360.ReadAsText(connection, result.Address, result.DataType, result.NumericDisplayType, (uint) result.FirstValue.Length);
+        IConsoleConnection connection = this.MemoryEngine360.Connection ?? throw new InvalidOperationException("No connection present");
+
+        // ideally this shouldn't throw at all
+        try {
+            // TODO: maybe batch together results whose addresses are close by, and read a single chunk?
+            // May be faster if the console is not debug frozen and we have to update 100s of results...
+            if (this.SavedAddresses.Count < 100) {
+                this.IsRefreshingAddresses = true;
+                
+                foreach (SavedAddressViewModel address in this.SavedAddresses) {
+                    address.Value = await MemoryEngine360.ReadAsText(connection, address.Address, address.DataType,
+                        address.DisplayAsHex
+                            ? NumericDisplayType.Hexadecimal
+                            : (address.DisplayAsUnsigned
+                                ? NumericDisplayType.Unsigned
+                                : NumericDisplayType.Normal),
+                        address.StringLength);
+                }
             }
+
+            // safety net -- we still need to implement logic to notify view models when they're visible in the
+            // UI, although this does kind of break the MVVM pattern but oh well
+            if (this.ScanResults.Count < 100) {
+                this.IsRefreshingAddresses = true;
+                
+                foreach (ScanResultViewModel result in this.ScanResults) {
+                    result.PreviousValue = result.CurrentValue;
+                    result.CurrentValue = await MemoryEngine360.ReadAsText(connection, result.Address, result.DataType, result.NumericDisplayType, (uint) result.FirstValue.Length);
+                }
+            }
+        }
+        finally {
+            this.IsRefreshingAddresses = false;
         }
     }
 }

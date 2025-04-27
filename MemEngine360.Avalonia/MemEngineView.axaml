@@ -11,6 +11,8 @@
                             xmlns:ams="clr-namespace:PFXToolKitUI.Avalonia.AdvancedMenuService;assembly=PFXToolKitUI.Avalonia"
                             xmlns:c2="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
                             xmlns:converters="clr-namespace:PFXToolKitUI.Avalonia.Converters;assembly=PFXToolKitUI.Avalonia"
+                            xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+                            xmlns:cb="clr-namespace:MemEngine360.Avalonia.Resources.Icons"
                             mc:Ignorable="d"
                             WindowTitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}"
                             WindowBorderBrush="{DynamicResource PanelBorderBrush}"
@@ -27,6 +29,7 @@
                 <ams:CommandMenuItem Header="List all commands in popup" CommandId="commands.memengine.remote.ListHelpCommand"/>
                 <ams:CommandMenuItem Header="Show Console ID key" CommandId="commands.memengine.remote.ShowConsoleIDCommand"/>
                 <ams:CommandMenuItem Header="Show CPU key" CommandId="commands.memengine.remote.ShowCPUKeyCommand"/>
+                <ams:CommandMenuItem Header="Show XBE info" CommandId="commands.memengine.remote.ShowXbeInfoCommand"/>
                 <ams:CommandMenuItem Header="Show Memory Regions" CommandId="commands.memengine.remote.MemProtectionCommand"/>
                 <Separator/>
                 <ams:CommandMenuItem Header="Open Disk Tray" CommandId="commands.memengine.remote.EjectDiskTrayCommand"/>
@@ -183,10 +186,11 @@
                                 Background="{DynamicResource PanelBackground3}"
                                 BorderBrush="{DynamicResource PanelBackground0}"
                                 BorderThickness="1"
-                                HorizontalHeaderAlignment="Stretch">
+                                HorizontalHeaderAlignment="Stretch"
+                                VerticalHeaderAlignment="Stretch">
                         <c:GroupBox.Header>
                             <DockPanel HorizontalSpacing="4">
-                                <ToggleButton x:Name="PART_MemScanExpander" DockPanel.Dock="Right" Width="16" Padding="0" VerticalAlignment="Center"
+                                <ToggleButton x:Name="PART_MemScanExpander" DockPanel.Dock="Right" Width="18" Height="18" Padding="0" VerticalAlignment="Center"
                                               BorderThickness="0" Background="{DynamicResource ABrush.Tone7.Background.Static}"
                                               IsChecked="True">
                                     <ToggleButton.Resources>
@@ -194,7 +198,36 @@
                                     </ToggleButton.Resources>
                                     <TextBlock Text="{Binding ElementName=PART_MemScanExpander, Path=IsChecked, Converter={StaticResource IsCheckedToTextConverter}}" Margin="0,-2,0,0"/>
                                 </ToggleButton>
-                                <TextBlock Text="Memory Scanning Options"/>
+                                <av:IconButton DockPanel.Dock="Right" 
+                                               Icon="{x:Static cb:SimpleIcons.MemoryIcon}" 
+                                               Width="18" Height="18" 
+                                               Padding="2"
+                                               BorderThickness="0" 
+                                               Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                               cmdu:CommandUsageManager.UsageClassType="{x:Type ac:SelectRangeFromMemoryRegionCommandUsage}">
+                                    <ToolTip.Tip>
+                                        <TextBlock TextWrapping="Wrap">
+                                            <Run Text="Open a dialog with all available memory regions on the console"/>
+                                            <LineBreak/>
+                                            <Run Text="Select one, click Select, and it sets that as the start/length fields"/>
+                                        </TextBlock>
+                                    </ToolTip.Tip>
+                                </av:IconButton>
+                                <av:IconButton DockPanel.Dock="Right" 
+                                               Icon="{x:Static cb:SimpleIcons.ResetIcon}" 
+                                               Width="18" Height="18"
+                                               IconMaxWidth="12" IconMaxHeight="12"
+                                               Padding="2"
+                                               BorderThickness="0" 
+                                               Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                               cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ResetScanOptionsCommandUsage}">
+                                    <ToolTip.Tip>
+                                        <TextBlock TextWrapping="Wrap">
+                                            <Run Text="Resets the Start, Length and Scan Memory Pages options to default"/>
+                                        </TextBlock>
+                                    </ToolTip.Tip>
+                                </av:IconButton>
+                                <TextBlock Text="Memory Scanning Options" VerticalAlignment="Center"/>
                             </DockPanel>
                         </c:GroupBox.Header>
                         <StackPanel IsVisible="{Binding ElementName=PART_MemScanExpander, Path=IsChecked}">
@@ -297,8 +330,8 @@
                 </c:GroupBox.Header>
                 <DataGrid x:Name="PART_ScanListResults" Background="Transparent" BorderThickness="0" CanUserResizeColumns="True">
                     <DataGrid.Columns>
-                        <av2:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}" 
-                                                  Header="Address (hex)" Width="85" Binding="{Binding Address, Mode=OneTime, StringFormat=X}" 
+                        <av2:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
+                                                  Header="Address (hex)" Width="85" Binding="{Binding Address, Mode=OneTime, StringFormat=X}"
                                                   IsReadOnly="True" DoubleTapCommandId="commands.memengine.CopyScanResultsToClipboardCommand"
                                                   CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
                                                   CanUserResize="False"/> <!-- No need to resize since it's formatted to X8 (fixed length) -->

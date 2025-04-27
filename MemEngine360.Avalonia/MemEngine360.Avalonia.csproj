@@ -21,6 +21,7 @@
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
+        <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.0-rc1" />
     </ItemGroup>
 
     <ItemGroup>
@@ -40,5 +41,10 @@
       <Reference Include="Avalonia.Themes.Simple">
         <HintPath>C:\Users\kettl\.nuget\packages\avalonia.themes.simple\11.3.0-rc1\lib\net8.0\Avalonia.Themes.Simple.dll</HintPath>
       </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Resources\Icons\icons8-memory-48.png" />
+      <AvaloniaResource Include="Resources\Icons\icons8-memory-48.png" />
     </ItemGroup>
 </Project>

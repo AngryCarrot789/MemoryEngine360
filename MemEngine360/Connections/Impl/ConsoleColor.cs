@@ -23,5 +23,6 @@ public enum ConsoleColor {
     Black,
     Blue,
     BlueGray,
+    NoSideCar,
     White,
 };

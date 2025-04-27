@@ -116,16 +116,26 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
 
         IConsoleConnection connection = processor.MemoryEngine360.Connection!;
         if (processor.ScanMemoryPages) {
-            List<MemoryRegion> regions = await connection.GetMemoryRegions();
             uint addrStart = processor.StartAddress, addrEnd = addrStart + processor.ScanLength;
-            for (int rgIdx = 0; rgIdx < regions.Count; rgIdx++) {
-                ActivityManager.Instance.CurrentTask.CheckCancelled();
-                MemoryRegion region = regions[rgIdx];
+            List<MemoryRegion> safeRegions = new List<MemoryRegion>();
+            List<MemoryRegion> consoleMemoryRegions = await connection.GetMemoryRegions();
+            foreach (MemoryRegion region in consoleMemoryRegions) {
                 if (region.Protection == 0x00000240) {
                     // It might not be specifically this protection value, but I noticed that around the memory regions
                     // with this region, if you attempt to read them, it freeze the console even after debug unfreeze command.
                     continue;
                 }
+                
+                if (region.BaseAddress < addrStart || (region.BaseAddress + region.Size) > addrEnd) {
+                    continue;
+                }
+                
+                safeRegions.Add(region);
+            }
+            
+            for (int rgIdx = 0; rgIdx < safeRegions.Count; rgIdx++) {
+                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                MemoryRegion region = safeRegions[rgIdx];
 
                 // We still stick to the start/length fields even when scanning pages, because
                 // the user may only want to scan a specific address region
@@ -140,7 +150,7 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
                 using var token = activity.CompletionState.PushCompletionRange(0, 1.0 / region.Size);
                 for (int j = 0; j < region.Size; j += 65536) {
                     ActivityManager.Instance.CurrentTask.CheckCancelled();
-                    activity.Text = $"Region {rgIdx + 1}/{regions.Count}... ({IValueScanner.ByteFormatter.ToString(j, false)}/{IValueScanner.ByteFormatter.ToString(region.Size, false)})";
+                    activity.Text = $"Region {rgIdx + 1}/{safeRegions.Count}... ({IValueScanner.ByteFormatter.ToString(j, false)}/{IValueScanner.ByteFormatter.ToString(region.Size, false)})";
                     activity.CompletionState.OnProgress(65536);
 
                     // should we be using BaseAddress or PhysicalAddress???
@@ -417,11 +427,26 @@ public class StringValueScanner : IValueScanner {
         IConsoleConnection connection = processor.MemoryEngine360.Connection!;
         uint chunkSize = (uint) Maths.Ceil(65536, cbInputString);
         if (processor.ScanMemoryPages) {
-            List<MemoryRegion> regions = await connection.GetMemoryRegions();
             uint addrStart = processor.StartAddress, addrEnd = addrStart + processor.ScanLength;
-            for (int rgIdx = 0; rgIdx < regions.Count; rgIdx++) {
+            List<MemoryRegion> safeRegions = new List<MemoryRegion>();
+            List<MemoryRegion> consoleMemoryRegions = await connection.GetMemoryRegions();
+            foreach (MemoryRegion region in consoleMemoryRegions) {
+                if (region.Protection == 0x00000240) {
+                    // It might not be specifically this protection value, but I noticed that around the memory regions
+                    // with this region, if you attempt to read them, it freeze the console even after debug unfreeze command.
+                    continue;
+                }
+                
+                if (region.BaseAddress < addrStart || (region.BaseAddress + region.Size) > addrEnd) {
+                    continue;
+                }
+                
+                safeRegions.Add(region);
+            }
+            
+            for (int rgIdx = 0; rgIdx < safeRegions.Count; rgIdx++) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
-                MemoryRegion region = regions[rgIdx];
+                MemoryRegion region = safeRegions[rgIdx];
                 if (region.Protection == 0x00000240) {
                     // It might not be specifically this protection value, but I noticed that around the memory regions
                     // with this region, if you attempt to read them, it freezes the console even after debug unfreeze command.
@@ -440,7 +465,7 @@ public class StringValueScanner : IValueScanner {
                 using var token = activity.CompletionState.PushCompletionRange(0, 1.0 / region.Size);
                 for (int j = 0; j < region.Size; j += (int) chunkSize) {
                     ActivityManager.Instance.CurrentTask.CheckCancelled();
-                    activity.Text = $"Region {rgIdx + 1}/{regions.Count}... ({IValueScanner.ByteFormatter.ToString(j, false)}/{IValueScanner.ByteFormatter.ToString(region.Size, false)})";
+                    activity.Text = $"Region {rgIdx + 1}/{safeRegions.Count}... ({IValueScanner.ByteFormatter.ToString(j, false)}/{IValueScanner.ByteFormatter.ToString(region.Size, false)})";
                     activity.CompletionState.OnProgress(chunkSize);
 
                     // should we be using BaseAddress or PhysicalAddress???

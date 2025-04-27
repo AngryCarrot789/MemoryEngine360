@@ -26,7 +26,7 @@ using PFXToolKitUI.Utils.Accessing;
 
 namespace MemEngine360.Engine;
 
-public sealed class SavedAddressViewModel : ITransferableData, INotifyPropertyChanged {
+public sealed class SavedAddressViewModel : BaseTransferableViewModel {
     // This class needs a re-work. We shouldn't use a raw address like this,
     // since cheat engine doesn't appear to do that (since you have use base address + a list of offsets)
 
@@ -133,18 +133,12 @@ public sealed class SavedAddressViewModel : ITransferableData, INotifyPropertyCh
     /// </summary>
     public bool IsVisibleInMainSavedResultList { get; set; } = true;
 
-    public TransferableData TransferableData { get; }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
     public SavedAddressViewModel(ScanningProcessor scanningProcessor, uint address) {
-        this.TransferableData = new TransferableData(this);
         this.ScanningProcessor = scanningProcessor;
         this.address = address;
     }
 
     public SavedAddressViewModel(ScanResultViewModel result) {
-        this.TransferableData = new TransferableData(this);
         this.ScanningProcessor = result.ScanningProcessor;
         this.address = result.Address;
         this.dataType = result.DataType;
@@ -163,15 +157,6 @@ public sealed class SavedAddressViewModel : ITransferableData, INotifyPropertyCh
     }
 
     static SavedAddressViewModel() {
-        // Translate DataParmeter value changes into INPC
-        DataParameter.AddMultipleHandlers(OnObservablePropertyChanged, AddressParameter, ValueParameter, DescriptionParameter, DataTypeParameter, StringTypeParameter, StringLengthParameter, DisplayAsHexParameter, DisplayAsUnsignedParameter);
-    }
-
-    private static void OnObservablePropertyChanged(DataParameter parameter, ITransferableData owner) {
-        ((SavedAddressViewModel) owner).RaisePropertyChanged(parameter.Name);
-    }
-
-    private void RaisePropertyChanged([CallerMemberName] string? propertyName = null) {
-        this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        RegisterParametersAsObservable(AddressParameter, ValueParameter, DescriptionParameter, DataTypeParameter, StringTypeParameter, StringLengthParameter, DisplayAsHexParameter, DisplayAsUnsignedParameter);
     }
 }

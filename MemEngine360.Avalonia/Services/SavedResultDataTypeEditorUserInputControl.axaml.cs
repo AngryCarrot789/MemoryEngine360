@@ -31,8 +31,8 @@ using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Avalonia.Services;
 
-public partial class SavedResultDataTypeUserInputControl : UserControl, IUserInputContent {
-    public static readonly StyledProperty<uint> StringLengthProperty = AvaloniaProperty.Register<SavedResultDataTypeUserInputControl, uint>(nameof(StringLength));
+public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IUserInputContent {
+    public static readonly StyledProperty<uint> StringLengthProperty = AvaloniaProperty.Register<SavedResultDataTypeEditorUserInputControl, uint>(nameof(StringLength));
     
     private UserInputDialogView? myDialog;
     private SavedResultDataTypeUserInputInfo? myData;
@@ -49,7 +49,7 @@ public partial class SavedResultDataTypeUserInputControl : UserControl, IUserInp
         set => this.SetValue(StringLengthProperty, value);
     }
     
-    public SavedResultDataTypeUserInputControl() {
+    public SavedResultDataTypeEditorUserInputControl() {
         this.InitializeComponent();
         
         this.stringScanModeBinder.Assign(this.PART_String_ASCII, StringType.ASCII);
@@ -127,5 +127,11 @@ public partial class SavedResultDataTypeUserInputControl : UserControl, IUserInp
     public bool FocusPrimaryInput() {
         this.PART_DataTypeComboBox.Focus();
         return true;
+    }
+
+    public void OnWindowOpened() {
+    }
+
+    public void OnWindowClosed() {
     }
 }

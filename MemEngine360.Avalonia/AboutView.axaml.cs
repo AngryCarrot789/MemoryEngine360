@@ -24,7 +24,7 @@ namespace MemEngine360.Avalonia;
 
 public partial class AboutView : WindowingContentControl {
     public AboutView() {
-        InitializeComponent();
+        this.InitializeComponent();
     }
     
     private void Button_OnClick(object? sender, RoutedEventArgs e) {

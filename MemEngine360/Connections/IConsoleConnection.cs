@@ -97,6 +97,13 @@ public interface IConsoleConnection : IDisposable {
     /// Gets the console's debugging name, typically the name displayed in xbox neighbourhood
     /// </summary>
     Task<string> GetDebugName();
+
+    /// <summary>
+    /// Gets the path of the executable's name
+    /// </summary>
+    /// <param name="executable">The executable. Null to use current executable</param>
+    /// <returns>The .xex file path</returns>
+    Task<string?> GetXbeInfo(string? executable);
     
     /// <summary>
     /// Walks all the memory regions on the console
@@ -125,7 +132,7 @@ public interface IConsoleConnection : IDisposable {
     Task<IPAddress> GetTitleIPAddress();
     
     /// <summary>
-    /// Sets the console colour property
+    /// Sets the console colour property for use in xbox neighbourhood
     /// </summary>
     /// <param name="colour">The new colour</param>
     Task SetConsoleColor(ConsoleColor colour);

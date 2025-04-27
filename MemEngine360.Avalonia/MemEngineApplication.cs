@@ -21,10 +21,12 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using MemEngine360.Avalonia.MemRegions;
 using MemEngine360.Avalonia.Services;
 using MemEngine360.Commands;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
+using MemEngine360.MemRegions;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Services;
@@ -32,8 +34,11 @@ using PFXToolKitUI.Avalonia.Services.UserInputs;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Themes;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Configurations;
+using PFXToolKitUI.Configurations.Shortcuts;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Services;
+using PFXToolKitUI.Shortcuts;
 using PFXToolKitUI.Themes;
 
 namespace MemEngine360.Avalonia;
@@ -59,16 +64,21 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.AddSelectedScanResultsToSavedAddressListCommand", new AddSelectedScanResultsToSavedAddressListCommand());
         manager.Register("commands.memengine.DeleteSelectedSavedAddressesCommand", new DeleteSelectedSavedAddressesCommand());
         manager.Register("commands.memengine.DeleteSelectedScanResultsCommand", new DeleteSelectedScanResultsCommand());
-        manager.Register("commands.memengine.remote.EjectDiskTrayCommand", new EjectDiskTrayCommand());
-        manager.Register("commands.memengine.remote.ShutdownCommand", new ShutdownCommand());
-        manager.Register("commands.memengine.remote.SoftRebootCommand", new SoftRebootCommand());
-        manager.Register("commands.memengine.remote.ColdRebootCommand", new ColdRebootCommand());
-        manager.Register("commands.memengine.remote.DebugFreezeCommand", new DebugFreezeCommand());
-        manager.Register("commands.memengine.remote.DebugUnfreezeCommand", new DebugUnfreezeCommand());
+        manager.Register("commands.memengine.SelectRangeFromMemoryRegionCommand", new SelectRangeFromMemoryRegionCommand());
+        manager.Register("commands.memengine.ResetScanOptionsCommand", new ResetScanOptionsCommand());
+        
+        // Remote commands
         manager.Register("commands.memengine.remote.ListHelpCommand", new ListHelpCommand());
         manager.Register("commands.memengine.remote.ShowConsoleIDCommand", new ShowConsoleIDCommand());
         manager.Register("commands.memengine.remote.ShowCPUKeyCommand", new ShowCPUKeyCommand());
+        manager.Register("commands.memengine.remote.ShowXbeInfoCommand", new ShowXbeInfoCommand());
         manager.Register("commands.memengine.remote.MemProtectionCommand", new MemProtectionCommand());
+        manager.Register("commands.memengine.remote.EjectDiskTrayCommand", new EjectDiskTrayCommand());
+        manager.Register("commands.memengine.remote.DebugFreezeCommand", new DebugFreezeCommand());
+        manager.Register("commands.memengine.remote.DebugUnfreezeCommand", new DebugUnfreezeCommand());
+        manager.Register("commands.memengine.remote.SoftRebootCommand", new SoftRebootCommand());
+        manager.Register("commands.memengine.remote.ColdRebootCommand", new ColdRebootCommand());
+        manager.Register("commands.memengine.remote.ShutdownCommand", new ShutdownCommand());
     }
 
     protected override void RegisterServices(ServiceManager manager) {
@@ -98,8 +108,13 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     }
 
     protected override Task OnApplicationFullyLoaded() {
-        UserInputDialogView.Registry.RegisterType<SavedResultDataTypeUserInputInfo>(() => new SavedResultDataTypeUserInputControl());
-
+        UserInputDialogView.Registry.RegisterType<SavedResultDataTypeUserInputInfo>(() => new SavedResultDataTypeEditorUserInputControl());
+        UserInputDialogView.Registry.RegisterType<MemoryRegionUserInputInfo>(() => new MemoryRegionViewerUserInputControl());
+        
+        ApplicationConfigurationManager.Instance.RootEntry.AddEntry(new ConfigurationEntry() {
+            DisplayName = "MemEngine", Id = "config.memengine", Page = new MemEngineConfigurationPage()
+        });
+        
         return base.OnApplicationFullyLoaded();
     }
 
@@ -112,7 +127,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     }
 
     private class IconPreferencesImpl : IIconPreferences {
-        public bool UseAntiAliasing { get; set; }
+        public bool UseAntiAliasing { get; set; } = true;
     }
 
     private class StartupManagerMemEngine360 : IStartupManager {

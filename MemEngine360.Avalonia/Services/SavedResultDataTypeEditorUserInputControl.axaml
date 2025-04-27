@@ -1,10 +1,10 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl x:Class="MemEngine360.Avalonia.Services.SavedResultDataTypeEditorUserInputControl" 
+             xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:services="clr-namespace:MemEngine360.Avalonia.Services"
-             mc:Ignorable="d" MinHeight="200"
-             x:Class="MemEngine360.Avalonia.Services.SavedResultDataTypeUserInputControl">
+             mc:Ignorable="d" MinHeight="200">
     <Grid RowDefinitions="0,Auto,3,Auto,5,*,0" ColumnDefinitions="0,*,0">
         <TextBlock Grid.Row="1" Grid.Column="1" Text="Select new data type"/>
         <ComboBox Grid.Row="3" Grid.Column="1" x:Name="PART_DataTypeComboBox"/>
@@ -29,7 +29,7 @@
                         <DockPanel>
                             <TextBlock Text="Length: " DockPanel.Dock="Left" VerticalAlignment="Center" Padding="2,0,4,0"/>
                             <TextBox x:Name="PART_StringLength" VerticalAlignment="Center"
-                                     Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type services:SavedResultDataTypeUserInputControl}}, Path=StringLength, Mode=TwoWay}"/>
+                                     Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type services:SavedResultDataTypeEditorUserInputControl}}, Path=StringLength, Mode=TwoWay}"/>
                         </DockPanel>
                     </StackPanel>
                 </StackPanel>

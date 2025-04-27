@@ -46,6 +46,21 @@ public abstract class MemEngineConnectionReliantButtonCommandUsage : MemEngineBu
 public class RefreshSavedAddressesCommandUsage : MemEngineConnectionReliantButtonCommandUsage {
     public RefreshSavedAddressesCommandUsage() : base("commands.memengine.RefreshSavedAddressesCommand") {
     }
+
+    protected override void OnEngineChanged(MemoryEngine360? oldEngine, MemoryEngine360? newEngine) {
+        base.OnEngineChanged(oldEngine, newEngine);
+        if (oldEngine != null) {
+            oldEngine.ScanningProcessor.IsRefreshingAddressesChanged -= this.DoUpdate;
+            oldEngine.ScanningProcessor.IsScanningChanged -= this.DoUpdate;
+        }
+
+        if (newEngine != null) {
+            newEngine.ScanningProcessor.IsRefreshingAddressesChanged += this.DoUpdate;
+            newEngine.ScanningProcessor.IsScanningChanged += this.DoUpdate;
+        }
+    }
+
+    private void DoUpdate(ScanningProcessor sender) => this.UpdateCanExecuteLater();
 }
 
 public class AddSelectedScanResultsToSavedAddressListCommandUsage : MemUIButtonCommandUsage {
@@ -61,6 +76,28 @@ public class AddSelectedScanResultsToSavedAddressListCommandUsage : MemUIButtonC
     }
 
     private void OnSelectionChanged(ILightSelectionManager<ScanResultViewModel> sender) {
+        this.UpdateCanExecuteLater();
+    }
+}
+
+public class SelectRangeFromMemoryRegionCommandUsage : MemEngineConnectionReliantButtonCommandUsage {
+    public SelectRangeFromMemoryRegionCommandUsage() : base("commands.memengine.SelectRangeFromMemoryRegionCommand") {
+    }
+}
+
+public class ResetScanOptionsCommandUsage : MemEngineConnectionReliantButtonCommandUsage {
+    public ResetScanOptionsCommandUsage() : base("commands.memengine.ResetScanOptionsCommand") {
+    }
+
+    protected override void OnEngineChanged(MemoryEngine360? oldEngine, MemoryEngine360? newEngine) {
+        base.OnEngineChanged(oldEngine, newEngine);
+        if (oldEngine != null)
+            oldEngine.ScanningProcessor.IsScanningChanged -= this.OnIsScanningChanged;
+        if (newEngine != null)
+            newEngine.ScanningProcessor.IsScanningChanged += this.OnIsScanningChanged;
+    }
+
+    private void OnIsScanningChanged(ScanningProcessor sender) {
         this.UpdateCanExecuteLater();
     }
 }

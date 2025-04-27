@@ -22,6 +22,9 @@ using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Engine;
 
+/// <summary>
+/// An abstraction around the MemEngine360 main window
+/// </summary>
 public interface IMemEngineUI {
     public static readonly DataKey<IMemEngineUI> DataKey = DataKey<IMemEngineUI>.Create("IMemEngineUI");
 

@@ -28,16 +28,25 @@ public class RefreshSavedAddressesCommand : Command {
             return Executability.Invalid;
         }
 
-        return engine.Connection == null ? Executability.ValidButCannotExecute : Executability.Valid;
+        if (engine.Connection == null || engine.ScanningProcessor.IsScanning || engine.ScanningProcessor.IsRefreshingAddresses) {
+            return Executability.ValidButCannotExecute;
+        }
+        
+        return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine360.DataKey.TryGetContext(e.ContextData, out MemoryEngine360? engine) || engine.Connection == null) {
+        if (!MemoryEngine360.DataKey.TryGetContext(e.ContextData, out MemoryEngine360? engine)) {
             return;
         }
 
         using IDisposable? token = await engine.BeginBusyOperationActivityAsync();
         if (token == null) {
+            return;
+        }
+
+        ScanningProcessor p = engine.ScanningProcessor;
+        if (engine.Connection == null || p.IsRefreshingAddresses || p.IsScanning) {
             return;
         }
         
