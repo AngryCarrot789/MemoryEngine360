@@ -44,10 +44,10 @@ class Program {
                     filePath = trueArgs[0];
             }
 
-            string? dirPath = Path.GetDirectoryName(filePath);
-            if (!string.IsNullOrEmpty(dirPath) && Directory.Exists(dirPath)) {
+            string? dirPath = System.IO.Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(dirPath) && System.IO.Directory.Exists(dirPath)) {
                 try {
-                    File.WriteAllText(Path.Combine(dirPath, "VWeaponEditor_LastCrashError.txt"), e.ToString());
+                    System.IO.File.WriteAllText(System.IO.Path.Combine(dirPath, "VWeaponEditor_LastCrashError.txt"), e.ToString());
                 }
                 catch { /* ignored */ }
             }

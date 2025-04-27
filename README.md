@@ -1,7 +1,7 @@
-# MemEngine360
+# MemEngine360 v1.1
 This is a remake of Cheat Engine, but for consoles. Currently, only the Xbox360 is supported. Still WIP
 
-![](MemEngine360.Avalonia_2025-04-23_00.37.43.png)
+![](MemEngine360.Avalonia_2025-04-27_01.17.35.png)
 
 This project was inspired from https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
 
@@ -18,16 +18,16 @@ such as connection status, read/write operation status, scan status, and more.
 Enter a value in the `Value` field, select the data type you wish to scan for (e.g. Byte, Int32, String), then below that, you can 
 specify search options such as the `Scan Type` (match equal values, less than, between and more), and string type (ASCII, UTF32, etc.)
 
-Then, specify a start address in the `Memory Scanning Options` panel and also how many bytes you want to read (default is 0xFFFF or 64kb).
+Then, specify a start address in the `Memory Scanning Options` panel and also how many bytes you want to read (default is 0x10000 or 65536 bytes).
 If you wish, you can enable DEBUG PAUSE which will freeze the xbox during scan (useful if you don't want values to change during scan).
 
 Then, click `First Scan`. The activity status (bottom right) shows the scan progress. 
-- `Reading chunk x/x` - We read data from the console in chunks of 65535 bytes. So if you scan for 200,000 bytes, it requires 4 chunks to be read
+- `Reading chunk x/x` - We read data from the console in chunks of 65536 bytes. So if you scan for 200,000 bytes, it requires 4 chunks to be read
 - `Scanning chunk x/x` - The program is scanning for the value in the chunk. This is typically extremely fast compared to Reading Chunk so it will only flash for a split second
 - `Updating result list...` - To prevent the UI freezing if 100000s of results are found, results are added to the list at a rate of about 2000/s (system performance dependent). This shows if there's a huge number results found after the scan has completed
 
-At the moment, `Next Scan` does not work as it does in Cheat Engine (it's the same as clicking Reset and then First Scan again).
-Next release, it will only scan results in the `Scan Results` panel, rather than scanning your specified memory range
+Then, if you want to check if any results' current value have changed, click `Next Scan` and it will do basically the same
+thing as the first scan, except it scans the results in your current result list, rather than scanning the configured memory region
 
 ### Saved addresses
 If you wish to keep an eye on specific addresses, you can add entries in here. 
