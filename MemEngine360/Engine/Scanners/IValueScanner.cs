@@ -129,7 +129,7 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
 
                 // We still stick to the start/length fields even when scanning pages, because
                 // the user may only want to scan a specific address region
-                if (region.BaseAddress < addrStart || (region.BaseAddress + region.Size) >= addrEnd) {
+                if (region.BaseAddress < addrStart || (region.BaseAddress + region.Size) > addrEnd) {
                     continue;
                 }
 

@@ -20,95 +20,169 @@
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
+using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
+using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Commands;
 
 public class EditSavedAddressValueCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!SavedAddressViewModel.DataKey.TryGetContext(e.ContextData, out SavedAddressViewModel? result)) {
-            return Executability.Invalid;
+        ScanningProcessor processor;
+        if (!ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? result)) {
+            if (!IMemEngineUI.DataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+                return Executability.Invalid;
+            }
+
+            processor = ui.MemoryEngine360.ScanningProcessor;
+        }
+        else {
+            processor = result.ScanningProcessor;
         }
 
-        if (result.ScanningProcessor.IsScanning)
+        if (processor.IsScanning)
             return Executability.ValidButCannotExecute;
 
-        IConsoleConnection? connection = result.ScanningProcessor.MemoryEngine360.Connection;
-        if (connection == null || result.ScanningProcessor.MemoryEngine360.IsConnectionBusy) {
+        IConsoleConnection? connection = processor.MemoryEngine360.Connection;
+        if (connection == null || processor.MemoryEngine360.IsConnectionBusy)
             return Executability.ValidButCannotExecute;
-        }
 
         return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!SavedAddressViewModel.DataKey.TryGetContext(e.ContextData, out SavedAddressViewModel? result)) {
+        MemoryEngine360? memoryEngine360 = null;
+        List<SavedAddressViewModel> savedList = new List<SavedAddressViewModel>();
+        if (IMemEngineUI.DataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+            savedList.AddRange(ui.SavedAddressesSelectionManager.SelectedItems);
+            memoryEngine360 = ui.MemoryEngine360;
+        }
+
+        if (SavedAddressViewModel.DataKey.TryGetContext(e.ContextData, out SavedAddressViewModel? theResult)) {
+            memoryEngine360 ??= theResult.ScanningProcessor.MemoryEngine360;
+            if (!savedList.Contains(theResult))
+                savedList.Add(theResult);
+        }
+
+        if (memoryEngine360 == null || savedList.Count < 1) {
             return;
         }
 
-        IConsoleConnection? connection = result.ScanningProcessor.MemoryEngine360.Connection;
-        if (connection == null) {
+        if (memoryEngine360.Connection == null) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
             return;
         }
 
-        if (result.ScanningProcessor.MemoryEngine360.IsConnectionBusy) {
-            string desc = result.ScanningProcessor.IsScanning ? "The connection is busy scanning the xbox memory. Cancel to modify values" : "Connection is currently busy somewhere";
+        if (memoryEngine360.IsConnectionBusy) {
+            string desc = memoryEngine360.ScanningProcessor.IsScanning ? "The connection is busy scanning the xbox memory. Cancel to modify values" : "Connection is currently busy somewhere";
             await IMessageDialogService.Instance.ShowMessage("Busy", "Connection is busy. Concurrent operations dangerous", desc);
             return;
         }
 
-        SingleUserInputInfo input = new SingleUserInputInfo("Change value at 0x" + result.Address.ToString("X8"), "Immediately change the value at this address", "Value", result.Value);
-        input.Validate = (args) => {
-            switch (result.DataType) {
-                case DataType.Byte:
-                    if (!byte.TryParse(args.Input, out _))
-                        args.Errors.Add("Invalid Byte");
-                break;
-                case DataType.Int16:
-                    if (!short.TryParse(args.Input, out _))
-                        args.Errors.Add("Invalid Int16");
-                break;
-                case DataType.Int32:
-                    if (!int.TryParse(args.Input, out _))
-                        args.Errors.Add("Invalid Int32");
-                break;
-                case DataType.Int64:
-                    if (!long.TryParse(args.Input, out _))
-                        args.Errors.Add("Invalid Int64");
-                break;
-                case DataType.Float:
-                    if (!float.TryParse(args.Input, out _))
-                        args.Errors.Add("Invalid float");
-                break;
-                case DataType.Double:
-                    if (!double.TryParse(args.Input, out _))
-                        args.Errors.Add("Invalid double");
-                break;
-                case DataType.String:
-                    if (args.Input.Length != result.Value.Length)
-                        args.Errors.Add("New length must match the string length");
-                break;
-                default: throw new ArgumentOutOfRangeException();
-            }
-        };
-
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) == true) {
-            MemoryEngine360 engine = result.ScanningProcessor.MemoryEngine360;
-            using IDisposable? token = await engine.BeginBusyOperationActivityAsync();
-            if (token == null) {
-                return;
-            }
-
-            if (engine.Connection != null) {
-                await MemoryEngine360.WriteAsText(engine.Connection, result.Address, result.DataType, result.NumericDisplayType, input.Text, (uint) result.Value.Length);
-                result.Value = await MemoryEngine360.ReadAsText(engine.Connection, result.Address, result.DataType, result.NumericDisplayType, (uint) result.Value.Length);
-            }
-            else {
-                result.Value = input.Text;
-            }
+        SingleUserInputInfo input;
+        if (savedList.Count == 1) {
+            input = new SingleUserInputInfo("Change value at 0x" + savedList[0].Address.ToString("X8"), "Immediately change the value at this address", "Value", savedList[0].Value);
+            input.Validate = (args) => {
+                switch (savedList[0].DataType) {
+                    case DataType.Byte:
+                        if (!byte.TryParse(args.Input, out _))
+                            args.Errors.Add("Invalid Byte");
+                    break;
+                    case DataType.Int16:
+                        if (!short.TryParse(args.Input, out _))
+                            args.Errors.Add("Invalid Int16");
+                    break;
+                    case DataType.Int32:
+                        if (!int.TryParse(args.Input, out _))
+                            args.Errors.Add("Invalid Int32");
+                    break;
+                    case DataType.Int64:
+                        if (!long.TryParse(args.Input, out _))
+                            args.Errors.Add("Invalid Int64");
+                    break;
+                    case DataType.Float:
+                        if (!float.TryParse(args.Input, out _))
+                            args.Errors.Add("Invalid float");
+                    break;
+                    case DataType.Double:
+                        if (!double.TryParse(args.Input, out _))
+                            args.Errors.Add("Invalid double");
+                    break;
+                    case DataType.String:
+                        if (args.Input.Length != savedList[0].Value.Length)
+                            args.Errors.Add("New length must match the string length");
+                    break;
+                    default: throw new ArgumentOutOfRangeException();
+                }
+            };
         }
+        else {
+            DataType dataType = savedList[0].DataType;
+            for (int i = 1; i < savedList.Count; i++) {
+                if (dataType != savedList[i].DataType) {
+                    await IMessageDialogService.Instance.ShowMessage("Error", "Data types for the selected results are not all the same");
+                    return;
+                }
+            }
+
+            input = new SingleUserInputInfo("Change " + savedList.Count + " values", "Immediately change the value these addresses", "Value", savedList[savedList.Count - 1].Value);
+            input.Validate = (args) => {
+                switch (savedList[0].DataType) {
+                    case DataType.Byte:
+                        if (!byte.TryParse(args.Input, out _))
+                            args.Errors.Add("Invalid Byte");
+                    break;
+                    case DataType.Int16:
+                        if (!short.TryParse(args.Input, out _))
+                            args.Errors.Add("Invalid Int16");
+                    break;
+                    case DataType.Int32:
+                        if (!int.TryParse(args.Input, out _))
+                            args.Errors.Add("Invalid Int32");
+                    break;
+                    case DataType.Int64:
+                        if (!long.TryParse(args.Input, out _))
+                            args.Errors.Add("Invalid Int64");
+                    break;
+                    case DataType.Float:
+                        if (!float.TryParse(args.Input, out _))
+                            args.Errors.Add("Invalid float");
+                    break;
+                    case DataType.Double:
+                        if (!double.TryParse(args.Input, out _))
+                            args.Errors.Add("Invalid double");
+                    break;
+                    case DataType.String: break;
+                    default:              throw new ArgumentOutOfRangeException();
+                }
+            };
+        }
+
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) != true) {
+            return;
+        }
+
+        using IDisposable? token = await memoryEngine360.BeginBusyOperationActivityAsync();
+        IConsoleConnection? conn;
+        if (token == null || (conn = memoryEngine360.Connection) == null) {
+            return;
+        }
+
+        using CancellationTokenSource cts = new CancellationTokenSource();
+        await ActivityManager.Instance.RunTask(async () => {
+            foreach (SavedAddressViewModel result in savedList) {
+                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                await MemoryEngine360.WriteAsText(conn, result.Address, result.DataType, result.NumericDisplayType, input.Text, (uint) result.Value.Length);
+                string newValue = await MemoryEngine360.ReadAsText(conn, result.Address, result.DataType, result.NumericDisplayType, (uint) result.Value.Length);
+
+                await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                    result.Value = newValue;
+                    if (result.DataType == DataType.String)
+                        result.StringLength = (uint) newValue.Length;
+                });
+            }
+        }, cts);
     }
 }

@@ -20,9 +20,11 @@
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
+using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
+using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Commands;
 
@@ -68,8 +70,7 @@ public class EditScanResultValueCommand : Command {
             return;
         }
 
-        IConsoleConnection? connection = memoryEngine360.Connection;
-        if (connection == null) {
+        if (memoryEngine360.Connection == null) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
             return;
         }
@@ -153,6 +154,7 @@ public class EditScanResultValueCommand : Command {
                         if (!double.TryParse(args.Input, out _))
                             args.Errors.Add("Invalid double");
                     break;
+                    case DataType.String: break;
                     default: throw new ArgumentOutOfRangeException();
                 }
             };
@@ -163,15 +165,30 @@ public class EditScanResultValueCommand : Command {
         }
 
         using IDisposable? token = await memoryEngine360.BeginBusyOperationActivityAsync();
-        foreach (ScanResultViewModel scanResult in scanResults) {
-            scanResult.PreviousValue = scanResult.CurrentValue;
-            if (memoryEngine360.Connection != null) {
-                await MemoryEngine360.WriteAsText(memoryEngine360.Connection, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, input.Text, (uint) scanResult.FirstValue.Length);
-                scanResult.CurrentValue = await MemoryEngine360.ReadAsText(memoryEngine360.Connection, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, (uint) scanResult.FirstValue.Length);
-            }
-            else {
-                scanResult.CurrentValue = input.Text;
-            }
+        IConsoleConnection? conn = memoryEngine360.Connection;
+        if (token == null) {
+            return;
         }
+        
+        using CancellationTokenSource cts = new CancellationTokenSource();
+        await ActivityManager.Instance.RunTask(async () => {
+            foreach (ScanResultViewModel scanResult in scanResults) {
+                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                
+                scanResult.PreviousValue = scanResult.CurrentValue;
+                string newCurrValue;
+                if (memoryEngine360.Connection != null) {
+                    await MemoryEngine360.WriteAsText(memoryEngine360.Connection, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, input.Text, (uint) scanResult.FirstValue.Length);
+                    newCurrValue = await MemoryEngine360.ReadAsText(memoryEngine360.Connection, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, (uint) scanResult.FirstValue.Length);
+                }
+                else {
+                    newCurrValue = input.Text;
+                }
+
+                await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                    scanResult.CurrentValue = newCurrValue;
+                });
+            }
+        }, cts);
     }
 }
