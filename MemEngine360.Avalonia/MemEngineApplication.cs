@@ -35,10 +35,8 @@ using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Themes;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Configurations;
-using PFXToolKitUI.Configurations.Shortcuts;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Services;
-using PFXToolKitUI.Shortcuts;
 using PFXToolKitUI.Themes;
 
 namespace MemEngine360.Avalonia;
@@ -93,13 +91,6 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.RegisterConstant<IStartupManager>(new StartupManagerMemEngine360());
         manager.RegisterConstant(new ConsoleConnectionService());
         manager.RegisterConstant<IAboutService>(new AboutServiceImpl());
-        manager.RegisterConstant<IEditSavedAddressService>(new EditSavedAddressServiceImpl());
-    }
-
-    private class EditSavedAddressServiceImpl : IEditSavedAddressService {
-        public async Task<bool?> ShowDialog(SavedResultDataTypeUserInputInfo info) {
-            return await UserInputDialogView.ShowDialogAsync(info);
-        }
     }
 
     protected override void RegisterConfigurations() {

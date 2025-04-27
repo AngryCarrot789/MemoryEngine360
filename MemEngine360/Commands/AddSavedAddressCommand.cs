@@ -19,7 +19,6 @@
 
 using System.Globalization;
 using MemEngine360.Engine;
-using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.UserInputs;
@@ -58,24 +57,20 @@ public class AddSavedAddressCommand : Command {
             SavedAddressViewModel result = new SavedAddressViewModel(engine.ScanningProcessor, uint.Parse(addrDescInfo.TextA, NumberStyles.HexNumber, null)) {
                 Description = addrDescInfo.TextB
             };
-            
+
             SavedResultDataTypeUserInputInfo dataTypeInfo = new SavedResultDataTypeUserInputInfo(result) {
                 Caption = "Modify data type"
             };
 
-            if (ApplicationPFX.Instance.ServiceManager.TryGetService(out IEditSavedAddressService? service)) {
-                if (await service.ShowDialog(dataTypeInfo) == true) {
-                    result.DisplayAsHex = dataTypeInfo.DisplayAsHex;
-                    result.DisplayAsUnsigned = dataTypeInfo.DisplayAsUnsigned;
-                    result.DataType = dataTypeInfo.DataType;
-                    result.StringType = dataTypeInfo.StringScanOption;
-                    result.StringLength = dataTypeInfo.StringLength;
-                    result.ScanningProcessor.RefreshSavedAddressesLater();
-                }
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(dataTypeInfo) == true) {
+                result.DisplayAsHex = dataTypeInfo.DisplayAsHex;
+                result.DisplayAsUnsigned = dataTypeInfo.DisplayAsUnsigned;
+                result.DataType = dataTypeInfo.DataType;
+                result.StringType = dataTypeInfo.StringScanOption;
+                result.StringLength = dataTypeInfo.StringLength;
+                engine.ScanningProcessor.SavedAddresses.Add(result);
+                engine.ScanningProcessor.RefreshSavedAddressesLater();
             }
-
-            engine.ScanningProcessor.SavedAddresses.Add(result);
-            engine.ScanningProcessor.RefreshSavedAddressesLater();
         }
     }
 }

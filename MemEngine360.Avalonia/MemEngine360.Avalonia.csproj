@@ -45,6 +45,5 @@
 
     <ItemGroup>
       <None Remove="Resources\Icons\icons8-memory-48.png" />
-      <AvaloniaResource Include="Resources\Icons\icons8-memory-48.png" />
     </ItemGroup>
 </Project>

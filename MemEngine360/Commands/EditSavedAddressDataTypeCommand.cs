@@ -19,7 +19,6 @@
 
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
-using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
 
@@ -42,16 +41,14 @@ public class EditSavedAddressDataTypeCommand : Command {
         SavedResultDataTypeUserInputInfo info = new SavedResultDataTypeUserInputInfo(result) {
             Caption = "Modify data type"
         };
-        
-        if (ApplicationPFX.Instance.ServiceManager.TryGetService(out IEditSavedAddressService? service)) {
-            if (await service.ShowDialog(info) == true) {
-                result.DisplayAsHex = info.DisplayAsHex;
-                result.DisplayAsUnsigned = info.DisplayAsUnsigned;
-                result.DataType = info.DataType;
-                result.StringType = info.StringScanOption;
-                result.StringLength = info.StringLength;
-                result.ScanningProcessor.RefreshSavedAddressesLater();
-            }
+
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+            result.DisplayAsHex = info.DisplayAsHex;
+            result.DisplayAsUnsigned = info.DisplayAsUnsigned;
+            result.DataType = info.DataType;
+            result.StringType = info.StringScanOption;
+            result.StringLength = info.StringLength;
+            result.ScanningProcessor.RefreshSavedAddressesLater();
         }
     }
 }
@@ -140,8 +137,4 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
 
     public override void UpdateAllErrors() {
     }
-}
-
-public interface IEditSavedAddressService {
-    Task<bool?> ShowDialog(SavedResultDataTypeUserInputInfo info);
 }

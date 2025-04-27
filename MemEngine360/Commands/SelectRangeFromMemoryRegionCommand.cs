@@ -24,6 +24,7 @@ using MemEngine360.MemRegions;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
+using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Commands;
 
@@ -44,7 +45,13 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
             return;
         }
         
-        List<MemoryRegion> list = await connection.GetMemoryRegions();
+        List<MemoryRegion> list = await ActivityManager.Instance.RunTask<List<MemoryRegion>>(() => {
+            IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
+            prog.Text = "Reading memory regions...";
+            prog.IsIndeterminate = true;
+            return connection.GetMemoryRegions();
+        });
+        
         MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(list) {
             Caption = "Change scan region",
             Message = "Select a memory region to set as the start/length fields",
@@ -54,6 +61,7 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true && info.SelectedRegion != null) {
             engine.ScanningProcessor.StartAddress = info.SelectedRegion.BaseAddress;
             engine.ScanningProcessor.ScanLength = info.SelectedRegion.Size;
+            engine.ScanningProcessor.ScanMemoryPages = false;
         }
     }
 }

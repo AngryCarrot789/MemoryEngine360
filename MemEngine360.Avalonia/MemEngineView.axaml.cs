@@ -33,6 +33,7 @@ using MemEngine360.Connections.Impl;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
@@ -43,11 +44,15 @@ using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
 using PFXToolKitUI.DataTransfer;
+using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Themes;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Commands;
 using PFXToolKitUI.Utils.RDA;
 
@@ -122,6 +127,8 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
     public MemoryEngine360 MemoryEngine360 { get; }
 
+    public TopLevelMenuRegistry MenuBarRegistry { get; }
+    
     public IListSelectionManager<ScanResultViewModel> ScanResultSelectionManager { get; }
 
     public IListSelectionManager<SavedAddressViewModel> SavedAddressesSelectionManager { get; }
@@ -140,9 +147,49 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
     // used to remember the last selected data type when changing via the tab control
     private DataType lastIntegerDataType = DataType.Int32, lastFloatDataType = DataType.Float;
+    private readonly ContextEntryGroup themesSubList;
+    private ObservableItemProcessorIndexing<Theme>? themeListHandler;
 
     public MemEngineView() {
         this.InitializeComponent();
+        
+        this.MenuBarRegistry = new TopLevelMenuRegistry();
+        {
+            ContextEntryGroup entry = new ContextEntryGroup("File");
+            entry.Items.Add(new CommandContextEntry("commands.memengine.ConnectToConsoleCommand", "Connect to console..."));
+            entry.Items.Add(new SeparatorEntry());
+            entry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
+            this.MenuBarRegistry.Items.Add(entry);
+        }
+        
+        {
+            ContextEntryGroup entry = new ContextEntryGroup("Remote Controls");
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ListHelpCommand", "List all commands in popup"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowConsoleIDCommand", "Show Console ID key"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowCPUKeyCommand", "Show CPU key"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowXbeInfoCommand", "Show XBE info"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.MemProtectionCommand", "Show Memory Regions"));
+            entry.Items.Add(new SeparatorEntry());
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.EjectDiskTrayCommand", "Open Disk Tray"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.DebugFreezeCommand", "Debug Freeze"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.DebugUnfreezeCommand", "Debug Un-freeze"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.SoftRebootCommand", "Soft Reboot (restart title)"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ColdRebootCommand", "Cold Reboot"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShutdownCommand", "Shutdown"));
+            this.MenuBarRegistry.Items.Add(entry);
+        }
+
+        this.themesSubList = new ContextEntryGroup("Themes");
+        this.MenuBarRegistry.Items.Add(this.themesSubList);
+        
+        {
+            ContextEntryGroup entry = new ContextEntryGroup("About");
+            entry.Items.Add(new CommandContextEntry("commands.application.AboutApplicationCommand", "About MemEngine360"));
+            this.MenuBarRegistry.Items.Add(entry);
+        }
+
+        this.PART_TopLevelMenu.TopLevelMenuRegistry = this.MenuBarRegistry;
+        
         this.updateActivityText = RateLimitedDispatchActionBase.ForDispatcherSync(() => {
             this.PART_LatestActivity.Text = this.latestActivityText;
         }, TimeSpan.FromMilliseconds(50));
@@ -283,7 +330,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
             }
         });
     }
-
+    
     private static void UpdateMemoryRangeFooterText(DoubleUserInputInfo theInfo) {
         const string prefix = "Scan Range (inclusive):";
         if (theInfo.TextErrorsA != null || theInfo.TextErrorsB != null) {
@@ -346,11 +393,32 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.PART_ActiveBackgroundTaskGrid.IsVisible = false;
         this.MemoryEngine360.ConnectionChanged += this.OnConnectionChanged;
 
+        this.themeListHandler = ObservableItemProcessor.MakeIndexable(ThemeManager.Instance.Themes, (sender, index, item) => {
+            this.themesSubList.Items.Add(new SetThemeContextEntry(item));
+        }, (sender, index, item) => {
+            this.themesSubList.Items.RemoveAt(index);
+        }, (sender, oldIndex, newIndex, item) => {
+            this.themesSubList.Items.Move(oldIndex, newIndex);
+        }).AddExistingItems();
+        
         this.UpdateUIForScanTypeAndDataType();
 
         ActivityManager activityManager = ActivityManager.Instance;
         activityManager.TaskStarted += this.OnTaskStarted;
         activityManager.TaskCompleted += this.OnTaskCompleted;
+    }
+    
+    private class SetThemeContextEntry : CustomContextEntry {
+        private readonly Theme theme;
+
+        public SetThemeContextEntry(Theme theme, Icon? icon = null) : base(theme.Name, $"Sets the application's theme to '{theme.Name}'", icon) {
+            this.theme = theme;
+        }
+
+        public override Task OnExecute(IContextData context) {
+            this.theme.ThemeManager.SetTheme(this.theme);
+            return Task.CompletedTask;
+        }
     }
 
     private void OnConnectionChanged(MemoryEngine360 sender, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
@@ -368,6 +436,10 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
     protected override void OnUnloaded(RoutedEventArgs e) {
         base.OnUnloaded(e);
+        
+        this.themeListHandler?.Dispose();
+        this.themeListHandler = null;
+        
         this.connectedHostNameBinder.Detach();
         // this.isBusyBinder.Detach();
         this.isScanningBinder.Detach();

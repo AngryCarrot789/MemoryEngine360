@@ -18,31 +18,10 @@
                             WindowBorderBrush="{DynamicResource PanelBorderBrush}"
                             x:Class="MemEngine360.Avalonia.MemEngineView">
     <DockPanel>
-        <Menu x:Name="PART_WindowMenu"
-              DockPanel.Dock="Top"
-              Background="{Binding RelativeSource={RelativeSource AncestorType={x:Type c:WindowEx}}, Path=TitleBarBrush}"
-              BorderBrush="{DynamicResource PanelBackground0}" BorderThickness="0,0,0,1">
-            <MenuItem Header="File">
-                <ams:CommandMenuItem Header="Connect to console..." CommandId="commands.memengine.ConnectToConsoleCommand"/>
-            </MenuItem>
-            <MenuItem Header="Remote Controls">
-                <ams:CommandMenuItem Header="List all commands in popup" CommandId="commands.memengine.remote.ListHelpCommand"/>
-                <ams:CommandMenuItem Header="Show Console ID key" CommandId="commands.memengine.remote.ShowConsoleIDCommand"/>
-                <ams:CommandMenuItem Header="Show CPU key" CommandId="commands.memengine.remote.ShowCPUKeyCommand"/>
-                <ams:CommandMenuItem Header="Show XBE info" CommandId="commands.memengine.remote.ShowXbeInfoCommand"/>
-                <ams:CommandMenuItem Header="Show Memory Regions" CommandId="commands.memengine.remote.MemProtectionCommand"/>
-                <Separator/>
-                <ams:CommandMenuItem Header="Open Disk Tray" CommandId="commands.memengine.remote.EjectDiskTrayCommand"/>
-                <ams:CommandMenuItem Header="Debug Freeze" CommandId="commands.memengine.remote.DebugFreezeCommand"/>
-                <ams:CommandMenuItem Header="Debug Un-freeze" CommandId="commands.memengine.remote.DebugUnfreezeCommand"/>
-                <ams:CommandMenuItem Header="Soft Reboot (restart title)" CommandId="commands.memengine.remote.SoftRebootCommand"/>
-                <ams:CommandMenuItem Header="Cold Reboot" CommandId="commands.memengine.remote.ColdRebootCommand"/>
-                <ams:CommandMenuItem Header="Shutdown" CommandId="commands.memengine.remote.ShutdownCommand"/>
-            </MenuItem>
-            <MenuItem Header="About">
-                <ams:CommandMenuItem Header="About MemEngine360" CommandId="commands.application.AboutApplicationCommand"/>
-            </MenuItem>
-        </Menu>
+        <ams:AdvancedTopLevelMenu x:Name="PART_TopLevelMenu"
+                                  DockPanel.Dock="Top"
+                                  Background="{Binding RelativeSource={RelativeSource AncestorType={x:Type c:WindowEx}}, Path=TitleBarBrush}"
+                                  BorderBrush="{DynamicResource PanelBackground0}" BorderThickness="0,0,0,1"/>
         <Border x:Name="PART_StatusBar"
                 DockPanel.Dock="Bottom"
                 Background="{DynamicResource ABrush.PFX.Editor.StatusBar.Background}"
@@ -200,7 +179,7 @@
                                 </ToggleButton>
                                 <av:IconButton DockPanel.Dock="Right" 
                                                Icon="{x:Static cb:SimpleIcons.MemoryIcon}" 
-                                               Width="18" Height="18" 
+                                               Width="20" Height="20" IconMaxWidth="16" IconMaxHeight="16"
                                                Padding="2"
                                                BorderThickness="0" 
                                                Background="{DynamicResource ABrush.Tone7.Background.Static}"
@@ -215,8 +194,8 @@
                                 </av:IconButton>
                                 <av:IconButton DockPanel.Dock="Right" 
                                                Icon="{x:Static cb:SimpleIcons.ResetIcon}" 
-                                               Width="18" Height="18"
-                                               IconMaxWidth="12" IconMaxHeight="12"
+                                               Width="20" Height="20"
+                                               IconMaxWidth="16" IconMaxHeight="16"
                                                Padding="2"
                                                BorderThickness="0" 
                                                Background="{DynamicResource ABrush.Tone7.Background.Static}"

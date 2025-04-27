@@ -20,7 +20,6 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using MemEngine360.Connections.Impl;
-using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.MemRegions;
@@ -30,6 +29,9 @@ public delegate void MemoryRegionUserInputInfoSelectedRegionChangedEventHandler(
 public class MemoryRegionUserInputInfo : UserInputInfo {
     private MemoryRegionViewModel? selectedRegion;
     
+    /// <summary>
+    /// Gets the collection of memory regions presented to the user
+    /// </summary>
     public ObservableCollection<MemoryRegionViewModel> MemoryRegions { get; }
 
     /// <summary>
@@ -49,7 +51,7 @@ public class MemoryRegionUserInputInfo : UserInputInfo {
             }
         }
     }
-
+    
     public event MemoryRegionUserInputInfoSelectedRegionChangedEventHandler? SelectedRegionChanged;
 
     public MemoryRegionUserInputInfo() : this(new ObservableCollection<MemoryRegionViewModel>()) {

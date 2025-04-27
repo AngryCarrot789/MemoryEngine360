@@ -20,7 +20,6 @@
 using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
-using MemEngine360.Engine.Scanners;
 using PFXToolKitUI.Interactivity.Formatting;
 
 namespace MemEngine360.Avalonia.MemRegions;
