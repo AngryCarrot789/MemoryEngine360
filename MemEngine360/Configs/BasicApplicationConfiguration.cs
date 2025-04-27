@@ -44,7 +44,6 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     private byte dtFloat_Mode = DTFloat_ModeProperty.DefaultValue;
     private byte dtString_Mode = DTString_ModeProperty.DefaultValue;
 
-
     /// <summary>
     /// Gets or sets the last host name that was entered when connecting to an xbox 360. This is just a convenience feature
     /// </summary>

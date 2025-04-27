@@ -403,7 +403,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.Window.Control.MinHeight = 480;
         this.Window.Width = 600;
         this.Window.Height = 600;
-        this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.0";
+        this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.1";
         this.Window.WindowClosing += this.MyWindowOnWindowClosing;
 
         using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
