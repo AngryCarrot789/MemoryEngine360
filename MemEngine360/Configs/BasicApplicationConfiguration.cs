@@ -28,19 +28,22 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public static readonly PersistentProperty<uint> StartAddressProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("StartAddress", defaultValue: 0x80000000, owner => owner.startAddr, (x, y) => x.startAddr = y, false);
     public static readonly PersistentProperty<uint> ScanLengthProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("ScanLength", defaultValue: 0x10000, owner => owner.scanLength, (x, y) => x.scanLength = y, false);
     public static readonly PersistentProperty<bool> PauseConsoleDuringScanProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("PauseConsoleDuringScan", defaultValue: false, owner => owner.pauseConsoleDuringScan, (x, y) => x.pauseConsoleDuringScan = y, false);
+    public static readonly PersistentProperty<bool> ScanMemoryPagesProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("ScanMemoryPages", defaultValue: true, owner => owner.scanMemoryPages, (x, y) => x.scanMemoryPages = y, false);
     public static readonly PersistentProperty<bool> DTInt_UseHexValueProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("DTInt_UseHexValue", defaultValue: false, owner => owner.dtInt_UseHexValueProperty, (x, y) => x.dtInt_UseHexValueProperty = y, false);
     public static readonly PersistentProperty<byte> DTFloat_ModeProperty = PersistentProperty.RegisterParsable<byte, BasicApplicationConfiguration>("DTFloat_Mode", defaultValue: (byte) FloatScanOption.TruncateToQuery, owner => owner.dtFloat_Mode, (x, y) => x.dtFloat_Mode = y, false);
     public static readonly PersistentProperty<byte> DTString_ModeProperty = PersistentProperty.RegisterParsable<byte, BasicApplicationConfiguration>("DTString_Mode", defaultValue: (byte) StringType.UTF8, owner => owner.dtString_Mode, (x, y) => x.dtString_Mode = y, false);
-    
+
     public static BasicApplicationConfiguration Instance => ApplicationPFX.Instance.PersistentStorageManager.GetConfiguration<BasicApplicationConfiguration>();
 
     private string lastHostName = LastHostNameProperty.DefaultValue;
     private uint startAddr = StartAddressProperty.DefaultValue;
     private uint scanLength = ScanLengthProperty.DefaultValue;
     private bool pauseConsoleDuringScan = PauseConsoleDuringScanProperty.DefaultValue;
+    private bool scanMemoryPages = ScanMemoryPagesProperty.DefaultValue;
     private bool dtInt_UseHexValueProperty = DTInt_UseHexValueProperty.DefaultValue;
     private byte dtFloat_Mode = DTFloat_ModeProperty.DefaultValue;
     private byte dtString_Mode = DTString_ModeProperty.DefaultValue;
+
 
     /// <summary>
     /// Gets or sets the last host name that was entered when connecting to an xbox 360. This is just a convenience feature
@@ -59,10 +62,15 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
         get => ScanLengthProperty.GetValue(this);
         set => ScanLengthProperty.SetValue(this, value);
     }
-    
+
     public bool PauseConsoleDuringScan {
         get => PauseConsoleDuringScanProperty.GetValue(this);
         set => PauseConsoleDuringScanProperty.SetValue(this, value);
+    }
+
+    public bool ScanMemoryPages {
+        get => ScanMemoryPagesProperty.GetValue(this);
+        set => ScanMemoryPagesProperty.SetValue(this, value);
     }
 
     /// <summary>

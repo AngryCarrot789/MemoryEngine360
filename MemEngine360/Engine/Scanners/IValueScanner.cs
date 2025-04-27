@@ -24,14 +24,24 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Impl;
 using MemEngine360.Engine.Modes;
+using PFXToolKitUI.Interactivity.Formatting;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Engine.Scanners;
 
 public interface IValueScanner {
+    // This is only really supposed to be used for the number dragger but we can get away with it ;)
+    internal static readonly AutoMemoryValueFormatter ByteFormatter = new AutoMemoryValueFormatter() {
+        SourceFormat = MemoryFormatType.Byte,
+        NonEditingRoundedPlaces = 1,
+        AllowedFormats = [MemoryFormatType.Byte, MemoryFormatType.KiloByte1000, MemoryFormatType.MegaByte1000, MemoryFormatType.GigaByte1000, MemoryFormatType.TeraByte1000]
+    };
+
     public static IValueScanner ByteScanner { get; } = new ByteValueScanner();
     public static IValueScanner Int16Scanner { get; } = new Int16ValueScanner();
     public static IValueScanner Int32Scanner { get; } = new Int32ValueScanner();
@@ -104,26 +114,62 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
             return false;
         }
 
-        uint addr = processor.StartAddress, scanLen = processor.ScanLength, range = scanLen;
-        int align = (int) processor.Alignment;
-        int totalChunks = (int) (range / 65536);
-        byte[] bytes = new byte[65536];
-        int sizeOfT = Unsafe.SizeOf<T>();
-        for (int j = 0, c = 1; j < scanLen; j += 65536, c++) {
-            ActivityManager.Instance.CurrentTask.CheckCancelled();
-            activity.Text = $"Reading chunk {c}/{totalChunks}...";
-            activity.IsIndeterminate = true;
-            uint baseAddress = (uint) (addr + j);
-            int cbRead = await processor.MemoryEngine360.Connection!.ReadBytes(baseAddress, bytes, 0, Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)));
-            if (cbRead != 65536 && cbRead != Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)))
-                Debugger.Break();
+        IConsoleConnection connection = processor.MemoryEngine360.Connection!;
+        if (processor.ScanMemoryPages) {
+            List<MemoryRegion> regions = await connection.GetMemoryRegions();
+            uint addrStart = processor.StartAddress, addrEnd = addrStart + processor.ScanLength;
+            for (int rgIdx = 0; rgIdx < regions.Count; rgIdx++) {
+                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                MemoryRegion region = regions[rgIdx];
+                if (region.Protection == 0x00000240) {
+                    // It might not be specifically this protection value, but I noticed that around the memory regions
+                    // with this region, if you attempt to read them, it freeze the console even after debug unfreeze command.
+                    continue;
+                }
 
-            activity.Text = $"Scanning chunk {c}/{totalChunks}...";
-            activity.IsIndeterminate = false;
+                // We still stick to the start/length fields even when scanning pages, because
+                // the user may only want to scan a specific address region
+                if (region.BaseAddress < addrStart || (region.BaseAddress + region.Size) >= addrEnd) {
+                    continue;
+                }
 
-            int blockEnd = Math.Max(cbRead - sizeOfT, 0);
-            using (activity.CompletionState.PushCompletionRange(0.0, 256.0 / blockEnd)) {
-                this.ProcessMemoryBlockForFirstScan(inputA, inputB, processor, results, activity, blockEnd, align, bytes, sizeOfT, baseAddress);
+                int align = (int) processor.Alignment;
+                byte[] buffer = new byte[65536];
+                int sizeOfT = Unsafe.SizeOf<T>();
+                activity.IsIndeterminate = false;
+                using var token = activity.CompletionState.PushCompletionRange(0, 1.0 / region.Size);
+                for (int j = 0; j < region.Size; j += 65536) {
+                    ActivityManager.Instance.CurrentTask.CheckCancelled();
+                    activity.Text = $"Region {rgIdx + 1}/{regions.Count}... ({IValueScanner.ByteFormatter.ToString(j, false)}/{IValueScanner.ByteFormatter.ToString(region.Size, false)})";
+                    activity.CompletionState.OnProgress(65536);
+
+                    // should we be using BaseAddress or PhysicalAddress???
+                    uint baseAddress = (uint) (region.BaseAddress + j);
+                    int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(65536, (uint) Math.Max((int) region.Size - j, 0)));
+                    if (cbRead != 65536 && cbRead != Math.Min(65536, (uint) Math.Max((int) region.Size - j, 0)))
+                        Debugger.Break();
+
+                    this.ProcessMemoryBlockForFirstScan(inputA, inputB, processor, results, Math.Max(cbRead - sizeOfT, 0), align, buffer, sizeOfT, baseAddress);
+                }
+            }
+        }
+        else {
+            uint addr = processor.StartAddress, scanLen = processor.ScanLength, range = scanLen;
+            int align = (int) processor.Alignment;
+            int totalChunks = (int) (range / 65536);
+            byte[] buffer = new byte[65536];
+            int sizeOfT = Unsafe.SizeOf<T>();
+            for (int j = 0, c = 1; j < scanLen; j += 65536, c++) {
+                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                activity.Text = $"Reading chunk {c}/{totalChunks}...";
+                activity.IsIndeterminate = true;
+                uint baseAddress = (uint) (addr + j);
+                int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)));
+                if (cbRead != 65536 && cbRead != Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)))
+                    Debugger.Break();
+
+                activity.Text = $"Scanning chunk {c}/{totalChunks}...";
+                this.ProcessMemoryBlockForFirstScan(inputA, inputB, processor, results, Math.Max(cbRead - sizeOfT, 0), align, buffer, sizeOfT, baseAddress);
             }
         }
 
@@ -168,20 +214,16 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
         return true;
     }
 
-    protected abstract void ProcessMemoryBlockForFirstScan(T inputA, T inputB, ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity, int blockEnd, int align, byte[] buffer, int sizeOfT, uint baseAddress);
+    protected abstract void ProcessMemoryBlockForFirstScan(T inputA, T inputB, ScanningProcessor processor, ObservableList<ScanResultViewModel> results, int blockEnd, int align, byte[] buffer, int sizeOfT, uint baseAddress);
 
     protected abstract bool CanKeepResultForNextScan(ScanResultViewModel result, T inputA, T inputB);
 }
 
 public class BaseIntegerValueScanner<T> : BaseNumericValueScanner<T> where T : unmanaged, IBinaryInteger<T> {
-    protected override void ProcessMemoryBlockForFirstScan(T inputA, T inputB, ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity, int blockEnd, int align, byte[] buffer, int sizeOfT, uint baseAddress) {
+    protected override void ProcessMemoryBlockForFirstScan(T inputA, T inputB, ScanningProcessor processor, ObservableList<ScanResultViewModel> results, int blockEnd, int align, byte[] buffer, int sizeOfT, uint baseAddress) {
         for (int i = 0; i < blockEnd; i += align) {
             if (i >= buffer.Length || (buffer.Length - i) < sizeOfT) {
                 break;
-            }
-
-            if (i % 256 == 0) {
-                activity.CompletionState.OnProgress(1);
             }
 
             T value = ValueScannerUtils.CreateNumberFromBytes<T>(new ReadOnlySpan<byte>(buffer, i, sizeOfT));
@@ -232,14 +274,10 @@ public class BaseIntegerValueScanner<T> : BaseNumericValueScanner<T> where T : u
 }
 
 public class BaseFloatValueScanner<T> : BaseNumericValueScanner<T> where T : unmanaged, IFloatingPoint<T> {
-    protected override void ProcessMemoryBlockForFirstScan(T inputA, T inputB, ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity, int blockEnd, int align, byte[] buffer, int sizeOfT, uint baseAddress) {
+    protected override void ProcessMemoryBlockForFirstScan(T inputA, T inputB, ScanningProcessor processor, ObservableList<ScanResultViewModel> results, int blockEnd, int align, byte[] buffer, int sizeOfT, uint baseAddress) {
         for (int i = 0; i < blockEnd; i += align) {
             if (i >= buffer.Length || (buffer.Length - i) < sizeOfT) {
                 break;
-            }
-
-            if (i % 256 == 0) {
-                activity.CompletionState.OnProgress(1);
             }
 
             T value = ValueScannerUtils.CreateNumberFromBytes<T>(new ReadOnlySpan<byte>(buffer, i, sizeOfT));
@@ -376,61 +414,106 @@ public class StringValueScanner : IValueScanner {
             throw new Exception("Input string is too long. Console memory is read in chunks of 64KB, therefore, the string cannot contain more than that many bytes");
         }
 
-        uint addr = processor.StartAddress, scanLen = processor.ScanLength, range = scanLen;
-        int align = (int) processor.Alignment;
-        int totalChunks = (int) (range / 65536);
-        byte[] bytes = new byte[65536];
-        for (int j = 0, c = 1; j < scanLen; j += 65536, c++) {
-            ActivityManager.Instance.CurrentTask.CheckCancelled();
-            activity.Text = $"Reading chunk {c}/{totalChunks}...";
-            activity.IsIndeterminate = true;
-            uint baseAddress = (uint) (addr + j);
-            int cbRead = await processor.MemoryEngine360.Connection!.ReadBytes(baseAddress, bytes, 0, Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)));
-            if (cbRead != 65536 && cbRead != Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)))
-                Debugger.Break();
-
-            activity.Text = $"Scanning chunk {c}/{totalChunks}...";
-            activity.IsIndeterminate = false;
-
-            int blockEnd = Math.Max(cbRead - cbInputString, 0);
-            using var _ = activity.CompletionState.PushCompletionRange(0.0, 1 / (blockEnd / 256.0));
-            for (int i = 0; i < blockEnd; i += align) {
-                if (i >= bytes.Length || (bytes.Length - i) < cbInputString) {
-                    break;
+        IConsoleConnection connection = processor.MemoryEngine360.Connection!;
+        uint chunkSize = (uint) Maths.Ceil(65536, cbInputString);
+        if (processor.ScanMemoryPages) {
+            List<MemoryRegion> regions = await connection.GetMemoryRegions();
+            uint addrStart = processor.StartAddress, addrEnd = addrStart + processor.ScanLength;
+            for (int rgIdx = 0; rgIdx < regions.Count; rgIdx++) {
+                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                MemoryRegion region = regions[rgIdx];
+                if (region.Protection == 0x00000240) {
+                    // It might not be specifically this protection value, but I noticed that around the memory regions
+                    // with this region, if you attempt to read them, it freezes the console even after debug unfreeze command.
+                    continue;
                 }
 
-                if (i % 256 == 0) {
-                    activity.CompletionState.OnProgress(1);
+                // We still stick to the start/length fields even when scanning pages, because
+                // the user may only want to scan a specific address region
+                if (region.BaseAddress < addrStart || (region.BaseAddress + region.Size) >= addrEnd) {
+                    continue;
                 }
 
-                string bufferString;
-                switch (processor.StringScanOption) {
-                    case StringType.ASCII: {
-                        bufferString = Encoding.ASCII.GetString(new ReadOnlySpan<byte>(bytes, i, cbInputString));
-                        break;
-                    }
-                    case StringType.UTF8: {
-                        bufferString = Encoding.UTF8.GetString(new ReadOnlySpan<byte>(bytes, i, cbInputString));
-                        break;
-                    }
-                    case StringType.UTF16: {
-                        bufferString = Encoding.Unicode.GetString(new ReadOnlySpan<byte>(bytes, i, cbInputString));
-                        break;
-                    }
-                    case StringType.UTF32: {
-                        bufferString = Encoding.UTF32.GetString(new ReadOnlySpan<byte>(bytes, i, cbInputString));
-                        break;
-                    }
-                    default: throw new ArgumentOutOfRangeException();
-                }
+                int align = (int) processor.Alignment;
+                byte[] buffer = new byte[chunkSize];
+                activity.IsIndeterminate = false;
+                using var token = activity.CompletionState.PushCompletionRange(0, 1.0 / region.Size);
+                for (int j = 0; j < region.Size; j += (int) chunkSize) {
+                    ActivityManager.Instance.CurrentTask.CheckCancelled();
+                    activity.Text = $"Region {rgIdx + 1}/{regions.Count}... ({IValueScanner.ByteFormatter.ToString(j, false)}/{IValueScanner.ByteFormatter.ToString(region.Size, false)})";
+                    activity.CompletionState.OnProgress(chunkSize);
 
-                if (bufferString.Equals(processor.InputA)) {
-                    results.Add(new ScanResultViewModel(processor, baseAddress + (uint) i, processor.DataType, NumericDisplayType.Normal, bufferString));
+                    // should we be using BaseAddress or PhysicalAddress???
+                    uint baseAddress = (uint) (region.BaseAddress + j);
+                    int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(chunkSize, (uint) Math.Max((int) region.Size - j, 0)));
+                    if (cbRead != chunkSize && cbRead != Math.Min(chunkSize, (uint) Math.Max((int) region.Size - j, 0)))
+                        Debugger.Break();
+
+                    ProcessStringBlock(processor, results, activity, Math.Max(cbRead - cbInputString, 0), align, buffer, cbInputString, baseAddress);
                 }
+            }
+        }
+        else {
+            uint addr = processor.StartAddress, scanLen = processor.ScanLength, range = scanLen;
+            int align = (int) processor.Alignment;
+            int totalChunks = (int) (range / chunkSize);
+            byte[] buffer = new byte[chunkSize];
+            for (int j = 0, c = 1; j < scanLen; j += (int) chunkSize, c++) {
+                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                activity.Text = $"Reading chunk {c}/{totalChunks}...";
+                activity.IsIndeterminate = true;
+                uint baseAddress = (uint) (addr + j);
+                int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(chunkSize, (uint) Math.Max((int) scanLen - j, 0)));
+                if (cbRead != chunkSize && cbRead != Math.Min(chunkSize, (uint) Math.Max((int) scanLen - j, 0)))
+                    Debugger.Break();
+
+                activity.Text = $"Scanning chunk {c}/{totalChunks}...";
+                activity.IsIndeterminate = false;
+
+                int blockEnd = Math.Max(cbRead - cbInputString, 0);
+                using var _ = activity.CompletionState.PushCompletionRange(0.0, 1 / (blockEnd / 256.0));
+                ProcessStringBlock(processor, results, activity, blockEnd, align, buffer, cbInputString, baseAddress);
             }
         }
 
         return true;
+    }
+
+    private static void ProcessStringBlock(ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity, int blockEnd, int align, byte[] buffer, int cbInputString, uint baseAddress) {
+        for (int i = 0; i < blockEnd; i += align) {
+            if (i >= buffer.Length || (buffer.Length - i) < cbInputString) {
+                break;
+            }
+
+            if (i % 256 == 0) {
+                activity.CompletionState.OnProgress(1);
+            }
+
+            string bufferString;
+            switch (processor.StringScanOption) {
+                case StringType.ASCII: {
+                    bufferString = Encoding.ASCII.GetString(new ReadOnlySpan<byte>(buffer, i, cbInputString));
+                    break;
+                }
+                case StringType.UTF8: {
+                    bufferString = Encoding.UTF8.GetString(new ReadOnlySpan<byte>(buffer, i, cbInputString));
+                    break;
+                }
+                case StringType.UTF16: {
+                    bufferString = Encoding.Unicode.GetString(new ReadOnlySpan<byte>(buffer, i, cbInputString));
+                    break;
+                }
+                case StringType.UTF32: {
+                    bufferString = Encoding.UTF32.GetString(new ReadOnlySpan<byte>(buffer, i, cbInputString));
+                    break;
+                }
+                default: throw new ArgumentOutOfRangeException();
+            }
+
+            if (bufferString.Equals(processor.InputA)) {
+                results.Add(new ScanResultViewModel(processor, baseAddress + (uint) i, processor.DataType, NumericDisplayType.Normal, bufferString));
+            }
+        }
     }
 
     public async Task<bool> PerformNextScan(ScanningProcessor processor, List<ScanResultViewModel> srcList, ObservableList<ScanResultViewModel> dstList, IActivityProgress activity) {

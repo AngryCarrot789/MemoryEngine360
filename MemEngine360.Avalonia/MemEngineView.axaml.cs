@@ -104,6 +104,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> int_isHexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.IsIntInputHexadecimalChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.IsIntInputHexadecimal, (b) => b.Model.IsIntInputHexadecimal = ((ToggleButton) b.Control).IsChecked == true);
+    private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
     private readonly EventPropertyEnumBinder<FloatScanOption> floatScanModeBinder = new EventPropertyEnumBinder<FloatScanOption>(typeof(ScanningProcessor), nameof(ScanningProcessor.FloatScanModeChanged), (x) => ((ScanningProcessor) x).FloatScanOption, (x, v) => ((ScanningProcessor) x).FloatScanOption = v);
     private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(ScanningProcessor), nameof(ScanningProcessor.StringScanModeChanged), (x) => ((ScanningProcessor) x).StringScanOption, (x, v) => ((ScanningProcessor) x).StringScanOption = v);
     private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(ScanningProcessor), nameof(ScanningProcessor.DataTypeChanged), (x) => ((ScanningProcessor) x).DataType, (x, y) => ((ScanningProcessor) x).DataType = y);
@@ -255,8 +256,11 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
                 Message = "Alignment is the offset added to each memory address",
                 Label = "Alignment (prefix with '0x' to parse as hex)",
                 Validate = (e) => {
-                    if (!NumberUtils.TryParseHexOrRegular<uint>(e.Input, out _))
-                        e.Errors.Add("Invalid unsigned integer");
+                    if (!NumberUtils.TryParseHexOrRegular<uint>(e.Input, out uint number)) {
+                        e.Errors.Add("-".StartsWith(e.Input) ? "Alignment cannot be negative" : "Invalid unsigned integer");
+                    }
+                    else if (number == 0)
+                        e.Errors.Add("Alignment cannot be zero!");
                 }
             };
             
@@ -332,6 +336,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.alignmentBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, this.MemoryEngine360.ScanningProcessor);
         this.int_isHexBinder.Attach(this.PART_DTInt_IsHex, this.MemoryEngine360.ScanningProcessor);
+        this.scanMemoryPagesBinder.Attach(this.PART_ScanOption_ScanMemoryPages, this.MemoryEngine360.ScanningProcessor);
         this.floatScanModeBinder.Attach(this.MemoryEngine360.ScanningProcessor);
         this.stringScanModeBinder.Attach(this.MemoryEngine360.ScanningProcessor);
         this.dataTypeBinder.Attach(this.PART_DataTypeCombo, this.MemoryEngine360.ScanningProcessor);
@@ -372,6 +377,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.alignmentBinder.Detach();
         this.pauseXboxBinder.Detach();
         this.int_isHexBinder.Detach();
+        this.scanMemoryPagesBinder.Detach();
         this.floatScanModeBinder.Detach();
         this.stringScanModeBinder.Detach();
         this.dataTypeBinder.Detach();

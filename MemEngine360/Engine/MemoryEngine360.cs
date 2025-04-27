@@ -351,7 +351,7 @@ public class MemoryEngine360 {
                 }
             }
 
-            this.stackTrace = new Exception().StackTrace;
+            this.stackTrace = new StackTrace().ToString();
         }
 
         public void Dispose() {

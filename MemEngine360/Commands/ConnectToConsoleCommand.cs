@@ -85,7 +85,7 @@ public class ConnectToConsoleCommand : Command {
                 }
             }
             
-            await IMessageDialogService.Instance.ShowMessage("Information", "Console Information as follows", sb.ToString());
+            await IMessageDialogService.Instance.ShowMessage("Information", "Console Information as follows", sb.ToString(), MessageBoxButton.OK, MessageBoxResult.OK);
         }
     }
 }

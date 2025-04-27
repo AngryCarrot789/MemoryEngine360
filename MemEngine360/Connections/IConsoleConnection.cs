@@ -99,6 +99,12 @@ public interface IConsoleConnection : IDisposable {
     Task<string> GetDebugName();
     
     /// <summary>
+    /// Walks all the memory regions on the console
+    /// </summary>
+    /// <returns>A task containing a list of all memory regions</returns>
+    Task<List<MemoryRegion>> GetMemoryRegions();
+    
+    /// <summary>
     /// Gets the current state of the console
     /// </summary>
     Task<ExecutionState> GetExecutionState();

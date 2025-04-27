@@ -67,7 +67,11 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
     }
 
     public void Dispose() {
+        if (this.isDisposed)
+            return;
+        
         this.EnsureNotBusy();
+        using BusyToken x = this.CreateBusyToken();
         if (this.client.Connected) {
             byte[] bytes = Encoding.ASCII.GetBytes("bye\r\n");
             this.client.GetStream().Write(bytes, 0, bytes.Length);
@@ -104,6 +108,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
     }
 
     public async Task<List<string>> SendCommandAndReceiveLines(string command) {
+        this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
@@ -241,6 +246,18 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
 
     public async Task<string> GetDebugName() {
         return (await this.SendCommand("dbgname")).Message;
+    }
+
+    public async Task<List<MemoryRegion>> GetMemoryRegions() {
+        List<string> list = await this.SendCommandAndReceiveLines("walkmem");
+        return list.Select(line => {
+            // base=0x00000000 size=0x00000000 protect=0x00000000 phys=0x00000000
+            uint propBase = uint.Parse(line.AsSpan(7, 8), NumberStyles.HexNumber);
+            uint propSize = uint.Parse(line.AsSpan(23, 8), NumberStyles.HexNumber);
+            uint propProt = uint.Parse(line.AsSpan(42, 8), NumberStyles.HexNumber);
+            uint propPhys = uint.Parse(line.AsSpan(58, 8), NumberStyles.HexNumber);
+            return new MemoryRegion(propBase, propSize, propProt, propPhys);
+        }).ToList();
     }
 
     public async Task<ExecutionState> GetExecutionState() {

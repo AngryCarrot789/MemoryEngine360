@@ -39,12 +39,10 @@ public delegate void ScanningProcessorAddressChangedEventHandler(ScanningProcess
 
 public class ScanningProcessor {
     private string inputA, inputB;
-    private bool hasDoneFirstScan;
-    private bool isScanning;
+    private bool hasDoneFirstScan, isScanning;
     private uint startAddress, scanLength;
     private uint alignment;
-    private bool pauseConsoleDuringScan;
-    private bool isIntInputHexadecimal;
+    private bool pauseConsoleDuringScan, scanMemoryPages, isIntInputHexadecimal;
     private FloatScanOption floatScanOption;
     private StringType stringScanOption;
     private DataType dataType;
@@ -124,16 +122,29 @@ public class ScanningProcessor {
         }
     }
 
+    /// <summary>
+    /// Gets or sets the alignment value. This is continually added to the address when scanning.
+    /// This is necessary when scanning data types bigger than 1 byte, because you don't want to
+    /// scan for an int32 halfway through another int32 value or whatever
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Alignment cannot be 0</exception>
     public uint Alignment {
         get => this.alignment;
         set {
             if (this.alignment != value) {
+                if (value == 0)
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "Alignment cannot be zero");
+                
                 this.alignment = value;
                 this.AlignmentChanged?.Invoke(this);
             }
         }
     }
 
+    /// <summary>
+    /// Gets or sets if we should use the debug freeze/unfreeze commands while scanning.
+    /// Freezing the console during a scan massively increases data transfer rates
+    /// </summary>
     public bool PauseConsoleDuringScan {
         get => this.pauseConsoleDuringScan;
         set {
@@ -142,6 +153,22 @@ public class ScanningProcessor {
                 this.PauseConsoleDuringScanChanged?.Invoke(this);
                 BasicApplicationConfiguration.Instance.PauseConsoleDuringScan = value;
             }
+        }
+    }
+    
+    /// <summary>
+    /// Gets or sets if we should read the console's registered memory pages,
+    /// rather than blindly scanning the entirety of the configured memory region
+    /// </summary>
+    public bool ScanMemoryPages {
+        get => this.scanMemoryPages;
+        set {
+            if (this.scanMemoryPages == value)
+                return;
+
+            this.scanMemoryPages = value;
+            this.ScanMemoryPagesChanged?.Invoke(this);
+            BasicApplicationConfiguration.Instance.ScanMemoryPages = value;
         }
     }
 
@@ -225,6 +252,7 @@ public class ScanningProcessor {
     public event ScanningProcessorEventHandler? DataTypeChanged;
     public event ScanningProcessorEventHandler? NumericScanTypeChanged;
     public event ScanningProcessorEventHandler? AlignmentChanged;
+    public event ScanningProcessorEventHandler? ScanMemoryPagesChanged;
 
     private readonly ConcurrentQueue<ScanResultViewModel> resultBuffer;
     private readonly RateLimitedDispatchAction rldaMoveBufferIntoResultList;
@@ -241,6 +269,7 @@ public class ScanningProcessor {
         this.scanLength = cfg.ScanLength;
         this.alignment = GetAlignmentFromDataType(this.dataType);
         this.pauseConsoleDuringScan = cfg.PauseConsoleDuringScan;
+        this.scanMemoryPages = cfg.ScanMemoryPages;
         this.isIntInputHexadecimal = cfg.DTInt_UseHexValue;
         this.floatScanOption = cfg.DTFloat_Mode;
         this.stringScanOption = cfg.DTString_Mode;
@@ -272,7 +301,7 @@ public class ScanningProcessor {
 
     public async Task ScanFirstOrNext() {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-        
+
         if (this.isScanning)
             throw new InvalidOperationException("Currently scanning");
 
@@ -410,7 +439,7 @@ public class ScanningProcessor {
                 this.ScanResults.Clear();
                 return items;
             });
-            
+
             try {
                 result = await Task.Run(() => scanner.PerformNextScan(this, srcList, list, activity));
             }
@@ -420,7 +449,7 @@ public class ScanningProcessor {
             catch (Exception e) {
                 await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing next scan", e.ToString());
                 result = false;
-            }   
+            }
         }
         else {
             try {
@@ -432,7 +461,7 @@ public class ScanningProcessor {
             catch (Exception e) {
                 await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing first scan", e.ToString());
                 result = false;
-            }  
+            }
         }
 
         this.rldaMoveBufferIntoResultList.InvokeAsync();

@@ -52,6 +52,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.ClearSavedAddressesCommand", new ClearSavedAddressesCommand());
         manager.Register("commands.memengine.AddSavedAddressCommand", new AddSavedAddressCommand());
         manager.Register("commands.memengine.EditScanResultValueCommand", new EditScanResultValueCommand());
+        manager.Register("commands.memengine.CopyScanResultsToClipboardCommand", new CopyScanResultsToClipboardCommand());
         manager.Register("commands.memengine.EditSavedAddressValueCommand", new EditSavedAddressValueCommand());
         manager.Register("commands.memengine.EditSavedAddressDataTypeCommand", new EditSavedAddressDataTypeCommand());
         manager.Register("commands.memengine.RefreshSavedAddressesCommand", new RefreshSavedAddressesCommand());
@@ -65,11 +66,15 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.remote.ListHelpCommand", new ListHelpCommand());
         manager.Register("commands.memengine.remote.ShowConsoleIDCommand", new ShowConsoleIDCommand());
         manager.Register("commands.memengine.remote.ShowCPUKeyCommand", new ShowCPUKeyCommand());
+        manager.Register("commands.memengine.remote.MemProtectionCommand", new MemProtectionCommand());
     }
 
     protected override void RegisterServices(ServiceManager manager) {
-        manager.RegisterConstant<IDesktopService>(new DesktopServiceImpl(this.Application));
-        manager.RegisterConstant<WindowingSystem>(new WindowingSystemDesktop());
+        if (this.Application.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime) {
+            manager.RegisterConstant<IDesktopService>(new DesktopServiceImpl(this.Application));
+            manager.RegisterConstant<WindowingSystem>(new WindowingSystemDesktop());
+        }
+
         base.RegisterServices(manager);
 
         manager.RegisterConstant<IIconPreferences>(new IconPreferencesImpl());

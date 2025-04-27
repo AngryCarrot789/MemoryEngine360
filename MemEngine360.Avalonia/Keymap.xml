@@ -10,6 +10,9 @@
             <Shortcut Name="EditScanResultValue" CommandId="commands.memengine.EditScanResultValueCommand">
                 <KeyStroke Mods="CTRL" Key="E"/>
             </Shortcut>
+            <Shortcut Name="CopyResultsToClipboardCSV" CommandId="commands.memengine.CopyScanResultsToClipboardCommand">
+                <KeyStroke Mods="CTRL" Key="C"/>
+            </Shortcut>
         </Group>
 
         <Group Name="SavedAddressList">
