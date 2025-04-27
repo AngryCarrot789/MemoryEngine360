@@ -133,6 +133,7 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
                 safeRegions.Add(region);
             }
             
+            byte[] buffer = new byte[65536];
             for (int rgIdx = 0; rgIdx < safeRegions.Count; rgIdx++) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
                 MemoryRegion region = safeRegions[rgIdx];
@@ -144,13 +145,12 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
                 }
 
                 int align = (int) processor.Alignment;
-                byte[] buffer = new byte[65536];
                 int sizeOfT = Unsafe.SizeOf<T>();
                 activity.IsIndeterminate = false;
                 using var token = activity.CompletionState.PushCompletionRange(0, 1.0 / region.Size);
                 for (int j = 0; j < region.Size; j += 65536) {
                     ActivityManager.Instance.CurrentTask.CheckCancelled();
-                    activity.Text = $"Region {rgIdx + 1}/{safeRegions.Count}... ({IValueScanner.ByteFormatter.ToString(j, false)}/{IValueScanner.ByteFormatter.ToString(region.Size, false)})";
+                    activity.Text = $"Region {rgIdx + 1}/{safeRegions.Count} ({IValueScanner.ByteFormatter.ToString(j, false)}/{IValueScanner.ByteFormatter.ToString(region.Size, false)})";
                     activity.CompletionState.OnProgress(65536);
 
                     // should we be using BaseAddress or PhysicalAddress???
@@ -169,16 +169,17 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
             int totalChunks = (int) (range / 65536);
             byte[] buffer = new byte[65536];
             int sizeOfT = Unsafe.SizeOf<T>();
-            for (int j = 0, c = 1; j < scanLen; j += 65536, c++) {
+            using var token = activity.CompletionState.PushCompletionRange(0, 1.0 / scanLen);
+            for (int j = 0, c = 0; j < scanLen; j += 65536, c++) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
-                activity.Text = $"Reading chunk {c}/{totalChunks}...";
-                activity.IsIndeterminate = true;
+                activity.Text = $"Chunk {c + 1}/{totalChunks} ({IValueScanner.ByteFormatter.ToString(j, false)}/{IValueScanner.ByteFormatter.ToString(scanLen, false)})";
+                activity.CompletionState.OnProgress(65536);
+                
                 uint baseAddress = (uint) (addr + j);
                 int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)));
                 if (cbRead != 65536 && cbRead != Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)))
                     Debugger.Break();
 
-                activity.Text = $"Scanning chunk {c}/{totalChunks}...";
                 this.ProcessMemoryBlockForFirstScan(inputA, inputB, processor, results, Math.Max(cbRead - sizeOfT, 0), align, buffer, sizeOfT, baseAddress);
             }
         }
@@ -444,6 +445,7 @@ public class StringValueScanner : IValueScanner {
                 safeRegions.Add(region);
             }
             
+            byte[] buffer = new byte[chunkSize];
             for (int rgIdx = 0; rgIdx < safeRegions.Count; rgIdx++) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
                 MemoryRegion region = safeRegions[rgIdx];
@@ -460,7 +462,6 @@ public class StringValueScanner : IValueScanner {
                 }
 
                 int align = (int) processor.Alignment;
-                byte[] buffer = new byte[chunkSize];
                 activity.IsIndeterminate = false;
                 using var token = activity.CompletionState.PushCompletionRange(0, 1.0 / region.Size);
                 for (int j = 0; j < region.Size; j += (int) chunkSize) {
@@ -483,17 +484,16 @@ public class StringValueScanner : IValueScanner {
             int align = (int) processor.Alignment;
             int totalChunks = (int) (range / chunkSize);
             byte[] buffer = new byte[chunkSize];
+            using var token = activity.CompletionState.PushCompletionRange(0, 1.0 / scanLen);
             for (int j = 0, c = 1; j < scanLen; j += (int) chunkSize, c++) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
-                activity.Text = $"Reading chunk {c}/{totalChunks}...";
-                activity.IsIndeterminate = true;
+                activity.Text = $"Chunk {c + 1}/{totalChunks} ({IValueScanner.ByteFormatter.ToString(j, false)}/{IValueScanner.ByteFormatter.ToString(scanLen, false)})";
+                activity.CompletionState.OnProgress(chunkSize);
+
                 uint baseAddress = (uint) (addr + j);
                 int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(chunkSize, (uint) Math.Max((int) scanLen - j, 0)));
                 if (cbRead != chunkSize && cbRead != Math.Min(chunkSize, (uint) Math.Max((int) scanLen - j, 0)))
                     Debugger.Break();
-
-                activity.Text = $"Scanning chunk {c}/{totalChunks}...";
-                activity.IsIndeterminate = false;
 
                 int blockEnd = Math.Max(cbRead - cbInputString, 0);
                 using var _ = activity.CompletionState.PushCompletionRange(0.0, 1 / (blockEnd / 256.0));
