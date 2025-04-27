@@ -5,6 +5,10 @@ This is a remake of Cheat Engine, but for consoles. Currently, only the Xbox360 
 
 This project was inspired from https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
 
+# Download and built
+Clone repo: `git clone --recursive https://github.com/AngryCarrot789/MemEngine360`
+Open `MemEngine360.sln` and build/run 
+
 # How to use
 Your console needs to be running xmdb. Press `CTRL + O` or go to `File>Connect to console`. Specify the console's IP address and click `Connect`
 ![](MemEngine360.Avalonia_2025-04-23_00.40.36.png)
