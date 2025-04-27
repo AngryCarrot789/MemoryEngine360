@@ -33,7 +33,7 @@ public class ScanResultViewModel : INotifyPropertyChanged {
 
     public DataType DataType { get; }
     
-    public MemoryEngine360.NumericDisplayType NumericDisplayType { get; }
+    public NumericDisplayType NumericDisplayType { get; }
     
     public string FirstValue { get; }
     
@@ -51,7 +51,7 @@ public class ScanResultViewModel : INotifyPropertyChanged {
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public ScanResultViewModel(ScanningProcessor scanningProcessor, uint address, DataType dataType, MemoryEngine360.NumericDisplayType numericDisplayType, string firstValue) {
+    public ScanResultViewModel(ScanningProcessor scanningProcessor, uint address, DataType dataType, NumericDisplayType numericDisplayType, string firstValue) {
         this.ScanningProcessor = scanningProcessor;
         this.Address = address;
         this.DataType = dataType;

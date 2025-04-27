@@ -70,12 +70,12 @@ public class AddSavedAddressCommand : Command {
                     result.DataType = dataTypeInfo.DataType;
                     result.StringType = dataTypeInfo.StringScanOption;
                     result.StringLength = dataTypeInfo.StringLength;
-                    result.ScanningProcessor.RefreshSavedAddresses();
+                    result.ScanningProcessor.RefreshSavedAddressesLater();
                 }
             }
 
             engine.ScanningProcessor.SavedAddresses.Add(result);
-            engine.ScanningProcessor.RefreshSavedAddresses();
+            engine.ScanningProcessor.RefreshSavedAddressesLater();
         }
     }
 }

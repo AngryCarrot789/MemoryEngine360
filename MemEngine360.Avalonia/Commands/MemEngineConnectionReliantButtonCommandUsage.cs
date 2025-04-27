@@ -46,18 +46,6 @@ public abstract class MemEngineConnectionReliantButtonCommandUsage : MemEngineBu
 public class RefreshSavedAddressesCommandUsage : MemEngineConnectionReliantButtonCommandUsage {
     public RefreshSavedAddressesCommandUsage() : base("commands.memengine.RefreshSavedAddressesCommand") {
     }
-
-    protected override void OnEngineChanged(MemoryEngine360? oldEngine, MemoryEngine360? newEngine) {
-        base.OnEngineChanged(oldEngine, newEngine);
-        if (oldEngine != null)
-            oldEngine.IsBusyChanged -= this.ConnectionOnIsBusyChanged;
-        if (newEngine != null)
-            newEngine.IsBusyChanged += this.ConnectionOnIsBusyChanged;
-    }
-
-    private void ConnectionOnIsBusyChanged(MemoryEngine360 sender) {
-        this.UpdateCanExecuteLater();
-    }
 }
 
 public class AddSelectedScanResultsToSavedAddressListCommandUsage : MemUIButtonCommandUsage {

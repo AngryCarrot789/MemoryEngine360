@@ -19,12 +19,12 @@
 
 using System.Diagnostics;
 using System.Globalization;
-using System.Resources;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine;
 
@@ -38,17 +38,36 @@ public delegate void MemoryEngine360ConnectionChangedEventHandler(MemoryEngine36
 public class MemoryEngine360 {
     public static readonly DataKey<MemoryEngine360> DataKey = DataKey<MemoryEngine360>.Create("MemoryEngine360");
 
-    private IConsoleConnection? connection;
-    private readonly object connectionLock = new object();
-    private volatile int isBusyCount;
+    private volatile IConsoleConnection? connection; // our connection object -- volatile in case JIT plays dirty tricks, i ain't no expert in wtf volatile does though
+    private readonly object connectionLock = new object(); // used to synchronize busy token creation and also connection change
+    private volatile int isBusyCount; // this is a boolean. 0 = no token, 1 = token acquired. any other value is invalid
+    private BusyToken? activeToken;
 
     /// <summary>
     /// Gets or sets the current console connection
+    /// <para>
+    /// It's crucial that when using any command that requires sending/receiving data from the console that
+    /// it is synchronized with <see cref="BeginBusyOperation"/> or any of the async overloads, because,
+    /// connections may not be thread-safe (but may implement fail-safety when trying to read/write concurrently)
+    /// </para>
+    /// <para>
+    /// There are two ways to interact with a connection. The first is try get lock, otherwise do nothing
+    /// </para>
+    /// <code>
+    /// <![CDATA[
+    /// using IDisposable? token = engine.BeginBusyOperation();
+    /// if (token != null && engine.Connection != null) {
+    ///     // do work involving connection
+    /// }
+    /// ]]>
+    /// </code>
+    /// <para>
+    /// Alternatively, you can use <see cref="BeginBusyOperationAsync"/> which waits until you get the
+    /// token and accepts a cancellation token, or use <see cref="BeginBusyOperationActivityAsync"/> which
+    /// creates an activity to show the user you're waiting for the busy operations to complete
+    /// </para>
     /// </summary>
-    public IConsoleConnection? Connection {
-        get => this.connection;
-        set => this.SetConnection(value, ConnectionChangeCause.Custom);
-    }
+    public IConsoleConnection? Connection => this.connection;
 
     /// <summary>
     /// Gets or sets if the memory engine is currently busy, e.g. reading or writing data.
@@ -58,6 +77,11 @@ public class MemoryEngine360 {
 
     public ScanningProcessor ScanningProcessor { get; }
 
+    /// <summary>
+    /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working
+    /// </summary>
+    public bool IsShuttingDown { get; set; }
+    
     /// <summary>
     /// Fired when <see cref="Connection"/> changes. It is crucial that no 'busy' operations
     /// are performed in the event handlers, otherwise, a deadlock could occur
@@ -74,53 +98,65 @@ public class MemoryEngine360 {
         this.ScanningProcessor = new ScanningProcessor(this);
         Task.Run(async () => {
             while (true) {
-                IConsoleConnection? conn = Volatile.Read(ref this.connection);
+                IConsoleConnection? conn = this.connection;
                 if (conn != null && !conn.IsConnected) {
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                        // rarely not the case (depending on how quickly the callback runs on the main thread)
                         if (conn == this.Connection) {
                             this.CheckConnection();
                         }
                     });
                 }
 
-                this.ScanningProcessor.RefreshSavedAddresses();
-                await Task.Delay(2000);
+                this.ScanningProcessor.RefreshSavedAddressesLater();
+                await Task.Delay(1000);
             }
         });
     }
 
     /// <summary>
+    /// Gets the connection while validating the token
+    /// </summary>
+    /// <param name="token">The token to validate</param>
+    /// <returns>The current connection</returns>
+    /// <exception cref="InvalidOperationException">Token is invalid in some way</exception>
+    public IConsoleConnection? GetConnection(IDisposable token) {
+        this.ValidateToken(token);
+        return this.connection;
+    }
+
+    /// <summary>
     /// Sets the current connection, with the given cause. Must be called on main thread
     /// </summary>
+    /// <param name="token">The busy operation token that is valid</param>
     /// <param name="newConnection">The new connection object</param>
     /// <param name="cause">The cause for connection change</param>
     /// <exception cref="InvalidOperationException">Engine is busy</exception>
     /// <exception cref="ArgumentException">New connection is non-null when cause is <see cref="ConnectionChangeCause.LostConnection"/></exception>
-    public void SetConnection(IConsoleConnection? newConnection, ConnectionChangeCause cause) {
+    public void SetConnection(IDisposable busyToken, IConsoleConnection? newConnection, ConnectionChangeCause cause) {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-
-        IConsoleConnection? oldConnection = this.connection;
-        if (oldConnection == newConnection) {
-            return;
+        this.ValidateToken(busyToken);
+        if (cause == ConnectionChangeCause.LostConnection && newConnection != null) {
+            throw new ArgumentException("Cause cannot be " + nameof(ConnectionChangeCause.LostConnection) + " when setting connection to a non-null value");
         }
 
+        // ConnectionChanged is invoked under the lock to enforce busy operation rules
         lock (this.connectionLock) {
-            if (this.IsConnectionBusy) {
-                throw new InvalidOperationException("Cannot change connection because we are currently busy");
+            // we don't necessarily need to access connection under lock since if we have
+            // a valid busy token then nothing can modify it, but better be safe than sorry
+            IConsoleConnection? oldConnection = this.connection;
+            if (ReferenceEquals(oldConnection, newConnection)) {
+                throw new ArgumentException("Cannot set the connection to the same value");
             }
-
-            if (cause == ConnectionChangeCause.LostConnection && newConnection != null) {
-                throw new ArgumentException("Cause cannot be " + nameof(ConnectionChangeCause.LostConnection) + " when setting connection to a non-null value");
-            }
-
+            
             this.connection = newConnection;
             this.ConnectionChanged?.Invoke(this, oldConnection, newConnection, cause);
         }
     }
-
+    
     /// <summary>
-    /// Waits for all busy operations to finish, then sets <see cref="Connection"/> to null
-    /// with the cause. Must be called on main thread
+    /// Convenience method to wait for all busy operations to finish, then
+    /// sets <see cref="Connection"/> to null with the cause. Must be called on main thread
     /// </summary>
     /// <exception cref="TaskCanceledException">
     /// Operation cancelled. Only thrown before any modification occurs; once token is gotten, this will not be thrown
@@ -131,17 +167,13 @@ public class MemoryEngine360 {
         token.ThrowIfCancellationRequested();
 
         // we take the token so that we can win the race in the cleanest way possible
-        IDisposable? busyToken = await this.BeginBusyOperationAsync(token);
+        using IDisposable? busyToken = await this.BeginBusyOperationAsync(token);
         if (busyToken == null) {
             return; // cancelled or disconnected
         }
-        
-        lock (this.connectionLock) {
-            // release token, but since we lock beforehand, no other thread can snatch more tokens
-            busyToken.Dispose();
-            Debug.Assert(!this.IsConnectionBusy, "Expected " + nameof(this.IsConnectionBusy) + " to be false since we got the token and the lock???");
 
-            this.SetConnection(null, cause);
+        lock (this.connectionLock) {
+            this.SetConnection(busyToken, null, cause);
         }
     }
 
@@ -155,74 +187,79 @@ public class MemoryEngine360 {
     /// <returns>A token to dispose when the operation is completed. Returns null if currently busy</returns>
     /// <exception cref="InvalidOperationException">No connection is present</exception>
     public IDisposable? BeginBusyOperation() {
-        if (this.connection == null)
-            throw new InvalidOperationException("No connection is present. Cannot begin busy operation");
+        bool lockTaken = false;
+        try {
+            Monitor.TryEnter(this.connectionLock, 0, ref lockTaken);
+            if (!lockTaken)
+                return null;
 
-        lock (this.connectionLock) {
-            return this.isBusyCount == 0 ? new BusyToken(this) : null;
+            if (this.isBusyCount == 0)
+                return this.activeToken = new BusyToken(this);
+
+            return null;
         }
+        finally {
+            if (lockTaken)
+                Monitor.Exit(this.connectionLock);
+        }
+    }
+    
+    /// <summary>
+    /// Begins a busy operation, waiting for existing busy operations to finish 
+    /// </summary>
+    /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
+    /// <param name="sleepMilliseconds">The amount of milliseconds to wait inbetween calls to <see cref="BeginBusyOperation"/></param>
+    /// <returns>The acquired token, or null if the task was cancelled</returns>
+    /// <exception cref="TaskCanceledException">Operation was cancelled, didn't get token in time</exception>
+    public async Task<IDisposable?> BeginBusyOperationAsync(CancellationToken cancellationToken, int sleepMilliseconds = 10) {
+        IDisposable? token = this.BeginBusyOperation();
+        while (token == null) {
+            try {
+                await Task.Delay(sleepMilliseconds, cancellationToken);
+            }
+            catch (OperationCanceledException) {
+                return null;
+            }
+
+            token = this.BeginBusyOperation();
+        }
+
+        return token;
     }
 
     /// <summary>
-    /// Begins a busy operation, and creates an activity showing 'waiting for busy operations' if we could not get the token first try. 
+    /// Tries to begin a busy operation. If we could not get the token immediately, we start
+    /// a new activity and try to get it asynchronously with the text 'waiting for busy operations' 
     /// </summary>
-    /// <returns></returns>
-    public async Task<IDisposable?> BeginBusyOperationActivityAsync() {
+    /// <param name="message">The message set as the <see cref="IActivityProgress.Text"/> property</param>
+    /// <returns>
+    /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
+    /// </returns>
+    public async Task<IDisposable?> BeginBusyOperationActivityAsync(string message = "Waiting for busy operations...") {
         IDisposable? token = this.BeginBusyOperation();
         if (token == null) {
             using CancellationTokenSource cts = new CancellationTokenSource();
             token = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Busy";
-                task.Progress.Text = "Waiting for busy operations...";
+                task.Progress.Text = message;
                 return this.BeginBusyOperationAsync(task.CancellationToken);
             }, cts);
         }
 
         return token;
     }
-
+    
     /// <summary>
-    /// Begins a busy operation, waiting for existing busy operations to finish 
+    /// Gets a busy token via <see cref="BeginBusyOperationActivityAsync(string)"/> and invokes a callback if the connection is available
     /// </summary>
-    /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
-    /// <returns>The token, or null, if the task was cancelled or the connection is now null</returns>
-    /// <exception cref="TaskCanceledException">Operation was cancelled, didn't get token in time</exception>
-    public async Task<IDisposable?> BeginBusyOperationAsync(CancellationToken cancellationToken) {
-        IDisposable? token = this.BeginBusyOperation();
-        while (token == null) {
-            try {
-                await Task.Delay(100, cancellationToken);
-            }
-            catch (OperationCanceledException) {
-                return null;
-            }
-            
-            bool lockTaken = false;
-            do {
-                await Task.Yield();
-                Monitor.TryEnter(this.connectionLock, ref lockTaken);
-            } while (!lockTaken);
-
-            try {
-                if (this.connection == null) {
-                    return null;
-                }
-                
-                token = this.isBusyCount == 0 ? new BusyToken(this) : null;
-            }
-            finally {
-                Monitor.Exit(this.connectionLock);
-            }
+    /// <param name="action">The callback to invoke when we have the token</param>
+    /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
+    public async Task BeginBusyOperationActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string message = "Waiting for busy operations...") {
+        using IDisposable? token = await this.BeginBusyOperationActivityAsync(message);
+        if (token != null && this.connection != null) {
+            await action(token, this.connection!);
         }
-
-        return token;
-    }
-
-    public enum NumericDisplayType {
-        Normal,
-        Unsigned,
-        Hexadecimal,
     }
 
     public static async Task<string> ReadAsText(IConsoleConnection connection, uint address, DataType type, NumericDisplayType displayType, uint stringLength) {
@@ -250,80 +287,136 @@ public class MemoryEngine360 {
         }
     }
 
-    public static ValueTask WriteAsText(IConsoleConnection connection, uint address, DataType type, NumericDisplayType displayType, string value, uint stringLength) {
+    public static async Task WriteAsText(IConsoleConnection connection, uint address, DataType type, NumericDisplayType displayType, string value, uint stringLength) {
         NumberStyles style = displayType == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
         switch (type) {
-            case DataType.Byte: return connection.WriteByte(address, byte.Parse(value, style, null)); break;
-            case DataType.Int16:
-                short int16 = short.Parse(value, style, null);
-                return connection.WriteValue(address, int16);
-            break;
-            case DataType.Int32:
-                int int32 = int.Parse(value, style, null);
-                return connection.WriteValue(address, int32);
-            break;
-            case DataType.Int64:
-                long int64 = long.Parse(value, style, null);
-                return connection.WriteValue(address, int64);
-            break;
-            case DataType.Float:
-                float f = displayType == NumericDisplayType.Hexadecimal ? BitConverter.Int32BitsToSingle(int.Parse(value, style, null)) : float.Parse(value, style, null);
-                return connection.WriteValue(address, f);
-            break;
-            case DataType.Double:
-                double d = displayType == NumericDisplayType.Hexadecimal ? BitConverter.Int64BitsToDouble(long.Parse(value, style, null)) : double.Parse(value, style, null);
-                return connection.WriteValue(address, d);
-            break;
-            case DataType.String: return connection.WriteString(address, value.Substring(0, Math.Min(Math.Max((int) stringLength, 0), value.Length))); break;
-            default:              throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            case DataType.Byte: {
+                await connection.WriteByte(address, byte.Parse(value, style, null));
+                break;
+            }
+            case DataType.Int16: {
+                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? ushort.Parse(value, style, null) : (ushort) short.Parse(value, style, null));
+                break;
+            }
+            case DataType.Int32: {
+                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? uint.Parse(value, style, null) : (uint) int.Parse(value, style, null));
+                break;
+            }
+            case DataType.Int64: {
+                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? ulong.Parse(value, style, null) : (ulong) long.Parse(value, style, null));
+                break;
+            }
+            case DataType.Float: {
+                float f = displayType == NumericDisplayType.Hexadecimal ? BitConverter.Int32BitsToSingle(int.Parse(value, NumberStyles.HexNumber, null)) : float.Parse(value);
+                await connection.WriteValue(address, f);
+                break;
+            }
+            case DataType.Double: {
+                double d = displayType == NumericDisplayType.Hexadecimal ? BitConverter.Int64BitsToDouble(long.Parse(value, NumberStyles.HexNumber, null)) : double.Parse(value);
+                await connection.WriteValue(address, d);
+                break;
+            }
+            case DataType.String: {
+                await connection.WriteString(address, value.Substring(0, (int) Maths.Clamp(stringLength, 0, (uint) value.Length)));
+                break;
+            }
+            default: throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
+    }
+    
+    private void ValidateToken(IDisposable token) {
+        if (!(token is BusyToken busy))
+            throw new InvalidOperationException("Token is invalid");
+        
+        // since myEngine can be atomically exchanged, we read it first
+        MemoryEngine360? engine = busy.myEngine; 
+        if (engine == null)
+            throw new InvalidOperationException("Token has already been disposed");
+        if (engine != this)
+            throw new InvalidOperationException("Token is not associated with this engine");
     }
 
     private class BusyToken : IDisposable {
-        private MemoryEngine360? engine;
+        public volatile MemoryEngine360? myEngine;
+        public readonly string? stackTrace;
 
         public BusyToken(MemoryEngine360 engine) {
-            this.engine = engine;
-            if (Interlocked.Increment(ref this.engine.isBusyCount) == 1) {
-                this.engine.IsBusyChanged?.Invoke(this.engine);
+            this.myEngine = engine;
+            if (Interlocked.Increment(ref engine.isBusyCount) == 1) {
+                try {
+                    engine!.IsBusyChanged?.Invoke(engine);
+                }
+                catch {
+                    Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
+                }
             }
+
+            this.stackTrace = new Exception().StackTrace;
         }
 
         public void Dispose() {
-            if (this.engine == null) {
+            // we're being omega thread safe here
+            MemoryEngine360? engine = Interlocked.Exchange(ref this.myEngine, null);
+            if (engine == null) {
                 return;
             }
 
-            lock (this.engine.connectionLock) {
-                if (Interlocked.Decrement(ref this.engine.isBusyCount) == 0) {
-                    this.engine.IsBusyChanged?.Invoke(this.engine);
-                }
-
-                this.engine = null;
-            }
-        }
-    }
-
-    public bool CheckConnection() {
-        if (this.connection == null)
-            return false;
-
-        if (this.connection.IsConnected)
-            return true;
-
-        if (!this.IsConnectionBusy) {
-            this.SetConnection(null, ConnectionChangeCause.LostConnection);
-        }
-        else {
-            ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                lock (this.connectionLock) {
-                    if (this.connection != null && !this.IsConnectionBusy && !this.connection.IsConnected) {
-                        this.SetConnection(null, ConnectionChangeCause.LostConnection);
+            lock (engine.connectionLock) {
+                Debug.Assert(engine.activeToken == this, "Different active token references");
+                
+                engine.activeToken = null;
+                if (Interlocked.Decrement(ref engine.isBusyCount) == 0) {
+                    try {
+                        engine.IsBusyChanged?.Invoke(engine);
+                    }
+                    catch {
+                        Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
                     }
                 }
-            }, DispatchPriority.Background);
+            }
         }
 
+        private void RaiseBusyChanged() {
+
+        }
+    }
+
+    public void CheckConnection() {
+        // CheckConnection is just a helpful method to clear connection if it's 
+        // disconnected internally, therefore, we don't need over the top synchronization,
+        // because any code that actually tries to read/write will be async and can handle
+        // the timeout exceptions
+        IConsoleConnection? conn = this.connection;
+        if (conn == null || conn.IsConnected) {
+            return;
+        }
+
+        using (IDisposable? token1 = this.BeginBusyOperation()) {
+            if (token1 != null && this.TryDisconnectInternal(token1)) {
+                return;
+            }
+        }
+        
+        ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+            using IDisposable? token2 = this.BeginBusyOperation();
+            if (token2 != null)
+                this.TryDisconnectInternal(token2);
+        }, DispatchPriority.Background);
+    }
+
+    private bool TryDisconnectInternal(IDisposable token) {
+        IConsoleConnection? conn = this.connection;
+        if (conn != null && !conn.IsConnected) {
+            this.SetConnection(token, null, ConnectionChangeCause.LostConnection);
+            return true;
+        }
+        
         return false;
     }
+}
+
+public enum NumericDisplayType {
+    Normal,
+    Unsigned,
+    Hexadecimal,
 }

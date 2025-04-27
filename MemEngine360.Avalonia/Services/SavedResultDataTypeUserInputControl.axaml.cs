@@ -18,11 +18,9 @@
 // 
 
 using System;
-using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.VisualTree;
 using MemEngine360.Commands;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Avalonia.Bindings;
@@ -34,9 +32,9 @@ using PFXToolKitUI.Services.UserInputs;
 namespace MemEngine360.Avalonia.Services;
 
 public partial class SavedResultDataTypeUserInputControl : UserControl, IUserInputContent {
-    public static readonly StyledProperty<int> StringLengthProperty = AvaloniaProperty.Register<SavedResultDataTypeUserInputControl, int>(nameof(StringLength));
+    public static readonly StyledProperty<uint> StringLengthProperty = AvaloniaProperty.Register<SavedResultDataTypeUserInputControl, uint>(nameof(StringLength));
     
-    private UserInputDialog? myDialog;
+    private UserInputDialogView? myDialog;
     private SavedResultDataTypeUserInputInfo? myData;
     private DataType lastIntegerDataType;
     private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(SavedResultDataTypeUserInputInfo), nameof(SavedResultDataTypeUserInputInfo.DataTypeChanged), (x) => ((SavedResultDataTypeUserInputInfo) x).DataType, (x, y) => ((SavedResultDataTypeUserInputInfo) x).DataType = y);
@@ -46,7 +44,7 @@ public partial class SavedResultDataTypeUserInputControl : UserControl, IUserInp
     private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(SavedResultDataTypeUserInputInfo), nameof(SavedResultDataTypeUserInputInfo.StringScanOptionChanged), (x) => ((SavedResultDataTypeUserInputInfo) x).StringScanOption, (x, v) => ((SavedResultDataTypeUserInputInfo) x).StringScanOption = v);
     private readonly AvaloniaPropertyToEventPropertyBinder<SavedResultDataTypeUserInputInfo> selectedTabIndexBinder;
 
-    public int StringLength {
+    public uint StringLength {
         get => this.GetValue(StringLengthProperty);
         set => this.SetValue(StringLengthProperty, value);
     }
@@ -86,11 +84,11 @@ public partial class SavedResultDataTypeUserInputControl : UserControl, IUserInp
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) {
         base.OnPropertyChanged(change);
         if (change.Property == StringLengthProperty && this.myData != null) {
-            this.myData.StringLength = ((AvaloniaPropertyChangedEventArgs<int>) change).NewValue.GetValueOrDefault();
+            this.myData.StringLength = ((AvaloniaPropertyChangedEventArgs<uint>) change).NewValue.GetValueOrDefault();
         }
     }
 
-    public void Connect(UserInputDialog dialog, UserInputInfo info) {
+    public void Connect(UserInputDialogView dialog, UserInputInfo info) {
         this.myDialog = dialog;
         this.myData = (SavedResultDataTypeUserInputInfo) info;
         this.myData.DataTypeChanged += this.MyDataOnDataTypeChanged;

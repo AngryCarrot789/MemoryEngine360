@@ -50,7 +50,7 @@ public class EditSavedAddressDataTypeCommand : Command {
                 result.DataType = info.DataType;
                 result.StringType = info.StringScanOption;
                 result.StringLength = info.StringLength;
-                result.ScanningProcessor.RefreshSavedAddresses();
+                result.ScanningProcessor.RefreshSavedAddressesLater();
             }
         }
     }
@@ -61,7 +61,7 @@ public delegate void SavedResultDataTypeUserInputInfoEventHandler(SavedResultDat
 public class SavedResultDataTypeUserInputInfo : UserInputInfo {
     private DataType dataType;
     private StringType stringScanOption;
-    private int stringLength;
+    private uint stringLength;
     private bool displayAsHex, displayAsSigned;
 
     public DataType DataType {
@@ -86,7 +86,7 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
         }
     }
 
-    public int StringLength {
+    public uint StringLength {
         get => this.stringLength;
         set {
             if (this.stringLength == value)

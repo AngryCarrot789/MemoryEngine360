@@ -26,7 +26,6 @@ using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Commands;
 
@@ -44,28 +43,28 @@ public class ConnectToConsoleCommand : Command {
             return;
         }
 
-        if (engine.Connection != null) {
-            if (engine.IsConnectionBusy) {
-                await IMessageDialogService.Instance.ShowMessage("Busy", "Connection is currently busy. Cannot disconnect");
-                return;
-            }
-            
+        using IDisposable? token = await engine.BeginBusyOperationActivityAsync();
+        if (token == null) {
+            return;
+        }
+        
+        IConsoleConnection? existingConnection = engine.GetConnection(token);
+        if (existingConnection != null) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to an xbox. Close existing connection and then connect", MessageBoxButton.OKCancel, MessageBoxResult.OK);
             if (result != MessageBoxResult.OK) {
                 return;
             }
             
-            engine.Connection.Dispose();
-            engine.SetConnection(null, ConnectionChangeCause.User);
+            existingConnection.Dispose();
+            engine.SetConnection(token, null, ConnectionChangeCause.User);
             
             if (ILatestActivityView.DataKey.TryGetContext(e.ContextData, out ILatestActivityView? view))
                 view.Activity = "Disconnected from xbox 360";
         }
 
-        DefaultProgressTracker progressTracker = new DefaultProgressTracker();
-        IConsoleConnection? connection = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionService>().OpenDialogAndConnect(progressTracker);
+        IConsoleConnection? connection = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionService>().OpenDialogAndConnect();
         if (connection != null) {
-            engine.SetConnection(connection, ConnectionChangeCause.User);
+            engine.SetConnection(token, connection, ConnectionChangeCause.User);
             if (ILatestActivityView.DataKey.TryGetContext(e.ContextData, out ILatestActivityView? view))
                 view.Activity = "Connected to xbox 360.";
 

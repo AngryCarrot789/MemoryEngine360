@@ -18,10 +18,12 @@
 // 
 
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
@@ -55,12 +57,21 @@ public interface IValueScanner {
     /// <param name="results"></param>
     /// <param name="activity"></param>
     /// <returns></returns>
-    Task<bool> Scan(ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity);
+    Task<bool> PerformFirstScan(ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity);
+
+    /// <summary>
+    /// Scans for an input in our current results
+    /// </summary>
+    /// <param name="processor"></param>
+    /// <param name="results"></param>
+    /// <param name="activity"></param>
+    /// <returns></returns>
+    Task<bool> PerformNextScan(ScanningProcessor processor, List<ScanResultViewModel> srcList, ObservableList<ScanResultViewModel> dstList, IActivityProgress activity);
 }
 
 public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unmanaged, INumber<T> {
-    public async Task<bool> Scan(ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity) {
-        T inputA, inputB;
+    private static async Task<(T inputA, T inputB, bool performFirstScan)> GetInputs(ScanningProcessor processor) {
+        T inputA, inputB = default;
         NumberStyles numberStyles;
         if (processor.DataType.IsInteger()) {
             numberStyles = processor.IsIntInputHexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
@@ -74,211 +85,316 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
 
         if (!T.TryParse(processor.InputA, numberStyles, null, out inputA)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid input", "Input is not valid for this search type: " + processor.InputA);
-            return false;
+            return (inputA, inputB, false);
         }
 
         if (processor.NumericScanType == NumericScanType.Between) {
             if (!T.TryParse(processor.InputB, numberStyles, null, out inputB)) {
                 await IMessageDialogService.Instance.ShowMessage("Invalid input", "Second input is not valid for this search type: " + processor.InputB);
-                return false;
+                return (inputA, inputB, false);
             }
         }
-        else {
-            inputB = default;
+
+        return (inputA, inputB, true);
+    }
+
+    public async Task<bool> PerformFirstScan(ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity) {
+        (T inputA, T inputB, bool performFirstScan) = await GetInputs(processor);
+        if (!performFirstScan) {
+            return false;
         }
 
-        return await this.ScanCore(inputA, inputB, processor, results, activity);
-    }
+        uint addr = processor.StartAddress, scanLen = processor.ScanLength, range = scanLen;
+        int align = (int) processor.Alignment;
+        int totalChunks = (int) (range / 65536);
+        byte[] bytes = new byte[65536];
+        int sizeOfT = Unsafe.SizeOf<T>();
+        for (int j = 0, c = 1; j < scanLen; j += 65536, c++) {
+            ActivityManager.Instance.CurrentTask.CheckCancelled();
+            activity.Text = $"Reading chunk {c}/{totalChunks}...";
+            activity.IsIndeterminate = true;
+            uint baseAddress = (uint) (addr + j);
+            int cbRead = await processor.MemoryEngine360.Connection!.ReadBytes(baseAddress, bytes, 0, Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)));
+            if (cbRead != 65536 && cbRead != Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)))
+                Debugger.Break();
 
-    /// <summary>
-    /// Scans memory
-    /// </summary>
-    /// <param name="inputA">Primary input, or "From", when <see cref="ScanningProcessor.NumericScanType"/> is <see cref="NumericScanType.Between"/></param>
-    /// <param name="inputB">"To" when <see cref="ScanningProcessor.NumericScanType"/> is <see cref="NumericScanType.Between"/>, otherwise default(T)</param>
-    /// <param name="processor"></param>
-    /// <param name="results"></param>
-    /// <param name="activity"></param>
-    /// <returns></returns>
-    protected abstract Task<bool> ScanCore(T inputA, T inputB, ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity);
-}
+            activity.Text = $"Scanning chunk {c}/{totalChunks}...";
+            activity.IsIndeterminate = false;
 
-public abstract class BaseIntegerValueScanner<T> : BaseNumericValueScanner<T> where T : unmanaged, IBinaryInteger<T> {
-    protected override async Task<bool> ScanCore(T inputA, T inputB, ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity) {
-        await ValueScannerCore.ScanInteger(inputA, inputB, processor, results, activity);
+            int blockEnd = Math.Max(cbRead - sizeOfT, 0);
+            using (activity.CompletionState.PushCompletionRange(0.0, 256.0 / blockEnd)) {
+                this.ProcessMemoryBlockForFirstScan(inputA, inputB, processor, results, activity, blockEnd, align, bytes, sizeOfT, baseAddress);
+            }
+        }
+
         return true;
     }
+
+    public async Task<bool> PerformNextScan(ScanningProcessor processor, List<ScanResultViewModel> srcList, ObservableList<ScanResultViewModel> dstList, IActivityProgress activity) {
+        if (srcList[0].DataType != processor.DataType) {
+            await IMessageDialogService.Instance.ShowMessage("Data Type Changed", "The results contains a different data type from the scan data type. Please change the scan type to " + srcList[0].DataType);
+            return false;
+        }
+
+        (T inputA, T inputB, bool performFirstScan) = await GetInputs(processor);
+        if (!performFirstScan) {
+            return false;
+        }
+
+        IConsoleConnection connection = processor.MemoryEngine360.Connection!;
+        using (activity.CompletionState.PushCompletionRange(0.0, 256.0 / srcList.Count)) {
+            for (int i = 0; i < srcList.Count; i++) {
+                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                activity.Text = $"Reading values {i + 1}/{srcList.Count}";
+                activity.CompletionState.OnProgress(1.0);
+
+                ScanResultViewModel res = srcList[i];
+                res.PreviousValue = res.CurrentValue;
+                res.CurrentValue = await MemoryEngine360.ReadAsText(connection, res.Address, res.DataType, res.NumericDisplayType, (uint) res.FirstValue.Length);
+            }
+        }
+
+        using (activity.CompletionState.PushCompletionRange(0.0, 256.0 / srcList.Count)) {
+            activity.Text = $"Processing results...";
+            for (int i = 0; i < srcList.Count; i++) {
+                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                activity.CompletionState.OnProgress(1.0);
+                if (this.CanKeepResultForNextScan(srcList[i], inputA, inputB)) {
+                    dstList.Add(srcList[i]);
+                }
+            }
+        }
+
+        return true;
+    }
+
+    protected abstract void ProcessMemoryBlockForFirstScan(T inputA, T inputB, ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity, int blockEnd, int align, byte[] buffer, int sizeOfT, uint baseAddress);
+
+    protected abstract bool CanKeepResultForNextScan(ScanResultViewModel result, T inputA, T inputB);
 }
 
-public abstract class BaseFloatValueScanner<T> : BaseNumericValueScanner<T> where T : unmanaged, IFloatingPoint<T> {
-    protected override async Task<bool> ScanCore(T inputA, T inputB, ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity) {
-        await ValueScannerCore.ScanFloat(inputA, inputB, processor, results, activity);
-        return true;
+public class BaseIntegerValueScanner<T> : BaseNumericValueScanner<T> where T : unmanaged, IBinaryInteger<T> {
+    protected override void ProcessMemoryBlockForFirstScan(T inputA, T inputB, ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity, int blockEnd, int align, byte[] buffer, int sizeOfT, uint baseAddress) {
+        for (int i = 0; i < blockEnd; i += align) {
+            if (i >= buffer.Length || (buffer.Length - i) < sizeOfT) {
+                break;
+            }
+
+            if (i % 256 == 0) {
+                activity.CompletionState.OnProgress(1);
+            }
+
+            T value = ValueScannerUtils.CreateNumberFromBytes<T>(new ReadOnlySpan<byte>(buffer, i, sizeOfT));
+            bool matched;
+            switch (processor.NumericScanType) {
+                case NumericScanType.Equals:              matched = value == inputA; break;
+                case NumericScanType.NotEquals:           matched = value != inputA; break;
+                case NumericScanType.LessThan:            matched = value < inputA; break;
+                case NumericScanType.LessThanOrEquals:    matched = value <= inputA; break;
+                case NumericScanType.GreaterThan:         matched = value > inputA; break;
+                case NumericScanType.GreaterThanOrEquals: matched = value >= inputA; break;
+                case NumericScanType.Between:             matched = value >= inputA && value <= inputB; break;
+                default:                                  throw new ArgumentOutOfRangeException();
+            }
+
+            if (matched) {
+                results.Add(new ScanResultViewModel(processor, baseAddress + (uint) i, processor.DataType, NumericDisplayType.Normal, value.ToString() ?? ""));
+            }
+        }
+    }
+
+    protected override bool CanKeepResultForNextScan(ScanResultViewModel result, T inputA, T inputB) {
+        NumberStyles style = result.NumericDisplayType == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
+        ulong parsedValue;
+        switch (result.DataType) {
+            case DataType.Byte:  parsedValue = byte.Parse(result.CurrentValue, style); break;
+            case DataType.Int16: parsedValue = result.NumericDisplayType == NumericDisplayType.Unsigned ? ushort.Parse(result.CurrentValue, style) : (ulong) short.Parse(result.CurrentValue, style); break;
+            case DataType.Int32: parsedValue = result.NumericDisplayType == NumericDisplayType.Unsigned ? uint.Parse(result.CurrentValue, style) : (ulong) int.Parse(result.CurrentValue, style); break;
+            case DataType.Int64: parsedValue = result.NumericDisplayType == NumericDisplayType.Unsigned ? ulong.Parse(result.CurrentValue, style) : (ulong) long.Parse(result.CurrentValue, style); break;
+            default:             return false;
+        }
+
+        bool matched;
+        T value = ValueScannerUtils.CreateNumberFromRawLong<T>(parsedValue);
+        switch (result.ScanningProcessor.NumericScanType) {
+            case NumericScanType.Equals:              matched = value == inputA; break;
+            case NumericScanType.NotEquals:           matched = value != inputA; break;
+            case NumericScanType.LessThan:            matched = value < inputA; break;
+            case NumericScanType.LessThanOrEquals:    matched = value <= inputA; break;
+            case NumericScanType.GreaterThan:         matched = value > inputA; break;
+            case NumericScanType.GreaterThanOrEquals: matched = value >= inputA; break;
+            case NumericScanType.Between:             matched = value >= inputA && value <= inputB; break;
+            default:                                  throw new ArgumentOutOfRangeException();
+        }
+
+        return matched;
+    }
+}
+
+public class BaseFloatValueScanner<T> : BaseNumericValueScanner<T> where T : unmanaged, IFloatingPoint<T> {
+    protected override void ProcessMemoryBlockForFirstScan(T inputA, T inputB, ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity, int blockEnd, int align, byte[] buffer, int sizeOfT, uint baseAddress) {
+        for (int i = 0; i < blockEnd; i += align) {
+            if (i >= buffer.Length || (buffer.Length - i) < sizeOfT) {
+                break;
+            }
+
+            if (i % 256 == 0) {
+                activity.CompletionState.OnProgress(1);
+            }
+
+            T value = ValueScannerUtils.CreateNumberFromBytes<T>(new ReadOnlySpan<byte>(buffer, i, sizeOfT));
+            switch (processor.FloatScanOption) {
+                case FloatScanOption.UseExactValue: break;
+                case FloatScanOption.TruncateToQuery:
+                case FloatScanOption.RoundToQuery: {
+                    if (processor.NumericScanType == NumericScanType.Between) {
+                        break;
+                    }
+
+                    int idx = processor.InputA?.IndexOf('.') ?? -1;
+                    if (idx != -1) {
+                        int decimals = processor.InputA!.Length - idx + 1;
+                        if (typeof(T) == typeof(float)) {
+                            float value_f = Unsafe.As<T, float>(ref value);
+                            value_f = processor.FloatScanOption == FloatScanOption.TruncateToQuery ? ValueScannerUtils.TruncateFloat(value_f, decimals) : (float) Math.Round(value_f, decimals);
+                            value = Unsafe.As<float, T>(ref value_f);
+                        }
+                        else {
+                            double value_d = Unsafe.As<T, double>(ref value);
+                            value_d = processor.FloatScanOption == FloatScanOption.TruncateToQuery ? ValueScannerUtils.TruncateDouble(value_d, decimals) : Math.Round(value_d, decimals);
+                            value = Unsafe.As<double, T>(ref value_d);
+                        }
+                    }
+
+                    break;
+                }
+            }
+
+            bool matched;
+            switch (processor.NumericScanType) {
+                case NumericScanType.Equals:              matched = value == inputA; break;
+                case NumericScanType.NotEquals:           matched = value != inputA; break;
+                case NumericScanType.LessThan:            matched = value < inputA; break;
+                case NumericScanType.LessThanOrEquals:    matched = value <= inputA; break;
+                case NumericScanType.GreaterThan:         matched = value > inputA; break;
+                case NumericScanType.GreaterThanOrEquals: matched = value >= inputA; break;
+                case NumericScanType.Between:             matched = value >= inputA && value <= inputB; break;
+                default:                                  throw new ArgumentOutOfRangeException();
+            }
+
+            if (matched) {
+                results.Add(new ScanResultViewModel(processor, baseAddress + (uint) i, processor.DataType, NumericDisplayType.Normal, value.ToString() ?? ""));
+            }
+        }
+    }
+
+    protected override bool CanKeepResultForNextScan(ScanResultViewModel result, T inputA, T inputB) {
+        T value;
+        switch (result.DataType) {
+            case DataType.Float: {
+                float f = result.NumericDisplayType == NumericDisplayType.Hexadecimal ? BitConverter.Int32BitsToSingle(int.Parse(result.CurrentValue, NumberStyles.HexNumber, null)) : float.Parse(result.CurrentValue);
+                value = Unsafe.As<float, T>(ref f);
+                break;
+            }
+            case DataType.Double: {
+                double d = result.NumericDisplayType == NumericDisplayType.Hexadecimal ? BitConverter.Int64BitsToDouble(long.Parse(result.CurrentValue, NumberStyles.HexNumber, null)) : double.Parse(result.CurrentValue);
+                value = Unsafe.As<double, T>(ref d);
+                break;
+            }
+            default: return false;
+        }
+
+        switch (result.ScanningProcessor.FloatScanOption) {
+            case FloatScanOption.UseExactValue: break;
+            case FloatScanOption.TruncateToQuery:
+            case FloatScanOption.RoundToQuery: {
+                if (result.ScanningProcessor.NumericScanType == NumericScanType.Between) {
+                    break;
+                }
+
+                int idx = result.ScanningProcessor.InputA?.IndexOf('.') ?? -1;
+                if (idx != -1) {
+                    int decimals = result.ScanningProcessor.InputA!.Length - idx + 1;
+                    if (typeof(T) == typeof(float)) {
+                        float value_f = Unsafe.As<T, float>(ref value);
+                        value_f = result.ScanningProcessor.FloatScanOption == FloatScanOption.TruncateToQuery ? ValueScannerUtils.TruncateFloat(value_f, decimals) : (float) Math.Round(value_f, decimals);
+                        value = Unsafe.As<float, T>(ref value_f);
+                    }
+                    else {
+                        double value_d = Unsafe.As<T, double>(ref value);
+                        value_d = result.ScanningProcessor.FloatScanOption == FloatScanOption.TruncateToQuery ? ValueScannerUtils.TruncateDouble(value_d, decimals) : Math.Round(value_d, decimals);
+                        value = Unsafe.As<double, T>(ref value_d);
+                    }
+                }
+
+                break;
+            }
+        }
+
+        bool matched;
+        switch (result.ScanningProcessor.NumericScanType) {
+            case NumericScanType.Equals:              matched = value == inputA; break;
+            case NumericScanType.NotEquals:           matched = value != inputA; break;
+            case NumericScanType.LessThan:            matched = value < inputA; break;
+            case NumericScanType.LessThanOrEquals:    matched = value <= inputA; break;
+            case NumericScanType.GreaterThan:         matched = value > inputA; break;
+            case NumericScanType.GreaterThanOrEquals: matched = value >= inputA; break;
+            case NumericScanType.Between:             matched = value >= inputA && value <= inputB; break;
+            default:                                  throw new ArgumentOutOfRangeException();
+        }
+
+        return matched;
     }
 }
 
 public class ByteValueScanner : BaseIntegerValueScanner<byte>;
+
 public class Int16ValueScanner : BaseIntegerValueScanner<short>;
+
 public class Int32ValueScanner : BaseIntegerValueScanner<int>;
+
 public class Int64ValueScanner : BaseIntegerValueScanner<long>;
+
 public class FloatValueScanner : BaseFloatValueScanner<float>;
+
 public class DoubleValueScanner : BaseFloatValueScanner<double>;
 
 public class StringValueScanner : IValueScanner {
-    public async Task<bool> Scan(ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity) {
-        await ValueScannerCore.ScanString(processor.InputA, processor, results, activity);
-        return true;
-    }
-}
-
-public static class ValueScannerCore {
-    public static async Task ScanInteger<T>(T inputA, T inputB, ScanningProcessor p, ObservableList<ScanResultViewModel> results, IActivityProgress activity) where T : IBinaryNumber<T> {
-        DataType dt = p.DataType;
-        uint addr = p.StartAddress, scanLen = p.ScanLength, range = scanLen;
-        int totalChunks = (int) (range / 65535) + 1;
-        for (int j = 0, c = 1; j < scanLen; j += 65535, c++) {
-            ActivityManager.Instance.CurrentTask.CheckCancelled();
-            activity.Text = $"Reading chunk {c}/{totalChunks}...";
-            activity.IsIndeterminate = true;
-            byte[] bytes = await p.MemoryEngine360.Connection!.ReadBytes((uint) (addr + j), Math.Min(65535, (uint) Math.Max((int) scanLen - j, 0)));
-
-            activity.Text = $"Scanning chunk {c}/{totalChunks}...";
-            activity.IsIndeterminate = false;
-
-            int sizeOfT = Unsafe.SizeOf<T>();
-            int blockEnd = 65535 - sizeOfT;
-            using var _ = activity.CompletionState.PushCompletionRange(0.0, 256.0 / blockEnd);
-            for (int i = 0; i < blockEnd; i++) {
-                if (i >= bytes.Length || (bytes.Length - i) < sizeOfT) {
-                    break;
-                }
-
-                if (i % 256 == 0) {
-                    activity.CompletionState.OnProgress(1);
-                }
-
-                T value = CreateNumberFromBytes<T>(new ReadOnlySpan<byte>(bytes, i, sizeOfT));
-                bool matched;
-                switch (p.NumericScanType) {
-                    case NumericScanType.Equals:              matched = value == inputA; break;
-                    case NumericScanType.NotEquals:           matched = value != inputA; break;
-                    case NumericScanType.LessThan:            matched = value < inputA; break;
-                    case NumericScanType.LessThanOrEquals:    matched = value <= inputA; break;
-                    case NumericScanType.GreaterThan:         matched = value > inputA; break;
-                    case NumericScanType.GreaterThanOrEquals: matched = value >= inputA; break;
-                    case NumericScanType.Between:             matched = value >= inputA && value <= inputB; break;
-                    default:                                  throw new ArgumentOutOfRangeException();
-                }
-
-                if (matched) {
-                    results.Add(new ScanResultViewModel(p, addr + (uint) i, dt, MemoryEngine360.NumericDisplayType.Normal, value.ToString() ?? ""));
-                }
-            }
-        }
-    }
-
-    public static async Task ScanFloat<T>(T inputA, T inputB, ScanningProcessor p, ObservableList<ScanResultViewModel> results, IActivityProgress activity) where T : IFloatingPoint<T> {
-        DataType dt = p.DataType;
-        uint addr = p.StartAddress, scanLen = p.ScanLength, range = scanLen;
-        int totalChunks = (int) (range / 65535) + 1;
-        for (int j = 0, c = 1; j < scanLen; j += 65535, c++) {
-            ActivityManager.Instance.CurrentTask.CheckCancelled();
-            activity.Text = $"Reading chunk {c}/{totalChunks}...";
-            activity.IsIndeterminate = true;
-            byte[] bytes = await p.MemoryEngine360.Connection!.ReadBytes((uint) (addr + j), Math.Min(65535, (uint) Math.Max((int) scanLen - j, 0)));
-
-            activity.Text = $"Scanning chunk {c}/{totalChunks}...";
-            activity.IsIndeterminate = false;
-
-            int sizeOfT = Unsafe.SizeOf<T>();
-            int blockEnd = 65535 - sizeOfT;
-            using var _ = activity.CompletionState.PushCompletionRange(0.0, 256.0 / blockEnd);
-            for (int i = 0; i < blockEnd; i++) {
-                if (i >= bytes.Length || (bytes.Length - i) < sizeOfT) {
-                    break;
-                }
-
-                if (i % 256 == 0) {
-                    activity.CompletionState.OnProgress(1);
-                }
-
-                T value = CreateNumberFromBytes<T>(new ReadOnlySpan<byte>(bytes, i, sizeOfT));
-                switch (p.FloatScanOption) {
-                    case FloatScanOption.UseExactValue: break;
-                    case FloatScanOption.TruncateToQuery:
-                    case FloatScanOption.RoundToQuery: {
-                        if (p.NumericScanType == NumericScanType.Between) {
-                            break;
-                        }
-
-                        int idx = p.InputA?.IndexOf('.') ?? -1;
-                        if (idx != -1) {
-                            int decimals = p.InputA!.Length - idx + 1;
-                            if (typeof(T) == typeof(float)) {
-                                float value_f = Unsafe.As<T, float>(ref value);
-                                value_f = p.FloatScanOption == FloatScanOption.TruncateToQuery ? TruncateFloat(value_f, decimals) : (float) Math.Round(value_f, decimals);
-                                value = Unsafe.As<float, T>(ref value_f);
-                            }
-                            else {
-                                double value_d = Unsafe.As<T, double>(ref value);
-                                value_d = p.FloatScanOption == FloatScanOption.TruncateToQuery ? TruncateDouble(value_d, decimals) : Math.Round(value_d, decimals);
-                                value = Unsafe.As<double, T>(ref value_d);
-                            }
-                        }
-
-                        break;
-                    }
-                }
-
-                bool matched;
-                switch (p.NumericScanType) {
-                    case NumericScanType.Equals:              matched = value == inputA; break;
-                    case NumericScanType.NotEquals:           matched = value != inputA; break;
-                    case NumericScanType.LessThan:            matched = value < inputA; break;
-                    case NumericScanType.LessThanOrEquals:    matched = value <= inputA; break;
-                    case NumericScanType.GreaterThan:         matched = value > inputA; break;
-                    case NumericScanType.GreaterThanOrEquals: matched = value >= inputA; break;
-                    case NumericScanType.Between:             matched = value >= inputA && value <= inputB; break;
-                    default:                                  throw new ArgumentOutOfRangeException();
-                }
-
-                if (matched) {
-                    results.Add(new ScanResultViewModel(p, addr + (uint) i, dt, MemoryEngine360.NumericDisplayType.Normal, value.ToString() ?? ""));
-                }
-            }
-        }
-    }
-
-    public static async Task ScanString(string input, ScanningProcessor p, ObservableList<ScanResultViewModel> results, IActivityProgress activity) {
-        DataType dt = p.DataType;
+    public async Task<bool> PerformFirstScan(ScanningProcessor processor, ObservableList<ScanResultViewModel> results, IActivityProgress activity) {
         int cbInputString;
-        switch (p.StringScanOption) {
+        switch (processor.StringScanOption) {
             case StringType.ASCII:
             case StringType.UTF8:
-                cbInputString = input.Length;
+                cbInputString = processor.InputA.Length;
             break;
-            case StringType.UTF16: cbInputString = input.Length * 2; break;
-            case StringType.UTF32: cbInputString = input.Length * 4; break;
-            default:                     throw new ArgumentOutOfRangeException();
+            case StringType.UTF16: cbInputString = processor.InputA.Length * 2; break;
+            case StringType.UTF32: cbInputString = processor.InputA.Length * 4; break;
+            default:               throw new ArgumentOutOfRangeException();
         }
 
-        if (cbInputString > 65535) {
+        if (cbInputString > 65536) {
             throw new Exception("Input string is too long. Console memory is read in chunks of 64KB, therefore, the string cannot contain more than that many bytes");
         }
 
-        uint addr = p.StartAddress, scanLen = p.ScanLength, range = scanLen;
-        int totalChunks = (int) (range / 65535) + 1;
-        for (int j = 0, c = 1; j < scanLen; j += 65535, c++) {
+        uint addr = processor.StartAddress, scanLen = processor.ScanLength, range = scanLen;
+        int align = (int) processor.Alignment;
+        int totalChunks = (int) (range / 65536);
+        byte[] bytes = new byte[65536];
+        for (int j = 0, c = 1; j < scanLen; j += 65536, c++) {
             ActivityManager.Instance.CurrentTask.CheckCancelled();
             activity.Text = $"Reading chunk {c}/{totalChunks}...";
             activity.IsIndeterminate = true;
-            byte[] bytes = await p.MemoryEngine360.Connection!.ReadBytes((uint) (addr + j), Math.Min(65535, (uint) Math.Max((int) scanLen - j, 0)));
+            uint baseAddress = (uint) (addr + j);
+            int cbRead = await processor.MemoryEngine360.Connection!.ReadBytes(baseAddress, bytes, 0, Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)));
+            if (cbRead != 65536 && cbRead != Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)))
+                Debugger.Break();
 
             activity.Text = $"Scanning chunk {c}/{totalChunks}...";
             activity.IsIndeterminate = false;
 
-            int blockEnd = 65535 - cbInputString;
+            int blockEnd = Math.Max(cbRead - cbInputString, 0);
             using var _ = activity.CompletionState.PushCompletionRange(0.0, 1 / (blockEnd / 256.0));
-            for (int i = 0; i < blockEnd; i++) {
+            for (int i = 0; i < blockEnd; i += align) {
                 if (i >= bytes.Length || (bytes.Length - i) < cbInputString) {
                     break;
                 }
@@ -288,7 +404,7 @@ public static class ValueScannerCore {
                 }
 
                 string bufferString;
-                switch (p.StringScanOption) {
+                switch (processor.StringScanOption) {
                     case StringType.ASCII: {
                         bufferString = Encoding.ASCII.GetString(new ReadOnlySpan<byte>(bytes, i, cbInputString));
                         break;
@@ -308,19 +424,56 @@ public static class ValueScannerCore {
                     default: throw new ArgumentOutOfRangeException();
                 }
 
-                if (bufferString.Equals(input)) {
-                    results.Add(new ScanResultViewModel(p, addr + (uint) i, dt, MemoryEngine360.NumericDisplayType.Normal, bufferString));
+                if (bufferString.Equals(processor.InputA)) {
+                    results.Add(new ScanResultViewModel(processor, baseAddress + (uint) i, processor.DataType, NumericDisplayType.Normal, bufferString));
                 }
             }
         }
+
+        return true;
     }
 
-    private static float TruncateFloat(float value, int decimals) {
+    public async Task<bool> PerformNextScan(ScanningProcessor processor, List<ScanResultViewModel> srcList, ObservableList<ScanResultViewModel> dstList, IActivityProgress activity) {
+        if (srcList[0].DataType != processor.DataType) {
+            await IMessageDialogService.Instance.ShowMessage("Data Type Changed", "The results contains a different data type from the scan data type. Please change the scan type to " + srcList[0].DataType);
+            return false;
+        }
+
+        IConsoleConnection connection = processor.MemoryEngine360.Connection!;
+        using (activity.CompletionState.PushCompletionRange(0.0, 256.0 / srcList.Count)) {
+            for (int i = 0; i < srcList.Count; i++) {
+                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                activity.Text = $"Reading values {i + 1}/{srcList.Count}";
+                activity.CompletionState.OnProgress(1.0);
+
+                ScanResultViewModel res = srcList[i];
+                res.PreviousValue = res.CurrentValue;
+                res.CurrentValue = await MemoryEngine360.ReadAsText(connection, res.Address, res.DataType, res.NumericDisplayType, (uint) res.FirstValue.Length);
+            }
+        }
+
+        using (activity.CompletionState.PushCompletionRange(0.0, 256.0 / srcList.Count)) {
+            activity.Text = $"Processing results...";
+            for (int i = 0; i < srcList.Count; i++) {
+                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                activity.CompletionState.OnProgress(1.0);
+                if (srcList[i].CurrentValue.Equals(processor.InputA)) {
+                    dstList.Add(srcList[i]);
+                }
+            }
+        }
+
+        return true;
+    }
+}
+
+internal static class ValueScannerUtils {
+    public static float TruncateFloat(float value, int decimals) {
         float factor = (float) Math.Pow(10, decimals);
         return (float) (Math.Truncate(value * factor) / factor);
     }
 
-    private static double TruncateDouble(double value, int decimals) {
+    public static double TruncateDouble(double value, int decimals) {
         double factor = Math.Pow(10, decimals);
         return Math.Truncate(value * factor) / factor;
     }
@@ -347,6 +500,10 @@ public static class ValueScannerCore {
         if (typeof(T) == typeof(double))
             return CreateGeneric_double<T>(bytes);
         throw new NotSupportedException();
+    }
+
+    public static TOut CreateNumberFromRawLong<TOut>(ulong src) where TOut : INumber<TOut> {
+        return Unsafe.As<ulong, TOut>(ref src);
     }
 
     private static T CreateGeneric_sbyte<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {

@@ -24,6 +24,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Connections.Impl.Threads;
 
@@ -56,7 +57,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
 
     public EndPoint? EndPoint => this.client.Connected ? this.client.Client.RemoteEndPoint : null;
 
-    public bool IsConnected => this.client.Connected;
+    public bool IsConnected => !this.isDisposed && this.client.Connected;
 
     public bool IsBusy => this.busyStack > 0;
 
@@ -76,7 +77,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         this.client.Client.Close();
     }
 
-    public async ValueTask<ConsoleResponse> SendCommand(string command) {
+    public async Task<ConsoleResponse> SendCommand(string command) {
         this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
@@ -102,7 +103,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         return result;
     }
 
-    public async ValueTask<List<string>> SendCommandAndReceiveLines(string command) {
+    public async Task<List<string>> SendCommandAndReceiveLines(string command) {
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
@@ -131,7 +132,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         return list;
     }
 
-    public async ValueTask<List<KeyValuePair<string, string>>> SendCommandAndReceiveLines2(string Text) {
+    public async Task<List<KeyValuePair<string, string>>> SendCommandAndReceiveLines2(string Text) {
         return (await this.SendCommandAndReceiveLines(Text)).Select(x => {
             int split = x.IndexOf(':');
             return new KeyValuePair<string, string>(
@@ -140,7 +141,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         }).ToList();
     }
 
-    public async ValueTask<List<int>> GetThreads() {
+    public async Task<List<int>> GetThreads() {
         List<string> list = await this.SendCommandAndReceiveLines("threads");
         return list.Select(int.Parse).ToList();
         // foreach (string line in await this.SendCommandAndReceiveLines("threads")) {
@@ -149,7 +150,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         // }
     }
 
-    public async ValueTask<List<ConsoleThread>> GetThreadDump() {
+    public async Task<List<ConsoleThread>> GetThreadDump() {
         List<string> list = await this.SendCommandAndReceiveLines("threads");
         List<ConsoleThread> threads = new List<ConsoleThread>(list.Count);
         foreach (string threadId in list) {
@@ -192,29 +193,29 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         return threads;
     }
 
-    public async ValueTask RebootConsole(bool cold = true) {
+    public async Task RebootConsole(bool cold = true) {
         await this.SendCommand("magicboot" + (cold ? " cold" : ""));
         this.Dispose();
     }
 
-    public async ValueTask ShutdownConsole() {
-        await this.WriteCommand("shutdown");
+    public async Task ShutdownConsole() {
+        await this.WriteCommandText("shutdown");
         this.Dispose();
     }
 
-    public async ValueTask OpenDiskTray() {
+    public async Task OpenDiskTray() {
         await this.SendCommand("dvdeject");
     }
 
-    public async ValueTask DebugFreeze() {
+    public async Task DebugFreeze() {
         await this.SendCommand("stop");
     }
 
-    public async ValueTask DebugUnFreeze() {
+    public async Task DebugUnFreeze() {
         await this.SendCommand("go");
     }
 
-    public async ValueTask DeleteFile(string path) {
+    public async Task DeleteFile(string path) {
         string[] lines = path.Split("\\".ToCharArray());
         string Directory = "";
         for (int i = 0; i < (lines.Length - 1); i++)
@@ -222,7 +223,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         await this.SendCommand("delete title=\"" + path + "\" dir=\"" + Directory + "\"");
     }
 
-    public async ValueTask LaunchFile(string path) {
+    public async Task LaunchFile(string path) {
         string[] lines = path.Split("\\".ToCharArray());
         string Directory = "";
         for (int i = 0; i < lines.Length - 1; i++)
@@ -230,19 +231,19 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         await this.SendCommand("magicboot title=\"" + path + "\" directory=\"" + Directory + "\"");
     }
 
-    public async ValueTask<string> GetConsoleID() {
+    public async Task<string> GetConsoleID() {
         return (await this.SendCommand("getconsoleid")).Message.Substring(10);
     }
 
-    public async ValueTask<string> GetCPUKey() {
+    public async Task<string> GetCPUKey() {
         return (await this.SendCommand("getcpukey")).Message;
     }
 
-    public async ValueTask<string> GetDebugName() {
+    public async Task<string> GetDebugName() {
         return (await this.SendCommand("dbgname")).Message;
     }
 
-    public async ValueTask<ExecutionState> GetExecutionState() {
+    public async Task<ExecutionState> GetExecutionState() {
         string str = (await this.SendCommand("getexecstate")).Message;
         switch (str) {
             case "pending":       return ExecutionState.Pending;
@@ -255,7 +256,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         }
     }
 
-    public async ValueTask<HardwareInfo> GetHardwareInfo() {
+    public async Task<HardwareInfo> GetHardwareInfo() {
         List<KeyValuePair<string, string>> lines = await this.SendCommandAndReceiveLines2("hwinfo");
         HardwareInfo info;
         info.Flags = uint.Parse(lines[0].Value.AsSpan(2, 8), NumberStyles.HexNumber);
@@ -275,110 +276,99 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         return info;
     }
 
-    public async ValueTask<uint> GetProcessID() {
+    public async Task<uint> GetProcessID() {
         uint value = uint.Parse((await this.SendCommand("getpid")).Message.Substring(4).Replace("0x", ""), NumberStyles.HexNumber);
         return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
     }
 
-    public async ValueTask<IPAddress> GetTitleIPAddress() {
+    public async Task<IPAddress> GetTitleIPAddress() {
         uint value = uint.Parse((await this.SendCommand("altaddr")).Message.Substring(5).Replace("0x", ""), NumberStyles.HexNumber);
         return new IPAddress(BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value);
     }
 
-    public async ValueTask SetConsoleColor(ConsoleColor colour) {
+    public async Task SetConsoleColor(ConsoleColor colour) {
         await this.SendCommand("setcolor name=" + colour.ToString().ToLower());
     }
 
-    public async ValueTask SetDebugName(string newName) {
+    public async Task SetDebugName(string newName) {
         await this.SendCommand("dbgname name=" + newName);
     }
 
-    public async ValueTask ReadBytes(uint address, byte[] buffer, int offset, uint count) {
+    public async Task<int> ReadBytes(uint address, byte[] buffer, int offset, uint count) {
         this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
-        ConsoleResponse response = await this.SendCommandAndGetResponse("getmem addr=0x" + address.ToString("X8") + " length=0x" + count.ToString("X8") + "\r\n");
-        if (response.ResponseType != ResponseType.MultiResponse) {
-            throw new Exception($"Xbox responded to getmem without {nameof(ResponseType.MultiResponse)}, which is unexpected");
-        }
-
-        byte[]? lineBytes = null;
-        string line;
-        while ((line = await this.ReadLineFromStream()) != ".") {
-            int cbLine = line.Length / 2; // typically 128 when reading big chunks
-            if (lineBytes == null || lineBytes.Length != cbLine) {
-                lineBytes = new byte[cbLine];
-            }
-
-            for (int i = 0, j = 0; i < cbLine; i++, j += 2) {
-                if (line[j] == '?') {
-                    lineBytes[i] = 0; // protected memory maybe?
-                }
-                else {
-                    lineBytes[i] = (byte) ((CharToInteger(line[j]) << 4) | CharToInteger(line[j + 1]));
-                }
-            }
-
-            Array.Copy(lineBytes, 0, buffer, offset, cbLine);
-            offset += cbLine;
-        }
-
-        ConsoleResponse failedResponse = await this.ReadResponseCore();
-        if (failedResponse.ResponseType != ResponseType.UnknownCommand) {
-            Debug.Assert(false, "What is this bullshit who patched this bug???");
-        }
+        return await this.ReadBytesInternal(address, buffer, offset, count);
     }
 
-    public async ValueTask<byte[]> ReadBytes(uint address, uint count) {
+    public async Task<byte[]> ReadBytes(uint address, uint count) {
         byte[] buffer = new byte[count];
         await this.ReadBytes(address, buffer, 0, count);
         return buffer;
     }
 
-    public async ValueTask<byte> ReadByte(uint Offset) {
+    public async Task<byte> ReadByte(uint Offset) {
         await this.ReadBytes(Offset, ONE_BYTE, 0, 1);
         return ONE_BYTE[0];
     }
 
-    public async ValueTask<bool> ReadBool(uint address) => await this.ReadByte(address) != 0;
+    public async Task<bool> ReadBool(uint address) => await this.ReadByte(address) != 0;
 
-    public async ValueTask<char> ReadChar(uint address) => (char) await this.ReadByte(address);
+    public async Task<char> ReadChar(uint address) => (char) await this.ReadByte(address);
 
-    public async ValueTask<T> ReadValue<T>(uint address) where T : unmanaged {
+    public async Task<T> ReadValue<T>(uint address) where T : unmanaged {
         byte[] buffer = await this.ReadBytes(address, (uint) Unsafe.SizeOf<T>());
         if (BitConverter.IsLittleEndian)
             Array.Reverse(buffer);
-        return Unsafe.ReadUnaligned<T>(ref buffer[0]);
+        
+        return MemoryMarshal.Read<T>(buffer);
     }
 
-    public async ValueTask<T> ReadStruct<T>(uint address, params int[] fields) where T : unmanaged {
+    public async Task<T> ReadStruct<T>(uint address, params int[] fields) where T : unmanaged {
         if (!BitConverter.IsLittleEndian) {
-            // TODO: I don't have a big endian computer nor a big enough brain to know if this works
             return await this.ReadValue<T>(address);
         }
+        
+        this.EnsureNotDisposed();
+        this.EnsureNotBusy();
+        using BusyToken x = this.CreateBusyToken();
 
         int offset = 0;
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
-            await this.ReadBytes((uint) (address + offset), buffer, offset, (uint) cbField);
+            await this.ReadBytesInternal((uint) (address + offset), buffer, offset, (uint) cbField);
             Array.Reverse(buffer, offset, cbField);
             offset += cbField;
+            
+            Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadString));
         }
 
-        if (offset != buffer.Length) {
+        if (offset > buffer.Length) {
             Debugger.Break();
         }
 
         return Unsafe.ReadUnaligned<T>(ref buffer[0]);
     }
 
-    public async ValueTask<string> ReadString(uint address, uint count) {
+    public async Task<string> ReadString(uint address, uint count, bool removeNull = true) {
         byte[] buffer = await this.ReadBytes(address, count);
-        return Encoding.ASCII.GetString(buffer);
+        
+        if (removeNull) {
+            int j = 0, k = 0;
+            for (; k < count; k++) {
+                if (buffer[k] != 0) {
+                    buffer[j++] = buffer[k];
+                }
+            }
+
+            count = (uint) j;
+        }
+        
+        return Encoding.ASCII.GetString(buffer, 0, (int) count);
     }
 
-    public async ValueTask WriteBytes(uint address, byte[] bytes) {
+    public async Task WriteBytes(uint address, byte[] bytes) {
         this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
@@ -386,7 +376,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         await this.WriteBytesAndGetResponseInternal(address, bytes);
     }
 
-    public async ValueTask WriteByte(uint address, byte value) {
+    public async Task WriteByte(uint address, byte value) {
         this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
@@ -395,15 +385,15 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         await this.WriteBytes(address, ONE_BYTE);
     }
 
-    public ValueTask WriteBool(uint address, bool value) {
+    public Task WriteBool(uint address, bool value) {
         return this.WriteByte(address, (byte) (value ? 0x01 : 0x00));
     }
 
-    public ValueTask WriteChar(uint address, char value) {
+    public Task WriteChar(uint address, char value) {
         return this.WriteByte(address, (byte) value);
     }
 
-    public ValueTask WriteValue<T>(uint address, T value) where T : unmanaged {
+    public Task WriteValue<T>(uint address, T value) where T : unmanaged {
         byte[] bytes = new byte[Unsafe.SizeOf<T>()];
         Unsafe.As<byte, T>(ref bytes[0]) = value;
         if (BitConverter.IsLittleEndian)
@@ -412,32 +402,34 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         return this.WriteBytes(address, bytes);
     }
 
-    public async ValueTask WriteStruct<T>(uint address, T value, params int[] fields) where T : unmanaged {
+    public async Task WriteStruct<T>(uint address, T value, params int[] fields) where T : unmanaged {
         if (!BitConverter.IsLittleEndian) {
             // TODO: I don't have a big endian computer nor a big enough brain to know if this works
-            await this.WriteValue<T>(address, value);
+            await this.WriteValue(address, value);
         }
-
+        
         int offset = 0;
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
             Unsafe.As<byte, T>(ref buffer[offset]) = value;
             Array.Reverse(buffer, offset, cbField);
             offset += cbField;
+            
+            Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadString));
         }
 
-        if (offset != buffer.Length) {
+        if (offset > buffer.Length) {
             Debugger.Break();
         }
 
         await this.WriteBytes(address, buffer);
     }
 
-    public ValueTask WriteString(uint address, string value) {
+    public Task WriteString(uint address, string value) {
         return this.WriteBytes(address, Encoding.ASCII.GetBytes(value));
     }
 
-    public async ValueTask WriteFile(uint address, string filePath) {
+    public async Task WriteFile(uint address, string filePath) {
         this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
@@ -446,7 +438,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         await this.WriteBytesAndGetResponseInternal(address, buffer);
     }
 
-    public ValueTask WriteHook(uint address, uint destination, bool isLinked) {
+    public Task WriteHook(uint address, uint destination, bool isLinked) {
         uint[] Func = new uint[4];
         if ((destination & 0x8000) != 0)
             Func[0] = 0x3D600000 + (((destination >> 16) & 0xFFFF) + 1);
@@ -480,16 +472,52 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         return this.WriteBytes(address, buffer);
     }
 
-    public ValueTask WriteNOP(uint address) {
+    public Task WriteNOP(uint address) {
         return this.WriteBytes(address, [0x60, 0x00, 0x00, 0x00]);
     }
+    
+    private async Task<int> ReadBytesInternal(uint address, byte[] buffer, int offset, uint count) {
+        ConsoleResponse response = await this.SendCommandAndGetResponse("getmem addr=0x" + address.ToString("X8") + " length=0x" + count.ToString("X8") + "\r\n");
+        if (response.ResponseType != ResponseType.MultiResponse) {
+            throw new Exception($"Xbox responded to getmem without {nameof(ResponseType.MultiResponse)}, which is unexpected");
+        }
 
-    private async ValueTask<ConsoleResponse> ReadResponseCore() {
+        int cbRead = 0;
+        byte[]? lineBytes = null;
+        string line;
+        while ((line = await this.ReadLineFromStream()) != ".") {
+            int cbLine = line.Length / 2; // typically 128 when reading big chunks
+            if (lineBytes == null || lineBytes.Length != cbLine) {
+                lineBytes = new byte[cbLine];
+            }
+
+            for (int i = 0, j = 0; i < cbLine; i++, j += 2) {
+                if (line[j] == '?') {
+                    lineBytes[i] = 0; // protected memory maybe?
+                }
+                else {
+                    lineBytes[i] = (byte) ((CharToInteger(line[j]) << 4) | CharToInteger(line[j + 1]));
+                }
+            }
+
+            Array.Copy(lineBytes, 0, buffer, offset + cbRead, cbLine);
+            cbRead += cbLine;
+        }
+
+        ConsoleResponse failedResponse = await this.ReadResponseCore();
+        if (failedResponse.ResponseType != ResponseType.UnknownCommand) {
+            Debug.Assert(false, "What is this bullshit who patched this bug???");
+        }
+
+        return cbRead;
+    }
+
+    private async Task<ConsoleResponse> ReadResponseCore() {
         string responseText = await this.ReadLineFromStream();
         return ConsoleResponse.FromFirstLine(responseText);
     }
 
-    private async ValueTask WriteCommand(string command) {
+    private async Task WriteCommandText(string command) {
         byte[] buffer = Encoding.ASCII.GetBytes(command + "\r\n");
         try {
             await this.client.GetStream().WriteAsync(buffer);
@@ -501,20 +529,20 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
         }
     }
     
-    private async ValueTask WriteBytesAndGetResponseInternal(uint address, byte[] bytes) {
+    private async Task WriteBytesAndGetResponseInternal(uint address, byte[] bytes) {
         string str = "setmem addr=0x" + address.ToString("X8") + " data=";
         foreach (byte b in bytes)
             str += b.ToString("X2");
 
-        await this.WriteCommand(str);
+        await this.WriteCommandText(str);
         ConsoleResponse response = await this.ReadResponseCore();
         if (response.ResponseType != ResponseType.SingleResponse) {
             throw new Exception($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
         }
     }
 
-    private async ValueTask<ConsoleResponse> SendCommandAndGetResponse(string command) {
-        await this.WriteCommand(command);
+    private async Task<ConsoleResponse> SendCommandAndGetResponse(string command) {
+        await this.WriteCommandText(command);
         ConsoleResponse response = await this.ReadResponseCore();
         if (response.ResponseType == ResponseType.UnknownCommand) {
             // Sometimes the xbox randomly says unknown command for specific things
@@ -534,7 +562,7 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
 
     private void EnsureNotBusy() {
         if (this.busyStack > 0) {
-            throw new InvalidOperationException("Busy performing another operation");
+            throw new InvalidOperationException("Busy performing operation");
         }
     }
 
@@ -547,40 +575,43 @@ public class PhantomRTMConsoleConnection : IConsoleConnection {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int CharToInteger(char c) => c <= '9' ? (c - '0') : ((c & ~0x20 /* LOWER TO UPPER CASE */) - 'A' + 10);
 
-    public ValueTask WriteVector2(uint Offset, Vector2 Vector2) {
-        byte[] bytes = new byte[8];
-        byte[] x = BitConverter.GetBytes(Vector2.X);
-        byte[] y = BitConverter.GetBytes(Vector2.Y);
-        if (BitConverter.IsLittleEndian) {
-            Array.Reverse(x);
-            Array.Reverse(y);
-        }
-
-        Array.Copy(x, 0, bytes, 0, 4);
-        Array.Copy(y, 0, bytes, 4, 4);
-        return this.WriteBytes(Offset, bytes);
+    public Task WriteVector2(uint address, Vector2 vec2) {
+        return this.WriteStruct(address, vec2, 4, 4);
+        // byte[] bytes = new byte[8];
+        // byte[] x = BitConverter.GetBytes(vec2.X);
+        // byte[] y = BitConverter.GetBytes(vec2.Y);
+        // if (BitConverter.IsLittleEndian) {
+        //     Array.Reverse(x);
+        //     Array.Reverse(y);
+        // }
+        // 
+        // Array.Copy(x, 0, bytes, 0, 4);
+        // Array.Copy(y, 0, bytes, 4, 4);
+        // return this.WriteBytes(Offset, bytes);
     }
 
-    public ValueTask WriteVector3(uint Offset, Vector3 Vector3) {
-        byte[] bytes = new byte[12];
-        byte[] x = BitConverter.GetBytes(Vector3.X);
-        byte[] y = BitConverter.GetBytes(Vector3.Y);
-        byte[] z = BitConverter.GetBytes(Vector3.Z);
-        if (BitConverter.IsLittleEndian) {
-            Array.Reverse(x);
-            Array.Reverse(y);
-            Array.Reverse(z);
-        }
-
-        Array.Copy(x, 0, bytes, 0, 4);
-        Array.Copy(y, 0, bytes, 4, 4);
-        Array.Copy(z, 0, bytes, 8, 4);
-        return this.WriteBytes(Offset, bytes);
+    public Task WriteVector3(uint Offset, Vector3 vec3) {
+        return this.WriteStruct(Offset, vec3, 4, 4, 4);
+        
+        // byte[] bytes = new byte[12];
+        // byte[] x = BitConverter.GetBytes(vec3.X);
+        // byte[] y = BitConverter.GetBytes(vec3.Y);
+        // byte[] z = BitConverter.GetBytes(vec3.Z);
+        // if (BitConverter.IsLittleEndian) {
+        //     Array.Reverse(x);
+        //     Array.Reverse(y);
+        //     Array.Reverse(z);
+        // }
+        // 
+        // Array.Copy(x, 0, bytes, 0, 4);
+        // Array.Copy(y, 0, bytes, 4, 4);
+        // Array.Copy(z, 0, bytes, 8, 4);
+        // return this.WriteBytes(Offset, bytes);
     }
 
     // Is getmemex even for reading RAM? it could be reading shit from usb which
     // is why when you request 0x400 bytes, you can only read like 80 or something arbitrary 
-    public async ValueTask<byte[]> ReadBytesEx_BARELY_WORKS_ReadMemoryInDataOrSomething(uint address, uint count) {
+    public async Task<byte[]> ReadBytesEx_BARELY_WORKS_ReadMemoryInDataOrSomething(uint address, uint count) {
         this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();

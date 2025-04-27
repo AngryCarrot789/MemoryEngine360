@@ -36,7 +36,7 @@ public sealed class ConsoleConnectionService {
     /// </summary>
     /// <param name="hostName">The address of the xbox 360</param>
     /// <returns>The connection, or null, if we could not connect (e.g. timeout) or the user cancelled the operation</returns>
-    public async Task<IConsoleConnection?> OpenDialogAndConnect(IActivityProgress progress) {
+    public async Task<IConsoleConnection?> OpenDialogAndConnect() {
         // Try get last entered IP address. Helps with debugging and user experience ;)
         string lastIp = BasicApplicationConfiguration.Instance.LastHostName;
         if (string.IsNullOrWhiteSpace(lastIp))
@@ -64,6 +64,7 @@ public sealed class ConsoleConnectionService {
         try {
             using CancellationTokenSource cts = new CancellationTokenSource();
             PhantomRTMConsoleConnection? result = await ActivityManager.Instance.RunTask(async () => {
+                IActivityProgress progress = ActivityManager.Instance.GetCurrentProgressOrEmpty();
                 progress.Caption = "Connection";
                 progress.Text = "Connecting to console...";
                 progress.IsIndeterminate = true;
@@ -85,7 +86,7 @@ public sealed class ConsoleConnectionService {
                         default:                             message = e.Message; break;
                     }
 
-                    await IMessageDialogService.Instance.ShowMessage("Error", message, defaultButtons:MessageBoxResult.OK);
+                    await IMessageDialogService.Instance.ShowMessage("Error", message, defaultButton:MessageBoxResult.OK);
                     return null;
                 }
 
@@ -98,7 +99,7 @@ public sealed class ConsoleConnectionService {
 
                 await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => IMessageDialogService.Instance.ShowMessage("Error", "Received invalid response from console: " + (response ?? "")));
                 return null;
-            }, progress, cts);
+            }, cts);
 
             return result;
         }

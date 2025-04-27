@@ -18,8 +18,6 @@
 // 
 
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Xml.Serialization;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI.CommandSystem;
@@ -51,6 +49,9 @@ public abstract class RemoteXboxCommand : BaseMemoryEngineCommand {
             await IMessageDialogService.Instance.ShowMessage("Disconnected", "Scan in progress");
         }
         else {
+            // we won't bother using the async versions because they will most likely have an
+            // activity running (e.g. scan progress) and at the moment there's no list of
+            // activities displayable in the main UI (unimplemented but possible)
             using IDisposable? token = engine.BeginBusyOperation();
             if (token == null) {
                 await IMessageDialogService.Instance.ShowMessage("Disconnected", "Connection is busy elsewhere");

@@ -23,7 +23,6 @@ using MemEngine360.Engine.Modes;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
-using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Commands;
 
@@ -98,22 +97,17 @@ public class EditSavedAddressValueCommand : Command {
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) == true) {
             MemoryEngine360 engine = result.ScanningProcessor.MemoryEngine360;
-            IDisposable? token = await engine.BeginBusyOperationActivityAsync();
+            using IDisposable? token = await engine.BeginBusyOperationActivityAsync();
             if (token == null) {
                 return;
             }
 
-            try {
-                if (engine.Connection != null) {
-                    await MemoryEngine360.WriteAsText(engine.Connection, result.Address, result.DataType, result.NumericDisplayType, input.Text, (uint) result.Value.Length);
-                    result.Value = await MemoryEngine360.ReadAsText(engine.Connection, result.Address, result.DataType, result.NumericDisplayType, (uint) result.Value.Length);
-                }
-                else {
-                    result.Value = input.Text;
-                }
+            if (engine.Connection != null) {
+                await MemoryEngine360.WriteAsText(engine.Connection, result.Address, result.DataType, result.NumericDisplayType, input.Text, (uint) result.Value.Length);
+                result.Value = await MemoryEngine360.ReadAsText(engine.Connection, result.Address, result.DataType, result.NumericDisplayType, (uint) result.Value.Length);
             }
-            finally {
-                token.Dispose();
+            else {
+                result.Value = input.Text;
             }
         }
     }

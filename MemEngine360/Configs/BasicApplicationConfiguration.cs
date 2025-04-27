@@ -59,7 +59,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
         get => ScanLengthProperty.GetValue(this);
         set => ScanLengthProperty.SetValue(this, value);
     }
-
+    
     public bool PauseConsoleDuringScan {
         get => PauseConsoleDuringScanProperty.GetValue(this);
         set => PauseConsoleDuringScanProperty.SetValue(this, value);

@@ -19,7 +19,6 @@
 
 using MemEngine360.Engine;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Commands;
 
@@ -29,22 +28,19 @@ public class RefreshSavedAddressesCommand : Command {
             return Executability.Invalid;
         }
 
-        if (engine.Connection == null || engine.IsConnectionBusy)
-            return Executability.ValidButCannotExecute;
-
-        return Executability.Valid;
+        return engine.Connection == null ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
-    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!MemoryEngine360.DataKey.TryGetContext(e.ContextData, out MemoryEngine360? engine) || engine.Connection == null) {
-            return Task.CompletedTask;
+            return;
         }
 
-        if (engine.IsConnectionBusy) {
-            return IMessageDialogService.Instance.ShowMessage("Busy", "Connection is currently busy elsewhere");
+        using IDisposable? token = await engine.BeginBusyOperationActivityAsync();
+        if (token == null) {
+            return;
         }
         
-        engine.ScanningProcessor.RefreshSavedAddresses();
-        return Task.CompletedTask;
+        await engine.ScanningProcessor.RefreshSavedAddressesAsync(token);
     }
 }

@@ -29,7 +29,7 @@ public class NextScanCommand : BaseMemoryEngineCommand {
 
     protected override Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
         if (engine.ScanningProcessor.CanPerformNextScan) {
-            return engine.ScanningProcessor.ScanNext();
+            return engine.ScanningProcessor.ScanFirstOrNext();
         }
 
         return Task.CompletedTask;

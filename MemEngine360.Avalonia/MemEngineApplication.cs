@@ -29,6 +29,7 @@ using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Services.UserInputs;
+using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Themes;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Icons;
@@ -43,7 +44,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
 
     protected override void RegisterCommands(CommandManager manager) {
         base.RegisterCommands(manager);
-        
+
         manager.Register("commands.memengine.ConnectToConsoleCommand", new ConnectToConsoleCommand());
         manager.Register("commands.memengine.FirstScanCommand", new FirstScanCommand());
         manager.Register("commands.memengine.NextScanCommand", new NextScanCommand());
@@ -62,31 +63,36 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.remote.DebugFreezeCommand", new DebugFreezeCommand());
         manager.Register("commands.memengine.remote.DebugUnfreezeCommand", new DebugUnfreezeCommand());
         manager.Register("commands.memengine.remote.ListHelpCommand", new ListHelpCommand());
+        manager.Register("commands.memengine.remote.ShowConsoleIDCommand", new ShowConsoleIDCommand());
+        manager.Register("commands.memengine.remote.ShowCPUKeyCommand", new ShowCPUKeyCommand());
     }
 
     protected override void RegisterServices(ServiceManager manager) {
+        manager.RegisterConstant<IDesktopService>(new DesktopServiceImpl(this.Application));
+        manager.RegisterConstant<WindowingSystem>(new WindowingSystemDesktop());
         base.RegisterServices(manager);
-        
+
         manager.RegisterConstant<IIconPreferences>(new IconPreferencesImpl());
         manager.RegisterConstant<IStartupManager>(new StartupManagerMemEngine360());
-        manager.RegisterConstant<IDesktopService>(new DesktopServiceImpl(this.Application));
         manager.RegisterConstant(new ConsoleConnectionService());
         manager.RegisterConstant<IAboutService>(new AboutServiceImpl());
         manager.RegisterConstant<IEditSavedAddressService>(new EditSavedAddressServiceImpl());
     }
 
     private class EditSavedAddressServiceImpl : IEditSavedAddressService {
-        public Task<bool?> ShowDialog(SavedResultDataTypeUserInputInfo info) => UserInputDialog.ShowDialogAsync(info);
+        public async Task<bool?> ShowDialog(SavedResultDataTypeUserInputInfo info) {
+            return await UserInputDialogView.ShowDialogAsync(info);
+        }
     }
-    
+
     protected override void RegisterConfigurations() {
         this.PersistentStorageManager.Register<ThemeConfigurationOptions>(new ThemeConfigurationOptionsImpl(), "themes", "themes");
         this.PersistentStorageManager.Register(new BasicApplicationConfiguration(), null, "basic");
     }
 
     protected override Task OnApplicationFullyLoaded() {
-        UserInputDialog.Registry.RegisterType<SavedResultDataTypeUserInputInfo>(() => new SavedResultDataTypeUserInputControl());
-        
+        UserInputDialogView.Registry.RegisterType<SavedResultDataTypeUserInputInfo>(() => new SavedResultDataTypeUserInputControl());
+
         return base.OnApplicationFullyLoaded();
     }
 
@@ -97,30 +103,30 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     public override string GetApplicationName() {
         return "MemEngine360";
     }
-    
+
     private class IconPreferencesImpl : IIconPreferences {
         public bool UseAntiAliasing { get; set; }
     }
-    
+
     private class StartupManagerMemEngine360 : IStartupManager {
-        public async Task OnApplicationStartupWithArgs(string[] args) {
+        public Task OnApplicationStartupWithArgs(string[] args) {
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
-                MainWindow window = new MainWindow();
-                desktop.MainWindow = window;
-                window.Show();
-            
                 desktop.ShutdownMode = ShutdownMode.OnLastWindowClose;
             }
+            
+            if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
+                system.CreateWindow(new MemEngineView(), true).Show(null);
+            }
+
+            return Task.CompletedTask;
         }
     }
 
     private class AboutServiceImpl : IAboutService {
-        public Task ShowDialog() {
-            if (IDesktopService.TryGetInstance(out IDesktopService? service) && service.TryGetActiveWindow(out Window? window))
-                return new AboutWindow().ShowDialog(window);
-
-            new AboutWindow().Show();
-            return Task.CompletedTask;
+        public async Task ShowDialog() {
+            if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
+                system.CreateWindow(new AboutView()).Show(system.GetActiveWindowOrNull());
+            }
         }
     }
 }

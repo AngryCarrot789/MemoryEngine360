@@ -1,16 +1,16 @@
-// 
+﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
 // This file is part of MemEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 3.0 of the License, or (at your option) any later version.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation; either
+// version 3 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
@@ -21,6 +21,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -39,18 +40,21 @@ using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.Selecting;
-using PFXToolKitUI.Avalonia.Themes.Controls;
+using PFXToolKitUI.Avalonia.Services;
+using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 using PFXToolKitUI.Utils.RDA;
 
 namespace MemEngine360.Avalonia;
 
-public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
+public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILatestActivityView {
     #region BINDERS
 
     // PFX framework uses binders to simplify "binding" model values to controls
@@ -87,7 +91,7 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         new EventPropertyBinder<ScanningProcessor>(
             nameof(ScanningProcessor.IsScanningChanged),
             (b) => {
-                MainWindow w = (MainWindow) b.Control;
+                MemEngineView w = (MemEngineView) b.Control;
                 w.PART_Grid_ScanInput.IsEnabled = !b.Model.IsScanning;
                 w.PART_Grid_ScanOptions.IsEnabled = !b.Model.IsScanning;
             });
@@ -95,23 +99,31 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
     private readonly IBinder<ScanningProcessor> inputValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> inputBetweenABinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> inputBetweenBBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputBChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputB, (b) => b.Model.InputB = ((TextBox) b.Control).Text ?? "");
-    private readonly IBinder<ScanningProcessor> startAddressBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.StartAddressChanged), (b) => ((MainWindow) b.Control).PART_ScanOption_StartAddress.Content = b.Model.StartAddress.ToString("X"));
-    private readonly IBinder<ScanningProcessor> addrLengthBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanLengthChanged), (b) => ((MainWindow) b.Control).PART_ScanOption_Length.Content = b.Model.ScanLength.ToString("X"));
+    private readonly IBinder<ScanningProcessor> startAddressBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.StartAddressChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_StartAddress.Content = $"0x{b.Model.StartAddress:X} ({b.Model.StartAddress.ToString()})");
+    private readonly IBinder<ScanningProcessor> addrLengthBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanLengthChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Length.Content = $"0x{b.Model.ScanLength:X} ({b.Model.ScanLength.ToString()})");
+    private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> int_isHexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.IsIntInputHexadecimalChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.IsIntInputHexadecimal, (b) => b.Model.IsIntInputHexadecimal = ((ToggleButton) b.Control).IsChecked == true);
     private readonly EventPropertyEnumBinder<FloatScanOption> floatScanModeBinder = new EventPropertyEnumBinder<FloatScanOption>(typeof(ScanningProcessor), nameof(ScanningProcessor.FloatScanModeChanged), (x) => ((ScanningProcessor) x).FloatScanOption, (x, v) => ((ScanningProcessor) x).FloatScanOption = v);
     private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(ScanningProcessor), nameof(ScanningProcessor.StringScanModeChanged), (x) => ((ScanningProcessor) x).StringScanOption, (x, v) => ((ScanningProcessor) x).StringScanOption = v);
     private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(ScanningProcessor), nameof(ScanningProcessor.DataTypeChanged), (x) => ((ScanningProcessor) x).DataType, (x, y) => ((ScanningProcessor) x).DataType = y);
+    private readonly EventPropertyBinder<ScanningProcessor> hasDoneFirstScanBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.HasFirstScanChanged), (b) => {
+        MemEngineView view = (MemEngineView) b.Control;
+        view.PART_DataTypeCombo.IsEnabled = !b.Model.HasDoneFirstScan; 
+        // view.PART_ScanSettingsTabControl.IsEnabled = !b.Model.HasDoneFirstScan; 
+    });
     private readonly ComboBoxToEventPropertyEnumBinder<NumericScanType> scanTypeBinder1 = new ComboBoxToEventPropertyEnumBinder<NumericScanType>(typeof(ScanningProcessor), nameof(ScanningProcessor.NumericScanTypeChanged), (x) => ((ScanningProcessor) x).NumericScanType, (x, y) => ((ScanningProcessor) x).NumericScanType = y);
     private readonly ComboBoxToEventPropertyEnumBinder<NumericScanType> scanTypeBinder2 = new ComboBoxToEventPropertyEnumBinder<NumericScanType>(typeof(ScanningProcessor), nameof(ScanningProcessor.NumericScanTypeChanged), (x) => ((ScanningProcessor) x).NumericScanType, (x, y) => ((ScanningProcessor) x).NumericScanType = y);
+    private readonly AvaloniaPropertyToEventPropertyBinder<ScanningProcessor> selectedTabIndexBinder;
     private readonly AsyncRelayCommand editAddressRangeCommand;
+    private readonly AsyncRelayCommand editAlignmentCommand;
 
     #endregion
 
     public MemoryEngine360 MemoryEngine360 { get; }
 
     public IListSelectionManager<ScanResultViewModel> ScanResultSelectionManager { get; }
-    
+
     public IListSelectionManager<SavedAddressViewModel> SavedAddressesSelectionManager { get; }
 
     public string Activity {
@@ -126,7 +138,10 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
     private readonly RateLimitedDispatchAction updateActivityText;
     private ActivityTask? primaryActivity;
 
-    public MainWindow() {
+    // used to remember the last selected data type when changing via the tab control
+    private DataType lastIntegerDataType = DataType.Int32, lastFloatDataType = DataType.Float;
+
+    public MemEngineView() {
         this.InitializeComponent();
         this.updateActivityText = RateLimitedDispatchActionBase.ForDispatcherSync(() => {
             this.PART_LatestActivity.Text = this.latestActivityText;
@@ -135,9 +150,6 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         this.MemoryEngine360 = new MemoryEngine360();
         this.ScanResultSelectionManager = new DataGridSelectionManager<ScanResultViewModel>(this.PART_ScanListResults);
         this.SavedAddressesSelectionManager = new DataGridSelectionManager<SavedAddressViewModel>(this.PART_SavedAddressList);
-
-        using (MultiChangeToken change = DataManager.GetContextData(this).BeginChange())
-            change.Context.Set(MemoryEngine360.DataKey, this.MemoryEngine360).Set(IMemEngineUI.DataKey, this).Set(ILatestActivityView.DataKey, this);
 
         this.Activity = "Welcome to MemEngine360.";
         this.PART_SavedAddressList.ItemsSource = this.MemoryEngine360.ScanningProcessor.SavedAddresses;
@@ -151,29 +163,49 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF16, StringType.UTF16);
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF32, StringType.UTF32);
 
+        // Update latest used data types
         this.MemoryEngine360.ScanningProcessor.DataTypeChanged += p => {
-            switch (p.DataType) {
+            if (p.DataType.IsFloat()) {
+                this.lastFloatDataType = p.DataType;
+            }
+            else if (p.DataType.IsInteger()) {
+                this.lastIntegerDataType = p.DataType;
+            }
+        };
+
+        // Bind between tab control and data type
+        this.selectedTabIndexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TabControl.SelectedIndexProperty, nameof(ScanningProcessor.DataTypeChanged), (b) => {
+            switch (b.Model.DataType) {
                 case DataType.Byte:
                 case DataType.Int16:
                 case DataType.Int32:
                 case DataType.Int64: {
-                    this.PART_ScanSettingsTabControl.SelectedIndex = 0;
+                    ((TabControl) b.Control).SelectedIndex = 0;
                     break;
                 }
                 case DataType.Float:
                 case DataType.Double: {
-                    this.PART_ScanSettingsTabControl.SelectedIndex = 1;
+                    ((TabControl) b.Control).SelectedIndex = 1;
                     break;
                 }
                 case DataType.String: {
-                    this.PART_ScanSettingsTabControl.SelectedIndex = 2;
+                    ((TabControl) b.Control).SelectedIndex = 2;
                     break;
                 }
                 default: throw new ArgumentOutOfRangeException();
             }
 
             this.UpdateUIForScanTypeAndDataType();
-        };
+        }, (b) => {
+            if (b.Model.HasDoneFirstScan)
+                return;
+            
+            switch (((TabControl) b.Control).SelectedIndex) {
+                case 0: b.Model.DataType = this.lastIntegerDataType; break;
+                case 1: b.Model.DataType = this.lastFloatDataType; break;
+                case 2: b.Model.DataType = DataType.String; break;
+            }
+        });
 
         this.MemoryEngine360.ScanningProcessor.NumericScanTypeChanged += p => {
             this.UpdateUIForScanTypeAndDataType();
@@ -213,6 +245,38 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
                 p.StartAddress = uint.Parse(info.TextA, NumberStyles.HexNumber);
                 p.ScanLength = uint.Parse(info.TextB, NumberStyles.HexNumber);
                 BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
+            }
+        });
+        
+        this.editAlignmentCommand = new AsyncRelayCommand(async () => {
+            ScanningProcessor p = this.MemoryEngine360.ScanningProcessor;
+            SingleUserInputInfo info = new SingleUserInputInfo(p.Alignment.ToString("X")) {
+                Caption = "Edit alignment",
+                Message = "Alignment is the offset added to each memory address",
+                Label = "Alignment (prefix with '0x' to parse as hex)",
+                Validate = (e) => {
+                    if (!NumberUtils.TryParseHexOrRegular<uint>(e.Input, out _))
+                        e.Errors.Add("Invalid unsigned integer");
+                }
+            };
+            
+            static void UpdateFooter(SingleUserInputInfo inf) {
+                if (inf.TextErrors != null) {
+                    inf.Footer = "Cannot show examples: invalid alignment";
+                }
+                else {
+                    int align = (int) NumberUtils.ParseHexOrRegular<uint>(inf.Text);
+                    StringBuilder sb = new StringBuilder().Append(0);
+                    for (int i = 1, j = align; i < 5; i++, j += align)
+                        sb.Append(", ").Append(j);
+                    inf.Footer = "We will scan " + sb.Append(", etc.");
+                }
+            }
+            
+            SingleUserInputInfo.TextParameter.AddValueChangedHandler(info, (parameter, owner) => UpdateFooter((SingleUserInputInfo) owner));
+            UpdateFooter(info);
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+                p.Alignment = NumberUtils.ParseHexOrRegular<uint>(info.Text);
             }
         });
     }
@@ -265,13 +329,16 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         this.isScanningBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.startAddressBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.addrLengthBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
+        this.alignmentBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, this.MemoryEngine360.ScanningProcessor);
         this.int_isHexBinder.Attach(this.PART_DTInt_IsHex, this.MemoryEngine360.ScanningProcessor);
         this.floatScanModeBinder.Attach(this.MemoryEngine360.ScanningProcessor);
         this.stringScanModeBinder.Attach(this.MemoryEngine360.ScanningProcessor);
         this.dataTypeBinder.Attach(this.PART_DataTypeCombo, this.MemoryEngine360.ScanningProcessor);
+        this.hasDoneFirstScanBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.scanTypeBinder1.Attach(this.PART_ScanTypeCombo1, this.MemoryEngine360.ScanningProcessor);
         this.scanTypeBinder2.Attach(this.PART_ScanTypeCombo2, this.MemoryEngine360.ScanningProcessor);
+        this.selectedTabIndexBinder.Attach(this.PART_ScanSettingsTabControl, this.MemoryEngine360.ScanningProcessor);
         this.PART_ActiveBackgroundTaskGrid.IsVisible = false;
         this.MemoryEngine360.ConnectionChanged += this.OnConnectionChanged;
 
@@ -302,13 +369,16 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
         this.isScanningBinder.Detach();
         this.startAddressBinder.Detach();
         this.addrLengthBinder.Detach();
+        this.alignmentBinder.Detach();
         this.pauseXboxBinder.Detach();
         this.int_isHexBinder.Detach();
         this.floatScanModeBinder.Detach();
         this.stringScanModeBinder.Detach();
         this.dataTypeBinder.Detach();
+        this.hasDoneFirstScanBinder.Detach();
         this.scanTypeBinder1.Detach();
         this.scanTypeBinder2.Detach();
+        this.selectedTabIndexBinder.Detach();
 
         if (this.inputValueBinder.IsFullyAttached)
             this.inputValueBinder.Detach();
@@ -318,54 +388,79 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
             this.inputBetweenBBinder.Detach();
     }
 
-    protected override async Task<bool> OnClosingAsync(WindowCloseReason reason) {
+    protected override void OnWindowOpened() {
+        base.OnWindowOpened();
+
+        UIInputManager.SetFocusPath(this.Window!.Control, "MemEngineWindow");
+
+        this.Window.Control.MinWidth = 560;
+        this.Window.Control.MinHeight = 480;
+        this.Window.Width = 600;
+        this.Window.Height = 600;
+        this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.0";
+        this.Window.WindowClosing += this.MyWindowOnWindowClosing;
+
+        using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
+        change.Context.Set(MemoryEngine360.DataKey, this.MemoryEngine360).Set(IMemEngineUI.DataKey, this).Set(ILatestActivityView.DataKey, this);
+    }
+
+    protected override void OnWindowClosed() {
+        base.OnWindowClosed();
+        this.Window!.WindowClosing -= this.MyWindowOnWindowClosing;
+
+        using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
+        change.Context.Remove(MemoryEngine360.DataKey, IMemEngineUI.DataKey, ILatestActivityView.DataKey);
+    }
+
+    private async Task<bool> MyWindowOnWindowClosing(IWindow sender, WindowCloseReason reason, bool isCancelled) {
+        if (isCancelled) {
+            return isCancelled;
+        }
+
+        this.MemoryEngine360.IsShuttingDown = true;
         if (this.MemoryEngine360.ScanningProcessor.IsScanning) {
             ActivityTask? activity = this.MemoryEngine360.ScanningProcessor.ScanningActivity;
             if (activity != null && activity.TryCancel()) {
                 await activity;
-                
+
                 if (this.MemoryEngine360.ScanningProcessor.IsScanning) {
                     await IMessageDialogService.Instance.ShowMessage("Busy", "Rare: still busy. Please wait for scan to complete");
                     return true;
                 }
             }
         }
-        
-        IConsoleConnection? connection = this.MemoryEngine360.Connection;
-        if (connection != null && this.MemoryEngine360.IsConnectionBusy) {
-            using CancellationTokenSource cts = new CancellationTokenSource();
-            ActivityTask task = ActivityManager.Instance.RunTask(async () => {
-                ActivityTask activity = ActivityManager.Instance.CurrentTask;
-                activity.Progress.Caption = "Busy";
-                activity.Progress.Text = "Waiting for operations to complete";
-                activity.Progress.IsIndeterminate = true;
-                
-                await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                    return this.MemoryEngine360.WaitAndDisconnectAsync(ConnectionChangeCause.ClosingWindow, activity.CancellationToken);
-                });
-            }, cts);
 
-            await task;
-
-            // there's a tiny window between cancellation signal and task actually exiting.
-            // it's possible the connection was closed even when cancelled for a few microseconds or so
-            if (this.MemoryEngine360.IsConnectionBusy) {
-                MessageBoxInfo info = new MessageBoxInfo() {
-                    Caption = "Engine busy", Message = "Engine is still busy elsewhere. Do you want to force close the window?",
-                    Buttons = MessageBoxButton.YesNo, NoText = "No (do nothing)"
-                };
-
-                MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
-                if (result == MessageBoxResult.Yes) {
-                    return false; // let TCP pipes auto-timeout
-                }
-                
-                return true; // cancel window closing
+        IDisposable? token;
+        do {
+            if ((token = await this.MemoryEngine360.BeginBusyOperationActivityAsync()) != null) {
+                break;
             }
+
+            MessageBoxInfo info = new MessageBoxInfo() {
+                Caption = "Engine busy", Message = "Cannot close window yet because the engine is still busy and cannot be shutdown safely. What do you want to do?",
+                Buttons = MessageBoxButton.YesNoCancel,
+                DefaultButton = MessageBoxResult.Yes,
+                YesOkText = "Wait for operations",
+                NoText = "Force Close",
+                CancelText = "Cancel"
+            };
+
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
+            switch (result) {
+                case MessageBoxResult.Cancel: return true; // stop window closing
+                case MessageBoxResult.No:     return false; // let TCP pipes auto-timeout
+                default:                      continue; // continue loop
+            }
+        } while (true);
+
+        try {
+            this.MemoryEngine360.Connection?.Dispose();
+            this.MemoryEngine360.SetConnection(token, null, ConnectionChangeCause.User);
+        }
+        finally {
+            token.Dispose();
         }
 
-        this.MemoryEngine360.SetConnection(null, ConnectionChangeCause.User);
-        connection?.Dispose();
         return false;
     }
 
@@ -438,6 +533,10 @@ public partial class MainWindow : WindowEx, IMemEngineUI, ILatestActivityView {
 
     private void PART_ScanOption_Length_OnDoubleTapped(object? sender, TappedEventArgs e) {
         this.editAddressRangeCommand.Execute(null);
+    }
+    
+    private void PART_ScanOption_Alignment_OnDoubleTapped(object? sender, TappedEventArgs e) {
+        this.editAlignmentCommand.Execute(null);
     }
 
     private void PART_CancelActivityButton_OnClick(object? sender, RoutedEventArgs e) {

@@ -1,0 +1,29 @@
+﻿<s:WindowingContentControl xmlns="https://github.com/avaloniaui"
+                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                           xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                           xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                           xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
+                           mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                           x:Class="MemEngine360.Avalonia.AboutView"
+                           MinWidth="500" MinHeight="200"
+                           WindowTitle="About MemEngine360"
+                           Background="{DynamicResource PanelBackground2}"
+                           WindowBorderBrush="DodgerBlue"
+                           WindowTitleBarBrush="{DynamicResource ABrush.Tone7.Background.Static}"
+                           FontFamily="{StaticResource FontOxanium}"
+                           FontWeight="Medium">
+    <Grid Margin="20">
+        <StackPanel Spacing="4">
+            <TextBlock Text="Memory Engine 360" HorizontalAlignment="Center" FontSize="32" FontWeight="Bold"/>
+            <TextBlock Text="Cheat Engine, but for xbox 360s" HorizontalAlignment="Center" FontSize="18" FontWeight="Medium"/>
+            <WrapPanel Orientation="Horizontal">
+                <TextBlock Text="This is an Avalonia remake of XeClutch's program. It can be found at: " FontSize="12"/>
+                <HyperlinkButton Content="https://github.com/XeClutch/Cheat-Engine-For-Xbox-360"
+                                 NavigateUri="https://github.com/XeClutch/Cheat-Engine-For-Xbox-360"
+                                 Padding="0" Margin="0,-1,0,0"
+                                 VerticalAlignment="Center"/>
+            </WrapPanel>
+        </StackPanel>
+        <Button HorizontalAlignment="Right" VerticalAlignment="Bottom" Content="OK" Width="75" Height="24" Click="Button_OnClick"/>
+    </Grid>
+</s:WindowingContentControl>
