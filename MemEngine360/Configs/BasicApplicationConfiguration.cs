@@ -95,7 +95,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     
     public uint RefreshRateMillis {
         get => RefreshRateMillisProperty.GetValue(this);
-        set => RefreshRateMillisProperty.SetValue(this, (byte) value);
+        set => RefreshRateMillisProperty.SetValue(this, value);
     }
 
     public BasicApplicationConfiguration() {
