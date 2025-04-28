@@ -20,10 +20,11 @@
 using System.Net;
 using System.Text;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Impl;
-using MemEngine360.Connections.Impl.Threads;
+using MemEngine360.Connections.XBOX;
+using MemEngine360.Connections.XBOX.Threads;
 using MemEngine360.Engine;
 using PFXToolKitUI;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 
@@ -31,61 +32,77 @@ namespace MemEngine360.Commands;
 
 public class ConnectToConsoleCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngine360.DataKey.TryGetContext(e.ContextData, out MemoryEngine360? engine)) {
+        if (!IMemEngineUI.DataKey.TryGetContext(e.ContextData, out IMemEngineUI? memUi)) {
             return Executability.Invalid;
         }
-        
-        return !engine.IsConnectionBusy ? Executability.Valid : Executability.ValidButCannotExecute;
+
+        return !memUi.MemoryEngine360.IsConnectionBusy ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine360.DataKey.TryGetContext(e.ContextData, out MemoryEngine360? engine)) {
+        if (!IMemEngineUI.DataKey.TryGetContext(e.ContextData, out IMemEngineUI? memUi)) {
             return;
         }
 
-        using IDisposable? token = await engine.BeginBusyOperationActivityAsync();
+        using IDisposable? token = await memUi.MemoryEngine360.BeginBusyOperationActivityAsync();
         if (token == null) {
             return;
         }
-        
-        IConsoleConnection? existingConnection = engine.GetConnection(token);
+
+        IConsoleConnection? existingConnection = memUi.MemoryEngine360.GetConnection(token);
         if (existingConnection != null) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to an xbox. Close existing connection and then connect", MessageBoxButton.OKCancel, MessageBoxResult.OK);
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
             if (result != MessageBoxResult.OK) {
                 return;
             }
-            
+
             existingConnection.Dispose();
-            engine.SetConnection(token, null, ConnectionChangeCause.User);
-            
+            memUi.MemoryEngine360.SetConnection(token, null, ConnectionChangeCause.User);
+
             if (ILatestActivityView.DataKey.TryGetContext(e.ContextData, out ILatestActivityView? view))
-                view.Activity = "Disconnected from xbox 360";
+                view.Activity = "Disconnected from console";
+            
+            memUi.RemoteCommandsContextEntry.Items.Clear();
         }
 
         IConsoleConnection? connection = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionService>().OpenDialogAndConnect();
         if (connection != null) {
-            engine.SetConnection(token, connection, ConnectionChangeCause.User);
+            memUi.MemoryEngine360.SetConnection(token, connection, ConnectionChangeCause.User);
             if (ILatestActivityView.DataKey.TryGetContext(e.ContextData, out ILatestActivityView? view))
-                view.Activity = "Connected to xbox 360.";
+                view.Activity = "Connected to console.";
 
-            string debugName = await connection.GetDebugName();
-            ExecutionState execState = await connection.GetExecutionState();
-            IPAddress currTitleAddr = await connection.GetTitleIPAddress();
-            uint currProcId = await connection.GetProcessID();
+            if (connection is IXbox360Connection xbox) {
+                ContextEntryGroup entry = memUi.RemoteCommandsContextEntry;
+                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ListHelpCommand", "List all commands in popup"));
+                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowXbeInfoCommand", "Show XBE info"));
+                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.MemProtectionCommand", "Show Memory Regions"));
+                entry.Items.Add(new SeparatorEntry());
+                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.EjectDiskTrayCommand", "Open Disk Tray"));
+                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.DebugFreezeCommand", "Debug Freeze"));
+                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.DebugUnfreezeCommand", "Debug Un-freeze"));
+                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.SoftRebootCommand", "Soft Reboot (restart title)"));
+                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ColdRebootCommand", "Cold Reboot"));
+                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShutdownCommand", "Shutdown"));
 
-            StringBuilder sb = new StringBuilder();
-            sb.Append("Debug Name: ").Append(debugName).AppendLine();
-            sb.Append("Execution State: ").Append(execState).AppendLine();
-            sb.Append("Current Title IP: ").Append(currTitleAddr).AppendLine();
-            sb.Append("Current Process ID: ").Append(currProcId.ToString("X8")).AppendLine();
-            sb.AppendLine("Named Threads below");
-            foreach (ConsoleThread info in await connection.GetThreadDump()) {
-                if (!string.IsNullOrEmpty(info.readableName)) {
-                    sb.AppendLine(info.ToString());
+                string debugName = await xbox.GetDebugName();
+                ExecutionState execState = await xbox.GetExecutionState();
+                IPAddress currTitleAddr = await xbox.GetTitleIPAddress();
+                uint currProcId = await xbox.GetProcessID();
+
+                StringBuilder sb = new StringBuilder();
+                sb.Append("Debug Name: ").Append(debugName).AppendLine();
+                sb.Append("Execution State: ").Append(execState).AppendLine();
+                sb.Append("Current Title IP: ").Append(currTitleAddr).AppendLine();
+                sb.Append("Current Process ID: ").Append(currProcId.ToString("X8")).AppendLine();
+                sb.AppendLine("Named Threads below");
+                foreach (ConsoleThread info in await xbox.GetThreadDump()) {
+                    if (!string.IsNullOrEmpty(info.readableName)) {
+                        sb.AppendLine(info.ToString());
+                    }
                 }
+
+                await IMessageDialogService.Instance.ShowMessage("Information", "Console Information as follows", sb.ToString(), MessageBoxButton.OK, MessageBoxResult.OK);
             }
-            
-            await IMessageDialogService.Instance.ShowMessage("Information", "Console Information as follows", sb.ToString(), MessageBoxButton.OK, MessageBoxResult.OK);
         }
     }
 }

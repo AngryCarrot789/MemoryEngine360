@@ -26,14 +26,14 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using MemEngine360.Connections.Impl.Threads;
+using MemEngine360.Connections.XBOX.Threads;
 
-namespace MemEngine360.Connections.Impl;
+namespace MemEngine360.Connections.XBOX;
 
 // Rewrite with fixes and performance improvements, based on:
 // https://github.com/XeClutch/Cheat-Engine-For-Xbox-360/blob/master/Cheat%20Engine%20for%20Xbox%20360/PhantomRTM.cs
 
-public class PhantomRTMConsoleConnection : IConsoleConnection {
+public class PhantomRTMConsoleConnection : IXbox360Connection {
     private readonly struct BusyToken : IDisposable {
         private readonly PhantomRTMConsoleConnection connection;
 

@@ -56,6 +56,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.AddSavedAddressCommand", new AddSavedAddressCommand());
         manager.Register("commands.memengine.EditScanResultValueCommand", new EditScanResultValueCommand());
         manager.Register("commands.memengine.CopyScanResultsToClipboardCommand", new CopyScanResultsToClipboardCommand());
+        manager.Register("commands.memengine.CopySavedResultsToClipboardCommand", new CopySavedResultsToClipboardCommand());
         manager.Register("commands.memengine.EditSavedAddressValueCommand", new EditSavedAddressValueCommand());
         manager.Register("commands.memengine.EditSavedAddressDataTypeCommand", new EditSavedAddressDataTypeCommand());
         manager.Register("commands.memengine.RefreshSavedAddressesCommand", new RefreshSavedAddressesCommand());
@@ -67,8 +68,6 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         
         // Remote commands
         manager.Register("commands.memengine.remote.ListHelpCommand", new ListHelpCommand());
-        manager.Register("commands.memengine.remote.ShowConsoleIDCommand", new ShowConsoleIDCommand());
-        manager.Register("commands.memengine.remote.ShowCPUKeyCommand", new ShowCPUKeyCommand());
         manager.Register("commands.memengine.remote.ShowXbeInfoCommand", new ShowXbeInfoCommand());
         manager.Register("commands.memengine.remote.MemProtectionCommand", new MemProtectionCommand());
         manager.Register("commands.memengine.remote.EjectDiskTrayCommand", new EjectDiskTrayCommand());

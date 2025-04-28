@@ -18,7 +18,7 @@
 // 
 
 using MemEngine360.Connections;
-using MemEngine360.Connections.Impl;
+using MemEngine360.Connections.XBOX;
 using MemEngine360.Engine;
 using MemEngine360.MemRegions;
 using PFXToolKitUI.CommandSystem;

@@ -17,7 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.Impl.Threads;
+namespace MemEngine360.Connections.XBOX.Threads;
 
 public struct ConsoleThread {
     public int id;

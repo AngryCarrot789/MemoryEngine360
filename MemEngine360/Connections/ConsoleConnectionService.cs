@@ -19,7 +19,7 @@
 
 using System.Net.Sockets;
 using MemEngine360.Configs;
-using MemEngine360.Connections.Impl;
+using MemEngine360.Connections.XBOX;
 using PFXToolKitUI;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;

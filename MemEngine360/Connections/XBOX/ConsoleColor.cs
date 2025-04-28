@@ -1,4 +1,4 @@
-// 
+﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
 // This file is part of MemEngine360.
@@ -17,11 +17,12 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.Impl;
+namespace MemEngine360.Connections.XBOX;
 
-public struct HardwareInfo {
-    public uint Flags;
-    public byte NumberOfProcessors, PCIBridgeRevisionID;
-    public byte[] ReservedBytes;
-    public ushort BldrMagic, BldrFlags;
-}
+public enum ConsoleColor {
+    Black,
+    Blue,
+    BlueGray,
+    NoSideCar,
+    White,
+};

@@ -17,7 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.Impl;
+namespace MemEngine360.Connections.XBOX;
 
 public readonly struct ConsoleResponse {
     /// <summary>

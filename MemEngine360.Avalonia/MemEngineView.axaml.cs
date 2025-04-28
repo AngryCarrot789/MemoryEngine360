@@ -29,7 +29,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Impl;
+using MemEngine360.Connections.XBOX;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI;
@@ -127,8 +127,10 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
     public MemoryEngine360 MemoryEngine360 { get; }
 
-    public TopLevelMenuRegistry MenuBarRegistry { get; }
+    public TopLevelMenuRegistry TopLevelMenuRegistry { get; }
     
+    public ContextEntryGroup RemoteCommandsContextEntry { get; }
+
     public IListSelectionManager<ScanResultViewModel> ScanResultSelectionManager { get; }
 
     public IListSelectionManager<SavedAddressViewModel> SavedAddressesSelectionManager { get; }
@@ -153,42 +155,30 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
     public MemEngineView() {
         this.InitializeComponent();
         
-        this.MenuBarRegistry = new TopLevelMenuRegistry();
+        this.TopLevelMenuRegistry = new TopLevelMenuRegistry();
         {
             ContextEntryGroup entry = new ContextEntryGroup("File");
             entry.Items.Add(new CommandContextEntry("commands.memengine.ConnectToConsoleCommand", "Connect to console..."));
             entry.Items.Add(new SeparatorEntry());
             entry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
-            this.MenuBarRegistry.Items.Add(entry);
+            this.TopLevelMenuRegistry.Items.Add(entry);
         }
         
         {
-            ContextEntryGroup entry = new ContextEntryGroup("Remote Controls");
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ListHelpCommand", "List all commands in popup"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowConsoleIDCommand", "Show Console ID key"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowCPUKeyCommand", "Show CPU key"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowXbeInfoCommand", "Show XBE info"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.MemProtectionCommand", "Show Memory Regions"));
-            entry.Items.Add(new SeparatorEntry());
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.EjectDiskTrayCommand", "Open Disk Tray"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.DebugFreezeCommand", "Debug Freeze"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.DebugUnfreezeCommand", "Debug Un-freeze"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.SoftRebootCommand", "Soft Reboot (restart title)"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ColdRebootCommand", "Cold Reboot"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShutdownCommand", "Shutdown"));
-            this.MenuBarRegistry.Items.Add(entry);
+            this.RemoteCommandsContextEntry = new ContextEntryGroup("Remote Controls");
+            this.TopLevelMenuRegistry.Items.Add(this.RemoteCommandsContextEntry);
         }
 
         this.themesSubList = new ContextEntryGroup("Themes");
-        this.MenuBarRegistry.Items.Add(this.themesSubList);
+        this.TopLevelMenuRegistry.Items.Add(this.themesSubList);
         
         {
             ContextEntryGroup entry = new ContextEntryGroup("About");
             entry.Items.Add(new CommandContextEntry("commands.application.AboutApplicationCommand", "About MemEngine360"));
-            this.MenuBarRegistry.Items.Add(entry);
+            this.TopLevelMenuRegistry.Items.Add(entry);
         }
 
-        this.PART_TopLevelMenu.TopLevelMenuRegistry = this.MenuBarRegistry;
+        this.PART_TopLevelMenu.TopLevelMenuRegistry = this.TopLevelMenuRegistry;
         
         this.updateActivityText = RateLimitedDispatchActionBase.ForDispatcherSync(() => {
             this.PART_LatestActivity.Text = this.latestActivityText;
@@ -474,7 +464,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.Window.Control.MinHeight = 480;
         this.Window.Width = 600;
         this.Window.Height = 600;
-        this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.1";
+        this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.2";
         this.Window.WindowClosing += this.MyWindowOnWindowClosing;
 
         using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();

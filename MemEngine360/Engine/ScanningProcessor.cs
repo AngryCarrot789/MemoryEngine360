@@ -348,8 +348,8 @@ public class ScanningProcessor {
                 }
 
                 this.IsScanning = true;
-                if (debugFreeze)
-                    await connection.DebugFreeze();
+                if (debugFreeze && connection is IFreezableConsole)
+                    await ((IFreezableConsole) connection).DebugFreeze();
             });
 
             bool result = false;
@@ -394,8 +394,8 @@ public class ScanningProcessor {
             await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
                 this.HasDoneFirstScan = result;
                 this.IsScanning = false;
-                if (debugFreeze && connection.IsConnected) // race condition ^-^ so rare don't care
-                    await connection.DebugUnFreeze();
+                if (debugFreeze && connection is IFreezableConsole && connection.IsConnected) // race condition ^-^ so rare don't care
+                    await ((IFreezableConsole) connection).DebugUnFreeze();
 
                 if (!this.MemoryEngine360.IsShuttingDown) // another race condition i suppose
                     this.MemoryEngine360.CheckConnection();

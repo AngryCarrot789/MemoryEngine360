@@ -17,12 +17,14 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.Impl;
+namespace MemEngine360.Connections.XBOX;
 
-public enum ConsoleColor {
-    Black,
-    Blue,
-    BlueGray,
-    NoSideCar,
-    White,
+public enum ExecutionState {
+    Pending,
+    Reboot,
+    Start,
+    Stop,
+    TitlePending,
+    TitleReboot,
+    Unknown
 };

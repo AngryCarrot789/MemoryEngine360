@@ -71,7 +71,7 @@
                 <Grid RowDefinitions="Auto,5,Auto,5,*,Auto">
                     <Grid ColumnDefinitions="*,5,*,5,*" Grid.Row="0" Height="22">
                         <Button Grid.Column="0" Content="First Scan" cmdu:CommandUsageManager.UsageClassType="{x:Type ac:FirstScanCommandUsage}"
-                                ToolTip.Tip="Search the xbox 360 memory for the value, and display all found results"/>
+                                ToolTip.Tip="Search the console memory for the value, and display all found results"/>
                         <Button Grid.Column="2" Content="Next Scan" cmdu:CommandUsageManager.UsageClassType="{x:Type ac:NextScanCommandUsage}"
                                 ToolTip.Tip="Search the scan result list for the value, and keeps results that still match"/>
                         <Button Grid.Column="4" Content="Reset" cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ResetScanCommandUsage}"

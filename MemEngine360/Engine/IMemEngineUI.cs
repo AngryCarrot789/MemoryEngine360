@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 
@@ -32,6 +33,16 @@ public interface IMemEngineUI {
     /// Gets the memory engine
     /// </summary>
     MemoryEngine360 MemoryEngine360 { get; }
+    
+    /// <summary>
+    /// Gets our top-level menu
+    /// </summary>
+    TopLevelMenuRegistry TopLevelMenuRegistry { get; }
+
+    /// <summary>
+    /// Gets the context entry that contains a list of remote command entries
+    /// </summary>
+    ContextEntryGroup RemoteCommandsContextEntry { get; }
 
     /// <summary>
     /// Gets the scan result list selection manager

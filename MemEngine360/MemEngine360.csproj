@@ -7,11 +7,11 @@
     </PropertyGroup>
 
 	<ItemGroup>
-      <Folder Include="Connections\XBOX\" />
-    </ItemGroup>
+	  <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj" />
+	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj" />
+	  <Folder Include="Connections\Impl\" />
 	</ItemGroup>
 
 </Project>

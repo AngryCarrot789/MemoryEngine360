@@ -19,7 +19,7 @@
 
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using MemEngine360.Connections.Impl;
+using MemEngine360.Connections.XBOX;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.MemRegions;

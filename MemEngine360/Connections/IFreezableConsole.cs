@@ -17,21 +17,20 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
-using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Services.Messaging;
+namespace MemEngine360.Connections;
 
-namespace MemEngine360.Commands;
-
-public class ShowConsoleIDCommand : BaseMemoryEngineCommand {
-    protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
-        return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
-    }
-
-    protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
-        await engine.BeginBusyOperationActivityAsync(async (t, c) => {
-            string id = await c.GetConsoleID();
-            await IMessageDialogService.Instance.ShowMessage("Console ID", id);
-        });
-    }
+/// <summary>
+/// Represents a console that has freeze/unfreeze abilities
+/// </summary>
+public interface IFreezableConsole {
+    /// <summary>
+    /// Signals the console to completely freeze
+    /// </summary>
+    Task DebugFreeze();
+    
+    /// <summary>
+    /// Signals the console to unfreeze/resume
+    /// </summary>
+    /// <returns></returns>
+    Task DebugUnFreeze();
 }

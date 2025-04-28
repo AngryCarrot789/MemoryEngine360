@@ -17,7 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections.Impl;
+using MemEngine360.Connections.XBOX;
 using MemEngine360.Engine;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;

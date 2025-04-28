@@ -24,7 +24,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Impl;
+using MemEngine360.Connections.XBOX;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Interactivity.Formatting;
 using PFXToolKitUI.Services.Messaging;
@@ -34,6 +34,9 @@ using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Engine.Scanners;
 
+/// <summary>
+/// An interface that defines a scanner for a specific data type
+/// </summary>
 public interface IValueScanner {
     // This is only really supposed to be used for the number dragger but we can get away with it ;)
     internal static readonly AutoMemoryValueFormatter ByteFormatter = new AutoMemoryValueFormatter() {
