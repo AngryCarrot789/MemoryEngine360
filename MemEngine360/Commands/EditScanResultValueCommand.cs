@@ -175,7 +175,6 @@ public class EditScanResultValueCommand : Command {
             foreach (ScanResultViewModel scanResult in scanResults) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
                 
-                scanResult.PreviousValue = scanResult.CurrentValue;
                 string newCurrValue;
                 if (memoryEngine360.Connection != null) {
                     await MemoryEngine360.WriteAsText(memoryEngine360.Connection, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, input.Text, (uint) scanResult.FirstValue.Length);

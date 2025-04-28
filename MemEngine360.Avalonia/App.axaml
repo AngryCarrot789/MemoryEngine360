@@ -7,6 +7,7 @@
         <StyleInclude Source="avares://PFXToolKitUI.Avalonia/Themes/Controls.axaml"/>
         <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Simple.xaml"/>
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Simple/Simple.xaml"/>
+        <StyleInclude Source="avares://AvaloniaHex/Themes/Simple/AvaloniaHex.axaml"/>
     </Application.Styles>
     <Application.Resources>
         <ResourceDictionary>

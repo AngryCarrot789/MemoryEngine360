@@ -191,8 +191,9 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
     }
 
     public async Task<bool> PerformNextScan(ScanningProcessor processor, List<ScanResultViewModel> srcList, ObservableList<ScanResultViewModel> dstList, IActivityProgress activity) {
-        if (srcList[0].DataType != processor.DataType) {
-            await IMessageDialogService.Instance.ShowMessage("Data Type Changed", "The results contains a different data type from the scan data type. Please change the scan type to " + srcList[0].DataType);
+        ScanResultViewModel? first = srcList.FirstOrDefault(x => x.DataType != processor.DataType);
+        if (first != null) {
+            await IMessageDialogService.Instance.ShowMessage("Data Type Changed", "The results contains a different data type from the scan data type. Please change the scan type to " + first.DataType);
             return false;
         }
 
@@ -545,11 +546,12 @@ public class StringValueScanner : IValueScanner {
     }
 
     public async Task<bool> PerformNextScan(ScanningProcessor processor, List<ScanResultViewModel> srcList, ObservableList<ScanResultViewModel> dstList, IActivityProgress activity) {
-        if (srcList[0].DataType != processor.DataType) {
-            await IMessageDialogService.Instance.ShowMessage("Data Type Changed", "The results contains a different data type from the scan data type. Please change the scan type to " + srcList[0].DataType);
+        ScanResultViewModel? first = srcList.FirstOrDefault(x => x.DataType != processor.DataType);
+        if (first != null) {
+            await IMessageDialogService.Instance.ShowMessage("Data Type Changed", "The results contains a different data type from the scan data type. Please change the scan type to " + first.DataType);
             return false;
         }
-
+        
         IConsoleConnection connection = processor.MemoryEngine360.Connection!;
         using (activity.CompletionState.PushCompletionRange(0.0, 256.0 / srcList.Count)) {
             for (int i = 0; i < srcList.Count; i++) {

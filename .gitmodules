@@ -1,3 +1,6 @@
 [submodule "PFXToolKitUI"]
 	path = PFXToolKitUI
 	url = https://github.com/AngryCarrot789/PFXToolKitUI
+[submodule "AvaloniaHex"]
+	path = AvaloniaHex
+	url = https://github.com/AngryCarrot789/AvaloniaHex

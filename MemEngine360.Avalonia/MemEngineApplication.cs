@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using MemEngine360.Avalonia.Commands;
 using MemEngine360.Avalonia.MemRegions;
 using MemEngine360.Avalonia.Services;
 using MemEngine360.Commands;
@@ -76,6 +77,9 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.remote.SoftRebootCommand", new SoftRebootCommand());
         manager.Register("commands.memengine.remote.ColdRebootCommand", new ColdRebootCommand());
         manager.Register("commands.memengine.remote.ShutdownCommand", new ShutdownCommand());
+        
+        // Test commands
+        manager.Register("commands.memengine.TestShowMemoryCommand", new TestShowMemoryCommand());
     }
 
     protected override void RegisterServices(ServiceManager manager) {

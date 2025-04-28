@@ -538,7 +538,6 @@ public class ScanningProcessor {
                 this.IsRefreshingAddresses = true;
                 
                 foreach (ScanResultViewModel result in this.ScanResults) {
-                    result.PreviousValue = result.CurrentValue;
                     result.CurrentValue = await MemoryEngine360.ReadAsText(connection, result.Address, result.DataType, result.NumericDisplayType, (uint) result.FirstValue.Length);
                 }
             }

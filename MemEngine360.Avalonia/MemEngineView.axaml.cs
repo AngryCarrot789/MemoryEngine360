@@ -159,6 +159,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         {
             ContextEntryGroup entry = new ContextEntryGroup("File");
             entry.Items.Add(new CommandContextEntry("commands.memengine.ConnectToConsoleCommand", "Connect to console..."));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.TestShowMemoryCommand", "Test Hex editor"));
             entry.Items.Add(new SeparatorEntry());
             entry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
             this.TopLevelMenuRegistry.Items.Add(entry);
