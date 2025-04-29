@@ -448,8 +448,9 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
     }
 
     private void UpdateDataInspector() {
-        BitLocation caret = this.CaretLocation;
-        if (this.myCurrData == null || (this.lastEndianness == this.theEndianness && caret.ByteIndex == this.lastInspectorIndex)) {
+        BitRange selection = this.SelectionRange;
+        ulong caretIndex = selection.Start.ByteIndex;        
+        if (this.myCurrData == null || (this.lastEndianness == this.theEndianness && caretIndex == this.lastInspectorIndex)) {
             return;
         }
 
@@ -460,17 +461,16 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         // MSB                                 LSB
 
         this.lastEndianness = this.theEndianness;
-        this.lastInspectorIndex = caret.ByteIndex;
-        if ((int) this.lastInspectorIndex >= this.myCurrData.Length) {
-            return;
-        }
+        this.lastInspectorIndex = caretIndex;
 
         // The console is big-endian. If we want to display as little endian, we need to reverse the bytes
         bool displayAsLE = this.TheEndianness == Endianness.LittleEndian;
-        ushort val8 = this.myCurrData[this.lastInspectorIndex];
-        ushort val16 = MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 2));
-        uint val32 = MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 4));
-        ulong val64 = MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 8));
+        int cbRemaining = this.myCurrData.Length - (int) caretIndex;
+        
+        byte val8 = cbRemaining >= 1 ? this.myCurrData[caretIndex] : default;
+        ushort val16 = cbRemaining >= 2 ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 2)) : default;
+        uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 4)) : 0;
+        ulong val64 = cbRemaining >= 8 ? MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 8)) : 0;
         if (displayAsLE != BitConverter.IsLittleEndian) {
             val16 = BinaryPrimitives.ReverseEndianness(val16);
             val32 = BinaryPrimitives.ReverseEndianness(val32);
@@ -492,16 +492,22 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_CharUTF8.Text = ((char) val8).ToString();
         if (displayAsLE != BitConverter.IsLittleEndian) {
             byte[] buffer16 = new byte[2], buffer32 = new byte[4];
-            Array.Copy(this.myCurrData, (int) this.lastInspectorIndex, buffer16, 0, buffer16.Length);
-            Array.Copy(this.myCurrData, (int) this.lastInspectorIndex, buffer32, 0, buffer32.Length);
-            Array.Reverse(buffer16);
-            Array.Reverse(buffer32);
-            this.PART_CharUTF16.Text = Encoding.Unicode.GetString(buffer16);
-            this.PART_CharUTF32.Text = Encoding.UTF32.GetString(buffer32);
+            if (cbRemaining >= 2) {
+                Array.Copy(this.myCurrData, (int) caretIndex, buffer16, 0, buffer16.Length);
+                Array.Reverse(buffer16);
+            }
+
+            if (cbRemaining >= 4) {
+                Array.Copy(this.myCurrData, (int) caretIndex, buffer32, 0, buffer32.Length);
+                Array.Reverse(buffer32);
+            }
+
+            this.PART_CharUTF16.Text = cbRemaining >= 2 ? Encoding.Unicode.GetString(buffer16) : "";
+            this.PART_CharUTF32.Text = cbRemaining >= 4 ? Encoding.UTF32.GetString(buffer32) : "";
         }
         else {
-            this.PART_CharUTF16.Text = Encoding.Unicode.GetString(this.myCurrData, (int) this.lastInspectorIndex, 2);
-            this.PART_CharUTF32.Text = Encoding.UTF32.GetString(this.myCurrData, (int) this.lastInspectorIndex, 4);
+            this.PART_CharUTF16.Text = cbRemaining >= 2 ? Encoding.Unicode.GetString(this.myCurrData, (int) caretIndex, 2) : "";
+            this.PART_CharUTF32.Text = cbRemaining >= 4 ? Encoding.UTF32.GetString(this.myCurrData, (int) caretIndex, 4) : "";
         }
     }
 }
