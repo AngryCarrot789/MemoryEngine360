@@ -2,7 +2,7 @@
                            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                            xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                            xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                           xmlns:avaloniaHex="clr-namespace:AvaloniaHex;assembly=AvaloniaHex"
+                           xmlns:ah="clr-namespace:AvaloniaHex;assembly=AvaloniaHex"
                            xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
                            xmlns:hexDisplay="clr-namespace:MemEngine360.Avalonia.Services.HexDisplay"
                            xmlns:converters="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Converters;assembly=PFXToolKitUI.Avalonia"
@@ -11,12 +11,15 @@
                            x:Class="MemEngine360.Avalonia.Services.HexDisplay.HexDisplayControl"
                            WindowBorderBrush="DodgerBlue"
                            WindowTitleBarBrush="{DynamicResource ABrush.Tone4.Background.Static}">
-    <DockPanel>
-        <Border DockPanel.Dock="Bottom"
+    <Grid RowDefinitions="30,*,42">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="5"/>
+            <ColumnDefinition Width="250" MinWidth="200"/>
+        </Grid.ColumnDefinitions>
+        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" BorderThickness="0,1,0,0"
                 Background="{DynamicResource ABrush.Tone4.Background.Static}"
-                BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}"
-                BorderThickness="0,1,0,0"
-                Height="42">
+                BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}">
             <DockPanel Margin="10,0">
                 <Button x:Name="PART_CancelButton" Content="Close"
                         MinWidth="72" Height="24" Padding="5,1"
@@ -44,23 +47,35 @@
                 <Border/>
             </DockPanel>
         </Border>
-        <Border DockPanel.Dock="Top"
-                Background="{Binding RelativeSource={RelativeSource AncestorType=hexDisplay:HexDisplayControl}, Path=WindowTitleBarBrush}">
-            <Grid x:Name="PART_ControlsGrid" ColumnDefinitions="5,Auto,100,0,Auto,100,5,75,5,110,5,110,5,*,5" Margin="0,3" Height="24">
+        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+                Background="{Binding RelativeSource={RelativeSource AncestorType=hexDisplay:HexDisplayControl}, Path=WindowTitleBarBrush}"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}">
+            <Grid x:Name="PART_ControlsGrid" ColumnDefinitions="5,Auto,100,0,Auto,100,0,0,5,75,5,110,5,110,5,*,5" Margin="0,3">
                 <TextBlock Text="Address" Grid.Column="1" VerticalAlignment="Center" Padding="5,0"/>
                 <TextBlock Text="Length" Grid.Column="4" VerticalAlignment="Center" Padding="5,0"/>
 
                 <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_AddressTextBox" Grid.Column="2" VerticalAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
                 <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_LengthTextBox" Grid.Column="5" VerticalAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
 
-                <Button Grid.Column="7" x:Name="PART_Read" Content="Read All">
+                <ComboBox IsVisible="False" Grid.Column="7" x:Name="PART_BytesPerRow" SelectedIndex="3" ToolTip.Tip="Bytes per row. Default is 32">
+                    <ComboBoxItem Content="8"/>
+                    <ComboBoxItem Content="16"/>
+                    <ComboBoxItem Content="24"/>
+                    <ComboBoxItem Content="32"/>
+                    <ComboBoxItem Content="48"/>
+                    <ComboBoxItem Content="56"/>
+                    <ComboBoxItem Content="64"/>
+                </ComboBox>
+
+                <Button Grid.Column="9" x:Name="PART_Read" Content="Read All">
                     <ToolTip.Tip>
                         <TextBlock>
                             <Run Text="Read the entire range from the console"/>
                         </TextBlock>
                     </ToolTip.Tip>
                 </Button>
-                <Button Grid.Column="9" x:Name="PART_Refresh" Content="Refresh Selection">
+                <Button Grid.Column="11" x:Name="PART_Refresh" Content="Refresh Selection">
                     <ToolTip.Tip>
                         <TextBlock>
                             <Run Text="Re-reads your selection region from the console"/>
@@ -69,7 +84,7 @@
                         </TextBlock>
                     </ToolTip.Tip>
                 </Button>
-                <Button Grid.Column="11" x:Name="PART_Upload" Content="Upload Selection">
+                <Button Grid.Column="13" x:Name="PART_Upload" Content="Upload Selection">
                     <ToolTip.Tip>
                         <TextBlock>
                             <Run Text="Uploads your selection region to the console"/>
@@ -78,17 +93,85 @@
                         </TextBlock>
                     </ToolTip.Tip>
                 </Button>
-                <Grid Grid.Column="13" x:Name="PART_ProgressGrid" IsVisible="False">
+                <Grid Grid.Column="15" x:Name="PART_ProgressGrid" IsVisible="False">
                     <ProgressBar x:Name="PART_Progress"/>
-                    <TextBlock Text="See main window's activity bar for progress" 
-                               Foreground="{DynamicResource ABrush.Foreground.Disabled}" 
+                    <TextBlock Text="See main window's activity bar for progress"
+                               Foreground="{DynamicResource ABrush.Foreground.Disabled}"
                                VerticalAlignment="Center" HorizontalAlignment="Center"/>
                 </Grid>
             </Grid>
         </Border>
-        <avaloniaHex:HexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
-                               Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                               BorderBrush="{DynamicResource PanelBorderBrush}"
-                               BorderThickness="0,1"/>
-    </DockPanel>
+        <ah:HexEditor Grid.Row="1" Grid.ColumnSpan="1" x:Name="PART_HexEditor" FontFamily="Consolas"
+                      Background="{DynamicResource ABrush.Tone2.Background.Static}"
+                      BorderBrush="{DynamicResource PanelBorderBrush}"
+                      BorderThickness="0,1,1,1"/>
+        <GridSplitter Grid.Column="1" Grid.Row="1" Background="{DynamicResource ABrush.Tone4.Background.Static}"/>
+        <ScrollViewer Grid.Column="2" Grid.Row="1" DockPanel.Dock="Right" Background="{DynamicResource PanelBackground4}"
+                      MinWidth="200">
+            <Grid RowDefinitions="Auto,20,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1"
+                  ColumnDefinitions="0,75,1,*,5">
+                <TextBlock Text="Data Inspector" Padding="5"
+                           VerticalAlignment="Center" HorizontalAlignment="Left" 
+                           FontFamily="{StaticResource FontOxanium}" Grid.ColumnSpan="5"
+                           TextDecorations="Underline"
+                           FontSize="12"/>
+                
+                <Grid ColumnDefinitions="Auto,5,Auto" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3">
+                    <RadioButton Grid.Column="0" x:Name="PART_LittleEndian" Content="Little Endian"
+                                 ToolTip.Tip="Interpret the data in the editor as Little Endian"/>
+                    <RadioButton Grid.Column="2" x:Name="PART_BigEndian" Content="Big Endian"
+                                 ToolTip.Tip="Interpret the data in the editor as Big Endian. This is the default for most consoles"/>
+                </Grid>
+                
+                <TextBlock Text="Binary (8 bits)" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Int8" Grid.Row="5" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="UInt8" Grid.Row="7" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Int16" Grid.Row="9" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="UInt16" Grid.Row="11" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Int32" Grid.Row="13" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="UInt32" Grid.Row="15" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Int64" Grid.Row="17" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="UInt64" Grid.Row="19" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Float (32)" Grid.Row="21" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Double (64)" Grid.Row="23" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Char (ASCII)" Grid.Row="25" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Char (UTF8)" Grid.Row="27" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Char (UTF16)" Grid.Row="29" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Char (UTF32)" Grid.Row="31" Grid.Column="1" VerticalAlignment="Center"/>
+                
+                <TextBox x:Name="PART_Binary8" FontFamily="{StaticResource FontOxanium}" Grid.Row="3" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_Int8" FontFamily="{StaticResource FontOxanium}" Grid.Row="5" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_UInt8" FontFamily="{StaticResource FontOxanium}" Grid.Row="7" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_Int16" FontFamily="{StaticResource FontOxanium}" Grid.Row="9" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_UInt16" FontFamily="{StaticResource FontOxanium}" Grid.Row="11" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_Int32" FontFamily="{StaticResource FontOxanium}" Grid.Row="13" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_UInt32" FontFamily="{StaticResource FontOxanium}" Grid.Row="15" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_Int64" FontFamily="{StaticResource FontOxanium}" Grid.Row="17" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_UInt64" FontFamily="{StaticResource FontOxanium}" Grid.Row="19" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_Float" FontFamily="{StaticResource FontOxanium}" Grid.Row="21" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_Double" FontFamily="{StaticResource FontOxanium}" Grid.Row="23" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_CharASCII" FontFamily="{StaticResource FontOxanium}" Grid.Row="25" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_CharUTF8" FontFamily="{StaticResource FontOxanium}" Grid.Row="27" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_CharUTF16" FontFamily="{StaticResource FontOxanium}" Grid.Row="29" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_CharUTF32" FontFamily="{StaticResource FontOxanium}" Grid.Row="31" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="10" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="12" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="14" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="16" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="18" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="20" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="22" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="24" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="26" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="28" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="30" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="32" Grid.Column="1" Grid.ColumnSpan="3"/>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
 </s:WindowingContentControl>

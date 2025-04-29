@@ -18,6 +18,10 @@
 // 
 
 using System;
+using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -28,11 +32,14 @@ using AvaloniaHex.Core.Document;
 using AvaloniaHex.Editing;
 using AvaloniaHex.Rendering;
 using MemEngine360.Connections;
+using MemEngine360.Engine;
 using MemEngine360.Engine.HexDisplay;
 using MemEngine360.Engine.Scanners;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
+using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Services;
@@ -66,15 +73,39 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     private readonly OffsetColumn myOffsetColumn;
 
+    public delegate void HexDisplayControlTheEndiannessChangedEventHandler(HexDisplayControl sender);
+
+    private enum Endianness {
+        LittleEndian,
+        BigEndian,
+    }
+
+    private Endianness lastEndianness, theEndianness = Endianness.BigEndian;
+    private Endianness TheEndianness {
+        get => this.theEndianness;
+        set {
+            if (this.theEndianness != value) {
+                this.theEndianness = value;
+                this.TheEndiannessChanged?.Invoke(this);
+                this.UpdateDataInspector();
+            }
+        }
+    }
+
+    public event HexDisplayControlTheEndiannessChangedEventHandler? TheEndiannessChanged;
+
     private readonly AvaloniaPropertyToDataParameterBinder<HexDisplayInfo> captionBinder = new AvaloniaPropertyToDataParameterBinder<HexDisplayInfo>(WindowTitleProperty, HexDisplayInfo.CaptionParameter);
     private readonly AvaloniaPropertyToDataParameterBinder<HexDisplayInfo> addrBinder = new AvaloniaPropertyToDataParameterBinder<HexDisplayInfo>(TextBox.TextProperty, HexDisplayInfo.StartAddressParameter, (p) => "0x" + ((uint) p!).ToString("X8")) { CanUpdateModel = false };
     private readonly AvaloniaPropertyToDataParameterBinder<HexDisplayInfo> lenBinder = new AvaloniaPropertyToDataParameterBinder<HexDisplayInfo>(TextBox.TextProperty, HexDisplayInfo.LengthParameter, (p) => "0x" + ((uint) p!).ToString("X8")) { CanUpdateModel = false };
+    private readonly EventPropertyEnumBinder<Endianness> endiannessBinder = new EventPropertyEnumBinder<Endianness>(typeof(HexDisplayControl), nameof(TheEndiannessChanged), (x) => ((HexDisplayControl) x).TheEndianness, (x, y) => ((HexDisplayControl) x).TheEndianness = y);
 
     private readonly AsyncRelayCommand updateAddressCommand, updateLengthCommand;
     private readonly AsyncRelayCommand readAllCommand, refreshDataCommand, uploadDataCommand;
 
     private uint actualStartAddress;
     private byte[]? myCurrData;
+
+    private ulong lastInspectorIndex = ulong.MaxValue;
 
     public HexDisplayControl() {
         this.InitializeComponent();
@@ -85,6 +116,10 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_HexEditor.HexView.Columns.Add(this.myOffsetColumn = new OffsetColumn());
         this.PART_HexEditor.HexView.Columns.Add(new HexColumn());
         this.PART_HexEditor.HexView.Columns.Add(new AsciiColumn());
+
+        this.endiannessBinder.Assign(this.PART_LittleEndian, Endianness.LittleEndian);
+        this.endiannessBinder.Assign(this.PART_BigEndian, Endianness.BigEndian);
+        this.endiannessBinder.Attach(this);
 
         this.PART_CancelButton.Click += this.OnCancelButtonClicked;
         this.updateAddressCommand = new AsyncRelayCommand(async () => {
@@ -122,14 +157,14 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.refreshDataCommand = new AsyncRelayCommand(async () => {
             await this.ReloadSelectionFromConsole();
         }, () => {
-            BitRange selection = this.PART_HexEditor.Selection.Range;
+            BitRange selection = this.SelectionRange;
             return selection.ByteLength > 1 && this.myCurrData != null && !this.PART_HexEditor.Document!.IsReadOnly;
         });
 
         this.uploadDataCommand = new AsyncRelayCommand(async () => {
             await this.UploadSelectionToConsoleCommand();
         }, () => {
-            BitRange selection = this.PART_HexEditor.Selection.Range;
+            BitRange selection = this.SelectionRange;
             return selection.ByteLength > 1 && this.myCurrData != null && !this.PART_HexEditor.Document!.IsReadOnly;
         });
 
@@ -168,7 +203,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_HexEditor.Caret.PrimaryColumnChanged += (sender, args) => this.UpdateCaretText();
         this.PART_HexEditor.Selection.RangeChanged += (sender, args) => this.UpdateSelectionText();
     }
-    
+
     public async Task ReadAllFromConsoleCommand() {
         HexDisplayInfo? info = this.HexDisplayInfo;
         if (info == null) {
@@ -184,7 +219,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_ControlsGrid.IsEnabled = false;
         this.PART_Progress.IsIndeterminate = true;
 
-        BitRange selection = this.PART_HexEditor.Selection.Range;
+        BitRange selection = this.SelectionRange;
         byte[]? bytes = await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             return await ActivityManager.Instance.RunTask(async () => {
@@ -214,7 +249,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_Progress.IsIndeterminate = false;
         if (bytes != null) {
             Vector scroll = this.PART_HexEditor.HexView.ScrollOffset;
-            BitLocation location = this.PART_HexEditor.Caret.Location;
+            BitLocation location = this.CaretLocation;
 
             this.actualStartAddress = info.StartAddress;
             this.myOffsetColumn.AdditionalOffset = info.StartAddress;
@@ -222,8 +257,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
             this.PART_HexEditor.Document = new MemoryBinaryDocument(this.myCurrData, info.IsReadOnly);
             await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                 this.PART_HexEditor.HexView.ScrollOffset = scroll;
-                this.PART_HexEditor.Caret.Location = location;
-                this.PART_HexEditor.Selection.Range = selection;
+                this.CaretLocation = location;
+                this.SelectionRange = selection;
             }, DispatchPriority.INTERNAL_BeforeRender);
 
             this.UpdateSelectionText();
@@ -236,8 +271,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         if (info == null) {
             return;
         }
-        
-        BitRange selection = this.PART_HexEditor.Selection.Range;
+
+        BitRange selection = this.SelectionRange;
         if (selection.ByteLength < 2 || this.myCurrData == null || this.PART_HexEditor.Document!.IsReadOnly) {
             return;
         }
@@ -245,7 +280,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_ProgressGrid.IsVisible = true;
         this.PART_ControlsGrid.IsEnabled = false;
         this.PART_Progress.IsIndeterminate = true;
-        
+
         uint start = (uint) selection.Start.ByteIndex;
         uint count = (uint) selection.ByteLength;
         byte[]? readBuffer = await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
@@ -364,12 +399,15 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         else {
             this.PART_SelectionText.Text = $"{sel.Range.ByteLength} bytes ({(this.actualStartAddress + sel.Range.Start.ByteIndex):X8} -> {(this.actualStartAddress + sel.Range.End.ByteIndex):X8})";
         }
+
+        this.UpdateDataInspector();
     }
 
     private void UpdateCaretText() {
         Caret caret = this.PART_HexEditor.Caret;
         BitLocation pos = caret.Location;
         this.PART_CaretText.Text = $"{(this.actualStartAddress + pos.ByteIndex):X8}";
+        this.UpdateDataInspector();
     }
 
     static HexDisplayControl() {
@@ -380,6 +418,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         base.OnWindowOpened();
         this.Window!.Control.MinWidth = 1024;
         this.Window!.Control.MinHeight = 640;
+        this.Window!.Control.Width = 1280;
+        this.Window!.Control.Height = 720;
         this.Window!.CanAutoSizeToContent = false;
 
         UIInputManager.SetFocusPath(this.Window!.Control, "HexDisplayWindow");
@@ -404,5 +444,56 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     private void OnCancelButtonClicked(object? sender, RoutedEventArgs e) {
         this.Window!.Close();
+    }
+
+    private void UpdateDataInspector() {
+        BitLocation caret = this.CaretLocation;
+        if (this.myCurrData == null || (this.lastEndianness == this.theEndianness && caret.ByteIndex == this.lastInspectorIndex)) {
+            return;
+        }
+        
+        // Word/int32:
+        // 00        C0        FF        EE
+        // 0000 0000 1100 0000 1111 1111 1110 1110
+        // ^(bit 31)                      (bit 0)^
+        // MSB                                 LSB
+        
+        this.lastEndianness = this.theEndianness;
+        this.lastInspectorIndex = caret.ByteIndex;
+        
+        // The console is big-endian. If we want to display as little endian, we need to reverse the bytes
+        bool displayAsLE = this.TheEndianness == Endianness.LittleEndian;
+
+        ushort val8 = this.myCurrData[this.lastInspectorIndex];
+        ushort val16 = displayAsLE ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 2)) : BinaryPrimitives.ReverseEndianness(MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 2)));
+        uint val32 = displayAsLE ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 4)) : BinaryPrimitives.ReverseEndianness(MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 4)));
+        ulong val64 = displayAsLE ? MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 8)) : BinaryPrimitives.ReverseEndianness(MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 8)));
+        
+        this.PART_Binary8.Text = val8.ToString("B8");
+        this.PART_Int8.Text = ((sbyte) val8).ToString();
+        this.PART_UInt8.Text = val8.ToString();
+        this.PART_Int16.Text = ((short) val16).ToString();
+        this.PART_UInt16.Text = val16.ToString();
+        this.PART_Int32.Text = ((int) val32).ToString();
+        this.PART_UInt32.Text = val32.ToString();
+        this.PART_Int64.Text = ((long) val64).ToString();
+        this.PART_UInt64.Text = val64.ToString();
+        this.PART_Float.Text = Unsafe.As<uint, float>(ref val32).ToString();
+        this.PART_Double.Text = Unsafe.As<ulong, double>(ref val64).ToString();
+        this.PART_CharASCII.Text = ((char) (val8 >> 1)).ToString();
+        this.PART_CharUTF8.Text = ((char) val8).ToString();
+        if (!displayAsLE) {
+            byte[] buffer16 = new byte[2], buffer32 = new byte[4];
+            Array.Copy(this.myCurrData, (int) this.lastInspectorIndex, buffer16, 0, buffer16.Length);
+            Array.Copy(this.myCurrData, (int) this.lastInspectorIndex, buffer32, 0, buffer32.Length);
+            Array.Reverse(buffer16);
+            Array.Reverse(buffer32);
+            this.PART_CharUTF16.Text = Encoding.Unicode.GetString(buffer16);
+            this.PART_CharUTF32.Text = Encoding.UTF32.GetString(buffer32);
+        }
+        else {
+            this.PART_CharUTF16.Text = Encoding.Unicode.GetString(this.myCurrData, (int) this.lastInspectorIndex, 2);
+            this.PART_CharUTF32.Text = Encoding.UTF32.GetString(this.myCurrData, (int) this.lastInspectorIndex, 4);
+        }
     }
 }
