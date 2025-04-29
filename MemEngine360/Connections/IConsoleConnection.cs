@@ -65,7 +65,7 @@ public interface IConsoleConnection : IDisposable {
     /// <param name="count">The amount of bytes to read from the console</param>
     /// <returns>A task representing the read operation. It contains the amount of bytes actually read</returns>
     Task<int> ReadBytes(uint address, byte[] buffer, int offset, uint count);
-    
+
     /// <summary>
     /// Reads an exact amount of bytes from the console, in chunks. By reading in
     /// smaller chunks, we can safely support cancellation. If the address space
@@ -76,10 +76,10 @@ public interface IConsoleConnection : IDisposable {
     /// <param name="offset">The offset to start writing into the buffer</param>
     /// <param name="count">The total amount of bytes to read from the console</param>
     /// <param name="chunkSize">The amount of bytes to read per chunk</param>
-    /// <param name="cancellationToken">A token which can request cancellation for this operation</param>
     /// <param name="completion">Optional feedback for how much progress has been done</param>
+    /// <param name="cancellationToken">A token which can request cancellation for this operation</param>
     /// <returns>A task representing the read operation</returns>
-    Task ReadBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CancellationToken cancellationToken, CompletionState? completion = null);
+    Task ReadBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Convenience method for reading an array of bytes. Calls <see cref="ReadBytes(uint,byte[],int,uint)"/>
@@ -141,8 +141,20 @@ public interface IConsoleConnection : IDisposable {
     /// Writes the exact number of bytes to the console
     /// </summary>
     /// <param name="address">The address to write to</param>
-    /// <param name="bytes">The buffer to write</param>
-    Task WriteBytes(uint address, byte[] bytes);
+    /// <param name="buffer">The buffer to write</param>
+    Task WriteBytes(uint address, byte[] buffer);
+
+    /// <summary>
+    /// Writes the exact number of bytes to the console, with support for cancelling. If cancellation is requested,
+    /// the connection is not left in an invalid state, but not all the bytes in the buffer may have been written
+    /// </summary>
+    /// <param name="address">The address to write to</param>
+    /// <param name="buffer">The buffer to write</param>
+    /// <param name="offset">The offset, within <see cref="buffer"/>, to start at</param>
+    /// <param name="count">The amount of bytes to write</param>
+    /// <param name="completion">Optional feedback for the completion progress</param>
+    /// <param name="cancellationToken">Used to cancel the write operation</param>
+    Task WriteBytes(uint address, byte[] buffer, int offset, uint count, CompletionState? completion = null, CancellationToken cancellationToken = default);    
 
     /// <summary>
     /// Writes a single value to the console

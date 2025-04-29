@@ -5,6 +5,8 @@
                            xmlns:avaloniaHex="clr-namespace:AvaloniaHex;assembly=AvaloniaHex"
                            xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
                            xmlns:hexDisplay="clr-namespace:MemEngine360.Avalonia.Services.HexDisplay"
+                           xmlns:converters="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Converters;assembly=PFXToolKitUI.Avalonia"
+                           xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                            mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                            x:Class="MemEngine360.Avalonia.Services.HexDisplay.HexDisplayControl"
                            WindowBorderBrush="DodgerBlue"
@@ -44,16 +46,39 @@
         </Border>
         <Border DockPanel.Dock="Top"
                 Background="{Binding RelativeSource={RelativeSource AncestorType=hexDisplay:HexDisplayControl}, Path=WindowTitleBarBrush}">
-            <Grid x:Name="PART_ControlsGrid" ColumnDefinitions="5,Auto,100,0,Auto,100,5,75,5,75,5,*,5" Margin="0,3" Height="24">
+            <Grid x:Name="PART_ControlsGrid" ColumnDefinitions="5,Auto,100,0,Auto,100,5,75,5,110,5,110,5,*,5" Margin="0,3" Height="24">
                 <TextBlock Text="Address" Grid.Column="1" VerticalAlignment="Center" Padding="5,0"/>
                 <TextBlock Text="Length" Grid.Column="4" VerticalAlignment="Center" Padding="5,0"/>
 
                 <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_AddressTextBox" Grid.Column="2" VerticalAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
                 <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_LengthTextBox" Grid.Column="5" VerticalAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
 
-                <Button Grid.Column="7" x:Name="PART_Refresh" Content="Refresh" ToolTip.Tip="Reload values from console"/>
-                <Button Grid.Column="9" x:Name="PART_Upload" Content="Upload" ToolTip.Tip="Upload modified values to console"/>
-                <Grid Grid.Column="11" x:Name="PART_ProgressGrid" IsVisible="False">
+                <Button Grid.Column="7" x:Name="PART_Read" Content="Read All">
+                    <ToolTip.Tip>
+                        <TextBlock>
+                            <Run Text="Read the entire range from the console"/>
+                        </TextBlock>
+                    </ToolTip.Tip>
+                </Button>
+                <Button Grid.Column="9" x:Name="PART_Refresh" Content="Refresh Selection">
+                    <ToolTip.Tip>
+                        <TextBlock>
+                            <Run Text="Re-reads your selection region from the console"/>
+                            <LineBreak/>
+                            <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/HexEditor/RefreshValues}"/>
+                        </TextBlock>
+                    </ToolTip.Tip>
+                </Button>
+                <Button Grid.Column="11" x:Name="PART_Upload" Content="Upload Selection">
+                    <ToolTip.Tip>
+                        <TextBlock>
+                            <Run Text="Uploads your selection region to the console"/>
+                            <LineBreak/>
+                            <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/HexEditor/UploadSelection}"/>
+                        </TextBlock>
+                    </ToolTip.Tip>
+                </Button>
+                <Grid Grid.Column="13" x:Name="PART_ProgressGrid" IsVisible="False">
                     <ProgressBar x:Name="PART_Progress"/>
                     <TextBlock Text="See main window's activity bar for progress" 
                                Foreground="{DynamicResource ABrush.Foreground.Disabled}" 

@@ -29,6 +29,7 @@ using MemEngine360.Commands;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.HexDisplay;
+using MemEngine360.Engine.HexDisplay.Commands;
 using MemEngine360.MemRegions;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
@@ -80,6 +81,11 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.remote.SoftRebootCommand", new SoftRebootCommand());
         manager.Register("commands.memengine.remote.ColdRebootCommand", new ColdRebootCommand());
         manager.Register("commands.memengine.remote.ShutdownCommand", new ShutdownCommand());
+        
+        // Hex editor commands
+        manager.Register("commands.hexeditor.ReloadSelectionFromConsole", new ReloadSelectionFromConsole());        
+        manager.Register("commands.hexeditor.ReadAllFromConsoleCommand", new ReadAllFromConsoleCommand());        
+        manager.Register("commands.hexeditor.UploadSelectionToConsoleCommand", new UploadSelectionToConsoleCommand());        
         
         // Test commands
         manager.Register("commands.memengine.TestShowMemoryCommand", new TestShowMemoryCommand());

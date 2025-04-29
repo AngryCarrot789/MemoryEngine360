@@ -35,7 +35,7 @@ public class ShowMemoryCommand : BaseMemoryEngineCommand {
                 Caption = "Console Memory",
                 StartAddress = engine.ScanningProcessor.StartAddress,
                 Length = engine.ScanningProcessor.ScanLength,
-                IsReadOnly = true,
+                IsReadOnly = false
             };
 
             await service.ShowHexEditor(info);

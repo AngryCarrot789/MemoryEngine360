@@ -398,9 +398,12 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
             token = await this.MemoryEngine360.BeginBusyOperationActivityAsync();
         }
 
+        IConsoleConnection? connection = this.MemoryEngine360.Connection;
         try {
-            this.MemoryEngine360.Connection?.Dispose();
-            this.MemoryEngine360.SetConnection(token, null, ConnectionChangeCause.User);
+            if (connection != null) {
+                connection.Dispose();
+                this.MemoryEngine360.SetConnection(token, null, ConnectionChangeCause.User);
+            }
         }
         finally {
             token.Dispose();

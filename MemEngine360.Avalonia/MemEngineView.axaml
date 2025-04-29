@@ -217,7 +217,11 @@
                         <Border/>
                     </DockPanel>
                 </c:GroupBox.Header>
-                <DataGrid x:Name="PART_ScanListResults" Background="Transparent" BorderThickness="0" CanUserResizeColumns="True">
+                <DataGrid x:Name="PART_ScanListResults" 
+                          Background="Transparent" 
+                          BorderThickness="0" 
+                          CanUserResizeColumns="True"
+                          ClipboardCopyMode="None">
                     <DataGrid.Columns>
                         <av2:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
                                                   Header="Address (hex)" Width="85" Binding="{Binding Address, Mode=OneTime, StringFormat=X}"
@@ -280,7 +284,11 @@
                         <Border/>
                     </DockPanel>
                 </c:GroupBox.Header>
-                <DataGrid x:Name="PART_SavedAddressList" Background="Transparent" BorderThickness="0" CanUserResizeColumns="True">
+                <DataGrid x:Name="PART_SavedAddressList" 
+                          Background="Transparent" 
+                          BorderThickness="0"
+                          CanUserResizeColumns="True" 
+                          ClipboardCopyMode="None">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Address (hex)" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}"
                                             Binding="{Binding Address, Mode=OneWay, StringFormat=X}"

@@ -22,7 +22,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media;
 using AvaloniaHex;
-using AvaloniaHex.Document;
+using AvaloniaHex.Core.Document;
 using AvaloniaHex.Rendering;
 using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Services.Windowing;

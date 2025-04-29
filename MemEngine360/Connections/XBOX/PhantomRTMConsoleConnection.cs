@@ -331,35 +331,10 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         return await this.ReadBytesInternal(address, buffer, offset, count);
     }
 
-    public Task ReadBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CancellationToken cancellationToken, CompletionState? completion = null) {
+    public Task ReadBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
         if (count == chunkSize)
             return this.ReadBytes(address, buffer, offset, count);
         return this.ReadBytesInChunksWithCancellation(address, buffer, offset, count, chunkSize, cancellationToken, completion);
-    }
-
-    private async Task ReadBytesInChunksWithCancellation(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CancellationToken cancellationToken, CompletionState? completion) {
-        cancellationToken.ThrowIfCancellationRequested();
-        this.EnsureNotDisposed();
-        this.EnsureNotBusy();
-        using BusyToken x = this.CreateBusyToken();
-
-        // just in case
-        if (chunkSize > count)
-            chunkSize = count;
-        
-        int length = (int) count;
-        using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / length);
-        while (length > 0) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int cbRead = await this.ReadBytesInternal((uint) (address + offset), buffer, offset, (uint) Math.Min(chunkSize, length));
-            length -= cbRead;
-            offset += cbRead;
-            
-            completion?.OnProgress(cbRead);
-        }
-
-        if (length < 0)
-            throw new Exception("Error: got more bytes that we wanted");
     }
 
     public async Task<byte[]> ReadBytes(uint address, uint count) {
@@ -428,12 +403,20 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         return Encoding.ASCII.GetString(buffer, 0, (int) count);
     }
 
-    public async Task WriteBytes(uint address, byte[] bytes) {
+    public async Task WriteBytes(uint address, byte[] buffer) {
         this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
-        await this.WriteBytesAndGetResponseInternal(address, bytes);
+        await this.WriteBytesAndGetResponseInternal(address, buffer, 0, (uint) buffer.Length, null, CancellationToken.None);
+    }
+    
+    public async Task WriteBytes(uint address, byte[] buffer, int offset, uint count, CompletionState? completion = null, CancellationToken cancellationToken = default) {
+        this.EnsureNotDisposed();
+        this.EnsureNotBusy();
+        using BusyToken x = this.CreateBusyToken();
+
+        await this.WriteBytesAndGetResponseInternal(address, buffer, offset, count, completion, cancellationToken);
     }
 
     public async Task WriteByte(uint address, byte value) {
@@ -442,7 +425,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         using BusyToken x = this.CreateBusyToken();
 
         ONE_BYTE[0] = value;
-        await this.WriteBytesAndGetResponseInternal(address, ONE_BYTE);
+        await this.WriteBytesAndGetResponseInternal(address, ONE_BYTE, 0, 1, null, CancellationToken.None);
     }
 
     public Task WriteBool(uint address, bool value) {
@@ -495,7 +478,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         using BusyToken x = this.CreateBusyToken();
 
         byte[] buffer = await File.ReadAllBytesAsync(filePath);
-        await this.WriteBytesAndGetResponseInternal(address, buffer);
+        await this.WriteBytesAndGetResponseInternal(address, buffer, 0, (uint) buffer.Length, null, CancellationToken.None);
     }
 
     public Task WriteHook(uint address, uint destination, bool isLinked) {
@@ -535,43 +518,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     public Task WriteNOP(uint address) {
         return this.WriteBytes(address, [0x60, 0x00, 0x00, 0x00]);
     }
-
-    private async Task<int> ReadBytesInternal(uint address, byte[] buffer, int offset, uint count) {
-        ConsoleResponse response = await this.SendCommandAndGetResponse("getmem addr=0x" + address.ToString("X8") + " length=0x" + count.ToString("X8") + "\r\n");
-        if (response.ResponseType != ResponseType.MultiResponse) {
-            throw new Exception($"Xbox responded to getmem without {nameof(ResponseType.MultiResponse)}, which is unexpected");
-        }
-
-        int cbRead = 0;
-        byte[]? lineBytes = null;
-        string line;
-        while ((line = await this.ReadLineFromStream()) != ".") {
-            int cbLine = line.Length / 2; // typically 128 when reading big chunks
-            if (lineBytes == null || lineBytes.Length != cbLine) {
-                lineBytes = new byte[cbLine];
-            }
-
-            for (int i = 0, j = 0; i < cbLine; i++, j += 2) {
-                if (line[j] == '?') {
-                    lineBytes[i] = 0; // protected memory maybe?
-                }
-                else {
-                    lineBytes[i] = (byte) ((CharToInteger(line[j]) << 4) | CharToInteger(line[j + 1]));
-                }
-            }
-
-            Array.Copy(lineBytes, 0, buffer, offset + cbRead, cbLine);
-            cbRead += cbLine;
-        }
-
-        ConsoleResponse failedResponse = await this.ReadResponseCore();
-        if (failedResponse.ResponseType != ResponseType.UnknownCommand) {
-            Debug.Assert(false, "What is this bullshit who patched this bug???");
-        }
-
-        return cbRead;
-    }
-
+    
     private async Task<ConsoleResponse> ReadResponseCore() {
         string responseText = await this.ReadLineFromStream();
         return ConsoleResponse.FromFirstLine(responseText);
@@ -587,32 +534,6 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
             this.isDisposed = true;
             throw new IOException("IOError while writing bytes", e);
         }
-    }
-
-    private async Task WriteBytesAndGetResponseInternal(uint address, byte[] bytes) {
-        string str = "setmem addr=0x" + address.ToString("X8") + " data=";
-        foreach (byte b in bytes)
-            str += b.ToString("X2");
-
-        await this.WriteCommandText(str);
-        ConsoleResponse response = await this.ReadResponseCore();
-        if (response.ResponseType != ResponseType.SingleResponse) {
-            throw new Exception($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
-        }
-    }
-
-    private async Task<ConsoleResponse> SendCommandAndGetResponse(string command) {
-        await this.WriteCommandText(command);
-        ConsoleResponse response = await this.ReadResponseCore();
-        if (response.ResponseType == ResponseType.UnknownCommand) {
-            // Sometimes the xbox randomly says unknown command for specific things
-            if (this.client.Available > 0) {
-                string responseText = await this.ReadLineFromStream() ?? "";
-                response = ConsoleResponse.FromFirstLine(responseText);
-            }
-        }
-
-        return response;
     }
 
     private BusyToken CreateBusyToken() {
@@ -741,6 +662,109 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         }
         catch (Exception e) {
             return output;
+        }
+    }
+    
+    private async Task<ConsoleResponse> SendCommandAndGetResponse(string command) {
+        await this.WriteCommandText(command);
+        ConsoleResponse response = await this.ReadResponseCore();
+        if (response.ResponseType == ResponseType.UnknownCommand) {
+            // Sometimes the xbox randomly says unknown command for specific things
+            if (this.client.Available > 0) {
+                string responseText = await this.ReadLineFromStream() ?? "";
+                response = ConsoleResponse.FromFirstLine(responseText);
+            }
+        }
+
+        return response;
+    }
+    
+    private async Task ReadBytesInChunksWithCancellation(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CancellationToken cancellationToken, CompletionState? completion) {
+        cancellationToken.ThrowIfCancellationRequested();
+        this.EnsureNotDisposed();
+        this.EnsureNotBusy();
+        using BusyToken x = this.CreateBusyToken();
+
+        // just in case
+        if (chunkSize > count)
+            chunkSize = count;
+
+        int length = (int) count;
+        using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / length);
+        while (length > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int cbRead = await this.ReadBytesInternal((uint) (address + offset), buffer, offset, (uint) Math.Min(chunkSize, length));
+            length -= cbRead;
+            offset += cbRead;
+
+            completion?.OnProgress(cbRead);
+        }
+
+        if (length < 0)
+            throw new Exception("Error: got more bytes that we wanted");
+    }
+
+    private async Task<int> ReadBytesInternal(uint address, byte[] buffer, int offset, uint count) {
+        ConsoleResponse response = await this.SendCommandAndGetResponse("getmem addr=0x" + address.ToString("X8") + " length=0x" + count.ToString("X8") + "\r\n");
+        if (response.ResponseType != ResponseType.MultiResponse) {
+            throw new Exception($"Xbox responded to getmem without {nameof(ResponseType.MultiResponse)}, which is unexpected");
+        }
+
+        int cbRead = 0;
+        byte[]? lineBytes = null;
+        string line;
+        while ((line = await this.ReadLineFromStream()) != ".") {
+            int cbLine = line.Length / 2; // typically 128 when reading big chunks
+            if (lineBytes == null || lineBytes.Length != cbLine) {
+                lineBytes = new byte[cbLine];
+            }
+
+            for (int i = 0, j = 0; i < cbLine; i++, j += 2) {
+                if (line[j] == '?') {
+                    lineBytes[i] = 0; // protected memory maybe?
+                }
+                else {
+                    lineBytes[i] = (byte) ((CharToInteger(line[j]) << 4) | CharToInteger(line[j + 1]));
+                }
+            }
+
+            Array.Copy(lineBytes, 0, buffer, offset + cbRead, cbLine);
+            cbRead += cbLine;
+        }
+
+        ConsoleResponse failedResponse = await this.ReadResponseCore();
+        if (failedResponse.ResponseType != ResponseType.UnknownCommand) {
+            Debug.Assert(false, "What is this bullshit who patched this bug???");
+        }
+
+        return cbRead;
+    }
+    
+    private async Task WriteBytesAndGetResponseInternal(uint address, byte[] bytes, int offset, uint count, CompletionState? completion, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        
+        using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
+        const string HexChars = "0123456789ABCDEF";
+        char[] buffer = new char[128];
+        while (count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string cmdPrefix = "setmem addr=0x" + (address + offset).ToString("X8") + " data=";
+            uint cbWrite = Math.Min(count, 64);
+            for (int i = 0; i < cbWrite; i++) {
+                byte b = bytes[offset + i];
+                buffer[i * 2] = HexChars[b >> 4];
+                buffer[i * 2 + 1] = HexChars[b & 0xF];
+            }
+
+            await this.WriteCommandText(cmdPrefix + new string(buffer, 0, (int) (cbWrite << 1)));
+            ConsoleResponse response = await this.ReadResponseCore();
+            if (response.ResponseType != ResponseType.SingleResponse) {
+                throw new Exception($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
+            }
+
+            offset += (int) cbWrite;
+            count -= cbWrite;
+            completion?.OnProgress(cbWrite);
         }
     }
 }

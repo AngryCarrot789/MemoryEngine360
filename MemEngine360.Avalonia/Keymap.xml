@@ -22,7 +22,7 @@
             <Shortcut Name="EditSavedAddressValue" CommandId="commands.memengine.EditSavedAddressValueCommand">
                 <KeyStroke Mods="CTRL" Key="E"/>
             </Shortcut>
-            <Shortcut Name="CopyResultsToClipboardCSV" CommandId="commands.memengine.CopyScanResultsToClipboardCommand">
+            <Shortcut Name="CopyResultsToClipboardCSV" CommandId="commands.memengine.CopySavedResultsToClipboardCommand">
                 <KeyStroke Mods="CTRL" Key="C"/>
             </Shortcut>
             <Shortcut Name="DeleteSelections" CommandId="commands.memengine.DeleteSelectedSavedAddressesCommand">
@@ -40,6 +40,20 @@
         <Shortcut Name="RedoShortcut2" CommandId="commands.generic.RedoCommand">
             <KeyStroke Mods="CTRL" Key="Y"/>
         </Shortcut>
+
+        <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
+            <KeyStroke Mods="CTRL+ALT" Key="S"/>
+        </Shortcut>
+    </Group>
+    <Group Name="HexDisplayWindow" DisplayName="Hex Editor Window" Description="The entire hex editor window">
+        <Group Name="HexEditor" DisplayName="Hex editor" Description="The actual hex editor control">
+            <Shortcut Name="RefreshValues" CommandId="commands.hexeditor.ReloadSelectionFromConsole">
+                <KeyStroke Mods="CTRL" Key="R"/>
+            </Shortcut>
+            <Shortcut Name="UploadSelection" CommandId="commands.hexeditor.UploadSelectionToConsoleCommand">
+                <KeyStroke Mods="CTRL" Key="U"/>
+            </Shortcut>
+        </Group>
 
         <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
             <KeyStroke Mods="CTRL+ALT" Key="S"/>
