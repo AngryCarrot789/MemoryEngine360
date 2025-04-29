@@ -24,9 +24,11 @@ using Avalonia.Controls.ApplicationLifetimes;
 using MemEngine360.Avalonia.Commands;
 using MemEngine360.Avalonia.MemRegions;
 using MemEngine360.Avalonia.Services;
+using MemEngine360.Avalonia.Services.HexDisplay;
 using MemEngine360.Commands;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
+using MemEngine360.Engine.HexDisplay;
 using MemEngine360.MemRegions;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
@@ -66,6 +68,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.DeleteSelectedScanResultsCommand", new DeleteSelectedScanResultsCommand());
         manager.Register("commands.memengine.SelectRangeFromMemoryRegionCommand", new SelectRangeFromMemoryRegionCommand());
         manager.Register("commands.memengine.ResetScanOptionsCommand", new ResetScanOptionsCommand());
+        manager.Register("commands.memengine.ShowMemoryCommand", new ShowMemoryCommand());
         
         // Remote commands
         manager.Register("commands.memengine.remote.ListHelpCommand", new ListHelpCommand());
@@ -94,6 +97,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.RegisterConstant<IStartupManager>(new StartupManagerMemEngine360());
         manager.RegisterConstant(new ConsoleConnectionService());
         manager.RegisterConstant<IAboutService>(new AboutServiceImpl());
+        manager.RegisterConstant<IHexDisplayService>(new HexDisplayServiceImpl());
     }
 
     protected override void RegisterConfigurations() {

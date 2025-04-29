@@ -17,12 +17,10 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
 using MemEngine360.Connections.XBOX;
-using MemEngine360.Connections.XBOX.Threads;
-using ConsoleColor = MemEngine360.Connections.XBOX.ConsoleColor;
+using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Connections;
 
@@ -65,8 +63,23 @@ public interface IConsoleConnection : IDisposable {
     /// <param name="buffer">The destination buffer</param>
     /// <param name="offset">The offset to start writing into the buffer</param>
     /// <param name="count">The amount of bytes to read from the console</param>
-    /// <returns>A task representing the read operation</returns>
+    /// <returns>A task representing the read operation. It contains the amount of bytes actually read</returns>
     Task<int> ReadBytes(uint address, byte[] buffer, int offset, uint count);
+    
+    /// <summary>
+    /// Reads an exact amount of bytes from the console, in chunks. By reading in
+    /// smaller chunks, we can safely support cancellation. If the address space
+    /// contains protected memory, the buffer will have 0s written into it
+    /// </summary>
+    /// <param name="address">The address to read from</param>
+    /// <param name="buffer">The destination buffer</param>
+    /// <param name="offset">The offset to start writing into the buffer</param>
+    /// <param name="count">The total amount of bytes to read from the console</param>
+    /// <param name="chunkSize">The amount of bytes to read per chunk</param>
+    /// <param name="cancellationToken">A token which can request cancellation for this operation</param>
+    /// <param name="completion">Optional feedback for how much progress has been done</param>
+    /// <returns>A task representing the read operation</returns>
+    Task ReadBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CancellationToken cancellationToken, CompletionState? completion = null);
 
     /// <summary>
     /// Convenience method for reading an array of bytes. Calls <see cref="ReadBytes(uint,byte[],int,uint)"/>

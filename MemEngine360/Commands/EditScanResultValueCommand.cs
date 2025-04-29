@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Globalization;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
@@ -85,29 +86,30 @@ public class EditScanResultValueCommand : Command {
         if (scanResults.Count == 1) {
             input = new SingleUserInputInfo("Change value at 0x" + scanResults[0].Address.ToString("X8"), "Immediately change the value at this address", "Value", scanResults[0].CurrentValue);
             input.Validate = (args) => {
+                NumericDisplayType ndt = scanResults[0].NumericDisplayType;
                 switch (scanResults[0].DataType) {
                     case DataType.Byte:
-                        if (!byte.TryParse(args.Input, out _))
+                        if (!byte.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
                             args.Errors.Add("Invalid Byte");
                     break;
                     case DataType.Int16:
-                        if (!short.TryParse(args.Input, out _))
+                        if (!short.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
                             args.Errors.Add("Invalid Int16");
                     break;
                     case DataType.Int32:
-                        if (!int.TryParse(args.Input, out _))
+                        if (!int.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
                             args.Errors.Add("Invalid Int32");
                     break;
                     case DataType.Int64:
-                        if (!long.TryParse(args.Input, out _))
+                        if (!long.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
                             args.Errors.Add("Invalid Int64");
                     break;
                     case DataType.Float:
-                        if (!float.TryParse(args.Input, out _))
+                        if (!(ndt == NumericDisplayType.Hexadecimal ? uint.TryParse(args.Input, NumberStyles.HexNumber, null, out _) : float.TryParse(args.Input, out _)))
                             args.Errors.Add("Invalid float");
                     break;
                     case DataType.Double:
-                        if (!double.TryParse(args.Input, out _))
+                        if (!(ndt == NumericDisplayType.Hexadecimal ? ulong.TryParse(args.Input, NumberStyles.HexNumber, null, out _) : double.TryParse(args.Input, out _)))
                             args.Errors.Add("Invalid double");
                     break;
                     case DataType.String:
@@ -129,29 +131,30 @@ public class EditScanResultValueCommand : Command {
 
             input = new SingleUserInputInfo("Change " + scanResults.Count + " values", "Immediately change the value these addresses", "Value", scanResults[scanResults.Count - 1].CurrentValue);
             input.Validate = (args) => {
+                NumericDisplayType ndt = scanResults[0].NumericDisplayType;
                 switch (scanResults[0].DataType) {
                     case DataType.Byte:
-                        if (!byte.TryParse(args.Input, out _))
+                        if (!byte.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
                             args.Errors.Add("Invalid Byte");
                     break;
                     case DataType.Int16:
-                        if (!short.TryParse(args.Input, out _))
+                        if (!short.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
                             args.Errors.Add("Invalid Int16");
                     break;
                     case DataType.Int32:
-                        if (!int.TryParse(args.Input, out _))
+                        if (!int.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
                             args.Errors.Add("Invalid Int32");
                     break;
                     case DataType.Int64:
-                        if (!long.TryParse(args.Input, out _))
+                        if (!long.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
                             args.Errors.Add("Invalid Int64");
                     break;
                     case DataType.Float:
-                        if (!float.TryParse(args.Input, out _))
+                        if (!(ndt == NumericDisplayType.Hexadecimal ? uint.TryParse(args.Input, NumberStyles.HexNumber, null, out _) : float.TryParse(args.Input, out _)))
                             args.Errors.Add("Invalid float");
                     break;
                     case DataType.Double:
-                        if (!double.TryParse(args.Input, out _))
+                        if (!(ndt == NumericDisplayType.Hexadecimal ? ulong.TryParse(args.Input, NumberStyles.HexNumber, null, out _) : double.TryParse(args.Input, out _)))
                             args.Errors.Add("Invalid double");
                     break;
                     case DataType.String: break;
@@ -165,8 +168,8 @@ public class EditScanResultValueCommand : Command {
         }
 
         using IDisposable? token = await memoryEngine360.BeginBusyOperationActivityAsync();
-        IConsoleConnection? conn = memoryEngine360.Connection;
-        if (token == null) {
+        IConsoleConnection? conn;
+        if (token == null || (conn = memoryEngine360.Connection) == null) {
             return;
         }
         
@@ -176,9 +179,9 @@ public class EditScanResultValueCommand : Command {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
                 
                 string newCurrValue;
-                if (memoryEngine360.Connection != null) {
-                    await MemoryEngine360.WriteAsText(memoryEngine360.Connection, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, input.Text, (uint) scanResult.FirstValue.Length);
-                    newCurrValue = await MemoryEngine360.ReadAsText(memoryEngine360.Connection, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, (uint) scanResult.FirstValue.Length);
+                if (conn.IsConnected) {
+                    await MemoryEngine360.WriteAsText(conn, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, input.Text, (uint) scanResult.FirstValue.Length);
+                    newCurrValue = await MemoryEngine360.ReadAsText(conn, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, (uint) scanResult.FirstValue.Length);
                 }
                 else {
                     newCurrValue = input.Text;

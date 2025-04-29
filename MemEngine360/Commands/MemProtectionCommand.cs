@@ -19,8 +19,10 @@
 
 using MemEngine360.Connections.XBOX;
 using MemEngine360.Engine;
+using MemEngine360.MemRegions;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Services.UserInputs;
+using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Commands;
 
@@ -30,10 +32,24 @@ public class MemProtectionCommand : BaseMemoryEngineCommand {
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
-        await engine.BeginBusyOperationActivityAsync(async (t, c) => {
-            List<MemoryRegion> results = await c.GetMemoryRegions();
-            List<string> lines = results.Select(x => $"Base: {x.BaseAddress:X8} Size: {x.Size:X8}, Protection: {x.Protection:X8}, PhysicalAddress: {x.PhysicalAddress:X8}").ToList();
-            await IMessageDialogService.Instance.ShowMessage("Memory Regions", string.Join(Environment.NewLine, lines));
+        List<MemoryRegion>? list = await engine.BeginBusyOperationActivityAsync(async (t, c) => {
+            return await ActivityManager.Instance.RunTask(() => {
+                IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
+                prog.Text = "Reading memory regions...";
+                prog.IsIndeterminate = true;
+                return c.GetMemoryRegions();
+            });
         });
+
+        if (list == null) {
+            return;
+        }
+        
+        MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(list) {
+            Caption = "Memory Regions",
+            ConfirmText = "Epic", CancelText = "Close" // UserInputDialog limitation -- cannot disable OK :-)
+        };
+
+        await IUserInputDialogService.Instance.ShowInputDialogAsync(info);
     }
 }

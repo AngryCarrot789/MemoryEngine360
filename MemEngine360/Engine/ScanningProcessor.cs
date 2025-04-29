@@ -43,6 +43,7 @@ public class ScanningProcessor {
     private uint startAddress, scanLength;
     private uint alignment;
     private bool pauseConsoleDuringScan, scanMemoryPages, isIntInputHexadecimal;
+    private bool useFirstValue, usePreviousValue;
     private FloatScanOption floatScanOption;
     private StringType stringScanOption;
     private DataType dataType;
@@ -184,6 +185,30 @@ public class ScanningProcessor {
         }
     }
 
+    public bool UseFirstValueForNextScan {
+        get => this.useFirstValue;
+        set {
+            if (this.useFirstValue != value) {
+                this.useFirstValue = value;
+                this.UseFirstValueForNextScanChanged?.Invoke(this);
+                if (value)
+                    this.UsePreviousValueForNextScan = false;
+            }
+        }
+    }
+
+    public bool UsePreviousValueForNextScan {
+        get => this.usePreviousValue;
+        set {
+            if (this.usePreviousValue != value) {
+                this.usePreviousValue = value;
+                this.UsePreviousValueForNextScanChanged?.Invoke(this);
+                if (value)
+                    this.UseFirstValueForNextScan = false;
+            }
+        }
+    }
+
     public FloatScanOption FloatScanOption {
         get => this.floatScanOption;
         set {
@@ -259,6 +284,8 @@ public class ScanningProcessor {
     public event ScanningProcessorAddressChangedEventHandler? ScanLengthChanged;
     public event ScanningProcessorEventHandler? PauseConsoleDuringScanChanged;
     public event ScanningProcessorEventHandler? IsIntInputHexadecimalChanged;
+    public event ScanningProcessorEventHandler? UseFirstValueForNextScanChanged;
+    public event ScanningProcessorEventHandler? UsePreviousValueForNextScanChanged;
     public event ScanningProcessorEventHandler? FloatScanModeChanged;
     public event ScanningProcessorEventHandler? StringScanModeChanged;
     public event ScanningProcessorEventHandler? DataTypeChanged;
@@ -416,6 +443,8 @@ public class ScanningProcessor {
 
         this.ScanResults.Clear();
         this.HasDoneFirstScan = false;
+        this.UseFirstValueForNextScan = false;
+        this.UsePreviousValueForNextScan = false;
     }
 
     private async Task<bool> ScanNextInternal(IActivityProgress activity) {
@@ -520,7 +549,7 @@ public class ScanningProcessor {
             // May be faster if the console is not debug frozen and we have to update 100s of results...
             if (this.SavedAddresses.Count < 100) {
                 this.IsRefreshingAddresses = true;
-                
+
                 foreach (SavedAddressViewModel address in this.SavedAddresses) {
                     address.Value = await MemoryEngine360.ReadAsText(connection, address.Address, address.DataType,
                         address.DisplayAsHex
@@ -536,7 +565,7 @@ public class ScanningProcessor {
             // UI, although this does kind of break the MVVM pattern but oh well
             if (this.ScanResults.Count < 100) {
                 this.IsRefreshingAddresses = true;
-                
+
                 foreach (ScanResultViewModel result in this.ScanResults) {
                     result.CurrentValue = await MemoryEngine360.ReadAsText(connection, result.Address, result.DataType, result.NumericDisplayType, (uint) result.FirstValue.Length);
                 }

@@ -59,13 +59,6 @@
                 <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="5" Margin="2,2" VerticalAlignment="Stretch"/>
             </Grid>
         </Border>
-        <ProgressBar x:Name="PART_BusyIndicator" IsVisible="False"
-                     DockPanel.Dock="Bottom"
-                     IsIndeterminate="True"
-                     BorderBrush="{DynamicResource PanelBackground0}"
-                     BorderThickness="0,1,0,0"
-                     Height="12"
-                     ToolTip.Tip="Currently busy..."/>
         <Grid x:Name="PART_ContentGrid" ColumnDefinitions="5,5*,5,4*,5" RowDefinitions="5,3*,5,1*,5">
             <Border Grid.Column="3" Grid.Row="1">
                 <Grid RowDefinitions="Auto,5,Auto,5,*,Auto">
@@ -78,88 +71,7 @@
                                 ToolTip.Tip="Clears the scan result list, allowing for the first scan to be performed again"/>
                     </Grid>
                     <Grid Grid.Row="2">
-                        <Grid x:Name="PART_Grid_ScanInput" ColumnDefinitions="64,5,*" RowDefinitions="24,3,24,3,Auto" Margin="0">
-                            <TextBlock Grid.Column="0" Grid.Row="0" Text="Value" VerticalAlignment="Center" Padding="4,0"
-                                       x:Name="PART_ValueOrBetweenTextBlock"/>
-                            <TextBlock Grid.Column="0" Grid.Row="2" Text="Data Type" VerticalAlignment="Center" Padding="4,0"/>
-
-                            <TextBox x:Name="PART_Input_Value1" FontFamily="Consolas"
-                                     Grid.Column="2" Grid.Row="0"
-                                     Background="{DynamicResource ABrush.Tone3.Background.Static}"
-                                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
-
-                            <Grid x:Name="PART_Grid_Input_Between" Grid.Column="2" Grid.Row="0" ColumnDefinitions="*,3,*" IsVisible="False">
-                                <TextBox x:Name="PART_Input_BetweenA" FontFamily="Consolas" Grid.Column="0"
-                                         Background="{DynamicResource ABrush.Tone3.Background.Static}"
-                                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                         ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
-                                <TextBox x:Name="PART_Input_BetweenB" FontFamily="Consolas" Grid.Column="2"
-                                         Background="{DynamicResource ABrush.Tone3.Background.Static}"
-                                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                         ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
-                            </Grid>
-
-                            <ComboBox x:Name="PART_DataTypeCombo" Grid.Column="2" Grid.Row="2" FontFamily="Consolas" Background="{DynamicResource ABrush.Tone3.Background.Static}" Padding="4,1" VerticalContentAlignment="Center"/>
-                            <TabControl Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="4"
-                                        x:Name="PART_ScanSettingsTabControl"
-                                        Background="{DynamicResource PanelBackground2}"
-                                        BorderThickness="1"
-                                        BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}">
-                                <TabItem Header="Integer">
-                                    <StackPanel Margin="3" Spacing="3">
-                                        <CheckBox x:Name="PART_DTInt_IsHex" Content="Parse value as hexadecimal" Margin="3"
-                                                  ToolTip.Tip="When true, integers are parsed a HEX values (specifying 400 gives an int value of 1024). When false, they are parsed as regular integers (400 == 400)"/>
-                                        <TextBlock Text="Scan Type"/>
-                                        <ComboBox x:Name="PART_ScanTypeCombo1" FontFamily="Consolas" Background="{DynamicResource ABrush.Tone3.Background.Static}" Padding="4,1" VerticalContentAlignment="Center"/>
-                                    </StackPanel>
-                                </TabItem>
-                                <TabItem Header="Float">
-                                    <StackPanel Margin="3" Spacing="3">
-                                        <RadioButton x:Name="PART_DTFloat_UseExactValue" Content="Use Exact">
-                                            <ToolTip.Tip>
-                                                <TextBlock TextWrapping="Wrap">
-                                                    <Run Text="Does not post-process the console value before comparing. This usually is not what you want to use."/>
-                                                    <LineBreak/>
-                                                    <Run Text="E.g. if the console contains '23.12783' and you search for '23.13', they won't match because you're basically searching for '23.13000'"/>
-                                                </TextBlock>
-                                            </ToolTip.Tip>
-                                        </RadioButton>
-                                        <RadioButton x:Name="PART_DTFloat_Truncate" Content="Truncated to query">
-                                            <ToolTip.Tip>
-                                                <TextBlock TextWrapping="Wrap">
-                                                    <Run Text="Truncates (removes) decimal places from the console value up to the number of decimal places in the query"/>
-                                                    <LineBreak/>
-                                                    <Run Text="E.g. if the console contains '23.12783' and you search for '23.13', the effective comparison is between '23.13' and '23.12', therefor, they won't match"/>
-                                                </TextBlock>
-                                            </ToolTip.Tip>
-                                        </RadioButton>
-                                        <RadioButton x:Name="PART_DTFloat_RoundToQuery" Content="Round to query">
-                                            <ToolTip.Tip>
-                                                <TextBlock TextWrapping="Wrap">
-                                                    <Run Text="Rounds the console value up to the number of decimal places in the query"/>
-                                                    <LineBreak/>
-                                                    <Run Text="E.g. if the console contains '23.12783' and you search for '23.13', they will both match"/>
-                                                </TextBlock>
-                                            </ToolTip.Tip>
-                                        </RadioButton>
-                                        <TextBlock Text="Scan Type"/>
-                                        <ComboBox x:Name="PART_ScanTypeCombo2" FontFamily="Consolas" Background="{DynamicResource ABrush.Tone3.Background.Static}" Padding="4,1" VerticalContentAlignment="Center"/>
-                                    </StackPanel>
-                                </TabItem>
-                                <TabItem Header="String">
-                                    <StackPanel Margin="3" Spacing="5">
-                                        <StackPanel Spacing="3">
-                                            <RadioButton x:Name="PART_DTString_ASCII" Content="ASCII"/>
-                                            <RadioButton x:Name="PART_DTString_UTF8" Content="UTF8"/>
-                                            <RadioButton x:Name="PART_DTString_UTF16" Content="UTF16"/>
-                                            <RadioButton x:Name="PART_DTString_UTF32" Content="UTF32"/>
-                                        </StackPanel>
-                                        <CheckBox Content="Case Sensitive"/>
-                                    </StackPanel>
-                                </TabItem>
-                            </TabControl>
-                        </Grid>
+                        <av2:ScanOptionsControl x:Name="PART_ScanOptionsControl"/>
                     </Grid>
                     <c:GroupBox Grid.Row="5"
                                 Background="{DynamicResource PanelBackground3}"
@@ -169,8 +81,8 @@
                                 VerticalHeaderAlignment="Stretch">
                         <c:GroupBox.Header>
                             <DockPanel HorizontalSpacing="4">
-                                <ToggleButton x:Name="PART_MemScanExpander" DockPanel.Dock="Right" Width="18" Height="18" Padding="0" VerticalAlignment="Center"
-                                              BorderThickness="0" Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                <ToggleButton x:Name="PART_MemScanExpander" DockPanel.Dock="Right" Width="20" Height="20" Padding="0" VerticalAlignment="Center"
+                                              Background="{DynamicResource ABrush.Tone7.Background.Static}"
                                               IsChecked="True">
                                     <ToggleButton.Resources>
                                         <converters:BoolConverter x:Key="IsCheckedToTextConverter" TrueValue="-" FalseValue="+"/>
@@ -178,10 +90,9 @@
                                     <TextBlock Text="{Binding ElementName=PART_MemScanExpander, Path=IsChecked, Converter={StaticResource IsCheckedToTextConverter}}" Margin="0,-2,0,0"/>
                                 </ToggleButton>
                                 <av:IconButton DockPanel.Dock="Right" 
-                                               Icon="{x:Static cb:SimpleIcons.MemoryIcon}" 
-                                               Width="20" Height="20" IconMaxWidth="16" IconMaxHeight="16"
+                                               Icon="{x:Static cb:SimpleIcons.MemoryIconTable}" 
+                                               Width="20" Height="20" IconMaxWidth="12" IconMaxHeight="12"
                                                Padding="2"
-                                               BorderThickness="0" 
                                                Background="{DynamicResource ABrush.Tone7.Background.Static}"
                                                cmdu:CommandUsageManager.UsageClassType="{x:Type ac:SelectRangeFromMemoryRegionCommandUsage}">
                                     <ToolTip.Tip>
@@ -195,9 +106,8 @@
                                 <av:IconButton DockPanel.Dock="Right" 
                                                Icon="{x:Static cb:SimpleIcons.ResetIcon}" 
                                                Width="20" Height="20"
-                                               IconMaxWidth="16" IconMaxHeight="16"
+                                               IconMaxWidth="12" IconMaxHeight="12"
                                                Padding="2"
-                                               BorderThickness="0" 
                                                Background="{DynamicResource ABrush.Tone7.Background.Static}"
                                                cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ResetScanOptionsCommandUsage}">
                                     <ToolTip.Tip>
@@ -313,13 +223,13 @@
                                                   Header="Address (hex)" Width="85" Binding="{Binding Address, Mode=OneTime, StringFormat=X}"
                                                   IsReadOnly="True" DoubleTapCommandId="commands.memengine.CopyScanResultsToClipboardCommand"
                                                   CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
-                                                  CanUserResize="False"/> <!-- No need to resize since it's formatted to X8 (fixed length) -->
+                                                  CanUserResize="False" FontFamily="{StaticResource FontOxanium}"/> <!-- No need to resize since it's formatted to X8 (fixed length) -->
 
                         <av2:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
                                                   Header="Value" Width="85" Binding="{Binding CurrentValue, Mode=OneWay}"
                                                   IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditScanResultValueCommand"
                                                   CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
-                                                  CanUserResize="True"/>
+                                                  CanUserResize="True" FontFamily="{StaticResource FontOxanium}"/>
 
                         <DataGridTextColumn CanUserResize="True" Header="Previous" Width="85" Binding="{Binding PreviousValue, Mode=OneWay}" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True"/>
                         <DataGridTextColumn CanUserResize="True" Header="First" Width="85" Binding="{Binding FirstValue, Mode=OneTime}" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True"/>
@@ -337,21 +247,30 @@
                     <DockPanel>
                         <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="5">
+                            <av:IconButton Icon="{x:Static cb:SimpleIcons.MemoryIcon}" IconMaxWidth="12" IconMaxHeight="12"
+                                    Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                    BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                    cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ShowMemoryCommandUsage}"
+                                    ToolTip.Tip="Opens a view of the console's memory"/>
+                            
                             <Button Content="Add Scan Result(s)" Padding="5,1"
                                     Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                                     cmdu:CommandUsageManager.UsageClassType="{x:Type ac:AddSelectedScanResultsToSavedAddressListCommandUsage}"
                                     ToolTip.Tip="Adds the selected results into the saved address list. Does not add addresses that are already present"/>
+                            
                             <Button Content="Refresh" Padding="5,1"
                                     Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                                     cmdu:CommandUsageManager.UsageClassType="{x:Type ac:RefreshSavedAddressesCommandUsage}"
                                     ToolTip.Tip="Refresh the values. This is done automatically every 2 seconds"/>
+                            
                             <Button Content="Add Entry..." Padding="5,1"
                                     Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                                     cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.AddSavedAddressCommand"
                                     ToolTip.Tip="Adds a row manually"/>
+                            
                             <Button Content="Clear List" Padding="4,1"
                                     Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
@@ -365,7 +284,8 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Address (hex)" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}"
                                             Binding="{Binding Address, Mode=OneWay, StringFormat=X}"
-                                            IsReadOnly="True"/>
+                                            IsReadOnly="True" FontFamily="{StaticResource FontOxanium}"
+                                            CanUserResize="False"/>
 
                         <DataGridTextColumn Header="Description" Width="200" x:DataType="{x:Type engine:SavedAddressViewModel}"
                                             Binding="{Binding Description, Mode=TwoWay}"
@@ -381,7 +301,7 @@
                                                   Binding="{Binding Value, Mode=OneWay}"
                                                   IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressValueCommand"
                                                   CellDataKeyForDC="{x:Static engine:SavedAddressViewModel.DataKey}"
-                                                  CanUserResize="True"/>
+                                                  CanUserResize="True" FontFamily="{StaticResource FontOxanium}"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </c:GroupBox>

@@ -2,7 +2,107 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="250" d:DesignHeight="200"
              x:Class="MemEngine360.Avalonia.ScanOptionsControl">
-    Welcome to Avalonia!
+    <Grid x:Name="PART_Grid_ScanInput" ColumnDefinitions="64,3,*,3,Auto" RowDefinitions="24,3,24,3,Auto" Margin="0">
+        <TextBlock Grid.Column="0" Grid.Row="0" Text="Value" VerticalAlignment="Center" Padding="4,0" x:Name="PART_ValueOrBetweenTextBlock"/>
+        <TextBlock Grid.Column="0" Grid.Row="2" Text="Data Type" VerticalAlignment="Center" Padding="4,0"/>
+
+        <Grid x:Name="PART_UseFirstOrPrevButtonGrid" Grid.Column="4" RowDefinitions="*,3,*">
+            <ToggleButton Grid.Row="0" Padding="5,0" x:Name="PART_UseFirstValue" 
+                    Background="{DynamicResource ABrush.Tone5.Background.Static}"
+                    BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                    VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" 
+                    ToolTip.Tip="Use the rows' First Value as the search value">
+                <TextBlock Text="First" FontSize="8" FontFamily="{StaticResource FontOxanium}" Padding="0" Margin="0,-1,0,0"/>
+            </ToggleButton>
+            <ToggleButton Grid.Row="2" Padding="5,0" x:Name="PART_UsePreviousValue" 
+                    Background="{DynamicResource ABrush.Tone5.Background.Static}"
+                    BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                    VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" 
+                    ToolTip.Tip="Use the rows' Previous Value as the search value">
+                <TextBlock Text="Prev" FontSize="8" FontFamily="{StaticResource FontOxanium}" Padding="0" Margin="0,-1,0,0"/>
+            </ToggleButton>
+        </Grid>
+        <TextBox x:Name="PART_Input_Value1" FontFamily="Consolas"
+                 Grid.Column="2" Grid.Row="0" BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                 Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                 ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
+
+        <Grid x:Name="PART_Grid_Input_Between" Grid.Column="2" Grid.Row="0" ColumnDefinitions="*,3,*" IsVisible="False">
+            <TextBox x:Name="PART_Input_BetweenA" FontFamily="Consolas" Grid.Column="0"
+                     Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                     ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
+            <TextBox x:Name="PART_Input_BetweenB" FontFamily="Consolas" Grid.Column="2"
+                     Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                     ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
+        </Grid>
+
+        <ComboBox x:Name="PART_DataTypeCombo" 
+                  Grid.Column="2" Grid.ColumnSpan="3" Grid.Row="2" 
+                  FontFamily="Consolas" 
+                  Background="{DynamicResource ABrush.Tone3.Background.Static}" 
+                  Padding="4,1" VerticalContentAlignment="Center"/>
+        <TabControl Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="4"
+                    x:Name="PART_ScanSettingsTabControl"
+                    Background="{DynamicResource PanelBackground2}"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}">
+            <TabItem Header="Integer">
+                <StackPanel Margin="3" Spacing="3">
+                    <CheckBox x:Name="PART_DTInt_IsHex" Content="Parse value as hexadecimal" Margin="3"
+                              ToolTip.Tip="When true, integers are parsed a HEX values (specifying 400 gives an int value of 1024). When false, they are parsed as regular integers (400 == 400)"/>
+                    <TextBlock Text="Scan Type"/>
+                    <ComboBox x:Name="PART_ScanTypeCombo1" FontFamily="Consolas" Background="{DynamicResource ABrush.Tone3.Background.Static}" Padding="4,1" VerticalContentAlignment="Center"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Float">
+                <StackPanel Margin="3" Spacing="3">
+                    <RadioButton x:Name="PART_DTFloat_UseExactValue" Content="Use Exact">
+                        <ToolTip.Tip>
+                            <TextBlock TextWrapping="Wrap">
+                                <Run Text="Does not post-process the console value before comparing. This usually is not what you want to use."/>
+                                <LineBreak/>
+                                <Run Text="E.g. if the console contains '23.12783' and you search for '23.13', they won't match because you're basically searching for '23.13000'"/>
+                            </TextBlock>
+                        </ToolTip.Tip>
+                    </RadioButton>
+                    <RadioButton x:Name="PART_DTFloat_Truncate" Content="Truncated to query">
+                        <ToolTip.Tip>
+                            <TextBlock TextWrapping="Wrap">
+                                <Run Text="Truncates (removes) decimal places from the console value up to the number of decimal places in the query"/>
+                                <LineBreak/>
+                                <Run Text="E.g. if the console contains '23.12783' and you search for '23.13', the effective comparison is between '23.13' and '23.12', therefor, they won't match"/>
+                            </TextBlock>
+                        </ToolTip.Tip>
+                    </RadioButton>
+                    <RadioButton x:Name="PART_DTFloat_RoundToQuery" Content="Round to query">
+                        <ToolTip.Tip>
+                            <TextBlock TextWrapping="Wrap">
+                                <Run Text="Rounds the console value up to the number of decimal places in the query"/>
+                                <LineBreak/>
+                                <Run Text="E.g. if the console contains '23.12783' and you search for '23.13', they will both match"/>
+                            </TextBlock>
+                        </ToolTip.Tip>
+                    </RadioButton>
+                    <TextBlock Text="Scan Type"/>
+                    <ComboBox x:Name="PART_ScanTypeCombo2" FontFamily="Consolas" Background="{DynamicResource ABrush.Tone3.Background.Static}" Padding="4,1" VerticalContentAlignment="Center"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="String">
+                <StackPanel Margin="3" Spacing="5">
+                    <StackPanel Spacing="3">
+                        <RadioButton x:Name="PART_DTString_ASCII" Content="ASCII"/>
+                        <RadioButton x:Name="PART_DTString_UTF8" Content="UTF8"/>
+                        <RadioButton x:Name="PART_DTString_UTF16" Content="UTF16"/>
+                        <RadioButton x:Name="PART_DTString_UTF32" Content="UTF32"/>
+                    </StackPanel>
+                    <CheckBox Content="Case Sensitive"/>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </Grid>
 </UserControl>

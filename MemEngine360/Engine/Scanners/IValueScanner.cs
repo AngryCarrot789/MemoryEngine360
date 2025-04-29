@@ -39,7 +39,7 @@ namespace MemEngine360.Engine.Scanners;
 /// </summary>
 public interface IValueScanner {
     // This is only really supposed to be used for the number dragger but we can get away with it ;)
-    internal static readonly AutoMemoryValueFormatter ByteFormatter = new AutoMemoryValueFormatter() {
+    public static readonly AutoMemoryValueFormatter ByteFormatter = new AutoMemoryValueFormatter() {
         SourceFormat = MemoryFormatType.Byte,
         NonEditingRoundedPlaces = 1,
         AllowedFormats = [MemoryFormatType.Byte, MemoryFormatType.KiloByte1000, MemoryFormatType.MegaByte1000, MemoryFormatType.GigaByte1000, MemoryFormatType.TeraByte1000]
@@ -95,7 +95,7 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
         else {
             throw new Exception("Invalid processor data type for this scanner");
         }
-
+        
         if (!T.TryParse(processor.InputA, numberStyles, null, out inputA)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid input", "Input is not valid for this search type: " + processor.InputA);
             return (inputA, inputB, false);
@@ -197,11 +197,24 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
             return false;
         }
 
-        (T inputA, T inputB, bool performFirstScan) = await GetInputs(processor);
-        if (!performFirstScan) {
-            return false;
+        T inputA, inputB;
+        if (processor.UseFirstValueForNextScan || processor.UsePreviousValueForNextScan) {
+            inputA = default;
+            inputB = default;
+        }
+        else {
+            (T theInputA, T theInputB, bool performFirstScan) = await GetInputs(processor);
+            if (!performFirstScan) {
+                return false;
+            }
+            else {
+                inputA = theInputA;
+                inputB = theInputB;
+            }
         }
 
+        string[]? reparseInputA = processor.UseFirstValueForNextScan || processor.UsePreviousValueForNextScan ? new string[srcList.Count] : null;
+        
         IConsoleConnection connection = processor.MemoryEngine360.Connection!;
         using (activity.CompletionState.PushCompletionRange(0.0, 256.0 / srcList.Count)) {
             for (int i = 0; i < srcList.Count; i++) {
@@ -210,6 +223,10 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
                 activity.CompletionState.OnProgress(1.0);
 
                 ScanResultViewModel res = srcList[i];
+                if (reparseInputA != null) {
+                    reparseInputA[i] = processor.UseFirstValueForNextScan ? res.FirstValue : res.PreviousValue;
+                }
+                    
                 res.PreviousValue = res.CurrentValue;
                 res.CurrentValue = await MemoryEngine360.ReadAsText(connection, res.Address, res.DataType, res.NumericDisplayType, (uint) res.FirstValue.Length);
             }
@@ -220,7 +237,8 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
             for (int i = 0; i < srcList.Count; i++) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
                 activity.CompletionState.OnProgress(1.0);
-                if (this.CanKeepResultForNextScan(srcList[i], inputA, inputB)) {
+                T theInput = reparseInputA != null ? T.Parse(reparseInputA[i], null) : inputA;
+                if (this.CanKeepResultForNextScan(srcList[i], theInput, inputB)) {
                     dstList.Add(srcList[i]);
                 }
             }

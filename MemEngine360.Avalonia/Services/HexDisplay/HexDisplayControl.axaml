@@ -1,0 +1,53 @@
+﻿<s:WindowingContentControl xmlns="https://github.com/avaloniaui"
+                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                           xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                           xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                           xmlns:avaloniaHex="clr-namespace:AvaloniaHex;assembly=AvaloniaHex"
+                           xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
+                           xmlns:hexDisplay="clr-namespace:MemEngine360.Avalonia.Services.HexDisplay"
+                           mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                           x:Class="MemEngine360.Avalonia.Services.HexDisplay.HexDisplayControl"
+                           WindowBorderBrush="DodgerBlue"
+                           WindowTitleBarBrush="{DynamicResource ABrush.Tone4.Background.Static}">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource ABrush.Tone4.Background.Static}"
+                BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}"
+                BorderThickness="0,1,0,0"
+                Height="42">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0" Spacing="10">
+                <Button x:Name="PART_CancelButton" Content="Close" MinWidth="72" Height="24" Padding="5,1" CornerRadius="3" FocusAdorner="{x:Null}" Theme="{StaticResource ButtonImplicitStyleSetters}">
+                    <Button.Styles>
+                        <Style Selector="Button[IsPointerOver=True]">
+                            <Setter Property="Background" Value="Red"/>
+                            <Setter Property="BorderBrush" Value="Red"/>
+                            <Setter Property="BorderThickness" Value="3"/>
+                        </Style>
+                        <Style Selector="Button[IsFocused=True]">
+                            <Setter Property="BorderBrush" Value="Red"/>
+                            <Setter Property="BorderThickness" Value="3"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </StackPanel>
+        </Border>
+        <Border DockPanel.Dock="Top" 
+                Background="{Binding RelativeSource={RelativeSource AncestorType=hexDisplay:HexDisplayControl}, Path=WindowTitleBarBrush}">
+            <Grid ColumnDefinitions="5,Auto,100,0,Auto,100,5,75,5,75,5,*,5" Margin="0,3" Height="24">
+                <TextBlock Text="Address" Grid.Column="1" VerticalAlignment="Center" Padding="5,0"/>
+                <TextBlock Text="Length" Grid.Column="4" VerticalAlignment="Center" Padding="5,0"/>
+
+                <TextBox x:Name="PART_AddressTextBox" Grid.Column="2" VerticalAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
+                <TextBox x:Name="PART_LengthTextBox" Grid.Column="5" VerticalAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
+
+                <Button Grid.Column="7" x:Name="PART_Refresh" Content="Refresh" ToolTip.Tip="Reload values from console"/>
+                <Button Grid.Column="9" x:Name="PART_Upload" Content="Upload" ToolTip.Tip="Upload modified values to console"/>
+                <ProgressBar Grid.Column="11" x:Name="PART_Progress" IsVisible="False"/>
+            </Grid>
+        </Border>
+        <avaloniaHex:HexEditor x:Name="PART_HexEditor" FontFamily="Consolas" 
+                               Background="{DynamicResource ABrush.Tone2.Background.Static}"
+                               BorderBrush="{DynamicResource PanelBorderBrush}"
+                               BorderThickness="0,1"/>
+    </DockPanel>
+</s:WindowingContentControl>

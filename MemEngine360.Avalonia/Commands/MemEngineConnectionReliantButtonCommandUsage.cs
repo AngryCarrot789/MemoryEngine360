@@ -84,6 +84,10 @@ public class SelectRangeFromMemoryRegionCommandUsage : MemEngineConnectionRelian
     public SelectRangeFromMemoryRegionCommandUsage() : base("commands.memengine.SelectRangeFromMemoryRegionCommand") {
     }
 }
+public class ShowMemoryCommandUsage : MemEngineConnectionReliantButtonCommandUsage {
+    public ShowMemoryCommandUsage() : base("commands.memengine.ShowMemoryCommand") {
+    }
+}
 
 public class ResetScanOptionsCommandUsage : MemEngineConnectionReliantButtonCommandUsage {
     public ResetScanOptionsCommandUsage() : base("commands.memengine.ResetScanOptionsCommand") {

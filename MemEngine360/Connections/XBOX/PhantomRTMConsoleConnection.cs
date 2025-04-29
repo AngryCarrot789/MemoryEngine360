@@ -27,6 +27,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Connections.XBOX.Threads;
+using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Connections.XBOX;
 
@@ -69,7 +70,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     public void Dispose() {
         if (this.isDisposed)
             return;
-        
+
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
         if (this.client.Connected) {
@@ -255,10 +256,10 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
                 return line.Substring(6, line.Length - 7);
             }
         }
-        
+
         return null;
     }
-    
+
     public async Task<List<MemoryRegion>> GetMemoryRegions() {
         List<string> list = await this.SendCommandAndReceiveLines("walkmem");
         return list.Select(line => {
@@ -330,6 +331,37 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         return await this.ReadBytesInternal(address, buffer, offset, count);
     }
 
+    public Task ReadBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CancellationToken cancellationToken, CompletionState? completion = null) {
+        if (count == chunkSize)
+            return this.ReadBytes(address, buffer, offset, count);
+        return this.ReadBytesInChunksWithCancellation(address, buffer, offset, count, chunkSize, cancellationToken, completion);
+    }
+
+    private async Task ReadBytesInChunksWithCancellation(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CancellationToken cancellationToken, CompletionState? completion) {
+        cancellationToken.ThrowIfCancellationRequested();
+        this.EnsureNotDisposed();
+        this.EnsureNotBusy();
+        using BusyToken x = this.CreateBusyToken();
+
+        // just in case
+        if (chunkSize > count)
+            chunkSize = count;
+        
+        int length = (int) count;
+        using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / length);
+        while (length > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int cbRead = await this.ReadBytesInternal(address, buffer, offset, (uint) Math.Min(chunkSize, length));
+            length -= cbRead;
+            offset += cbRead;
+            
+            completion?.OnProgress(cbRead);
+        }
+
+        if (length < 0)
+            throw new Exception("Error: got more bytes that we wanted");
+    }
+
     public async Task<byte[]> ReadBytes(uint address, uint count) {
         byte[] buffer = new byte[count];
         await this.ReadBytes(address, buffer, 0, count);
@@ -349,7 +381,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         byte[] buffer = await this.ReadBytes(address, (uint) Unsafe.SizeOf<T>());
         if (BitConverter.IsLittleEndian)
             Array.Reverse(buffer);
-        
+
         return MemoryMarshal.Read<T>(buffer);
     }
 
@@ -357,7 +389,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         if (!BitConverter.IsLittleEndian) {
             return await this.ReadValue<T>(address);
         }
-        
+
         this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
@@ -368,7 +400,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
             await this.ReadBytesInternal((uint) (address + offset), buffer, offset, (uint) cbField);
             Array.Reverse(buffer, offset, cbField);
             offset += cbField;
-            
+
             Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadString));
         }
 
@@ -381,7 +413,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
 
     public async Task<string> ReadString(uint address, uint count, bool removeNull = true) {
         byte[] buffer = await this.ReadBytes(address, count);
-        
+
         if (removeNull) {
             int j = 0, k = 0;
             for (; k < count; k++) {
@@ -392,7 +424,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
 
             count = (uint) j;
         }
-        
+
         return Encoding.ASCII.GetString(buffer, 0, (int) count);
     }
 
@@ -410,7 +442,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         using BusyToken x = this.CreateBusyToken();
 
         ONE_BYTE[0] = value;
-        await this.WriteBytes(address, ONE_BYTE);
+        await this.WriteBytesAndGetResponseInternal(address, ONE_BYTE);
     }
 
     public Task WriteBool(uint address, bool value) {
@@ -435,14 +467,14 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
             // TODO: I don't have a big endian computer nor a big enough brain to know if this works
             await this.WriteValue(address, value);
         }
-        
+
         int offset = 0;
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
             Unsafe.As<byte, T>(ref buffer[offset]) = value;
             Array.Reverse(buffer, offset, cbField);
             offset += cbField;
-            
+
             Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadString));
         }
 
@@ -503,7 +535,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     public Task WriteNOP(uint address) {
         return this.WriteBytes(address, [0x60, 0x00, 0x00, 0x00]);
     }
-    
+
     private async Task<int> ReadBytesInternal(uint address, byte[] buffer, int offset, uint count) {
         ConsoleResponse response = await this.SendCommandAndGetResponse("getmem addr=0x" + address.ToString("X8") + " length=0x" + count.ToString("X8") + "\r\n");
         if (response.ResponseType != ResponseType.MultiResponse) {
@@ -556,7 +588,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
             throw new IOException("IOError while writing bytes", e);
         }
     }
-    
+
     private async Task WriteBytesAndGetResponseInternal(uint address, byte[] bytes) {
         string str = "setmem addr=0x" + address.ToString("X8") + " data=";
         foreach (byte b in bytes)
@@ -620,7 +652,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
 
     public Task WriteVector3(uint Offset, Vector3 vec3) {
         return this.WriteStruct(Offset, vec3, 4, 4, 4);
-        
+
         // byte[] bytes = new byte[12];
         // byte[] x = BitConverter.GetBytes(vec3.X);
         // byte[] y = BitConverter.GetBytes(vec3.Y);
@@ -651,7 +683,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
             while (length >= 0x400) {
                 if (command == null)
                     command = "getmemex addr=0x" + address.ToString("X8") + " length=0x400" + "\r\n";
-                
+
                 ConsoleResponse response = await this.SendCommandAndGetResponse(command);
                 if (response.ResponseType != ResponseType.BinaryResponse) {
                     return output;

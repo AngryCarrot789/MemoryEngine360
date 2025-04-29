@@ -20,6 +20,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,16 +28,14 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using MemEngine360.Avalonia.Resources.Icons;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Connections.XBOX;
 using MemEngine360.Engine;
-using MemEngine360.Engine.Modes;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
-using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
-using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.Selecting;
@@ -96,30 +95,15 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
             nameof(ScanningProcessor.IsScanningChanged),
             (b) => {
                 MemEngineView w = (MemEngineView) b.Control;
-                w.PART_Grid_ScanInput.IsEnabled = !b.Model.IsScanning;
+                w.PART_ScanOptionsControl.IsEnabled = !b.Model.IsScanning;
                 w.PART_Grid_ScanOptions.IsEnabled = !b.Model.IsScanning;
             });
 
-    private readonly IBinder<ScanningProcessor> inputValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
-    private readonly IBinder<ScanningProcessor> inputBetweenABinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
-    private readonly IBinder<ScanningProcessor> inputBetweenBBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputBChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputB, (b) => b.Model.InputB = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> startAddressBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.StartAddressChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_StartAddress.Content = $"0x{b.Model.StartAddress:X} ({b.Model.StartAddress.ToString()})");
     private readonly IBinder<ScanningProcessor> addrLengthBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanLengthChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Length.Content = $"0x{b.Model.ScanLength:X} ({b.Model.ScanLength.ToString()})");
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
-    private readonly IBinder<ScanningProcessor> int_isHexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.IsIntInputHexadecimalChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.IsIntInputHexadecimal, (b) => b.Model.IsIntInputHexadecimal = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
-    private readonly EventPropertyEnumBinder<FloatScanOption> floatScanModeBinder = new EventPropertyEnumBinder<FloatScanOption>(typeof(ScanningProcessor), nameof(ScanningProcessor.FloatScanModeChanged), (x) => ((ScanningProcessor) x).FloatScanOption, (x, v) => ((ScanningProcessor) x).FloatScanOption = v);
-    private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(ScanningProcessor), nameof(ScanningProcessor.StringScanModeChanged), (x) => ((ScanningProcessor) x).StringScanOption, (x, v) => ((ScanningProcessor) x).StringScanOption = v);
-    private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(ScanningProcessor), nameof(ScanningProcessor.DataTypeChanged), (x) => ((ScanningProcessor) x).DataType, (x, y) => ((ScanningProcessor) x).DataType = y);
-    private readonly EventPropertyBinder<ScanningProcessor> hasDoneFirstScanBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.HasFirstScanChanged), (b) => {
-        MemEngineView view = (MemEngineView) b.Control;
-        view.PART_DataTypeCombo.IsEnabled = !b.Model.HasDoneFirstScan; 
-        // view.PART_ScanSettingsTabControl.IsEnabled = !b.Model.HasDoneFirstScan; 
-    });
-    private readonly ComboBoxToEventPropertyEnumBinder<NumericScanType> scanTypeBinder1 = new ComboBoxToEventPropertyEnumBinder<NumericScanType>(typeof(ScanningProcessor), nameof(ScanningProcessor.NumericScanTypeChanged), (x) => ((ScanningProcessor) x).NumericScanType, (x, y) => ((ScanningProcessor) x).NumericScanType = y);
-    private readonly ComboBoxToEventPropertyEnumBinder<NumericScanType> scanTypeBinder2 = new ComboBoxToEventPropertyEnumBinder<NumericScanType>(typeof(ScanningProcessor), nameof(ScanningProcessor.NumericScanTypeChanged), (x) => ((ScanningProcessor) x).NumericScanType, (x, y) => ((ScanningProcessor) x).NumericScanType = y);
-    private readonly AvaloniaPropertyToEventPropertyBinder<ScanningProcessor> selectedTabIndexBinder;
     private readonly AsyncRelayCommand editAddressRangeCommand;
     private readonly AsyncRelayCommand editAlignmentCommand;
 
@@ -128,7 +112,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
     public MemoryEngine360 MemoryEngine360 { get; }
 
     public TopLevelMenuRegistry TopLevelMenuRegistry { get; }
-    
+
     public ContextEntryGroup RemoteCommandsContextEntry { get; }
 
     public IListSelectionManager<ScanResultViewModel> ScanResultSelectionManager { get; }
@@ -148,23 +132,22 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
     private ActivityTask? primaryActivity;
 
     // used to remember the last selected data type when changing via the tab control
-    private DataType lastIntegerDataType = DataType.Int32, lastFloatDataType = DataType.Float;
     private readonly ContextEntryGroup themesSubList;
     private ObservableItemProcessorIndexing<Theme>? themeListHandler;
 
     public MemEngineView() {
         this.InitializeComponent();
-        
+
         this.TopLevelMenuRegistry = new TopLevelMenuRegistry();
         {
             ContextEntryGroup entry = new ContextEntryGroup("File");
-            entry.Items.Add(new CommandContextEntry("commands.memengine.ConnectToConsoleCommand", "Connect to console..."));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.ConnectToConsoleCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
             entry.Items.Add(new CommandContextEntry("commands.memengine.TestShowMemoryCommand", "Test Hex editor"));
             entry.Items.Add(new SeparatorEntry());
             entry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
             this.TopLevelMenuRegistry.Items.Add(entry);
         }
-        
+
         {
             this.RemoteCommandsContextEntry = new ContextEntryGroup("Remote Controls");
             this.TopLevelMenuRegistry.Items.Add(this.RemoteCommandsContextEntry);
@@ -172,7 +155,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
         this.themesSubList = new ContextEntryGroup("Themes");
         this.TopLevelMenuRegistry.Items.Add(this.themesSubList);
-        
+
         {
             ContextEntryGroup entry = new ContextEntryGroup("About");
             entry.Items.Add(new CommandContextEntry("commands.application.AboutApplicationCommand", "About MemEngine360"));
@@ -180,7 +163,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         }
 
         this.PART_TopLevelMenu.TopLevelMenuRegistry = this.TopLevelMenuRegistry;
-        
+
         this.updateActivityText = RateLimitedDispatchActionBase.ForDispatcherSync(() => {
             this.PART_LatestActivity.Text = this.latestActivityText;
         }, TimeSpan.FromMilliseconds(50));
@@ -192,62 +175,6 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.Activity = "Welcome to MemEngine360.";
         this.PART_SavedAddressList.ItemsSource = this.MemoryEngine360.ScanningProcessor.SavedAddresses;
         this.PART_ScanListResults.ItemsSource = this.MemoryEngine360.ScanningProcessor.ScanResults;
-        this.floatScanModeBinder.Assign(this.PART_DTFloat_UseExactValue, FloatScanOption.UseExactValue);
-        this.floatScanModeBinder.Assign(this.PART_DTFloat_Truncate, FloatScanOption.TruncateToQuery);
-        this.floatScanModeBinder.Assign(this.PART_DTFloat_RoundToQuery, FloatScanOption.RoundToQuery);
-
-        this.stringScanModeBinder.Assign(this.PART_DTString_ASCII, StringType.ASCII);
-        this.stringScanModeBinder.Assign(this.PART_DTString_UTF8, StringType.UTF8);
-        this.stringScanModeBinder.Assign(this.PART_DTString_UTF16, StringType.UTF16);
-        this.stringScanModeBinder.Assign(this.PART_DTString_UTF32, StringType.UTF32);
-
-        // Update latest used data types
-        this.MemoryEngine360.ScanningProcessor.DataTypeChanged += p => {
-            if (p.DataType.IsFloat()) {
-                this.lastFloatDataType = p.DataType;
-            }
-            else if (p.DataType.IsInteger()) {
-                this.lastIntegerDataType = p.DataType;
-            }
-        };
-
-        // Bind between tab control and data type
-        this.selectedTabIndexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TabControl.SelectedIndexProperty, nameof(ScanningProcessor.DataTypeChanged), (b) => {
-            switch (b.Model.DataType) {
-                case DataType.Byte:
-                case DataType.Int16:
-                case DataType.Int32:
-                case DataType.Int64: {
-                    ((TabControl) b.Control).SelectedIndex = 0;
-                    break;
-                }
-                case DataType.Float:
-                case DataType.Double: {
-                    ((TabControl) b.Control).SelectedIndex = 1;
-                    break;
-                }
-                case DataType.String: {
-                    ((TabControl) b.Control).SelectedIndex = 2;
-                    break;
-                }
-                default: throw new ArgumentOutOfRangeException();
-            }
-
-            this.UpdateUIForScanTypeAndDataType();
-        }, (b) => {
-            if (b.Model.HasDoneFirstScan)
-                return;
-            
-            switch (((TabControl) b.Control).SelectedIndex) {
-                case 0: b.Model.DataType = this.lastIntegerDataType; break;
-                case 1: b.Model.DataType = this.lastFloatDataType; break;
-                case 2: b.Model.DataType = DataType.String; break;
-            }
-        });
-
-        this.MemoryEngine360.ScanningProcessor.NumericScanTypeChanged += p => {
-            this.UpdateUIForScanTypeAndDataType();
-        };
 
         this.MemoryEngine360.ScanningProcessor.ScanResults.CollectionChanged += (sender, args) => {
             this.PART_Run_CountResults.Text = ((ObservableCollection<ScanResultViewModel>) sender!).Count.ToString();
@@ -285,7 +212,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
                 BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
             }
         });
-        
+
         this.editAlignmentCommand = new AsyncRelayCommand(async () => {
             ScanningProcessor p = this.MemoryEngine360.ScanningProcessor;
             SingleUserInputInfo info = new SingleUserInputInfo(p.Alignment.ToString("X")) {
@@ -300,7 +227,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
                         e.Errors.Add("Alignment cannot be zero!");
                 }
             };
-            
+
             static void UpdateFooter(SingleUserInputInfo inf) {
                 if (inf.TextErrors != null) {
                     inf.Footer = "Cannot show examples: invalid alignment";
@@ -313,15 +240,17 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
                     inf.Footer = "We will scan " + sb.Append(", etc.");
                 }
             }
-            
+
             SingleUserInputInfo.TextParameter.AddValueChangedHandler(info, (parameter, owner) => UpdateFooter((SingleUserInputInfo) owner));
             UpdateFooter(info);
             if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
                 p.Alignment = NumberUtils.ParseHexOrRegular<uint>(info.Text);
             }
         });
+
+        this.PART_ScanOptionsControl.MemoryEngine360 = this.MemoryEngine360;
     }
-    
+
     private static void UpdateMemoryRangeFooterText(DoubleUserInputInfo theInfo) {
         const string prefix = "Scan Range (inclusive):";
         if (theInfo.TextErrorsA != null || theInfo.TextErrorsB != null) {
@@ -334,35 +263,6 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         }
     }
 
-    private void UpdateUIForScanTypeAndDataType() {
-        ScanningProcessor sp = this.MemoryEngine360.ScanningProcessor;
-        if (sp.NumericScanType == NumericScanType.Between && sp.DataType.IsNumeric()) {
-            this.PART_Input_Value1.IsVisible = false;
-            this.PART_Grid_Input_Between.IsVisible = true;
-            this.PART_ValueOrBetweenTextBlock.Text = "Between";
-            if (this.inputValueBinder.IsFullyAttached)
-                this.inputValueBinder.Detach();
-
-            if (!this.inputBetweenABinder.IsFullyAttached)
-                this.inputBetweenABinder.Attach(this.PART_Input_BetweenA, sp);
-            if (!this.inputBetweenBBinder.IsFullyAttached)
-                this.inputBetweenBBinder.Attach(this.PART_Input_BetweenB, sp);
-        }
-        else {
-            this.PART_Input_Value1.IsVisible = true;
-            this.PART_Grid_Input_Between.IsVisible = false;
-            this.PART_ValueOrBetweenTextBlock.Text = "Value";
-            if (this.inputBetweenABinder.IsFullyAttached)
-                this.inputBetweenABinder.Detach();
-
-            if (this.inputBetweenBBinder.IsFullyAttached)
-                this.inputBetweenBBinder.Detach();
-
-            if (!this.inputValueBinder.IsFullyAttached)
-                this.inputValueBinder.Attach(this.PART_Input_Value1, this.MemoryEngine360.ScanningProcessor);
-        }
-    }
-
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
         this.connectedHostNameBinder.Attach(this.PART_ConnectedHostName, this.MemoryEngine360);
@@ -372,15 +272,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.addrLengthBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.alignmentBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, this.MemoryEngine360.ScanningProcessor);
-        this.int_isHexBinder.Attach(this.PART_DTInt_IsHex, this.MemoryEngine360.ScanningProcessor);
         this.scanMemoryPagesBinder.Attach(this.PART_ScanOption_ScanMemoryPages, this.MemoryEngine360.ScanningProcessor);
-        this.floatScanModeBinder.Attach(this.MemoryEngine360.ScanningProcessor);
-        this.stringScanModeBinder.Attach(this.MemoryEngine360.ScanningProcessor);
-        this.dataTypeBinder.Attach(this.PART_DataTypeCombo, this.MemoryEngine360.ScanningProcessor);
-        this.hasDoneFirstScanBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
-        this.scanTypeBinder1.Attach(this.PART_ScanTypeCombo1, this.MemoryEngine360.ScanningProcessor);
-        this.scanTypeBinder2.Attach(this.PART_ScanTypeCombo2, this.MemoryEngine360.ScanningProcessor);
-        this.selectedTabIndexBinder.Attach(this.PART_ScanSettingsTabControl, this.MemoryEngine360.ScanningProcessor);
         this.PART_ActiveBackgroundTaskGrid.IsVisible = false;
         this.MemoryEngine360.ConnectionChanged += this.OnConnectionChanged;
 
@@ -391,14 +283,12 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         }, (sender, oldIndex, newIndex, item) => {
             this.themesSubList.Items.Move(oldIndex, newIndex);
         }).AddExistingItems();
-        
-        this.UpdateUIForScanTypeAndDataType();
 
         ActivityManager activityManager = ActivityManager.Instance;
         activityManager.TaskStarted += this.OnTaskStarted;
         activityManager.TaskCompleted += this.OnTaskCompleted;
     }
-    
+
     private class SetThemeContextEntry : CustomContextEntry {
         private readonly Theme theme;
 
@@ -427,10 +317,10 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
     protected override void OnUnloaded(RoutedEventArgs e) {
         base.OnUnloaded(e);
-        
+
         this.themeListHandler?.Dispose();
         this.themeListHandler = null;
-        
+
         this.connectedHostNameBinder.Detach();
         // this.isBusyBinder.Detach();
         this.isScanningBinder.Detach();
@@ -438,22 +328,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.addrLengthBinder.Detach();
         this.alignmentBinder.Detach();
         this.pauseXboxBinder.Detach();
-        this.int_isHexBinder.Detach();
         this.scanMemoryPagesBinder.Detach();
-        this.floatScanModeBinder.Detach();
-        this.stringScanModeBinder.Detach();
-        this.dataTypeBinder.Detach();
-        this.hasDoneFirstScanBinder.Detach();
-        this.scanTypeBinder1.Detach();
-        this.scanTypeBinder2.Detach();
-        this.selectedTabIndexBinder.Detach();
-
-        if (this.inputValueBinder.IsFullyAttached)
-            this.inputValueBinder.Detach();
-        if (this.inputBetweenABinder.IsFullyAttached)
-            this.inputBetweenABinder.Detach();
-        if (this.inputBetweenBBinder.IsFullyAttached)
-            this.inputBetweenBBinder.Detach();
     }
 
     protected override void OnWindowOpened() {
@@ -485,6 +360,10 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
             return isCancelled;
         }
 
+        foreach (ActivityTask task in ActivityManager.Instance.ActiveTasks.ToList()) {
+            task.TryCancel();
+        }
+
         this.MemoryEngine360.IsShuttingDown = true;
         if (this.MemoryEngine360.ScanningProcessor.IsScanning) {
             ActivityTask? activity = this.MemoryEngine360.ScanningProcessor.ScanningActivity;
@@ -497,13 +376,9 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
                 }
             }
         }
-
-        IDisposable? token;
-        do {
-            if ((token = await this.MemoryEngine360.BeginBusyOperationActivityAsync()) != null) {
-                break;
-            }
-
+        
+        IDisposable? token = this.MemoryEngine360.BeginBusyOperation();
+        while (token == null) {
             MessageBoxInfo info = new MessageBoxInfo() {
                 Caption = "Engine busy", Message = "Cannot close window yet because the engine is still busy and cannot be shutdown safely. What do you want to do?",
                 Buttons = MessageBoxButton.YesNoCancel,
@@ -517,9 +392,11 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
             switch (result) {
                 case MessageBoxResult.Cancel: return true; // stop window closing
                 case MessageBoxResult.No:     return false; // let TCP pipes auto-timeout
-                default:                      continue; // continue loop
+                default:                      break; // continue loop
             }
-        } while (true);
+
+            token = await this.MemoryEngine360.BeginBusyOperationActivityAsync();
+        }
 
         try {
             this.MemoryEngine360.Connection?.Dispose();
@@ -602,7 +479,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
     private void PART_ScanOption_Length_OnDoubleTapped(object? sender, TappedEventArgs e) {
         this.editAddressRangeCommand.Execute(null);
     }
-    
+
     private void PART_ScanOption_Alignment_OnDoubleTapped(object? sender, TappedEventArgs e) {
         this.editAlignmentCommand.Execute(null);
     }

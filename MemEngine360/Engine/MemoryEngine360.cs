@@ -268,7 +268,34 @@ public class MemoryEngine360 {
             await action(token, this.connection!);
         }
     }
+    
+    /// <summary>
+    /// Gets a busy token via <see cref="BeginBusyOperationActivityAsync(string)"/> and invokes a callback if the connection is available
+    /// </summary>
+    /// <param name="action">The callback to invoke when we have the token</param>
+    /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
+    /// <typeparam name="TResult">The result of the callback task</typeparam>
+    /// <returns>The task containing the result of action, or default if we couldn't get the token or connection was null</returns>
+    public async Task<TResult?> BeginBusyOperationActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string message = "Waiting for busy operations...") {
+        using IDisposable? token = await this.BeginBusyOperationActivityAsync(message);
+        if (token != null && this.connection != null) {
+            return await action(token, this.connection!);
+        }
 
+        return default;
+    }
+
+    /// <summary>
+    /// Reads a specific data type from the console, and formats it according to the display type.
+    /// When reading strings, the <see cref="stringLength"/> parameter is how many chars to read
+    /// </summary>
+    /// <param name="connection">The connection to read from</param>
+    /// <param name="address">The absolute address of the value</param>
+    /// <param name="type">The type of value to read</param>
+    /// <param name="displayType">The display type for numeric data types</param>
+    /// <param name="stringLength">The amount of chars to read for the string data type</param>
+    /// <returns>A task representing the formatted value that was read</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Invalid data type</exception>
     public static async Task<string> ReadAsText(IConsoleConnection connection, uint address, DataType type, NumericDisplayType displayType, uint stringLength) {
         object obj;
         switch (type) {
@@ -282,16 +309,7 @@ public class MemoryEngine360 {
             default:              throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
 
-        switch (type) {
-            case DataType.Byte:   return displayType == NumericDisplayType.Hexadecimal ? ((byte) obj).ToString("X") : obj.ToString()!;
-            case DataType.Int16:  return displayType == NumericDisplayType.Hexadecimal ? ((short) obj).ToString("X2") : (displayType == NumericDisplayType.Unsigned ? ((ushort) (short) obj).ToString() : obj.ToString()!);
-            case DataType.Int32:  return displayType == NumericDisplayType.Hexadecimal ? ((int) obj).ToString("X4") : (displayType == NumericDisplayType.Unsigned ? ((uint) (int) obj).ToString() : obj.ToString()!);
-            case DataType.Int64:  return displayType == NumericDisplayType.Hexadecimal ? ((long) obj).ToString("X8") : (displayType == NumericDisplayType.Unsigned ? ((ulong) (long) obj).ToString() : obj.ToString()!);
-            case DataType.Float:  return displayType == NumericDisplayType.Hexadecimal ? BitConverter.SingleToInt32Bits((float) obj).ToString("X4") : obj.ToString()!;
-            case DataType.Double: return displayType == NumericDisplayType.Hexadecimal ? BitConverter.DoubleToInt64Bits((double) obj).ToString("X8") : obj.ToString()!;
-            case DataType.String: return obj.ToString() ?? "";
-            default:              throw new ArgumentOutOfRangeException(nameof(type), type, null);
-        }
+        return displayType.AsString(type, obj);
     }
 
     public static async Task WriteAsText(IConsoleConnection connection, uint address, DataType type, NumericDisplayType displayType, string value, uint stringLength) {
@@ -423,7 +441,33 @@ public class MemoryEngine360 {
 }
 
 public enum NumericDisplayType {
+    /// <summary>
+    /// The normal representation for the data types. Integers (except byte) are signed,
+    /// and floating point numbers are displayed as decimal numbers
+    /// </summary>
     Normal,
+    /// <summary>
+    /// Displays integers as unsigned. Does not affect floating point types nor byte since it's always unsigned
+    /// </summary>
     Unsigned,
+    /// <summary>
+    /// Displays integers as hexadecimal. Floating point numbers have their binary data reinterpreted as an
+    /// integer and that is converted into hexadecimal (<see cref="BitConverter.Int32BitsToSingle"/>)
+    /// </summary>
     Hexadecimal,
+}
+
+public static class NumericDisplayTypeExtensions {
+    public static string AsString(this NumericDisplayType displayType, DataType type, object value) {
+        switch (type) {
+            case DataType.Byte:   return displayType == NumericDisplayType.Hexadecimal ? ((byte) value).ToString("X2") : value.ToString()!;
+            case DataType.Int16:  return displayType == NumericDisplayType.Hexadecimal ? ((short) value).ToString("X4") : (displayType == NumericDisplayType.Unsigned ? ((ushort) (short) value).ToString() : value.ToString()!);
+            case DataType.Int32:  return displayType == NumericDisplayType.Hexadecimal ? ((int) value).ToString("X8") : (displayType == NumericDisplayType.Unsigned ? ((uint) (int) value).ToString() : value.ToString()!);
+            case DataType.Int64:  return displayType == NumericDisplayType.Hexadecimal ? ((long) value).ToString("X16") : (displayType == NumericDisplayType.Unsigned ? ((ulong) (long) value).ToString() : value.ToString()!);
+            case DataType.Float:  return displayType == NumericDisplayType.Hexadecimal ? BitConverter.SingleToInt32Bits((float) value).ToString("X4") : value.ToString()!;
+            case DataType.Double: return displayType == NumericDisplayType.Hexadecimal ? BitConverter.DoubleToInt64Bits((double) value).ToString("X8") : value.ToString()!;
+            case DataType.String: return value.ToString()!;
+            default:              throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+    }
 }

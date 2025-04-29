@@ -47,4 +47,8 @@
     <ItemGroup>
       <None Remove="Resources\Icons\icons8-memory-48.png" />
     </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="Services\HexDisplay\HexDisplayControl.axaml" />
+    </ItemGroup>
 </Project>
