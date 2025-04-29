@@ -351,7 +351,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / length);
         while (length > 0) {
             cancellationToken.ThrowIfCancellationRequested();
-            int cbRead = await this.ReadBytesInternal(address, buffer, offset, (uint) Math.Min(chunkSize, length));
+            int cbRead = await this.ReadBytesInternal((uint) (address + offset), buffer, offset, (uint) Math.Min(chunkSize, length));
             length -= cbRead;
             offset += cbRead;
             

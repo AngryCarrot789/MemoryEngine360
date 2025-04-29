@@ -15,8 +15,12 @@
                 BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}"
                 BorderThickness="0,1,0,0"
                 Height="42">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0" Spacing="10">
-                <Button x:Name="PART_CancelButton" Content="Close" MinWidth="72" Height="24" Padding="5,1" CornerRadius="3" FocusAdorner="{x:Null}" Theme="{StaticResource ButtonImplicitStyleSetters}">
+            <DockPanel Margin="10,0">
+                <Button x:Name="PART_CancelButton" Content="Close"
+                        MinWidth="72" Height="24" Padding="5,1"
+                        CornerRadius="3" FocusAdorner="{x:Null}"
+                        Theme="{StaticResource ButtonImplicitStyleSetters}"
+                        DockPanel.Dock="Right">
                     <Button.Styles>
                         <Style Selector="Button[IsPointerOver=True]">
                             <Setter Property="Background" Value="Red"/>
@@ -29,23 +33,35 @@
                         </Style>
                     </Button.Styles>
                 </Button>
-            </StackPanel>
+                <Grid DockPanel.Dock="Left" ColumnDefinitions="64,0,Auto" RowDefinitions="Auto,1,Auto" VerticalAlignment="Center">
+                    <TextBlock Grid.Column="0" Grid.Row="0" Text="Caret: " VerticalAlignment="Center" FontFamily="{StaticResource FontOxanium}"/>
+                    <TextBlock Grid.Column="2" Grid.Row="0" x:Name="PART_CaretText" Text="1" VerticalAlignment="Center" FontFamily="{StaticResource FontOxanium}"/>
+                    <TextBlock Grid.Column="0" Grid.Row="2" Text="Selection: " VerticalAlignment="Center" FontFamily="{StaticResource FontOxanium}"/>
+                    <TextBlock Grid.Column="2" Grid.Row="2" x:Name="PART_SelectionText" Text="2" VerticalAlignment="Center" FontFamily="{StaticResource FontOxanium}"/>
+                </Grid>
+                <Border/>
+            </DockPanel>
         </Border>
-        <Border DockPanel.Dock="Top" 
+        <Border DockPanel.Dock="Top"
                 Background="{Binding RelativeSource={RelativeSource AncestorType=hexDisplay:HexDisplayControl}, Path=WindowTitleBarBrush}">
-            <Grid ColumnDefinitions="5,Auto,100,0,Auto,100,5,75,5,75,5,*,5" Margin="0,3" Height="24">
+            <Grid x:Name="PART_ControlsGrid" ColumnDefinitions="5,Auto,100,0,Auto,100,5,75,5,75,5,*,5" Margin="0,3" Height="24">
                 <TextBlock Text="Address" Grid.Column="1" VerticalAlignment="Center" Padding="5,0"/>
                 <TextBlock Text="Length" Grid.Column="4" VerticalAlignment="Center" Padding="5,0"/>
 
-                <TextBox x:Name="PART_AddressTextBox" Grid.Column="2" VerticalAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
-                <TextBox x:Name="PART_LengthTextBox" Grid.Column="5" VerticalAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
+                <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_AddressTextBox" Grid.Column="2" VerticalAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
+                <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_LengthTextBox" Grid.Column="5" VerticalAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
 
                 <Button Grid.Column="7" x:Name="PART_Refresh" Content="Refresh" ToolTip.Tip="Reload values from console"/>
                 <Button Grid.Column="9" x:Name="PART_Upload" Content="Upload" ToolTip.Tip="Upload modified values to console"/>
-                <ProgressBar Grid.Column="11" x:Name="PART_Progress" IsVisible="False"/>
+                <Grid Grid.Column="11" x:Name="PART_ProgressGrid" IsVisible="False">
+                    <ProgressBar x:Name="PART_Progress"/>
+                    <TextBlock Text="See main window's activity bar for progress" 
+                               Foreground="{DynamicResource ABrush.Foreground.Disabled}" 
+                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                </Grid>
             </Grid>
         </Border>
-        <avaloniaHex:HexEditor x:Name="PART_HexEditor" FontFamily="Consolas" 
+        <avaloniaHex:HexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
                                Background="{DynamicResource ABrush.Tone2.Background.Static}"
                                BorderBrush="{DynamicResource PanelBorderBrush}"
                                BorderThickness="0,1"/>
