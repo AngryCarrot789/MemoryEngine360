@@ -81,6 +81,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
     }
 
     private Endianness lastEndianness, theEndianness = Endianness.BigEndian;
+
     private Endianness TheEndianness {
         get => this.theEndianness;
         set {
@@ -451,24 +452,31 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         if (this.myCurrData == null || (this.lastEndianness == this.theEndianness && caret.ByteIndex == this.lastInspectorIndex)) {
             return;
         }
-        
+
         // Word/int32:
         // 00        C0        FF        EE
         // 0000 0000 1100 0000 1111 1111 1110 1110
         // ^(bit 31)                      (bit 0)^
         // MSB                                 LSB
-        
+
         this.lastEndianness = this.theEndianness;
         this.lastInspectorIndex = caret.ByteIndex;
-        
+        if ((int) this.lastInspectorIndex >= this.myCurrData.Length) {
+            return;
+        }
+
         // The console is big-endian. If we want to display as little endian, we need to reverse the bytes
         bool displayAsLE = this.TheEndianness == Endianness.LittleEndian;
-
         ushort val8 = this.myCurrData[this.lastInspectorIndex];
-        ushort val16 = displayAsLE ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 2)) : BinaryPrimitives.ReverseEndianness(MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 2)));
-        uint val32 = displayAsLE ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 4)) : BinaryPrimitives.ReverseEndianness(MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 4)));
-        ulong val64 = displayAsLE ? MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 8)) : BinaryPrimitives.ReverseEndianness(MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 8)));
-        
+        ushort val16 = MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 2));
+        uint val32 = MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 4));
+        ulong val64 = MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(this.myCurrData, (int) this.lastInspectorIndex, 8));
+        if (displayAsLE != BitConverter.IsLittleEndian) {
+            val16 = BinaryPrimitives.ReverseEndianness(val16);
+            val32 = BinaryPrimitives.ReverseEndianness(val32);
+            val64 = BinaryPrimitives.ReverseEndianness(val64);
+        }
+
         this.PART_Binary8.Text = val8.ToString("B8");
         this.PART_Int8.Text = ((sbyte) val8).ToString();
         this.PART_UInt8.Text = val8.ToString();
@@ -482,7 +490,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_Double.Text = Unsafe.As<ulong, double>(ref val64).ToString();
         this.PART_CharASCII.Text = ((char) (val8 >> 1)).ToString();
         this.PART_CharUTF8.Text = ((char) val8).ToString();
-        if (!displayAsLE) {
+        if (displayAsLE != BitConverter.IsLittleEndian) {
             byte[] buffer16 = new byte[2], buffer32 = new byte[4];
             Array.Copy(this.myCurrData, (int) this.lastInspectorIndex, buffer16, 0, buffer16.Length);
             Array.Copy(this.myCurrData, (int) this.lastInspectorIndex, buffer32, 0, buffer32.Length);
