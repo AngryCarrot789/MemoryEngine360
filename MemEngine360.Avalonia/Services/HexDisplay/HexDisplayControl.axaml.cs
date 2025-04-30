@@ -475,6 +475,10 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         ushort val16 = cbRemaining >= 2 ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 2)) : default;
         uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 4)) : 0;
         ulong val64 = cbRemaining >= 8 ? MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 8)) : 0;
+        
+        // On LE systems, the LSB is on the right side of a value in the hex editor.
+        // Therefore, we have to flip the bytes (unless the user wants to see them as LE).
+        // The hex editor displays 0xF894, but on LE, val16 would actually be read as 0x94F8.
         if (displayAsLE != BitConverter.IsLittleEndian) {
             val16 = BinaryPrimitives.ReverseEndianness(val16);
             val32 = BinaryPrimitives.ReverseEndianness(val32);
@@ -492,26 +496,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_UInt64.Text = val64.ToString();
         this.PART_Float.Text = Unsafe.As<uint, float>(ref val32).ToString();
         this.PART_Double.Text = Unsafe.As<ulong, double>(ref val64).ToString();
-        this.PART_CharASCII.Text = ((char) (val8 >> 1)).ToString();
         this.PART_CharUTF8.Text = ((char) val8).ToString();
-        if (displayAsLE != BitConverter.IsLittleEndian) {
-            byte[] buffer16 = new byte[2], buffer32 = new byte[4];
-            if (cbRemaining >= 2) {
-                Array.Copy(this.myCurrData, (int) caretIndex, buffer16, 0, buffer16.Length);
-                Array.Reverse(buffer16);
-            }
-
-            if (cbRemaining >= 4) {
-                Array.Copy(this.myCurrData, (int) caretIndex, buffer32, 0, buffer32.Length);
-                Array.Reverse(buffer32);
-            }
-
-            this.PART_CharUTF16.Text = cbRemaining >= 2 ? Encoding.Unicode.GetString(buffer16) : "";
-            this.PART_CharUTF32.Text = cbRemaining >= 4 ? Encoding.UTF32.GetString(buffer32) : "";
-        }
-        else {
-            this.PART_CharUTF16.Text = cbRemaining >= 2 ? Encoding.Unicode.GetString(this.myCurrData, (int) caretIndex, 2) : "";
-            this.PART_CharUTF32.Text = cbRemaining >= 4 ? Encoding.UTF32.GetString(this.myCurrData, (int) caretIndex, 4) : "";
-        }
+        this.PART_CharUTF16.Text = ((char) val16).ToString();
+        this.PART_CharUTF32.Text = Encoding.UTF32.GetString(new ReadOnlySpan<byte>(ref Unsafe.As<uint, byte>(ref val32)));
     }
 }

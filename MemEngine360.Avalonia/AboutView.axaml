@@ -5,7 +5,6 @@
                            xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
                            mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                            x:Class="MemEngine360.Avalonia.AboutView"
-                           MinWidth="500" MinHeight="200"
                            WindowTitle="About MemEngine360"
                            Background="{DynamicResource PanelBackground2}"
                            WindowBorderBrush="DodgerBlue"

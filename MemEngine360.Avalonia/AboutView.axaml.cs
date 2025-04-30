@@ -30,4 +30,11 @@ public partial class AboutView : WindowingContentControl {
     private void Button_OnClick(object? sender, RoutedEventArgs e) {
         this.Window?.Close();
     }
+
+    protected override void OnWindowOpened() {
+        base.OnWindowOpened();
+
+        this.Window!.Control.MinWidth = 500;
+        this.Window!.Control.MinHeight = 200;
+    }
 }

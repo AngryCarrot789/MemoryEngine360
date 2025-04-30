@@ -33,7 +33,7 @@ public class HexDisplayServiceImpl : IHexDisplayService {
             };
             
             IWindow dialog = system.CreateWindow(control);
-            dialog.Show(system.GetActiveWindowOrNull());
+            dialog.Show(null); // specify parent as null so that it isn't always ontop of any window
         }
 
         return Task.CompletedTask;

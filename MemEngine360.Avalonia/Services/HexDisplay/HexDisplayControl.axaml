@@ -108,7 +108,7 @@
         <GridSplitter Grid.Column="1" Grid.Row="1" Background="{DynamicResource ABrush.Tone4.Background.Static}"/>
         <ScrollViewer Grid.Column="2" Grid.Row="1" DockPanel.Dock="Right" Background="{DynamicResource PanelBackground4}"
                       MinWidth="200">
-            <Grid RowDefinitions="Auto,20,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1"
+            <Grid RowDefinitions="Auto,20,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1"
                   ColumnDefinitions="0,75,1,*,5">
                 <TextBlock Text="Data Inspector" Padding="5"
                            VerticalAlignment="Center" HorizontalAlignment="Left" 
@@ -134,10 +134,9 @@
                 <TextBlock Text="UInt64" Grid.Row="19" Grid.Column="1" VerticalAlignment="Center"/>
                 <TextBlock Text="Float (32)" Grid.Row="21" Grid.Column="1" VerticalAlignment="Center"/>
                 <TextBlock Text="Double (64)" Grid.Row="23" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="Char (ASCII)" Grid.Row="25" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="Char (UTF8)" Grid.Row="27" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="Char (UTF16)" Grid.Row="29" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="Char (UTF32)" Grid.Row="31" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Char (UTF8)" Grid.Row="25" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Char (UTF16)" Grid.Row="27" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="Char (UTF32)" Grid.Row="29" Grid.Column="1" VerticalAlignment="Center"/>
                 
                 <TextBox x:Name="PART_Binary8" FontFamily="{StaticResource FontOxanium}" Grid.Row="3" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
                 <TextBox x:Name="PART_Int8" FontFamily="{StaticResource FontOxanium}" Grid.Row="5" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
@@ -150,10 +149,9 @@
                 <TextBox x:Name="PART_UInt64" FontFamily="{StaticResource FontOxanium}" Grid.Row="19" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
                 <TextBox x:Name="PART_Float" FontFamily="{StaticResource FontOxanium}" Grid.Row="21" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
                 <TextBox x:Name="PART_Double" FontFamily="{StaticResource FontOxanium}" Grid.Row="23" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_CharASCII" FontFamily="{StaticResource FontOxanium}" Grid.Row="25" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_CharUTF8" FontFamily="{StaticResource FontOxanium}" Grid.Row="27" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_CharUTF16" FontFamily="{StaticResource FontOxanium}" Grid.Row="29" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_CharUTF32" FontFamily="{StaticResource FontOxanium}" Grid.Row="31" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_CharUTF8" Grid.Row="25" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_CharUTF16" Grid.Row="27" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_CharUTF32" Grid.Row="29" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
                 
                 <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"/>
                 <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"/>
@@ -170,7 +168,6 @@
                 <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="26" Grid.Column="1" Grid.ColumnSpan="3"/>
                 <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="28" Grid.Column="1" Grid.ColumnSpan="3"/>
                 <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="30" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="32" Grid.Column="1" Grid.ColumnSpan="3"/>
             </Grid>
         </ScrollViewer>
     </Grid>

@@ -75,14 +75,11 @@ Select any scan result or saved address rows and press the Delete key to remove 
 Once connected to a console, in the "Saved Addresses" panel will be a green chip. Click it, and it will show a new window.
 It will automatically fill in the Address/Length fields with the Start/Length fields in your scanning options.
 
-Then click Refresh, and it will first read the data from the console (progress shown in the activity bar in main window) and then present it in the hex editor.
+Then click Read All, and it will first read the data from the console (progress shown in the activity bar in main window) and then present it in the hex editor.
 
 ![](MemEngine360-DesktopUI_2025-04-30_04.10.23.png)
 
 > The amazing AvaloniaHex control is originally made by Washi1337! This project uses a custom fork primarily to add the AdditionalOffset feature to the first column 
-
-At the moment, editing values is not supported, and there's no automatic refresh so you must click Refresh by hand. Soon though, editing will be
-supported and there will be a side panel which interprets the caret as different data types (e.g. LEInt, BEInt, etc.)
 
 ### Remote Controls
 There's a few remote control commands you can find in the `Remote Controls` menu. These include:
