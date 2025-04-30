@@ -167,7 +167,7 @@ public class EditScanResultValueCommand : Command {
             return;
         }
 
-        using IDisposable? token = await memoryEngine360.BeginBusyOperationActivityAsync();
+        using IDisposable? token = await memoryEngine360.BeginBusyOperationActivityAsync("Edit scan result value");
         IConsoleConnection? conn;
         if (token == null || (conn = memoryEngine360.Connection) == null) {
             return;
@@ -175,6 +175,7 @@ public class EditScanResultValueCommand : Command {
         
         using CancellationTokenSource cts = new CancellationTokenSource();
         await ActivityManager.Instance.RunTask(async () => {
+            ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Edit value", "Editing values");
             foreach (ScanResultViewModel scanResult in scanResults) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
                 

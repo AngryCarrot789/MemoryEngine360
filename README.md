@@ -16,8 +16,8 @@ Your console needs to be running XBDM. Press `CTRL + O` or go to `File>Connect t
 
 A dialog will popup with some information about your console, such as debug name and all threads running
 
-You'll see in the bottom right corner a progress bar will sometimes appear. They represent 'Activities', 
-such as read/write operation status, scan status, and more.
+You'll see in the bottom right corner a progress bar will sometimes appear. They represent 'Activities', such as read/write operation status, scan status, and more.
+You can click that area to open a window which shows all activities.
 
 ![](rider64_2025-04-27_22.07.31.png)
 
@@ -77,7 +77,7 @@ It will automatically fill in the Address/Length fields with the Start/Length fi
 
 Then click Refresh, and it will first read the data from the console (progress shown in the activity bar in main window) and then present it in the hex editor.
 
-![](MemEngine360-DesktopUI_2025-04-29_03.26.53.png)
+![](MemEngine360-DesktopUI_2025-04-30_04.10.23.png)
 
 > The amazing AvaloniaHex control is originally made by Washi1337! This project uses a custom fork primarily to add the AdditionalOffset feature to the first column 
 

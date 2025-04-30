@@ -167,7 +167,7 @@ public class EditSavedAddressValueCommand : Command {
             return;
         }
 
-        using IDisposable? token = await memoryEngine360.BeginBusyOperationActivityAsync();
+        using IDisposable? token = await memoryEngine360.BeginBusyOperationActivityAsync("Edit saved result value");
         IConsoleConnection? conn;
         if (token == null || (conn = memoryEngine360.Connection) == null) {
             return;
@@ -175,6 +175,7 @@ public class EditSavedAddressValueCommand : Command {
 
         using CancellationTokenSource cts = new CancellationTokenSource();
         await ActivityManager.Instance.RunTask(async () => {
+            ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Edit value", "Editing values");
             foreach (SavedAddressViewModel result in savedList) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
                 await MemoryEngine360.WriteAsText(conn, result.Address, result.DataType, result.NumericDisplayType, input.Text, (uint) result.Value.Length);

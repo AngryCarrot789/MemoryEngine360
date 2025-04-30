@@ -349,7 +349,7 @@ public class ScanningProcessor {
         if (connection == null)
             throw new InvalidOperationException("No console connection");
 
-        using IDisposable? token = await this.MemoryEngine360.BeginBusyOperationActivityAsync();
+        using IDisposable? token = await this.MemoryEngine360.BeginBusyOperationActivityAsync("Scan Operation");
         if (token == null)
             return; // user cancelled token fetch
 

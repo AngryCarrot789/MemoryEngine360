@@ -13,6 +13,7 @@
                             xmlns:converters="clr-namespace:PFXToolKitUI.Avalonia.Converters;assembly=PFXToolKitUI.Avalonia"
                             xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
                             xmlns:cb="clr-namespace:MemEngine360.Avalonia.Resources.Icons"
+                            xmlns:aa="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
                             mc:Ignorable="d"
                             WindowTitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}"
                             WindowBorderBrush="{DynamicResource PanelBorderBrush}"
@@ -30,29 +31,7 @@
                 Height="21">
             <Grid ColumnDefinitions="Auto,3,*,3,Auto,3,Auto">
                 <TextBlock Grid.Column="0" x:Name="PART_LatestActivity" Padding="2,0" VerticalAlignment="Center" ToolTip.Tip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
-                <DockPanel Grid.Column="4" x:Name="PART_ActiveBackgroundTaskGrid" IsVisible="True">
-                    <TextBlock x:Name="PART_TaskCaption"
-                               Text="Activity Text"
-                               DockPanel.Dock="Left"
-                               Margin="0,0,5,0"
-                               VerticalAlignment="Center"/>
-                    <Button x:Name="PART_CancelActivityButton"
-                            DockPanel.Dock="Right"
-                            VerticalAlignment="Center"
-                            HorizontalAlignment="Center"
-                            VerticalContentAlignment="Center"
-                            Padding="4,1" Margin="2,0,0,0"
-                            Content="X"
-                            BorderThickness="0"
-                            Background="{DynamicResource ABrush.Tone4.Background.Static}"
-                            Click="PART_CancelActivityButton_OnClick"
-                            ToolTip.Tip="Cancels this activity. Beware some activities may take some time to actually cancel, and some may not even be fully cancellable"/>
-                    <ProgressBar x:Name="PART_ActiveBgProgress"
-                                 Width="150" DockPanel.Dock="Right"
-                                 Height="9" BorderThickness="0"
-                                 Background="{DynamicResource ABrush.Tone3.Background.Static}"
-                                 Minimum="0" Maximum="1" Value="0"/>
-                </DockPanel>
+                <aa:ActivityStatusBarControl Grid.Column="4" x:Name="PART_ActivityStatusBar"/>
                 <TextBlock Grid.Column="6" x:Name="PART_ConnectedHostName" Padding="2,0" VerticalAlignment="Center"/>
                 <!-- <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="1" Margin="2,2" VerticalAlignment="Stretch"/> -->
                 <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="3" Margin="2,2" VerticalAlignment="Stretch"/>
@@ -89,8 +68,8 @@
                                     </ToggleButton.Resources>
                                     <TextBlock Text="{Binding ElementName=PART_MemScanExpander, Path=IsChecked, Converter={StaticResource IsCheckedToTextConverter}}" Margin="0,-2,0,0"/>
                                 </ToggleButton>
-                                <av:IconButton DockPanel.Dock="Right" 
-                                               Icon="{x:Static cb:SimpleIcons.MemoryIconTable}" 
+                                <av:IconButton DockPanel.Dock="Right"
+                                               Icon="{x:Static cb:SimpleIcons.MemoryIconTable}"
                                                Width="20" Height="20" IconMaxWidth="12" IconMaxHeight="12"
                                                Padding="2"
                                                Background="{DynamicResource ABrush.Tone7.Background.Static}"
@@ -103,8 +82,8 @@
                                         </TextBlock>
                                     </ToolTip.Tip>
                                 </av:IconButton>
-                                <av:IconButton DockPanel.Dock="Right" 
-                                               Icon="{x:Static cb:SimpleIcons.ResetIcon}" 
+                                <av:IconButton DockPanel.Dock="Right"
+                                               Icon="{x:Static cb:SimpleIcons.ResetIcon}"
                                                Width="20" Height="20"
                                                IconMaxWidth="12" IconMaxHeight="12"
                                                Padding="2"
@@ -217,9 +196,9 @@
                         <Border/>
                     </DockPanel>
                 </c:GroupBox.Header>
-                <DataGrid x:Name="PART_ScanListResults" 
-                          Background="Transparent" 
-                          BorderThickness="0" 
+                <DataGrid x:Name="PART_ScanListResults"
+                          Background="Transparent"
+                          BorderThickness="0"
                           CanUserResizeColumns="True"
                           ClipboardCopyMode="None">
                     <DataGrid.Columns>
@@ -250,44 +229,47 @@
                 <c:GroupBox.Header>
                     <DockPanel>
                         <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="5">
-                            <av:IconButton Icon="{x:Static cb:SimpleIcons.MemoryIcon}" IconMaxWidth="12" IconMaxHeight="12"
-                                    Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                    BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                    cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ShowMemoryCommandUsage}"
-                                    ToolTip.Tip="Opens a view of the console's memory"/>
-                            
-                            <Button Content="Add Scan Result(s)" Padding="5,1"
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="5" Height="20">
+                            <av:IconButton Icon="{x:Static cb:SimpleIcons.MemoryIcon}" Width="20"
+                                           Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                           BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                           cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ShowMemoryCommandUsage}"
+                                           VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                                           ToolTip.Tip="Opens a view of the console's memory" Padding="2,1,2,2"/>
+
+                            <Button Content="Add Scan Result(s)" Padding="4,1"
                                     Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                                     cmdu:CommandUsageManager.UsageClassType="{x:Type ac:AddSelectedScanResultsToSavedAddressListCommandUsage}"
                                     ToolTip.Tip="Adds the selected results into the saved address list. Does not add addresses that are already present"/>
-                            
-                            <Button Content="Refresh" Padding="5,1"
+
+                            <Button Content="Refresh" Padding="4,1"
                                     Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                                     cmdu:CommandUsageManager.UsageClassType="{x:Type ac:RefreshSavedAddressesCommandUsage}"
                                     ToolTip.Tip="Refresh the values. This is done automatically every 2 seconds"/>
-                            
-                            <Button Content="Add Entry..." Padding="5,1"
-                                    Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                    BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                    cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.AddSavedAddressCommand"
-                                    ToolTip.Tip="Adds a row manually"/>
-                            
-                            <Button Content="Clear List" Padding="4,1"
-                                    Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                    BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                    cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.ClearSavedAddressesCommand"
-                                    ToolTip.Tip="Clears all rows"/>
+
+                            <av:IconButton Padding="2" Width="20"
+                                           Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                           BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                           cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.AddSavedAddressCommand"
+                                           ToolTip.Tip="Adds a row manually"
+                                           Icon="{x:Static cb:SimpleIcons.GreenPlusIcon}"/>
+
+                            <av:IconButton Padding="2" Width="20"
+                                           Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                           BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                           cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.ClearSavedAddressesCommand"
+                                           ToolTip.Tip="Clears all rows"
+                                           Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"/>
                         </StackPanel>
                         <Border/>
                     </DockPanel>
                 </c:GroupBox.Header>
-                <DataGrid x:Name="PART_SavedAddressList" 
-                          Background="Transparent" 
+                <DataGrid x:Name="PART_SavedAddressList"
+                          Background="Transparent"
                           BorderThickness="0"
-                          CanUserResizeColumns="True" 
+                          CanUserResizeColumns="True"
                           ClipboardCopyMode="None">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Address (hex)" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}"

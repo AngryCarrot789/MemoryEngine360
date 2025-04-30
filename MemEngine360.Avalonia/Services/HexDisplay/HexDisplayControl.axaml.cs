@@ -32,13 +32,11 @@ using AvaloniaHex.Core.Document;
 using AvaloniaHex.Editing;
 using AvaloniaHex.Rendering;
 using MemEngine360.Connections;
-using MemEngine360.Engine;
 using MemEngine360.Engine.HexDisplay;
 using MemEngine360.Engine.Scanners;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Bindings;
-using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
@@ -228,6 +226,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                     await ((IFreezableConsole) c).DebugFreeze();
 
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
+                task.Progress.Caption = "Read data for Hex Editor";
+
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
                     task.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
@@ -243,7 +243,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
                 return buffer;
             }, cts);
-        });
+        }, "Read data for Hex Editor");
 
         this.PART_ProgressGrid.IsVisible = false;
         this.PART_ControlsGrid.IsEnabled = true;
@@ -291,10 +291,12 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                     await ((IFreezableConsole) c).DebugFreeze();
 
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
+                task.Progress.Caption = "Refresh data for Hex Editor";
+
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
                     task.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
-                    task.Progress.Text = $"Reading {IValueScanner.ByteFormatter.ToString(info.Length * state.TotalCompletion, false)}/{IValueScanner.ByteFormatter.ToString(info.Length, false)}";
+                    task.Progress.Text = $"Reading {IValueScanner.ByteFormatter.ToString(count * state.TotalCompletion, false)}/{IValueScanner.ByteFormatter.ToString(count, false)}";
                 };
 
                 // Update initial text
@@ -306,7 +308,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                     await ((IFreezableConsole) c).DebugUnFreeze();
                 return buffer;
             }, cts);
-        });
+        }, "Read data for Hex Editor");
 
         this.PART_ProgressGrid.IsVisible = false;
         this.PART_ControlsGrid.IsEnabled = true;
@@ -367,6 +369,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                     await ((IFreezableConsole) c).DebugFreeze();
 
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
+                task.Progress.Caption = "Write data from Hex Editor";
+
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
                     task.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
@@ -382,7 +386,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                 if (c is IFreezableConsole)
                     await ((IFreezableConsole) c).DebugUnFreeze();
             }, cts);
-        });
+        }, "Write Hex Editor Data");
 
         this.PART_ProgressGrid.IsVisible = false;
         this.PART_ControlsGrid.IsEnabled = true;
@@ -449,7 +453,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     private void UpdateDataInspector() {
         BitRange selection = this.SelectionRange;
-        ulong caretIndex = selection.Start.ByteIndex;        
+        ulong caretIndex = selection.Start.ByteIndex;
         if (this.myCurrData == null || (this.lastEndianness == this.theEndianness && caretIndex == this.lastInspectorIndex)) {
             return;
         }
@@ -466,7 +470,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         // The console is big-endian. If we want to display as little endian, we need to reverse the bytes
         bool displayAsLE = this.TheEndianness == Endianness.LittleEndian;
         int cbRemaining = this.myCurrData.Length - (int) caretIndex;
-        
+
         byte val8 = cbRemaining >= 1 ? this.myCurrData[caretIndex] : default;
         ushort val16 = cbRemaining >= 2 ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 2)) : default;
         uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 4)) : 0;

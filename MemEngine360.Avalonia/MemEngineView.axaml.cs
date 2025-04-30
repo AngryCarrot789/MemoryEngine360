@@ -273,7 +273,6 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.alignmentBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, this.MemoryEngine360.ScanningProcessor);
         this.scanMemoryPagesBinder.Attach(this.PART_ScanOption_ScanMemoryPages, this.MemoryEngine360.ScanningProcessor);
-        this.PART_ActiveBackgroundTaskGrid.IsVisible = false;
         this.MemoryEngine360.ConnectionChanged += this.OnConnectionChanged;
 
         this.themeListHandler = ObservableItemProcessor.MakeIndexable(ThemeManager.Instance.Themes, (sender, index, item) => {
@@ -283,10 +282,6 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         }, (sender, oldIndex, newIndex, item) => {
             this.themesSubList.Items.Move(oldIndex, newIndex);
         }).AddExistingItems();
-
-        ActivityManager activityManager = ActivityManager.Instance;
-        activityManager.TaskStarted += this.OnTaskStarted;
-        activityManager.TaskCompleted += this.OnTaskCompleted;
     }
 
     private class SetThemeContextEntry : CustomContextEntry {
@@ -336,10 +331,10 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
         UIInputManager.SetFocusPath(this.Window!.Control, "MemEngineWindow");
 
-        this.Window.Control.MinWidth = 560;
-        this.Window.Control.MinHeight = 480;
-        this.Window.Width = 600;
-        this.Window.Height = 600;
+        this.Window.Control.MinWidth = 600;
+        this.Window.Control.MinHeight = 520;
+        this.Window.Width = 680;
+        this.Window.Height = 630;
         this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.2";
         this.Window.WindowClosing += this.MyWindowOnWindowClosing;
 
@@ -395,7 +390,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
                 default:                      break; // continue loop
             }
 
-            token = await this.MemoryEngine360.BeginBusyOperationActivityAsync();
+            token = await this.MemoryEngine360.BeginBusyOperationActivityAsync("Safely closing window");
         }
 
         IConsoleConnection? connection = this.MemoryEngine360.Connection;
@@ -412,69 +407,6 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         return false;
     }
 
-    #region Task Manager and Activity System
-
-    private void OnTaskStarted(ActivityManager manager, ActivityTask task, int index) {
-        if (this.primaryActivity == null || this.primaryActivity.IsCompleted) {
-            this.SetActivityTask(task);
-        }
-    }
-
-    private void OnTaskCompleted(ActivityManager manager, ActivityTask task, int index) {
-        if (task == this.primaryActivity) {
-            // try to access next task
-            this.SetActivityTask(manager.ActiveTasks.Count > 0 ? manager.ActiveTasks[0] : null);
-        }
-    }
-
-    private void SetActivityTask(ActivityTask? task) {
-        IActivityProgress? prog = null;
-        if (this.primaryActivity != null) {
-            prog = this.primaryActivity.Progress;
-            prog.TextChanged -= this.OnPrimaryActivityTextChanged;
-            prog.CompletionState.CompletionValueChanged -= this.OnPrimaryActionCompletionValueChanged;
-            prog.IsIndeterminateChanged -= this.OnPrimaryActivityIndeterminateChanged;
-            if (this.primaryActivity.IsDirectlyCancellable)
-                this.PART_CancelActivityButton.IsVisible = false;
-
-            prog = null;
-        }
-
-        this.primaryActivity = task;
-        if (task != null) {
-            prog = task.Progress;
-            prog.TextChanged += this.OnPrimaryActivityTextChanged;
-            prog.CompletionState.CompletionValueChanged += this.OnPrimaryActionCompletionValueChanged;
-            prog.IsIndeterminateChanged += this.OnPrimaryActivityIndeterminateChanged;
-            if (task.IsDirectlyCancellable)
-                this.PART_CancelActivityButton.IsVisible = true;
-
-            this.PART_ActiveBackgroundTaskGrid.IsVisible = true;
-        }
-        else {
-            this.PART_ActiveBackgroundTaskGrid.IsVisible = false;
-        }
-
-        this.PART_CancelActivityButton.IsEnabled = true;
-        this.OnPrimaryActivityTextChanged(prog);
-        this.OnPrimaryActionCompletionValueChanged(prog?.CompletionState);
-        this.OnPrimaryActivityIndeterminateChanged(prog);
-    }
-
-    private void OnPrimaryActivityTextChanged(IActivityProgress? tracker) {
-        ApplicationPFX.Instance.Dispatcher.Invoke(() => this.PART_TaskCaption.Text = tracker?.Text ?? "", DispatchPriority.Loaded);
-    }
-
-    private void OnPrimaryActionCompletionValueChanged(CompletionState? state) {
-        ApplicationPFX.Instance.Dispatcher.Invoke(() => this.PART_ActiveBgProgress.Value = state?.TotalCompletion ?? 0.0, DispatchPriority.Loaded);
-    }
-
-    private void OnPrimaryActivityIndeterminateChanged(IActivityProgress? tracker) {
-        ApplicationPFX.Instance.Dispatcher.Invoke(() => this.PART_ActiveBgProgress.IsIndeterminate = tracker?.IsIndeterminate ?? false, DispatchPriority.Loaded);
-    }
-
-    #endregion
-
     private void PART_ScanOption_StartAddress_OnDoubleTapped(object? sender, TappedEventArgs e) {
         this.editAddressRangeCommand.Execute(null);
     }
@@ -485,10 +417,5 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
     private void PART_ScanOption_Alignment_OnDoubleTapped(object? sender, TappedEventArgs e) {
         this.editAlignmentCommand.Execute(null);
-    }
-
-    private void PART_CancelActivityButton_OnClick(object? sender, RoutedEventArgs e) {
-        this.primaryActivity?.TryCancel();
-        ((Button) sender!).IsEnabled = false;
     }
 }

@@ -62,6 +62,40 @@ public static class SimpleIcons {
                 new GeometryEntry("M21.9,26.4l-1.5-5c0.1-0.5,0.2-0.9,0.2-1.4c0-2.8-2.2-5-5-5c-1.1,0-2.1,0.4-3,1h-2.2c-0.9-0.6-1.9-1-3-1c-2.8,0-5,2.2-5,5  c0,0.5,0.1,0.9,0.2,1.4l-1.5,5c-0.3,0.8-0.1,1.7,0.4,2.4C2.1,29.6,2.9,30,3.8,30c0.9,0,1.7-0.4,2.2-1.1L9.2,25h4.6l3.1,3.9  c0.5,0.7,1.4,1.1,2.2,1.1c0.9,0,1.7-0.4,2.3-1.1C22,28.1,22.1,27.2,21.9,26.4z M15.7,21.7C15.5,21.9,15.3,22,15,22  c-0.3,0-0.5-0.1-0.7-0.3C14.1,21.5,14,21.3,14,21c0-0.3,0.1-0.5,0.3-0.7c0.1-0.1,0.2-0.2,0.3-0.2c0.4-0.2,0.8-0.1,1.1,0.2  c0,0,0.1,0.1,0.1,0.1c0,0.1,0.1,0.1,0.1,0.2c0,0.1,0,0.1,0.1,0.2c0,0.1,0,0.1,0,0.2C16,21.3,15.9,21.5,15.7,21.7z M16.7,19.7  C16.5,19.9,16.3,20,16,20c-0.1,0-0.3,0-0.4-0.1c-0.1-0.1-0.2-0.1-0.3-0.2C15.1,19.5,15,19.3,15,19c0-0.3,0.1-0.5,0.3-0.7  c0.1-0.1,0.2-0.2,0.3-0.2c0.4-0.1,0.8-0.1,1.1,0.2c0.2,0.2,0.3,0.4,0.3,0.7C17,19.3,16.9,19.5,16.7,19.7z", BrushManager.Instance.CreateConstant(SKColors.MediumSeaGreen)),
                 new GeometryEntry("M24 14H15.5L14 15.5 16.8358 18.3358 10.5858 24.5858 13.4142 27.4142 19.6642 21.1642 22.5 24 24 22.5 24 14Z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
             ], 
+            stretch: StretchMode.Uniform);    
+
+    public static readonly Icon DeleteAllRowsIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(DeleteAllRowsIcon),
+            [
+                new GeometryEntry("M10 12.6l.7.7 1.6-1.6 1.6 1.6.8-.7L13 11l1.7-1.6-.8-.8-1.6 1.7-1.6-1.7-.7.8 1.6 1.6-1.6 1.6zM1 4h14V3H1v1zm0 3h14V6H1v1zm8 2.5V9H1v1h8v-.5zM9 13v-1H1v1h8z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
+            ], 
+            stretch: StretchMode.Uniform);
+    
+    public static readonly Icon DeleteRowIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(DeleteRowIcon),
+            [
+                new GeometryEntry("M.3789 6.1563C.1689 6.1563 0 6.3895 0 6.6797v4.7949C0 11.7647.1689 12 .3789 12H13.6211c.2101 0 .3789-.2353.3789-.5254V6.6797c0-.2902-.1688-.5234-.3789-.5234H.3789zm.6797 1.2109h3.2148v3.4219H1.0586V7.3672zm4.2832 0h3.2148v3.4219H5.3418V7.3672zm4.2832 0h3.2168v3.4219H9.625V7.3672z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
+                new GeometryEntry("M10.6999 11.5999q-.2558 0-.4348-.1791l-.8698-.87q-.1791-.1791-.1791-.435 0-.2559.1791-.435l1.8802-1.8808-1.8802-1.8808q-.1791-.1791-.1791-.435 0-.2559.1791-.435l.8698-.87Q10.4441 4 10.6999 4t.4349.1791l1.8802 1.8808L14.8952 4.1791Q15.0742 4 15.33 4t.4349.1791l.8698.87q.179.1791.179.435 0 .2559-.179.435l-1.8802 1.8808 1.8802 1.8808q.179.1791.179.435 0 .2559-.179.435l-.8698.87q-.1791.1791-.4349.1791t-.4348-.1791L13.015 9.54 11.1348 11.4208q-.1791.1791-.4349.1791z", BrushManager.Instance.CreateConstant(SKColors.Red)),
+            ], 
+            stretch: StretchMode.Uniform);    
+    
+    public static readonly Icon AddRowIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(AddRowIcon),
+            [
+                new GeometryEntry("M.3789 6.1563C.1689 6.1563 0 6.3895 0 6.6797v4.7949C0 11.7647.1689 12 .3789 12H13.6211c.2101 0 .3789-.2353.3789-.5254V6.6797c0-.2902-.1688-.5234-.3789-.5234H.3789zm.6797 1.2109h3.2148v3.4219H1.0586V7.3672zm4.2832 0h3.2148v3.4219H5.3418V7.3672zm4.2832 0h3.2168v3.4219H9.625V7.3672z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
+                new GeometryEntry("M8.3281 9.1262q-.1809-.1809-.1808-.4341l.0001-1.2302q-0-.2533.1809-.4342.1809-.1809.4342-.1809l2.6594-.0004.0004-2.6594q-0-.2533.1809-.4342.1809-.1809.4342-.1809l1.2302-.0001Q13.5211 3.5714 13.702 3.7523t.1809.4342l-.0004 2.6594L16.5419 6.8454Q16.7951 6.8454 16.976 7.0262t.1809.4342l-.0001 1.2302q-.0001.2532-.181.4342-.1809.1809-.4342.181l-2.6594.0004-.0004 2.6594q-.0001.2532-.181.4342-.1809.1809-.4342.181l-1.2302.0001q-.2533 0-.4342-.1809t-.1808-.4341L11.4217 9.3067 8.7622 9.3071q-.2533 0-.4342-.1809z", BrushManager.Instance.CreateConstant(SKColors.LawnGreen)),
+            ], 
+            stretch: StretchMode.Uniform);    
+    
+    public static readonly Icon GreenPlusIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(GreenPlusIcon),
+            [
+                new GeometryEntry("m.2411 7.4016q-.2412-.2412-.2411-.5788l.0001-1.6403q0-.3377.2412-.5789.2412-.2412.5789-.2412l3.5459-.0005.0005-3.5459q0-.3377.2412-.5789.2412-.2412.5789-.2412l1.6403-.0001Q7.1651-.0048 7.4063.2364t.2412.5789l-.0005 3.5459L11.1929 4.3605Q11.5305 4.3605 11.7717 4.6016t.2412.5789l-.0001 1.6403q-.0001.3376-.2413.5789-.2412.2412-.5789.2413l-3.5459.0005-.0005 3.5459q-.0001.3376-.2413.5789-.2412.2412-.5789.2413l-1.6403.0001q-.3377 0-.5789-.2412t-.2411-.5788L4.3659 7.6423.8199 7.6428q-.3377 0-.5789-.2412z", BrushManager.Instance.CreateConstant(SKColors.LawnGreen)),
+            ], 
             stretch: StretchMode.Uniform);
 }
 

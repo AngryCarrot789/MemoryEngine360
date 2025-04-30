@@ -17,11 +17,8 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Net;
-using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Connections.XBOX;
-using MemEngine360.Connections.XBOX.Threads;
 using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
@@ -44,7 +41,7 @@ public class ConnectToConsoleCommand : Command {
             return;
         }
 
-        using IDisposable? token = await memUi.MemoryEngine360.BeginBusyOperationActivityAsync();
+        using IDisposable? token = await memUi.MemoryEngine360.BeginBusyOperationActivityAsync("Connect to console");
         if (token == null) {
             return;
         }
@@ -71,9 +68,10 @@ public class ConnectToConsoleCommand : Command {
             if (ILatestActivityView.DataKey.TryGetContext(e.ContextData, out ILatestActivityView? view))
                 view.Activity = "Connected to console.";
 
-            if (connection is IXbox360Connection xbox) {
+            if (connection is IXbox360Connection) {
                 ContextEntryGroup entry = memUi.RemoteCommandsContextEntry;
                 entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ListHelpCommand", "List all commands in popup"));
+                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowConsoleInfoCommand", "Console info"));
                 entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowXbeInfoCommand", "Show XBE info"));
                 entry.Items.Add(new CommandContextEntry("commands.memengine.remote.MemProtectionCommand", "Show Memory Regions"));
                 entry.Items.Add(new SeparatorEntry());
@@ -83,25 +81,6 @@ public class ConnectToConsoleCommand : Command {
                 entry.Items.Add(new CommandContextEntry("commands.memengine.remote.SoftRebootCommand", "Soft Reboot (restart title)"));
                 entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ColdRebootCommand", "Cold Reboot"));
                 entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShutdownCommand", "Shutdown"));
-
-                string debugName = await xbox.GetDebugName();
-                ExecutionState execState = await xbox.GetExecutionState();
-                IPAddress currTitleAddr = await xbox.GetTitleIPAddress();
-                uint currProcId = await xbox.GetProcessID();
-
-                StringBuilder sb = new StringBuilder();
-                sb.Append("Debug Name: ").Append(debugName).AppendLine();
-                sb.Append("Execution State: ").Append(execState).AppendLine();
-                sb.Append("Current Title IP: ").Append(currTitleAddr).AppendLine();
-                sb.Append("Current Process ID: ").Append(currProcId.ToString("X8")).AppendLine();
-                sb.AppendLine("Named Threads below");
-                foreach (ConsoleThread info in await xbox.GetThreadDump()) {
-                    if (!string.IsNullOrEmpty(info.readableName)) {
-                        sb.AppendLine(info.ToString());
-                    }
-                }
-
-                await IMessageDialogService.Instance.ShowMessage("Information", "Console Information as follows", sb.ToString(), MessageBoxButton.OK, MessageBoxResult.OK);
             }
         }
     }

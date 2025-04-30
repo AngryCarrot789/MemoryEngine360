@@ -40,6 +40,6 @@ public class ShowXbeInfoCommand : BaseMemoryEngineCommand {
                     await IMessageDialogService.Instance.ShowMessage("Error", "No name attribute in Xbe info");
                 }
             }
-        });
+        }, "Xbe Info");
     }
 }

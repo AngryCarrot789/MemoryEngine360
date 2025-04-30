@@ -73,6 +73,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         
         // Remote commands
         manager.Register("commands.memengine.remote.ListHelpCommand", new ListHelpCommand());
+        manager.Register("commands.memengine.remote.ShowConsoleInfoCommand", new ShowConsoleInfoCommand());
         manager.Register("commands.memengine.remote.ShowXbeInfoCommand", new ShowXbeInfoCommand());
         manager.Register("commands.memengine.remote.MemProtectionCommand", new MemProtectionCommand());
         manager.Register("commands.memengine.remote.EjectDiskTrayCommand", new EjectDiskTrayCommand());

@@ -242,13 +242,13 @@ public class MemoryEngine360 {
     /// <returns>
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
-    public async Task<IDisposable?> BeginBusyOperationActivityAsync(string message = "Waiting for busy operations...") {
+    public async Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...") {
         IDisposable? token = this.BeginBusyOperation();
         if (token == null) {
             using CancellationTokenSource cts = new CancellationTokenSource();
             token = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
-                task.Progress.Caption = "Busy";
+                task.Progress.Caption = caption;
                 task.Progress.Text = message;
                 return this.BeginBusyOperationAsync(task.CancellationToken);
             }, cts);
@@ -262,8 +262,8 @@ public class MemoryEngine360 {
     /// </summary>
     /// <param name="action">The callback to invoke when we have the token</param>
     /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
-    public async Task BeginBusyOperationActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string message = "Waiting for busy operations...") {
-        using IDisposable? token = await this.BeginBusyOperationActivityAsync(message);
+    public async Task BeginBusyOperationActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
+        using IDisposable? token = await this.BeginBusyOperationActivityAsync(caption, message);
         if (token != null && this.connection != null) {
             await action(token, this.connection!);
         }
@@ -276,8 +276,8 @@ public class MemoryEngine360 {
     /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
     /// <typeparam name="TResult">The result of the callback task</typeparam>
     /// <returns>The task containing the result of action, or default if we couldn't get the token or connection was null</returns>
-    public async Task<TResult?> BeginBusyOperationActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string message = "Waiting for busy operations...") {
-        using IDisposable? token = await this.BeginBusyOperationActivityAsync(message);
+    public async Task<TResult?> BeginBusyOperationActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
+        using IDisposable? token = await this.BeginBusyOperationActivityAsync(caption, message);
         if (token != null && this.connection != null) {
             return await action(token, this.connection!);
         }

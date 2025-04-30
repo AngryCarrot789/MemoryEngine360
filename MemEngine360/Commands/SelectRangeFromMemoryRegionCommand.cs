@@ -35,29 +35,32 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
 
     protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
         IConsoleConnection? connection;
-        using IDisposable? token = await engine.BeginBusyOperationActivityAsync();
-        if (token == null) {
-            return;
-        }
+        List<MemoryRegion> list;
+        using (IDisposable? token = await engine.BeginBusyOperationActivityAsync("Reading memory regions")) {
+            if (token == null) {
+                return;
+            }
 
-        if ((connection = engine.Connection) == null) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "No connection present -- cannot fetch memory regions");
-            return;
+            if ((connection = engine.Connection) == null) {
+                await IMessageDialogService.Instance.ShowMessage("Error", "No connection present -- cannot fetch memory regions");
+                return;
+            }
+
+            list = await ActivityManager.Instance.RunTask(() => {
+                IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
+                prog.Caption = "Memory Regions";
+                prog.Text = "Reading memory regions...";
+                prog.IsIndeterminate = true;
+                return connection.GetMemoryRegions();
+            });
         }
-        
-        List<MemoryRegion> list = await ActivityManager.Instance.RunTask<List<MemoryRegion>>(() => {
-            IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
-            prog.Text = "Reading memory regions...";
-            prog.IsIndeterminate = true;
-            return connection.GetMemoryRegions();
-        });
         
         MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(list) {
             Caption = "Change scan region",
             Message = "Select a memory region to set as the start/length fields",
             ConfirmText = "Select"
         };
-        
+
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true && info.SelectedRegion != null) {
             engine.ScanningProcessor.StartAddress = info.SelectedRegion.BaseAddress;
             engine.ScanningProcessor.ScanLength = info.SelectedRegion.Size;

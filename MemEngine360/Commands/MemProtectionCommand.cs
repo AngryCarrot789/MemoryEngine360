@@ -35,6 +35,7 @@ public class MemProtectionCommand : BaseMemoryEngineCommand {
         List<MemoryRegion>? list = await engine.BeginBusyOperationActivityAsync(async (t, c) => {
             return await ActivityManager.Instance.RunTask(() => {
                 IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
+                prog.Caption = "Memory Regions";
                 prog.Text = "Reading memory regions...";
                 prog.IsIndeterminate = true;
                 return c.GetMemoryRegions();

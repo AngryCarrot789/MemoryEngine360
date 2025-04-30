@@ -65,7 +65,7 @@ public sealed class ConsoleConnectionService {
             using CancellationTokenSource cts = new CancellationTokenSource();
             PhantomRTMConsoleConnection? result = await ActivityManager.Instance.RunTask(async () => {
                 IActivityProgress progress = ActivityManager.Instance.GetCurrentProgressOrEmpty();
-                progress.Caption = "Connection";
+                progress.Caption = "PhantomRTM";
                 progress.Text = "Connecting to console...";
                 progress.IsIndeterminate = true;
                 TcpClient client = new TcpClient();
