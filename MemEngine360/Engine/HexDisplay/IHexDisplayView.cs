@@ -43,7 +43,12 @@ public interface IHexDisplayView {
     /// <summary>
     /// Gets the current document's span
     /// </summary>
-    ulong DocumentRange { get; }
+    ulong DocumentLength { get; }
+
+    /// <summary>
+    /// The <see cref="HexDisplay.HexDisplayInfo.StartAddress"/> the last time we <see cref="ReadAllFromConsoleCommand"/>
+    /// </summary>
+    uint CurrentStartOffset { get; }
 
     /// <summary>
     /// Reads the entire memory region from the console 

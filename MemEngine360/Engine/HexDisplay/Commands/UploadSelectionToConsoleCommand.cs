@@ -25,4 +25,14 @@ public class UploadSelectionToConsoleCommand : BaseHexEditorCommand {
     protected override Task ExecuteCommandAsync(IHexDisplayView view, HexDisplayInfo info, CommandEventArgs e) {
         return view.UploadSelectionToConsoleCommand();
     }
+    
+    protected override Task OnAlreadyExecuting(CommandEventArgs args) {
+        // User can hold down CTRL+R, and there's a change it takes just long
+        // enough to execute as to try to run it while already running.
+        // So we don't want to show a dialog saying it's running, just ignore it
+        if (args.Shortcut != null)
+            return Task.CompletedTask;
+        
+        return base.OnAlreadyExecuting(args);
+    }
 }

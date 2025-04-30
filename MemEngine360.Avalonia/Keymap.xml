@@ -53,6 +53,9 @@
             <Shortcut Name="UploadSelection" CommandId="commands.hexeditor.UploadSelectionToConsoleCommand">
                 <KeyStroke Mods="CTRL" Key="U"/>
             </Shortcut>
+            <Shortcut Name="GotoAddress" CommandId="commands.hexeditor.GotoAddressCommand">
+                <KeyStroke Mods="CTRL" Key="G"/>
+            </Shortcut>
         </Group>
 
         <Shortcut Name="ReadAll" CommandId="commands.hexeditor.ReadAllFromConsoleCommand">

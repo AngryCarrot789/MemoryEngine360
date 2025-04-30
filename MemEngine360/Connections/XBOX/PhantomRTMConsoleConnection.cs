@@ -748,7 +748,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         char[] buffer = new char[128];
         while (count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
-            string cmdPrefix = "setmem addr=0x" + (address + offset).ToString("X8") + " data=";
+            string cmdPrefix = "setmem addr=0x" + address.ToString("X8") + " data=";
             uint cbWrite = Math.Min(count, 64);
             for (int i = 0; i < cbWrite; i++) {
                 byte b = bytes[offset + i];
@@ -762,6 +762,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
                 throw new Exception($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
             }
 
+            address += cbWrite;
             offset += (int) cbWrite;
             count -= cbWrite;
             completion?.OnProgress(cbWrite);

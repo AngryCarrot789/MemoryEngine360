@@ -56,16 +56,24 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     public BitLocation CaretLocation {
         get => this.PART_HexEditor.Caret.Location;
-        set => this.PART_HexEditor.Caret.Location = value;
+        set {
+            this.PART_HexEditor.ResetCursorAnchor();
+            this.PART_HexEditor.Caret.Location = value;
+        }
     }
 
     public BitRange SelectionRange {
         get => this.PART_HexEditor.Selection.Range;
-        set => this.PART_HexEditor.Selection.Range = value;
+        set {
+            this.PART_HexEditor.ResetCursorAnchor();
+            this.PART_HexEditor.Selection.Range = value;
+        }
     }
 
-    public ulong DocumentRange => this.PART_HexEditor.Document?.Length ?? 0;
+    public ulong DocumentLength => this.PART_HexEditor.Document?.Length ?? 0;
 
+    public uint CurrentStartOffset => this.actualStartAddress;
+    
     private readonly OffsetColumn myOffsetColumn;
 
     public delegate void HexDisplayControlTheEndiannessChangedEventHandler(HexDisplayControl sender);
@@ -102,7 +110,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         else {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
         }
-        
+
         return default;
     });
 
@@ -152,14 +160,14 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
             await this.ReloadSelectionFromConsole();
         }, () => {
             BitRange selection = this.SelectionRange;
-            return selection.ByteLength > 1 && this.myCurrData != null && !this.PART_HexEditor.Document!.IsReadOnly;
+            return selection.ByteLength > 0 && this.myCurrData != null && !this.PART_HexEditor.Document!.IsReadOnly;
         });
 
         this.uploadDataCommand = new AsyncRelayCommand(async () => {
             await this.UploadSelectionToConsoleCommand();
         }, () => {
             BitRange selection = this.SelectionRange;
-            return selection.ByteLength > 1 && this.myCurrData != null && !this.PART_HexEditor.Document!.IsReadOnly;
+            return selection.ByteLength > 0 && this.myCurrData != null && !this.PART_HexEditor.Document!.IsReadOnly;
         });
 
         this.PART_Read.Command = this.readAllCommand;
@@ -242,7 +250,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         }
 
         BitRange selection = this.SelectionRange;
-        if (selection.ByteLength < 2 || this.myCurrData == null || this.PART_HexEditor.Document!.IsReadOnly) {
+        uint count = (uint) selection.ByteLength;
+        if (count < 1 || this.myCurrData == null || this.PART_HexEditor.Document!.IsReadOnly) {
             return;
         }
 
@@ -251,7 +260,6 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_Progress.IsIndeterminate = true;
 
         uint start = (uint) selection.Start.ByteIndex;
-        uint count = (uint) selection.ByteLength;
         byte[]? readBuffer = await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             return await ActivityManager.Instance.RunTask(async () => {
@@ -302,34 +310,16 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         }
 
         BitRange selection = this.SelectionRange;
-        if (selection.ByteLength < 1) {
+        uint count = (uint) selection.ByteLength;
+        if (count < 1) {
             await IMessageDialogService.Instance.ShowMessage("No selection", "Please make a selection to upload. Click CTRL+A to select all.", defaultButton: MessageBoxResult.OK);
             return;
-        }
-
-        uint address;
-        if (info.StartAddress == this.actualStartAddress) {
-            address = this.actualStartAddress;
-        }
-        else {
-            MessageBoxInfo msgInfo = new MessageBoxInfo("Different Start", $"The Start address field (current) is different from the last refreshed address (original){Environment.NewLine}{info.StartAddress:X8} != {this.actualStartAddress:X8}{Environment.NewLine}What do you want to do?") {
-                Buttons = MessageBoxButton.YesNoCancel, DefaultButton = MessageBoxResult.No,
-                YesOkText = "Write at current",
-                NoText = "Write at original",
-                CancelText = "Cancel"
-            };
-
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(msgInfo);
-            if (result == MessageBoxResult.Cancel) {
-                return;
-            }
-
-            address = result == MessageBoxResult.Yes ? info.StartAddress : this.actualStartAddress;
         }
 
         this.PART_ProgressGrid.IsVisible = true;
         this.PART_ControlsGrid.IsEnabled = false;
         this.PART_Progress.IsIndeterminate = true;
+        uint start = (uint) selection.Start.ByteIndex;
         await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             await ActivityManager.Instance.RunTask(async () => {
@@ -345,12 +335,10 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                     task.Progress.Text = $"Writing {IValueScanner.ByteFormatter.ToString(selection.ByteLength * state.TotalCompletion, false)}/{IValueScanner.ByteFormatter.ToString(selection.ByteLength, false)}";
                 };
 
-                uint start = (uint) selection.Start.ByteIndex;
-                uint count = (uint) selection.ByteLength;
 
                 // Update initial text
                 completion.OnCompletionValueChanged();
-                await c.WriteBytes(address, buffer, (int) start, count, completion, task.CancellationToken);
+                await c.WriteBytes(this.actualStartAddress + start, buffer, (int) start, count, completion, task.CancellationToken);
                 if (c is IFreezableConsole)
                     await ((IFreezableConsole) c).DebugUnFreeze();
             }, cts);
@@ -389,8 +377,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     protected override void OnWindowOpened() {
         base.OnWindowOpened();
-        this.Window!.Control.MinWidth = 1024;
-        this.Window!.Control.MinHeight = 640;
+        this.Window!.Control.MinWidth = 800;
+        this.Window!.Control.MinHeight = 480;
         this.Window!.Control.Width = 1280;
         this.Window!.Control.Height = 720;
         this.Window!.CanAutoSizeToContent = false;
@@ -422,7 +410,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
     private void UpdateDataInspector() {
         BitRange selection = this.SelectionRange;
         ulong caretIndex = selection.Start.ByteIndex;
-        if (this.myCurrData == null || (this.lastEndianness == this.theEndianness && caretIndex == this.lastInspectorIndex)) {
+        if (this.myCurrData == null) {
             return;
         }
 

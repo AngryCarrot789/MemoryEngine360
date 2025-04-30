@@ -87,6 +87,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.hexeditor.ReloadSelectionFromConsole", new ReloadSelectionFromConsole());        
         manager.Register("commands.hexeditor.ReadAllFromConsoleCommand", new ReadAllFromConsoleCommand());        
         manager.Register("commands.hexeditor.UploadSelectionToConsoleCommand", new UploadSelectionToConsoleCommand());        
+        manager.Register("commands.hexeditor.GotoAddressCommand", new GotoAddressCommand());        
         
         // Test commands
         manager.Register("commands.memengine.TestShowMemoryCommand", new TestShowMemoryCommand());
