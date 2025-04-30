@@ -363,7 +363,9 @@ public class MemoryEngine360 {
 
     private class BusyToken : IDisposable {
         public volatile MemoryEngine360? myEngine;
+#if DEBUG
         public readonly string? stackTrace;
+#endif
 
         public BusyToken(MemoryEngine360 engine) {
             this.myEngine = engine;
@@ -376,7 +378,9 @@ public class MemoryEngine360 {
                 }
             }
 
+#if DEBUG
             this.stackTrace = new StackTrace().ToString();
+#endif
         }
 
         public void Dispose() {
@@ -399,10 +403,6 @@ public class MemoryEngine360 {
                     }
                 }
             }
-        }
-
-        private void RaiseBusyChanged() {
-
         }
     }
 

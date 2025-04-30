@@ -19,14 +19,13 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using AvaloniaHex.Core.Document;
 using AvaloniaHex.Editing;
@@ -35,7 +34,6 @@ using MemEngine360.Connections;
 using MemEngine360.Engine.HexDisplay;
 using MemEngine360.Engine.Scanners;
 using PFXToolKitUI;
-using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Interactivity;
@@ -44,7 +42,6 @@ using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.Avalonia.Services.HexDisplay;
@@ -94,11 +91,37 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
     public event HexDisplayControlTheEndiannessChangedEventHandler? TheEndiannessChanged;
 
     private readonly AvaloniaPropertyToDataParameterBinder<HexDisplayInfo> captionBinder = new AvaloniaPropertyToDataParameterBinder<HexDisplayInfo>(WindowTitleProperty, HexDisplayInfo.CaptionParameter);
-    private readonly AvaloniaPropertyToDataParameterBinder<HexDisplayInfo> addrBinder = new AvaloniaPropertyToDataParameterBinder<HexDisplayInfo>(TextBox.TextProperty, HexDisplayInfo.StartAddressParameter, (p) => "0x" + ((uint) p!).ToString("X8")) { CanUpdateModel = false };
-    private readonly AvaloniaPropertyToDataParameterBinder<HexDisplayInfo> lenBinder = new AvaloniaPropertyToDataParameterBinder<HexDisplayInfo>(TextBox.TextProperty, HexDisplayInfo.LengthParameter, (p) => "0x" + ((uint) p!).ToString("X8")) { CanUpdateModel = false };
+
+    private readonly IBinder<HexDisplayInfo> addrBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.StartAddressParameter, (p) => ((uint) p!).ToString("X8"), async (x) => {
+        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
+            return value;
+        }
+        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
+        }
+        
+        return default;
+    });
+
+    private readonly IBinder<HexDisplayInfo> lenBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.LengthParameter, (p) => ((uint) p!).ToString("X8"), async (x) => {
+        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
+            return value;
+        }
+        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
+        }
+
+        return default;
+    });
+
     private readonly EventPropertyEnumBinder<Endianness> endiannessBinder = new EventPropertyEnumBinder<Endianness>(typeof(HexDisplayControl), nameof(TheEndiannessChanged), (x) => ((HexDisplayControl) x).TheEndianness, (x, y) => ((HexDisplayControl) x).TheEndianness = y);
 
-    private readonly AsyncRelayCommand updateAddressCommand, updateLengthCommand;
     private readonly AsyncRelayCommand readAllCommand, refreshDataCommand, uploadDataCommand;
 
     private uint actualStartAddress;
@@ -121,34 +144,6 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.endiannessBinder.Attach(this);
 
         this.PART_CancelButton.Click += this.OnCancelButtonClicked;
-        this.updateAddressCommand = new AsyncRelayCommand(async () => {
-            HexDisplayInfo? info = this.HexDisplayInfo;
-            if (info != null) {
-                if (!NumberUtils.TryParseHexOrRegular(this.PART_AddressTextBox.Text ?? "", out uint value)) {
-                    this.PART_AddressTextBox.Text = "0x" + info.StartAddress.ToString("X8");
-                    BugFix.TextBox_UpdateSelection(this.PART_AddressTextBox);
-                    await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
-                }
-                else {
-                    info.StartAddress = value;
-                }
-            }
-        });
-
-        this.updateLengthCommand = new AsyncRelayCommand(async () => {
-            HexDisplayInfo? info = this.HexDisplayInfo;
-            if (info != null) {
-                if (!NumberUtils.TryParseHexOrRegular(this.PART_LengthTextBox.Text ?? "", out uint value)) {
-                    this.PART_LengthTextBox.Text = "0x" + info.Length.ToString("X8");
-                    BugFix.TextBox_UpdateSelection(this.PART_LengthTextBox);
-                    await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length value is invalid", defaultButton: MessageBoxResult.OK);
-                }
-                else {
-                    info.Length = value;
-                }
-            }
-        });
-
         this.readAllCommand = new AsyncRelayCommand(async () => {
             await this.ReadAllFromConsoleCommand();
         });
@@ -170,33 +165,6 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_Read.Command = this.readAllCommand;
         this.PART_Refresh.Command = this.refreshDataCommand;
         this.PART_Upload.Command = this.uploadDataCommand;
-        this.PART_AddressTextBox.LostFocus += (sender, args) => this.updateAddressCommand.Execute(null);
-        this.PART_LengthTextBox.LostFocus += (sender, args) => this.updateLengthCommand.Execute(null);
-
-        this.PART_AddressTextBox.KeyDown += (sender, args) => {
-            if (args.Key == Key.Enter) {
-                args.Handled = true;
-                this.updateAddressCommand.Execute(null);
-            }
-            else if (args.Key == Key.Escape && this.HexDisplayInfo is HexDisplayInfo info) {
-                args.Handled = true;
-                this.PART_AddressTextBox.Text = "0x" + info.StartAddress.ToString("X8");
-                BugFix.TextBox_UpdateSelection((TextBox) sender!);
-            }
-        };
-
-        this.PART_LengthTextBox.KeyDown += (sender, args) => {
-            if (args.Key == Key.Enter) {
-                args.Handled = true;
-                this.updateLengthCommand.Execute(null);
-            }
-            else if (args.Key == Key.Escape && this.HexDisplayInfo is HexDisplayInfo info) {
-                args.Handled = true;
-                this.PART_LengthTextBox.Text = "0x" + info.Length.ToString("X8");
-                BugFix.TextBox_UpdateSelection((TextBox) sender!);
-            }
-        };
-
         this.PART_HexEditor.Caret.LocationChanged += (sender, args) => this.UpdateCaretText();
         this.PART_HexEditor.Caret.ModeChanged += (sender, args) => this.UpdateCaretText();
         this.PART_HexEditor.Caret.PrimaryColumnChanged += (sender, args) => this.UpdateCaretText();
@@ -475,7 +443,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         ushort val16 = cbRemaining >= 2 ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 2)) : default;
         uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 4)) : 0;
         ulong val64 = cbRemaining >= 8 ? MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 8)) : 0;
-        
+
         // On LE systems, the LSB is on the right side of a value in the hex editor.
         // Therefore, we have to flip the bytes (unless the user wants to see them as LE).
         // The hex editor displays 0xF894, but on LE, val16 would actually be read as 0x94F8.

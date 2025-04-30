@@ -105,7 +105,7 @@
                       Background="{DynamicResource ABrush.Tone2.Background.Static}"
                       BorderBrush="{DynamicResource PanelBorderBrush}"
                       BorderThickness="0,1,1,1"/>
-        <GridSplitter Grid.Column="1" Grid.Row="1" Background="{DynamicResource ABrush.Tone4.Background.Static}"/>
+        <GridSplitter Grid.Column="1" Grid.Row="1" Background="{DynamicResource ABrush.Tone4.Background.Static}" Focusable="False"/>
         <ScrollViewer Grid.Column="2" Grid.Row="1" DockPanel.Dock="Right" Background="{DynamicResource PanelBackground4}"
                       MinWidth="200">
             <Grid RowDefinitions="Auto,20,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1,Auto,1"
@@ -138,20 +138,20 @@
                 <TextBlock Text="Char (UTF16)" Grid.Row="27" Grid.Column="1" VerticalAlignment="Center"/>
                 <TextBlock Text="Char (UTF32)" Grid.Row="29" Grid.Column="1" VerticalAlignment="Center"/>
                 
-                <TextBox x:Name="PART_Binary8" FontFamily="{StaticResource FontOxanium}" Grid.Row="3" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_Int8" FontFamily="{StaticResource FontOxanium}" Grid.Row="5" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_UInt8" FontFamily="{StaticResource FontOxanium}" Grid.Row="7" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_Int16" FontFamily="{StaticResource FontOxanium}" Grid.Row="9" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_UInt16" FontFamily="{StaticResource FontOxanium}" Grid.Row="11" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_Int32" FontFamily="{StaticResource FontOxanium}" Grid.Row="13" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_UInt32" FontFamily="{StaticResource FontOxanium}" Grid.Row="15" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_Int64" FontFamily="{StaticResource FontOxanium}" Grid.Row="17" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_UInt64" FontFamily="{StaticResource FontOxanium}" Grid.Row="19" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_Float" FontFamily="{StaticResource FontOxanium}" Grid.Row="21" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_Double" FontFamily="{StaticResource FontOxanium}" Grid.Row="23" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_CharUTF8" Grid.Row="25" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_CharUTF16" Grid.Row="27" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="PART_CharUTF32" Grid.Row="29" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_Binary8" FontFamily="{StaticResource FontOxanium}" Grid.Row="3" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_Int8" FontFamily="{StaticResource FontOxanium}" Grid.Row="5" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_UInt8" FontFamily="{StaticResource FontOxanium}" Grid.Row="7" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_Int16" FontFamily="{StaticResource FontOxanium}" Grid.Row="9" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_UInt16" FontFamily="{StaticResource FontOxanium}" Grid.Row="11" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_Int32" FontFamily="{StaticResource FontOxanium}" Grid.Row="13" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_UInt32" FontFamily="{StaticResource FontOxanium}" Grid.Row="15" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_Int64" FontFamily="{StaticResource FontOxanium}" Grid.Row="17" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_UInt64" FontFamily="{StaticResource FontOxanium}" Grid.Row="19" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_Float" FontFamily="{StaticResource FontOxanium}" Grid.Row="21" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_Double" FontFamily="{StaticResource FontOxanium}" Grid.Row="23" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_CharUTF8" Grid.Row="25" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_CharUTF16" Grid.Row="27" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox Focusable="False" x:Name="PART_CharUTF32" Grid.Row="29" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
                 
                 <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"/>
                 <Border Height="1" Background="{DynamicResource ABrush.Tone4.Border.Static}" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"/>

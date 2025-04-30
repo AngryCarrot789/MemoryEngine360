@@ -38,7 +38,21 @@
                 <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="5" Margin="2,2" VerticalAlignment="Stretch"/>
             </Grid>
         </Border>
-        <Grid x:Name="PART_ContentGrid" ColumnDefinitions="5,5*,5,4*,5" RowDefinitions="5,3*,5,1*,5">
+        <Grid x:Name="PART_ContentGrid">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="5"/>
+                <RowDefinition Height="30*" MinHeight="200"/>
+                <RowDefinition Height="5"/>
+                <RowDefinition Height="15*" MinHeight="120"/>
+                <RowDefinition Height="5"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="5*" MinWidth="200"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="4*" MinWidth="228"/>
+                <ColumnDefinition Width="5"/>
+            </Grid.ColumnDefinitions>
             <Border Grid.Column="3" Grid.Row="1">
                 <Grid RowDefinitions="Auto,5,Auto,5,*,Auto">
                     <Grid ColumnDefinitions="*,5,*,5,*" Grid.Row="0" Height="22">
@@ -99,43 +113,39 @@
                             </DockPanel>
                         </c:GroupBox.Header>
                         <StackPanel IsVisible="{Binding ElementName=PART_MemScanExpander, Path=IsChecked}">
-                            <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="20,3,20,3,20,3,20,3,20" Margin="3">
+                            <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,20,3,20,3,20" Margin="3">
                                 <TextBlock Grid.Column="0" Grid.Row="0" Text="Start" VerticalAlignment="Center" Padding="4,0"/>
                                 <TextBlock Grid.Column="0" Grid.Row="2" Text="Length" VerticalAlignment="Center" Padding="4,0"/>
                                 <TextBlock Grid.Column="0" Grid.Row="4" Text="Align" VerticalAlignment="Center" Padding="4,0"/>
 
-                                <Label Grid.Column="2" Grid.Row="0" FontFamily="Consolas" Background="Transparent"
-                                       x:Name="PART_ScanOption_StartAddress"
-                                       VerticalAlignment="Stretch" VerticalContentAlignment="Center"
-                                       HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                       ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                       DoubleTapped="PART_ScanOption_StartAddress_OnDoubleTapped">
+                                <TextBox Grid.Column="2" Grid.Row="0" FontFamily="Consolas" Background="Transparent"
+                                         x:Name="PART_ScanOption_StartAddress" Padding="4,1"
+                                         VerticalAlignment="Stretch" VerticalContentAlignment="Center"
+                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                         ScrollViewer.VerticalScrollBarVisibility="Disabled" 
+                                         ScrollViewer.HorizontalScrollBarVisibility="Hidden">
                                     <ToolTip.Tip>
                                         <TextBlock TextWrapping="Wrap">
-                                            <Run Text="Double click to modify"/>
-                                            <LineBreak/>
                                             <Run Text="This is the start of the scanning region."/>
                                             <LineBreak/>
                                             <Run Text="This is also used when Scan Memory Pages is enabled, so you may want to set this to 0 in that case"/>
                                         </TextBlock>
                                     </ToolTip.Tip>
-                                </Label>
-                                <Label Grid.Column="2" Grid.Row="2" FontFamily="Consolas" Background="Transparent"
-                                       x:Name="PART_ScanOption_Length"
-                                       VerticalAlignment="Stretch" VerticalContentAlignment="Center"
-                                       HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                       ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                       DoubleTapped="PART_ScanOption_Length_OnDoubleTapped">
+                                </TextBox>
+                                <TextBox Grid.Column="2" Grid.Row="2" FontFamily="Consolas" Background="Transparent"
+                                         x:Name="PART_ScanOption_Length" Padding="4,1"
+                                         VerticalAlignment="Stretch" VerticalContentAlignment="Center"
+                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                         ScrollViewer.VerticalScrollBarVisibility="Disabled" 
+                                         ScrollViewer.HorizontalScrollBarVisibility="Hidden">
                                     <ToolTip.Tip>
                                         <TextBlock TextWrapping="Wrap">
-                                            <Run Text="Double click to modify"/>
-                                            <LineBreak/>
                                             <Run Text="This is how many bytes are scanned. The end address (exclusive) is the start address + this value"/>
                                             <LineBreak/>
                                             <Run Text="This is also used when Scan Memory Pages is enabled, so you may want to set this to FFFFFFFF in that case"/>
                                         </TextBlock>
                                     </ToolTip.Tip>
-                                </Label>
+                                </TextBox>
                                 <Label Grid.Column="2" Grid.Row="4" FontFamily="Consolas" Background="Transparent"
                                        x:Name="PART_ScanOption_Alignment"
                                        VerticalAlignment="Stretch" VerticalContentAlignment="Center"
@@ -191,7 +201,6 @@
                         <TextBlock Text="Scan Results" DockPanel.Dock="Left"/>
                         <TextBlock DockPanel.Dock="Right" Opacity="0.7">
                             <Run x:Name="PART_Run_CountResults" Text="0"/>
-                            <Run Text="Results"/>
                         </TextBlock>
                         <Border/>
                     </DockPanel>

@@ -274,6 +274,8 @@ public class ScanningProcessor {
 
     public ObservableList<ScanResultViewModel> SelectedResults { get; } = new ObservableList<ScanResultViewModel>();
 
+    public int ActualScanResultCount => this.ScanResults.Count + this.resultBuffer.Count;
+    
     public MemoryEngine360 MemoryEngine360 { get; }
 
     public event ScanningProcessorEventHandler? InputAChanged;
@@ -293,6 +295,7 @@ public class ScanningProcessor {
     public event ScanningProcessorEventHandler? AlignmentChanged;
     public event ScanningProcessorEventHandler? ScanMemoryPagesChanged;
     public event ScanningProcessorEventHandler? IsRefreshingAddressesChanged;
+    public event ScanningProcessorEventHandler? ScanCompleted;
 
     private readonly ConcurrentQueue<ScanResultViewModel> resultBuffer;
     private readonly RateLimitedDispatchAction rldaMoveBufferIntoResultList;
@@ -361,7 +364,7 @@ public class ScanningProcessor {
 
         bool debugFreeze = this.PauseConsoleDuringScan;
         DefaultProgressTracker progress = new DefaultProgressTracker {
-            Caption = "Scan", Text = "Beginning scan"
+            Caption = "Scan", Text = "Beginning scan..."
         };
 
         using CancellationTokenSource cts = new CancellationTokenSource();
@@ -393,7 +396,7 @@ public class ScanningProcessor {
                 if (result && !this.MemoryEngine360.IsShuttingDown) {
                     progress.Text = "Updating result list...";
                     int count = this.resultBuffer.Count;
-                    const int chunkSize = 200;
+                    const int chunkSize = 500;
                     int range = count / chunkSize;
                     using PopCompletionStateRangeToken x = progress.CompletionState.PushCompletionRange(0.0, 1.0 / range);
                     await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
@@ -407,7 +410,6 @@ public class ScanningProcessor {
                                 await Task.Delay(50, thisTask.CancellationToken);
                             }
                             catch (OperationCanceledException) {
-                                this.resultBuffer.Clear();
                                 return;
                             }
                         }
@@ -441,6 +443,7 @@ public class ScanningProcessor {
         if (this.isScanning)
             throw new InvalidOperationException("Currently scanning");
 
+        this.resultBuffer.Clear();
         this.ScanResults.Clear();
         this.HasDoneFirstScan = false;
         this.UseFirstValueForNextScan = false;
@@ -463,10 +466,10 @@ public class ScanningProcessor {
             return false;
         }
 
-        ObservableList<ScanResultViewModel> list = new ObservableList<ScanResultViewModel>();
-        ObservableItemProcessor.MakeIndexable(list,
+        ObservableList<ScanResultViewModel> dstList = new ObservableList<ScanResultViewModel>();
+        ObservableItemProcessor.MakeIndexable(dstList,
             (sender, index, item) => {
-                if (index != (list.Count - 1))
+                if (index != (dstList.Count - 1))
                     throw new InvalidOperationException("Must use Add, not Insert");
                 this.resultBuffer.Enqueue(item);
                 this.rldaMoveBufferIntoResultList.InvokeAsync();
@@ -476,14 +479,18 @@ public class ScanningProcessor {
 
         bool result;
         if (this.hasDoneFirstScan) {
+            activity.Text = "Accumulating scan results...";
             List<ScanResultViewModel> srcList = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                 List<ScanResultViewModel> items = this.ScanResults.ToList();
                 this.ScanResults.Clear();
+                items.AddRange(this.resultBuffer);
+                this.resultBuffer.Clear();
                 return items;
             });
 
+            activity.Text = "Scanning...";
             try {
-                result = await Task.Run(() => scanner.PerformNextScan(this, srcList, list, activity));
+                result = await Task.Run(() => scanner.PerformNextScan(this, srcList, dstList, activity));
             }
             catch (OperationCanceledException) {
                 result = true;
@@ -494,8 +501,9 @@ public class ScanningProcessor {
             }
         }
         else {
+            activity.Text = "Scanning...";
             try {
-                result = await Task.Run(() => scanner.PerformFirstScan(this, list, activity));
+                result = await Task.Run(() => scanner.PerformFirstScan(this, dstList, activity));
             }
             catch (OperationCanceledException) {
                 result = true;

@@ -216,7 +216,7 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
         string[]? reparseInputA = processor.UseFirstValueForNextScan || processor.UsePreviousValueForNextScan ? new string[srcList.Count] : null;
         
         IConsoleConnection connection = processor.MemoryEngine360.Connection!;
-        using (activity.CompletionState.PushCompletionRange(0.0, 256.0 / srcList.Count)) {
+        using (activity.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
             for (int i = 0; i < srcList.Count; i++) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
                 activity.Text = $"Reading values {i + 1}/{srcList.Count}";
@@ -232,7 +232,7 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
             }
         }
 
-        using (activity.CompletionState.PushCompletionRange(0.0, 256.0 / srcList.Count)) {
+        using (activity.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
             activity.Text = $"Processing results...";
             for (int i = 0; i < srcList.Count; i++) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();

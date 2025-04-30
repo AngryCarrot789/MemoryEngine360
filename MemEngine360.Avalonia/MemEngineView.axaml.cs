@@ -18,7 +18,6 @@
 // 
 
 using System;
-using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -29,11 +28,9 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using MemEngine360.Avalonia.Resources.Icons;
-using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Connections.XBOX;
 using MemEngine360.Engine;
-using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
@@ -42,7 +39,6 @@ using PFXToolKitUI.Avalonia.Interactivity.Selecting;
 using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
-using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -97,14 +93,36 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
                 MemEngineView w = (MemEngineView) b.Control;
                 w.PART_ScanOptionsControl.IsEnabled = !b.Model.IsScanning;
                 w.PART_Grid_ScanOptions.IsEnabled = !b.Model.IsScanning;
+                w.UpdateScanResultCounterText();
             });
 
-    private readonly IBinder<ScanningProcessor> startAddressBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.StartAddressChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_StartAddress.Content = $"0x{b.Model.StartAddress:X} ({b.Model.StartAddress.ToString()})");
-    private readonly IBinder<ScanningProcessor> addrLengthBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanLengthChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Length.Content = $"0x{b.Model.ScanLength:X} ({b.Model.ScanLength.ToString()})");
+    private readonly IBinder<ScanningProcessor> addrBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.StartAddressChanged), (b) => $"{b.Model.StartAddress:X8}", async (b, x) => {
+        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
+            b.Model.StartAddress = value;
+        }
+        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
+        }
+    });
+
+    private readonly IBinder<ScanningProcessor> lenBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanLengthChanged), (b) => $"{b.Model.ScanLength:X}", async (b, x) => {
+        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
+            b.Model.ScanLength = value;
+        }
+        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
+        }
+    });
+    
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
-    private readonly AsyncRelayCommand editAddressRangeCommand;
     private readonly AsyncRelayCommand editAlignmentCommand;
 
     #endregion
@@ -177,41 +195,8 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.PART_ScanListResults.ItemsSource = this.MemoryEngine360.ScanningProcessor.ScanResults;
 
         this.MemoryEngine360.ScanningProcessor.ScanResults.CollectionChanged += (sender, args) => {
-            this.PART_Run_CountResults.Text = ((ObservableCollection<ScanResultViewModel>) sender!).Count.ToString();
+            this.UpdateScanResultCounterText();
         };
-
-        this.editAddressRangeCommand = new AsyncRelayCommand(async () => {
-            ScanningProcessor p = this.MemoryEngine360.ScanningProcessor;
-
-            DoubleUserInputInfo info = new DoubleUserInputInfo(p.StartAddress.ToString("X"), p.ScanLength.ToString("X")) {
-                Caption = "Edit start and end addresses",
-                LabelA = "Start Address (hex)",
-                LabelB = "Bytes to scan (hex)"
-            };
-
-            info.ValidateA = (e) => {
-                if (!uint.TryParse(e.Input, NumberStyles.HexNumber, null, out _))
-                    e.Errors.Add("Invalid memory address");
-            };
-
-            info.ValidateB = (e) => {
-                if (!uint.TryParse(e.Input, NumberStyles.HexNumber, null, out _))
-                    e.Errors.Add("Invalid unsigned integer");
-            };
-
-            // We don't need to unregister the handler because info will
-            // get garbage collected soon, since it's not accessed outside this command
-            DataParameterValueChangedEventHandler change = (_, owner) => UpdateMemoryRangeFooterText((DoubleUserInputInfo) owner);
-            DoubleUserInputInfo.TextAParameter.AddValueChangedHandler(info, change);
-            DoubleUserInputInfo.TextBParameter.AddValueChangedHandler(info, change);
-
-            UpdateMemoryRangeFooterText(info);
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-                p.StartAddress = uint.Parse(info.TextA, NumberStyles.HexNumber);
-                p.ScanLength = uint.Parse(info.TextB, NumberStyles.HexNumber);
-                BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
-            }
-        });
 
         this.editAlignmentCommand = new AsyncRelayCommand(async () => {
             ScanningProcessor p = this.MemoryEngine360.ScanningProcessor;
@@ -251,16 +236,13 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.PART_ScanOptionsControl.MemoryEngine360 = this.MemoryEngine360;
     }
 
-    private static void UpdateMemoryRangeFooterText(DoubleUserInputInfo theInfo) {
-        const string prefix = "Scan Range (inclusive):";
-        if (theInfo.TextErrorsA != null || theInfo.TextErrorsB != null) {
-            theInfo.Footer = $"{prefix} <errors present>";
-        }
-        else {
-            uint addr = uint.Parse(theInfo.TextA, NumberStyles.HexNumber);
-            uint len = uint.Parse(theInfo.TextB, NumberStyles.HexNumber);
-            theInfo.Footer = $"{prefix} {addr:X8} -> {(addr + (len - 1)):X8}";
-        }
+    private void UpdateScanResultCounterText() {
+        ScanningProcessor processor = this.MemoryEngine360.ScanningProcessor;
+        
+        int pending = processor.ActualScanResultCount;
+        int count = processor.ScanResults.Count;
+        pending -= count;
+        this.PART_Run_CountResults.Text = $"{count} results{(pending > 0 ? $" ({pending} {(processor.IsScanning ? "pending" : "hidden")})" : "")}";
     }
 
     protected override void OnLoaded(RoutedEventArgs e) {
@@ -268,8 +250,8 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.connectedHostNameBinder.Attach(this.PART_ConnectedHostName, this.MemoryEngine360);
         // this.isBusyBinder.Attach(this.PART_BusyIndicator, this.MemoryEngine360);
         this.isScanningBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
-        this.startAddressBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
-        this.addrLengthBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
+        this.addrBinder.Attach(this.PART_ScanOption_StartAddress, this.MemoryEngine360.ScanningProcessor);
+        this.lenBinder.Attach(this.PART_ScanOption_Length, this.MemoryEngine360.ScanningProcessor);
         this.alignmentBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, this.MemoryEngine360.ScanningProcessor);
         this.scanMemoryPagesBinder.Attach(this.PART_ScanOption_ScanMemoryPages, this.MemoryEngine360.ScanningProcessor);
@@ -282,6 +264,25 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         }, (sender, oldIndex, newIndex, item) => {
             this.themesSubList.Items.Move(oldIndex, newIndex);
         }).AddExistingItems();
+
+        // ActivityManager.Instance.RunTask(async () => {
+        //     ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Task 1", "Hey!!!");
+        //     await Task.Delay(3000);
+        //     await ActivityManager.Instance.RunTask(async () => {
+        //         ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Task 2", "Waiting...");
+        //         await Task.Delay(1000);
+        //         await ActivityManager.Instance.RunTask(async () => {
+        //             ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Task 3", "Stuff");
+        //             await Task.Delay(1000);
+        //         });
+        //     });
+        //     
+        //     await Task.Delay(1000);
+        //     await ActivityManager.Instance.RunTask(async () => {
+        //         ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Task 1 v2", "More stuff");
+        //         await Task.Delay(3000);
+        //     });
+        // });
     }
 
     private class SetThemeContextEntry : CustomContextEntry {
@@ -319,8 +320,8 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.connectedHostNameBinder.Detach();
         // this.isBusyBinder.Detach();
         this.isScanningBinder.Detach();
-        this.startAddressBinder.Detach();
-        this.addrLengthBinder.Detach();
+        this.addrBinder.Detach();
+        this.lenBinder.Detach();
         this.alignmentBinder.Detach();
         this.pauseXboxBinder.Detach();
         this.scanMemoryPagesBinder.Detach();
@@ -405,14 +406,6 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         }
 
         return false;
-    }
-
-    private void PART_ScanOption_StartAddress_OnDoubleTapped(object? sender, TappedEventArgs e) {
-        this.editAddressRangeCommand.Execute(null);
-    }
-
-    private void PART_ScanOption_Length_OnDoubleTapped(object? sender, TappedEventArgs e) {
-        this.editAddressRangeCommand.Execute(null);
     }
 
     private void PART_ScanOption_Alignment_OnDoubleTapped(object? sender, TappedEventArgs e) {

@@ -138,7 +138,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     private class StartupManagerMemEngine360 : IStartupManager {
         public Task OnApplicationStartupWithArgs(string[] args) {
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
-                desktop.ShutdownMode = ShutdownMode.OnLastWindowClose;
+                desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
             }
             
             if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {

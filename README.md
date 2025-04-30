@@ -42,7 +42,11 @@ Then finally, click `First Scan`. The activity status (bottom right) shows the s
 
 The activity bar will show something like `Region a/b (c/d)`. This means it's processing memory region A out of B, and has read C out of D bytes from the console. It may also say `Chunk` when Scan Memory Pages is off, since we read in chunks of 64K 
 
-Then, once the scan is complete, it may show `Updating result list...`. This is where it adds the results into the UI at a steady pace to prevent the UI freezing (rate of about 2000/s (system performance dependent))
+Then, once the scan is complete, it may show `Updating result list...`. This is where it adds the results into the UI at a steady pace to prevent the UI freezing (rate of about 2000/s (system performance dependent)). It shows how many results are pending at the top.
+
+> You can cancel the activity once it shows `Updating results list`, and the rows become 'Hidden', but they will still be processed next scan along with the rows in the UI.
+
+
 
 ### Next Scan
 

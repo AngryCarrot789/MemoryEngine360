@@ -17,8 +17,8 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using Avalonia;
 using System;
+using Avalonia;
 
 namespace MemEngine360.Avalonia;
 
