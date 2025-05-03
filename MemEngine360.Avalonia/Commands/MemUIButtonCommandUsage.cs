@@ -33,7 +33,7 @@ public class MemUIButtonCommandUsage : SimpleButtonCommandUsage {
         base.OnContextChanged();
         IMemEngineUI? oldEngine = this.UI;
         IMemEngineUI? newEngine = null;
-        bool hasEngine = this.GetContextData() is IContextData data && IMemEngineUI.DataKey.TryGetContext(data, out newEngine);
+        bool hasEngine = this.GetContextData() is IContextData data && IMemEngineUI.MemUIDataKey.TryGetContext(data, out newEngine);
         if (hasEngine && oldEngine == newEngine) {
             return;
         }

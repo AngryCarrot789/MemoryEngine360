@@ -62,7 +62,7 @@ public class ConsoleTypeXbox360Xbdm : RegisteredConsoleType {
         return new ConnectToXboxInfo(engine);
     }
 
-    public override async Task<IConsoleConnection?> OpenConnection(MemoryEngine360 engine, UserConnectionInfo? _info) {
+    public override async Task<IConsoleConnection?> OpenConnection(MemoryEngine360 engine, UserConnectionInfo? _info, CancellationTokenSource cancellation) {
         ConnectToXboxInfo info = (ConnectToXboxInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.IpAddress)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid address", "Address cannot be an empty string");
@@ -74,7 +74,6 @@ public class ConsoleTypeXbox360Xbdm : RegisteredConsoleType {
         BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
 
         try {
-            using CancellationTokenSource cts = new CancellationTokenSource();
             PhantomRTMConsoleConnection? result = await ActivityManager.Instance.RunTask(async () => {
                 IActivityProgress progress = ActivityManager.Instance.GetCurrentProgressOrEmpty();
                 progress.Caption = "PhantomRTM";
@@ -82,7 +81,7 @@ public class ConsoleTypeXbox360Xbdm : RegisteredConsoleType {
                 progress.IsIndeterminate = true;
                 TcpClient client = new TcpClient();
                 try {
-                    await client.ConnectAsync(info.IpAddress, 730, cts.Token);
+                    await client.ConnectAsync(info.IpAddress, 730, cancellation.Token);
                 }
                 catch (OperationCanceledException) {
                     return null;
@@ -104,14 +103,14 @@ public class ConsoleTypeXbox360Xbdm : RegisteredConsoleType {
 
                 progress.Text = "Waiting for hot chocolate...";
                 StreamReader reader = new StreamReader(client.GetStream());
-                string? response = (await reader.ReadLineAsync(cts.Token))?.ToLower();
+                string? response = (await reader.ReadLineAsync(cancellation.Token))?.ToLower();
                 if (response == "201- connected") {
                     return new PhantomRTMConsoleConnection(client, reader);
                 }
 
                 await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => IMessageDialogService.Instance.ShowMessage("Error", "Received invalid response from console: " + (response ?? "")));
                 return null;
-            }, cts);
+            }, cancellation);
 
             return result;
         }

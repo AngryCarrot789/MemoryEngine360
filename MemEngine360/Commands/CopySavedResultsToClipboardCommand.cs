@@ -28,7 +28,7 @@ namespace MemEngine360.Commands;
 public class CopySavedResultsToClipboardCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         if (!SavedAddressViewModel.DataKey.TryGetContext(e.ContextData, out SavedAddressViewModel? _)) {
-            if (!IMemEngineUI.DataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+            if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
                 return Executability.Invalid;
             }
             else if (ui.ScanResultSelectionManager.Count < 1) {
@@ -42,7 +42,7 @@ public class CopySavedResultsToClipboardCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         MemoryEngine360? memoryEngine360 = null;
         List<SavedAddressViewModel> scanResults = new List<SavedAddressViewModel>();
-        if (IMemEngineUI.DataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+        if (IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
             scanResults.AddRange(ui.SavedAddressesSelectionManager.SelectedItems);
             memoryEngine360 = ui.MemoryEngine360;
         }

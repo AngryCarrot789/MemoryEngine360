@@ -242,16 +242,20 @@ public class MemoryEngine360 {
     /// <returns>
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
-    public async Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...") {
+    public async Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...", CancellationTokenSource? cancellationTokenSource = null) {
         IDisposable? token = this.BeginBusyOperation();
         if (token == null) {
-            using CancellationTokenSource cts = new CancellationTokenSource();
+            CancellationTokenSource cts = cancellationTokenSource ?? new CancellationTokenSource();
             token = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = caption;
                 task.Progress.Text = message;
                 return this.BeginBusyOperationAsync(task.CancellationToken);
             }, cts);
+
+            if (cancellationTokenSource == null) {
+                cts.Dispose();
+            }
         }
 
         return token;

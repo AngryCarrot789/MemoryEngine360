@@ -165,7 +165,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.TopLevelMenuRegistry = new TopLevelMenuRegistry();
         {
             ContextEntryGroup entry = new ContextEntryGroup("File");
-            entry.Items.Add(new CommandContextEntry("commands.memengine.ConnectToConsoleCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
             entry.Items.Add(new CommandContextEntry("commands.memengine.TestShowMemoryCommand", "Test Hex editor"));
             entry.Items.Add(new SeparatorEntry());
             entry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
@@ -342,11 +342,11 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.Window.Control.MinHeight = 520;
         this.Window.Width = 680;
         this.Window.Height = 630;
-        this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.2";
+        this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.3";
         this.Window.WindowClosing += this.MyWindowOnWindowClosing;
         
         using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
-        change.Context.Set(MemoryEngine360.DataKey, this.MemoryEngine360).Set(IMemEngineUI.DataKey, this).Set(ILatestActivityView.DataKey, this);
+        change.Context.Set(MemoryEngine360.DataKey, this.MemoryEngine360).Set(IMemEngineUI.MemUIDataKey, this).Set(ILatestActivityView.LatestActivityDataKey, this);
         
         ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineOpened(this);
     }
@@ -357,7 +357,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         
         this.Window!.WindowClosing -= this.MyWindowOnWindowClosing;
         using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
-        change.Context.Remove(MemoryEngine360.DataKey, IMemEngineUI.DataKey, ILatestActivityView.DataKey);
+        change.Context.Remove(MemoryEngine360.DataKey, IMemEngineUI.MemUIDataKey, ILatestActivityView.LatestActivityDataKey);
     }
 
     private async Task<bool> MyWindowOnWindowClosing(IWindow sender, WindowCloseReason reason, bool isCancelled) {

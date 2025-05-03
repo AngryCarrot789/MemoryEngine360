@@ -26,8 +26,8 @@ namespace MemEngine360.Engine;
 /// <summary>
 /// An abstraction around the MemEngine360 main window
 /// </summary>
-public interface IMemEngineUI {
-    public static readonly DataKey<IMemEngineUI> DataKey = DataKey<IMemEngineUI>.Create("IMemEngineUI");
+public interface IMemEngineUI : ILatestActivityView {
+    public static readonly DataKey<IMemEngineUI> MemUIDataKey = DataKey<IMemEngineUI>.Create("IMemEngineUI");
     
     /// <summary>
     /// Gets the memory engine

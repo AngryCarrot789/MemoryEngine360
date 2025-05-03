@@ -25,17 +25,16 @@ using PFXToolKitUI.Avalonia.Services.Windowing;
 namespace MemEngine360.Avalonia.Services.Connectivity;
 
 public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
-    public override async Task<IConsoleConnection?> OpenDialogAndConnect(MemoryEngine360 engine, string? focusedTypeId = null) {
-        if (WindowingSystem.TryGetInstance(out WindowingSystem? system) && system.TryGetActiveWindow(out IWindow? active)) {
+    public override Task OpenDialog(IMemEngineUI engine, string? focusedTypeId = null) {
+        if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
             ConnectToConsoleView control = new ConnectToConsoleView() {
-                Engine = engine, FocusedTypeId = focusedTypeId
+                EngineUI = engine, FocusedTypeId = focusedTypeId
             };
             
             IWindow window = system.CreateWindow(control);
-            await window.ShowDialog(active);
-            return control.Result;
+            window.Show(null);
         }
-        
-        return null;
+
+        return Task.CompletedTask;
     }
 }

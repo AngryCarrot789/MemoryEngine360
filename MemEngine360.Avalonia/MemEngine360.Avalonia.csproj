@@ -39,9 +39,9 @@
 
     <ItemGroup>
         <Content Include="..\Plugins\**\*.*">
+            <Link>Plugins\%(RecursiveDir)%(Filename)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <Link>Plugins\%(RecursiveDir)%(Filename)%(Extension)</Link>
         </Content>
     </ItemGroup>
 

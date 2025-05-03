@@ -54,7 +54,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     protected override void RegisterCommands(CommandManager manager) {
         base.RegisterCommands(manager);
 
-        manager.Register("commands.memengine.ConnectToConsoleCommand", new ConnectToConsoleCommand());
+        manager.Register("commands.memengine.OpenConsoleConnectionDialogCommand", new OpenConsoleConnectionDialogCommand());
         manager.Register("commands.memengine.FirstScanCommand", new FirstScanCommand());
         manager.Register("commands.memengine.NextScanCommand", new NextScanCommand());
         manager.Register("commands.memengine.ResetScanCommand", new ResetScanCommand());

@@ -74,16 +74,20 @@ public abstract class RegisteredConsoleType {
     /// </para> 
     /// </summary>
     /// <param name="engine">
-    /// The engine trying to connect. Do not call <see cref="MemoryEngine360.SetConnection"/>, since it
-    /// will be done once this async method completes, if it returns a non-null value
+    ///     The engine trying to connect. Do not call <see cref="MemoryEngine360.SetConnection"/>, since it
+    ///     will be done once this async method completes, if it returns a non-null value
     /// </param>
     /// <param name="info">
-    /// Information that the user specified in the connection dialog. Value is null when <see cref="CreateConnectionInfo"/> is null
+    ///     Information that the user specified in the connection dialog. Value is null when <see cref="CreateConnectionInfo"/> is null
+    /// </param>
+    /// <param name="cancellation">
+    /// A reference to the CTS created by the Connect to console dialog. It is cancelled when either the user clicks the cancel
+    /// button in the activity status bar (or list) or when the user closes the connect to console window
     /// </param>
     /// <returns>
     /// The valid console connection, or null if a connection could not be made, or cancellation was requested
     /// </returns>
-    public abstract Task<IConsoleConnection?> OpenConnection(MemoryEngine360 engine, UserConnectionInfo? info);
+    public abstract Task<IConsoleConnection?> OpenConnection(MemoryEngine360 engine, UserConnectionInfo? info, CancellationTokenSource cancellation);
 
     /// <summary>
     /// Creates an instance of <see cref="UserConnectionInfo"/> which is used by the front end to

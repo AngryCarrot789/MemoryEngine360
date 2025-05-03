@@ -33,7 +33,7 @@ public class EditSavedAddressValueCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         ScanningProcessor processor;
         if (!ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? result)) {
-            if (!IMemEngineUI.DataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+            if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
                 return Executability.Invalid;
             }
 
@@ -56,7 +56,7 @@ public class EditSavedAddressValueCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         MemoryEngine360? memoryEngine360 = null;
         List<SavedAddressViewModel> savedList = new List<SavedAddressViewModel>();
-        if (IMemEngineUI.DataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+        if (IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
             savedList.AddRange(ui.SavedAddressesSelectionManager.SelectedItems);
             memoryEngine360 = ui.MemoryEngine360;
         }

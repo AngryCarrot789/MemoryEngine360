@@ -36,7 +36,7 @@ public class AddSavedAddressCommand : Command {
         }
 
         uint initialAddress = 0;
-        if (IMemEngineUI.DataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+        if (IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
             IList<ScanResultViewModel> list = ui.ScanResultSelectionManager.SelectedItemList;
             if (list.Count > 0)
                 initialAddress = list[list.Count - 1].Address;
