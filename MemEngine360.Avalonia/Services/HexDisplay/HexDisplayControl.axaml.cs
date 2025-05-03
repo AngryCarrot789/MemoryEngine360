@@ -40,6 +40,7 @@ using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
+using PFXToolKitUI.PropertyEditing.DataTransfer;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Commands;
@@ -73,7 +74,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
     public ulong DocumentLength => this.PART_HexEditor.Document?.Length ?? 0;
 
     public uint CurrentStartOffset => this.actualStartAddress;
-    
+
     private readonly OffsetColumn myOffsetColumn;
 
     public delegate void HexDisplayControlTheEndiannessChangedEventHandler(HexDisplayControl sender);
@@ -147,6 +148,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_HexEditor.HexView.Columns.Add(new HexColumn());
         this.PART_HexEditor.HexView.Columns.Add(new AsciiColumn());
 
+        this.PART_DisplayIntAsHex.IsCheckedChanged += (sender, args) => this.UpdateDataInspector();
+
         this.endiannessBinder.Assign(this.PART_LittleEndian, Endianness.LittleEndian);
         this.endiannessBinder.Assign(this.PART_BigEndian, Endianness.BigEndian);
         this.endiannessBinder.Attach(this);
@@ -177,6 +180,51 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_HexEditor.Caret.ModeChanged += (sender, args) => this.UpdateCaretText();
         this.PART_HexEditor.Caret.PrimaryColumnChanged += (sender, args) => this.UpdateCaretText();
         this.PART_HexEditor.Selection.RangeChanged += (sender, args) => this.UpdateSelectionText();
+
+        this.PART_BtnFwdInt8.Click += (s, e) => this.MoveCursorForDataType(1); 
+        this.PART_BtnFwdInt16.Click += (s, e) => this.MoveCursorForDataType(2); 
+        this.PART_BtnFwdInt32.Click += (s, e) => this.MoveCursorForDataType(4); 
+        this.PART_BtnFwdInt64.Click += (s, e) => this.MoveCursorForDataType(8); 
+        this.PART_BtnBackInt8.Click += (s, e) => this.MoveCursorForDataType(-1); 
+        this.PART_BtnBackInt16.Click += (s, e) => this.MoveCursorForDataType(-2); 
+        this.PART_BtnBackInt32.Click += (s, e) => this.MoveCursorForDataType(-4); 
+        this.PART_BtnBackInt64.Click += (s, e) => this.MoveCursorForDataType(-8); 
+        
+        this.PART_BtnGoToPointerInt32.Click += (s, e) => this.NavigateToPointer();
+    }
+
+    private bool IsPointerInRange(uint value) {
+        return value >= this.actualStartAddress && value < (this.actualStartAddress + this.DocumentLength);
+    }
+    
+    private void NavigateToPointer() {
+        if (this.myCurrData == null) {
+            return;
+        }
+        
+        ulong caretIndex = this.SelectionRange.Start.ByteIndex;
+        bool displayAsLE = this.TheEndianness == Endianness.LittleEndian;
+        int cbRemaining = this.myCurrData.Length - (int) caretIndex;
+        uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 4)) : 0;
+        if (displayAsLE != BitConverter.IsLittleEndian) {
+            val32 = BinaryPrimitives.ReverseEndianness(val32);
+        }
+
+        if (this.IsPointerInRange(val32)) {
+            this.MoveCursor(val32 - this.actualStartAddress, 4);
+        }
+    }
+
+    private void MoveCursorForDataType(int incr) {
+        int len = incr < 0 ? -incr : incr;
+        BitLocation caret = this.CaretLocation;
+        this.MoveCursor((long) caret.ByteIndex + incr, len);
+    }
+    
+    private void MoveCursor(long location, long selectionLength) {
+        BitLocation caret = new BitLocation((ulong) Math.Clamp(location, 0, (long) this.DocumentLength));
+        this.CaretLocation = caret;
+        this.SelectionRange = new BitRange(caret, caret.AddBytes((ulong) selectionLength));
     }
 
     public async Task ReadAllFromConsoleCommand() {
@@ -367,7 +415,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
     private void UpdateCaretText() {
         Caret caret = this.PART_HexEditor.Caret;
         BitLocation pos = caret.Location;
-        this.PART_CaretText.Text = $"{(this.actualStartAddress + pos.ByteIndex):X8}";
+        this.PART_CaretText.Text = $"{(this.actualStartAddress + pos.ByteIndex):X8} ({pos.ByteIndex:X} from start)";
         this.UpdateDataInspector();
     }
 
@@ -426,7 +474,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         bool displayAsLE = this.TheEndianness == Endianness.LittleEndian;
         int cbRemaining = this.myCurrData.Length - (int) caretIndex;
 
-        byte val8 = cbRemaining >= 1 ? this.myCurrData[caretIndex] : default;
+        byte val08 = cbRemaining >= 1 ? this.myCurrData[caretIndex] : default;
         ushort val16 = cbRemaining >= 2 ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 2)) : default;
         uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 4)) : 0;
         ulong val64 = cbRemaining >= 8 ? MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(this.myCurrData, (int) caretIndex, 8)) : 0;
@@ -440,19 +488,22 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
             val64 = BinaryPrimitives.ReverseEndianness(val64);
         }
 
-        this.PART_Binary8.Text = val8.ToString("B8");
-        this.PART_Int8.Text = ((sbyte) val8).ToString();
-        this.PART_UInt8.Text = val8.ToString();
-        this.PART_Int16.Text = ((short) val16).ToString();
-        this.PART_UInt16.Text = val16.ToString();
-        this.PART_Int32.Text = ((int) val32).ToString();
-        this.PART_UInt32.Text = val32.ToString();
-        this.PART_Int64.Text = ((long) val64).ToString();
-        this.PART_UInt64.Text = val64.ToString();
+        bool asHex = this.PART_DisplayIntAsHex.IsChecked == true;
+        this.PART_Binary8.Text = val08.ToString("B8");
+        this.PART_Int8.Text = asHex ? ((sbyte) val08).ToString("X2") : ((sbyte) val08).ToString();
+        this.PART_UInt8.Text = asHex ? val08.ToString("X2") : val08.ToString();
+        this.PART_Int16.Text = asHex ? ((short) val16).ToString("X4") : ((short) val16).ToString();
+        this.PART_UInt16.Text = asHex ? val16.ToString("X4") : val16.ToString();
+        this.PART_Int32.Text = asHex ? ((int) val32).ToString("X8") : ((int) val32).ToString();
+        this.PART_UInt32.Text = asHex ? val32.ToString("X8") : val32.ToString();
+        this.PART_Int64.Text = asHex ? ((long) val64).ToString("X16") : ((long) val64).ToString();
+        this.PART_UInt64.Text = asHex ? val64.ToString("X16") : val64.ToString();
         this.PART_Float.Text = Unsafe.As<uint, float>(ref val32).ToString();
         this.PART_Double.Text = Unsafe.As<ulong, double>(ref val64).ToString();
-        this.PART_CharUTF8.Text = ((char) val8).ToString();
+        this.PART_CharUTF8.Text = ((char) val08).ToString();
         this.PART_CharUTF16.Text = ((char) val16).ToString();
         this.PART_CharUTF32.Text = Encoding.UTF32.GetString(new ReadOnlySpan<byte>(ref Unsafe.As<uint, byte>(ref val32)));
+
+        this.PART_BtnGoToPointerInt32.IsEnabled = this.IsPointerInRange(val32);
     }
 }

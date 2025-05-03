@@ -123,7 +123,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         }
 
         if (response.ResponseType != ResponseType.MultiResponse) {
-            return new List<string>();
+            throw new Exception("Command response is not multi-response: " + command);
         }
 
         List<string> list = new List<string>();
