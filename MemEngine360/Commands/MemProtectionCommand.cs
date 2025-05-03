@@ -17,10 +17,11 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections.XBOX;
+using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.MemRegions;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
 
@@ -28,29 +29,41 @@ namespace MemEngine360.Commands;
 
 public class MemProtectionCommand : BaseMemoryEngineCommand {
     protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
-        return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
+        if (engine.Connection != null) {
+            return engine.Connection is IHaveMemoryRegions ? Executability.Valid : Executability.Invalid;
+        }
+
+        // limitation of commands API -- this is where we have to add/remove buttons dynamically to get around this
+        return Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
-        List<MemoryRegion>? list = await engine.BeginBusyOperationActivityAsync(async (t, c) => {
-            return await ActivityManager.Instance.RunTask(() => {
-                IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
-                prog.Caption = "Memory Regions";
-                prog.Text = "Reading memory regions...";
-                prog.IsIndeterminate = true;
-                return c.GetMemoryRegions();
+        if (engine.Connection is IHaveMemoryRegions) {
+            List<MemoryRegion>? list = await engine.BeginBusyOperationActivityAsync(async (t, c) => {
+                if (!(c is IHaveMemoryRegions regions)) {
+                    await IMessageDialogService.Instance.ShowMessage("Unsupported", "This console does not support memory region querying");
+                    return null;
+                }
+                
+                return await ActivityManager.Instance.RunTask(() => {
+                    IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
+                    prog.Caption = "Memory Regions";
+                    prog.Text = "Reading memory regions...";
+                    prog.IsIndeterminate = true;
+                    return regions.GetMemoryRegions();
+                });
             });
-        });
 
-        if (list == null) {
-            return;
+            if (list == null) {
+                return;
+            }
+
+            MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(list) {
+                Caption = "Memory Regions",
+                ConfirmText = "Epic", CancelText = "Close" // UserInputDialog limitation -- cannot disable OK :-)
+            };
+
+            await IUserInputDialogService.Instance.ShowInputDialogAsync(info);
         }
-        
-        MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(list) {
-            Caption = "Memory Regions",
-            ConfirmText = "Epic", CancelText = "Close" // UserInputDialog limitation -- cannot disable OK :-)
-        };
-
-        await IUserInputDialogService.Instance.ShowInputDialogAsync(info);
     }
 }

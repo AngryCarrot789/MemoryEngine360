@@ -19,7 +19,6 @@
 
 using System.Collections.ObjectModel;
 using MemEngine360.Connections;
-using MemEngine360.Connections.XBOX;
 using MemEngine360.Engine;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
@@ -29,14 +28,18 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands;
 
-public abstract class RemoteXboxCommand : BaseMemoryEngineCommand {
+public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
     protected abstract string ActivityText { get; }
 
     protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
         return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
+    protected virtual Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        return Task.FromResult(true);
+    }
+
+    protected sealed override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
         engine.CheckConnection();
         using IDisposable? token = engine.BeginBusyOperation();
         if (token == null) {
@@ -56,10 +59,7 @@ public abstract class RemoteXboxCommand : BaseMemoryEngineCommand {
         else if (engine.ScanningProcessor.IsScanning) {
             await IMessageDialogService.Instance.ShowMessage("Disconnected", "Scan in progress");
         }
-        else if (!(connection is IXbox360Connection xbox)) {
-            await IMessageDialogService.Instance.ShowMessage("Not an xbox console", "This command cannot be used because we are not connected to an xbox 360");
-        }
-        else {
+        else if (await this.TryBeginExecuteAsync(engine, connection, e)) {
             // we won't bother using the async versions because they will most likely have an
             // activity running (e.g. scan progress) and at the moment there's no list of
             // activities displayable in the main UI (unimplemented but possible)
@@ -68,7 +68,7 @@ public abstract class RemoteXboxCommand : BaseMemoryEngineCommand {
                 prog.Caption = "Remote Command";
                 prog.Text = this.ActivityText;
                 try {
-                    await this.ExecuteRemoteCommand(engine, xbox, e);
+                    await this.ExecuteRemoteCommand(engine, connection, e);
                 }
                 catch (Exception exception) {
                     await IMessageDialogService.Instance.ShowMessage("Error", "Error while executing remote command", exception.GetToString());
@@ -79,53 +79,29 @@ public abstract class RemoteXboxCommand : BaseMemoryEngineCommand {
         }
     }
 
-    protected abstract ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e);
+    protected abstract Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e);
 }
 
-public class EjectDiskTrayCommand : RemoteXboxCommand {
-    protected override string ActivityText => "Ejecting disk tray...";
-
-    protected override async ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
-        await connection.OpenDiskTray();
-    }
-}
-
-public class ShutdownCommand : RemoteXboxCommand {
+public class ShutdownCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Shutting down console...";
 
-    protected override async ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
         await connection.ShutdownConsole();
     }
 }
 
-public class SoftRebootCommand : RemoteXboxCommand {
+public class SoftRebootCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Rebooting title...";
 
-    protected override async ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
         await connection.RebootConsole(false);
     }
 }
 
-public class ColdRebootCommand : RemoteXboxCommand {
+public class ColdRebootCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Rebooting console...";
 
-    protected override async ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
         await connection.RebootConsole(true);
-    }
-}
-
-public class DebugFreezeCommand : RemoteXboxCommand {
-    protected override string ActivityText => "Freezing console...";
-
-    protected override async ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
-        await connection.DebugFreeze();
-    }
-}
-
-public class DebugUnfreezeCommand : RemoteXboxCommand {
-    protected override string ActivityText => "Unfreezing console...";
-
-    protected override async ValueTask ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
-        await connection.DebugUnFreeze();
     }
 }

@@ -114,6 +114,7 @@ public class TestShowMemoryCommand : Command {
             base.OnWindowOpened();
             this.Window!.Control.MinWidth = 1000;
             this.Window!.Control.MinHeight = 640;
+            this.Window.CanAutoSizeToContent = true;
         }
     }
 }

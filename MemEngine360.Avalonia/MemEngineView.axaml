@@ -246,11 +246,12 @@
                                            VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                            ToolTip.Tip="Opens a view of the console's memory" Padding="2,1,2,2"/>
 
-                            <Button Content="Add Scan Result(s)" Padding="4,1"
-                                    Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                    BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                    cmdu:CommandUsageManager.UsageClassType="{x:Type ac:AddSelectedScanResultsToSavedAddressListCommandUsage}"
-                                    ToolTip.Tip="Adds the selected results into the saved address list. Does not add addresses that are already present"/>
+                            <av:IconButton Content="Add Scan Result(s)" Padding="4,1" Height="20" IconMaxWidth="12"
+                                           Icon="{x:Static cb:SimpleIcons.RedArrowCopyToSavedResultsIcon}"
+                                           Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                           BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                           cmdu:CommandUsageManager.UsageClassType="{x:Type ac:AddSelectedScanResultsToSavedAddressListCommandUsage}"
+                                           ToolTip.Tip="Adds the selected results into the saved address list. Does not add addresses that are already present"/>
 
                             <Button Content="Refresh" Padding="4,1"
                                     Background="{DynamicResource ABrush.Tone6.Background.Static}"

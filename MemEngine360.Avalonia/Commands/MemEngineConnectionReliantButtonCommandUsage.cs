@@ -19,6 +19,7 @@
 
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity;
 
 namespace MemEngine360.Avalonia.Commands;
@@ -82,6 +83,11 @@ public class AddSelectedScanResultsToSavedAddressListCommandUsage : MemUIButtonC
 
 public class SelectRangeFromMemoryRegionCommandUsage : MemEngineConnectionReliantButtonCommandUsage {
     public SelectRangeFromMemoryRegionCommandUsage() : base("commands.memengine.SelectRangeFromMemoryRegionCommand") {
+    }
+
+    protected override void OnUpdateForCanExecuteState(Executability state) {
+        base.OnUpdateForCanExecuteState(state);
+        this.Button.IsVisible = state != Executability.Invalid;
     }
 }
 public class ShowMemoryCommandUsage : MemEngineConnectionReliantButtonCommandUsage {

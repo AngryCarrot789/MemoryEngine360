@@ -19,7 +19,6 @@
 
 using System.Globalization;
 using AvaloniaHex.Core.Document;
-using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
 

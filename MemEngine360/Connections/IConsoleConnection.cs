@@ -19,7 +19,6 @@
 
 using System.Net.Sockets;
 using System.Numerics;
-using MemEngine360.Connections.XBOX;
 using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Connections;
@@ -27,7 +26,12 @@ namespace MemEngine360.Connections;
 /// <summary>
 /// Represents a connection to a console
 /// </summary>
-public interface IConsoleConnection : IDisposable {
+public interface IConsoleConnection {
+    /// <summary>
+    /// Gets the console type for this connection
+    /// </summary>
+    RegisteredConsoleType ConsoleType { get; }
+
     /// <summary>
     /// Returns whether the underlying connection is valid. E.g. for TCP, returns <see cref="TcpClient.Connected"/>
     /// </summary>
@@ -48,12 +52,6 @@ public interface IConsoleConnection : IDisposable {
     /// Sends the shutdown command to the console
     /// </summary>
     Task ShutdownConsole();
-    
-    /// <summary>
-    /// Walks all the memory regions on the console
-    /// </summary>
-    /// <returns>A task containing a list of all memory regions</returns>
-    Task<List<MemoryRegion>> GetMemoryRegions();
 
     /// <summary>
     /// Reads an exact amount of bytes from the console. If the address space
@@ -206,4 +204,10 @@ public interface IConsoleConnection : IDisposable {
     /// <param name="address">The address to write to</param>
     /// <param name="value">The string value to write</param>
     Task WriteString(uint address, string value);
+
+    /// <summary>
+    /// Closes the console connection
+    /// </summary>
+    /// <param name="sendGoodbyte"></param>
+    void Close(bool sendGoodbyte = true);
 }

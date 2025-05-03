@@ -29,8 +29,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using MemEngine360.Avalonia.Resources.Icons;
 using MemEngine360.Connections;
-using MemEngine360.Connections.XBOX;
 using MemEngine360.Engine;
+using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
@@ -70,8 +70,14 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
                 // since what else is there?
                 // Unless a custom circuit that probes the memory exists and connects via serial port,
                 // then I suppose we could just show COM5 or whatever
-                if (b.Model.Connection is PhantomRTMConsoleConnection c) {
-                    text = c.EndPoint is IPEndPoint endPoint ? endPoint.Address.MapToIPv4().ToString() : c.EndPoint!.ToString()!;
+                if (b.Model.Connection != null) {
+                    if (b.Model.Connection is INetworkConsoleConnection) {
+                        EndPoint? endPoint = ((INetworkConsoleConnection) b.Model.Connection).EndPoint;
+                        text = endPoint is IPEndPoint ipEp ? ipEp.Address.MapToIPv4().ToString() : endPoint!.ToString()!;
+                    }
+                    else {
+                        text = "Connected";
+                    }
                 }
                 else {
                     text = "Disconnected";
@@ -338,15 +344,18 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.Window.Height = 630;
         this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.2";
         this.Window.WindowClosing += this.MyWindowOnWindowClosing;
-
+        
         using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
         change.Context.Set(MemoryEngine360.DataKey, this.MemoryEngine360).Set(IMemEngineUI.DataKey, this).Set(ILatestActivityView.DataKey, this);
+        
+        ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineOpened(this);
     }
 
     protected override void OnWindowClosed() {
         base.OnWindowClosed();
+        ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineClosed(this);
+        
         this.Window!.WindowClosing -= this.MyWindowOnWindowClosing;
-
         using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
         change.Context.Remove(MemoryEngine360.DataKey, IMemEngineUI.DataKey, ILatestActivityView.DataKey);
     }
@@ -376,7 +385,8 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         IDisposable? token = this.MemoryEngine360.BeginBusyOperation();
         while (token == null) {
             MessageBoxInfo info = new MessageBoxInfo() {
-                Caption = "Engine busy", Message = "Cannot close window yet because the engine is still busy and cannot be shutdown safely. What do you want to do?",
+                Caption = "Engine busy", Message = $"Cannot close window yet because the engine is still busy and cannot be shutdown safely.{Environment.NewLine}" +
+                                                   "What do you want to do?",
                 Buttons = MessageBoxButton.YesNoCancel,
                 DefaultButton = MessageBoxResult.Yes,
                 YesOkText = "Wait for operations",
@@ -386,6 +396,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
             switch (result) {
+                case MessageBoxResult.None:
                 case MessageBoxResult.Cancel: return true; // stop window closing
                 case MessageBoxResult.No:     return false; // let TCP pipes auto-timeout
                 default:                      break; // continue loop
@@ -397,7 +408,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         IConsoleConnection? connection = this.MemoryEngine360.Connection;
         try {
             if (connection != null) {
-                connection.Dispose();
+                connection.Close();
                 this.MemoryEngine360.SetConnection(token, null, ConnectionChangeCause.User);
             }
         }

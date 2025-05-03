@@ -28,7 +28,7 @@ namespace MemEngine360.Engine;
 /// </summary>
 public interface IMemEngineUI {
     public static readonly DataKey<IMemEngineUI> DataKey = DataKey<IMemEngineUI>.Create("IMemEngineUI");
-
+    
     /// <summary>
     /// Gets the memory engine
     /// </summary>

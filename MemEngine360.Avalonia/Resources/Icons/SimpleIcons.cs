@@ -19,6 +19,7 @@
 
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Themes;
+using PFXToolKitUI.Themes.Gradients;
 using SkiaSharp;
 
 namespace MemEngine360.Avalonia.Resources.Icons;
@@ -97,6 +98,33 @@ public static class SimpleIcons {
                 new GeometryEntry("m.2411 7.4016q-.2412-.2412-.2411-.5788l.0001-1.6403q0-.3377.2412-.5789.2412-.2412.5789-.2412l3.5459-.0005.0005-3.5459q0-.3377.2412-.5789.2412-.2412.5789-.2412l1.6403-.0001Q7.1651-.0048 7.4063.2364t.2412.5789l-.0005 3.5459L11.1929 4.3605Q11.5305 4.3605 11.7717 4.6016t.2412.5789l-.0001 1.6403q-.0001.3376-.2413.5789-.2412.2412-.5789.2413l-3.5459.0005-.0005 3.5459q-.0001.3376-.2413.5789-.2412.2412-.5789.2413l-1.6403.0001q-.3377 0-.5789-.2412t-.2411-.5788L4.3659 7.6423.8199 7.6428q-.3377 0-.5789-.2412z", BrushManager.Instance.CreateConstant(SKColors.LawnGreen)),
             ], 
             stretch: StretchMode.Uniform);
+    
+    public static readonly Icon RedArrowCopyToSavedResultsIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(RedArrowCopyToSavedResultsIcon),
+            [
+                new GeometryEntry("M13.5 13.45V4.95L12 3.45 9.1642 6.2858 2.9142.0358.0858 2.8642 6.3358 9.1142 3.5 11.95 5 13.45 13.5 13.45Z", BrushManager.Instance.CreateConstant(SKColors.Brown)),
+            ], 
+            stretch: StretchMode.Uniform);     
+    
+    // https://www.svgrepo.com/svg/452137/xbox
+    public static readonly Icon Xbox360Icon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(Xbox360Icon),
+            [
+                new GeometryEntry("M16 0A1 1 0 0016 32 1 1 0 0016 0", 
+                    BrushManager.Instance.CreateConstantRadialGradient([new GradientStop(SKColor.Parse("#FAFAFA")), new GradientStop(SKColor.Parse("#EFEFEF"), 0.499976), new GradientStop(SKColor.Parse("#C0BEC0"), 0.828794), new GradientStop(SKColor.Parse("#879288"), 1.0)], radius:1.0)),
+                new GeometryEntry("M6.75137 26.5333C6.73227 26.5193 6.7127 26.5016 6.69312 26.4801C6.33073 26.1504 5.74045 25.6304 5.12362 24.8444C4.5909 23.6889 4.89287 21.748 6.20386 19.0075C8.05357 15.1409 11.0131 11.2151 12.2265 9.8225C11.8813 9.43732 10.8119 8.38253 9.29659 7.24477C7.7813 6.10701 6.67738 5.99047 6.29264 6.05961C6.64779 5.67443 7.47646 4.94852 8.17196 4.45964C10.3265 3.39299 14.3081 5.19543 16.0148 6.22257V13.2891C11.6642 16.6372 7.63924 21.8075 6.82536 23.8222C6.20418 25.36 6.44975 26.2128 6.69312 26.4801C6.71325 26.4984 6.73269 26.5161 6.75137 26.5333Z",
+                    BrushManager.Instance.CreateConstantLinearGradient([new GradientStop(SKColor.Parse("#008B00")), new GradientStop(SKColor.Parse("#6CC329"), 1.0)], startPoint:new RelativePoint(13F, 4.725F, RelativeUnit.Absolute), endPoint:new RelativePoint(13.23F, 12.785F, RelativeUnit.Absolute))),
+                new GeometryEntry("M6.75137 26.5331C6.73227 26.5191 6.7127 26.5014 6.69311 26.4799C6.33072 26.1502 5.74045 25.6302 5.12362 24.8442C4.5909 23.6887 4.89287 21.7477 6.20386 19.0073C8.35133 14.5183 12.2265 9.82227 12.2265 9.82227C12.2265 9.82227 12.9185 11.5405 14.4888 14.5183C10.4444 18.1034 7.63923 21.8072 6.82536 23.822C6.20418 25.3598 6.44974 26.2126 6.69311 26.4799C6.71325 26.4982 6.73268 26.5159 6.75137 26.5331Z", 
+                    BrushManager.Instance.CreateConstantLinearGradient([new GradientStop(SKColor.Parse("#008C00")), new GradientStop(SKColor.Parse("#48BF21"), 1.0)], startPoint:new RelativePoint(10.1481F, 12.6667F, RelativeUnit.Absolute), endPoint:new RelativePoint(12.874F, 16.4F, RelativeUnit.Absolute))),
+                new GeometryEntry("M25.2779 26.5333C25.297 26.5193 25.3166 26.5016 25.3362 26.4801C25.6986 26.1504 26.2888 25.6304 26.9057 24.8444C27.4384 23.6889 27.1364 21.748 25.8254 19.0075C23.9757 15.1409 21.0162 11.2151 19.8028 9.8225C20.148 9.43732 21.2174 8.38253 22.7327 7.24477C24.248 6.10701 25.3519 5.99047 25.7367 6.05961C25.3815 5.67443 24.5528 4.94852 23.8573 4.45964C21.7028 3.39299 17.7212 5.19543 16.0145 6.22257V13.2891C20.3651 16.6372 24.3901 21.8075 25.2039 23.8222C25.8251 25.36 25.5796 26.2128 25.3362 26.4801C25.316 26.4984 25.2966 26.5161 25.2779 26.5333Z", 
+                    BrushManager.Instance.CreateConstantLinearGradient([new GradientStop(SKColor.Parse("#008B00")), new GradientStop(SKColor.Parse("#6CC329"), 1.0)], startPoint:new RelativePoint(19.0368F, 4.72589F, RelativeUnit.Absolute), endPoint:new RelativePoint(18.7997F, 12.7852F, RelativeUnit.Absolute))),
+                new GeometryEntry("M25.2779 26.5331C25.297 26.5191 25.3166 26.5014 25.3362 26.4799C25.6986 26.1502 26.2888 25.6302 26.9057 24.8442C27.4384 23.6887 27.1364 21.7477 25.8254 19.0073C23.678 14.5183 19.8028 9.82227 19.8028 9.82227C19.8028 9.82227 19.1108 11.5405 17.5405 14.5183C21.5849 18.1034 24.3901 21.8072 25.2039 23.822C25.8251 25.3598 25.5796 26.2126 25.3362 26.4799C25.3161 26.4982 25.2966 26.5159 25.2779 26.5331Z",
+                    BrushManager.Instance.CreateConstantLinearGradient([new GradientStop(SKColor.Parse("#008C00")), new GradientStop(SKColor.Parse("#48BF21"), 1.0)], startPoint:new RelativePoint(21.8812F, 12.6667F, RelativeUnit.Absolute), endPoint:new RelativePoint(19.1553F, 16.4F, RelativeUnit.Absolute))),
+            ], 
+            stretch: StretchMode.Uniform);    
+
 }
 
 /*

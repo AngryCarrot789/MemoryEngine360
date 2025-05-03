@@ -129,7 +129,7 @@ public class EditSavedAddressValueCommand : Command {
                 }
             }
 
-            input = new SingleUserInputInfo("Change " + savedList.Count + " values", "Immediately change the value these addresses", "Value", savedList[savedList.Count - 1].Value);
+            input = new SingleUserInputInfo("Change " + savedList.Count + " values", "Immediately change the value at these addresses", "Value", savedList[savedList.Count - 1].Value);
             input.Validate = (args) => {
                 NumericDisplayType ndt = savedList[0].NumericDisplayType;
                 switch (savedList[0].DataType) {

@@ -18,47 +18,59 @@
 // 
 
 using System.Net.Sockets;
+using MemEngine360.Avalonia.Resources.Icons;
 using MemEngine360.Configs;
-using MemEngine360.Connections.XBOX;
+using MemEngine360.Connections;
+using MemEngine360.Engine;
+using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
+using MemEngine360.Xbox360XBDM.Views;
 using PFXToolKitUI;
+using PFXToolKitUI.AdvancedMenuService;
+using PFXToolKitUI.Icons;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
 
-namespace MemEngine360.Connections;
+namespace MemEngine360.Xbox360XBDM.Consoles;
 
-/// <summary>
-/// A service for connecting to a console
-/// </summary>
-public sealed class ConsoleConnectionService {
-    /// <summary>
-    /// Attempt to connect to an xbox 360 with a specific address (e.g. 192.168.1.100)
-    /// </summary>
-    /// <param name="hostName">The address of the xbox 360</param>
-    /// <returns>The connection, or null, if we could not connect (e.g. timeout) or the user cancelled the operation</returns>
-    public async Task<IConsoleConnection?> OpenDialogAndConnect() {
-        // Try get last entered IP address. Helps with debugging and user experience ;)
-        string lastIp = BasicApplicationConfiguration.Instance.LastHostName;
-        if (string.IsNullOrWhiteSpace(lastIp))
-            lastIp = "192.168.1.";
+public class ConsoleTypeXbox360Xbdm : RegisteredConsoleType {
+    public const string TheID = "console.xbox360.xbdm-coreimpl"; // -coreimpl suffix added to core plugins, not that we need to but eh
+    public static readonly RegisteredConsoleType Instance = new ConsoleTypeXbox360Xbdm();
 
-        SingleUserInputInfo info = new SingleUserInputInfo(lastIp) {
-            Caption = "Connect to Xbox 360",
-            Message = "Ensure you have xbdm running as a plugin on your console!",
-            Label = "IP/Hostname Address",
-            ConfirmText = "Connect", CancelText = "Cancel", DefaultButton = true,
-            Validate = (args) => {
-                if (string.IsNullOrWhiteSpace(args.Input))
-                    args.Errors.Add("Address cannot be empty");
-            }
-        };
+    public override string DisplayName => "Xbox 360 (XBDM)";
+    public override string Description => "A connection to an xbox 360 via xbdm (using TCP on port 730)";
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
+    public override Icon? Icon => SimpleIcons.Xbox360Icon;
+
+    private ConsoleTypeXbox360Xbdm() {
+    }
+
+    public override IEnumerable<IContextObject> GetRemoteContextOptions() {
+        yield return new CommandContextEntry("commands.memengine.remote.ListHelpCommand", "List all commands in popup");
+        yield return new CommandContextEntry("commands.memengine.remote.ShowConsoleInfoCommand", "Console info");
+        yield return new CommandContextEntry("commands.memengine.remote.ShowXbeInfoCommand", "Show XBE info");
+        yield return new CommandContextEntry("commands.memengine.remote.MemProtectionCommand", "Show Memory Regions");
+        yield return new SeparatorEntry();
+        yield return new CommandContextEntry("commands.memengine.remote.EjectDiskTrayCommand", "Open Disk Tray");
+        yield return new CommandContextEntry("commands.memengine.remote.DebugFreezeCommand", "Debug Freeze");
+        yield return new CommandContextEntry("commands.memengine.remote.DebugUnfreezeCommand", "Debug Un-freeze");
+        yield return new CommandContextEntry("commands.memengine.remote.SoftRebootCommand", "Soft Reboot (restart title)");
+        yield return new CommandContextEntry("commands.memengine.remote.ColdRebootCommand", "Cold Reboot");
+        yield return new CommandContextEntry("commands.memengine.remote.ShutdownCommand", "Shutdown");
+    }
+
+    public override UserConnectionInfo? CreateConnectionInfo(MemoryEngine360 engine) {
+        return new ConnectToXboxInfo(engine);
+    }
+
+    public override async Task<IConsoleConnection?> OpenConnection(MemoryEngine360 engine, UserConnectionInfo? _info) {
+        ConnectToXboxInfo info = (ConnectToXboxInfo) _info!;
+        if (string.IsNullOrWhiteSpace(info.IpAddress)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid address", "Address cannot be an empty string");
             return null;
         }
 
         // %appdata%/MemEngine360/Options/application.xml
-        BasicApplicationConfiguration.Instance.LastHostName = info.Text;
+        BasicApplicationConfiguration.Instance.LastHostName = info.IpAddress;
         BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
 
         try {
@@ -70,7 +82,7 @@ public sealed class ConsoleConnectionService {
                 progress.IsIndeterminate = true;
                 TcpClient client = new TcpClient();
                 try {
-                    await client.ConnectAsync(info.Text, 730, cts.Token);
+                    await client.ConnectAsync(info.IpAddress, 730, cts.Token);
                 }
                 catch (OperationCanceledException) {
                     return null;
@@ -86,7 +98,7 @@ public sealed class ConsoleConnectionService {
                         default:                             message = e.Message; break;
                     }
 
-                    await IMessageDialogService.Instance.ShowMessage("Error", message, defaultButton:MessageBoxResult.OK);
+                    await IMessageDialogService.Instance.ShowMessage("Error", message, defaultButton: MessageBoxResult.OK);
                     return null;
                 }
 

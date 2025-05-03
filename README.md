@@ -1,5 +1,5 @@
 # MemEngine360 v1.1
-This is a remake of Cheat Engine, but for consoles. Currently, only the Xbox360 is supported. Still WIP
+This is a remake of Cheat Engine, but for consoles. 
 
 ![](MemEngine360-DesktopUI_2025-04-29_03.47.59.png)
 
@@ -10,11 +10,12 @@ Clone repo: `git clone --recursive https://github.com/AngryCarrot789/MemEngine36
 Open `MemEngine360.sln` and build/run 
 
 # How to use
-Your console needs to be running XBDM. Press `CTRL + O` or go to `File>Connect to console`. Specify the console's IP address and click `Connect`
+Press `CTRL + O` (or go to `File > Connect to console...`). A dialog pops up allowing you to connect to different consoles. 
+So far, only the Xbox 360 is implemented, however, plugins are supported to add more.
 
-![](MemEngine360.Avalonia_2025-04-23_00.40.36.png)
+In the case you want to connect to an xbox 360, just supply its IP address in the text field and click `Connect`
 
-A dialog will popup with some information about your console, such as debug name and all threads running
+![](MemEngine360-DesktopUI_2025-05-03_13.08.07.png)
 
 You'll see in the bottom right corner a progress bar will sometimes appear. They represent 'Activities', such as read/write operation status, scan status, and more.
 You can click that area to open a window which shows all activities.
@@ -22,18 +23,19 @@ You can click that area to open a window which shows all activities.
 ![](rider64_2025-04-27_22.07.31.png)
 
 ## Scanning
-Enter a value in the `Value` field, select the data type you wish to scan for (e.g. Byte, Int32, String), then below that, you can 
-specify search options such as the `Scan Type` (match equal values, less than, between and more), and string type (ASCII, UTF32, etc.)
+- Enter a value in the `Value` field
+- Select the data type you wish to scan for (e.g. Byte, Int32, String)
+- Specify search options such as the `Scan Type` (match equal values, less than, between and more), and string type (ASCII, UTF32, etc.)
 
 Then, specify a start address in the `Memory Scanning Options` panel and also how many bytes you want to read (default is `0x10000000` or 256MB). 
 
-You can also click the little green table button to open a dialog, which lets you select a memory region to scan.
+On supported consoles, you can click the little green table button to open a dialog, which lets you select a memory region to scan.
 Click any of the column headers to sort them (e.g. sort by region size and look for the bigger ones; that's where the games usually are, usually after base address 0x80000000)
 
 ![](MemEngine360-DesktopUI_2025-04-27_22.02.37.png)
 
-- DEBUG PAUSE will freeze the xbox during scan (speeds up scan and useful if you don't want values to change during scan). 
-- Scan Memory Pages will scan the console's memory regions rather than blindly scan the entire search range
+- DEBUG PAUSE will freeze the console during scan (speeds up scan and useful if you don't want values to change during scan). Only works on consoles supporting freezing (including Xbox 360) 
+- Scan Memory Pages will scan the console's memory regions rather than blindly scan the entire search range. Only works on consoles supporting memory region querying (including Xbox 360)
 - Align... code explains it better: `for (addr = start; addr < end; addr += align) /* scan addr */`
 
 ### First Scan
@@ -83,13 +85,30 @@ Then click Read All, and it will first read the data from the console (progress 
 
 ![](MemEngine360-DesktopUI_2025-04-30_04.10.23.png)
 
-> The amazing AvaloniaHex control is originally made by Washi1337! This project uses a custom fork primarily to add the AdditionalOffset feature to the first column 
-
-### Remote Controls
+### Remote Controls (xbox only so far)
 There's a few remote control commands you can find in the `Remote Controls` menu. These include:
-- `Open Disk Tray` - Opens the console's disk tray (cannot be closed remotely)
+- `Open Disk Tray` - Opens the console's disk tray (cannot be closed remotely since xbdm does not implement closing...???)
 - `Debug Freeze` - Freezes the console
 - `Debug Unfreeze` - Unfreezes the console
 - `Soft Reboot` - Reboots the current title
 - `Cold Reboot` - Fully reboots the console (shows the xbox boot animation)
-- `Shutdown` - Tells the console to shutdown
+- `Shutdown` - Tells the console to shut down
+
+# Plugins
+MemEngine360 supports custom plugins! If you don't care, feel free to ignore below this line.
+
+I'd recomment using the Xbox360-XBDM's `.csproj` as an example of what to put in your plugin project. This way, it automatically copies
+your plugin's DLL into the `Plugins` folder in the solution folder. The avalonia project automatically copies
+the `Plugins` folder into the output directory, so no need to manually copy files around.
+
+However, you have to manually click build for your plugin project when you make changes before running the app, because it won't 
+do it automatically (since the project is seen as basically unused since it's not referenced by anything)
+
+The most important thing is having a class extend `PFXToolKitUI.Plugins.Plugin` in your plugin project.
+
+For more info on the Plugins API, I recommend skimming through at least the first link, and then 2nd if you want to add custom commands to the UI
+
+- https://github.com/AngryCarrot789/FramePFX/blob/master/docs/Plugins.md
+- https://github.com/AngryCarrot789/FramePFX/blob/master/docs/Command%20System%20and%20Shortcuts.md
+
+Some of it is completely unrelated to this project, but it explains things such as PersistentConfigurations, custom commands, brushes API, configuration options, and more.

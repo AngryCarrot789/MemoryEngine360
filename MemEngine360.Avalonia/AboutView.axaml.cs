@@ -36,5 +36,7 @@ public partial class AboutView : WindowingContentControl {
 
         this.Window!.Control.MinWidth = 500;
         this.Window!.Control.MinHeight = 200;
+        this.Window!.Control.Width = 600;
+        this.Window!.Control.Height = 250;
     }
 }

@@ -18,12 +18,12 @@
 // 
 
 using MemEngine360.Connections;
-using MemEngine360.Connections.XBOX;
 using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands;
 
@@ -53,34 +53,39 @@ public class ConnectToConsoleCommand : Command {
                 return;
             }
 
-            existingConnection.Dispose();
-            memUi.MemoryEngine360.SetConnection(token, null, ConnectionChangeCause.User);
-
-            if (ILatestActivityView.DataKey.TryGetContext(e.ContextData, out ILatestActivityView? view))
-                view.Activity = "Disconnected from console";
-            
-            memUi.RemoteCommandsContextEntry.Items.Clear();
+            using (ErrorList errors = new ErrorList()) {
+                try {
+                    memUi.MemoryEngine360.SetConnection(token, null, ConnectionChangeCause.User);
+                }
+                catch (Exception ex) {
+                    errors.Add(ex);
+                }
+                
+                try {
+                    existingConnection.Close();
+                }
+                catch (Exception ex) {
+                    errors.Add(ex);
+                }
+                
+                if (ILatestActivityView.DataKey.TryGetContext(e.ContextData, out ILatestActivityView? view))
+                    view.Activity = "Disconnected from console";
+                
+                memUi.RemoteCommandsContextEntry.Items.Clear();
+            }
         }
 
-        IConsoleConnection? connection = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionService>().OpenDialogAndConnect();
+        ConsoleConnectionManager service = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
+        IConsoleConnection? connection = await service.OpenDialogAndConnect(memUi.MemoryEngine360);
         if (connection != null) {
             memUi.MemoryEngine360.SetConnection(token, connection, ConnectionChangeCause.User);
-            if (ILatestActivityView.DataKey.TryGetContext(e.ContextData, out ILatestActivityView? view))
-                view.Activity = "Connected to console.";
-
-            if (connection is IXbox360Connection) {
-                ContextEntryGroup entry = memUi.RemoteCommandsContextEntry;
-                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ListHelpCommand", "List all commands in popup"));
-                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowConsoleInfoCommand", "Console info"));
-                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowXbeInfoCommand", "Show XBE info"));
-                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.MemProtectionCommand", "Show Memory Regions"));
-                entry.Items.Add(new SeparatorEntry());
-                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.EjectDiskTrayCommand", "Open Disk Tray"));
-                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.DebugFreezeCommand", "Debug Freeze"));
-                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.DebugUnfreezeCommand", "Debug Un-freeze"));
-                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.SoftRebootCommand", "Soft Reboot (restart title)"));
-                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ColdRebootCommand", "Cold Reboot"));
-                entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShutdownCommand", "Shutdown"));
+            if (ILatestActivityView.DataKey.TryGetContext(e.ContextData, out ILatestActivityView? view)) {
+                view.Activity = "Connected to console";
+            }
+            
+            ContextEntryGroup entry = memUi.RemoteCommandsContextEntry;
+            foreach (IContextObject en in connection.ConsoleType.GetRemoteContextOptions()) {
+                entry.Items.Add(en);
             }
         }
     }

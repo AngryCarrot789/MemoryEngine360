@@ -48,15 +48,18 @@
                   Padding="4,1" VerticalContentAlignment="Center"/>
         <TabControl Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="4"
                     x:Name="PART_ScanSettingsTabControl"
-                    Background="{DynamicResource PanelBackground2}"
+                    Background="{DynamicResource PanelBackground3}"
                     BorderThickness="1"
                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}">
             <TabItem Header="Integer">
                 <StackPanel Margin="3" Spacing="3">
                     <CheckBox x:Name="PART_DTInt_IsHex" Content="Parse value as hexadecimal" Margin="3"
                               ToolTip.Tip="When true, integers are parsed a HEX values (specifying 400 gives an int value of 1024). When false, they are parsed as regular integers (400 == 400)"/>
-                    <TextBlock Text="Scan Type"/>
-                    <ComboBox x:Name="PART_ScanTypeCombo1" FontFamily="Consolas" Background="{DynamicResource ABrush.Tone3.Background.Static}" Padding="4,1" VerticalContentAlignment="Center"/>
+                    
+                    <DockPanel>
+                        <TextBlock Text="Scan Type" DockPanel.Dock="Left" Margin="2,0,5,0"/>
+                        <ComboBox x:Name="PART_ScanTypeCombo1" FontFamily="Consolas" Background="{DynamicResource ABrush.Tone3.Background.Static}" Padding="4,1" VerticalContentAlignment="Center"/>
+                    </DockPanel>
                 </StackPanel>
             </TabItem>
             <TabItem Header="Float">
@@ -88,8 +91,10 @@
                             </TextBlock>
                         </ToolTip.Tip>
                     </RadioButton>
-                    <TextBlock Text="Scan Type"/>
-                    <ComboBox x:Name="PART_ScanTypeCombo2" FontFamily="Consolas" Background="{DynamicResource ABrush.Tone3.Background.Static}" Padding="4,1" VerticalContentAlignment="Center"/>
+                    <DockPanel>
+                        <TextBlock Text="Scan Type" DockPanel.Dock="Left" Margin="2,0,5,0"/>
+                        <ComboBox x:Name="PART_ScanTypeCombo2" FontFamily="Consolas" Background="{DynamicResource ABrush.Tone3.Background.Static}" Padding="4,1" VerticalContentAlignment="Center"/>
+                    </DockPanel>
                 </StackPanel>
             </TabItem>
             <TabItem Header="String">

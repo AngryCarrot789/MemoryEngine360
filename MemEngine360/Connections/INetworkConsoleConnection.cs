@@ -17,12 +17,16 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.XBOX;
+using System.Net;
 
-public enum ConsoleColor {
-    Black,
-    Blue,
-    BlueGray,
-    NoSideCar,
-    White,
-};
+namespace MemEngine360.Connections;
+
+/// <summary>
+/// An interface deriving <see cref="IConsoleConnection"/> that also provides network information
+/// </summary>
+public interface INetworkConsoleConnection : IConsoleConnection {
+    /// <summary>
+    /// Gets the remote end point of the connection, or null, if not connected
+    /// </summary>
+    EndPoint? EndPoint { get; }
+}

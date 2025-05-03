@@ -1,0 +1,188 @@
+﻿<s:WindowingContentControl xmlns="https://github.com/avaloniaui"
+                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                           xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                           xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                           xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
+                           xmlns:ss="clr-namespace:MemEngine360.Avalonia.Services"
+                           xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+                           xmlns:connectivity="clr-namespace:MemEngine360.Avalonia.Services.Connectivity"
+                           mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                           x:Class="MemEngine360.Avalonia.Services.Connectivity.ConnectToConsoleView"
+                           WindowBorderBrush="DodgerBlue"
+                           WindowTitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}"
+                           WindowTitle="Connect to a console">
+    <DockPanel x:Name="PART_DockPanelRoot" Background="{DynamicResource ABrush.Tone2.Background.Static}">
+        <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource PanelBorderBrush}"/>
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource ABrush.Tone4.Background.Static}"
+                BorderBrush="{DynamicResource PanelBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Height="42">
+            <Border.Resources>
+                <ControlTheme x:Key="ButtonImplicitStyleSetters2" TargetType="{x:Type Button}">
+                    <Setter Property="Background" Value="{DynamicResource ABrush.Tone6.Background.Static}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone6.Border.Static}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Button.Static.Foreground}"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    <Setter Property="Padding" Value="1"/>
+                    <Setter Property="Template">
+                        <ControlTemplate>
+                            <ContentPresenter x:Name="PART_ContentPresenter"
+                                              Padding="{TemplateBinding Padding}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              Background="{TemplateBinding Background}"
+                                              BorderBrush="{TemplateBinding BorderBrush}"
+                                              BorderThickness="{TemplateBinding BorderThickness}"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              CornerRadius="{TemplateBinding CornerRadius}"
+                                              RecognizesAccessKey="True"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </ControlTemplate>
+                    </Setter>
+                    <Style Selector="^Button:pointerover">
+                        <Setter Property="Background" Value="{DynamicResource Button.MouseOver.Background}"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource Button.MouseOver.Border}"/>
+                    </Style>
+                    <Style Selector="^Button:pressed">
+                        <Setter Property="Background" Value="{DynamicResource Button.Pressed.Background}"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource Button.Pressed.Border}"/>
+                    </Style>
+                    <Style Selector="^Button:disabled">
+                        <Setter Property="Background" Value="{DynamicResource Button.Disabled.Background}"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource Button.Disabled.Border}"/>
+                    </Style>
+                </ControlTheme>
+            </Border.Resources>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0" Spacing="10">
+                <Button x:Name="PART_ConfirmButton" Content="Connect" Width="72"
+                        Height="24" CornerRadius="3" FocusAdorner="{x:Null}"
+                        Theme="{StaticResource ButtonImplicitStyleSetters2}">
+                    <Button.Styles>
+                        <Style Selector="Button[IsPointerOver=True]">
+                            <Setter Property="Background" Value="{DynamicResource ABrush.AccentTone3.Background.Static}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource ABrush.AccentTone2.Background.Static}"/>
+                            <Setter Property="BorderThickness" Value="3"/>
+                        </Style>
+                        <Style Selector="Button[IsFocused=True]">
+                            <Setter Property="BorderBrush" Value="{DynamicResource ABrush.AccentTone2.Background.Static}"/>
+                            <Setter Property="BorderThickness" Value="3"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+                <Button x:Name="PART_CancelButton" Content="Cancel" Width="72"
+                        Height="24" CornerRadius="3" FocusAdorner="{x:Null}"
+                        Theme="{StaticResource ButtonImplicitStyleSetters2}">
+                    <Button.Styles>
+                        <Style Selector="Button[IsPointerOver=True]">
+                            <Setter Property="Background" Value="Red"/>
+                            <Setter Property="BorderBrush" Value="Red"/>
+                            <Setter Property="BorderThickness" Value="3"/>
+                        </Style>
+                        <Style Selector="Button[IsFocused=True]">
+                            <Setter Property="BorderBrush" Value="Red"/>
+                            <Setter Property="BorderThickness" Value="3"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </StackPanel>
+        </Border>
+        <Grid ColumnDefinitions="150,*" Background="{DynamicResource ABrush.Tone2.Background.Static}">
+            <DockPanel Background="{DynamicResource ABrush.Tone5.Background.Static}">
+                <Border DockPanel.Dock="Top" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource PanelBorderBrush}">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Right" 
+                                VerticalAlignment="Center" 
+                                Margin="3,0" CornerRadius="3"
+                                Background="{DynamicResource ABrush.Tone7.Background.Static}">
+                            <TextBlock Text="?" Padding="5,1">
+                                <ToolTip.Tip>
+                                    <TextBlock>
+                                        <Run Text="Console types are added via plugins."/>
+                                        <LineBreak/>
+                                        <Run Text="For example, the Xbox360-XBDM plugin adds a connection to an xbox 360 running xbdm."/>
+                                    </TextBlock>
+                                </ToolTip.Tip>
+                            </TextBlock>
+                        </Border>
+                        <TextBlock Text="Supported Consoles" Padding="5,4"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center"
+                                   FontFamily="{StaticResource FontOxanium}"/>
+                    </DockPanel>
+                </Border>
+                <connectivity:ConsoleTypeListBox x:Name="PART_ListBox" BorderThickness="0"
+                                                 FontFamily="{StaticResource FontOxanium}">
+                    <ListBox.ItemContainerTheme>
+                        <ControlTheme TargetType="{x:Type connectivity:ConsoleTypeListBoxItem}">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="Padding" Value="4,1"/>
+                            <Setter Property="Template">
+                                <ControlTemplate>
+                                    <Border x:Name="PART_Border"
+                                            Padding="{TemplateBinding Padding}"
+                                            Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="{TemplateBinding CornerRadius}">
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <avc:IconControl x:Name="PART_IconControl" Width="24" Height="24" Margin="3,3,5,3"/>
+                                            <TextBlock Grid.Column="1" x:Name="PART_DisplayName" VerticalAlignment="Center" HorizontalAlignment="Left" Padding="3,1"/>
+                                        </Grid>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter>
+                            <Style Selector="^:pointerover /template/ Border#PART_Border">
+                                <Setter Property="Background" Value="{DynamicResource Item.MouseOver.Background}"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource Item.MouseOver.Border}"/>
+                            </Style>
+
+                            <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_Border">
+                                <Setter Property="Background" Value="{DynamicResource Item.SelectedInactive.Background}"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource Item.SelectedInactive.Border}"/>
+                            </Style>
+
+                            <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_Border">
+                                <Setter Property="Background" Value="{DynamicResource Item.SelectedActive.Background}"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource Item.SelectedActive.Border}"/>
+                            </Style>
+                        </ControlTheme>
+                    </ListBox.ItemContainerTheme>
+                </connectivity:ConsoleTypeListBox>
+            </DockPanel>
+            <Grid Grid.Column="1">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" BorderThickness="0,0,0,1"
+                            Background="{DynamicResource ABrush.Tone5.Background.Static}"
+                            BorderBrush="{DynamicResource PanelBorderBrush}">
+                        <TextBlock x:Name="PART_DisplayName"
+                                   Text="Console Name Here" Padding="5,4"
+                                   VerticalAlignment="Center" HorizontalAlignment="Left"
+                                   FontFamily="{StaticResource FontOxanium}"/>
+                    </Border>
+                    <Border DockPanel.Dock="Bottom"
+                            Background="{DynamicResource ABrush.Tone5.Background.Static}"
+                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                            BorderThickness="0,1,0,0">
+                        <TextBlock x:Name="PART_Description"
+                                   Text="Console Name Here" Padding="5,4"
+                                   HorizontalAlignment="Left"
+                                   FontFamily="{StaticResource FontOxanium}"/>
+                    </Border>
+                    <ScrollViewer>
+                        <ContentControl x:Name="PART_UserConnectionContent"
+                                        Margin="0" Focusable="False"
+                                        VerticalContentAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"/>
+                    </ScrollViewer>
+                </DockPanel>
+            </Grid>
+            <Border Grid.Column="1" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1,0,0,0"/>
+        </Grid>
+    </DockPanel>
+</s:WindowingContentControl>

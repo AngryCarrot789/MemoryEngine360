@@ -17,14 +17,18 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.XBOX;
+using MemEngine360.Connections;
 
-public enum ExecutionState {
-    Pending,
-    Reboot,
-    Start,
-    Stop,
-    TitlePending,
-    TitleReboot,
-    Unknown
-};
+namespace MemEngine360.Avalonia.Services.Connectivity;
+
+public interface IConsoleConnectivityControl {
+    /// <summary>
+    /// Invoked when the registered console type which represents this control is selected in the connection view
+    /// </summary>
+    void OnConnected(ConnectToConsoleView dialog, UserConnectionInfo info);
+
+    /// <summary>
+    /// The list box item is no longer selected
+    /// </summary>
+    void OnDisconnected();
+}

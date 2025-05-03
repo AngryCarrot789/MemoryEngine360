@@ -26,10 +26,10 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using MemEngine360.Connections.XBOX.Threads;
+using MemEngine360.Connections;
 using PFXToolKitUI.Tasks;
 
-namespace MemEngine360.Connections.XBOX;
+namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
 // Rewrite with fixes and performance improvements, based on:
 // https://github.com/XeClutch/Cheat-Engine-For-Xbox-360/blob/master/Cheat%20Engine%20for%20Xbox%20360/PhantomRTM.cs
@@ -54,11 +54,15 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     private readonly TcpClient client;
     private readonly StreamReader stream;
     private volatile int busyStack;
-    private bool isDisposed;
+    private bool isClosed;
 
-    public EndPoint? EndPoint => this.client.Connected ? this.client.Client.RemoteEndPoint : null;
+    public EndPoint? EndPoint => this.IsConnected ? this.client.Client.RemoteEndPoint : null;
 
-    public bool IsConnected => !this.isDisposed && this.client.Connected;
+
+    public string RegisteredConsoleTypeId => ConsoleTypeXbox360Xbdm.TheID;
+
+    public RegisteredConsoleType ConsoleType => ConsoleTypeXbox360Xbdm.Instance;
+    public bool IsConnected => !this.isClosed && this.client.Connected;
 
     public bool IsBusy => this.busyStack > 0;
 
@@ -67,18 +71,18 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         this.stream = stream;
     }
 
-    public void Dispose() {
-        if (this.isDisposed)
+    public void Close(bool sendGoodbyte = true) {
+        if (this.isClosed) {
             return;
+        }
 
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
-        if (this.client.Connected) {
-            byte[] bytes = Encoding.ASCII.GetBytes("bye\r\n");
-            this.client.GetStream().Write(bytes, 0, bytes.Length);
+        if (this.IsConnected) {
+            this.client.GetStream().Write("bye\r\n"u8);
         }
 
-        this.isDisposed = true;
+        this.isClosed = true;
         this.client.Client.Close();
     }
 
@@ -97,7 +101,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         }
         catch (IOException e) {
             this.client.Client.Close();
-            this.isDisposed = true;
+            this.isClosed = true;
             throw new IOException("IOError while reading bytes", e);
         }
 
@@ -131,7 +135,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         }
         catch (IOException e) {
             this.client.Client.Close();
-            this.isDisposed = true;
+            this.isClosed = true;
             throw new IOException("IOError while reading bytes", e);
         }
 
@@ -201,12 +205,12 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
 
     public async Task RebootConsole(bool cold = true) {
         await this.SendCommand("magicboot" + (cold ? " cold" : ""));
-        this.Dispose();
+        this.Close();
     }
 
     public async Task ShutdownConsole() {
         await this.WriteCommandText("shutdown");
-        this.Dispose();
+        this.Close();
     }
 
     public async Task OpenDiskTray() {
@@ -410,7 +414,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
 
         await this.WriteBytesAndGetResponseInternal(address, buffer, 0, (uint) buffer.Length, null, CancellationToken.None);
     }
-    
+
     public async Task WriteBytes(uint address, byte[] buffer, int offset, uint count, CompletionState? completion = null, CancellationToken cancellationToken = default) {
         this.EnsureNotDisposed();
         this.EnsureNotBusy();
@@ -518,7 +522,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     public Task WriteNOP(uint address) {
         return this.WriteBytes(address, [0x60, 0x00, 0x00, 0x00]);
     }
-    
+
     private async Task<ConsoleResponse> ReadResponseCore() {
         string responseText = await this.ReadLineFromStream();
         return ConsoleResponse.FromFirstLine(responseText);
@@ -531,7 +535,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         }
         catch (IOException e) {
             this.client.Client.Close();
-            this.isDisposed = true;
+            this.isClosed = true;
             throw new IOException("IOError while writing bytes", e);
         }
     }
@@ -548,7 +552,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     }
 
     private void EnsureNotDisposed() {
-        if (this.isDisposed) {
+        if (this.isClosed) {
             throw new ObjectDisposedException(nameof(PhantomRTMConsoleConnection), "Connection is disposed");
         }
     }
@@ -664,7 +668,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
             return output;
         }
     }
-    
+
     private async Task<ConsoleResponse> SendCommandAndGetResponse(string command) {
         await this.WriteCommandText(command);
         ConsoleResponse response = await this.ReadResponseCore();
@@ -678,7 +682,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
 
         return response;
     }
-    
+
     private async Task ReadBytesInChunksWithCancellation(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CancellationToken cancellationToken, CompletionState? completion) {
         cancellationToken.ThrowIfCancellationRequested();
         this.EnsureNotDisposed();
@@ -739,10 +743,10 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
 
         return cbRead;
     }
-    
+
     private async Task WriteBytesAndGetResponseInternal(uint address, byte[] bytes, int offset, uint count, CompletionState? completion, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        
+
         using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
         const string HexChars = "0123456789ABCDEF";
         char[] buffer = new char[128];

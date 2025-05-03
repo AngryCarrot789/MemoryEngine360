@@ -17,22 +17,30 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections.XBOX;
+using MemEngine360.Commands;
 using MemEngine360.Engine;
+using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 
-namespace MemEngine360.Commands;
+namespace MemEngine360.Xbox360XBDM.Commands;
 
-public class ListHelpCommand : BaseMemoryEngineCommand {
+public class ShowXbeInfoCommand : BaseMemoryEngineCommand {
     protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
-        return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
+        return engine.Connection is IXbox360Connection ? Executability.Valid : (engine.Connection == null ? Executability.ValidButCannotExecute : Executability.Invalid);
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
-        if (engine.Connection != null) {
-            List<string> list = await ((PhantomRTMConsoleConnection) engine.Connection).SendCommandAndReceiveLines("help");
-            await IMessageDialogService.Instance.ShowMessage("Help", "Available commands", string.Join(Environment.NewLine, list));
-        }
+        await engine.BeginBusyOperationActivityAsync(async (t, c) => {
+            if (c is IXbox360Connection xbox) {
+                string? path = await xbox.GetXbeInfo(null);
+                if (!string.IsNullOrEmpty(path)) {
+                    await IMessageDialogService.Instance.ShowMessage("File Path", path);
+                }
+                else {
+                    await IMessageDialogService.Instance.ShowMessage("Error", "No name attribute in Xbe info");
+                }
+            }
+        }, "Xbe Info");
     }
 }

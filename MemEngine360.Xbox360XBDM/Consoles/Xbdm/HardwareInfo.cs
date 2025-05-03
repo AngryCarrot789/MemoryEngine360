@@ -1,4 +1,4 @@
-﻿// 
+// 
 // Copyright (c) 2024-2025 REghZy
 // 
 // This file is part of MemEngine360.
@@ -17,18 +17,11 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.XBOX;
+namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
-public readonly struct MemoryRegion {
-    public readonly uint BaseAddress;
-    public readonly uint Size;
-    public readonly uint Protection;
-    public readonly uint PhysicalAddress;
-
-    public MemoryRegion(uint baseAddress, uint size, uint protection, uint physicalAddress) {
-        this.BaseAddress = baseAddress;
-        this.Size = size;
-        this.Protection = protection;
-        this.PhysicalAddress = physicalAddress;
-    }
+public struct HardwareInfo {
+    public uint Flags;
+    public byte NumberOfProcessors, PCIBridgeRevisionID;
+    public byte[] ReservedBytes;
+    public ushort BldrMagic, BldrFlags;
 }

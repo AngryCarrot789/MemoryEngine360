@@ -17,7 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections.XBOX;
+using MemEngine360.Connections;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Utils.Accessing;

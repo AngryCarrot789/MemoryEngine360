@@ -18,7 +18,6 @@
 // 
 
 using MemEngine360.Connections;
-using MemEngine360.Connections.XBOX;
 using MemEngine360.Engine;
 using MemEngine360.MemRegions;
 using PFXToolKitUI.CommandSystem;
@@ -30,19 +29,29 @@ namespace MemEngine360.Commands;
 
 public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
     protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
-        return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
+        if (engine.Connection != null) {
+            return engine.Connection is IHaveMemoryRegions ? Executability.Valid : Executability.Invalid;
+        }
+
+        // limitation of commands API -- this is where we have to add/remove buttons dynamically to get around this
+        return Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
-        IConsoleConnection? connection;
-        List<MemoryRegion> list;
+        List<MemoryRegion>? list;
         using (IDisposable? token = await engine.BeginBusyOperationActivityAsync("Reading memory regions")) {
             if (token == null) {
                 return;
             }
 
-            if ((connection = engine.Connection) == null) {
+            IConsoleConnection? connection = engine.Connection;
+            if (connection == null) {
                 await IMessageDialogService.Instance.ShowMessage("Error", "No connection present -- cannot fetch memory regions");
+                return;
+            }
+
+            if (!(connection is IHaveMemoryRegions regions)) {
+                await IMessageDialogService.Instance.ShowMessage("Unsupported", "This console does not support memory region querying");
                 return;
             }
 
@@ -51,10 +60,10 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
                 prog.Caption = "Memory Regions";
                 prog.Text = "Reading memory regions...";
                 prog.IsIndeterminate = true;
-                return connection.GetMemoryRegions();
+                return regions.GetMemoryRegions();
             });
         }
-        
+
         MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(list) {
             Caption = "Change scan region",
             Message = "Select a memory region to set as the start/length fields",

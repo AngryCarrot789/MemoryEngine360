@@ -24,7 +24,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using MemEngine360.Connections;
-using MemEngine360.Connections.XBOX;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Interactivity.Formatting;
 using PFXToolKitUI.Services.Messaging;
@@ -118,10 +117,10 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
         }
 
         IConsoleConnection connection = processor.MemoryEngine360.Connection!;
-        if (processor.ScanMemoryPages) {
+        if (processor.ScanMemoryPages && connection is IHaveMemoryRegions regions) {
             uint addrStart = processor.StartAddress, addrEnd = addrStart + processor.ScanLength;
             List<MemoryRegion> safeRegions = new List<MemoryRegion>();
-            List<MemoryRegion> consoleMemoryRegions = await connection.GetMemoryRegions();
+            List<MemoryRegion> consoleMemoryRegions = await regions.GetMemoryRegions();
             foreach (MemoryRegion region in consoleMemoryRegions) {
                 if (region.Protection == 0x00000240) {
                     // It might not be specifically this protection value, but I noticed that around the memory regions
@@ -449,10 +448,10 @@ public class StringValueScanner : IValueScanner {
 
         IConsoleConnection connection = processor.MemoryEngine360.Connection!;
         uint chunkSize = (uint) Maths.Ceil(65536, cbInputString);
-        if (processor.ScanMemoryPages) {
+        if (processor.ScanMemoryPages && connection is IHaveMemoryRegions regions) {
             uint addrStart = processor.StartAddress, addrEnd = addrStart + processor.ScanLength;
             List<MemoryRegion> safeRegions = new List<MemoryRegion>();
-            List<MemoryRegion> consoleMemoryRegions = await connection.GetMemoryRegions();
+            List<MemoryRegion> consoleMemoryRegions = await regions.GetMemoryRegions();
             foreach (MemoryRegion region in consoleMemoryRegions) {
                 if (region.Protection == 0x00000240) {
                     // It might not be specifically this protection value, but I noticed that around the memory regions

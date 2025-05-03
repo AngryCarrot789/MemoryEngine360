@@ -19,18 +19,16 @@
 
 namespace MemEngine360.Connections;
 
-/// <summary>
-/// Represents a console that has freeze/unfreeze abilities
-/// </summary>
-public interface IFreezableConsole {
-    /// <summary>
-    /// Signals the console to completely freeze
-    /// </summary>
-    Task DebugFreeze();
-    
-    /// <summary>
-    /// Signals the console to unfreeze/resume
-    /// </summary>
-    /// <returns></returns>
-    Task DebugUnFreeze();
+public readonly struct MemoryRegion {
+    public readonly uint BaseAddress;
+    public readonly uint Size;
+    public readonly uint Protection;
+    public readonly uint PhysicalAddress;
+
+    public MemoryRegion(uint baseAddress, uint size, uint protection, uint physicalAddress) {
+        this.BaseAddress = baseAddress;
+        this.Size = size;
+        this.Protection = protection;
+        this.PhysicalAddress = physicalAddress;
+    }
 }

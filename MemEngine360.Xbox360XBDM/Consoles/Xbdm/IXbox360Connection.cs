@@ -18,14 +18,14 @@
 // 
 
 using System.Net;
-using MemEngine360.Connections.XBOX.Threads;
+using MemEngine360.Connections;
 
-namespace MemEngine360.Connections.XBOX;
+namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
 /// <summary>
 /// Represents a connection to an xbox console
 /// </summary>
-public interface IXbox360Connection : IConsoleConnection, IFreezableConsole {
+public interface IXbox360Connection : INetworkConsoleConnection, IHaveMemoryRegions, IHaveIceCubes {
     /// <summary>
     /// Gets all the threads running on this console
     /// </summary>

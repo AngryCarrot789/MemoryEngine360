@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>Xbox360-XBDM</AssemblyName>
+    </PropertyGroup>
+
+    <Target Name="CopyPluginDll" AfterTargets="Build">
+        <ItemGroup>
+            <BuiltPluginDll Include="$(OutputPath)$(AssemblyName).dll"/>
+        </ItemGroup>
+
+        <Copy SourceFiles="@(BuiltPluginDll)"
+              DestinationFolder="$(SolutionDir)Plugins\$(AssemblyName)\"
+              SkipUnchangedFiles="true"/>
+    </Target>
+
+    <ItemGroup>
+        <ProjectReference Include="..\MemEngine360.Avalonia\MemEngine360.Avalonia.csproj" />
+        <ProjectReference Include="..\MemEngine360\MemEngine360.csproj"/>
+        <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI.Avalonia\PFXToolKitUI.Avalonia.csproj" />
+    </ItemGroup>
+
+</Project>

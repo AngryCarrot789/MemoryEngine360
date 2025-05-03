@@ -24,10 +24,12 @@ using Avalonia.Controls.ApplicationLifetimes;
 using MemEngine360.Avalonia.Commands;
 using MemEngine360.Avalonia.MemRegions;
 using MemEngine360.Avalonia.Services;
+using MemEngine360.Avalonia.Services.Connectivity;
 using MemEngine360.Avalonia.Services.HexDisplay;
 using MemEngine360.Commands;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
+using MemEngine360.Engine;
 using MemEngine360.Engine.HexDisplay;
 using MemEngine360.Engine.HexDisplay.Commands;
 using MemEngine360.MemRegions;
@@ -72,13 +74,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.ShowMemoryCommand", new ShowMemoryCommand());
         
         // Remote commands
-        manager.Register("commands.memengine.remote.ListHelpCommand", new ListHelpCommand());
-        manager.Register("commands.memengine.remote.ShowConsoleInfoCommand", new ShowConsoleInfoCommand());
-        manager.Register("commands.memengine.remote.ShowXbeInfoCommand", new ShowXbeInfoCommand());
         manager.Register("commands.memengine.remote.MemProtectionCommand", new MemProtectionCommand());
-        manager.Register("commands.memengine.remote.EjectDiskTrayCommand", new EjectDiskTrayCommand());
-        manager.Register("commands.memengine.remote.DebugFreezeCommand", new DebugFreezeCommand());
-        manager.Register("commands.memengine.remote.DebugUnfreezeCommand", new DebugUnfreezeCommand());
         manager.Register("commands.memengine.remote.SoftRebootCommand", new SoftRebootCommand());
         manager.Register("commands.memengine.remote.ColdRebootCommand", new ColdRebootCommand());
         manager.Register("commands.memengine.remote.ShutdownCommand", new ShutdownCommand());
@@ -103,9 +99,10 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
 
         manager.RegisterConstant<IIconPreferences>(new IconPreferencesImpl());
         manager.RegisterConstant<IStartupManager>(new StartupManagerMemEngine360());
-        manager.RegisterConstant(new ConsoleConnectionService());
         manager.RegisterConstant<IAboutService>(new AboutServiceImpl());
         manager.RegisterConstant<IHexDisplayService>(new HexDisplayServiceImpl());
+        manager.RegisterConstant<ConsoleConnectionManager>(new ConsoleConnectionManagerImpl());
+        manager.RegisterConstant<MemoryEngineManager>(new MemoryEngineManagerImpl());
     }
 
     protected override void RegisterConfigurations() {
@@ -138,6 +135,8 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
 
     private class StartupManagerMemEngine360 : IStartupManager {
         public Task OnApplicationStartupWithArgs(string[] args) {
+            // IXboxManager xboxManager = new XboxManager();
+            
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
                 desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
             }

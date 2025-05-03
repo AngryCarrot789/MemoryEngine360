@@ -1,4 +1,4 @@
-// 
+﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
 // This file is part of MemEngine360.
@@ -17,11 +17,20 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.XBOX;
+namespace MemEngine360.Connections;
 
-public struct HardwareInfo {
-    public uint Flags;
-    public byte NumberOfProcessors, PCIBridgeRevisionID;
-    public byte[] ReservedBytes;
-    public ushort BldrMagic, BldrFlags;
+/// <summary>
+/// A trait for a <see cref="IConsoleConnection"/> that can be frozen and unfrozen
+/// </summary>
+public interface IHaveIceCubes {
+    /// <summary>
+    /// Signals the console to completely freeze
+    /// </summary>
+    Task DebugFreeze();
+    
+    /// <summary>
+    /// Signals the console to unfreeze/resume
+    /// </summary>
+    /// <returns></returns>
+    Task DebugUnFreeze();
 }

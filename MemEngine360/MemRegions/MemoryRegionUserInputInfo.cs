@@ -19,7 +19,7 @@
 
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using MemEngine360.Connections.XBOX;
+using MemEngine360.Connections;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.MemRegions;
@@ -75,7 +75,5 @@ public class MemoryRegionUserInputInfo : UserInputInfo {
     }
 
     public override void UpdateAllErrors() {
-        if (this.HasErrors())
-            this.RaiseHasErrorsChanged();
     }
 }

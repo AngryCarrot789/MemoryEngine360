@@ -17,7 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.XBOX;
+namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
 public enum ResponseType : int {
     SingleResponse = 200, 

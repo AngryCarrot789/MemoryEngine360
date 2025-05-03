@@ -198,8 +198,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         byte[]? bytes = await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             return await ActivityManager.Instance.RunTask(async () => {
-                if (c is IFreezableConsole)
-                    await ((IFreezableConsole) c).DebugFreeze();
+                if (c is IHaveIceCubes)
+                    await ((IHaveIceCubes) c).DebugFreeze();
 
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Read data for Hex Editor";
@@ -214,8 +214,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                 completion.OnCompletionValueChanged();
                 byte[] buffer = new byte[info.Length];
                 await c.ReadBytes(info.StartAddress, buffer, 0, info.Length, 0x10000, completion, task.CancellationToken);
-                if (c is IFreezableConsole)
-                    await ((IFreezableConsole) c).DebugUnFreeze();
+                if (c is IHaveIceCubes)
+                    await ((IHaveIceCubes) c).DebugUnFreeze();
 
                 return buffer;
             }, cts);
@@ -263,8 +263,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         byte[]? readBuffer = await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             return await ActivityManager.Instance.RunTask(async () => {
-                if (c is IFreezableConsole)
-                    await ((IFreezableConsole) c).DebugFreeze();
+                if (c is IHaveIceCubes)
+                    await ((IHaveIceCubes) c).DebugFreeze();
 
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Refresh data for Hex Editor";
@@ -280,8 +280,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
                 byte[] buffer = new byte[count];
                 await c.ReadBytes(this.actualStartAddress + start, buffer, 0, count, 0x10000, completion, task.CancellationToken);
-                if (c is IFreezableConsole)
-                    await ((IFreezableConsole) c).DebugUnFreeze();
+                if (c is IHaveIceCubes)
+                    await ((IHaveIceCubes) c).DebugUnFreeze();
                 return buffer;
             }, cts);
         }, "Read data for Hex Editor");
@@ -323,8 +323,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             await ActivityManager.Instance.RunTask(async () => {
-                if (c is IFreezableConsole)
-                    await ((IFreezableConsole) c).DebugFreeze();
+                if (c is IHaveIceCubes)
+                    await ((IHaveIceCubes) c).DebugFreeze();
 
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Write data from Hex Editor";
@@ -339,8 +339,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                 // Update initial text
                 completion.OnCompletionValueChanged();
                 await c.WriteBytes(this.actualStartAddress + start, buffer, (int) start, count, completion, task.CancellationToken);
-                if (c is IFreezableConsole)
-                    await ((IFreezableConsole) c).DebugUnFreeze();
+                if (c is IHaveIceCubes)
+                    await ((IHaveIceCubes) c).DebugUnFreeze();
             }, cts);
         }, "Write Hex Editor Data");
 
@@ -381,7 +381,6 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.Window!.Control.MinHeight = 480;
         this.Window!.Control.Width = 1280;
         this.Window!.Control.Height = 720;
-        this.Window!.CanAutoSizeToContent = false;
 
         UIInputManager.SetFocusPath(this.Window!.Control, "HexDisplayWindow");
         UIInputManager.SetFocusPath(this.PART_HexEditor, "HexDisplayWindow/HexEditor");
