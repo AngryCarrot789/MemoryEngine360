@@ -105,3 +105,37 @@ public class ColdRebootCommand : BaseRemoteConsoleCommand {
         await connection.RebootConsole(true);
     }
 }
+
+public class DebugFreezeCommand : BaseRemoteConsoleCommand {
+    protected override string ActivityText => "Freezing console...";
+
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        if (!(connection is IHaveIceCubes)) {
+            await IMessageDialogService.Instance.ShowMessage("Not freezable", "This console does not support freezing");
+            return false;
+        }
+
+        return true;
+    }
+
+    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        await ((IHaveIceCubes) connection).DebugFreeze();
+    }
+}
+
+public class DebugUnfreezeCommand : BaseRemoteConsoleCommand {
+    protected override string ActivityText => "Unfreezing console...";
+
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        if (!(connection is IHaveIceCubes)) {
+            await IMessageDialogService.Instance.ShowMessage("Not freezable", "This console does not support freezing");
+            return false;
+        }
+
+        return true;
+    }
+    
+    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        await ((IHaveIceCubes) connection).DebugUnFreeze();
+    }
+}

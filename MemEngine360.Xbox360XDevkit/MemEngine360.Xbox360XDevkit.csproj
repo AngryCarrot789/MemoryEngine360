@@ -4,12 +4,23 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <AssemblyName>Xbox360-XBDM</AssemblyName>
+        <AssemblyName>Xbox360-XDevkit</AssemblyName>
+        <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\MemEngine360.BaseFrontEnd\MemEngine360.BaseFrontEnd.csproj" />
         <ProjectReference Include="..\MemEngine360\MemEngine360.csproj" Private="False"/>
         <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI.Avalonia\PFXToolKitUI.Avalonia.csproj" Private="False"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="SkiaSharp" Version="3.119.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="XDevkit">
+            <HintPath>..\libs\XDevkit.dll</HintPath>
+        </Reference>
     </ItemGroup>
 </Project>

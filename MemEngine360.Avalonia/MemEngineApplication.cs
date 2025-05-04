@@ -32,7 +32,9 @@ using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexDisplay;
 using MemEngine360.Engine.HexDisplay.Commands;
-using MemEngine360.MemRegions;
+using MemEngine360.Xbox360XBDM;
+using MemEngine360.Xbox360XDevkit;
+using MemEngine360.XboxInfo;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Services;
@@ -78,6 +80,9 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.remote.SoftRebootCommand", new SoftRebootCommand());
         manager.Register("commands.memengine.remote.ColdRebootCommand", new ColdRebootCommand());
         manager.Register("commands.memengine.remote.ShutdownCommand", new ShutdownCommand());
+        manager.Register("commands.memengine.remote.DebugFreezeCommand", new DebugFreezeCommand());
+        manager.Register("commands.memengine.remote.DebugUnfreezeCommand", new DebugUnfreezeCommand());
+
         
         // Hex editor commands
         manager.Register("commands.hexeditor.ReloadSelectionFromConsole", new ReloadSelectionFromConsole());        
@@ -87,6 +92,12 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         
         // Test commands
         manager.Register("commands.memengine.TestShowMemoryCommand", new TestShowMemoryCommand());
+    }
+
+    protected override async Task OnSetupApplication(IApplicationStartupProgress progress) {
+        await base.OnSetupApplication(progress);
+        this.PluginLoader.AddCorePlugin(typeof(PluginXbox360Xbdm));
+        this.PluginLoader.AddCorePlugin(typeof(PluginXbox360XDevkit));
     }
 
     protected override void RegisterServices(ServiceManager manager) {
@@ -112,7 +123,8 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
 
     protected override Task OnApplicationFullyLoaded() {
         UserInputDialogView.Registry.RegisterType<SavedResultDataTypeUserInputInfo>(() => new SavedResultDataTypeEditorUserInputControl());
-        UserInputDialogView.Registry.RegisterType<MemoryRegionUserInputInfo>(() => new MemoryRegionViewerUserInputControl());
+        UserInputDialogView.Registry.RegisterType<MemoryRegionUserInputInfo>(() => new XboxMemoryRegionViewerUIControl());
+        UserInputDialogView.Registry.RegisterType<ModuleUserInputInfo>(() => new XboxModuleViewerUIControl());
         
         ApplicationConfigurationManager.Instance.RootEntry.AddEntry(new ConfigurationEntry() {
             DisplayName = "MemEngine", Id = "config.memengine", Page = new MemEngineConfigurationPage()

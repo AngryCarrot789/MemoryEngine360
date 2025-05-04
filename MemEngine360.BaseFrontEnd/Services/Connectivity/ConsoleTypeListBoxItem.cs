@@ -30,7 +30,6 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
     private IconControl? PART_IconControl;
     private TextBlock? PART_DisplayName;
     private RegisteredConsoleType? myConsoleType;
-    private readonly MemoryEngine360? engine;
 
     public RegisteredConsoleType? RegisteredConsoleType {
         get => this.myConsoleType;
@@ -46,19 +45,16 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
             }
 
             this.myConsoleType = value;
-            this.UserConnectionInfo = value?.CreateConnectionInfo(this.engine!);
+            this.UserConnectionInfo = value?.CreateConnectionInfo(this.Engine!);
             this.UserConnectionInfo?.OnCreated();
         }
     }
+    
+    public MemoryEngine360? Engine { get; set; }
 
     public UserConnectionInfo? UserConnectionInfo { get; private set; }
 
     public ConsoleTypeListBoxItem() {
-    }
-
-    public ConsoleTypeListBoxItem(MemoryEngine360 engine, RegisteredConsoleType type) {
-        this.engine = engine;
-        this.RegisteredConsoleType = type;
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {

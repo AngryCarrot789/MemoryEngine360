@@ -19,7 +19,7 @@
 
 using MemEngine360.Connections;
 using MemEngine360.Engine;
-using MemEngine360.MemRegions;
+using MemEngine360.XboxInfo;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;

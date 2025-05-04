@@ -17,8 +17,6 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.IO;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media;
 using AvaloniaHex;

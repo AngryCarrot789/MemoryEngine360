@@ -17,24 +17,14 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Threading.Tasks;
-using MemEngine360.Connections;
-using MemEngine360.Engine;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using Avalonia.Controls;
 
 namespace MemEngine360.Avalonia.Services.Connectivity;
 
-public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
-    public override Task OpenDialog(IMemEngineUI engine, string? focusedTypeId = null) {
-        if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-            ConnectToConsoleView control = new ConnectToConsoleView() {
-                EngineUI = engine, FocusedTypeId = focusedTypeId
-            };
-            
-            IWindow window = system.CreateWindow(control);
-            window.Show(null);
-        }
+public class ConsoleTypeListBox : ListBox {
+    protected override Type StyleKeyOverride => typeof(ListBox);
 
-        return Task.CompletedTask;
+    protected override Control CreateContainerForItemOverride(object? item, int index, object? recycleKey) {
+        return new ConsoleTypeListBoxItem();
     }
 }

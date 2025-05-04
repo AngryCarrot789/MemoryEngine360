@@ -18,7 +18,6 @@
 // 
 
 using System.Buffers.Binary;
-using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -158,10 +157,9 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
                     // should we be using BaseAddress or PhysicalAddress???
                     uint baseAddress = (uint) (region.BaseAddress + j);
                     int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(65536, (uint) Math.Max((int) region.Size - j, 0)));
-                    if (cbRead != 65536 && cbRead != Math.Min(65536, (uint) Math.Max((int) region.Size - j, 0)))
-                        Debugger.Break();
-
-                    this.ProcessMemoryBlockForFirstScan(inputA, inputB, processor, results, Math.Max(cbRead - sizeOfT, 0), align, buffer, sizeOfT, baseAddress);
+                    if (cbRead > 0) {
+                        this.ProcessMemoryBlockForFirstScan(inputA, inputB, processor, results, Math.Max(cbRead - sizeOfT, 0), align, buffer, sizeOfT, baseAddress);
+                    }
                 }
             }
         }
@@ -179,10 +177,9 @@ public abstract class BaseNumericValueScanner<T> : IValueScanner where T : unman
                 
                 uint baseAddress = (uint) (addr + j);
                 int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)));
-                if (cbRead != 65536 && cbRead != Math.Min(65536, (uint) Math.Max((int) scanLen - j, 0)))
-                    Debugger.Break();
-
-                this.ProcessMemoryBlockForFirstScan(inputA, inputB, processor, results, Math.Max(cbRead - sizeOfT, 0), align, buffer, sizeOfT, baseAddress);
+                if (cbRead > 0) {
+                    this.ProcessMemoryBlockForFirstScan(inputA, inputB, processor, results, Math.Max(cbRead - sizeOfT, 0), align, buffer, sizeOfT, baseAddress);
+                }
             }
         }
 
@@ -493,10 +490,9 @@ public class StringValueScanner : IValueScanner {
                     // should we be using BaseAddress or PhysicalAddress???
                     uint baseAddress = (uint) (region.BaseAddress + j);
                     int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(chunkSize, (uint) Math.Max((int) region.Size - j, 0)));
-                    if (cbRead != chunkSize && cbRead != Math.Min(chunkSize, (uint) Math.Max((int) region.Size - j, 0)))
-                        Debugger.Break();
-
-                    ProcessStringBlock(processor, results, activity, Math.Max(cbRead - cbInputString, 0), align, buffer, cbInputString, baseAddress);
+                    if (cbRead > 0) {
+                        ProcessStringBlock(processor, results, activity, Math.Max(cbRead - cbInputString, 0), align, buffer, cbInputString, baseAddress);
+                    }
                 }
             }
         }
@@ -513,12 +509,11 @@ public class StringValueScanner : IValueScanner {
 
                 uint baseAddress = (uint) (addr + j);
                 int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(chunkSize, (uint) Math.Max((int) scanLen - j, 0)));
-                if (cbRead != chunkSize && cbRead != Math.Min(chunkSize, (uint) Math.Max((int) scanLen - j, 0)))
-                    Debugger.Break();
-
-                int blockEnd = Math.Max(cbRead - cbInputString, 0);
-                using var _ = activity.CompletionState.PushCompletionRange(0.0, 1 / (blockEnd / 256.0));
-                ProcessStringBlock(processor, results, activity, blockEnd, align, buffer, cbInputString, baseAddress);
+                if (cbRead > 0) {
+                    int blockEnd = Math.Max(cbRead - cbInputString, 0);
+                    using var _ = activity.CompletionState.PushCompletionRange(0.0, 1 / (blockEnd / 256.0));
+                    ProcessStringBlock(processor, results, activity, blockEnd, align, buffer, cbInputString, baseAddress);
+                }
             }
         }
 

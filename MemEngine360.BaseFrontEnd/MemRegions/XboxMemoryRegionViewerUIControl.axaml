@@ -2,10 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:engine="clr-namespace:MemEngine360.MemRegions;assembly=MemEngine360"
              xmlns:local="clr-namespace:MemEngine360.Avalonia.MemRegions"
+             xmlns:engine="clr-namespace:MemEngine360.XboxInfo;assembly=MemEngine360"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="MemEngine360.Avalonia.MemRegions.MemoryRegionViewerUserInputControl">
+             x:Class="MemEngine360.Avalonia.MemRegions.XboxMemoryRegionViewerUIControl">
     <DataGrid x:Name="PART_DataGrid" Background="Transparent" BorderThickness="0" CanUserResizeColumns="True">
         <DataGrid.Columns>
             <DataGridTextColumn x:DataType="{x:Type engine:MemoryRegionViewModel}" Width="100"

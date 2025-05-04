@@ -7,7 +7,8 @@ This project was inspired from https://github.com/XeClutch/Cheat-Engine-For-Xbox
 
 # Download and built
 Clone repo: `git clone --recursive https://github.com/AngryCarrot789/MemEngine360`
-Open `MemEngine360.sln` and build/run 
+
+Open `MemEngine360.sln` and then run/debug.~~~~ 
 
 # How to use
 Press `CTRL + O` (or go to `File > Connect to console...`). A dialog pops up allowing you to connect to different consoles. 
@@ -93,22 +94,3 @@ There's a few remote control commands you can find in the `Remote Controls` menu
 - `Soft Reboot` - Reboots the current title
 - `Cold Reboot` - Fully reboots the console (shows the xbox boot animation)
 - `Shutdown` - Tells the console to shut down
-
-# Plugins
-MemEngine360 supports custom plugins! If you don't care, feel free to ignore below this line.
-
-I'd recomment using the Xbox360-XBDM's `.csproj` as an example of what to put in your plugin project. This way, it automatically copies
-your plugin's DLL into the `Plugins` folder in the solution folder. The avalonia project automatically copies
-the `Plugins` folder into the output directory, so no need to manually copy files around.
-
-However, you have to manually click build for your plugin project when you make changes before running the app, because it won't 
-do it automatically (since the project is seen as basically unused since it's not referenced by anything)
-
-The most important thing is having a class extend `PFXToolKitUI.Plugins.Plugin` in your plugin project.
-
-For more info on the Plugins API, I recommend skimming through at least the first link, and then 2nd if you want to add custom commands to the UI
-
-- https://github.com/AngryCarrot789/FramePFX/blob/master/docs/Plugins.md
-- https://github.com/AngryCarrot789/FramePFX/blob/master/docs/Command%20System%20and%20Shortcuts.md
-
-Some of it is completely unrelated to this project, but it explains things such as PersistentConfigurations, custom commands, brushes API, configuration options, and more.

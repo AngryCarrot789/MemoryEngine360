@@ -17,13 +17,23 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System;
-using System.Collections.ObjectModel;
-using System.Linq;
-using MemEngine360.Engine.Modes;
+using MemEngine360.Connections;
+using MemEngine360.Engine;
+using PFXToolKitUI.Avalonia.Services.Windowing;
 
-namespace MemEngine360.Avalonia;
+namespace MemEngine360.Avalonia.Services.Connectivity;
 
-public static class CommonCollections {
-    public static ReadOnlyCollection<DataType> DataTypes { get; } = Enum.GetValues(typeof(DataType)).Cast<DataType>().ToList().AsReadOnly();
+public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
+    public override Task OpenDialog(IMemEngineUI engine, string? focusedTypeId = null) {
+        if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
+            ConnectToConsoleView control = new ConnectToConsoleView() {
+                EngineUI = engine, FocusedTypeId = focusedTypeId
+            };
+            
+            IWindow window = system.CreateWindow(control);
+            window.Show(null);
+        }
+
+        return Task.CompletedTask;
+    }
 }

@@ -400,10 +400,7 @@ FodyWeavers.xsd
 *.sln.iml
 .idea/
 
-# A work in progress plugin that uses the XDevkit library to interact
-# with the console. I can't seem to get it working with my console yet
-# so i'm not uploading it. It uses COM objects
-MemEngine360.Xbox360XDevkit/
+/XDevkit/
 
 # Do not include Plugin built items
-Plugins/
+/Plugins/

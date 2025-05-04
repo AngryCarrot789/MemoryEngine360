@@ -17,14 +17,11 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System;
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Interactivity;
 using AvaloniaHex.Core.Document;
@@ -40,7 +37,6 @@ using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
-using PFXToolKitUI.PropertyEditing.DataTransfer;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Commands;
@@ -383,10 +379,9 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                     task.Progress.Text = $"Writing {IValueScanner.ByteFormatter.ToString(selection.ByteLength * state.TotalCompletion, false)}/{IValueScanner.ByteFormatter.ToString(selection.ByteLength, false)}";
                 };
 
-
                 // Update initial text
                 completion.OnCompletionValueChanged();
-                await c.WriteBytes(this.actualStartAddress + start, buffer, (int) start, count, completion, task.CancellationToken);
+                await c.WriteBytes(this.actualStartAddress + start, buffer, (int) start, count, 0x10000, completion, task.CancellationToken);
                 if (c is IHaveIceCubes)
                     await ((IHaveIceCubes) c).DebugUnFreeze();
             }, cts);

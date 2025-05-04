@@ -17,15 +17,11 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System;
-using Avalonia.Controls;
+using System.Collections.ObjectModel;
+using MemEngine360.Engine.Modes;
 
-namespace MemEngine360.Avalonia.Services.Connectivity;
+namespace MemEngine360.Avalonia;
 
-public class ConsoleTypeListBox : ListBox {
-    protected override Type StyleKeyOverride => typeof(ListBox);
-
-    protected override Control CreateContainerForItemOverride(object? item, int index, object? recycleKey) {
-        return new ConsoleTypeListBoxItem();
-    }
+public static class CommonCollections {
+    public static ReadOnlyCollection<DataType> DataTypes { get; } = Enum.GetValues(typeof(DataType)).Cast<DataType>().ToList().AsReadOnly();
 }

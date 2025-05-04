@@ -23,7 +23,7 @@ using MemEngine360.Engine;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Utils.Accessing;
 
-namespace MemEngine360.Xbox360XBDM.Views;
+namespace MemEngine360.Xbox360XDevkit.Views;
 
 public class ConnectToXboxInfo : UserConnectionInfo {
     public static readonly DataParameterString IpAddressParameter = DataParameter.Register(new DataParameterString(typeof(ConnectToXboxInfo), nameof(IpAddress), "", ValueAccessors.Reflective<string?>(typeof(ConnectToXboxInfo), nameof(ipAddress))));

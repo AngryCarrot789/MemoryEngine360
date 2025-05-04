@@ -4,16 +4,17 @@
                             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                             xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
                             xmlns:cmdu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
-                            xmlns:ac="clr-namespace:MemEngine360.Avalonia.Commands"
+                            xmlns:ac="clr-namespace:MemEngine360.Avalonia.Commands;assembly=MemEngine360.BaseFrontEnd"
                             xmlns:av1="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                             xmlns:engine="clr-namespace:MemEngine360.Engine;assembly=MemEngine360"
-                            xmlns:av2="clr-namespace:MemEngine360.Avalonia"
                             xmlns:ams="clr-namespace:PFXToolKitUI.Avalonia.AdvancedMenuService;assembly=PFXToolKitUI.Avalonia"
                             xmlns:c2="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
                             xmlns:converters="clr-namespace:PFXToolKitUI.Avalonia.Converters;assembly=PFXToolKitUI.Avalonia"
                             xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
-                            xmlns:cb="clr-namespace:MemEngine360.Avalonia.Resources.Icons"
+                            xmlns:cb="clr-namespace:MemEngine360.Avalonia.Resources.Icons;assembly=MemEngine360.BaseFrontEnd"
                             xmlns:aa="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
+                            xmlns:av2="clr-namespace:MemEngine360.Avalonia"
+                            xmlns:av3="clr-namespace:MemEngine360.Avalonia;assembly=MemEngine360.BaseFrontEnd"
                             mc:Ignorable="d"
                             WindowTitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}"
                             WindowBorderBrush="{DynamicResource PanelBorderBrush}"
@@ -211,13 +212,13 @@
                           CanUserResizeColumns="True"
                           ClipboardCopyMode="None">
                     <DataGrid.Columns>
-                        <av2:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
+                        <av3:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
                                                   Header="Address (hex)" Width="85" Binding="{Binding Address, Mode=OneTime, StringFormat=X}"
                                                   IsReadOnly="True" DoubleTapCommandId="commands.memengine.CopyScanResultsToClipboardCommand"
                                                   CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
                                                   CanUserResize="False" FontFamily="{StaticResource FontOxanium}"/> <!-- No need to resize since it's formatted to X8 (fixed length) -->
 
-                        <av2:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
+                        <av3:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
                                                   Header="Value" Width="85" Binding="{Binding CurrentValue, Mode=OneWay}"
                                                   IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditScanResultValueCommand"
                                                   CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
@@ -291,13 +292,13 @@
                                             Binding="{Binding Description, Mode=TwoWay}"
                                             CanUserResize="True"/>
 
-                        <av2:DataGridTextColumnEx Header="Data Type" Width="80" x:DataType="{x:Type engine:SavedAddressViewModel}"
+                        <av3:DataGridTextColumnEx Header="Data Type" Width="80" x:DataType="{x:Type engine:SavedAddressViewModel}"
                                                   Binding="{Binding DataType, Mode=OneWay}"
                                                   IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressDataTypeCommand"
                                                   CellDataKeyForDC="{x:Static engine:SavedAddressViewModel.DataKey}"
                                                   CanUserResize="True"/>
 
-                        <av2:DataGridTextColumnEx Header="Value" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}"
+                        <av3:DataGridTextColumnEx Header="Value" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}"
                                                   Binding="{Binding Value, Mode=OneWay}"
                                                   IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressValueCommand"
                                                   CellDataKeyForDC="{x:Static engine:SavedAddressViewModel.DataKey}"

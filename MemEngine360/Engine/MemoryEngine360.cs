@@ -112,10 +112,9 @@ public class MemoryEngine360 {
                 }
                 
                 await Task.Delay(250);
-                long ticksNow = DateTime.Now.Ticks;
-                if ((ticksNow - timeSinceRefreshedAddresses) >= (cfg.RefreshRateMillis * Time.TICK_PER_MILLIS)) {
-                    this.ScanningProcessor.RefreshSavedAddressesLater();
-                    timeSinceRefreshedAddresses = ticksNow;
+                if ((DateTime.Now.Ticks - timeSinceRefreshedAddresses) >= (cfg.RefreshRateMillis * Time.TICK_PER_MILLIS)) {
+                    await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.ScanningProcessor.RefreshSavedAddressesAsync());
+                    timeSinceRefreshedAddresses = DateTime.Now.Ticks;
                 }
             }
         });

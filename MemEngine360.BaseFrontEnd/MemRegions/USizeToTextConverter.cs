@@ -17,7 +17,6 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
 using PFXToolKitUI.Interactivity.Formatting;

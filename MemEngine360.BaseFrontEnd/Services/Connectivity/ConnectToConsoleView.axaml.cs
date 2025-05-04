@@ -17,9 +17,6 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System;
-using System.Linq;
-using System.Threading;
 using Avalonia.Controls;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
@@ -27,7 +24,8 @@ using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Utils;
-using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.Avalonia.Services.Connectivity;
@@ -65,7 +63,15 @@ public partial class ConnectToConsoleView : WindowingContentControl {
 
                 using IDisposable? token = await this.EngineUI!.MemoryEngine360.BeginBusyOperationActivityAsync("Connect to console", cancellationTokenSource: this.currCts);
                 if (token != null) {
-                    IConsoleConnection? connection = await selection.RegisteredConsoleType.OpenConnection(this.EngineUI!.MemoryEngine360, selection.UserConnectionInfo, this.currCts);
+                    IConsoleConnection? connection;
+                    try {
+                        connection = await selection.RegisteredConsoleType.OpenConnection(this.EngineUI.MemoryEngine360, selection.UserConnectionInfo, this.currCts);
+                    }
+                    catch (Exception e) {
+                        await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
+                        connection = null;
+                    }
+
                     if (connection != null) {
                         this.EngineUI.MemoryEngine360.SetConnection(token, connection, ConnectionChangeCause.User);
                         this.EngineUI.Activity = "Connected to console";
@@ -81,6 +87,7 @@ public partial class ConnectToConsoleView : WindowingContentControl {
 
                 // may get disposed and set to null during window close
                 this.currCts?.Dispose();
+                this.currCts = null;
             }
 
             this.isConnecting = false;
@@ -103,7 +110,11 @@ public partial class ConnectToConsoleView : WindowingContentControl {
         ConsoleTypeListBoxItem? selected = null;
         ConsoleConnectionManager service = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
         foreach (RegisteredConsoleType type in service.RegisteredConsoleTypes) {
-            ConsoleTypeListBoxItem item = new ConsoleTypeListBoxItem(this.EngineUI.MemoryEngine360, type);
+            ConsoleTypeListBoxItem item = new ConsoleTypeListBoxItem() {
+                Engine = this.EngineUI.MemoryEngine360,
+                RegisteredConsoleType = type
+            };
+            
             if (selected != null && this.FocusedTypeId != null && type.RegisteredId == this.FocusedTypeId)
                 selected = item;
             this.PART_ListBox.Items.Add(item);

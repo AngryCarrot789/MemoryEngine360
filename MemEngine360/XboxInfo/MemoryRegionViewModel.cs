@@ -22,7 +22,7 @@ using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Utils.Accessing;
 
-namespace MemEngine360.MemRegions;
+namespace MemEngine360.XboxInfo;
 
 public class MemoryRegionViewModel : BaseTransferableViewModel {
     // This class needs a re-work. We shouldn't use a raw address like this,

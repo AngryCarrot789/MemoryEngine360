@@ -415,11 +415,12 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         await this.WriteBytesAndGetResponseInternal(address, buffer, 0, (uint) buffer.Length, null, CancellationToken.None);
     }
 
-    public async Task WriteBytes(uint address, byte[] buffer, int offset, uint count, CompletionState? completion = null, CancellationToken cancellationToken = default) {
+    public async Task WriteBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
         this.EnsureNotDisposed();
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
+        // we ignore chunkSize because we literally write in chunks of 64 bytes so there's no reason to write less per second
         await this.WriteBytesAndGetResponseInternal(address, buffer, offset, count, completion, cancellationToken);
     }
 
@@ -693,18 +694,20 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         if (chunkSize > count)
             chunkSize = count;
 
-        int length = (int) count;
-        using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / length);
-        while (length > 0) {
+        int remaining = (int) count;
+        using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / remaining);
+        while (remaining > 0) {
             cancellationToken.ThrowIfCancellationRequested();
-            int cbRead = await this.ReadBytesInternal((uint) (address + offset), buffer, offset, (uint) Math.Min(chunkSize, length));
-            length -= cbRead;
+            int cbRead = (int) Math.Min(chunkSize, remaining);
+            int cbReadReal = await this.ReadBytesInternal(address, buffer, offset, (uint) cbRead);
+            remaining -= cbRead;
             offset += cbRead;
+            address += (uint) cbRead;
 
             completion?.OnProgress(cbRead);
         }
 
-        if (length < 0)
+        if (remaining < 0)
             throw new Exception("Error: got more bytes that we wanted");
     }
 

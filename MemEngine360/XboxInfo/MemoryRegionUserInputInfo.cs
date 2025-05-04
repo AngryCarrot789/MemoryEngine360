@@ -22,7 +22,7 @@ using System.Collections.Specialized;
 using MemEngine360.Connections;
 using PFXToolKitUI.Services.UserInputs;
 
-namespace MemEngine360.MemRegions;
+namespace MemEngine360.XboxInfo;
 
 public delegate void MemoryRegionUserInputInfoSelectedRegionChangedEventHandler(MemoryRegionUserInputInfo sender, MemoryRegionViewModel? oldSelectedRegion, MemoryRegionViewModel? newSelectedRegion);
 

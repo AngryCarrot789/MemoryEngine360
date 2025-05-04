@@ -319,6 +319,10 @@ public class ScanningProcessor {
 
         this.resultBuffer = new ConcurrentQueue<ScanResultViewModel>();
 
+        this.ScanResults.CollectionChanged += (sender, args) => {
+            ApplicationPFX.Instance.Dispatcher.VerifyAccess();
+        };
+
         // Adds up to 100 items per second
         this.rldaMoveBufferIntoResultList = RateLimitedDispatchActionBase.ForDispatcherSync(() => {
             for (int i = 0; i < 20 && this.resultBuffer.TryDequeue(out ScanResultViewModel? result); i++) {
@@ -573,8 +577,10 @@ public class ScanningProcessor {
             // UI, although this does kind of break the MVVM pattern but oh well
             if (this.ScanResults.Count < 100) {
                 this.IsRefreshingAddresses = true;
-
-                foreach (ScanResultViewModel result in this.ScanResults) {
+                
+                // Lazily prevents concurrent modification
+                List<ScanResultViewModel> list = this.ScanResults.ToList();
+                foreach (ScanResultViewModel result in list) {
                     result.CurrentValue = await MemoryEngine360.ReadAsText(connection, result.Address, result.DataType, result.NumericDisplayType, (uint) result.FirstValue.Length);
                 }
             }

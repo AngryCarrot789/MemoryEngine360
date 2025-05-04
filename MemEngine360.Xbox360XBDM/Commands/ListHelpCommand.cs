@@ -24,7 +24,7 @@ using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Xbox360XBDM.Commands;
 
-public class ListHelpCommand : RemoteXboxCommand {
+public class ListHelpCommand : RemoteXbox360Command {
     protected override string ActivityText => "Reading commands";
     
     protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {

@@ -150,9 +150,10 @@ public interface IConsoleConnection {
     /// <param name="buffer">The buffer to write</param>
     /// <param name="offset">The offset, within <see cref="buffer"/>, to start at</param>
     /// <param name="count">The amount of bytes to write</param>
+    /// <param name="chunkSize">The amount of bytes to write per chunk</param>
     /// <param name="completion">Optional feedback for the completion progress</param>
     /// <param name="cancellationToken">Used to cancel the write operation</param>
-    Task WriteBytes(uint address, byte[] buffer, int offset, uint count, CompletionState? completion = null, CancellationToken cancellationToken = default);    
+    Task WriteBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default);    
 
     /// <summary>
     /// Writes a single value to the console

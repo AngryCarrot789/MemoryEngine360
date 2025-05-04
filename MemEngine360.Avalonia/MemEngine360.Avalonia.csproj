@@ -32,6 +32,9 @@
 
     <ItemGroup>
       <ProjectReference Include="..\AvaloniaHex\src\AvaloniaHex\AvaloniaHex.csproj" />
+      <ProjectReference Include="..\MemEngine360.BaseFrontEnd\MemEngine360.BaseFrontEnd.csproj" />
+      <ProjectReference Include="..\MemEngine360.Xbox360XBDM\MemEngine360.Xbox360XBDM.csproj" />
+      <ProjectReference Include="..\MemEngine360.Xbox360XDevkit\MemEngine360.Xbox360XDevkit.csproj" />
       <ProjectReference Include="..\MemEngine360\MemEngine360.csproj" />
       <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI.Avalonia\PFXToolKitUI.Avalonia.csproj" />
       <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj" />
@@ -57,13 +60,15 @@
     </ItemGroup>
 
     <ItemGroup>
-      <AdditionalFiles Include="Services\HexDisplay\HexDisplayControl.axaml" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Compile Update="Services\Connectivity\ConnectToConsoleView.axaml.cs">
         <DependentUpon>ConnectToConsoleUserInputControl.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="XDevkit">
+        <HintPath>..\libs\XDevkit.dll</HintPath>
+      </Reference>
     </ItemGroup>
 </Project>

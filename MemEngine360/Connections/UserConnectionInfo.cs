@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Engine;
 using PFXToolKitUI.DataTransfer;
 
 namespace MemEngine360.Connections;
@@ -26,22 +27,22 @@ namespace MemEngine360.Connections;
 /// properties that can be used during <see cref="RegisteredConsoleType.OpenConnection"/>
 /// </summary>
 public abstract class UserConnectionInfo : ITransferableData {
-    public TransferableData TransferableData { get; }
+    public MemoryEngine360 Engine { get; }
     
-    public UserConnectionInfo() {
+    public TransferableData TransferableData { get; }
+
+    protected UserConnectionInfo(MemoryEngine360 engine) {
+        this.Engine = engine ?? throw new ArgumentNullException(nameof(engine));
         this.TransferableData = new TransferableData(this);
     }
 
     /// <summary>
-    /// Invoked when this object is associated with a control
+    /// Invoked when this object is associated with a control. This is only called when the connection dialog opens
     /// </summary>
-    /// <param name="consoleType">The console type</param>
-    /// <param name="engine">The engine</param>
     public abstract void OnCreated();
 
     /// <summary>
-    /// Invoked when this info is destroyed. Invoked when the user selects
-    /// another list box item in the connection UI, therefore this info is no longer needed
+    /// Invoked when this info is destroyed. This is only called when the connection dialog closes
     /// </summary>
     public abstract void OnDestroyed();
 }

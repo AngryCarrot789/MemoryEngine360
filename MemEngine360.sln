@@ -23,6 +23,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemEngine360.Xbox360XDevkit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemEngine360.Xbox360XBDM", "MemEngine360.Xbox360XBDM\MemEngine360.Xbox360XBDM.csproj", "{2D8C352A-CAF0-48C0-841C-C4D174F71566}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XDevkit", "XDevkit\XDevkit.csproj", "{EF2FF569-83A4-484D-86DF-3819EC1C14A7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemEngine360.BaseFrontEnd", "MemEngine360.BaseFrontEnd\MemEngine360.BaseFrontEnd.csproj", "{EA6159F6-22D5-4588-AB30-E65A30D3C79F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -61,6 +65,14 @@ Global
 		{2D8C352A-CAF0-48C0-841C-C4D174F71566}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2D8C352A-CAF0-48C0-841C-C4D174F71566}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2D8C352A-CAF0-48C0-841C-C4D174F71566}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF2FF569-83A4-484D-86DF-3819EC1C14A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF2FF569-83A4-484D-86DF-3819EC1C14A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF2FF569-83A4-484D-86DF-3819EC1C14A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF2FF569-83A4-484D-86DF-3819EC1C14A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA6159F6-22D5-4588-AB30-E65A30D3C79F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA6159F6-22D5-4588-AB30-E65A30D3C79F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA6159F6-22D5-4588-AB30-E65A30D3C79F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA6159F6-22D5-4588-AB30-E65A30D3C79F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -18,19 +18,19 @@
 // 
 
 using Avalonia.Controls;
-using MemEngine360.MemRegions;
+using MemEngine360.XboxInfo;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Services.UserInputs;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Avalonia.MemRegions;
 
-public partial class MemoryRegionViewerUserInputControl : UserControl, IUserInputContent {
+public partial class XboxMemoryRegionViewerUIControl : UserControl, IUserInputContent {
     private UserInputDialogView? myDialog;
     private MemoryRegionUserInputInfo? myInfo;
     public readonly IBinder<MemoryRegionUserInputInfo> selectedItemBinder = new AvaloniaPropertyToEventPropertyBinder<MemoryRegionUserInputInfo>(DataGrid.SelectedItemProperty, nameof(MemoryRegionUserInputInfo.SelectedRegionChanged), (b) => ((DataGrid) b.Control).SelectedItem = b.Model.SelectedRegion, (b) => b.Model.SelectedRegion = (MemoryRegionViewModel?) ((DataGrid) b.Control).SelectedItem);
     
-    public MemoryRegionViewerUserInputControl() {
+    public XboxMemoryRegionViewerUIControl() {
         this.InitializeComponent();
     }
 

@@ -17,7 +17,6 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Threading.Tasks;
 using MemEngine360.Engine.HexDisplay;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Utils;

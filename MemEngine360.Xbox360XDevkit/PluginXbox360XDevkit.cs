@@ -19,30 +19,31 @@
 
 using MemEngine360.Avalonia.Services.Connectivity;
 using MemEngine360.Connections;
-using MemEngine360.Xbox360XBDM.Commands;
-using MemEngine360.Xbox360XBDM.Consoles;
-using MemEngine360.Xbox360XBDM.Views;
+using MemEngine360.Xbox360XDevkit.Views;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Plugins;
 
-namespace MemEngine360.Xbox360XBDM;
+namespace MemEngine360.Xbox360XDevkit;
 
-public class PluginXbox360Xbdm : Plugin {
+public class PluginXbox360XDevkit : Plugin {
+    public override void OnCreated() {
+        base.OnCreated();
+        if (!OperatingSystem.IsWindows()) {
+            throw new Exception("The " + this.Name + " plugin is only supported on windows");
+        }
+    }
+
     public override void RegisterCommands(CommandManager manager) {
         base.RegisterCommands(manager);
-        
-        manager.Register("commands.memengine.remote.ListHelpCommand", new ListHelpCommand());
-        manager.Register("commands.memengine.remote.ShowConsoleInfoCommand", new ShowConsoleInfoCommand());
-        manager.Register("commands.memengine.remote.ShowXbeInfoCommand", new ShowXbeInfoCommand());
-        manager.Register("commands.memengine.remote.EjectDiskTrayCommand", new EjectDiskTrayCommand());
+        manager.Register("commands.memengine.remote.ModulesCommand", new ModulesCommand());
     }
-    
+
     public override Task OnApplicationFullyLoaded() {
         ConnectToConsoleView.Registry.RegisterType<ConnectToXboxInfo>(() => new ConnectToXboxView());
         
         ConsoleConnectionManager manager = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
-        manager.Register(ConsoleTypeXbox360Xbdm.TheID, ConsoleTypeXbox360Xbdm.Instance);
+        manager.Register(ConsoleTypeXbox360XDevkit.TheID, ConsoleTypeXbox360XDevkit.Instance);
         return Task.CompletedTask;
     }
 }

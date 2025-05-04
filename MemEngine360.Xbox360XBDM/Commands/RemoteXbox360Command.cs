@@ -26,7 +26,7 @@ using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Xbox360XBDM.Commands;
 
-public abstract class RemoteXboxCommand : BaseRemoteConsoleCommand {
+public abstract class RemoteXbox360Command : BaseRemoteConsoleCommand {
     protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
         if (!(connection is IXbox360Connection)) {
             await IMessageDialogService.Instance.ShowMessage("Not an xbox console", "This command cannot be used because we are not connected to an xbox 360");
@@ -43,26 +43,10 @@ public abstract class RemoteXboxCommand : BaseRemoteConsoleCommand {
     protected abstract Task ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e);
 }
 
-public class EjectDiskTrayCommand : RemoteXboxCommand {
+public class EjectDiskTrayCommand : RemoteXbox360Command {
     protected override string ActivityText => "Ejecting disk tray...";
 
     protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
         await connection.OpenDiskTray();
-    }
-}
-
-public class DebugFreezeCommand : RemoteXboxCommand {
-    protected override string ActivityText => "Freezing console...";
-
-    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
-        await connection.DebugFreeze();
-    }
-}
-
-public class DebugUnfreezeCommand : RemoteXboxCommand {
-    protected override string ActivityText => "Unfreezing console...";
-
-    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
-        await connection.DebugUnFreeze();
     }
 }
