@@ -147,7 +147,7 @@ public partial class ConnectToConsoleView : WindowingContentControl {
         ConsoleTypeListBoxItem? selected = this.PART_ListBox.SelectedItem as ConsoleTypeListBoxItem;
 
         this.PART_DisplayName.Text = selected?.RegisteredConsoleType!.DisplayName;
-        this.PART_Description.Text = selected?.RegisteredConsoleType!.Description;
+        this.PART_Description.Text = selected?.RegisteredConsoleType!.LongDescription;
 
         if (this.PART_UserConnectionContent.Content is IConsoleConnectivityControl c1)
             c1.OnDisconnected();

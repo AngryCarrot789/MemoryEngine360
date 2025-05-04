@@ -28,7 +28,7 @@ namespace MemEngine360.Avalonia.Services.Connectivity;
 
 public class ConsoleTypeListBoxItem : ListBoxItem {
     private IconControl? PART_IconControl;
-    private TextBlock? PART_DisplayName;
+    private TextBlock? PART_DisplayName, PART_FooterText;
     private RegisteredConsoleType? myConsoleType;
 
     public RegisteredConsoleType? RegisteredConsoleType {
@@ -47,6 +47,8 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
             this.myConsoleType = value;
             this.UserConnectionInfo = value?.CreateConnectionInfo(this.Engine!);
             this.UserConnectionInfo?.OnCreated();
+            
+            ToolTip.SetTip(this, value?.RegisteredId);
         }
     }
     
@@ -61,9 +63,11 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
         base.OnApplyTemplate(e);
         this.PART_IconControl = e.NameScope.GetTemplateChild<IconControl>(nameof(this.PART_IconControl));
         this.PART_DisplayName = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_DisplayName));
+        this.PART_FooterText = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_FooterText));
         this.PART_IconControl!.Icon = this.RegisteredConsoleType?.Icon;
         this.PART_DisplayName!.Text = this.RegisteredConsoleType?.DisplayName ?? "";
-
+        this.PART_FooterText!.Text = this.RegisteredConsoleType?.FooterText ?? "";
+        this.PART_FooterText.IsVisible = !string.IsNullOrEmpty(this.PART_FooterText!.Text);
         if (this.PART_IconControl.Icon == null) {
             this.PART_IconControl.IsVisible = false;
         }

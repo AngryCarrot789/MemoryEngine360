@@ -44,6 +44,12 @@ public abstract class RegisteredConsoleType {
     public abstract string DisplayName { get; }
     
     /// <summary>
+    /// Gets the text to display below the <see cref="DisplayName"/> in greyed out text.
+    /// This can be used to indicate a version, a warning or more.  
+    /// </summary>
+    public virtual string? FooterText => null;
+    
+    /// <summary>
     /// Gets a string containing a readable description of this console type. E.g. for an
     /// Xbox 360 XBDM connection, it may say "This connects to the Xbox 360 via TCP to xbdm on port 730".
     /// This is typically shown has the header.
@@ -51,7 +57,7 @@ public abstract class RegisteredConsoleType {
     /// Ideally, this should never change. It should basically be a read only property
     /// </para> 
     /// </summary>
-    public abstract string Description { get; }
+    public abstract string LongDescription { get; }
 
     /// <summary>
     /// Gets the ID this console type was registered with. Same as passing the current instance to <see cref="ConsoleConnectionManager.TryGetId"/>

@@ -1,4 +1,5 @@
-﻿using MemEngine360.Avalonia.Resources.Icons;
+﻿using System.Runtime.InteropServices;
+using MemEngine360.Avalonia.Resources.Icons;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
@@ -16,8 +17,10 @@ public class ConsoleTypeXbox360XDevkit : RegisteredConsoleType {
     public static readonly RegisteredConsoleType Instance = new ConsoleTypeXbox360XDevkit();
 
     public override string DisplayName => "Xbox 360 (XDevkit)";
-    
-    public override string Description => "Uses XDevkit's COM interfaces to interact with the xbox";
+
+    public override string? FooterText => "Mostly stable";
+
+    public override string LongDescription => "Uses XDevkit's COM interfaces to interact with the xbox";
 
     public override Icon? Icon => SimpleIcons.CursedXbox360Icon;
 
@@ -74,7 +77,8 @@ public class ConsoleTypeXbox360XDevkit : RegisteredConsoleType {
             return new Devkit360Connection(this.xboxManager!, result);
         }
 
-        await IMessageDialogService.Instance.ShowMessage("Error", "Could not connect to Xbox 360: " + (task.Exception?.Message ?? "Unknown Error"));
+        string msg = task.Exception is COMException com ? $"COM error: {com.Message}" : (task.Exception?.Message ?? "(unknown error)");
+        await IMessageDialogService.Instance.ShowMessage("Error", "Could not connect to Xbox 360: " + msg);
         return null;
     }
 }
