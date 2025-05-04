@@ -36,17 +36,17 @@ public abstract class RemoteXbox360Command : BaseRemoteConsoleCommand {
         return true;
     }
 
-    protected sealed override Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        return this.ExecuteRemoteCommand(engine, (IXbox360Connection) connection, e);
+    protected sealed override Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        return this.ExecuteRemoteCommandInActivity(engine, (IXbox360Connection) connection, e);
     }
     
-    protected abstract Task ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e);
+    protected abstract Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e);
 }
 
 public class EjectDiskTrayCommand : RemoteXbox360Command {
     protected override string ActivityText => "Ejecting disk tray...";
 
-    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
         await connection.OpenDiskTray();
     }
 }

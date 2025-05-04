@@ -35,7 +35,7 @@ public class ShowConsoleInfoCommand : BaseRemoteConsoleCommand {
         return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
-    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
         if (connection is IXbox360Connection xbox) {
             string debugName = await xbox.GetDebugName();
             ExecutionState execState = await xbox.GetExecutionState();

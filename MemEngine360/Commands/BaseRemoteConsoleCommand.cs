@@ -68,7 +68,7 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
                 prog.Caption = "Remote Command";
                 prog.Text = this.ActivityText;
                 try {
-                    await this.ExecuteRemoteCommand(engine, connection, e);
+                    await this.ExecuteRemoteCommandInActivity(engine, connection, e);
                 }
                 catch (Exception exception) {
                     await IMessageDialogService.Instance.ShowMessage("Error", "Error while executing remote command", exception.GetToString());
@@ -79,13 +79,13 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
         }
     }
 
-    protected abstract Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e);
+    protected abstract Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e);
 }
 
 public class ShutdownCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Shutting down console...";
 
-    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
         await connection.ShutdownConsole();
     }
 }
@@ -93,7 +93,7 @@ public class ShutdownCommand : BaseRemoteConsoleCommand {
 public class SoftRebootCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Rebooting title...";
 
-    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
         await connection.RebootConsole(false);
     }
 }
@@ -101,7 +101,7 @@ public class SoftRebootCommand : BaseRemoteConsoleCommand {
 public class ColdRebootCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Rebooting console...";
 
-    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
         await connection.RebootConsole(true);
     }
 }
@@ -118,7 +118,7 @@ public class DebugFreezeCommand : BaseRemoteConsoleCommand {
         return true;
     }
 
-    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
         await ((IHaveIceCubes) connection).DebugFreeze();
     }
 }
@@ -135,7 +135,7 @@ public class DebugUnfreezeCommand : BaseRemoteConsoleCommand {
         return true;
     }
     
-    protected override async Task ExecuteRemoteCommand(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
         await ((IHaveIceCubes) connection).DebugUnFreeze();
     }
 }

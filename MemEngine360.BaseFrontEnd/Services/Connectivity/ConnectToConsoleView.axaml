@@ -180,7 +180,8 @@
                         <TextBlock x:Name="PART_Description"
                                    Text="Description here" Padding="5,4"
                                    HorizontalAlignment="Left"
-                                   FontFamily="{StaticResource FontOxanium}"/>
+                                   FontFamily="{StaticResource FontOxanium}"
+                                   TextWrapping="Wrap"/>
                     </Border>
                     <ScrollViewer>
                         <ContentControl x:Name="PART_UserConnectionContent"

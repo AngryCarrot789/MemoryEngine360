@@ -19,6 +19,7 @@
 
 using MemEngine360.Avalonia.Services.Connectivity;
 using MemEngine360.Connections;
+using MemEngine360.Xbox360XDevkit.Commands;
 using MemEngine360.Xbox360XDevkit.Views;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
@@ -37,6 +38,7 @@ public class PluginXbox360XDevkit : Plugin {
     public override void RegisterCommands(CommandManager manager) {
         base.RegisterCommands(manager);
         manager.Register("commands.memengine.remote.ModulesCommand", new ModulesCommand());
+        manager.Register("commands.memengine.remote.XboxRunningProcessCommand", new XboxRunningProcessCommand());
     }
 
     public override Task OnApplicationFullyLoaded() {

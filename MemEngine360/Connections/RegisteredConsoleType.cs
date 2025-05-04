@@ -83,7 +83,7 @@ public abstract class RegisteredConsoleType {
     ///     The engine trying to connect. Do not call <see cref="MemoryEngine360.SetConnection"/>, since it
     ///     will be done once this async method completes, if it returns a non-null value
     /// </param>
-    /// <param name="info">
+    /// <param name="_info">
     ///     Information that the user specified in the connection dialog. Value is null when <see cref="CreateConnectionInfo"/> is null
     /// </param>
     /// <param name="cancellation">
@@ -93,7 +93,7 @@ public abstract class RegisteredConsoleType {
     /// <returns>
     /// The valid console connection, or null if a connection could not be made, or cancellation was requested
     /// </returns>
-    public abstract Task<IConsoleConnection?> OpenConnection(MemoryEngine360 engine, UserConnectionInfo? info, CancellationTokenSource cancellation);
+    public abstract Task<IConsoleConnection?> OpenConnection(MemoryEngine360 engine, UserConnectionInfo? _info, CancellationTokenSource cancellation);
 
     /// <summary>
     /// Creates an instance of <see cref="UserConnectionInfo"/> which is used by the front end to

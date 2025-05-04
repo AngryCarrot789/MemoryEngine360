@@ -93,8 +93,8 @@ public class ConsoleTypeXbox360Xbdm : RegisteredConsoleType {
                     string message;
                     switch (e.SocketErrorCode) {
                         case SocketError.InvalidArgument:    message = "Console IP/hostname is invalid"; break;
-                        case SocketError.TooManyOpenSockets: message = "System has too many sockets open"; break;
-                        case SocketError.TimedOut:           message = "Timeout while connecting. Is the console running?"; break;
+                        case SocketError.TooManyOpenSockets: message = "Too many sockets open"; break;
+                        case SocketError.TimedOut:           message = "Timeout while connecting. Is the console connected to the internet?"; break;
                         case SocketError.ConnectionRefused:  message = "Connection refused. Is the console running xbdm?"; break;
                         case SocketError.TryAgain:           message = "Could not identify hostname. Try again later"; break;
                         default:                             message = e.Message; break;
