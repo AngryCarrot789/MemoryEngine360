@@ -91,13 +91,13 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
-        return await this.SendCommandAndGetResponse(command);
+        return await this.SendCommandAndGetResponse(command).ConfigureAwait(false);
     }
 
     private async ValueTask<string> ReadLineFromStream(CancellationToken token = default) {
         string? result;
         try {
-            result = await this.stream.ReadLineAsync(token);
+            result = await this.stream.ReadLineAsync(token).ConfigureAwait(false);
         }
         catch (IOException e) {
             this.client.Client.Close();
@@ -117,7 +117,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
-        ConsoleResponse response = await this.SendCommandAndGetResponse(command);
+        ConsoleResponse response = await this.SendCommandAndGetResponse(command).ConfigureAwait(false);
         if (response.ResponseType == ResponseType.UnknownCommand) {
             throw new Exception("Unknown command: " + command);
         }
@@ -129,7 +129,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         List<string> list = new List<string>();
         try {
             string line;
-            while ((line = await this.ReadLineFromStream()) != ".") {
+            while ((line = await this.ReadLineFromStream().ConfigureAwait(false)) != ".") {
                 list.Add(line);
             }
         }
@@ -213,16 +213,16 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         this.Close();
     }
 
-    public async Task OpenDiskTray() {
-        await this.SendCommand("dvdeject");
+    public Task OpenDiskTray() {
+        return this.SendCommand("dvdeject");
     }
 
-    public async Task DebugFreeze() {
-        await this.SendCommand("stop");
+    public Task DebugFreeze() {
+        return this.SendCommand("stop");
     }
 
-    public async Task DebugUnFreeze() {
-        await this.SendCommand("go");
+    public Task DebugUnFreeze() {
+        return this.SendCommand("go");
     }
 
     public async Task DeleteFile(string path) {
@@ -230,7 +230,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         string Directory = "";
         for (int i = 0; i < (lines.Length - 1); i++)
             Directory += lines[i] + "\\";
-        await this.SendCommand("delete title=\"" + path + "\" dir=\"" + Directory + "\"");
+        await this.SendCommand("delete title=\"" + path + "\" dir=\"" + Directory + "\"").ConfigureAwait(false);
     }
 
     public async Task LaunchFile(string path) {
@@ -238,23 +238,23 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         string Directory = "";
         for (int i = 0; i < lines.Length - 1; i++)
             Directory += lines[i] + "\\";
-        await this.SendCommand("magicboot title=\"" + path + "\" directory=\"" + Directory + "\"");
+        await this.SendCommand("magicboot title=\"" + path + "\" directory=\"" + Directory + "\"").ConfigureAwait(false);
     }
 
     public async Task<string> GetConsoleID() {
-        return (await this.SendCommand("getconsoleid")).Message.Substring(10);
+        return (await this.SendCommand("getconsoleid").ConfigureAwait(false)).Message.Substring(10);
     }
 
     public async Task<string> GetCPUKey() {
-        return (await this.SendCommand("getcpukey")).Message;
+        return (await this.SendCommand("getcpukey").ConfigureAwait(false)).Message;
     }
 
     public async Task<string> GetDebugName() {
-        return (await this.SendCommand("dbgname")).Message;
+        return (await this.SendCommand("dbgname").ConfigureAwait(false)).Message;
     }
 
     public async Task<string?> GetXbeInfo(string? executable) {
-        List<string> result = await this.SendCommandAndReceiveLines($"xbeinfo {(executable != null ? ("name=" + executable) : "running")}");
+        List<string> result = await this.SendCommandAndReceiveLines($"xbeinfo {(executable != null ? ("name=" + executable) : "running")}").ConfigureAwait(false);
         foreach (string line in result) {
             if (line.StartsWith("name=")) {
                 return line.Substring(6, line.Length - 7);
@@ -265,7 +265,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     }
 
     public async Task<List<MemoryRegion>> GetMemoryRegions() {
-        List<string> list = await this.SendCommandAndReceiveLines("walkmem");
+        List<string> list = await this.SendCommandAndReceiveLines("walkmem").ConfigureAwait(false);
         return list.Select(line => {
             // base=0x00000000 size=0x00000000 protect=0x00000000 phys=0x00000000
             uint propBase = uint.Parse(line.AsSpan(7, 8), NumberStyles.HexNumber);
@@ -277,7 +277,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     }
 
     public async Task<ExecutionState> GetExecutionState() {
-        string str = (await this.SendCommand("getexecstate")).Message;
+        string str = (await this.SendCommand("getexecstate").ConfigureAwait(false)).Message;
         switch (str) {
             case "pending":       return ExecutionState.Pending;
             case "reboot":        return ExecutionState.Reboot;
@@ -310,21 +310,21 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     }
 
     public async Task<uint> GetProcessID() {
-        uint value = uint.Parse((await this.SendCommand("getpid")).Message.Substring(4).Replace("0x", ""), NumberStyles.HexNumber);
+        uint value = uint.Parse((await this.SendCommand("getpid").ConfigureAwait(false)).Message.Substring(4).Replace("0x", ""), NumberStyles.HexNumber);
         return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
     }
 
     public async Task<IPAddress> GetTitleIPAddress() {
-        uint value = uint.Parse((await this.SendCommand("altaddr")).Message.Substring(5).Replace("0x", ""), NumberStyles.HexNumber);
+        uint value = uint.Parse((await this.SendCommand("altaddr").ConfigureAwait(false)).Message.Substring(5).Replace("0x", ""), NumberStyles.HexNumber);
         return new IPAddress(BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value);
     }
 
     public async Task SetConsoleColor(ConsoleColor colour) {
-        await this.SendCommand("setcolor name=" + colour.ToString().ToLower());
+        await this.SendCommand("setcolor name=" + colour.ToString().ToLower()).ConfigureAwait(false);
     }
 
     public async Task SetDebugName(string newName) {
-        await this.SendCommand("dbgname name=" + newName);
+        await this.SendCommand("dbgname name=" + newName).ConfigureAwait(false);
     }
 
     public async Task<int> ReadBytes(uint address, byte[] buffer, int offset, uint count) {
@@ -332,7 +332,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
-        return await this.ReadBytesInternal(address, buffer, offset, count);
+        return await this.ReadBytesInternal(address, buffer, offset, count).ConfigureAwait(false);
     }
 
     public Task ReadBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
@@ -343,23 +343,21 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
 
     public async Task<byte[]> ReadBytes(uint address, uint count) {
         byte[] buffer = new byte[count];
-        await this.ReadBytes(address, buffer, 0, count);
+        await this.ReadBytes(address, buffer, 0, count).ConfigureAwait(false);
         return buffer;
     }
 
     public async Task<byte> ReadByte(uint Offset) {
-        await this.ReadBytes(Offset, ONE_BYTE, 0, 1);
+        await this.ReadBytes(Offset, ONE_BYTE, 0, 1).ConfigureAwait(false);
         return ONE_BYTE[0];
     }
 
-    public async Task<bool> ReadBool(uint address) => await this.ReadByte(address) != 0;
+    public async Task<bool> ReadBool(uint address) => await this.ReadByte(address).ConfigureAwait(false) != 0;
 
-    public async Task<char> ReadChar(uint address) => (char) await this.ReadByte(address);
+    public async Task<char> ReadChar(uint address) => (char) await this.ReadByte(address).ConfigureAwait(false);
 
     public async Task<T> ReadValue<T>(uint address) where T : unmanaged {
-        // TODO: write a 2nd ReadBytes that accepts Span<byte>. Then, we can use stackalloc here
-        // Saves annihilating the heap when refreshing 10000s of values
-        byte[] buffer = await this.ReadBytes(address, (uint) Unsafe.SizeOf<T>());
+        byte[] buffer = await this.ReadBytes(address, (uint) Unsafe.SizeOf<T>()).ConfigureAwait(false);
         if (BitConverter.IsLittleEndian)
             Array.Reverse(buffer);
 
@@ -368,7 +366,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
 
     public async Task<T> ReadStruct<T>(uint address, params int[] fields) where T : unmanaged {
         if (!BitConverter.IsLittleEndian) {
-            return await this.ReadValue<T>(address);
+            return await this.ReadValue<T>(address).ConfigureAwait(false);
         }
 
         this.EnsureNotDisposed();
@@ -378,7 +376,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         int offset = 0;
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
-            await this.ReadBytesInternal((uint) (address + offset), buffer, offset, (uint) cbField);
+            await this.ReadBytesInternal((uint) (address + offset), buffer, offset, (uint) cbField).ConfigureAwait(false);
             Array.Reverse(buffer, offset, cbField);
             offset += cbField;
 
@@ -393,7 +391,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     }
 
     public async Task<string> ReadString(uint address, uint count, bool removeNull = true) {
-        byte[] buffer = await this.ReadBytes(address, count);
+        byte[] buffer = await this.ReadBytes(address, count).ConfigureAwait(false);
 
         if (removeNull) {
             int j = 0, k = 0;
@@ -414,7 +412,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         this.EnsureNotBusy();
         using BusyToken x = this.CreateBusyToken();
 
-        await this.WriteBytesAndGetResponseInternal(address, buffer, 0, (uint) buffer.Length, null, CancellationToken.None);
+        await this.WriteBytesAndGetResponseInternal(address, buffer, 0, (uint) buffer.Length, null, CancellationToken.None).ConfigureAwait(false);
     }
 
     public async Task WriteBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
@@ -423,7 +421,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         using BusyToken x = this.CreateBusyToken();
 
         // we ignore chunkSize because we literally write in chunks of 64 bytes so there's no reason to write less per second
-        await this.WriteBytesAndGetResponseInternal(address, buffer, offset, count, completion, cancellationToken);
+        await this.WriteBytesAndGetResponseInternal(address, buffer, offset, count, completion, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task WriteByte(uint address, byte value) {
@@ -432,7 +430,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         using BusyToken x = this.CreateBusyToken();
 
         ONE_BYTE[0] = value;
-        await this.WriteBytesAndGetResponseInternal(address, ONE_BYTE, 0, 1, null, CancellationToken.None);
+        await this.WriteBytesAndGetResponseInternal(address, ONE_BYTE, 0, 1, null, CancellationToken.None).ConfigureAwait(false);
     }
 
     public Task WriteBool(uint address, bool value) {
@@ -455,7 +453,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     public async Task WriteStruct<T>(uint address, T value, params int[] fields) where T : unmanaged {
         if (!BitConverter.IsLittleEndian) {
             // TODO: I don't have a big endian computer nor a big enough brain to know if this works
-            await this.WriteValue(address, value);
+            await this.WriteValue(address, value).ConfigureAwait(false);
         }
 
         int offset = 0;
@@ -472,7 +470,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
             Debugger.Break();
         }
 
-        await this.WriteBytes(address, buffer);
+        await this.WriteBytes(address, buffer).ConfigureAwait(false);
     }
 
     public Task WriteString(uint address, string value) {
@@ -527,14 +525,14 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     }
 
     private async Task<ConsoleResponse> ReadResponseCore() {
-        string responseText = await this.ReadLineFromStream();
+        string responseText = await this.ReadLineFromStream().ConfigureAwait(false);
         return ConsoleResponse.FromFirstLine(responseText);
     }
 
     private async Task WriteCommandText(string command) {
         byte[] buffer = Encoding.ASCII.GetBytes(command + "\r\n");
         try {
-            await this.client.GetStream().WriteAsync(buffer);
+            await this.client.GetStream().WriteAsync(buffer).ConfigureAwait(false);
         }
         catch (IOException e) {
             this.client.Client.Close();
@@ -673,12 +671,12 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     }
 
     private async Task<ConsoleResponse> SendCommandAndGetResponse(string command) {
-        await this.WriteCommandText(command);
-        ConsoleResponse response = await this.ReadResponseCore();
+        await this.WriteCommandText(command).ConfigureAwait(false);
+        ConsoleResponse response = await this.ReadResponseCore().ConfigureAwait(false);
         if (response.ResponseType == ResponseType.UnknownCommand) {
             // Sometimes the xbox randomly says unknown command for specific things
             if (this.client.Available > 0) {
-                string responseText = await this.ReadLineFromStream() ?? "";
+                string responseText = await this.ReadLineFromStream().ConfigureAwait(false) ?? "";
                 response = ConsoleResponse.FromFirstLine(responseText);
             }
         }
@@ -701,7 +699,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         while (remaining > 0) {
             cancellationToken.ThrowIfCancellationRequested();
             int cbRead = (int) Math.Min(chunkSize, remaining);
-            int cbReadReal = await this.ReadBytesInternal(address, buffer, offset, (uint) cbRead);
+            int cbReadReal = await this.ReadBytesInternal(address, buffer, offset, (uint) cbRead).ConfigureAwait(false);
             remaining -= cbRead;
             offset += cbRead;
             address += (uint) cbRead;
@@ -713,8 +711,10 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
             throw new Exception("Error: got more bytes that we wanted");
     }
 
+    public static bool CfgAwait => false;
+    
     private async Task<int> ReadBytesInternal(uint address, byte[] buffer, int offset, uint count) {
-        ConsoleResponse response = await this.SendCommandAndGetResponse("getmem addr=0x" + address.ToString("X8") + " length=0x" + count.ToString("X8") + "\r\n");
+        ConsoleResponse response = await this.SendCommandAndGetResponse("getmem addr=0x" + address.ToString("X8") + " length=0x" + count.ToString("X8") + "\r\n").ConfigureAwait(false);
         if (response.ResponseType != ResponseType.MultiResponse) {
             throw new Exception($"Xbox responded to getmem without {nameof(ResponseType.MultiResponse)}, which is unexpected");
         }
@@ -722,7 +722,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
         int cbRead = 0;
         byte[]? lineBytes = null;
         string line;
-        while ((line = await this.ReadLineFromStream()) != ".") {
+        while ((line = await this.ReadLineFromStream().ConfigureAwait(false)) != ".") {
             int cbLine = line.Length / 2; // typically 128 when reading big chunks
             if (lineBytes == null || lineBytes.Length != cbLine) {
                 lineBytes = new byte[cbLine];
@@ -741,7 +741,7 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
             cbRead += cbLine;
         }
 
-        ConsoleResponse failedResponse = await this.ReadResponseCore();
+        ConsoleResponse failedResponse = await this.ReadResponseCore().ConfigureAwait(false);
         if (failedResponse.ResponseType != ResponseType.UnknownCommand) {
             Debug.Assert(false, "What is this bullshit who patched this bug???");
         }
@@ -765,8 +765,8 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
                 buffer[i * 2 + 1] = HexChars[b & 0xF];
             }
 
-            await this.WriteCommandText(cmdPrefix + new string(buffer, 0, (int) (cbWrite << 1)));
-            ConsoleResponse response = await this.ReadResponseCore();
+            await this.WriteCommandText(cmdPrefix + new string(buffer, 0, (int) (cbWrite << 1))).ConfigureAwait(false);
+            ConsoleResponse response = await this.ReadResponseCore().ConfigureAwait(false);
             if (response.ResponseType != ResponseType.SingleResponse) {
                 throw new Exception($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
             }

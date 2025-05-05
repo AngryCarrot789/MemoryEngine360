@@ -450,25 +450,34 @@ public enum NumericDisplayType {
     /// </summary>
     Normal,
     /// <summary>
-    /// Displays integers as unsigned. Does not affect floating point types nor byte since it's always unsigned
+    /// Displays integers as unsigned. Does not affect floating point types nor byte (since it's always unsigned)
     /// </summary>
     Unsigned,
     /// <summary>
-    /// Displays integers as hexadecimal. Floating point numbers have their binary data reinterpreted as an
-    /// integer and that is converted into hexadecimal (<see cref="BitConverter.Int32BitsToSingle"/>)
+    /// Displays numbers as hexadecimal. Floating point numbers have their binary data reinterpreted as an
+    /// integer and that is shown as hexadecimal (<see cref="BitConverter.Int32BitsToSingle"/>)
     /// </summary>
     Hexadecimal,
 }
 
 public static class NumericDisplayTypeExtensions {
-    public static string AsString(this NumericDisplayType displayType, DataType type, object value) {
+    /// <summary>
+    /// Displays the value as a string using the given numeric display type
+    /// </summary>
+    /// <param name="dt">The numeric display type</param>
+    /// <param name="type">The data type, for performance reasons</param>
+    /// <param name="value">The value. Must be byte, short, int, long, float, double or string. Only byte can be an unsigned integer type</param>
+    /// <returns>The value as a string</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Unknown data type</exception>
+    public static string AsString(this NumericDisplayType dt, DataType type, object value) {
+        bool hex = dt == NumericDisplayType.Hexadecimal, unsigned = dt == NumericDisplayType.Unsigned;
         switch (type) {
-            case DataType.Byte:   return displayType == NumericDisplayType.Hexadecimal ? ((byte) value).ToString("X2") : value.ToString()!;
-            case DataType.Int16:  return displayType == NumericDisplayType.Hexadecimal ? ((short) value).ToString("X4") : (displayType == NumericDisplayType.Unsigned ? ((ushort) (short) value).ToString() : value.ToString()!);
-            case DataType.Int32:  return displayType == NumericDisplayType.Hexadecimal ? ((int) value).ToString("X8") : (displayType == NumericDisplayType.Unsigned ? ((uint) (int) value).ToString() : value.ToString()!);
-            case DataType.Int64:  return displayType == NumericDisplayType.Hexadecimal ? ((long) value).ToString("X16") : (displayType == NumericDisplayType.Unsigned ? ((ulong) (long) value).ToString() : value.ToString()!);
-            case DataType.Float:  return displayType == NumericDisplayType.Hexadecimal ? BitConverter.SingleToUInt32Bits((float) value).ToString("X4") : value.ToString()!;
-            case DataType.Double: return displayType == NumericDisplayType.Hexadecimal ? BitConverter.DoubleToUInt64Bits((double) value).ToString("X8") : value.ToString()!;
+            case DataType.Byte:   return hex ? ((byte) value).ToString("X2") : value.ToString()!;
+            case DataType.Int16:  return hex ? ((short) value).ToString("X4") : (unsigned ? ((ushort) (short) value).ToString() : value.ToString()!);
+            case DataType.Int32:  return hex ? ((int) value).ToString("X8") : (unsigned ? ((uint) (int) value).ToString() : value.ToString()!);
+            case DataType.Int64:  return hex ? ((long) value).ToString("X16") : (unsigned ? ((ulong) (long) value).ToString() : value.ToString()!);
+            case DataType.Float:  return hex ? BitConverter.SingleToUInt32Bits((float) value).ToString("X4") : value.ToString()!;
+            case DataType.Double: return hex ? BitConverter.DoubleToUInt64Bits((double) value).ToString("X8") : value.ToString()!;
             case DataType.String: return value.ToString()!;
             default:              throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }

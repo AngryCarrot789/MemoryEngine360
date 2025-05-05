@@ -17,10 +17,10 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Globalization;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
+using MemEngine360.Engine.Scanners;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
@@ -86,37 +86,11 @@ public class EditScanResultValueCommand : Command {
         if (scanResults.Count == 1) {
             input = new SingleUserInputInfo("Change value at 0x" + scanResults[0].Address.ToString("X8"), "Immediately change the value at this address", "Value", scanResults[0].CurrentValue);
             input.Validate = (args) => {
-                NumericDisplayType ndt = scanResults[0].NumericDisplayType;
-                switch (scanResults[0].DataType) {
-                    case DataType.Byte:
-                        if (!byte.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Byte");
-                    break;
-                    case DataType.Int16:
-                        if (!short.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Int16");
-                    break;
-                    case DataType.Int32:
-                        if (!int.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Int32");
-                    break;
-                    case DataType.Int64:
-                        if (!long.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Int64");
-                    break;
-                    case DataType.Float:
-                        if (!(ndt == NumericDisplayType.Hexadecimal ? uint.TryParse(args.Input, NumberStyles.HexNumber, null, out _) : float.TryParse(args.Input, out _)))
-                            args.Errors.Add("Invalid float");
-                    break;
-                    case DataType.Double:
-                        if (!(ndt == NumericDisplayType.Hexadecimal ? ulong.TryParse(args.Input, NumberStyles.HexNumber, null, out _) : double.TryParse(args.Input, out _)))
-                            args.Errors.Add("Invalid double");
-                    break;
-                    case DataType.String:
-                        if (args.Input.Length > scanResults[0].FirstValue.Length)
-                            args.Errors.Add("Length must not exceed the first value's length, otherwise, you'd be writing into an unknown area");
-                    break;
-                    default: throw new ArgumentOutOfRangeException();
+                if (scanResults[0].DataType.IsNumeric()) {
+                    ValueScannerUtils.TryParseTextAsNumber(args, scanResults[0].DataType, scanResults[0].NumericDisplayType);
+                }
+                else if (args.Input.Length > scanResults[0].FirstValue.Length) {
+                    args.Errors.Add("Length must not exceed the first value's length, otherwise, you'd be writing into an unknown area");
                 }
             };
         }
@@ -131,34 +105,8 @@ public class EditScanResultValueCommand : Command {
 
             input = new SingleUserInputInfo("Change " + scanResults.Count + " values", "Immediately change the value these addresses", "Value", scanResults[scanResults.Count - 1].CurrentValue);
             input.Validate = (args) => {
-                NumericDisplayType ndt = scanResults[0].NumericDisplayType;
-                switch (scanResults[0].DataType) {
-                    case DataType.Byte:
-                        if (!byte.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Byte");
-                    break;
-                    case DataType.Int16:
-                        if (!short.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Int16");
-                    break;
-                    case DataType.Int32:
-                        if (!int.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Int32");
-                    break;
-                    case DataType.Int64:
-                        if (!long.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Int64");
-                    break;
-                    case DataType.Float:
-                        if (!(ndt == NumericDisplayType.Hexadecimal ? uint.TryParse(args.Input, NumberStyles.HexNumber, null, out _) : float.TryParse(args.Input, out _)))
-                            args.Errors.Add("Invalid float");
-                    break;
-                    case DataType.Double:
-                        if (!(ndt == NumericDisplayType.Hexadecimal ? ulong.TryParse(args.Input, NumberStyles.HexNumber, null, out _) : double.TryParse(args.Input, out _)))
-                            args.Errors.Add("Invalid double");
-                    break;
-                    case DataType.String: break;
-                    default: throw new ArgumentOutOfRangeException();
+                if (scanResults[0].DataType.IsNumeric()) {
+                    ValueScannerUtils.TryParseTextAsNumber(args, scanResults[0].DataType, scanResults[0].NumericDisplayType);
                 }
             };
         }
@@ -172,13 +120,13 @@ public class EditScanResultValueCommand : Command {
         if (token == null || (conn = memoryEngine360.Connection) == null) {
             return;
         }
-        
+
         using CancellationTokenSource cts = new CancellationTokenSource();
         await ActivityManager.Instance.RunTask(async () => {
             ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Edit value", "Editing values");
             foreach (ScanResultViewModel scanResult in scanResults) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
-                
+
                 string newCurrValue;
                 if (conn.IsConnected) {
                     await MemoryEngine360.WriteAsText(conn, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, input.Text, (uint) scanResult.FirstValue.Length);

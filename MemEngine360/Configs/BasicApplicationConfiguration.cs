@@ -30,6 +30,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public static readonly PersistentProperty<bool> PauseConsoleDuringScanProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("PauseConsoleDuringScan", defaultValue: false, owner => owner.pauseConsoleDuringScan, (x, y) => x.pauseConsoleDuringScan = y, false);
     public static readonly PersistentProperty<bool> ScanMemoryPagesProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("ScanMemoryPages", defaultValue: true, owner => owner.scanMemoryPages, (x, y) => x.scanMemoryPages = y, false);
     public static readonly PersistentProperty<bool> DTInt_UseHexValueProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("DTInt_UseHexValue", defaultValue: false, owner => owner.dtInt_UseHexValueProperty, (x, y) => x.dtInt_UseHexValueProperty = y, false);
+    public static readonly PersistentProperty<bool> DTString_IgnoreCaseProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("DTString_IgnoreCase", defaultValue: true, owner => owner.dtString_IgnoreCase, (x, y) => x.dtString_IgnoreCase = y, false);
     public static readonly PersistentProperty<byte> DTFloat_ModeProperty = PersistentProperty.RegisterParsable<byte, BasicApplicationConfiguration>("DTFloat_Mode", defaultValue: (byte) FloatScanOption.TruncateToQuery, owner => owner.dtFloat_Mode, (x, y) => x.dtFloat_Mode = y, false);
     public static readonly PersistentProperty<byte> DTString_ModeProperty = PersistentProperty.RegisterParsable<byte, BasicApplicationConfiguration>("DTString_Mode", defaultValue: (byte) StringType.UTF8, owner => owner.dtString_Mode, (x, y) => x.dtString_Mode = y, false);
     public static readonly PersistentProperty<uint> RefreshRateMillisProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("RefreshRateMillis", defaultValue: 1000, owner => owner.refreshRateMillis, (x, y) => x.refreshRateMillis = Math.Max(y, 500), false);
@@ -42,6 +43,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     private bool pauseConsoleDuringScan = PauseConsoleDuringScanProperty.DefaultValue;
     private bool scanMemoryPages = ScanMemoryPagesProperty.DefaultValue;
     private bool dtInt_UseHexValueProperty = DTInt_UseHexValueProperty.DefaultValue;
+    private bool dtString_IgnoreCase = DTString_IgnoreCaseProperty.DefaultValue;
     private byte dtFloat_Mode = DTFloat_ModeProperty.DefaultValue;
     private byte dtString_Mode = DTString_ModeProperty.DefaultValue;
     private uint refreshRateMillis = RefreshRateMillisProperty.DefaultValue;
@@ -81,6 +83,11 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public bool DTInt_UseHexValue {
         get => DTInt_UseHexValueProperty.GetValue(this);
         set => DTInt_UseHexValueProperty.SetValue(this, value);
+    }
+    
+    public bool DTString_IgnoreCase {
+        get => DTString_IgnoreCaseProperty.GetValue(this);
+        set => DTString_IgnoreCaseProperty.SetValue(this, value);
     }
 
     public FloatScanOption DTFloat_Mode {

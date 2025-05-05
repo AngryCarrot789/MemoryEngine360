@@ -17,10 +17,10 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Globalization;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
+using MemEngine360.Engine.Scanners;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
@@ -86,37 +86,11 @@ public class EditSavedAddressValueCommand : Command {
         if (savedList.Count == 1) {
             input = new SingleUserInputInfo("Change value at 0x" + savedList[0].Address.ToString("X8"), "Immediately change the value at this address", "Value", savedList[0].Value);
             input.Validate = (args) => {
-                NumericDisplayType ndt = savedList[0].NumericDisplayType;
-                switch (savedList[0].DataType) {
-                    case DataType.Byte:
-                        if (!byte.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Byte");
-                    break;
-                    case DataType.Int16:
-                        if (!short.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Int16");
-                    break;
-                    case DataType.Int32:
-                        if (!int.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Int32");
-                    break;
-                    case DataType.Int64:
-                        if (!long.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Int64");
-                    break;
-                    case DataType.Float:
-                        if (!(ndt == NumericDisplayType.Hexadecimal ? uint.TryParse(args.Input, NumberStyles.HexNumber, null, out _) : float.TryParse(args.Input, out _)))
-                            args.Errors.Add("Invalid float");
-                    break;
-                    case DataType.Double:
-                        if (!(ndt == NumericDisplayType.Hexadecimal ? ulong.TryParse(args.Input, NumberStyles.HexNumber, null, out _) : double.TryParse(args.Input, out _)))
-                            args.Errors.Add("Invalid double");
-                    break;
-                    case DataType.String:
-                        if (args.Input.Length != savedList[0].Value.Length)
-                            args.Errors.Add("New length must match the string length");
-                    break;
-                    default: throw new ArgumentOutOfRangeException();
+                if (savedList[0].DataType.IsNumeric()) {
+                    ValueScannerUtils.TryParseTextAsNumber(args, savedList[0].DataType, savedList[0].NumericDisplayType);
+                }
+                else if (args.Input.Length != savedList[0].Value.Length) {
+                    args.Errors.Add("New length must match the string length");
                 }
             };
         }
@@ -131,34 +105,8 @@ public class EditSavedAddressValueCommand : Command {
 
             input = new SingleUserInputInfo("Change " + savedList.Count + " values", "Immediately change the value at these addresses", "Value", savedList[savedList.Count - 1].Value);
             input.Validate = (args) => {
-                NumericDisplayType ndt = savedList[0].NumericDisplayType;
-                switch (savedList[0].DataType) {
-                    case DataType.Byte:
-                        if (!byte.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Byte");
-                    break;
-                    case DataType.Int16:
-                        if (!short.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Int16");
-                    break;
-                    case DataType.Int32:
-                        if (!int.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Int32");
-                    break;
-                    case DataType.Int64:
-                        if (!long.TryParse(args.Input, ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out _))
-                            args.Errors.Add("Invalid Int64");
-                    break;
-                    case DataType.Float:
-                        if (!(ndt == NumericDisplayType.Hexadecimal ? uint.TryParse(args.Input, NumberStyles.HexNumber, null, out _) : float.TryParse(args.Input, out _)))
-                            args.Errors.Add("Invalid float");
-                    break;
-                    case DataType.Double:
-                        if (!(ndt == NumericDisplayType.Hexadecimal ? ulong.TryParse(args.Input, NumberStyles.HexNumber, null, out _) : double.TryParse(args.Input, out _)))
-                            args.Errors.Add("Invalid double");
-                    break;
-                    case DataType.String: break;
-                    default:              throw new ArgumentOutOfRangeException();
+                if (savedList[0].DataType.IsNumeric()) {
+                    ValueScannerUtils.TryParseTextAsNumber(args, savedList[0].DataType, savedList[0].NumericDisplayType);
                 }
             };
         }

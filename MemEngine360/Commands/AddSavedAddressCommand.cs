@@ -19,6 +19,7 @@
 
 using System.Globalization;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Modes;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.UserInputs;
@@ -63,11 +64,24 @@ public class AddSavedAddressCommand : Command {
             };
 
             if (await IUserInputDialogService.Instance.ShowInputDialogAsync(dataTypeInfo) == true) {
-                result.DisplayAsHex = dataTypeInfo.DisplayAsHex;
-                result.DisplayAsUnsigned = dataTypeInfo.DisplayAsUnsigned;
-                result.DataType = dataTypeInfo.DataType;
+                if (dataTypeInfo.DataType.IsNumeric()) {
+                    if (dataTypeInfo.DisplayAsHex) {
+                        result.NumericDisplayType = NumericDisplayType.Hexadecimal;
+                    }
+                    else if (dataTypeInfo.DisplayAsUnsigned) {
+                        result.NumericDisplayType = NumericDisplayType.Unsigned;
+                    }
+                    else {
+                        result.NumericDisplayType = NumericDisplayType.Normal;
+                    }
+                }
+                else {
+                    result.NumericDisplayType = NumericDisplayType.Normal;
+                }
+
                 result.StringType = dataTypeInfo.StringScanOption;
                 result.StringLength = dataTypeInfo.StringLength;
+                result.DataType = dataTypeInfo.DataType;
                 engine.ScanningProcessor.SavedAddresses.Add(result);
                 engine.ScanningProcessor.RefreshSavedAddressesLater();
             }

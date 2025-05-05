@@ -32,18 +32,21 @@ namespace MemEngine360.Avalonia;
 
 public partial class ScanOptionsControl : UserControl {
     public static readonly StyledProperty<MemoryEngine360?> MemoryEngine360Property = AvaloniaProperty.Register<ScanOptionsControl, MemoryEngine360?>(nameof(MemoryEngine360));
-    
+
     public MemoryEngine360? MemoryEngine360 {
         get => this.GetValue(MemoryEngine360Property);
         set => this.SetValue(MemoryEngine360Property, value);
     }
-    
+
     private readonly EventPropertyBinder<ScanningProcessor> hasDoneFirstScanBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.HasFirstScanChanged), (b) => {
         ScanOptionsControl view = (ScanOptionsControl) b.Control;
-        view.PART_DataTypeCombo.IsEnabled = !b.Model.HasDoneFirstScan; 
+        view.PART_DataTypeCombo.IsEnabled = !b.Model.HasDoneFirstScan;
+        view.PART_UseFirstValue.IsEnabled = b.Model.HasDoneFirstScan;
+        view.PART_UsePreviousValue.IsEnabled = b.Model.HasDoneFirstScan;
+
         // view.PART_ScanSettingsTabControl.IsEnabled = !b.Model.HasDoneFirstScan; 
     });
-    
+
     private readonly EventPropertyEnumBinder<FloatScanOption> floatScanModeBinder = new EventPropertyEnumBinder<FloatScanOption>(typeof(ScanningProcessor), nameof(ScanningProcessor.FloatScanModeChanged), (x) => ((ScanningProcessor) x).FloatScanOption, (x, v) => ((ScanningProcessor) x).FloatScanOption = v);
     private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(ScanningProcessor), nameof(ScanningProcessor.StringScanModeChanged), (x) => ((ScanningProcessor) x).StringScanOption, (x, v) => ((ScanningProcessor) x).StringScanOption = v);
     private readonly IBinder<ScanningProcessor> int_isHexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.IsIntInputHexadecimalChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.IsIntInputHexadecimal, (b) => b.Model.IsIntInputHexadecimal = ((ToggleButton) b.Control).IsChecked == true);
@@ -56,19 +59,21 @@ public partial class ScanOptionsControl : UserControl {
     private readonly IBinder<ScanningProcessor> inputValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> inputBetweenABinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> inputBetweenBBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputBChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputB, (b) => b.Model.InputB = ((TextBox) b.Control).Text ?? "");
-    
+    private readonly IBinder<ScanningProcessor> stringIgnoreCaseBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.StringIgnoreCaseChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.StringIgnoreCase, (b) => b.Model.StringIgnoreCase = ((ToggleButton) b.Control).IsChecked == true);
+
     static ScanOptionsControl() {
         // AVPToEventPropertyBinder.Bind<ScanOptionsControl, TextBox, ScanningProcessor, string?>(nameof(PART_Input_Value1), TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (c, m) => c.Text = m.InputA, (c, m) => m.InputA = c.Text ?? "");
-        
+
         MemoryEngine360Property.Changed.AddClassHandler<ScanOptionsControl, MemoryEngine360?>(OnMemEngineChanged);
     }
-    
+
     private DataType lastIntegerDataType = DataType.Int32, lastFloatDataType = DataType.Float;
-    
+
     public ScanOptionsControl() {
         this.InitializeComponent();
         // AVPToEventPropertyBinder.Attach<ScanOptionsControl>(this.FindNameScope()!, new ScanningProcessor(null));
-        
+
+        this.stringIgnoreCaseBinder.AttachControl(this.PART_IgnoreCases);
         this.floatScanModeBinder.Assign(this.PART_DTFloat_UseExactValue, FloatScanOption.UseExactValue);
         this.floatScanModeBinder.Assign(this.PART_DTFloat_Truncate, FloatScanOption.TruncateToQuery);
         this.floatScanModeBinder.Assign(this.PART_DTFloat_RoundToQuery, FloatScanOption.RoundToQuery);
@@ -102,7 +107,7 @@ public partial class ScanOptionsControl : UserControl {
         }, (b) => {
             if (b.Model.HasDoneFirstScan)
                 return;
-            
+
             switch (((TabControl) b.Control).SelectedIndex) {
                 case 0: b.Model.DataType = this.lastIntegerDataType; break;
                 case 1: b.Model.DataType = this.lastFloatDataType; break;
@@ -114,6 +119,7 @@ public partial class ScanOptionsControl : UserControl {
 
     private static void OnMemEngineChanged(ScanOptionsControl c, AvaloniaPropertyChangedEventArgs<MemoryEngine360?> e) {
         if (e.OldValue.GetValueOrDefault() is MemoryEngine360 oldEngine) {
+            c.stringIgnoreCaseBinder.Detach();
             c.floatScanModeBinder.Detach();
             c.stringScanModeBinder.Detach();
             c.hasDoneFirstScanBinder.Detach();
@@ -130,8 +136,9 @@ public partial class ScanOptionsControl : UserControl {
             oldEngine.ScanningProcessor.UseFirstValueForNextScanChanged -= c.UpdateOtherShit;
             oldEngine.ScanningProcessor.UsePreviousValueForNextScanChanged -= c.UpdateOtherShit;
         }
-        
+
         if (e.NewValue.GetValueOrDefault() is MemoryEngine360 newEngine) {
+            c.stringIgnoreCaseBinder.AttachModel(newEngine.ScanningProcessor);
             c.floatScanModeBinder.Attach(newEngine.ScanningProcessor);
             c.stringScanModeBinder.Attach(newEngine.ScanningProcessor);
             c.hasDoneFirstScanBinder.Attach(c, newEngine.ScanningProcessor);
@@ -147,7 +154,7 @@ public partial class ScanOptionsControl : UserControl {
             newEngine.ScanningProcessor.DataTypeChanged += c.OnScanningProcessorOnDataTypeChanged;
             newEngine.ScanningProcessor.UseFirstValueForNextScanChanged += c.UpdateOtherShit;
             newEngine.ScanningProcessor.UsePreviousValueForNextScanChanged += c.UpdateOtherShit;
-            
+
             c.UpdateUIForScanTypeAndDataType();
         }
     }
@@ -155,7 +162,7 @@ public partial class ScanOptionsControl : UserControl {
     private void ScanningProcessorOnNumericScanTypeChanged(ScanningProcessor sender) {
         this.UpdateUIForScanTypeAndDataType();
     }
-    
+
     private void OnScanningProcessorOnDataTypeChanged(ScanningProcessor p) {
         if (p.DataType.IsFloat()) {
             this.lastFloatDataType = p.DataType;
@@ -164,7 +171,7 @@ public partial class ScanOptionsControl : UserControl {
             this.lastIntegerDataType = p.DataType;
         }
     }
-    
+
     private void UpdateOtherShit(ScanningProcessor p) {
         this.PART_Input_Value1.IsEnabled = p.DataType == DataType.String || !p.UseFirstValueForNextScan && !p.UsePreviousValueForNextScan;
     }
@@ -175,7 +182,7 @@ public partial class ScanOptionsControl : UserControl {
 
     protected override void OnUnloaded(RoutedEventArgs e) {
         base.OnUnloaded(e);
-        
+
         if (this.inputValueBinder.IsFullyAttached)
             this.inputValueBinder.Detach();
         if (this.inputBetweenABinder.IsFullyAttached)
@@ -183,7 +190,7 @@ public partial class ScanOptionsControl : UserControl {
         if (this.inputBetweenBBinder.IsFullyAttached)
             this.inputBetweenBBinder.Detach();
     }
-    
+
     private void UpdateUIForScanTypeAndDataType() {
         MemoryEngine360? engine = this.MemoryEngine360;
         if (engine == null) {
@@ -193,13 +200,13 @@ public partial class ScanOptionsControl : UserControl {
         ScanningProcessor sp = engine.ScanningProcessor;
         bool isNumeric = sp.DataType.IsNumeric();
         bool isBetween = sp.NumericScanType == NumericScanType.Between;
-        
+
         if (isBetween && isNumeric) {
             this.PART_Input_Value1.IsVisible = false;
             this.PART_Grid_Input_Between.IsVisible = true;
             this.PART_ValueOrBetweenTextBlock.Text = "Between";
             this.PART_UseFirstOrPrevButtonGrid.IsVisible = false;
-            
+
             if (this.inputValueBinder.IsFullyAttached)
                 this.inputValueBinder.Detach();
             if (!this.inputBetweenABinder.IsFullyAttached)
@@ -212,7 +219,7 @@ public partial class ScanOptionsControl : UserControl {
             this.PART_Grid_Input_Between.IsVisible = false;
             this.PART_ValueOrBetweenTextBlock.Text = "Value";
             this.PART_UseFirstOrPrevButtonGrid.IsVisible = isNumeric;
-            
+
             if (this.inputBetweenABinder.IsFullyAttached)
                 this.inputBetweenABinder.Detach();
             if (this.inputBetweenBBinder.IsFullyAttached)

@@ -18,9 +18,12 @@
 // 
 
 using System.Buffers.Binary;
+using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Interactivity.Formatting;
+using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Engine.Scanners;
 
@@ -30,7 +33,7 @@ public static class ValueScannerUtils {
         NonEditingRoundedPlaces = 1,
         AllowedFormats = [MemoryFormatType.Byte, MemoryFormatType.KiloByte1000, MemoryFormatType.MegaByte1000, MemoryFormatType.GigaByte1000, MemoryFormatType.TeraByte1000]
     };
-    
+
     public static float TruncateFloat(float value, int decimals) {
         float factor = (float) Math.Pow(10, decimals);
         return (float) (Math.Truncate(value * factor) / factor);
@@ -117,5 +120,61 @@ public static class ValueScannerUtils {
     private static T CreateGeneric_double<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {
         double value = BinaryPrimitives.ReadDoubleBigEndian(bytes);
         return Unsafe.As<double, T>(ref value);
+    }
+
+    public static bool TryParseTextAsNumber(ValidationArgs args, DataType dataType, NumericDisplayType ndt) {
+        if (TryParseTextAsNumber(args.Input, dataType, ndt)) {
+            return true;
+        }
+
+        switch (dataType) {
+            case DataType.Byte:   args.Errors.Add("Invalid Byte"); break;
+            case DataType.Int16:  args.Errors.Add("Invalid Int16"); break;
+            case DataType.Int32:  args.Errors.Add("Invalid Int32"); break;
+            case DataType.Int64:  args.Errors.Add("Invalid Int64"); break;
+            case DataType.Float:  args.Errors.Add("Invalid float"); break;
+            case DataType.Double: args.Errors.Add("Invalid double"); break;
+        }
+
+        return false;
+    }
+
+    public static bool TryParseTextAsNumber(string input, DataType dataType, NumericDisplayType ndt) {
+        NumberStyles ns_i = ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
+        switch (dataType) {
+            case DataType.Byte: {
+                if (!byte.TryParse(input, ns_i, null, out _))
+                    return false;
+                break;
+            }
+            case DataType.Int16: {
+                if (!(ndt == NumericDisplayType.Unsigned ? ushort.TryParse(input, ns_i, null, out _) : short.TryParse(input, ns_i, null, out _)))
+                    return false;
+                break;
+            }
+            case DataType.Int32: {
+                if (!(ndt == NumericDisplayType.Unsigned ? uint.TryParse(input, ns_i, null, out _) : int.TryParse(input, ns_i, null, out _)))
+                    return false;
+                break;
+            }
+            case DataType.Int64: {
+                if (!(ndt == NumericDisplayType.Unsigned ? ulong.TryParse(input, ns_i, null, out _) : long.TryParse(input, ns_i, null, out _)))
+                    return false;
+                break;
+            }
+            case DataType.Float: {
+                if (!(ndt == NumericDisplayType.Hexadecimal ? uint.TryParse(input, NumberStyles.HexNumber, null, out _) : float.TryParse(input, out _)))
+                    return false;
+                break;
+            }
+            case DataType.Double: {
+                if (!(ndt == NumericDisplayType.Hexadecimal ? ulong.TryParse(input, NumberStyles.HexNumber, null, out _) : double.TryParse(input, out _)))
+                    return false;
+                break;
+            }
+            default: throw new ArgumentOutOfRangeException();
+        }
+
+        return true;
     }
 }

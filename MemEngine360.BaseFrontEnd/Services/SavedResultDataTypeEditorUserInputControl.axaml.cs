@@ -90,6 +90,7 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
     public void Connect(UserInputDialogView dialog, UserInputInfo info) {
         this.myDialog = dialog;
         this.myData = (SavedResultDataTypeUserInputInfo) info;
+        this.lastIntegerDataType = this.myData.DataType;
         this.myData.DataTypeChanged += this.MyDataOnDataTypeChanged;
         this.myData.StringLengthChanged += this.MyDataOnStringLengthChanged;
         this.selectedTabIndexBinder.Attach(this.PART_TabControl, this.myData);

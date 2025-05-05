@@ -36,15 +36,14 @@ public sealed class SavedAddressViewModel : BaseTransferableViewModel {
     public static readonly DataParameter<DataType> DataTypeParameter = DataParameter.Register(new DataParameter<DataType>(typeof(SavedAddressViewModel), nameof(DataType), default, ValueAccessors.Reflective<DataType>(typeof(SavedAddressViewModel), nameof(dataType))));
     public static readonly DataParameter<StringType> StringTypeParameter = DataParameter.Register(new DataParameter<StringType>(typeof(SavedAddressViewModel), nameof(StringType), default, ValueAccessors.Reflective<StringType>(typeof(SavedAddressViewModel), nameof(stringType))));
     public static readonly DataParameter<uint> StringLengthParameter = DataParameter.Register(new DataParameter<uint>(typeof(SavedAddressViewModel), nameof(StringLength), default, ValueAccessors.Reflective<uint>(typeof(SavedAddressViewModel), nameof(stringLength))));
-    public static readonly DataParameter<bool> DisplayAsHexParameter = DataParameter.Register(new DataParameter<bool>(typeof(SavedAddressViewModel), nameof(DisplayAsHex), default, ValueAccessors.Reflective<bool>(typeof(SavedAddressViewModel), nameof(hex))));
-    public static readonly DataParameter<bool> DisplayAsUnsignedParameter = DataParameter.Register(new DataParameter<bool>(typeof(SavedAddressViewModel), nameof(DisplayAsUnsigned), default, ValueAccessors.Reflective<bool>(typeof(SavedAddressViewModel), nameof(unsigned))));
+    public static readonly DataParameter<NumericDisplayType> NumericDisplayTypeParameter = DataParameter.Register(new DataParameter<NumericDisplayType>(typeof(SavedAddressViewModel), nameof(NumericDisplayType), default, ValueAccessors.Reflective<NumericDisplayType>(typeof(SavedAddressViewModel), nameof(numericDisplayType))));
 
     private uint address;
     private string value = "", description = "";
     private DataType dataType = DataType.Byte;
     private StringType stringType = StringType.UTF8;
     private uint stringLength = 0;
-    private bool hex, unsigned;
+    private NumericDisplayType numericDisplayType;
 
     public uint Address {
         get => this.address;
@@ -92,38 +91,22 @@ public sealed class SavedAddressViewModel : BaseTransferableViewModel {
     }
 
     /// <summary>
-    /// Gets or sets if we should display the value as hexidecimal. Takes priority over <see cref="DisplayAsUnsigned"/>
+    /// Gets or sets how to present the value as a string
     /// </summary>
-    public bool DisplayAsHex {
-        get => this.hex;
-        set => DataParameter.SetValueHelper(this, DisplayAsHexParameter, ref this.hex, value);
+    public NumericDisplayType NumericDisplayType {
+        get => this.numericDisplayType;
+        set => DataParameter.SetValueHelper(this, NumericDisplayTypeParameter, ref this.numericDisplayType, value);
     }
 
     /// <summary>
-    /// Gets or sets if the integer value is displayed as unsigned. Does nothing for <see cref="Modes.DataType.Byte"/>
+    /// Gets or sets the <see cref="Engine.NumericDisplayType"/> that was specified when <see cref="Value"/> changed
     /// </summary>
-    public bool DisplayAsUnsigned {
-        get => this.unsigned;
-        set => DataParameter.SetValueHelper(this, DisplayAsUnsignedParameter, ref this.unsigned, value);
-    }
+    public NumericDisplayType CurrentValueDisplayType { get; private set; }
 
     /// <summary>
     /// Gets the scanning processor that owns this saved address
     /// </summary>
     public ScanningProcessor ScanningProcessor { get; set; }
-
-    /// <summary>
-    /// Gets the numeric display type based on <see cref="DisplayAsHex"/> and <see cref="DisplayAsUnsigned"/>
-    /// </summary>
-    public NumericDisplayType NumericDisplayType {
-        get {
-            if (this.DisplayAsHex)
-                return NumericDisplayType.Hexadecimal;
-            if (this.DisplayAsUnsigned)
-                return NumericDisplayType.Unsigned;
-            return NumericDisplayType.Normal;
-        }
-    }
 
     /// <summary>
     /// Gets or sets if this object is currently visible in the results
@@ -141,20 +124,19 @@ public sealed class SavedAddressViewModel : BaseTransferableViewModel {
         this.address = result.Address;
         this.dataType = result.DataType;
         this.value = result.CurrentValue;
+        this.numericDisplayType = result.NumericDisplayType;
         if (this.dataType == DataType.String) {
             this.stringType = this.ScanningProcessor.StringScanOption;
             this.stringLength = (uint) this.value.Length;
         }
-
-        switch (result.NumericDisplayType) {
-            case NumericDisplayType.Normal:      break;
-            case NumericDisplayType.Unsigned:    this.unsigned = true; break;
-            case NumericDisplayType.Hexadecimal: this.hex = true; break;
-            default:                                             throw new ArgumentOutOfRangeException();
-        }
     }
 
     static SavedAddressViewModel() {
-        RegisterParametersAsObservable(AddressParameter, ValueParameter, DescriptionParameter, DataTypeParameter, StringTypeParameter, StringLengthParameter, DisplayAsHexParameter, DisplayAsUnsignedParameter);
+        ValueParameter.PriorityValueChanged += (parameter, owner) => {
+            SavedAddressViewModel obj = (SavedAddressViewModel) owner;
+            obj.CurrentValueDisplayType = obj.NumericDisplayType;
+        };
+        
+        RegisterParametersAsObservable(AddressParameter, ValueParameter, DescriptionParameter, DataTypeParameter, StringTypeParameter, StringLengthParameter, NumericDisplayTypeParameter);
     }
 }

@@ -28,7 +28,6 @@ using PFXToolKitUI;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
-using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.RDA;
 
 namespace MemEngine360.Engine;
@@ -48,7 +47,9 @@ public class ScanningProcessor {
     private StringType stringScanOption;
     private DataType dataType;
     private NumericScanType numericScanType;
+    private bool stringIgnoreCase;
     private bool isRefreshingAddresses;
+
 
     public ActivityTask? ScanningActivity { get; private set; }
 
@@ -252,7 +253,25 @@ public class ScanningProcessor {
             this.NumericScanTypeChanged?.Invoke(this);
         }
     }
+    
+    /// <summary>
+    /// Gets or sets if strings should be searched as case-insensitive
+    /// </summary>
+    public bool StringIgnoreCase {
+        get => this.stringIgnoreCase;
+        set {
+            if (this.stringIgnoreCase == value)
+                return;
 
+            this.stringIgnoreCase = value;
+            this.StringIgnoreCaseChanged?.Invoke(this);
+            BasicApplicationConfiguration.Instance.DTString_IgnoreCase = value;
+        }
+    }
+
+    /// <summary>
+    /// Returns true when we are currently in the process of refreshing the scan results and saved addresses
+    /// </summary>
     public bool IsRefreshingAddresses {
         get => this.isRefreshingAddresses;
         private set {
@@ -264,19 +283,36 @@ public class ScanningProcessor {
         }
     }
 
+    /// <summary>
+    /// Returns <see cref="System.StringComparison.CurrentCulture"/> when <see cref="StringIgnoreCase"/> is false,
+    /// and <see cref="System.StringComparison.CurrentCultureIgnoreCase"/> when true
+    /// </summary>
+    public StringComparison StringComparison => this.stringIgnoreCase ? StringComparison.CurrentCultureIgnoreCase : StringComparison.CurrentCulture;
+    
     public bool CanPerformFirstScan => !this.IsScanning && !this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
     public bool CanPerformNextScan => !this.IsScanning && this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
     public bool CanPerformReset => !this.IsScanning && this.HasDoneFirstScan;
-    public bool IsSecondInputRequired => this.numericScanType == NumericScanType.Between && this.DataType.IsNumeric();
 
+    /// <summary>
+    /// Gets the visible scan results in the UI
+    /// </summary>
     public ObservableCollection<ScanResultViewModel> ScanResults { get; } = new ObservableCollection<ScanResultViewModel>();
+
+    /// <summary>
+    /// Gets the saved addresses
+    /// </summary>
     public ObservableCollection<SavedAddressViewModel> SavedAddresses { get; } = new ObservableCollection<SavedAddressViewModel>();
 
-    public ObservableList<ScanResultViewModel> SelectedResults { get; } = new ObservableList<ScanResultViewModel>();
-
+    /// <summary>
+    /// Returns the actual amount of results (visible and hidden). The user may choose to cancel the
+    /// "Updating result list..." operation and instead leave the remaining results as hidden.
+    /// They will still be processed, just not visible
+    /// </summary>
     public int ActualScanResultCount => this.ScanResults.Count + this.resultBuffer.Count;
-    
+
+
     public MemoryEngine360 MemoryEngine360 { get; }
+
 
     public event ScanningProcessorEventHandler? InputAChanged;
     public event ScanningProcessorEventHandler? InputBChanged;
@@ -292,10 +328,10 @@ public class ScanningProcessor {
     public event ScanningProcessorEventHandler? StringScanModeChanged;
     public event ScanningProcessorEventHandler? DataTypeChanged;
     public event ScanningProcessorEventHandler? NumericScanTypeChanged;
+    public event ScanningProcessorEventHandler? StringIgnoreCaseChanged;
     public event ScanningProcessorEventHandler? AlignmentChanged;
     public event ScanningProcessorEventHandler? ScanMemoryPagesChanged;
     public event ScanningProcessorEventHandler? IsRefreshingAddressesChanged;
-    public event ScanningProcessorEventHandler? ScanCompleted;
 
     private readonly ConcurrentQueue<ScanResultViewModel> resultBuffer;
     private readonly RateLimitedDispatchAction rldaMoveBufferIntoResultList;
@@ -316,6 +352,7 @@ public class ScanningProcessor {
         this.isIntInputHexadecimal = cfg.DTInt_UseHexValue;
         this.floatScanOption = cfg.DTFloat_Mode;
         this.stringScanOption = cfg.DTString_Mode;
+        this.stringIgnoreCase = cfg.DTString_IgnoreCase;
 
         this.resultBuffer = new ConcurrentQueue<ScanResultViewModel>();
 
@@ -325,10 +362,10 @@ public class ScanningProcessor {
 
         // Adds up to 100 items per second
         this.rldaMoveBufferIntoResultList = RateLimitedDispatchActionBase.ForDispatcherSync(() => {
-            for (int i = 0; i < 20 && this.resultBuffer.TryDequeue(out ScanResultViewModel? result); i++) {
+            for (int i = 0; i < 10 && this.resultBuffer.TryDequeue(out ScanResultViewModel? result); i++) {
                 this.ScanResults.Add(result);
             }
-        }, TimeSpan.FromMilliseconds(200));
+        }, TimeSpan.FromMilliseconds(100));
 
         this.rldaRefreshSavedAddressList = RateLimitedDispatchActionBase.ForDispatcherAsync(this.RefreshSavedAddressesAsync, TimeSpan.FromMilliseconds(100));
     }
@@ -356,7 +393,7 @@ public class ScanningProcessor {
         if (connection == null)
             throw new InvalidOperationException("No console connection");
 
-        using IDisposable? token = await this.MemoryEngine360.BeginBusyOperationActivityAsync("Scan Operation");
+        using IDisposable? token = await this.MemoryEngine360.BeginBusyOperationActivityAsync("Pre-Scan Setup");
         if (token == null)
             return; // user cancelled token fetch
 
@@ -372,9 +409,12 @@ public class ScanningProcessor {
             return;
         }
 
+        byte[] bytes = await connection.ReadBytes(0x80000000, 1000);
+
         // should be impossible since we obtain the busy token which is required before scanning
-        Debug.Assert(this.isScanning == false, "WTF");
         
+        Debug.Assert(this.isScanning == false, "WTF");
+
         bool debugFreeze = this.PauseConsoleDuringScan;
         DefaultProgressTracker progress = new DefaultProgressTracker {
             Caption = "Scan", Text = "Beginning scan..."
@@ -403,7 +443,7 @@ public class ScanningProcessor {
                         this.resultBuffer.Enqueue(model);
                         this.rldaMoveBufferIntoResultList.InvokeAsync();
                     };
-                    
+
                     if (this.hasDoneFirstScan) {
                         progress.Text = "Accumulating scan results...";
                         List<ScanResultViewModel> srcList = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
@@ -411,7 +451,7 @@ public class ScanningProcessor {
                             this.ScanResults.Clear();
                             return items;
                         });
-                        
+
                         srcList.AddRange(this.resultBuffer);
                         this.resultBuffer.Clear();
 
@@ -453,7 +493,7 @@ public class ScanningProcessor {
                     }
                     else {
                         progress.Text = "Scanning...";
-                        
+
                         try {
                             result = true;
                             await context.PerformFirstScan(connection);
@@ -474,7 +514,7 @@ public class ScanningProcessor {
                     result = false;
                 }
 
-                if (result && !this.MemoryEngine360.IsShuttingDown) {
+                if (result && !this.MemoryEngine360.IsShuttingDown && !thisTask.IsCancellationRequested) {
                     progress.Text = "Updating result list...";
                     int count = this.resultBuffer.Count;
                     const int chunkSize = 500;
@@ -495,9 +535,6 @@ public class ScanningProcessor {
                             }
                         }
                     });
-                }
-                else {
-                    result = false;
                 }
             }
 
@@ -572,13 +609,7 @@ public class ScanningProcessor {
                 this.IsRefreshingAddresses = true;
 
                 foreach (SavedAddressViewModel address in this.SavedAddresses) {
-                    address.Value = await MemoryEngine360.ReadAsText(connection, address.Address, address.DataType,
-                        address.DisplayAsHex
-                            ? NumericDisplayType.Hexadecimal
-                            : (address.DisplayAsUnsigned
-                                ? NumericDisplayType.Unsigned
-                                : NumericDisplayType.Normal),
-                        address.StringLength);
+                    address.Value = await MemoryEngine360.ReadAsText(connection, address.Address, address.DataType, address.NumericDisplayType, address.StringLength);
                 }
             }
 
@@ -586,8 +617,8 @@ public class ScanningProcessor {
             // UI, although this does kind of break the MVVM pattern but oh well
             if (this.ScanResults.Count < 100) {
                 this.IsRefreshingAddresses = true;
-                
-                // Lazily prevents concurrent modification
+
+                // Lazily prevents concurrent modification due to awaiting read text
                 List<ScanResultViewModel> list = this.ScanResults.ToList();
                 foreach (ScanResultViewModel result in list) {
                     result.CurrentValue = await MemoryEngine360.ReadAsText(connection, result.Address, result.DataType, result.NumericDisplayType, (uint) result.FirstValue.Length);

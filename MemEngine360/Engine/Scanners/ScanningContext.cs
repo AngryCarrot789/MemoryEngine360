@@ -38,18 +38,19 @@ public class ScanningContext {
     private readonly string inputA, inputB;
     private readonly uint startAddress, scanLength;
     private readonly uint alignment;
-    private readonly bool pauseConsoleDuringScan, scanMemoryPages, isIntInputHexadecimal;
+    private readonly bool scanMemoryPages, isIntInputHexadecimal;
     private readonly bool nextScanUsesFirstValue, nextScanUsesPreviousValue;
     private readonly FloatScanOption floatScanOption;
     private readonly StringType stringScanOption;
     private readonly DataType dataType;
     private readonly NumericScanType numericScanType;
+    private readonly StringComparison stringComparison;
     private readonly bool isSecondInputRequired;
 
     // enough bytes to store all data types except string
     private long numericInputA, numericInputB;
+    // number of bytes the data type takes up. for strings, calculates based on StringType and char count
     private int cbDataType;
-    private NumberStyles numberStyles;
 
     /// <summary>
     /// Fired when a result is found
@@ -63,7 +64,6 @@ public class ScanningContext {
         this.startAddress = processor.StartAddress;
         this.scanLength = processor.ScanLength;
         this.alignment = processor.Alignment;
-        this.pauseConsoleDuringScan = processor.PauseConsoleDuringScan;
         this.scanMemoryPages = processor.ScanMemoryPages;
         this.isIntInputHexadecimal = processor.IsIntInputHexadecimal;
         this.nextScanUsesFirstValue = processor.UseFirstValueForNextScan;
@@ -72,6 +72,7 @@ public class ScanningContext {
         this.stringScanOption = processor.StringScanOption;
         this.dataType = processor.DataType;
         this.numericScanType = processor.NumericScanType;
+        this.stringComparison = processor.StringComparison;
         this.isSecondInputRequired = this.numericScanType == NumericScanType.Between 
                                      && this.dataType.IsNumeric()
                                      && !this.nextScanUsesFirstValue 
@@ -84,17 +85,6 @@ public class ScanningContext {
     /// False when there's errors (e.g. non-integer when scanning for an integer, or min is greater than max when scanning in 'between' mode)
     /// </summary>
     public async Task<bool> Setup() {
-        if (this.dataType.IsInteger()) {
-            this.numberStyles = this.isIntInputHexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
-        }
-        else if (this.dataType.IsFloat()) {
-            this.numberStyles = NumberStyles.Float | NumberStyles.AllowThousands;
-        }
-        else if (this.dataType.IsNumeric()) {
-            Debug.Fail("Missing data type");
-            return false;
-        }
-        
         switch (this.dataType) {
             case DataType.Byte:   this.cbDataType = sizeof(byte); break;
             case DataType.Int16:  this.cbDataType = sizeof(short); break;
@@ -144,12 +134,24 @@ public class ScanningContext {
         }
 
         if (this.dataType.IsNumeric()) {
-            if (!TryParseNumeric(this.inputA, this.numberStyles, this.dataType, out this.numericInputA)) {
+            NumberStyles ns;
+            if (this.dataType.IsInteger()) {
+                ns = this.isIntInputHexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
+            }
+            else if (this.dataType.IsFloat()) {
+                ns = NumberStyles.Float | NumberStyles.AllowThousands;
+            }
+            else {
+                Debug.Fail("Missing data type");
+                return false;
+            }
+            
+            if (!TryParseNumeric(this.inputA, ns, this.dataType, out this.numericInputA)) {
                 await IMessageDialogService.Instance.ShowMessage("Invalid input", $"{(this.isSecondInputRequired ? "'From' value" : "Input")} is invalid: {this.inputA}");
                 return false;
             }
 
-            if (this.isSecondInputRequired && !TryParseNumeric(this.inputB, this.numberStyles, this.dataType, out this.numericInputB)) {
+            if (this.isSecondInputRequired && !TryParseNumeric(this.inputB, ns, this.dataType, out this.numericInputB)) {
                 await IMessageDialogService.Instance.ShowMessage("Invalid input", $"'To' value is invalid: {this.inputB}");
                 return false;
             }
@@ -160,19 +162,20 @@ public class ScanningContext {
 
     public async Task PerformFirstScan(IConsoleConnection connection) {
         int align = (int) this.alignment;
-        IActivityProgress activity = ActivityManager.Instance.GetCurrentProgressOrEmpty();
+        ActivityTask task = ActivityManager.Instance.CurrentTask;
         if (this.scanMemoryPages && connection is IHaveMemoryRegions regions) {
-            uint addrStart = this.startAddress, addrEnd = addrStart + this.scanLength;
+            uint startAddr = this.startAddress, endAddr = startAddr + this.scanLength;
             List<MemoryRegion> safeRegions = new List<MemoryRegion>();
             List<MemoryRegion> consoleMemoryRegions = await regions.GetMemoryRegions();
             foreach (MemoryRegion region in consoleMemoryRegions) {
                 if (region.Protection == 0x00000240) {
                     // It might not be specifically this protection value, but I noticed that around the memory regions
-                    // with this region, if you attempt to read them, it freeze the console even after debug unfreeze command.
+                    // with this region, if you attempt to read them, it freezes the console even after debug unfreeze command.
                     continue;
                 }
 
-                if (region.BaseAddress < addrStart || (region.BaseAddress + region.Size) > addrEnd) {
+                // ------------------------------------------------------------ Do not use >= here
+                if (region.BaseAddress < startAddr || (region.BaseAddress + region.Size) > endAddr) {
                     continue;
                 }
 
@@ -181,27 +184,27 @@ public class ScanningContext {
 
             byte[] buffer = new byte[ChunkSize];
             for (int rgIdx = 0; rgIdx < safeRegions.Count; rgIdx++) {
-                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                task.CheckCancelled();
                 MemoryRegion region = safeRegions[rgIdx];
 
                 // We still stick to the start/length fields even when scanning pages, because
                 // the user may only want to scan a specific address region
-                if (region.BaseAddress < addrStart || (region.BaseAddress + region.Size) > addrEnd) {
+                if (region.BaseAddress < startAddr || (region.BaseAddress + region.Size) > endAddr) {
                     continue;
                 }
 
-                activity.IsIndeterminate = false;
-                using var token = activity.CompletionState.PushCompletionRange(0, 1.0 / region.Size);
+                task.Progress.IsIndeterminate = false;
+                using var token = task.Progress.CompletionState.PushCompletionRange(0, 1.0 / region.Size);
                 for (int j = 0; j < region.Size; j += ChunkSize) {
-                    ActivityManager.Instance.CurrentTask.CheckCancelled();
-                    activity.Text = $"Region {rgIdx + 1}/{safeRegions.Count} ({ValueScannerUtils.ByteFormatter.ToString(j, false)}/{ValueScannerUtils.ByteFormatter.ToString(region.Size, false)})";
-                    activity.CompletionState.OnProgress(ChunkSize);
+                    task.CheckCancelled();
+                    task.Progress.Text = $"Region {rgIdx + 1}/{safeRegions.Count} ({ValueScannerUtils.ByteFormatter.ToString(j, false)}/{ValueScannerUtils.ByteFormatter.ToString(region.Size, false)})";
+                    task.Progress.CompletionState.OnProgress(ChunkSize);
 
                     // should we be using BaseAddress or PhysicalAddress???
                     uint baseAddress = (uint) (region.BaseAddress + j);
-                    int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(ChunkSize, (uint) Math.Max((int) region.Size - j, 0)));
+                    int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(ChunkSize, (uint) Math.Max((int) region.Size - j, 0))).ConfigureAwait(false);
                     if (cbRead > 0) {
-                        this.ProcessMemoryBlockForFirstScan(Math.Max(cbRead - this.cbDataType, 0), align, buffer, baseAddress);
+                        this.ProcessMemoryBlockForFirstScan(baseAddress, buffer, cbRead, align);
                     }
                 }
             }
@@ -210,30 +213,32 @@ public class ScanningContext {
             uint addr = this.startAddress, scanLen = this.scanLength, range = scanLen;
             int totalChunks = (int) (range / ChunkSize);
             byte[] buffer = new byte[ChunkSize];
-            using var token = activity.CompletionState.PushCompletionRange(0, 1.0 / scanLen);
+            using var token = task.Progress.CompletionState.PushCompletionRange(0, 1.0 / scanLen);
             for (int j = 0, c = 0; j < scanLen; j += ChunkSize, c++) {
-                ActivityManager.Instance.CurrentTask.CheckCancelled();
-                activity.Text = $"Chunk {c + 1}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(j, false)}/{ValueScannerUtils.ByteFormatter.ToString(scanLen, false)})";
-                activity.CompletionState.OnProgress(ChunkSize);
+                task.CheckCancelled();
+                task.Progress.Text = $"Chunk {c + 1}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(j, false)}/{ValueScannerUtils.ByteFormatter.ToString(scanLen, false)})";
+                task.Progress.CompletionState.OnProgress(ChunkSize);
 
                 uint baseAddress = (uint) (addr + j);
-                int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(ChunkSize, (uint) Math.Max((int) scanLen - j, 0)));
+                int cbRead = await connection.ReadBytes(baseAddress, buffer, 0, Math.Min(ChunkSize, (uint) Math.Max((int) scanLen - j, 0))).ConfigureAwait(false);
                 if (cbRead > 0) {
-                    this.ProcessMemoryBlockForFirstScan(Math.Max(cbRead - this.cbDataType, 0), align, buffer, baseAddress);
+                    this.ProcessMemoryBlockForFirstScan(baseAddress, buffer, cbRead, align);
                 }
             }
         }
     }
 
-    private void ProcessMemoryBlockForFirstScan(int blockEnd, int align, byte[] buffer, uint baseAddress) {
+    private void ProcessMemoryBlockForFirstScan(uint baseAddress, byte[] buffer, int count, int align) {
+        int cbData = this.cbDataType;
+        bool checkBounds = align < cbData;
         if (this.dataType.IsNumeric()) {
-            for (int i = 0; i < blockEnd; i += align) {
-                if (i >= buffer.Length || (buffer.Length - i) < this.cbDataType) {
+            for (int i = 0; i < count; i += align) {
+                if (checkBounds && (buffer.Length - i) < cbData) {
                     break;
                 }
 
                 object? matchBoxed;
-                ReadOnlySpan<byte> span = new ReadOnlySpan<byte>(buffer, i, this.cbDataType);
+                ReadOnlySpan<byte> span = new ReadOnlySpan<byte>(buffer, i, cbData);
                 switch (this.dataType) {
                     case DataType.Byte:   matchBoxed = this.CompareInt<byte>(span); break;
                     case DataType.Int16:  matchBoxed = this.CompareInt<short>(span); break;
@@ -245,39 +250,39 @@ public class ScanningContext {
                 }
 
                 if (matchBoxed != null) {
-                    this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, baseAddress + (uint) i, this.dataType, NumericDisplayType.Normal, NumericDisplayType.Normal.AsString(this.dataType, matchBoxed)));
+                    NumericDisplayType ndt = this.isIntInputHexadecimal && this.dataType.IsInteger() ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
+                    this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, baseAddress + (uint) i, this.dataType, ndt, ndt.AsString(this.dataType, matchBoxed)));
                 }
             }
         }
         else if (this.dataType == DataType.String) {
-            for (int i = 0; i < blockEnd; i += align) {
-                if (i >= buffer.Length || (buffer.Length - i) < this.cbDataType) {
+            for (int i = 0; i < count; i += align) {
+                if (checkBounds && (buffer.Length - i) < cbData) {
                     break;
                 }
 
                 string readText;
                 switch (this.stringScanOption) {
                     case StringType.ASCII: {
-                        readText = Encoding.ASCII.GetString(new ReadOnlySpan<byte>(buffer, i, this.cbDataType));
+                        readText = Encoding.ASCII.GetString(new ReadOnlySpan<byte>(buffer, i, cbData));
                         break;
                     }
                     case StringType.UTF8: {
-                        readText = Encoding.UTF8.GetString(new ReadOnlySpan<byte>(buffer, i, this.cbDataType));
+                        readText = Encoding.UTF8.GetString(new ReadOnlySpan<byte>(buffer, i, cbData));
                         break;
                     }
                     case StringType.UTF16: {
-                        readText = Encoding.Unicode.GetString(new ReadOnlySpan<byte>(buffer, i, this.cbDataType));
+                        readText = Encoding.Unicode.GetString(new ReadOnlySpan<byte>(buffer, i, cbData));
                         break;
                     }
                     case StringType.UTF32: {
-                        readText = Encoding.UTF32.GetString(new ReadOnlySpan<byte>(buffer, i, this.cbDataType));
+                        readText = Encoding.UTF32.GetString(new ReadOnlySpan<byte>(buffer, i, cbData));
                         break;
                     }
                     default: throw new ArgumentOutOfRangeException();
                 }
 
-                // TODO: string comparison customisation
-                if (readText.Equals(this.inputA)) {
+                if (readText.Equals(this.inputA, this.stringComparison)) {
                     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, baseAddress + (uint) i, this.dataType, NumericDisplayType.Normal, readText));
                 }
             }
@@ -294,13 +299,13 @@ public class ScanningContext {
     /// <param name="connection">The connection to read values from</param>
     /// <param name="srcList">The source list of items</param>
     public async Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList) {
-        IActivityProgress activity = ActivityManager.Instance.GetCurrentProgressOrEmpty();
+        ActivityTask task = ActivityManager.Instance.CurrentTask;
         if (this.dataType.IsNumeric()) {
-            using (activity.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
+            using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
                 for (int i = 0; i < srcList.Count; i++) {
-                    ActivityManager.Instance.CurrentTask.CheckCancelled();
-                    activity.Text = $"Reading values {i + 1}/{srcList.Count}";
-                    activity.CompletionState.OnProgress(1.0);
+                    task.CheckCancelled();
+                    task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
+                    task.Progress.CompletionState.OnProgress(1.0);
 
                     ScanResultViewModel res = srcList[i];
                     
@@ -322,8 +327,6 @@ public class ScanningContext {
                         searchB = this.numericInputB;
                     }
                     
-                    res.PreviousValue = res.CurrentValue;
-
                     byte[] buffer = new byte[this.cbDataType];
                     await connection.ReadBytes(res.Address, buffer, 0, (uint) buffer.Length);
 
@@ -339,18 +342,19 @@ public class ScanningContext {
                     }
 
                     if (matchBoxed != null) {
-                        res.CurrentValue = res.NumericDisplayType.AsString(res.DataType, matchBoxed);
+                        res.PreviousValue = res.CurrentValue;
+                        res.CurrentValue = res.NumericDisplayType.AsString(this.dataType, matchBoxed);
                         this.ResultFound?.Invoke(this, res);
                     }
                 }
             }
         }
         else if (this.dataType == DataType.String) {
-            using (activity.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
+            using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
                 for (int i = 0; i < srcList.Count; i++) {
-                    ActivityManager.Instance.CurrentTask.CheckCancelled();
-                    activity.Text = $"Reading values {i + 1}/{srcList.Count}";
-                    activity.CompletionState.OnProgress(1.0);
+                    task.CheckCancelled();
+                    task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
+                    task.Progress.CompletionState.OnProgress(1.0);
 
                     ScanResultViewModel res = srcList[i];
                     string search;
@@ -360,10 +364,11 @@ public class ScanningContext {
                         search = res.PreviousValue;
                     else
                         search = this.inputA;
-
-                    res.PreviousValue = res.CurrentValue;
-                    res.CurrentValue = await MemoryEngine360.ReadAsText(connection, res.Address, res.DataType, res.NumericDisplayType, (uint) res.FirstValue.Length);
-                    if (res.CurrentValue.Equals(search)) {
+                    
+                    string readText = await connection.ReadString(res.Address, (uint) res.FirstValue.Length);
+                    if (readText.Equals(search, this.stringComparison)) {
+                        res.PreviousValue = res.CurrentValue;
+                        res.CurrentValue = readText;
                         this.ResultFound?.Invoke(this, res);
                     }
                 }

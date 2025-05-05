@@ -43,11 +43,24 @@ public class EditSavedAddressDataTypeCommand : Command {
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-            result.DisplayAsHex = info.DisplayAsHex;
-            result.DisplayAsUnsigned = info.DisplayAsUnsigned;
-            result.DataType = info.DataType;
+            if (info.DataType.IsNumeric()) {
+                if (info.DisplayAsHex) {
+                    result.NumericDisplayType = NumericDisplayType.Hexadecimal;
+                }
+                else if (info.DisplayAsUnsigned) {
+                    result.NumericDisplayType = NumericDisplayType.Unsigned;
+                }
+                else {
+                    result.NumericDisplayType = NumericDisplayType.Normal;
+                }
+            }
+            else {
+                result.NumericDisplayType = NumericDisplayType.Normal;
+            }
+            
             result.StringType = info.StringScanOption;
             result.StringLength = info.StringLength;
+            result.DataType = info.DataType;
             result.ScanningProcessor.RefreshSavedAddressesLater();
         }
     }
@@ -100,6 +113,10 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
             if (this.displayAsHex == value)
                 return;
 
+            if (value && this.DisplayAsUnsigned) {
+                this.DisplayAsUnsigned = false;
+            }
+            
             this.displayAsHex = value;
             this.DisplayAsHexChanged?.Invoke(this);
         }
@@ -111,6 +128,10 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
             if (this.displayAsSigned == value)
                 return;
 
+            if (value && this.DisplayAsHex) {
+                this.DisplayAsHex = false;
+            }
+            
             this.displayAsSigned = value;
             this.DisplayAsUnsignedChanged?.Invoke(this);
         }
@@ -127,8 +148,8 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
 
     public SavedResultDataTypeUserInputInfo(SavedAddressViewModel result) {
         this.stringLength = result.StringLength;
-        this.displayAsHex = result.DisplayAsHex;
-        this.displayAsSigned = result.DisplayAsUnsigned;
+        this.displayAsHex = result.NumericDisplayType == NumericDisplayType.Hexadecimal;
+        this.displayAsSigned = result.NumericDisplayType == NumericDisplayType.Unsigned;
         this.dataType = result.DataType;
         this.stringScanOption = result.StringType;
     }
