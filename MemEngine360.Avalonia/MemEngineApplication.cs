@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -97,7 +98,10 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     protected override async Task OnSetupApplication(IApplicationStartupProgress progress) {
         await base.OnSetupApplication(progress);
         this.PluginLoader.AddCorePlugin(typeof(PluginXbox360Xbdm));
-        this.PluginLoader.AddCorePlugin(typeof(PluginXbox360XDevkit));
+        
+        if (OperatingSystem.IsWindows()) {
+            this.PluginLoader.AddCorePlugin(typeof(PluginXbox360XDevkit));
+        }
     }
 
     protected override void RegisterServices(ServiceManager manager) {

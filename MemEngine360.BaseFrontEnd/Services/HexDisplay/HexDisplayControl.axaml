@@ -106,7 +106,7 @@
                                    VerticalAlignment="Center" HorizontalAlignment="Center"/>
                     </Grid>
                 </Grid>
-                <Grid Height="24" ColumnDefinitions="115,3,85,3,80,3,Auto,3,Auto" Margin="3,0">
+                <Grid Height="24" ColumnDefinitions="115,3,85,3,80,3,Auto,3,Auto,3,Auto" Margin="3,0">
                     <ToggleButton x:Name="PART_ToggleAutoRefreshButton" Content="Stop Auto Refresh"/>
                     <TextBox Grid.Column="2" FontFamily="{StaticResource FontOxanium}" x:Name="PART_AutoRefresh_From" VerticalAlignment="Center" VerticalContentAlignment="Center" 
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
@@ -116,6 +116,7 @@
                              Watermark="Count"/>
                     <avc:IconButton Grid.Column="6" x:Name="PART_SetAutoRefreshRangeAsSelection" Icon="{x:Static icons:SimpleIcons.CopyHexSelectionToRefreshRangeIcon}" ToolTip.Tip="Set as current selection. Saves typing out by hand"/>
                     <avc:IconButton Grid.Column="8" x:Name="PART_ClearAutoRefreshRange" Icon="{x:Static icons:SimpleIcons.ClearHexRefreshRangeIcon}" ToolTip.Tip="Clears these two fields for the auto refresh"/>
+                    <CheckBox Grid.Column="10" x:Name="PART_ToggleShowChanges" IsChecked="True" Content="Show Changes" ToolTip.Tip="Shows an outline of changes in bytes. This works during both auto-refresh and manual refresh"/>
                 </Grid>
             </StackPanel>
         </Border>

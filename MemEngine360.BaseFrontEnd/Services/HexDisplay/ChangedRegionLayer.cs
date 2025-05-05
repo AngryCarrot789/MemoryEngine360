@@ -18,39 +18,46 @@
 // 
 
 using Avalonia;
+using Avalonia.Animation;
+using Avalonia.Animation.Easings;
+using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Styling;
 using AvaloniaHex.Core.Document;
 using AvaloniaHex.Editing;
 using AvaloniaHex.Rendering;
+using PFXToolKitUI;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
 
-public class AutoRefreshLayer : Layer {
+ // 8303A000, 4000
+
+public class ChangedRegionLayer : Layer {
     private readonly Caret theCaret;
     private BitRange theRange;
 
     /// <summary>
     /// Defines the <see cref="PrimarySelectionBorder"/> property.
     /// </summary>
-    public static readonly StyledProperty<IPen?> PrimarySelectionBorderProperty = AvaloniaProperty.Register<AutoRefreshLayer, IPen?>(nameof(PrimarySelectionBorder), new Pen(Brushes.DarkGreen));
+    public static readonly StyledProperty<IPen?> PrimarySelectionBorderProperty = AvaloniaProperty.Register<ChangedRegionLayer, IPen?>(nameof(PrimarySelectionBorder), new Pen(Brushes.Orange));
 
     /// <summary>
     /// Defines the <see cref="PrimarySelectionBorder"/> property.
     /// </summary>
-    public static readonly StyledProperty<IBrush?> PrimarySelectionBackgroundProperty = AvaloniaProperty.Register<AutoRefreshLayer, IBrush?>(nameof(PrimarySelectionBackground), new SolidColorBrush(Colors.DarkGreen, 0.5D));
+    public static readonly StyledProperty<IBrush?> PrimarySelectionBackgroundProperty = AvaloniaProperty.Register<ChangedRegionLayer, IBrush?>(nameof(PrimarySelectionBackground), new SolidColorBrush(Colors.Orange, 0.5D));
 
     /// <summary>
     /// Defines the <see cref="PrimarySelectionBorder"/> property.
     /// </summary>
-    public static readonly StyledProperty<IPen?> SecondarySelectionBorderProperty = AvaloniaProperty.Register<AutoRefreshLayer, IPen?>(nameof(PrimarySelectionBorder), new Pen(Brushes.DarkGreen));
+    public static readonly StyledProperty<IPen?> SecondarySelectionBorderProperty = AvaloniaProperty.Register<ChangedRegionLayer, IPen?>(nameof(PrimarySelectionBorder), new Pen(Brushes.Orange));
 
     /// <summary>
     /// Defines the <see cref="PrimarySelectionBorder"/> property.
     /// </summary>
-    public static readonly StyledProperty<IBrush?> SecondarySelectionBackgroundProperty = AvaloniaProperty.Register<AutoRefreshLayer, IBrush?>(nameof(SecondarySelectionBackgroundProperty), new SolidColorBrush(Colors.DarkGreen, 0.25D));
+    public static readonly StyledProperty<IBrush?> SecondarySelectionBackgroundProperty = AvaloniaProperty.Register<ChangedRegionLayer, IBrush?>(nameof(SecondarySelectionBackgroundProperty), new SolidColorBrush(Colors.Orange, 0.25D));
 
-    public static readonly StyledProperty<bool> IsActiveProperty = AvaloniaProperty.Register<AutoRefreshLayer, bool>(nameof(IsActive));
-    
+    public static readonly StyledProperty<bool> IsActiveProperty = AvaloniaProperty.Register<ChangedRegionLayer, bool>(nameof(IsActive));
+
     /// <summary>
     /// Gets or sets the pen used for drawing the border of the selection in the active column.
     /// </summary>
@@ -91,22 +98,64 @@ public class AutoRefreshLayer : Layer {
     /// <inheritdoc />
     public override LayerRenderMoments UpdateMoments => LayerRenderMoments.NoResizeRearrange;
 
-    public AutoRefreshLayer(Caret theCaret) {
+    private CancellationTokenSource? cts;
+    private readonly HexEditorChangeManager manager;
+
+    public ChangedRegionLayer(HexEditorChangeManager manager, Caret theCaret) {
         this.theCaret = theCaret;
+        this.manager = manager;
     }
 
-    static AutoRefreshLayer() {
-        AffectsRender<AutoRefreshLayer>(
-            PrimarySelectionBorderProperty, 
-            PrimarySelectionBackgroundProperty, 
-            SecondarySelectionBorderProperty, 
-            SecondarySelectionBackgroundProperty, 
+    static ChangedRegionLayer() {
+        AffectsRender<ChangedRegionLayer>(
+            PrimarySelectionBorderProperty,
+            PrimarySelectionBackgroundProperty,
+            SecondarySelectionBorderProperty,
+            SecondarySelectionBackgroundProperty,
             IsActiveProperty);
     }
 
     public void SetRange(BitRange newRange) {
         this.theRange = newRange;
         this.InvalidateVisual();
+        if (this.cts != null) {
+            this.cts.Cancel();
+            this.cts.Dispose();
+            this.cts = null;
+        }
+
+        this.cts = new CancellationTokenSource();
+        Animation animation = new Animation {
+            Duration = TimeSpan.FromSeconds(1.5), // 0.2 seconds grace period for removing layer from UI
+            Easing = new SineEaseOut(), FillMode = FillMode.Forward,
+            Children = {
+                new KeyFrame {
+                    Cue = new Cue(0),
+                    Setters = {
+                        new Setter(Control.OpacityProperty, 1.0)
+                    }
+                },
+                new KeyFrame {
+                    Cue = new Cue(1),
+                    Setters = {
+                        new Setter(Control.OpacityProperty, 0.0)
+                    }
+                }
+            }
+        };
+        
+        CancellationToken token = this.cts.Token;
+        animation.RunAsync(this, token).ContinueWith(async (t) => {
+            if (t.IsCanceled || token.IsCancellationRequested) {
+                return;
+            }
+            
+            await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                this.cts?.Dispose();
+                this.cts = null;
+                this.manager.OnChangeExpired(this);
+            });
+        }, TaskContinuationOptions.ExecuteSynchronously);
     }
 
     /// <inheritdoc />
