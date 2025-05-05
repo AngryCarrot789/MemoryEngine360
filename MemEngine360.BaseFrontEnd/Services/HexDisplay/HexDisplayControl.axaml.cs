@@ -18,6 +18,7 @@
 // 
 
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -37,11 +38,12 @@ using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
+using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Commands;
 
-namespace MemEngine360.Avalonia.Services.HexDisplay;
+namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
 
 public partial class HexDisplayControl : WindowingContentControl, IHexDisplayView {
     public static readonly StyledProperty<HexDisplayInfo?> HexDisplayInfoProperty = AvaloniaProperty.Register<HexDisplayControl, HexDisplayInfo?>("HexDisplayInfo");
@@ -97,7 +99,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     private readonly AvaloniaPropertyToDataParameterBinder<HexDisplayInfo> captionBinder = new AvaloniaPropertyToDataParameterBinder<HexDisplayInfo>(WindowTitleProperty, HexDisplayInfo.CaptionParameter);
 
-    private readonly IBinder<HexDisplayInfo> addrBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.StartAddressParameter, (p) => ((uint) p!).ToString("X8"), async (x) => {
+    private readonly IBinder<HexDisplayInfo> addrBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.StartAddressParameter, (p) => p!.ToString("X8"), async (t, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
             return value;
         }
@@ -111,7 +113,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         return default;
     });
 
-    private readonly IBinder<HexDisplayInfo> lenBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.LengthParameter, (p) => ((uint) p!).ToString("X8"), async (x) => {
+    private readonly IBinder<HexDisplayInfo> lenBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.LengthParameter, (p) => p!.ToString("X8"), async (t, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
             return value;
         }
@@ -125,6 +127,10 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         return default;
     });
 
+
+    private readonly IBinder<HexDisplayInfo> autoRefreshAddrBinder;
+    private readonly IBinder<HexDisplayInfo> autoRefreshLenBinder;
+
     private readonly EventPropertyEnumBinder<Endianness> endiannessBinder = new EventPropertyEnumBinder<Endianness>(typeof(HexDisplayControl), nameof(TheEndiannessChanged), (x) => ((HexDisplayControl) x).TheEndianness, (x, y) => ((HexDisplayControl) x).TheEndianness = y);
 
     private readonly AsyncRelayCommand readAllCommand, refreshDataCommand, uploadDataCommand;
@@ -132,17 +138,24 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
     private uint actualStartAddress;
     private byte[]? myCurrData;
 
-    private ulong lastInspectorIndex = ulong.MaxValue;
+    private CancellationTokenSource? autoRefreshCts;
+    private ActivityTask? currentAutoRefresh;
+
+    private readonly AutoRefreshLayer autoRefreshLayer;
+    private IDisposable? currBusyToken;
 
     public HexDisplayControl() {
         this.InitializeComponent();
         this.captionBinder.AttachControl(this);
         this.addrBinder.AttachControl(this.PART_AddressTextBox);
         this.lenBinder.AttachControl(this.PART_LengthTextBox);
-        this.PART_HexEditor.HexView.BytesPerLine = 32;
-        this.PART_HexEditor.HexView.Columns.Add(this.myOffsetColumn = new OffsetColumn());
-        this.PART_HexEditor.HexView.Columns.Add(new HexColumn());
-        this.PART_HexEditor.HexView.Columns.Add(new AsciiColumn());
+
+        HexView view = this.PART_HexEditor.HexView;
+        view.BytesPerLine = 32;
+        view.Columns.Add(this.myOffsetColumn = new OffsetColumn());
+        view.Columns.Add(new HexColumn());
+        view.Columns.Add(new AsciiColumn());
+        view.Layers.InsertBefore<TextLayer>(this.autoRefreshLayer = new AutoRefreshLayer(this.PART_HexEditor.Caret));
 
         this.PART_DisplayIntAsHex.IsCheckedChanged += (sender, args) => this.UpdateDataInspector();
 
@@ -153,11 +166,14 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_CancelButton.Click += this.OnCancelButtonClicked;
         this.readAllCommand = new AsyncRelayCommand(async () => {
             await this.ReadAllFromConsoleCommand();
-        });
+        }, () => this.currentAutoRefresh == null);
 
         this.refreshDataCommand = new AsyncRelayCommand(async () => {
             await this.ReloadSelectionFromConsole();
         }, () => {
+            if (this.currentAutoRefresh != null)
+                return false;
+
             BitRange selection = this.SelectionRange;
             return selection.ByteLength > 0 && this.myCurrData != null && !this.PART_HexEditor.Document!.IsReadOnly;
         });
@@ -165,6 +181,9 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.uploadDataCommand = new AsyncRelayCommand(async () => {
             await this.UploadSelectionToConsoleCommand();
         }, () => {
+            if (this.currentAutoRefresh != null)
+                return false;
+
             BitRange selection = this.SelectionRange;
             return selection.ByteLength > 0 && this.myCurrData != null && !this.PART_HexEditor.Document!.IsReadOnly;
         });
@@ -177,27 +196,226 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_HexEditor.Caret.PrimaryColumnChanged += (sender, args) => this.UpdateCaretText();
         this.PART_HexEditor.Selection.RangeChanged += (sender, args) => this.UpdateSelectionText();
 
-        this.PART_BtnFwdInt8.Click += (s, e) => this.MoveCursorForDataType(1); 
-        this.PART_BtnFwdInt16.Click += (s, e) => this.MoveCursorForDataType(2); 
-        this.PART_BtnFwdInt32.Click += (s, e) => this.MoveCursorForDataType(4); 
-        this.PART_BtnFwdInt64.Click += (s, e) => this.MoveCursorForDataType(8); 
-        this.PART_BtnBackInt8.Click += (s, e) => this.MoveCursorForDataType(-1); 
-        this.PART_BtnBackInt16.Click += (s, e) => this.MoveCursorForDataType(-2); 
-        this.PART_BtnBackInt32.Click += (s, e) => this.MoveCursorForDataType(-4); 
-        this.PART_BtnBackInt64.Click += (s, e) => this.MoveCursorForDataType(-8); 
-        
+        this.PART_BtnFwdInt8.Click += (s, e) => this.MoveCursorForDataType(1);
+        this.PART_BtnFwdInt16.Click += (s, e) => this.MoveCursorForDataType(2);
+        this.PART_BtnFwdInt32.Click += (s, e) => this.MoveCursorForDataType(4);
+        this.PART_BtnFwdInt64.Click += (s, e) => this.MoveCursorForDataType(8);
+        this.PART_BtnBackInt8.Click += (s, e) => this.MoveCursorForDataType(-1);
+        this.PART_BtnBackInt16.Click += (s, e) => this.MoveCursorForDataType(-2);
+        this.PART_BtnBackInt32.Click += (s, e) => this.MoveCursorForDataType(-4);
+        this.PART_BtnBackInt64.Click += (s, e) => this.MoveCursorForDataType(-8);
+
         this.PART_BtnGoToPointerInt32.Click += (s, e) => this.NavigateToPointer();
+
+        this.PART_SetAutoRefreshRangeAsSelection.Click += (s, e) => {
+            BitRange selection = this.SelectionRange;
+            this.HexDisplayInfo!.AutoRefreshStartAddress = (uint) (this.actualStartAddress + selection.Start.ByteIndex);
+            this.HexDisplayInfo!.AutoRefreshLength = (uint) selection.ByteLength;
+        };
+
+        this.PART_ClearAutoRefreshRange.Click += (s, e) => {
+            this.HexDisplayInfo!.AutoRefreshStartAddress = 0;
+            this.HexDisplayInfo!.AutoRefreshLength = 0;
+        };
+        
+        this.PART_ToggleAutoRefreshButton.Command = new AsyncRelayCommand(async () => {
+            if (this.currentAutoRefresh != null) {
+                // We are running, so stop it
+                if (!this.currentAutoRefresh.TryCancel()) {
+                    Debug.Fail("!!! couldn't cancel");
+                    return;
+                }
+
+                await this.currentAutoRefresh;
+            }
+            else {
+                if (this.autoRefreshCts != null)
+                    throw new Exception("App state is weird...");
+
+                HexDisplayInfo? info = this.HexDisplayInfo;
+                if (info == null)
+                    return;
+
+                uint startAddr = info.AutoRefreshStartAddress;
+                uint startAddrRel2Doc = startAddr - this.actualStartAddress;
+                uint countBytes = info.AutoRefreshLength;
+                if (startAddr < this.actualStartAddress || (startAddrRel2Doc + countBytes) >= this.DocumentLength) {
+                    await IMessageDialogService.Instance.ShowMessage("Start address", $"Auto refresh span is out of range. Document contains {this.actualStartAddress:X8} to {(this.actualStartAddress + this.DocumentLength - 1):X8}");
+                    this.UpdateAutoRefreshButtonsAndTextBoxes();
+                    return;
+                }
+
+                this.currBusyToken = await info.MemoryEngine360.BeginBusyOperationActivityAsync("Starting auto refresh");
+                if (this.currBusyToken == null) {
+                    this.UpdateAutoRefreshButtonsAndTextBoxes();
+                    return;
+                }
+
+                this.autoRefreshCts = new CancellationTokenSource();
+                this.currentAutoRefresh = ActivityManager.Instance.RunTask(async () => {
+                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                        this.OnAutoRefreshStartedOnMainThread(startAddrRel2Doc, countBytes);
+                    });
+
+                    ActivityTask task = ActivityManager.Instance.CurrentTask;
+                    task.Progress.Caption = "Auto refresh";
+                    task.Progress.Text = "Auto refresh in progress";
+                    task.Progress.IsIndeterminate = true;
+                    while (true) {
+                        if (task.CancellationToken.IsCancellationRequested) {
+                            break;
+                        }
+
+                        IConsoleConnection? connection = info.MemoryEngine360.Connection;
+                        if (info.MemoryEngine360.IsShuttingDown || connection?.IsConnected != true) {
+                            break;
+                        }
+
+                        if (countBytes < 1 || this.myCurrData == null) {
+                            break;
+                        }
+
+                        try {
+                            // if (connection is IHaveIceCubes)
+                            //     await ((IHaveIceCubes) connection).DebugFreeze();
+
+                            byte[] buffer = new byte[countBytes];
+                            await connection.ReadBytes(startAddr, buffer, 0, countBytes, 0x10000, null, task.CancellationToken);
+
+                            // if (connection is IHaveIceCubes)
+                            //     await ((IHaveIceCubes) connection).DebugUnFreeze();
+
+                            await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                                if (!this.PART_HexEditor.Document!.IsReadOnly) {
+                                    this.PART_HexEditor.Document!.WriteBytes(startAddrRel2Doc, buffer);
+                                }
+                                else {
+                                    task.TryCancel();
+                                }
+
+                                this.UpdateSelectionText();
+                                this.UpdateCaretText();
+                                return Task.CompletedTask;
+                            });
+                        }
+                        catch {
+                            Debugger.Break();
+                            break;
+                        }
+
+                        try {
+                            await Task.Delay(50, task.CancellationToken);
+                        }
+                        catch (OperationCanceledException) {
+                            break;
+                        }
+                    }
+
+                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(this.OnAutoRefreshStoppedOnMainThread);
+                }, this.autoRefreshCts);
+            }
+        });
+
+        this.autoRefreshAddrBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.AutoRefreshStartAddressParameter, (p) => p!.ToString("X8"), async (t, x) => {
+            if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
+                int addrRel2Doc = (int) value - (int) this.actualStartAddress;
+                if (addrRel2Doc < 0 || (ulong) addrRel2Doc >= this.DocumentLength) {
+                    await IMessageDialogService.Instance.ShowMessage("Start address", $"Address out of range. Document contains {this.actualStartAddress:X8} to {(this.actualStartAddress + this.DocumentLength - 1):X8}");
+                    return default;
+                }
+
+                uint endAddress = (uint) addrRel2Doc + t.Model.AutoRefreshLength;
+                if (endAddress >= this.DocumentLength) {
+                    await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Address causes scan to exceed document length. Document contains {this.actualStartAddress:X8} to {(this.actualStartAddress + this.DocumentLength - 1):X8}");
+                    return default;
+                }
+
+                return value;
+            }
+            else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
+                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
+            }
+            else {
+                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
+            }
+
+            return default;
+        });
+
+        this.autoRefreshLenBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.AutoRefreshLengthParameter, (p) => p!.ToString("X8"), async (t, x) => {
+            if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
+                if (!uint.TryParse(x, NumberStyles.HexNumber, null, out uint countBytes)) {
+                    await IMessageDialogService.Instance.ShowMessage("Bytes count", "Invalid byte count for auto refresh");
+                    return default;
+                }
+
+                uint endAddress = (t.Model.AutoRefreshStartAddress - this.actualStartAddress) + countBytes;
+                if (endAddress >= this.DocumentLength) {
+                    await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Byte count causes scan to exceed document length. Document contains {this.actualStartAddress:X8} to {(this.actualStartAddress + this.DocumentLength - 1):X8}");
+                    return default;
+                }
+
+                return value;
+            }
+            else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
+                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
+            }
+            else {
+                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
+            }
+
+            return default;
+        });
+
+        this.autoRefreshAddrBinder.AttachControl(this.PART_AutoRefresh_From);
+        this.autoRefreshLenBinder.AttachControl(this.PART_AutoRefresh_Count);
+    }
+
+    // 8303A000
+
+    private void OnAutoRefreshStartedOnMainThread(uint startAddressRel2Doc, uint count) {
+        this.PART_ProgressGrid.IsVisible = true;
+        this.PART_ControlsGrid.IsEnabled = false;
+        this.PART_Progress.IsIndeterminate = true;
+
+        Debug.Assert(this.currBusyToken != null, "Token should not be null");
+
+        this.autoRefreshLayer.SetRange(new BitRange(startAddressRel2Doc, startAddressRel2Doc + count));
+        this.autoRefreshLayer.IsActive = true;
+        this.UpdateAutoRefreshButtonsAndTextBoxes();
+
+        this.readAllCommand.RaiseCanExecuteChanged();
+        this.refreshDataCommand.RaiseCanExecuteChanged();
+        this.uploadDataCommand.RaiseCanExecuteChanged();
+    }
+
+    private void OnAutoRefreshStoppedOnMainThread() {
+        this.PART_ProgressGrid.IsVisible = false;
+        this.PART_ControlsGrid.IsEnabled = true;
+        this.PART_Progress.IsIndeterminate = false;
+
+        this.currBusyToken!.Dispose();
+        this.currBusyToken = null;
+        this.autoRefreshLayer.IsActive = false;
+        this.currentAutoRefresh = null;
+        this.autoRefreshCts!.Dispose();
+        this.autoRefreshCts = null;
+        this.UpdateAutoRefreshButtonsAndTextBoxes();
+
+        this.readAllCommand.RaiseCanExecuteChanged();
+        this.refreshDataCommand.RaiseCanExecuteChanged();
+        this.uploadDataCommand.RaiseCanExecuteChanged();
     }
 
     private bool IsPointerInRange(uint value) {
         return value >= this.actualStartAddress && value < (this.actualStartAddress + this.DocumentLength);
     }
-    
+
     private void NavigateToPointer() {
         if (this.myCurrData == null) {
             return;
         }
-        
+
         ulong caretIndex = this.SelectionRange.Start.ByteIndex;
         bool displayAsLE = this.TheEndianness == Endianness.LittleEndian;
         int cbRemaining = this.myCurrData.Length - (int) caretIndex;
@@ -216,7 +434,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         BitLocation caret = this.CaretLocation;
         this.MoveCursor((long) caret.ByteIndex + incr, len);
     }
-    
+
     private void MoveCursor(long location, long selectionLength) {
         BitLocation caret = new BitLocation((ulong) Math.Clamp(location, 0, (long) this.DocumentLength));
         this.CaretLocation = caret;
@@ -225,7 +443,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     public async Task ReadAllFromConsoleCommand() {
         HexDisplayInfo? info = this.HexDisplayInfo;
-        if (info == null) {
+        if (info == null || this.currentAutoRefresh != null) {
             return;
         }
 
@@ -251,7 +469,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
                     task.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
-                    task.Progress.Text = $"Reading {IValueScanner.ByteFormatter.ToString(info.Length * state.TotalCompletion, false)}/{IValueScanner.ByteFormatter.ToString(info.Length, false)}";
+                    task.Progress.Text = $"Reading {ValueScannerUtils.ByteFormatter.ToString(info.Length * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(info.Length, false)}";
                 };
 
                 // Update initial text
@@ -287,15 +505,20 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         }
     }
 
-    public async Task ReloadSelectionFromConsole() {
-        HexDisplayInfo? info = this.HexDisplayInfo;
-        if (info == null) {
-            return;
-        }
-
+    public Task ReloadSelectionFromConsole() {
         BitRange selection = this.SelectionRange;
         uint count = (uint) selection.ByteLength;
-        if (count < 1 || this.myCurrData == null || this.PART_HexEditor.Document!.IsReadOnly) {
+        uint start = (uint) selection.Start.ByteIndex;
+        return this.ReloadSelectionFromConsole(start, count);
+    }
+
+    public async Task ReloadSelectionFromConsole(uint startRel2Doc, uint length) {
+        HexDisplayInfo? info = this.HexDisplayInfo;
+        if (info == null || this.currentAutoRefresh != null) {
+            return;
+        }
+        
+        if (length < 1 || this.myCurrData == null || this.PART_HexEditor.Document!.IsReadOnly) {
             return;
         }
 
@@ -303,7 +526,6 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_ControlsGrid.IsEnabled = false;
         this.PART_Progress.IsIndeterminate = true;
 
-        uint start = (uint) selection.Start.ByteIndex;
         byte[]? readBuffer = await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             return await ActivityManager.Instance.RunTask(async () => {
@@ -316,14 +538,14 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
                     task.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
-                    task.Progress.Text = $"Reading {IValueScanner.ByteFormatter.ToString(count * state.TotalCompletion, false)}/{IValueScanner.ByteFormatter.ToString(count, false)}";
+                    task.Progress.Text = $"Reading {ValueScannerUtils.ByteFormatter.ToString(length * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(length, false)}";
                 };
 
                 // Update initial text
                 completion.OnCompletionValueChanged();
 
-                byte[] buffer = new byte[count];
-                await c.ReadBytes(this.actualStartAddress + start, buffer, 0, count, 0x10000, completion, task.CancellationToken);
+                byte[] buffer = new byte[length];
+                await c.ReadBytes(this.actualStartAddress + startRel2Doc, buffer, 0, length, 0x10000, completion, task.CancellationToken);
                 if (c is IHaveIceCubes)
                     await ((IHaveIceCubes) c).DebugUnFreeze();
                 return buffer;
@@ -335,7 +557,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_Progress.IsIndeterminate = false;
 
         if (readBuffer != null) {
-            this.PART_HexEditor.Document!.WriteBytes(start, readBuffer);
+            this.PART_HexEditor.Document!.WriteBytes(startRel2Doc, readBuffer);
         }
 
         this.UpdateSelectionText();
@@ -344,7 +566,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     public async Task UploadSelectionToConsoleCommand() {
         HexDisplayInfo? info = this.HexDisplayInfo;
-        if (info == null) {
+        if (info == null || this.currentAutoRefresh != null) {
             return;
         }
 
@@ -376,7 +598,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
                     task.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
-                    task.Progress.Text = $"Writing {IValueScanner.ByteFormatter.ToString(selection.ByteLength * state.TotalCompletion, false)}/{IValueScanner.ByteFormatter.ToString(selection.ByteLength, false)}";
+                    task.Progress.Text = $"Writing {ValueScannerUtils.ByteFormatter.ToString(selection.ByteLength * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(selection.ByteLength, false)}";
                 };
 
                 // Update initial text
@@ -405,6 +627,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         }
 
         this.UpdateDataInspector();
+        this.UpdateAutoRefreshSelectionDependentShit();
     }
 
     private void UpdateCaretText() {
@@ -412,6 +635,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         BitLocation pos = caret.Location;
         this.PART_CaretText.Text = $"{(this.actualStartAddress + pos.ByteIndex):X8} ({pos.ByteIndex:X} from start)";
         this.UpdateDataInspector();
+        this.UpdateAutoRefreshSelectionDependentShit();
     }
 
     static HexDisplayControl() {
@@ -440,13 +664,38 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.captionBinder.SwitchModel(newData);
         this.addrBinder.SwitchModel(newData);
         this.lenBinder.SwitchModel(newData);
+        this.autoRefreshAddrBinder.SwitchModel(newData);
+        this.autoRefreshLenBinder.SwitchModel(newData);
+
+        if (oldData != null) {
+            HexDisplayInfo.AutoRefreshStartAddressParameter.RemoveValueChangedHandler(oldData, this.OnARStartOrCountParamChanged);
+            HexDisplayInfo.AutoRefreshLengthParameter.RemoveValueChangedHandler(oldData, this.OnARStartOrCountParamChanged);
+        }
+        
+        if (newData != null) {
+            HexDisplayInfo.AutoRefreshStartAddressParameter.AddValueChangedHandler(newData, this.OnARStartOrCountParamChanged);
+            HexDisplayInfo.AutoRefreshLengthParameter.AddValueChangedHandler(newData, this.OnARStartOrCountParamChanged);
+        }
+        
         if (newData != null) {
             this.PART_CancelButton.Focus();
         }
     }
 
+    private void OnARStartOrCountParamChanged(DataParameter parameter, ITransferableData owner) {
+        this.UpdateARLRange();
+    }
+
     private void OnCancelButtonClicked(object? sender, RoutedEventArgs e) {
         this.Window!.Close();
+    }
+
+    private void UpdateARLRange() {
+        HexDisplayInfo? info = this.HexDisplayInfo;
+        if (info != null) {
+            BitRange range = new BitRange(info.AutoRefreshStartAddress - this.actualStartAddress, (info.AutoRefreshStartAddress + info.AutoRefreshLength) - this.actualStartAddress);
+            this.autoRefreshLayer.SetRange(range);
+        }
     }
 
     private void UpdateDataInspector() {
@@ -463,7 +712,6 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         // MSB                                 LSB
 
         this.lastEndianness = this.theEndianness;
-        this.lastInspectorIndex = caretIndex;
 
         // The console is big-endian. If we want to display as little endian, we need to reverse the bytes
         bool displayAsLE = this.TheEndianness == Endianness.LittleEndian;
@@ -500,5 +748,21 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_CharUTF32.Text = Encoding.UTF32.GetString(new ReadOnlySpan<byte>(ref Unsafe.As<uint, byte>(ref val32)));
 
         this.PART_BtnGoToPointerInt32.IsEnabled = this.IsPointerInRange(val32);
+    }
+
+    private void UpdateAutoRefreshButtonsAndTextBoxes() {
+        bool isRunning = this.currentAutoRefresh != null;
+
+        this.PART_ToggleAutoRefreshButton.Content = isRunning ? "Stop Auto Refresh" : "Start Auto Refresh";
+        this.PART_ToggleAutoRefreshButton.IsChecked = isRunning;
+        this.PART_AutoRefresh_From.IsEnabled = !isRunning;
+        this.PART_AutoRefresh_Count.IsEnabled = !isRunning;
+        ((AsyncRelayCommand) this.PART_ToggleAutoRefreshButton.Command!).RaiseCanExecuteChanged();
+        this.UpdateAutoRefreshSelectionDependentShit();
+    }
+
+    private void UpdateAutoRefreshSelectionDependentShit() {
+        this.PART_SetAutoRefreshRangeAsSelection.IsEnabled = this.currentAutoRefresh == null && this.SelectionRange.ByteLength > 0;
+        this.PART_ClearAutoRefreshRange.IsEnabled = this.currentAutoRefresh == null;
     }
 }

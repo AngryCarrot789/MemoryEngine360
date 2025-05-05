@@ -2,10 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:local="clr-namespace:MemEngine360.Avalonia.MemRegions"
              xmlns:engine="clr-namespace:MemEngine360.XboxInfo;assembly=MemEngine360"
+             xmlns:memRegions="clr-namespace:MemEngine360.BaseFrontEnd.MemRegions"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="MemEngine360.Avalonia.MemRegions.XboxMemoryRegionViewerUIControl">
+             x:Class="MemEngine360.BaseFrontEnd.MemRegions.XboxMemoryRegionViewerUIControl">
     <DataGrid x:Name="PART_DataGrid" Background="Transparent" BorderThickness="0" CanUserResizeColumns="True">
         <DataGrid.Columns>
             <DataGridTextColumn x:DataType="{x:Type engine:MemoryRegionViewModel}" Width="100"
@@ -14,7 +14,7 @@
 
             <DataGridTextColumn x:DataType="{x:Type engine:MemoryRegionViewModel}" Width="150"
                                 Header="Size" CanUserResize="True" IsReadOnly="True"
-                                Binding="{Binding Size, Mode=OneTime, Converter={x:Static local:USizeToTextConverter.Instance}}"/>
+                                Binding="{Binding Size, Mode=OneTime, Converter={x:Static memRegions:USizeToTextConverter.Instance}}"/>
 
             <DataGridTextColumn x:DataType="{x:Type engine:MemoryRegionViewModel}" Width="100"
                                 Header="Protection" CanUserResize="True" IsReadOnly="True"

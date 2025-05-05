@@ -3,11 +3,10 @@
                            xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                            xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                            xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
-                           xmlns:ss="clr-namespace:MemEngine360.Avalonia.Services"
                            xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
-                           xmlns:connectivity="clr-namespace:MemEngine360.Avalonia.Services.Connectivity"
+                           xmlns:conn="clr-namespace:MemEngine360.BaseFrontEnd.Services.Connectivity"
                            mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-                           x:Class="MemEngine360.Avalonia.Services.Connectivity.ConnectToConsoleView"
+                           x:Class="MemEngine360.BaseFrontEnd.Services.Connectivity.ConnectToConsoleView"
                            WindowBorderBrush="DodgerBlue"
                            WindowTitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}"
                            WindowTitle="Connect to a console">
@@ -113,7 +112,7 @@
                                    FontFamily="{StaticResource FontOxanium}"/>
                     </DockPanel>
                 </Border>
-                <connectivity:ConsoleTypeListBox x:Name="PART_ListBox" 
+                <conn:ConsoleTypeListBox x:Name="PART_ListBox" 
                                                  BorderThickness="0"
                                                  FontFamily="{StaticResource FontOxanium}"
                                                  Background="{DynamicResource ABrush.Tone4.Background.Static}">
@@ -123,7 +122,7 @@
                         </ItemsPanelTemplate>
                     </ListBox.ItemsPanel>
                     <ListBox.ItemContainerTheme>
-                        <ControlTheme TargetType="{x:Type connectivity:ConsoleTypeListBoxItem}">
+                        <ControlTheme TargetType="{x:Type conn:ConsoleTypeListBoxItem}">
                             <Setter Property="Background" Value="{DynamicResource ABrush.Tone5.Background.Static}"/>
                             <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}"/>
                             <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
@@ -161,7 +160,7 @@
                             </Style>
                         </ControlTheme>
                     </ListBox.ItemContainerTheme>
-                </connectivity:ConsoleTypeListBox>
+                </conn:ConsoleTypeListBox>
             </DockPanel>
             <Grid Grid.Column="1">
                 <DockPanel>

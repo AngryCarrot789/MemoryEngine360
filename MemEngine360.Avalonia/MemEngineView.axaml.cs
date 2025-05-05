@@ -27,7 +27,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using MemEngine360.Avalonia.Resources.Icons;
+using MemEngine360.BaseFrontEnd;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI;

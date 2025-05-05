@@ -21,7 +21,7 @@ using System.Globalization;
 using Avalonia.Data.Converters;
 using PFXToolKitUI.Interactivity.Formatting;
 
-namespace MemEngine360.Avalonia.MemRegions;
+namespace MemEngine360.BaseFrontEnd.MemRegions;
 
 public class USizeToTextConverter : IValueConverter {
     public static readonly USizeToTextConverter Instance = new();

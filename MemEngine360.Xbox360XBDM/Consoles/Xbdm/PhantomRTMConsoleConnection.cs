@@ -357,6 +357,8 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
     public async Task<char> ReadChar(uint address) => (char) await this.ReadByte(address);
 
     public async Task<T> ReadValue<T>(uint address) where T : unmanaged {
+        // TODO: write a 2nd ReadBytes that accepts Span<byte>. Then, we can use stackalloc here
+        // Saves annihilating the heap when refreshing 10000s of values
         byte[] buffer = await this.ReadBytes(address, (uint) Unsafe.SizeOf<T>());
         if (BitConverter.IsLittleEndian)
             Array.Reverse(buffer);

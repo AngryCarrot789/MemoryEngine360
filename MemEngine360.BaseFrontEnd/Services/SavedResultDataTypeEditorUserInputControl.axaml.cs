@@ -28,7 +28,7 @@ using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Services.UserInputs;
 using PFXToolKitUI.Services.UserInputs;
 
-namespace MemEngine360.Avalonia.Services;
+namespace MemEngine360.BaseFrontEnd.Services;
 
 public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IUserInputContent {
     public static readonly StyledProperty<uint> StringLengthProperty = AvaloniaProperty.Register<SavedResultDataTypeEditorUserInputControl, uint>(nameof(StringLength));

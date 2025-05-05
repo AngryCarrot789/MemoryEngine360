@@ -26,7 +26,7 @@ using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 
-namespace MemEngine360.Avalonia;
+namespace MemEngine360.BaseFrontEnd;
 
 public class DataGridTextColumnEx : DataGridTextColumn {
     public static readonly StyledProperty<string?> DoubleTapCommandIdProperty = AvaloniaProperty.Register<DataGridTextColumnEx, string?>(nameof(DoubleTapCommandId));

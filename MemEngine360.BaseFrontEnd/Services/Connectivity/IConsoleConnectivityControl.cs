@@ -19,7 +19,7 @@
 
 using MemEngine360.Connections;
 
-namespace MemEngine360.Avalonia.Services.Connectivity;
+namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public interface IConsoleConnectivityControl {
     /// <summary>

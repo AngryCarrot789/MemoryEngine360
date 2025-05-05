@@ -43,7 +43,7 @@ public class ScanningProcessor {
     private uint startAddress, scanLength;
     private uint alignment;
     private bool pauseConsoleDuringScan, scanMemoryPages, isIntInputHexadecimal;
-    private bool useFirstValue, usePreviousValue;
+    private bool nextScanUsesFirstValue, nextScanUsesPreviousValue;
     private FloatScanOption floatScanOption;
     private StringType stringScanOption;
     private DataType dataType;
@@ -186,10 +186,10 @@ public class ScanningProcessor {
     }
 
     public bool UseFirstValueForNextScan {
-        get => this.useFirstValue;
+        get => this.nextScanUsesFirstValue;
         set {
-            if (this.useFirstValue != value) {
-                this.useFirstValue = value;
+            if (this.nextScanUsesFirstValue != value) {
+                this.nextScanUsesFirstValue = value;
                 this.UseFirstValueForNextScanChanged?.Invoke(this);
                 if (value)
                     this.UsePreviousValueForNextScan = false;
@@ -198,10 +198,10 @@ public class ScanningProcessor {
     }
 
     public bool UsePreviousValueForNextScan {
-        get => this.usePreviousValue;
+        get => this.nextScanUsesPreviousValue;
         set {
-            if (this.usePreviousValue != value) {
-                this.usePreviousValue = value;
+            if (this.nextScanUsesPreviousValue != value) {
+                this.nextScanUsesPreviousValue = value;
                 this.UsePreviousValueForNextScanChanged?.Invoke(this);
                 if (value)
                     this.UseFirstValueForNextScan = false;
@@ -366,6 +366,15 @@ public class ScanningProcessor {
         if (this.MemoryEngine360.IsShuttingDown)
             return; // program shutting down before token acquired
 
+        DataType scanningDataType = this.DataType;
+        ScanningContext context = new ScanningContext(this);
+        if (!await context.Setup()) {
+            return;
+        }
+
+        // should be impossible since we obtain the busy token which is required before scanning
+        Debug.Assert(this.isScanning == false, "WTF");
+        
         bool debugFreeze = this.PauseConsoleDuringScan;
         DefaultProgressTracker progress = new DefaultProgressTracker {
             Caption = "Scan", Text = "Beginning scan..."
@@ -390,7 +399,75 @@ public class ScanningProcessor {
             if (connection.IsConnected) {
                 thisTask.CancellationToken.ThrowIfCancellationRequested();
                 try {
-                    result = await this.ScanNextInternal(progress);
+                    context.ResultFound += (sender, model) => {
+                        this.resultBuffer.Enqueue(model);
+                        this.rldaMoveBufferIntoResultList.InvokeAsync();
+                    };
+                    
+                    if (this.hasDoneFirstScan) {
+                        progress.Text = "Accumulating scan results...";
+                        List<ScanResultViewModel> srcList = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                            List<ScanResultViewModel> items = this.ScanResults.ToList();
+                            this.ScanResults.Clear();
+                            return items;
+                        });
+                        
+                        srcList.AddRange(this.resultBuffer);
+                        this.resultBuffer.Clear();
+
+                        bool hasDifferentDataTypes = false;
+                        DataType firstDataType = this.dataType;
+                        if (srcList.Count > 0) {
+                            firstDataType = srcList[0].DataType;
+                            for (int i = 1; i < srcList.Count; i++) {
+                                if (srcList[i].DataType != firstDataType) {
+                                    hasDifferentDataTypes = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (hasDifferentDataTypes) {
+                            await IMessageDialogService.Instance.ShowMessage("Error", "Result list contains results with different data types. This is a weird bug. Cannot continue search");
+                            result = false;
+                        }
+                        else if (firstDataType != scanningDataType) {
+                            await IMessageDialogService.Instance.ShowMessage("Error", $"Search data type is different to the search results. You're searching for {scanningDataType}, but the results contain {firstDataType}");
+                            result = false;
+                        }
+                        else {
+                            progress.Text = "Scanning...";
+
+                            try {
+                                result = true;
+                                await context.PerformNextScan(connection, srcList);
+                            }
+                            catch (OperationCanceledException) {
+                                // ignored
+                            }
+                            catch (Exception e) {
+                                await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing next scan", e.ToString());
+                                result = false;
+                            }
+                        }
+                    }
+                    else {
+                        progress.Text = "Scanning...";
+                        
+                        try {
+                            result = true;
+                            await context.PerformFirstScan(connection);
+                        }
+                        catch (OperationCanceledException) {
+                            // ignored
+                        }
+                        catch (Exception e) {
+                            await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing first scan", e.ToString());
+                            result = false;
+                        }
+                    }
+
+                    this.rldaMoveBufferIntoResultList.InvokeAsync();
                 }
                 catch {
                     Debugger.Break();
@@ -452,74 +529,6 @@ public class ScanningProcessor {
         this.HasDoneFirstScan = false;
         this.UseFirstValueForNextScan = false;
         this.UsePreviousValueForNextScan = false;
-    }
-
-    private async Task<bool> ScanNextInternal(IActivityProgress activity) {
-        if (string.IsNullOrEmpty(this.InputA)) {
-            await IMessageDialogService.Instance.ShowMessage("Input format", this.IsSecondInputRequired ? "'From' input is empty" : "Input is empty");
-            return false;
-        }
-
-        if (this.IsSecondInputRequired && string.IsNullOrEmpty(this.InputB)) {
-            await IMessageDialogService.Instance.ShowMessage("Input format", "'To' input is empty");
-            return false;
-        }
-
-        if (!IValueScanner.Scanners.TryGetValue(this.DataType, out IValueScanner? scanner)) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "Application error: invalid data type");
-            return false;
-        }
-
-        ObservableList<ScanResultViewModel> dstList = new ObservableList<ScanResultViewModel>();
-        ObservableItemProcessor.MakeIndexable(dstList,
-            (sender, index, item) => {
-                if (index != (dstList.Count - 1))
-                    throw new InvalidOperationException("Must use Add, not Insert");
-                this.resultBuffer.Enqueue(item);
-                this.rldaMoveBufferIntoResultList.InvokeAsync();
-            },
-            (sender, index, item) => throw new InvalidOperationException("Cannot remove from the results list"),
-            (sender, oldIdx, newIdx, item) => throw new InvalidOperationException("Cannot move items in the results list"));
-
-        bool result;
-        if (this.hasDoneFirstScan) {
-            activity.Text = "Accumulating scan results...";
-            List<ScanResultViewModel> srcList = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                List<ScanResultViewModel> items = this.ScanResults.ToList();
-                this.ScanResults.Clear();
-                items.AddRange(this.resultBuffer);
-                this.resultBuffer.Clear();
-                return items;
-            });
-
-            activity.Text = "Scanning...";
-            try {
-                result = await Task.Run(() => scanner.PerformNextScan(this, srcList, dstList, activity));
-            }
-            catch (OperationCanceledException) {
-                result = true;
-            }
-            catch (Exception e) {
-                await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing next scan", e.ToString());
-                result = false;
-            }
-        }
-        else {
-            activity.Text = "Scanning...";
-            try {
-                result = await Task.Run(() => scanner.PerformFirstScan(this, dstList, activity));
-            }
-            catch (OperationCanceledException) {
-                result = true;
-            }
-            catch (Exception e) {
-                await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing first scan", e.ToString());
-                result = false;
-            }
-        }
-
-        this.rldaMoveBufferIntoResultList.InvokeAsync();
-        return result;
     }
 
     /// <summary>

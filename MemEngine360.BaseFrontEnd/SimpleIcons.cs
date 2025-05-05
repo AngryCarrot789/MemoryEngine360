@@ -22,7 +22,7 @@ using PFXToolKitUI.Themes;
 using PFXToolKitUI.Themes.Gradients;
 using SkiaSharp;
 
-namespace MemEngine360.Avalonia.Resources.Icons;
+namespace MemEngine360.BaseFrontEnd;
 
 public static class SimpleIcons {
     // public static readonly Icon MemoryIcon = IconManager.Instance.RegisterIconByUri(nameof(SimpleIcons) + "#" + nameof(MemoryIcon), new Uri("avares://MemEngine360-DesktopUI/Resources/Icons/icons8-memory-48.png"));
@@ -139,6 +139,23 @@ public static class SimpleIcons {
                     BrushManager.Instance.CreateConstantLinearGradient([new GradientStop(SKColor.Parse("#008B00")), new GradientStop(SKColor.Parse("#6CC329"), 1.0)], startPoint: new RelativePoint(19.0368F, 4.72589F, RelativeUnit.Absolute), endPoint: new RelativePoint(18.7997F, 12.7852F, RelativeUnit.Absolute))),
                 new GeometryEntry("M25.2779 26.5331C25.297 26.5191 25.3166 26.5014 25.3362 26.4799C25.6986 26.1502 26.2888 25.6302 26.9057 24.8442C27.4384 23.6887 27.1364 21.7477 25.8254 19.0073C23.678 14.5183 19.8028 9.82227 19.8028 9.82227C19.8028 9.82227 19.1108 11.5405 17.5405 14.5183C21.5849 18.1034 24.3901 21.8072 25.2039 23.822C25.8251 25.3598 25.5796 26.2126 25.3362 26.4799C25.3161 26.4982 25.2966 26.5159 25.2779 26.5331Z",
                     BrushManager.Instance.CreateConstantLinearGradient([new GradientStop(SKColor.Parse("#008C00")), new GradientStop(SKColor.Parse("#48BF21"), 1.0)], startPoint: new RelativePoint(21.8812F, 12.6667F, RelativeUnit.Absolute), endPoint: new RelativePoint(19.1553F, 16.4F, RelativeUnit.Absolute))),
+            ],
+            stretch: StretchMode.Uniform);
+    
+    public static readonly Icon CopyHexSelectionToRefreshRangeIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(CopyHexSelectionToRefreshRangeIcon),
+            [
+                new GeometryEntry("M.5.55.5 9.05 2 10.55 4.8358 7.7142 11.0858 13.9642 13.9142 11.1358 7.6642 4.8858 10.5 2.05 9 .55.5.55Z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
+            ],
+            stretch: StretchMode.Uniform);
+    
+    // https://www.svgrepo.com/svg/332278/clear
+    public static readonly Icon ClearHexRefreshRangeIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(ClearHexRefreshRangeIcon),
+            [
+                new GeometryEntry("M42.5056 42.0889l-2.9444-16.9778H40.5556c.8 0 1.4444-.6444 1.4444-1.4444V13c0-.8-.6444-1.4444-1.4444-1.4444H26.8889V1.4444c0-.8-.6444-1.4444-1.4444-1.4444H16.5556c-.8 0-1.4444.6444-1.4444 1.4444v10.1111H1.4444c-.8 0-1.4444.6444-1.4444 1.4444v10.6667c0 .8.6444 1.4444 1.4444 1.4444h.9944l-2.9444 16.9778c-.0167.0833-.0222.1667-.0222.2444 0 .8.6444 1.4444 1.4444 1.4444h40.1667c.0833 0 .1667-.0056.2444-.0222.7889-.1333 1.3167-.8833 1.1778-1.6667zM3.8889 15.4444h15.1111V3.8889h4v11.5556h15.1111v5.7778H3.8889V15.4444zm26 24.4444V31.2222c0-.2444-.2-.4444-.4444-.4444h-2.6667c-.2444 0-.4444.2-.4444.4444v8.6667H15.6667V31.2222c0-.2444-.2-.4444-.4444-.4444h-2.6667c-.2444 0-.4444.2-.4444.4444v8.6667H3.8222l2.5056-14.4444H35.6667l2.5056 14.4444H29.8889z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
             ],
             stretch: StretchMode.Uniform);
 }

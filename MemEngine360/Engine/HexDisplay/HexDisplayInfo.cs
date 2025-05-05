@@ -26,10 +26,12 @@ public class HexDisplayInfo : ITransferableData {
     public static readonly DataParameterString CaptionParameter = DataParameter.Register(new DataParameterString(typeof(HexDisplayInfo), nameof(Caption), "A message here", ValueAccessors.Reflective<string?>(typeof(HexDisplayInfo), nameof(caption))));
     public static readonly DataParameterNumber<uint> StartAddressParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(StartAddress), default(uint), ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(startAddress))));
     public static readonly DataParameterNumber<uint> LengthParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(Length), 0x10000, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(length))));
+    public static readonly DataParameterNumber<uint> AutoRefreshStartAddressParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(AutoRefreshStartAddress), default(uint), ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(autoRefreshStartAddress))));
+    public static readonly DataParameterNumber<uint> AutoRefreshLengthParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(AutoRefreshLength), 0x10000, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(autoRefreshLength))));
 
     private string? caption;
-    private uint startAddress;
-    private uint length;
+    private uint startAddress, autoRefreshStartAddress;
+    private uint length, autoRefreshLength;
 
     public string? Caption {
         get => this.caption;
@@ -44,6 +46,16 @@ public class HexDisplayInfo : ITransferableData {
     public uint Length {
         get => this.length;
         set => DataParameter.SetValueHelper(this, LengthParameter, ref this.length, value);
+    }
+    
+    public uint AutoRefreshStartAddress {
+        get => this.autoRefreshStartAddress;
+        set => DataParameter.SetValueHelper(this, AutoRefreshStartAddressParameter, ref this.autoRefreshStartAddress, value);
+    }
+
+    public uint AutoRefreshLength {
+        get => this.autoRefreshLength;
+        set => DataParameter.SetValueHelper(this, AutoRefreshLengthParameter, ref this.autoRefreshLength, value);
     }
 
     /// <summary>

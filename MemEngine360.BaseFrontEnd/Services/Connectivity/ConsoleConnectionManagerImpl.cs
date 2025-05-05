@@ -21,7 +21,7 @@ using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 
-namespace MemEngine360.Avalonia.Services.Connectivity;
+namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
     public override Task OpenDialog(IMemEngineUI engine, string? focusedTypeId = null) {

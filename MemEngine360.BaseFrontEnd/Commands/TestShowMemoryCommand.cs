@@ -28,7 +28,7 @@ using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Utils.Collections.Observable;
 
-namespace MemEngine360.Avalonia.Commands;
+namespace MemEngine360.BaseFrontEnd.Commands;
 
 public class TestShowMemoryCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {

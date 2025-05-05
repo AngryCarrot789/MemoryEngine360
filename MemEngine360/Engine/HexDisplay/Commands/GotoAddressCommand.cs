@@ -25,6 +25,7 @@ using PFXToolKitUI.Services.UserInputs;
 namespace MemEngine360.Engine.HexDisplay.Commands;
 
 public class GotoAddressCommand : BaseHexEditorCommand {
+    // Some BO2 split screen multiplayer addresses ^-^
     // 83551E10, Primary Reserve Ammo, Int32
     // 83551E4C, Primary Ammo,         Int32
     // 83551F98, Crosshair size,       Float
@@ -37,7 +38,7 @@ public class GotoAddressCommand : BaseHexEditorCommand {
                 if (!uint.TryParse(a.Input, NumberStyles.HexNumber, null, out uint addr))
                     a.Errors.Add("Invalid address");
                 else if (addr >= (view.CurrentStartOffset + (len = view.DocumentLength)) || addr < view.CurrentStartOffset)
-                    a.Errors.Add($"Address out of range. Document spans {view.CurrentStartOffset:X8} to {(view.CurrentStartOffset + len - 1):X8}");
+                    a.Errors.Add($"Address out of range. Document contains {view.CurrentStartOffset:X8} to {(view.CurrentStartOffset + len - 1):X8}");
             }
         };
 

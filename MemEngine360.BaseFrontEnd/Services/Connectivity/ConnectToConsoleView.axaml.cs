@@ -28,7 +28,7 @@ using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 
-namespace MemEngine360.Avalonia.Services.Connectivity;
+namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 /// <summary>
 /// The view for the Connect to Console window
@@ -120,7 +120,7 @@ public partial class ConnectToConsoleView : WindowingContentControl {
             this.PART_ListBox.Items.Add(item);
         }
 
-        this.PART_ListBox.SelectedItem = selected ?? this.PART_ListBox.Items.FirstOrDefault();
+        this.PART_ListBox.SelectedItem = selected ?? Enumerable.FirstOrDefault<object?>(this.PART_ListBox.Items);
 
         this.PART_ConfirmButton.Focus();
     }

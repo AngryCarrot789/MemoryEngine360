@@ -17,7 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Avalonia.Services.Connectivity;
+using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
 using MemEngine360.Xbox360XDevkit.Commands;
 using MemEngine360.Xbox360XDevkit.Views;

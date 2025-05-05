@@ -467,8 +467,8 @@ public static class NumericDisplayTypeExtensions {
             case DataType.Int16:  return displayType == NumericDisplayType.Hexadecimal ? ((short) value).ToString("X4") : (displayType == NumericDisplayType.Unsigned ? ((ushort) (short) value).ToString() : value.ToString()!);
             case DataType.Int32:  return displayType == NumericDisplayType.Hexadecimal ? ((int) value).ToString("X8") : (displayType == NumericDisplayType.Unsigned ? ((uint) (int) value).ToString() : value.ToString()!);
             case DataType.Int64:  return displayType == NumericDisplayType.Hexadecimal ? ((long) value).ToString("X16") : (displayType == NumericDisplayType.Unsigned ? ((ulong) (long) value).ToString() : value.ToString()!);
-            case DataType.Float:  return displayType == NumericDisplayType.Hexadecimal ? BitConverter.SingleToInt32Bits((float) value).ToString("X4") : value.ToString()!;
-            case DataType.Double: return displayType == NumericDisplayType.Hexadecimal ? BitConverter.DoubleToInt64Bits((double) value).ToString("X8") : value.ToString()!;
+            case DataType.Float:  return displayType == NumericDisplayType.Hexadecimal ? BitConverter.SingleToUInt32Bits((float) value).ToString("X4") : value.ToString()!;
+            case DataType.Double: return displayType == NumericDisplayType.Hexadecimal ? BitConverter.DoubleToUInt64Bits((double) value).ToString("X8") : value.ToString()!;
             case DataType.String: return value.ToString()!;
             default:              throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }

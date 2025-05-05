@@ -4,14 +4,15 @@
                            xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                            xmlns:ah="clr-namespace:AvaloniaHex;assembly=AvaloniaHex"
                            xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
-                           xmlns:hexDisplay="clr-namespace:MemEngine360.Avalonia.Services.HexDisplay"
-                           xmlns:converters="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Converters;assembly=PFXToolKitUI.Avalonia"
                            xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+                           xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+                           xmlns:hexDisplay1="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexDisplay"
+                           xmlns:icons="clr-namespace:MemEngine360.BaseFrontEnd"
                            mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
-                           x:Class="MemEngine360.Avalonia.Services.HexDisplay.HexDisplayControl"
+                           x:Class="MemEngine360.BaseFrontEnd.Services.HexDisplay.HexDisplayControl"
                            WindowBorderBrush="DodgerBlue"
                            WindowTitleBarBrush="{DynamicResource ABrush.Tone4.Background.Static}">
-    <Grid RowDefinitions="30,*,42">
+    <Grid RowDefinitions="Auto,*,42">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="5"/>
@@ -48,58 +49,75 @@
             </DockPanel>
         </Border>
         <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
-                Background="{Binding RelativeSource={RelativeSource AncestorType=hexDisplay:HexDisplayControl}, Path=WindowTitleBarBrush}"
+                Background="{Binding RelativeSource={RelativeSource AncestorType=hexDisplay1:HexDisplayControl}, Path=WindowTitleBarBrush}"
                 BorderThickness="0,0,0,1"
                 BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}">
-            <Grid x:Name="PART_ControlsGrid" ColumnDefinitions="5,Auto,100,0,Auto,100,0,0,5,75,5,110,5,110,5,*,5" Margin="0,3">
-                <TextBlock Text="Address" Grid.Column="1" VerticalAlignment="Center" Padding="5,0"/>
-                <TextBlock Text="Length" Grid.Column="4" VerticalAlignment="Center" Padding="5,0"/>
+            <StackPanel Margin="0,3" Spacing="4">
+                <Grid x:Name="PART_ControlsGrid" Height="24" ColumnDefinitions="3,Auto,80,0,Auto,80,0,0,3,75,3,110,3,110,3,Auto,3">
+                    <TextBlock Text="Address" Grid.Column="1" VerticalAlignment="Center" Padding="5,0"/>
+                    <TextBlock Text="Count" Grid.Column="4" VerticalAlignment="Center" Padding="5,0"/>
 
-                <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_AddressTextBox" Grid.Column="2" VerticalAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
-                <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_LengthTextBox" Grid.Column="5" VerticalAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
+                    <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_AddressTextBox" Grid.Column="2" VerticalAlignment="Center" VerticalContentAlignment="Center" 
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                             ToolTip.Tip="The start address in hex. E.g. 80000000"/>
+                    <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_LengthTextBox" Grid.Column="5" VerticalAlignment="Center" VerticalContentAlignment="Center" 
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                             ToolTip.Tip="The amount of bytes to read. E.g. 10000 (64K)"/>
 
-                <ComboBox IsVisible="False" Grid.Column="7" x:Name="PART_BytesPerRow" SelectedIndex="3" ToolTip.Tip="Bytes per row. Default is 32">
-                    <ComboBoxItem Content="8"/>
-                    <ComboBoxItem Content="16"/>
-                    <ComboBoxItem Content="24"/>
-                    <ComboBoxItem Content="32"/>
-                    <ComboBoxItem Content="48"/>
-                    <ComboBoxItem Content="56"/>
-                    <ComboBoxItem Content="64"/>
-                </ComboBox>
+                    <ComboBox IsVisible="False" Grid.Column="7" x:Name="PART_BytesPerRow" SelectedIndex="3" ToolTip.Tip="Bytes per row. Default is 32">
+                        <ComboBoxItem Content="8"/>
+                        <ComboBoxItem Content="16"/>
+                        <ComboBoxItem Content="24"/>
+                        <ComboBoxItem Content="32"/>
+                        <ComboBoxItem Content="48"/>
+                        <ComboBoxItem Content="56"/>
+                        <ComboBoxItem Content="64"/>
+                    </ComboBox>
 
-                <Button Grid.Column="9" x:Name="PART_Read" Content="Read All">
-                    <ToolTip.Tip>
-                        <TextBlock>
-                            <Run Text="Read the entire range from the console"/>
-                        </TextBlock>
-                    </ToolTip.Tip>
-                </Button>
-                <Button Grid.Column="11" x:Name="PART_Refresh" Content="Refresh Selection">
-                    <ToolTip.Tip>
-                        <TextBlock>
-                            <Run Text="Re-reads your selection region from the console"/>
-                            <LineBreak/>
-                            <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/HexEditor/RefreshValues}"/>
-                        </TextBlock>
-                    </ToolTip.Tip>
-                </Button>
-                <Button Grid.Column="13" x:Name="PART_Upload" Content="Upload Selection">
-                    <ToolTip.Tip>
-                        <TextBlock>
-                            <Run Text="Uploads your selection region to the console"/>
-                            <LineBreak/>
-                            <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/HexEditor/UploadSelection}"/>
-                        </TextBlock>
-                    </ToolTip.Tip>
-                </Button>
-                <Grid Grid.Column="15" x:Name="PART_ProgressGrid" IsVisible="False">
-                    <ProgressBar x:Name="PART_Progress"/>
-                    <TextBlock Text="See main window's activity bar for progress"
-                               Foreground="{DynamicResource ABrush.Foreground.Disabled}"
-                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    <Button Grid.Column="9" x:Name="PART_Read" Content="Read All">
+                        <ToolTip.Tip>
+                            <TextBlock>
+                                <Run Text="Read the entire range from the console"/>
+                            </TextBlock>
+                        </ToolTip.Tip>
+                    </Button>
+                    <Button Grid.Column="11" x:Name="PART_Refresh" Content="Refresh Selection">
+                        <ToolTip.Tip>
+                            <TextBlock>
+                                <Run Text="Re-reads your selection region from the console"/>
+                                <LineBreak/>
+                                <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/HexEditor/RefreshValues}"/>
+                            </TextBlock>
+                        </ToolTip.Tip>
+                    </Button>
+                    <Button Grid.Column="13" x:Name="PART_Upload" Content="Upload Selection">
+                        <ToolTip.Tip>
+                            <TextBlock>
+                                <Run Text="Uploads your selection region to the console"/>
+                                <LineBreak/>
+                                <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/HexEditor/UploadSelection}"/>
+                            </TextBlock>
+                        </ToolTip.Tip>
+                    </Button>
+                    <Grid Grid.Column="15" x:Name="PART_ProgressGrid" IsVisible="False">
+                        <ProgressBar x:Name="PART_Progress"/>
+                        <TextBlock Text="See main window's activity bar for progress"
+                                   Foreground="{DynamicResource ABrush.Foreground.Disabled}"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Grid>
                 </Grid>
-            </Grid>
+                <Grid Height="24" ColumnDefinitions="115,3,85,3,80,3,Auto,3,Auto" Margin="3,0">
+                    <ToggleButton x:Name="PART_ToggleAutoRefreshButton" Content="Stop Auto Refresh"/>
+                    <TextBox Grid.Column="2" FontFamily="{StaticResource FontOxanium}" x:Name="PART_AutoRefresh_From" VerticalAlignment="Center" VerticalContentAlignment="Center" 
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                             Watermark="Start Address"/>
+                    <TextBox Grid.Column="4" FontFamily="{StaticResource FontOxanium}" x:Name="PART_AutoRefresh_Count" VerticalAlignment="Center" VerticalContentAlignment="Center" 
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                             Watermark="Count"/>
+                    <avc:IconButton Grid.Column="6" x:Name="PART_SetAutoRefreshRangeAsSelection" Icon="{x:Static icons:SimpleIcons.CopyHexSelectionToRefreshRangeIcon}" ToolTip.Tip="Set as current selection. Saves typing out by hand"/>
+                    <avc:IconButton Grid.Column="8" x:Name="PART_ClearAutoRefreshRange" Icon="{x:Static icons:SimpleIcons.ClearHexRefreshRangeIcon}" ToolTip.Tip="Clears these two fields for the auto refresh"/>
+                </Grid>
+            </StackPanel>
         </Border>
         <ah:HexEditor Grid.Row="1" Grid.ColumnSpan="1" x:Name="PART_HexEditor" FontFamily="Consolas"
                       Background="{DynamicResource ABrush.Tone2.Background.Static}"

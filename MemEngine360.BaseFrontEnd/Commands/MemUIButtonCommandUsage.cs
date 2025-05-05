@@ -21,7 +21,7 @@ using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.CommandUsages;
 using PFXToolKitUI.Interactivity.Contexts;
 
-namespace MemEngine360.Avalonia.Commands;
+namespace MemEngine360.BaseFrontEnd.Commands;
 
 public class MemUIButtonCommandUsage : SimpleButtonCommandUsage {
     public IMemEngineUI? UI { get; private set; }

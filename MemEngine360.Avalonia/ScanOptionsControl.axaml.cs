@@ -57,10 +57,18 @@ public partial class ScanOptionsControl : UserControl {
     private readonly IBinder<ScanningProcessor> inputBetweenABinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> inputBetweenBBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputBChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputB, (b) => b.Model.InputB = ((TextBox) b.Control).Text ?? "");
     
+    static ScanOptionsControl() {
+        // AVPToEventPropertyBinder.Bind<ScanOptionsControl, TextBox, ScanningProcessor, string?>(nameof(PART_Input_Value1), TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (c, m) => c.Text = m.InputA, (c, m) => m.InputA = c.Text ?? "");
+        
+        MemoryEngine360Property.Changed.AddClassHandler<ScanOptionsControl, MemoryEngine360?>(OnMemEngineChanged);
+    }
+    
     private DataType lastIntegerDataType = DataType.Int32, lastFloatDataType = DataType.Float;
     
     public ScanOptionsControl() {
         this.InitializeComponent();
+        // AVPToEventPropertyBinder.Attach<ScanOptionsControl>(this.FindNameScope()!, new ScanningProcessor(null));
+        
         this.floatScanModeBinder.Assign(this.PART_DTFloat_UseExactValue, FloatScanOption.UseExactValue);
         this.floatScanModeBinder.Assign(this.PART_DTFloat_Truncate, FloatScanOption.TruncateToQuery);
         this.floatScanModeBinder.Assign(this.PART_DTFloat_RoundToQuery, FloatScanOption.RoundToQuery);
@@ -103,9 +111,6 @@ public partial class ScanOptionsControl : UserControl {
         });
     }
 
-    static ScanOptionsControl() {
-        MemoryEngine360Property.Changed.AddClassHandler<ScanOptionsControl, MemoryEngine360?>(OnMemEngineChanged);
-    }
 
     private static void OnMemEngineChanged(ScanOptionsControl c, AvaloniaPropertyChangedEventArgs<MemoryEngine360?> e) {
         if (e.OldValue.GetValueOrDefault() is MemoryEngine360 oldEngine) {

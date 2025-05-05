@@ -22,7 +22,7 @@ using MemEngine360.Engine;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity;
 
-namespace MemEngine360.Avalonia.Commands;
+namespace MemEngine360.BaseFrontEnd.Commands;
 
 /// <summary>
 /// Base class for a button command usage whose executability changes when the engine's connection changes

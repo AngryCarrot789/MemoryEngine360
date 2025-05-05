@@ -24,7 +24,7 @@ using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.AvControls;
 using PFXToolKitUI.Avalonia.Utils;
 
-namespace MemEngine360.Avalonia.Services.Connectivity;
+namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public class ConsoleTypeListBoxItem : ListBoxItem {
     private IconControl? PART_IconControl;

@@ -20,7 +20,7 @@
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 
-namespace MemEngine360.Avalonia.Commands;
+namespace MemEngine360.BaseFrontEnd.Commands;
 
 public class BaseScanCommandUsage : MemEngineButtonCommandUsage {
     public BaseScanCommandUsage(string commandId) : base(commandId) {

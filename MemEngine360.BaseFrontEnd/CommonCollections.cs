@@ -20,7 +20,7 @@
 using System.Collections.ObjectModel;
 using MemEngine360.Engine.Modes;
 
-namespace MemEngine360.Avalonia;
+namespace MemEngine360.BaseFrontEnd;
 
 public static class CommonCollections {
     public static ReadOnlyCollection<DataType> DataTypes { get; } = Enum.GetValues(typeof(DataType)).Cast<DataType>().ToList().AsReadOnly();

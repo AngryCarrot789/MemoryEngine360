@@ -21,7 +21,7 @@ using MemEngine360.Engine.HexDisplay;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Utils;
 
-namespace MemEngine360.Avalonia.Services.HexDisplay;
+namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
 
 public class HexDisplayServiceImpl : IHexDisplayService {
     public Task ShowHexEditor(HexDisplayInfo info) {

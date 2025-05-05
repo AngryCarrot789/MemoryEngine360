@@ -23,7 +23,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Services.UserInputs;
 using PFXToolKitUI.Services.UserInputs;
 
-namespace MemEngine360.Avalonia.MemRegions;
+namespace MemEngine360.BaseFrontEnd.MemRegions;
 
 public partial class XboxMemoryRegionViewerUIControl : UserControl, IUserInputContent {
     private UserInputDialogView? myDialog;

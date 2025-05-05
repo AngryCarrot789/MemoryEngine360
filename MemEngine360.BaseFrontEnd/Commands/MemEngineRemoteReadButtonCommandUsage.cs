@@ -19,7 +19,7 @@
 
 using MemEngine360.Engine;
 
-namespace MemEngine360.Avalonia.Commands;
+namespace MemEngine360.BaseFrontEnd.Commands;
 
 public abstract class MemEngineRemoteReadButtonCommandUsage : MemEngineConnectionReliantButtonCommandUsage {
     protected MemEngineRemoteReadButtonCommandUsage(string commandId) : base(commandId) {

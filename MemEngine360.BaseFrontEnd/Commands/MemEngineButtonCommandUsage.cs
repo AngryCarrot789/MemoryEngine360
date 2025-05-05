@@ -21,7 +21,7 @@ using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.CommandUsages;
 using PFXToolKitUI.Interactivity.Contexts;
 
-namespace MemEngine360.Avalonia.Commands;
+namespace MemEngine360.BaseFrontEnd.Commands;
 
 /// <summary>
 /// Base class for a button command usage that needs to hook into mem engine events
