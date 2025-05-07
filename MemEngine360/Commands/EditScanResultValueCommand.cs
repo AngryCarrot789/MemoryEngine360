@@ -76,18 +76,12 @@ public class EditScanResultValueCommand : Command {
             return;
         }
 
-        if (memoryEngine360.IsConnectionBusy) {
-            string desc = memoryEngine360.ScanningProcessor.IsScanning ? "The connection is busy scanning the xbox memory. Cancel to modify values" : "Connection is currently busy somewhere";
-            await IMessageDialogService.Instance.ShowMessage("Busy", "Connection is busy. Concurrent operations dangerous", desc);
-            return;
-        }
-
         SingleUserInputInfo input;
         if (scanResults.Count == 1) {
             input = new SingleUserInputInfo("Change value at 0x" + scanResults[0].Address.ToString("X8"), "Immediately change the value at this address", "Value", scanResults[0].CurrentValue);
             input.Validate = (args) => {
                 if (scanResults[0].DataType.IsNumeric()) {
-                    ValueScannerUtils.TryParseTextAsNumber(args, scanResults[0].DataType, scanResults[0].NumericDisplayType);
+                    MemoryEngine360.CanParseTextAsNumber(args, scanResults[0].DataType, scanResults[0].NumericDisplayType);
                 }
                 else if (args.Input.Length > scanResults[0].FirstValue.Length) {
                     args.Errors.Add("Length must not exceed the first value's length, otherwise, you'd be writing into an unknown area");
@@ -106,7 +100,7 @@ public class EditScanResultValueCommand : Command {
             input = new SingleUserInputInfo("Change " + scanResults.Count + " values", "Immediately change the value these addresses", "Value", scanResults[scanResults.Count - 1].CurrentValue);
             input.Validate = (args) => {
                 if (scanResults[0].DataType.IsNumeric()) {
-                    ValueScannerUtils.TryParseTextAsNumber(args, scanResults[0].DataType, scanResults[0].NumericDisplayType);
+                    MemoryEngine360.CanParseTextAsNumber(args, scanResults[0].DataType, scanResults[0].NumericDisplayType);
                 }
             };
         }

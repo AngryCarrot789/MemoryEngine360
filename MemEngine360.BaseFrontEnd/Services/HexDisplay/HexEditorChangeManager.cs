@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Reflection.Metadata.Ecma335;
 using AvaloniaHex;
 using AvaloniaHex.Core.Document;
 using AvaloniaHex.Rendering;
@@ -27,14 +28,31 @@ public class HexEditorChangeManager {
     private readonly HexEditor editor;
     private readonly HexView view;
     private MemoryBinaryDocument document;
+    private readonly Stack<ChangedRegionLayer> layerCache;
+    private readonly List<ChangedRegionLayer> myLayers;
+    private const int MaxCache = 128;
 
-    private readonly List<(BitRange Range, ChangedRegionLayer Layer)> outlineLayers = new();
-    private readonly Dictionary<ChangedRegionLayer, long> layerLastUpdatedTime;
+    public HexEditor Editor => this.editor;
+
+    public HexView View => this.view;
+
+    public MemoryBinaryDocument Document => this.document;
 
     public HexEditorChangeManager(HexEditor editor) {
         this.editor = editor;
         this.view = editor.HexView;
-        this.layerLastUpdatedTime = new Dictionary<ChangedRegionLayer, long>();
+        this.layerCache = new Stack<ChangedRegionLayer>(MaxCache);
+        this.myLayers = new List<ChangedRegionLayer>(32);
+    }
+
+    private void PushLayerAsCached(ChangedRegionLayer layer) {
+        if (this.layerCache.Count < MaxCache) {
+            this.layerCache.Push(layer);
+        }
+    }
+
+    private ChangedRegionLayer GetCachedLayerOrNew() {
+        return this.layerCache.Count > 0 ? this.layerCache.Pop() : new ChangedRegionLayer(this);
     }
 
     public static List<BitRange> GetChangedRanges(ulong baseAddress, byte[] oldData, byte[] newData, int count) {
@@ -63,10 +81,11 @@ public class HexEditorChangeManager {
         this.document = newDocument;
     }
 
-    public void ProcessChanges(uint baseAddress, byte[] newBytes, int count) {
-        byte[] oldBytes = new byte[count];
+    public void ProcessChanges(uint baseAddress, byte[] newData, int count) {
+        byte[] oldBytes = new byte[Math.Min(count, (uint) this.document.Length)];
         this.document.ReadBytes(baseAddress, oldBytes);
-        List<BitRange> newRanges = GetChangedRanges(baseAddress, oldBytes, newBytes, count);
+        
+        List<BitRange> newRanges = GetChangedRanges(baseAddress, oldBytes, newData, oldBytes.Length);
         foreach (BitRange newRange in newRanges) {
             this.TryMergeOrCreateLayer(newRange);
         }
@@ -75,60 +94,43 @@ public class HexEditorChangeManager {
     }
 
     private void TryMergeOrCreateLayer(BitRange newRange) {
-        for (int i = 0; i < this.outlineLayers.Count; i++) {
-            (BitRange existingRange, ChangedRegionLayer layer) = this.outlineLayers[i];
-            long timeNow = DateTime.Now.Ticks;
-            long lastTime = this.layerLastUpdatedTime[layer];
-            
-            if (new DateTime(timeNow - lastTime).Millisecond >= 1200 ? RangesOverlapOrNearby(existingRange, newRange) : existingRange == newRange) {
-                BitRange merged = new BitRange(Math.Min(existingRange.Start.ByteIndex, newRange.Start.ByteIndex), Math.Max(existingRange.End.ByteIndex, newRange.End.ByteIndex));
-                layer.SetRange(merged);
-                this.outlineLayers[i] = (merged, layer);
-                this.layerLastUpdatedTime[layer] = timeNow;
+        for (int i = 0; i < this.myLayers.Count; i++) {
+            ChangedRegionLayer layer = this.myLayers[i];
+            int timeLived = (DateTime.Now - layer.LastUpdatedTime).Milliseconds;
+            if (timeLived >= 1200 ? RangesOverlapOrNearby(layer.Range, newRange) : layer.Range == newRange) {
+                layer.SetRange(new BitRange(Math.Min(layer.Range.Start.ByteIndex, newRange.Start.ByteIndex), Math.Max(layer.Range.End.ByteIndex, newRange.End.ByteIndex)));
                 return;
             }
         }
 
-        ChangedRegionLayer newLayer = new ChangedRegionLayer(this, this.editor.Caret);
+        ChangedRegionLayer newLayer = this.GetCachedLayerOrNew();
         newLayer.SetRange(newRange);
+        this.myLayers.Add(newLayer);
         this.view.Layers.Add(newLayer);
-        this.outlineLayers.Add((newRange, newLayer));
-        this.layerLastUpdatedTime[newLayer] = DateTime.Now.Ticks;
     }
 
     private void CleanupInvalidatedRanges() {
-        for (int i = this.outlineLayers.Count - 1; i >= 0; i--) {
-            (BitRange Range, ChangedRegionLayer Layer) obj = this.outlineLayers[i];
-            long creation = this.layerLastUpdatedTime[obj.Layer];
-            if (TimeSpan.FromTicks(DateTime.Now.Ticks - creation).Seconds > 1.5d) {
-                this.view.Layers.Remove(obj.Layer);
-                this.layerLastUpdatedTime.Remove(obj.Layer);
-                this.outlineLayers.RemoveAt(i);
+        for (int i = this.myLayers.Count - 1; i >= 0; i--) {
+            ChangedRegionLayer theLayer = this.myLayers[i];
+            if ((DateTime.Now - theLayer.LastUpdatedTime).Milliseconds >= 1500) {
+                this.view.Layers.Remove(theLayer);
+                this.myLayers.RemoveAt(i);
             }
         }
     }
 
-    private void ClearAllOutlines() {
-        foreach ((_, ChangedRegionLayer layer) in this.outlineLayers) {
-            this.view.Layers.Remove(layer);
+    public void OnFadeOutCompleted(ChangedRegionLayer layer) {
+        for (int i = this.myLayers.Count - 1; i >= 0; i--) {
+            ChangedRegionLayer theLayer = this.myLayers[i];
+            if (theLayer == layer) {
+                this.myLayers.RemoveAt(i);   
+                this.view.Layers.Remove(theLayer);
+                break;
+            }
         }
-
-        this.layerLastUpdatedTime.Clear();
-        this.outlineLayers.Clear();
     }
-
+    
     private static bool RangesOverlapOrNearby(BitRange a, BitRange b) {
         return b.End.ByteIndex >= a.Start.ByteIndex && b.Start.ByteIndex <= (a.End.ByteIndex + 1);
-    }
-
-    public void OnChangeExpired(ChangedRegionLayer layer) {
-        for (int i = this.outlineLayers.Count - 1; i >= 0; i--) {
-            (BitRange Range, ChangedRegionLayer Layer) obj = this.outlineLayers[i];
-            if (obj.Layer == layer) {
-                this.view.Layers.Remove(obj.Layer);
-                this.layerLastUpdatedTime.Remove(obj.Layer);
-                this.outlineLayers.RemoveAt(i);   
-            }
-        }
     }
 }

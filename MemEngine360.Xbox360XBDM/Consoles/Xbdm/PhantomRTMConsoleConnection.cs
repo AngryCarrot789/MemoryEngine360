@@ -768,7 +768,9 @@ public class PhantomRTMConsoleConnection : IXbox360Connection {
             await this.WriteCommandText(cmdPrefix + new string(buffer, 0, (int) (cbWrite << 1))).ConfigureAwait(false);
             ConsoleResponse response = await this.ReadResponseCore().ConfigureAwait(false);
             if (response.ResponseType != ResponseType.SingleResponse) {
-                throw new Exception($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
+                if (response.ResponseType != ResponseType.MemoryNotMapped) {
+                    throw new Exception($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
+                }
             }
 
             address += cbWrite;

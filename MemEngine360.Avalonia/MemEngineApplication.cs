@@ -18,6 +18,7 @@
 // 
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -34,6 +35,9 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.HexDisplay;
 using MemEngine360.Engine.HexDisplay.Commands;
 using MemEngine360.Xbox360XBDM;
+using MemEngine360.Xbox360XBDM.Consoles;
+using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
+using MemEngine360.Xbox360XBDM.Views;
 using MemEngine360.Xbox360XDevkit;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI;
@@ -150,7 +154,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     }
 
     private class StartupManagerMemEngine360 : IStartupManager {
-        public Task OnApplicationStartupWithArgs(string[] args) {
+        public async Task OnApplicationStartupWithArgs(string[] args) {
             // IXboxManager xboxManager = new XboxManager();
             
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
@@ -158,10 +162,25 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
             }
             
             if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-                system.CreateWindow(new MemEngineView(), true).Show(null);
-            }
+                MemEngineView view = new MemEngineView();
+                system.CreateWindow(view, true).Show(null);
 
-            return Task.CompletedTask;
+                // using IDisposable? token = await view.MemoryEngine360.BeginBusyOperationActivityAsync();
+                // if (token != null) {
+                //     using CancellationTokenSource cts = new CancellationTokenSource();
+                //     IConsoleConnection? connection = await ConsoleTypeXbox360Xbdm.Instance.OpenConnection(view.MemoryEngine360, new ConnectToXboxInfo(view.MemoryEngine360) { IpAddress = "192.168.1.202" }, cts);
+                //     if (connection != null) {
+                //         view.MemoryEngine360.SetConnection(token, connection, ConnectionChangeCause.Custom);
+                //
+                //         await ApplicationPFX.Instance.ServiceManager.GetService<IHexDisplayService>().ShowHexEditor(new HexDisplayInfo(view.MemoryEngine360) {
+                //             StartAddress = 0x8303A000,
+                //             Length = 0x2000,
+                //             AutoRefreshStartAddress = 0x8303A5C0,
+                //             AutoRefreshLength = 1800,
+                //         });
+                //     }
+                // }
+            }
         }
     }
 

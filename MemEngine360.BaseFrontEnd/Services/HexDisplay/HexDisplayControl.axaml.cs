@@ -22,14 +22,20 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+using System.Runtime.InteropServices.Marshalling;
 using System.Text;
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using AvaloniaHex.Core.Document;
 using AvaloniaHex.Editing;
 using AvaloniaHex.Rendering;
 using MemEngine360.Connections;
+using MemEngine360.Engine;
 using MemEngine360.Engine.HexDisplay;
+using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.Scanners;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
@@ -40,7 +46,9 @@ using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Tasks.Pausable;
 using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
@@ -127,6 +135,25 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         return default;
     });
 
+    private readonly IBinder<HexDisplayInfo> bytesPerRowBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.BytesPerRowParameter, (p) => p!.ToString(), async (t, x) => {
+        if (uint.TryParse(x, out uint value)) {
+            if (value == 0) {
+                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Cannot display 0 bytes per row. Are you crazy??!?", defaultButton: MessageBoxResult.OK);
+            }
+            else if (value > 256) { // will probably cause the computer so implode or something if there's too many bpr
+                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Cannot display more than 256 bytes per row", defaultButton: MessageBoxResult.OK);
+            }
+            else {
+                return value;
+            }
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
+        }
+
+        return default;
+    });
+
     private readonly IBinder<HexDisplayInfo> autoRefreshAddrBinder;
     private readonly IBinder<HexDisplayInfo> autoRefreshLenBinder;
 
@@ -134,21 +161,26 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     private readonly AsyncRelayCommand readAllCommand, refreshDataCommand, uploadDataCommand;
 
+    private readonly record struct UploadTextBoxInfo(TextBox TextBox, DataType DataType, bool IsUnsigned);
+
+    private readonly AsyncRelayCommand<UploadTextBoxInfo> parseTextBoxAndUploadCommand;
+
     private uint actualStartAddress;
-    private CancellationTokenSource? autoRefreshCts;
-    private ActivityTask? currentAutoRefresh;
+    private ActivityTask? currentAutoRefreshTask;
+    private AutoRefreshTask? autoRefreshTask;
 
     private MemoryBinaryDocument? myDocument;
 
     private readonly AutoRefreshLayer autoRefreshLayer;
     private readonly HexEditorChangeManager changeManager;
-    private IDisposable? currBusyToken;
+    private readonly AsyncRelayCommand runAutoRefreshCommand;
 
     public HexDisplayControl() {
         this.InitializeComponent();
         this.captionBinder.AttachControl(this);
         this.addrBinder.AttachControl(this.PART_AddressTextBox);
         this.lenBinder.AttachControl(this.PART_LengthTextBox);
+        this.bytesPerRowBinder.AttachControl(this.PART_BytesPerRowTextBox);
 
         HexView view = this.PART_HexEditor.HexView;
         view.BytesPerLine = 32;
@@ -167,12 +199,12 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_CancelButton.Click += this.OnCancelButtonClicked;
         this.readAllCommand = new AsyncRelayCommand(async () => {
             await this.ReadAllFromConsoleCommand();
-        }, () => this.currentAutoRefresh == null);
+        }, () => this.autoRefreshTask == null);
 
         this.refreshDataCommand = new AsyncRelayCommand(async () => {
             await this.ReloadSelectionFromConsole();
         }, () => {
-            if (this.currentAutoRefresh != null)
+            if (this.autoRefreshTask != null)
                 return false;
 
             BitRange selection = this.SelectionRange;
@@ -182,7 +214,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.uploadDataCommand = new AsyncRelayCommand(async () => {
             await this.UploadSelectionToConsoleCommand();
         }, () => {
-            if (this.currentAutoRefresh != null)
+            if (this.autoRefreshTask != null)
                 return false;
 
             BitRange selection = this.SelectionRange;
@@ -206,6 +238,19 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.PART_BtnBackInt32.Click += (s, e) => this.MoveCursorForDataType(-4);
         this.PART_BtnBackInt64.Click += (s, e) => this.MoveCursorForDataType(-8);
 
+        this.PART_Int8.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
+        this.PART_UInt8.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
+        this.PART_Int16.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
+        this.PART_UInt16.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
+        this.PART_Int32.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
+        this.PART_UInt32.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
+        this.PART_Int64.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
+        this.PART_UInt64.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
+        this.PART_Float.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
+        this.PART_Double.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
+
+        this.parseTextBoxAndUploadCommand = new AsyncRelayCommand<UploadTextBoxInfo>(this.ParseTextBoxAndUpload, isParamRequired: true);
+
         this.PART_BtnGoToPointerInt32.Click += (s, e) => this.NavigateToPointer();
 
         this.PART_SetAutoRefreshRangeAsSelection.Click += (s, e) => {
@@ -219,20 +264,12 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
             this.HexDisplayInfo!.AutoRefreshLength = 0;
         };
 
-        this.PART_ToggleAutoRefreshButton.Command = new AsyncRelayCommand(async () => {
-            if (this.currentAutoRefresh != null) {
+        this.PART_ToggleAutoRefreshButton.Command = this.runAutoRefreshCommand = new AsyncRelayCommand(async () => {
+            if (this.autoRefreshTask != null) {
                 // We are running, so stop it
-                if (!this.currentAutoRefresh.TryCancel()) {
-                    Debug.Fail("!!! couldn't cancel");
-                    return;
-                }
-
-                await this.currentAutoRefresh;
+                await this.autoRefreshTask.CancelAsync();
             }
             else {
-                if (this.autoRefreshCts != null)
-                    throw new Exception("App state is weird...");
-
                 HexDisplayInfo? info = this.HexDisplayInfo;
                 if (info == null)
                     return;
@@ -246,76 +283,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                     return;
                 }
 
-                this.currBusyToken = await info.MemoryEngine360.BeginBusyOperationActivityAsync("Starting auto refresh");
-                if (this.currBusyToken == null) {
-                    this.UpdateAutoRefreshButtonsAndTextBoxes();
-                    return;
-                }
-
-                this.autoRefreshCts = new CancellationTokenSource();
-                this.currentAutoRefresh = ActivityManager.Instance.RunTask(async () => {
-                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                        this.OnAutoRefreshStartedOnMainThread(startAddrRel2Doc, countBytes);
-                    });
-
-                    ActivityTask task = ActivityManager.Instance.CurrentTask;
-                    task.Progress.Caption = "Auto refresh";
-                    task.Progress.Text = "Auto refresh in progress";
-                    task.Progress.IsIndeterminate = true;
-                    while (true) {
-                        if (task.CancellationToken.IsCancellationRequested) {
-                            break;
-                        }
-
-                        IConsoleConnection? connection = info.MemoryEngine360.Connection;
-                        if (info.MemoryEngine360.IsShuttingDown || connection?.IsConnected != true) {
-                            break;
-                        }
-
-                        if (countBytes < 1 || this.myDocument == null) {
-                            break;
-                        }
-
-                        try {
-                            // if (connection is IHaveIceCubes)
-                            //     await ((IHaveIceCubes) connection).DebugFreeze();
-
-                            byte[] buffer = new byte[countBytes];
-                            await connection.ReadBytes(startAddr, buffer, 0, countBytes, 0x10000, null, task.CancellationToken);
-
-                            // if (connection is IHaveIceCubes)
-                            //     await ((IHaveIceCubes) connection).DebugUnFreeze();
-
-                            await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                                if (this.PART_ToggleShowChanges.IsChecked == true)
-                                    this.changeManager.ProcessChanges(startAddrRel2Doc, buffer, buffer.Length);
-                                if (!this.myDocument!.IsReadOnly) {
-                                    this.myDocument!.WriteBytes(startAddrRel2Doc, buffer);
-                                }
-                                else {
-                                    task.TryCancel();
-                                }
-
-                                this.UpdateSelectionText();
-                                this.UpdateCaretText();
-                                return Task.CompletedTask;
-                            });
-                        }
-                        catch {
-                            Debugger.Break();
-                            break;
-                        }
-
-                        try {
-                            await Task.Delay(50, task.CancellationToken);
-                        }
-                        catch (OperationCanceledException) {
-                            break;
-                        }
-                    }
-
-                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(this.OnAutoRefreshStoppedOnMainThread);
-                }, this.autoRefreshCts);
+                this.autoRefreshTask = new AutoRefreshTask(this, startAddrRel2Doc, countBytes);
+                this.currentAutoRefreshTask = this.autoRefreshTask.Run();
             }
         });
 
@@ -374,40 +343,88 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.autoRefreshLenBinder.AttachControl(this.PART_AutoRefresh_Count);
     }
 
-    // 8303A000
+    private void OnDataInspectorNumericTextBoxKeyDown(object? sender, KeyEventArgs e) {
+        if (e.Key != Key.Enter) {
+            return;
+        }
 
-    private void OnAutoRefreshStartedOnMainThread(uint startAddressRel2Doc, uint count) {
-        this.PART_ProgressGrid.IsVisible = true;
-        this.PART_ControlsGrid.IsEnabled = false;
-        this.PART_Progress.IsIndeterminate = true;
-
-        Debug.Assert(this.currBusyToken != null, "Token should not be null");
-
-        this.autoRefreshLayer.SetRange(new BitRange(startAddressRel2Doc, startAddressRel2Doc + count));
-        this.autoRefreshLayer.IsActive = true;
-        this.UpdateAutoRefreshButtonsAndTextBoxes();
-
-        this.readAllCommand.RaiseCanExecuteChanged();
-        this.refreshDataCommand.RaiseCanExecuteChanged();
-        this.uploadDataCommand.RaiseCanExecuteChanged();
+        TextBox tb = (TextBox) sender!;
+        switch (tb.Name) {
+            case nameof(this.PART_Int8):   this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Byte, false)); break;
+            case nameof(this.PART_UInt8):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Byte, true)); break;
+            case nameof(this.PART_Int16):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int16, false)); break;
+            case nameof(this.PART_UInt16): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int16, true)); break;
+            case nameof(this.PART_Int32):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int32, false)); break;
+            case nameof(this.PART_UInt32): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int32, true)); break;
+            case nameof(this.PART_Int64):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int64, false)); break;
+            case nameof(this.PART_UInt64): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int64, true)); break;
+            case nameof(this.PART_Float):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Float, false)); break;
+            case nameof(this.PART_Double): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Double, false)); break;
+        }
     }
 
-    private void OnAutoRefreshStoppedOnMainThread() {
-        this.PART_ProgressGrid.IsVisible = false;
-        this.PART_ControlsGrid.IsEnabled = true;
-        this.PART_Progress.IsIndeterminate = false;
+    private async Task ParseTextBoxAndUpload(UploadTextBoxInfo info) {
+        MemoryEngine360 engine = this.HexDisplayInfo!.MemoryEngine360;
+        if (engine.Connection == null) {
+            await IMessageDialogService.Instance.ShowMessage("No connection", "Not connected to any console", defaultButton: MessageBoxResult.OK);
+            return;
+        }
 
-        this.currBusyToken!.Dispose();
-        this.currBusyToken = null;
-        this.autoRefreshLayer.IsActive = false;
-        this.currentAutoRefresh = null;
-        this.autoRefreshCts!.Dispose();
-        this.autoRefreshCts = null;
-        this.UpdateAutoRefreshButtonsAndTextBoxes();
+        NumericDisplayType intNdt = info.DataType.IsInteger() && this.PART_DisplayIntAsHex.IsChecked == true ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
 
-        this.readAllCommand.RaiseCanExecuteChanged();
-        this.refreshDataCommand.RaiseCanExecuteChanged();
-        this.uploadDataCommand.RaiseCanExecuteChanged();
+        string input = info.TextBox.Text ?? "";
+        // Custom case for signed byte. Why TF did I add a signed byte row to the data inspector???
+        if (info.DataType == DataType.Byte && !info.IsUnsigned) {
+            if (!sbyte.TryParse(input, intNdt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out sbyte sb)) {
+                await IMessageDialogService.Instance.ShowMessage("Invalid text", "Invalid signed byte", defaultButton: MessageBoxResult.OK);
+                return;
+            }
+
+            // cheese it
+            input = ((byte) sb).ToString();
+        }
+
+        ValidationArgs args = new ValidationArgs(input, new List<string>(), false);
+        if (MemoryEngine360.CanParseTextAsNumber(args, info.DataType, intNdt)) {
+            ulong caretIndex = this.SelectionRange.Start.ByteIndex;
+
+            await this.PerformOperationBetweenAutoRefresh(async () => {
+                IConsoleConnection connection;
+                using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Upload DI value");
+                if (token != null && (connection = engine.Connection) != null && connection.IsConnected) {
+                    await MemoryEngine360.WriteAsText(connection, (uint) caretIndex + this.actualStartAddress, info.DataType, NumericDisplayType.Normal, args.Input, (uint) args.Input.Length);
+                }
+            });
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Invalid text", args.Errors.Count > 0 ? args.Errors[0] : "Could not parse value as " + info.DataType, defaultButton: MessageBoxResult.OK);
+        }
+    }
+
+    // 8303A000
+
+    private async Task PerformOperationBetweenAutoRefresh(Func<Task> operation) {
+        if (this.autoRefreshTask == null) {
+            await operation();
+        }
+        else {
+            await this.autoRefreshTask.Pause();
+            await operation();
+            await this.autoRefreshTask.Resume();
+            this.runAutoRefreshCommand.RaiseCanExecuteChanged();
+
+            // TODO: implement pause-able activities
+            // this.flag_IsPerformingOpBetweenAutoRefresh = true;
+            // this.runAutoRefreshCommand.RaiseCanExecuteChanged();
+            // this.currentAutoRefreshTask.TryCancel();
+            // while (this.currentAutoRefreshTask != null) {
+            //     await Task.Delay(10);
+            // }
+            // await operation();
+            // this.flag_IsPerformingOpBetweenAutoRefresh = false;
+            // this.runAutoRefreshCommand.RaiseCanExecuteChanged();
+            // this.runAutoRefreshCommand.Execute(null);
+        }
     }
 
     private bool IsPointerInRange(uint value) {
@@ -452,7 +469,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     public async Task ReadAllFromConsoleCommand() {
         HexDisplayInfo? info = this.HexDisplayInfo;
-        if (info == null || this.currentAutoRefresh != null) {
+        if (info == null || this.currentAutoRefreshTask != null) {
             return;
         }
 
@@ -469,11 +486,11 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         byte[]? bytes = await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             return await ActivityManager.Instance.RunTask(async () => {
-                if (c is IHaveIceCubes)
-                    await ((IHaveIceCubes) c).DebugFreeze();
-
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Read data for Hex Editor";
+                task.Progress.Text = "Freezing console...";
+                if (c is IHaveIceCubes)
+                    await ((IHaveIceCubes) c).DebugFreeze();
 
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
@@ -485,6 +502,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                 completion.OnCompletionValueChanged();
                 byte[] buffer = new byte[info.Length];
                 await c.ReadBytes(info.StartAddress, buffer, 0, info.Length, 0x10000, completion, task.CancellationToken);
+
+                task.Progress.Text = "Unfreezing console...";
                 if (c is IHaveIceCubes)
                     await ((IHaveIceCubes) c).DebugUnFreeze();
 
@@ -501,10 +520,10 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
             this.actualStartAddress = info.StartAddress;
             this.myOffsetColumn.AdditionalOffset = info.StartAddress;
-            
+
             if (this.myDocument != null && this.PART_ToggleShowChanges.IsChecked == true)
                 this.changeManager.ProcessChanges(0, bytes, bytes.Length);
-            
+
             this.PART_HexEditor.Document = this.myDocument = new MemoryBinaryDocument(bytes, info.IsReadOnly);
             this.changeManager.OnDocumentChanged(this.myDocument);
             await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
@@ -527,7 +546,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     public async Task ReloadSelectionFromConsole(uint startRel2Doc, uint length) {
         HexDisplayInfo? info = this.HexDisplayInfo;
-        if (info == null || this.currentAutoRefresh != null) {
+        if (info == null || this.currentAutoRefreshTask != null) {
             return;
         }
 
@@ -542,11 +561,12 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         byte[]? readBuffer = await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             return await ActivityManager.Instance.RunTask(async () => {
-                if (c is IHaveIceCubes)
-                    await ((IHaveIceCubes) c).DebugFreeze();
-
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Refresh data for Hex Editor";
+                task.Progress.Text = "Freezing console...";
+
+                if (c is IHaveIceCubes)
+                    await ((IHaveIceCubes) c).DebugFreeze();
 
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
@@ -556,9 +576,10 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
                 // Update initial text
                 completion.OnCompletionValueChanged();
-
                 byte[] buffer = new byte[length];
                 await c.ReadBytes(this.actualStartAddress + startRel2Doc, buffer, 0, length, 0x10000, completion, task.CancellationToken);
+
+                task.Progress.Text = "Unfreezing console...";
                 if (c is IHaveIceCubes)
                     await ((IHaveIceCubes) c).DebugUnFreeze();
                 return buffer;
@@ -581,7 +602,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     public async Task UploadSelectionToConsoleCommand() {
         HexDisplayInfo? info = this.HexDisplayInfo;
-        if (this.myDocument == null || info == null || this.currentAutoRefresh != null) {
+        if (this.myDocument == null || info == null || this.currentAutoRefreshTask != null) {
             return;
         }
 
@@ -599,11 +620,11 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             await ActivityManager.Instance.RunTask(async () => {
-                if (c is IHaveIceCubes)
-                    await ((IHaveIceCubes) c).DebugFreeze();
-
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Write data from Hex Editor";
+                task.Progress.Text = "Freezing console...";
+                if (c is IHaveIceCubes)
+                    await ((IHaveIceCubes) c).DebugFreeze();
 
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
@@ -617,6 +638,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                 byte[] buffer = new byte[count];
                 this.myDocument!.ReadBytes(start, buffer);
                 await c.WriteBytes(this.actualStartAddress + start, buffer, 0, count, 0x10000, completion, task.CancellationToken);
+
+                task.Progress.Text = "Unfreezing console...";
                 if (c is IHaveIceCubes)
                     await ((IHaveIceCubes) c).DebugUnFreeze();
             }, cts);
@@ -670,7 +693,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     protected override void OnWindowClosed() {
         base.OnWindowClosed();
-        this.currentAutoRefresh?.TryCancel();
+        this.currentAutoRefreshTask?.TryCancel();
         this.HexDisplayInfo = null;
     }
 
@@ -678,6 +701,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         this.captionBinder.SwitchModel(newData);
         this.addrBinder.SwitchModel(newData);
         this.lenBinder.SwitchModel(newData);
+        this.bytesPerRowBinder.SwitchModel(newData);
         this.autoRefreshAddrBinder.SwitchModel(newData);
         this.autoRefreshLenBinder.SwitchModel(newData);
 
@@ -713,8 +737,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
     }
 
     private void UpdateDataInspector() {
-        BitRange selection = this.SelectionRange;
-        ulong caretIndex = selection.Start.ByteIndex;
+        ulong caretIndex = this.SelectionRange.Start.ByteIndex;
         if (this.myDocument == null) {
             return;
         }
@@ -730,10 +753,10 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         // The console is big-endian. If we want to display as little endian, we need to reverse the bytes
         bool displayAsLE = this.TheEndianness == Endianness.LittleEndian;
         ulong cbRemaining = this.myDocument.Length - caretIndex;
-        
+
         byte[] daBuf = new byte[8];
         this.myDocument.ReadBytes(caretIndex, new Span<byte>(daBuf, 0, (int) Math.Min(8, cbRemaining)));
-        
+
         byte val08 = cbRemaining >= 1 ? daBuf[0] : default;
         ushort val16 = cbRemaining >= 2 ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(daBuf, 0, 2)) : default;
         uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(daBuf, 0, 4)) : 0;
@@ -750,16 +773,26 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
         bool asHex = this.PART_DisplayIntAsHex.IsChecked == true;
         this.PART_Binary8.Text = val08.ToString("B8");
-        this.PART_Int8.Text = asHex ? ((sbyte) val08).ToString("X2") : ((sbyte) val08).ToString();
-        this.PART_UInt8.Text = asHex ? val08.ToString("X2") : val08.ToString();
-        this.PART_Int16.Text = asHex ? ((short) val16).ToString("X4") : ((short) val16).ToString();
-        this.PART_UInt16.Text = asHex ? val16.ToString("X4") : val16.ToString();
-        this.PART_Int32.Text = asHex ? ((int) val32).ToString("X8") : ((int) val32).ToString();
-        this.PART_UInt32.Text = asHex ? val32.ToString("X8") : val32.ToString();
-        this.PART_Int64.Text = asHex ? ((long) val64).ToString("X16") : ((long) val64).ToString();
-        this.PART_UInt64.Text = asHex ? val64.ToString("X16") : val64.ToString();
-        this.PART_Float.Text = Unsafe.As<uint, float>(ref val32).ToString();
-        this.PART_Double.Text = Unsafe.As<ulong, double>(ref val64).ToString();
+        if (!this.PART_Int8.IsKeyboardFocusWithin)
+            this.PART_Int8.Text = asHex ? ((sbyte) val08).ToString("X2") : ((sbyte) val08).ToString();
+        if (!this.PART_UInt8.IsKeyboardFocusWithin)
+            this.PART_UInt8.Text = asHex ? val08.ToString("X2") : val08.ToString();
+        if (!this.PART_Int16.IsKeyboardFocusWithin)
+            this.PART_Int16.Text = asHex ? ((short) val16).ToString("X4") : ((short) val16).ToString();
+        if (!this.PART_UInt16.IsKeyboardFocusWithin)
+            this.PART_UInt16.Text = asHex ? val16.ToString("X4") : val16.ToString();
+        if (!this.PART_Int32.IsKeyboardFocusWithin)
+            this.PART_Int32.Text = asHex ? ((int) val32).ToString("X8") : ((int) val32).ToString();
+        if (!this.PART_UInt32.IsKeyboardFocusWithin)
+            this.PART_UInt32.Text = asHex ? val32.ToString("X8") : val32.ToString();
+        if (!this.PART_Int64.IsKeyboardFocusWithin)
+            this.PART_Int64.Text = asHex ? ((long) val64).ToString("X16") : ((long) val64).ToString();
+        if (!this.PART_UInt64.IsKeyboardFocusWithin)
+            this.PART_UInt64.Text = asHex ? val64.ToString("X16") : val64.ToString();
+        if (!this.PART_Float.IsKeyboardFocusWithin)
+            this.PART_Float.Text = Unsafe.As<uint, float>(ref val32).ToString();
+        if (!this.PART_Double.IsKeyboardFocusWithin)
+            this.PART_Double.Text = Unsafe.As<ulong, double>(ref val64).ToString();
         this.PART_CharUTF8.Text = ((char) val08).ToString();
         this.PART_CharUTF16.Text = ((char) val16).ToString();
         this.PART_CharUTF32.Text = Encoding.UTF32.GetString(new ReadOnlySpan<byte>(ref Unsafe.As<uint, byte>(ref val32)));
@@ -768,18 +801,164 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
     }
 
     private void UpdateAutoRefreshButtonsAndTextBoxes() {
-        bool isRunning = this.currentAutoRefresh != null;
+        bool isRunning = this.currentAutoRefreshTask != null;
 
         this.PART_ToggleAutoRefreshButton.Content = isRunning ? "Stop Auto Refresh" : "Start Auto Refresh";
         this.PART_ToggleAutoRefreshButton.IsChecked = isRunning;
         this.PART_AutoRefresh_From.IsEnabled = !isRunning;
         this.PART_AutoRefresh_Count.IsEnabled = !isRunning;
-        ((AsyncRelayCommand) this.PART_ToggleAutoRefreshButton.Command!).RaiseCanExecuteChanged();
+        this.runAutoRefreshCommand.RaiseCanExecuteChanged();
         this.UpdateAutoRefreshSelectionDependentShit();
     }
 
     private void UpdateAutoRefreshSelectionDependentShit() {
-        this.PART_SetAutoRefreshRangeAsSelection.IsEnabled = this.currentAutoRefresh == null && this.SelectionRange.ByteLength > 0;
-        this.PART_ClearAutoRefreshRange.IsEnabled = this.currentAutoRefresh == null;
+        this.PART_SetAutoRefreshRangeAsSelection.IsEnabled = this.currentAutoRefreshTask == null && this.SelectionRange.ByteLength > 0;
+        this.PART_ClearAutoRefreshRange.IsEnabled = this.currentAutoRefreshTask == null;
+    }
+
+    private sealed class AutoRefreshTask : AdvancedPausableTask {
+        private readonly HexDisplayControl control;
+        private readonly HexDisplayInfo? info;
+        private IDisposable? busyToken;
+        private readonly uint startAddress, startAddressInDoc, cbRange;
+        private readonly MemoryBinaryDocument? myDocument;
+        private readonly byte[] myBuffer;
+        private bool isInvalidOnFirstRun;
+
+        public AutoRefreshTask(HexDisplayControl control, uint startAddressInDoc, uint cbRange) : base(true) {
+            this.control = control;
+            this.info = control.HexDisplayInfo;
+            this.startAddressInDoc = startAddressInDoc;
+            this.cbRange = cbRange;
+            this.startAddress = startAddressInDoc + control.actualStartAddress;
+            this.myDocument = this.control.myDocument;
+            this.myBuffer = new byte[this.cbRange];
+        }
+
+        protected override async Task RunFirst(CancellationToken pauseOrCancelToken) {
+            if (this.info == null || this.myDocument == null) {
+                this.isInvalidOnFirstRun = true;
+                return;
+            }
+
+            ActivityTask task = this.Activity;
+            task.Progress.Caption = "Auto refresh";
+            task.Progress.Text = "Updating UI...";
+            await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                this.control.PART_ProgressGrid.IsVisible = true;
+                this.control.PART_ControlsGrid.IsEnabled = false;
+                this.control.PART_Progress.IsIndeterminate = true;
+                
+                this.control.autoRefreshLayer.SetRange(new BitRange(this.startAddressInDoc, this.startAddressInDoc + this.cbRange));
+                this.control.autoRefreshLayer.IsActive = true;
+                this.control.UpdateAutoRefreshButtonsAndTextBoxes();
+
+                this.control.readAllCommand.RaiseCanExecuteChanged();
+                this.control.refreshDataCommand.RaiseCanExecuteChanged();
+                this.control.uploadDataCommand.RaiseCanExecuteChanged();
+            });
+            
+            task.Progress.Text = "Waiting for busy operations...";
+            this.busyToken = await this.info.MemoryEngine360.BeginBusyOperationAsync(pauseOrCancelToken);
+            if (this.busyToken == null) {
+                return;
+            }
+
+            task.Progress.Text = "Auto refresh in progress";
+            task.Progress.IsIndeterminate = true;
+            await this.RunUpdateLoop(pauseOrCancelToken);
+        }
+
+        protected override async Task Continue(CancellationToken pauseOrCancelToken) {
+            ActivityTask task = this.Activity;
+            task.Progress.Text = "Waiting for busy operations...";
+            this.busyToken = await this.info!.MemoryEngine360.BeginBusyOperationAsync(pauseOrCancelToken);
+            if (this.busyToken == null) {
+                return;
+            }
+
+            task.Progress.Text = "Auto refresh in progress";
+            task.Progress.IsIndeterminate = true;
+            await this.RunUpdateLoop(pauseOrCancelToken);
+        }
+
+        protected override async Task OnPaused(bool isFirst) {
+            ActivityTask task = this.Activity;
+            task.Progress.Text = "Auto refresh paused";
+            task.Progress.IsIndeterminate = false;
+            task.Progress.CompletionState.TotalCompletion = 0.0;
+            this.busyToken?.Dispose();
+            this.busyToken = null;
+        }
+
+        protected override async Task OnCompleted() {
+            if (this.isInvalidOnFirstRun) {
+                return;
+            }
+            
+            this.busyToken?.Dispose();
+            this.busyToken = null;
+            
+            await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                this.control.PART_ProgressGrid.IsVisible = false;
+                this.control.PART_ControlsGrid.IsEnabled = true;
+                this.control.PART_Progress.IsIndeterminate = false;
+
+                this.control.autoRefreshLayer.IsActive = false;
+                this.control.currentAutoRefreshTask = null;
+                this.control.autoRefreshTask = null;
+                this.control.UpdateAutoRefreshButtonsAndTextBoxes();
+
+                this.control.readAllCommand.RaiseCanExecuteChanged();
+                this.control.refreshDataCommand.RaiseCanExecuteChanged();
+                this.control.uploadDataCommand.RaiseCanExecuteChanged();
+            });
+        }
+
+        private async Task RunUpdateLoop(CancellationToken pauseOrCancelToken) {
+            while (true) {
+                if (this.info == null) {
+                    return;
+                }
+
+                pauseOrCancelToken.ThrowIfCancellationRequested();
+                IConsoleConnection? connection = this.info.MemoryEngine360.Connection;
+                if (this.info.MemoryEngine360.IsShuttingDown || connection?.IsConnected != true) {
+                    return;
+                }
+
+                if (this.cbRange < 1 || this.control.myDocument != this.myDocument) {
+                    return;
+                }
+
+                try {
+                    await connection.ReadBytes(this.startAddress, this.myBuffer, 0, this.cbRange, 0x10000, null, pauseOrCancelToken);
+                    await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                        if (this.control.PART_ToggleShowChanges.IsChecked == true)
+                            this.control.changeManager.ProcessChanges(this.startAddressInDoc, this.myBuffer, this.myBuffer.Length);
+
+                        if (!this.control.myDocument!.IsReadOnly) {
+                            this.control.myDocument!.WriteBytes(this.startAddressInDoc, this.myBuffer);
+                        }
+                        else {
+                            this.Activity.TryCancel();
+                        }
+
+                        this.control.UpdateSelectionText();
+                        this.control.UpdateCaretText();
+                        return Task.CompletedTask;
+                    });
+                }
+                catch (OperationCanceledException) {
+                    throw;
+                }
+                catch {
+                    Debugger.Break();
+                    return;
+                }
+
+                await Task.Delay(100, pauseOrCancelToken);
+            }
+        }
     }
 }

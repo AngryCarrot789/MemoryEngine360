@@ -53,26 +53,32 @@
                 BorderThickness="0,0,0,1"
                 BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}">
             <StackPanel Margin="0,3" Spacing="4">
-                <Grid x:Name="PART_ControlsGrid" Height="24" ColumnDefinitions="3,Auto,80,0,Auto,80,0,0,3,75,3,110,3,110,3,Auto,3">
+                <Grid x:Name="PART_ControlsGrid" Height="24" ColumnDefinitions="3,Auto,100,0,Auto,95,3,40,3,75,3,110,3,110,3,Auto,3">
                     <TextBlock Text="Address" Grid.Column="1" VerticalAlignment="Center" Padding="5,0"/>
+                    
+                    <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_AddressTextBox" Grid.Column="2"
+                             Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                             ToolTip.Tip="The start address in hex. E.g. 80000000">
+                        <TextBox.InnerLeftContent>
+                            <TextBlock Text="0x" Opacity="0.7"/>
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
+                    
                     <TextBlock Text="Count" Grid.Column="4" VerticalAlignment="Center" Padding="5,0"/>
-
-                    <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_AddressTextBox" Grid.Column="2" VerticalAlignment="Center" VerticalContentAlignment="Center" 
+                    
+                    <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_LengthTextBox" Grid.Column="5"
+                             Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                             ToolTip.Tip="The start address in hex. E.g. 80000000"/>
-                    <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_LengthTextBox" Grid.Column="5" VerticalAlignment="Center" VerticalContentAlignment="Center" 
-                             ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                             ToolTip.Tip="The amount of bytes to read. E.g. 10000 (64K)"/>
+                             ToolTip.Tip="The amount of bytes to read. E.g. 10000 (64K)">
+                        <TextBox.InnerLeftContent>
+                            <TextBlock Text="0x" Opacity="0.7"/>
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
 
-                    <ComboBox IsVisible="False" Grid.Column="7" x:Name="PART_BytesPerRow" SelectedIndex="3" ToolTip.Tip="Bytes per row. Default is 32">
-                        <ComboBoxItem Content="8"/>
-                        <ComboBoxItem Content="16"/>
-                        <ComboBoxItem Content="24"/>
-                        <ComboBoxItem Content="32"/>
-                        <ComboBoxItem Content="48"/>
-                        <ComboBoxItem Content="56"/>
-                        <ComboBoxItem Content="64"/>
-                    </ComboBox>
+                    <TextBox Grid.Column="7" x:Name="PART_BytesPerRowTextBox" ToolTip.Tip="Bytes per row. Default is 32"
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                             Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"/>
 
                     <Button Grid.Column="9" x:Name="PART_Read" Content="Read All">
                         <ToolTip.Tip>
@@ -106,14 +112,24 @@
                                    VerticalAlignment="Center" HorizontalAlignment="Center"/>
                     </Grid>
                 </Grid>
-                <Grid Height="24" ColumnDefinitions="115,3,85,3,80,3,Auto,3,Auto,3,Auto" Margin="3,0">
+                <Grid Height="24" ColumnDefinitions="110,3,100,3,95,3,Auto,3,Auto,3,Auto" Margin="3,0">
                     <ToggleButton x:Name="PART_ToggleAutoRefreshButton" Content="Stop Auto Refresh"/>
-                    <TextBox Grid.Column="2" FontFamily="{StaticResource FontOxanium}" x:Name="PART_AutoRefresh_From" VerticalAlignment="Center" VerticalContentAlignment="Center" 
+                    <TextBox Grid.Column="2" FontFamily="{StaticResource FontOxanium}" x:Name="PART_AutoRefresh_From"
+                             Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                             Watermark="Start Address"/>
-                    <TextBox Grid.Column="4" FontFamily="{StaticResource FontOxanium}" x:Name="PART_AutoRefresh_Count" VerticalAlignment="Center" VerticalContentAlignment="Center" 
+                             Watermark="Start Address">
+                        <TextBox.InnerLeftContent>
+                            <TextBlock Text="0x" Opacity="0.7"/>
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
+                    <TextBox Grid.Column="4" FontFamily="{StaticResource FontOxanium}" x:Name="PART_AutoRefresh_Count"
+                             Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                             Watermark="Count"/>
+                             Watermark="Count">
+                        <TextBox.InnerLeftContent>
+                            <TextBlock Text="0x" Opacity="0.7"/>
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
                     <avc:IconButton Grid.Column="6" x:Name="PART_SetAutoRefreshRangeAsSelection" Icon="{x:Static icons:SimpleIcons.CopyHexSelectionToRefreshRangeIcon}" ToolTip.Tip="Set as current selection. Saves typing out by hand"/>
                     <avc:IconButton Grid.Column="8" x:Name="PART_ClearAutoRefreshRange" Icon="{x:Static icons:SimpleIcons.ClearHexRefreshRangeIcon}" ToolTip.Tip="Clears these two fields for the auto refresh"/>
                     <CheckBox Grid.Column="10" x:Name="PART_ToggleShowChanges" IsChecked="True" Content="Show Changes" ToolTip.Tip="Shows an outline of changes in bytes. This works during both auto-refresh and manual refresh"/>
@@ -157,20 +173,20 @@
                 <TextBlock Text="UTF16" Grid.Row="27" Grid.Column="1" VerticalAlignment="Center"/>
                 <TextBlock Text="UTF32" Grid.Row="29" Grid.Column="1" VerticalAlignment="Center"/>
 
-                <TextBox Focusable="False" x:Name="PART_Binary8" FontFamily="{StaticResource FontOxanium}" Grid.Row="3" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox Focusable="False" x:Name="PART_Int8" FontFamily="{StaticResource FontOxanium}" Grid.Row="5" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Margin="0,0,16,0"/>
-                <TextBox Focusable="False" x:Name="PART_UInt8" FontFamily="{StaticResource FontOxanium}" Grid.Row="7" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox Focusable="False" x:Name="PART_Int16" FontFamily="{StaticResource FontOxanium}" Grid.Row="9" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Margin="0,0,16,0"/>
-                <TextBox Focusable="False" x:Name="PART_UInt16" FontFamily="{StaticResource FontOxanium}" Grid.Row="11" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox Focusable="False" x:Name="PART_Int32" FontFamily="{StaticResource FontOxanium}" Grid.Row="13" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Margin="0,0,16,0"/>
-                <TextBox Focusable="False" x:Name="PART_UInt32" FontFamily="{StaticResource FontOxanium}" Grid.Row="15" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox Focusable="False" x:Name="PART_Int64" FontFamily="{StaticResource FontOxanium}" Grid.Row="17" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Margin="0,0,16,0"/>
-                <TextBox Focusable="False" x:Name="PART_UInt64" FontFamily="{StaticResource FontOxanium}" Grid.Row="19" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox Focusable="False" x:Name="PART_Float" FontFamily="{StaticResource FontOxanium}" Grid.Row="21" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox Focusable="False" x:Name="PART_Double" FontFamily="{StaticResource FontOxanium}" Grid.Row="23" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox Focusable="False" x:Name="PART_CharUTF8" Grid.Row="25" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox Focusable="False" x:Name="PART_CharUTF16" Grid.Row="27" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                <TextBox Focusable="False" x:Name="PART_CharUTF32" Grid.Row="29" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="PART_Binary8" FontFamily="{StaticResource FontOxanium}" Grid.Row="3" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
+                <TextBox x:Name="PART_Int8" FontFamily="{StaticResource FontOxanium}" Grid.Row="5" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
+                <TextBox x:Name="PART_UInt8" FontFamily="{StaticResource FontOxanium}" Grid.Row="7" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
+                <TextBox x:Name="PART_Int16" FontFamily="{StaticResource FontOxanium}" Grid.Row="9" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
+                <TextBox x:Name="PART_UInt16" FontFamily="{StaticResource FontOxanium}" Grid.Row="11" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
+                <TextBox x:Name="PART_Int32" FontFamily="{StaticResource FontOxanium}" Grid.Row="13" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1" Margin="0,0,16,0"/>
+                <TextBox x:Name="PART_UInt32" FontFamily="{StaticResource FontOxanium}" Grid.Row="15" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
+                <TextBox x:Name="PART_Int64" FontFamily="{StaticResource FontOxanium}" Grid.Row="17" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
+                <TextBox x:Name="PART_UInt64" FontFamily="{StaticResource FontOxanium}" Grid.Row="19" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
+                <TextBox x:Name="PART_Float" FontFamily="{StaticResource FontOxanium}" Grid.Row="21" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
+                <TextBox x:Name="PART_Double" FontFamily="{StaticResource FontOxanium}" Grid.Row="23" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
+                <TextBox x:Name="PART_CharUTF8" Grid.Row="25" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
+                <TextBox x:Name="PART_CharUTF16" Grid.Row="27" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
+                <TextBox x:Name="PART_CharUTF32" Grid.Row="29" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
 
                 <Border Grid.Row="5" Grid.Column="1" VerticalAlignment="Stretch" Background="{DynamicResource ABrush.Tone5.Border.Static}" HorizontalAlignment="Right" Margin="0,0,-1,0" Width="43"/>
                 <Border Grid.Row="9" Grid.Column="1" VerticalAlignment="Stretch" Background="{DynamicResource ABrush.Tone5.Border.Static}" HorizontalAlignment="Right" Margin="0,0,-1,0" Width="43"/>
@@ -185,8 +201,7 @@
                 <Button Focusable="False" x:Name="PART_BtnBackInt16" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Move backwards 2 bytes" Grid.Row="9" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
                 <Button Focusable="False" x:Name="PART_BtnBackInt32" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Move backwards 4 bytes" Grid.Row="13" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
                 <Button Focusable="False" x:Name="PART_BtnBackInt64" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Move backwards 8 bytes" Grid.Row="17" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
-
-                <Button Focusable="False" x:Name="PART_BtnGoToPointerInt32" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Move forwards 4 bytes" Grid.Row="13" Grid.Column="3" BorderThickness="1" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="16" Content="*" Padding="0,0,0,-1"/>
+                <Button Focusable="False" x:Name="PART_BtnGoToPointerInt32" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Treat this value as a memory address, and go to it" Grid.Row="13" Grid.Column="3" BorderThickness="1" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="16" Content="*" Padding="0,0,0,-1"/>
 
                 <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"/>
                 <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"/>

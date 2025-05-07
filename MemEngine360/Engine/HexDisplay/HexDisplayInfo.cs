@@ -26,12 +26,14 @@ public class HexDisplayInfo : ITransferableData {
     public static readonly DataParameterString CaptionParameter = DataParameter.Register(new DataParameterString(typeof(HexDisplayInfo), nameof(Caption), "A message here", ValueAccessors.Reflective<string?>(typeof(HexDisplayInfo), nameof(caption))));
     public static readonly DataParameterNumber<uint> StartAddressParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(StartAddress), default(uint), ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(startAddress))));
     public static readonly DataParameterNumber<uint> LengthParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(Length), 0x10000, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(length))));
-    public static readonly DataParameterNumber<uint> AutoRefreshStartAddressParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(AutoRefreshStartAddress), default(uint), ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(autoRefreshStartAddress))));
-    public static readonly DataParameterNumber<uint> AutoRefreshLengthParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(AutoRefreshLength), 0x10000, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(autoRefreshLength))));
-
+    public static readonly DataParameterNumber<uint> AutoRefreshStartAddressParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(AutoRefreshStartAddress), 0, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(autoRefreshStartAddress))));
+    public static readonly DataParameterNumber<uint> AutoRefreshLengthParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(AutoRefreshLength), 0, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(autoRefreshLength))));
+    public static readonly DataParameter<uint> BytesPerRowParameter = DataParameter.Register(new DataParameter<uint>(typeof(HexDisplayInfo), nameof(BytesPerRow), 32, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(bytesPerRow))));
+    
     private string? caption;
     private uint startAddress, autoRefreshStartAddress;
     private uint length, autoRefreshLength;
+    private uint bytesPerRow;
 
     public string? Caption {
         get => this.caption;
@@ -58,6 +60,11 @@ public class HexDisplayInfo : ITransferableData {
         set => DataParameter.SetValueHelper(this, AutoRefreshLengthParameter, ref this.autoRefreshLength, value);
     }
 
+    public uint BytesPerRow {
+        get => this.bytesPerRow;
+        set => DataParameter.SetValueHelper(this, BytesPerRowParameter, ref this.bytesPerRow, value);
+    }
+    
     /// <summary>
     /// Gets whether the hex editor allows values to be modified and therefore call <see cref="WriteDataAsync"/>
     /// </summary>
@@ -73,5 +80,8 @@ public class HexDisplayInfo : ITransferableData {
         this.caption = CaptionParameter.GetDefaultValue(this);
         this.startAddress = StartAddressParameter.GetDefaultValue(this);
         this.length = LengthParameter.GetDefaultValue(this);
+        this.autoRefreshStartAddress = AutoRefreshStartAddressParameter.GetDefaultValue(this);
+        this.autoRefreshLength = AutoRefreshLengthParameter.GetDefaultValue(this);
+        this.bytesPerRow = BytesPerRowParameter.GetDefaultValue(this);
     }
 }

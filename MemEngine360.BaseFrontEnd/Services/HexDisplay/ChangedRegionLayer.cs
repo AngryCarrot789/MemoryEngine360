@@ -30,12 +30,9 @@ using PFXToolKitUI;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
 
- // 8303A000, 4000
+// 8303A000, 4000
 
 public class ChangedRegionLayer : Layer {
-    private readonly Caret theCaret;
-    private BitRange theRange;
-
     /// <summary>
     /// Defines the <see cref="PrimarySelectionBorder"/> property.
     /// </summary>
@@ -44,19 +41,7 @@ public class ChangedRegionLayer : Layer {
     /// <summary>
     /// Defines the <see cref="PrimarySelectionBorder"/> property.
     /// </summary>
-    public static readonly StyledProperty<IBrush?> PrimarySelectionBackgroundProperty = AvaloniaProperty.Register<ChangedRegionLayer, IBrush?>(nameof(PrimarySelectionBackground), new SolidColorBrush(Colors.Orange, 0.5D));
-
-    /// <summary>
-    /// Defines the <see cref="PrimarySelectionBorder"/> property.
-    /// </summary>
     public static readonly StyledProperty<IPen?> SecondarySelectionBorderProperty = AvaloniaProperty.Register<ChangedRegionLayer, IPen?>(nameof(PrimarySelectionBorder), new Pen(Brushes.Orange));
-
-    /// <summary>
-    /// Defines the <see cref="PrimarySelectionBorder"/> property.
-    /// </summary>
-    public static readonly StyledProperty<IBrush?> SecondarySelectionBackgroundProperty = AvaloniaProperty.Register<ChangedRegionLayer, IBrush?>(nameof(SecondarySelectionBackgroundProperty), new SolidColorBrush(Colors.Orange, 0.25D));
-
-    public static readonly StyledProperty<bool> IsActiveProperty = AvaloniaProperty.Register<ChangedRegionLayer, bool>(nameof(IsActive));
 
     /// <summary>
     /// Gets or sets the pen used for drawing the border of the selection in the active column.
@@ -64,14 +49,6 @@ public class ChangedRegionLayer : Layer {
     public IPen? PrimarySelectionBorder {
         get => this.GetValue(PrimarySelectionBorderProperty);
         set => this.SetValue(PrimarySelectionBorderProperty, value);
-    }
-
-    /// <summary>
-    /// Gets or sets the brush used for drawing the background of the selection in the active column.
-    /// </summary>
-    public IBrush? PrimarySelectionBackground {
-        get => this.GetValue(PrimarySelectionBackgroundProperty);
-        set => this.SetValue(PrimarySelectionBackgroundProperty, value);
     }
 
     /// <summary>
@@ -83,78 +60,82 @@ public class ChangedRegionLayer : Layer {
     }
 
     /// <summary>
-    /// Gets or sets the brush used for drawing the background of the selection in non-active columns.
+    /// Gets our range
     /// </summary>
-    public IBrush? SecondarySelectionBackground {
-        get => this.GetValue(SecondarySelectionBackgroundProperty);
-        set => this.SetValue(SecondarySelectionBackgroundProperty, value);
-    }
+    public BitRange Range => this.theRange;
 
-    public bool IsActive {
-        get => this.GetValue(IsActiveProperty);
-        set => this.SetValue(IsActiveProperty, value);
-    }
+    public HexEditorChangeManager Manager => this.manager;
 
+    public DateTime LastUpdatedTime => this.lastUpdatedTime;
+    
     /// <inheritdoc />
     public override LayerRenderMoments UpdateMoments => LayerRenderMoments.NoResizeRearrange;
 
     private CancellationTokenSource? cts;
     private readonly HexEditorChangeManager manager;
+    private readonly Caret theCaret;
+    private BitRange theRange;
+    private DateTime lastUpdatedTime;
+    private Animation? animation;
 
-    public ChangedRegionLayer(HexEditorChangeManager manager, Caret theCaret) {
-        this.theCaret = theCaret;
+    public ChangedRegionLayer(HexEditorChangeManager manager) {
         this.manager = manager;
+        this.theCaret = manager.Editor.Caret;
     }
 
     static ChangedRegionLayer() {
-        AffectsRender<ChangedRegionLayer>(
-            PrimarySelectionBorderProperty,
-            PrimarySelectionBackgroundProperty,
-            SecondarySelectionBorderProperty,
-            SecondarySelectionBackgroundProperty,
-            IsActiveProperty);
+        AffectsRender<ChangedRegionLayer>(PrimarySelectionBorderProperty, SecondarySelectionBorderProperty);
     }
 
     public void SetRange(BitRange newRange) {
+        this.lastUpdatedTime = DateTime.Now;
         this.theRange = newRange;
         this.InvalidateVisual();
         if (this.cts != null) {
-            this.cts.Cancel();
+            try {
+                this.cts.Cancel();
+            }
+            catch (ObjectDisposedException) {
+                // ignored -- probably lost race to dispose on line 137
+            }
+
             this.cts.Dispose();
             this.cts = null;
         }
 
-        this.cts = new CancellationTokenSource();
-        Animation animation = new Animation {
-            Duration = TimeSpan.FromSeconds(1.5), // 0.2 seconds grace period for removing layer from UI
+        CancellationTokenSource cancellation = this.cts = new CancellationTokenSource();
+        this.animation ??= new Animation {
+            Duration = TimeSpan.FromSeconds(1.5),
             Easing = new SineEaseOut(), FillMode = FillMode.Forward,
             Children = {
                 new KeyFrame {
                     Cue = new Cue(0),
                     Setters = {
-                        new Setter(Control.OpacityProperty, 1.0)
+                        new Setter(OpacityProperty, 1.0)
                     }
                 },
                 new KeyFrame {
                     Cue = new Cue(1),
                     Setters = {
-                        new Setter(Control.OpacityProperty, 0.0)
+                        new Setter(OpacityProperty, 0.0)
                     }
                 }
             }
         };
-        
-        CancellationToken token = this.cts.Token;
-        animation.RunAsync(this, token).ContinueWith(async (t) => {
-            if (t.IsCanceled || token.IsCancellationRequested) {
-                return;
+
+        CancellationToken token = cancellation.Token;
+        this.animation.RunAsync(this, token).ContinueWith(async (t) => {
+            try {
+                if (!token.IsCancellationRequested) {
+                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                        if (!token.IsCancellationRequested)
+                            this.manager.OnFadeOutCompleted(this);
+                    });
+                }
             }
-            
-            await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                this.cts?.Dispose();
-                this.cts = null;
-                this.manager.OnChangeExpired(this);
-            });
+            finally {
+                cancellation.Dispose();
+            }
         }, TaskContinuationOptions.ExecuteSynchronously);
     }
 
@@ -174,9 +155,7 @@ public class ChangedRegionLayer : Layer {
     private BitRange? GetVisibleSelectionRange() {
         if (this.HexView == null || !this.theRange.OverlapsWith(this.HexView.VisibleRange))
             return null;
-
-        return new BitRange(this.theRange.Start.Max(this.HexView.VisibleRange.Start), this.theRange.End.Min(this.HexView.VisibleRange.End)
-        );
+        return new BitRange(this.theRange.Start.Max(this.HexView.VisibleRange.Start), this.theRange.End.Min(this.HexView.VisibleRange.End));
     }
 
     private void DrawSelection(DrawingContext context, CellBasedColumn column, BitRange range) {
@@ -185,8 +164,8 @@ public class ChangedRegionLayer : Layer {
             return;
 
         if (this.theCaret.PrimaryColumnIndex == column.Index)
-            context.DrawGeometry(this.IsActive ? this.PrimarySelectionBackground : null, this.PrimarySelectionBorder, geometry);
+            context.DrawGeometry(null, this.PrimarySelectionBorder, geometry);
         else
-            context.DrawGeometry(this.IsActive ? this.SecondarySelectionBackground : null, this.SecondarySelectionBorder, geometry);
+            context.DrawGeometry(null, this.SecondarySelectionBorder, geometry);
     }
 }

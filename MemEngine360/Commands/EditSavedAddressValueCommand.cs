@@ -76,18 +76,12 @@ public class EditSavedAddressValueCommand : Command {
             return;
         }
 
-        if (memoryEngine360.IsConnectionBusy) {
-            string desc = memoryEngine360.ScanningProcessor.IsScanning ? "The connection is busy scanning the xbox memory. Cancel to modify values" : "Connection is currently busy somewhere";
-            await IMessageDialogService.Instance.ShowMessage("Busy", "Connection is busy. Concurrent operations dangerous", desc);
-            return;
-        }
-
         SingleUserInputInfo input;
         if (savedList.Count == 1) {
             input = new SingleUserInputInfo("Change value at 0x" + savedList[0].Address.ToString("X8"), "Immediately change the value at this address", "Value", savedList[0].Value);
             input.Validate = (args) => {
                 if (savedList[0].DataType.IsNumeric()) {
-                    ValueScannerUtils.TryParseTextAsNumber(args, savedList[0].DataType, savedList[0].NumericDisplayType);
+                    MemoryEngine360.CanParseTextAsNumber(args, savedList[0].DataType, savedList[0].NumericDisplayType);
                 }
                 else if (args.Input.Length != savedList[0].Value.Length) {
                     args.Errors.Add("New length must match the string length");
@@ -106,7 +100,7 @@ public class EditSavedAddressValueCommand : Command {
             input = new SingleUserInputInfo("Change " + savedList.Count + " values", "Immediately change the value at these addresses", "Value", savedList[savedList.Count - 1].Value);
             input.Validate = (args) => {
                 if (savedList[0].DataType.IsNumeric()) {
-                    ValueScannerUtils.TryParseTextAsNumber(args, savedList[0].DataType, savedList[0].NumericDisplayType);
+                    MemoryEngine360.CanParseTextAsNumber(args, savedList[0].DataType, savedList[0].NumericDisplayType);
                 }
             };
         }

@@ -24,6 +24,7 @@ using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
@@ -335,12 +336,12 @@ public class MemoryEngine360 {
                 break;
             }
             case DataType.Float: {
-                float f = displayType == NumericDisplayType.Hexadecimal ? BitConverter.Int32BitsToSingle(int.Parse(value, NumberStyles.HexNumber, null)) : float.Parse(value);
+                float f = displayType == NumericDisplayType.Hexadecimal ? BitConverter.UInt32BitsToSingle(uint.Parse(value, NumberStyles.HexNumber, null)) : float.Parse(value);
                 await connection.WriteValue(address, f);
                 break;
             }
             case DataType.Double: {
-                double d = displayType == NumericDisplayType.Hexadecimal ? BitConverter.Int64BitsToDouble(long.Parse(value, NumberStyles.HexNumber, null)) : double.Parse(value);
+                double d = displayType == NumericDisplayType.Hexadecimal ? BitConverter.UInt64BitsToDouble(ulong.Parse(value, NumberStyles.HexNumber, null)) : double.Parse(value);
                 await connection.WriteValue(address, d);
                 break;
             }
@@ -440,6 +441,80 @@ public class MemoryEngine360 {
         }
         
         return false;
+    }
+
+    /// <summary>
+    /// Validation args version of <see cref="CanParseTextAsNumber(PFXToolKitUI.Services.UserInputs.ValidationArgs,MemEngine360.Engine.Modes.DataType,MemEngine360.Engine.NumericDisplayType)"/>.
+    /// Adds an error saying "Invalid (data type)" the the errors list
+    /// </summary>
+    /// <param name="args">The args containing the input text</param>
+    /// <param name="dataType">The data type to try to parse to</param>
+    /// <param name="ndt">The format/display type of the input string</param>
+    /// <returns>True when parsed successfully, False when failed</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Data type is not numeric</exception>
+    public static bool CanParseTextAsNumber(ValidationArgs args, DataType dataType, NumericDisplayType ndt) {
+        if (CanParseTextAsNumber(args.Input, dataType, ndt)) {
+            return true;
+        }
+
+        switch (dataType) {
+            case DataType.Byte:   args.Errors.Add("Invalid Byte"); break;
+            case DataType.Int16:  args.Errors.Add("Invalid " + (ndt == NumericDisplayType.Unsigned ? "UInt16" : "Int16")); break;
+            case DataType.Int32:  args.Errors.Add("Invalid " + (ndt == NumericDisplayType.Unsigned ? "UInt32" : "Int32")); break;
+            case DataType.Int64:  args.Errors.Add("Invalid " + (ndt == NumericDisplayType.Unsigned ? "UInt64" : "Int64")); break;
+            case DataType.Float:  args.Errors.Add("Invalid float"); break;
+            case DataType.Double: args.Errors.Add("Invalid double"); break;
+            default:              throw new ArgumentOutOfRangeException();
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Attempts to parse the input as a numeric data type
+    /// </summary>
+    /// <param name="input">The input string</param>
+    /// <param name="dataType">The data type to try to parse to</param>
+    /// <param name="ndt">The format/display type of the input string</param>
+    /// <returns>True when parsed successfully, False when failed</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Data type is not numeric</exception>
+    public static bool CanParseTextAsNumber(string input, DataType dataType, NumericDisplayType ndt) {
+        NumberStyles nsInt = ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
+        switch (dataType) {
+            case DataType.Byte: {
+                if (!byte.TryParse(input, nsInt, null, out _))
+                    return false;
+                break;
+            }
+            case DataType.Int16: {
+                if (!(ndt == NumericDisplayType.Unsigned ? ushort.TryParse(input, nsInt, null, out _) : short.TryParse(input, nsInt, null, out _)))
+                    return false;
+                break;
+            }
+            case DataType.Int32: {
+                if (!(ndt == NumericDisplayType.Unsigned ? uint.TryParse(input, nsInt, null, out _) : int.TryParse(input, nsInt, null, out _)))
+                    return false;
+                break;
+            }
+            case DataType.Int64: {
+                if (!(ndt == NumericDisplayType.Unsigned ? ulong.TryParse(input, nsInt, null, out _) : long.TryParse(input, nsInt, null, out _)))
+                    return false;
+                break;
+            }
+            case DataType.Float: {
+                if (!(ndt == NumericDisplayType.Hexadecimal ? uint.TryParse(input, NumberStyles.HexNumber, null, out _) : float.TryParse(input, out _)))
+                    return false;
+                break;
+            }
+            case DataType.Double: {
+                if (!(ndt == NumericDisplayType.Hexadecimal ? ulong.TryParse(input, NumberStyles.HexNumber, null, out _) : double.TryParse(input, out _)))
+                    return false;
+                break;
+            }
+            default: throw new ArgumentOutOfRangeException();
+        }
+
+        return true;
     }
 }
 
