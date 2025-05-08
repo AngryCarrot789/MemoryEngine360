@@ -20,7 +20,6 @@
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
-using MemEngine360.Engine.Scanners;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;

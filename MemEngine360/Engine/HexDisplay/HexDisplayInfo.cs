@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using AvaloniaHex.Core.Document;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Utils.Accessing;
 
@@ -28,7 +29,7 @@ public class HexDisplayInfo : ITransferableData {
     public static readonly DataParameterNumber<uint> LengthParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(Length), 0x10000, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(length))));
     public static readonly DataParameterNumber<uint> AutoRefreshStartAddressParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(AutoRefreshStartAddress), 0, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(autoRefreshStartAddress))));
     public static readonly DataParameterNumber<uint> AutoRefreshLengthParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(AutoRefreshLength), 0, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(autoRefreshLength))));
-    public static readonly DataParameter<uint> BytesPerRowParameter = DataParameter.Register(new DataParameter<uint>(typeof(HexDisplayInfo), nameof(BytesPerRow), 32, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(bytesPerRow))));
+    public static readonly DataParameterNumber<uint> BytesPerRowParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(BytesPerRow), 32, 8, 256, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(bytesPerRow))));
     
     private string? caption;
     private uint startAddress, autoRefreshStartAddress;
@@ -40,21 +41,33 @@ public class HexDisplayInfo : ITransferableData {
         set => DataParameter.SetValueHelper(this, CaptionParameter, ref this.caption, value);
     }
 
+    /// <summary>
+    /// Gets or sets the address to Read All from, and only for Read All.
+    /// </summary>
     public uint StartAddress {
         get => this.startAddress;
         set => DataParameter.SetValueHelper(this, StartAddressParameter, ref this.startAddress, value);
     }
 
+    /// <summary>
+    /// Gets or sets the amount of bytes to read during Read All, and only for Read All
+    /// </summary>
     public uint Length {
         get => this.length;
         set => DataParameter.SetValueHelper(this, LengthParameter, ref this.length, value);
     }
     
+    /// <summary>
+    /// Gets or sets the address that autorefresh should start at
+    /// </summary>
     public uint AutoRefreshStartAddress {
         get => this.autoRefreshStartAddress;
         set => DataParameter.SetValueHelper(this, AutoRefreshStartAddressParameter, ref this.autoRefreshStartAddress, value);
     }
 
+    /// <summary>
+    /// Gets or sets the number of bytes to read during autorefresh
+    /// </summary>
     public uint AutoRefreshLength {
         get => this.autoRefreshLength;
         set => DataParameter.SetValueHelper(this, AutoRefreshLengthParameter, ref this.autoRefreshLength, value);
@@ -64,6 +77,11 @@ public class HexDisplayInfo : ITransferableData {
         get => this.bytesPerRow;
         set => DataParameter.SetValueHelper(this, BytesPerRowParameter, ref this.bytesPerRow, value);
     }
+    
+    /// <summary>
+    /// Gets the document used by the hex editor control. Do not set this manually, because it will not affect the control
+    /// </summary>
+    public MemoryBinaryDocument? Document { get; set; }
     
     /// <summary>
     /// Gets whether the hex editor allows values to be modified and therefore call <see cref="WriteDataAsync"/>

@@ -46,7 +46,7 @@ public interface IHexDisplayView {
     ulong DocumentLength { get; }
 
     /// <summary>
-    /// The <see cref="HexDisplay.HexDisplayInfo.StartAddress"/> the last time we <see cref="ReadAllFromConsoleCommand"/>
+    /// The value of <see cref="HexDisplay.HexDisplayInfo.StartAddress"/> the last time we <see cref="ReadAllFromConsoleCommand"/>
     /// </summary>
     uint CurrentStartOffset { get; }
 

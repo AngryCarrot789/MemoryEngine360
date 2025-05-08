@@ -142,6 +142,18 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
     public IListSelectionManager<ScanResultViewModel> ScanResultSelectionManager { get; }
 
     public IListSelectionManager<SavedAddressViewModel> SavedAddressesSelectionManager { get; }
+    
+    public bool IsActivtyListVisible {
+        get => this.PART_ActivityListPanel.IsVisible;
+        set {
+            if (this.PART_ActivityListPanel.IsVisible != value) {
+                this.PART_ActivityListPanel.IsVisible = value;
+                this.PART_ActivityList.ActivityManager = value ? ActivityManager.Instance : null;
+
+                this.PART_ActivityListPanel.Focus();
+            }
+        }
+    }
 
     public string Activity {
         get => this.latestActivityText;
@@ -166,6 +178,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         {
             ContextEntryGroup entry = new ContextEntryGroup("File");
             entry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.MemoryIcon));
             entry.Items.Add(new CommandContextEntry("commands.memengine.TestShowMemoryCommand", "Test Hex editor"));
             entry.Items.Add(new SeparatorEntry());
             entry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
@@ -240,6 +253,13 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         });
 
         this.PART_ScanOptionsControl.MemoryEngine360 = this.MemoryEngine360;
+        this.PART_ActivityListPanel.KeyDown += PART_ActivityListPanelOnKeyDown;
+    }
+
+    private void PART_ActivityListPanelOnKeyDown(object? sender, KeyEventArgs e) {
+        if (e.Key == Key.Escape) {
+            this.IsActivtyListVisible = false;
+        }
     }
 
     private void UpdateScanResultCounterText() {
@@ -344,11 +364,13 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.Window.Height = 630;
         this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.3";
         this.Window.WindowClosing += this.MyWindowOnWindowClosing;
+        this.IsActivtyListVisible = false;
         
         using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
         change.Context.Set(MemoryEngine360.DataKey, this.MemoryEngine360).Set(IMemEngineUI.MemUIDataKey, this).Set(ILatestActivityView.LatestActivityDataKey, this);
         
         ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineOpened(this);
+
     }
 
     protected override void OnWindowClosed() {
@@ -381,6 +403,9 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
                 }
             }
         }
+
+        // Grace period for all activities to become cancelled
+        await Task.Delay(100);
         
         IDisposable? token = this.MemoryEngine360.BeginBusyOperation();
         while (token == null) {
@@ -421,5 +446,9 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
     private void PART_ScanOption_Alignment_OnDoubleTapped(object? sender, TappedEventArgs e) {
         this.editAlignmentCommand.Execute(null);
+    }
+
+    private void CloseActivityListButtonClicked(object? sender, RoutedEventArgs e) {
+        this.IsActivtyListVisible = false;
     }
 }

@@ -53,4 +53,9 @@ public interface IMemEngineUI : ILatestActivityView {
     /// Gets the saved address list selection manager
     /// </summary>
     IListSelectionManager<SavedAddressViewModel> SavedAddressesSelectionManager { get; }
+
+    /// <summary>
+    /// Gets or sets if the activity list is visible in the UI
+    /// </summary>
+    bool IsActivtyListVisible { get; set; }
 }

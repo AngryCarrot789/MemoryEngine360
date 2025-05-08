@@ -17,7 +17,6 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Reflection.Metadata.Ecma335;
 using AvaloniaHex;
 using AvaloniaHex.Core.Document;
 using AvaloniaHex.Rendering;
@@ -94,6 +93,10 @@ public class HexEditorChangeManager {
     }
 
     private void TryMergeOrCreateLayer(BitRange newRange) {
+        if (this.myLayers.Count > 1000) {
+            return;
+        }
+        
         for (int i = 0; i < this.myLayers.Count; i++) {
             ChangedRegionLayer layer = this.myLayers[i];
             int timeLived = (DateTime.Now - layer.LastUpdatedTime).Milliseconds;

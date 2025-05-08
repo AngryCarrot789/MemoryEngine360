@@ -18,7 +18,6 @@
 // 
 
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -35,9 +34,6 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.HexDisplay;
 using MemEngine360.Engine.HexDisplay.Commands;
 using MemEngine360.Xbox360XBDM;
-using MemEngine360.Xbox360XBDM.Consoles;
-using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
-using MemEngine360.Xbox360XBDM.Views;
 using MemEngine360.Xbox360XDevkit;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI;
@@ -61,6 +57,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     protected override void RegisterCommands(CommandManager manager) {
         base.RegisterCommands(manager);
 
+        manager.Register("commands.pfx.ShowActivityListCommand", new ShowActivityListCommand());
         manager.Register("commands.memengine.OpenConsoleConnectionDialogCommand", new OpenConsoleConnectionDialogCommand());
         manager.Register("commands.memengine.FirstScanCommand", new FirstScanCommand());
         manager.Register("commands.memengine.NextScanCommand", new NextScanCommand());
@@ -79,6 +76,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.SelectRangeFromMemoryRegionCommand", new SelectRangeFromMemoryRegionCommand());
         manager.Register("commands.memengine.ResetScanOptionsCommand", new ResetScanOptionsCommand());
         manager.Register("commands.memengine.ShowMemoryCommand", new ShowMemoryCommand());
+        manager.Register("commands.memengine.DumpMemoryCommand", new DumpMemoryCommand());
         
         // Remote commands
         manager.Register("commands.memengine.remote.MemProtectionCommand", new MemProtectionCommand());
@@ -94,6 +92,9 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.hexeditor.ReadAllFromConsoleCommand", new ReadAllFromConsoleCommand());        
         manager.Register("commands.hexeditor.UploadSelectionToConsoleCommand", new UploadSelectionToConsoleCommand());        
         manager.Register("commands.hexeditor.GotoAddressCommand", new GotoAddressCommand());        
+        manager.Register("commands.hexeditor.SetAutoScanRangeAsSelectionCommand", new SetAutoScanRangeAsSelectionCommand());        
+        manager.Register("commands.hexeditor.ClearAutoScanRangeCommand", new ClearAutoScanRangeCommand());        
+        manager.Register("commands.hexeditor.SaveSelectionAsFileCommand", new SaveSelectionAsFileCommand());        
         
         // Test commands
         manager.Register("commands.memengine.TestShowMemoryCommand", new TestShowMemoryCommand());

@@ -41,4 +41,8 @@
       <AdditionalFiles Include="Services\SavedResultDataTypeEditorUserInputControl.axaml" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Services\HexDisplay\Commands\" />
+    </ItemGroup>
+
 </Project>

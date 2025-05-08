@@ -56,6 +56,12 @@
             <Shortcut Name="GotoAddress" CommandId="commands.hexeditor.GotoAddressCommand">
                 <KeyStroke Mods="CTRL" Key="G"/>
             </Shortcut>
+            <Shortcut Name="SetSelectionAsAutoRefreshRange" CommandId="commands.hexeditor.SetAutoScanRangeAsSelectionCommand">
+                <KeyStroke Mods="CTRL+SHIFT" Key="S"/>
+            </Shortcut>
+            <Shortcut Name="SaveSelectionAsFile" CommandId="commands.hexeditor.SaveSelectionAsFileCommand">
+                <KeyStroke Mods="CTRL" Key="S"/>
+            </Shortcut>
         </Group>
 
         <Shortcut Name="ReadAll" CommandId="commands.hexeditor.ReadAllFromConsoleCommand">

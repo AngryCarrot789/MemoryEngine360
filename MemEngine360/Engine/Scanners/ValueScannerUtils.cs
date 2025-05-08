@@ -18,12 +18,9 @@
 // 
 
 using System.Buffers.Binary;
-using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Interactivity.Formatting;
-using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Engine.Scanners;
 

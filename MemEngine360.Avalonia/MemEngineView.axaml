@@ -39,275 +39,312 @@
                 <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="5" Margin="2,2" VerticalAlignment="Stretch"/>
             </Grid>
         </Border>
-        <Grid x:Name="PART_ContentGrid">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="5"/>
-                <RowDefinition Height="30*" MinHeight="200"/>
-                <RowDefinition Height="5"/>
-                <RowDefinition Height="15*" MinHeight="120"/>
-                <RowDefinition Height="5"/>
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="5*" MinWidth="200"/>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="4*" MinWidth="228"/>
-                <ColumnDefinition Width="5"/>
-            </Grid.ColumnDefinitions>
-            <Border Grid.Column="3" Grid.Row="1">
-                <Grid RowDefinitions="Auto,5,Auto,5,*,Auto">
-                    <Grid ColumnDefinitions="*,5,*,5,*" Grid.Row="0" Height="22">
-                        <Button Grid.Column="0" Content="First Scan" cmdu:CommandUsageManager.UsageClassType="{x:Type ac:FirstScanCommandUsage}"
-                                ToolTip.Tip="Search the console memory for the value, and display all found results"/>
-                        <Button Grid.Column="2" Content="Next Scan" cmdu:CommandUsageManager.UsageClassType="{x:Type ac:NextScanCommandUsage}"
-                                ToolTip.Tip="Search the scan result list for the value, and keeps results that still match"/>
-                        <Button Grid.Column="4" Content="Reset" cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ResetScanCommandUsage}"
-                                ToolTip.Tip="Clears the scan result list, allowing for the first scan to be performed again"/>
-                    </Grid>
-                    <Grid Grid.Row="2">
-                        <av2:ScanOptionsControl x:Name="PART_ScanOptionsControl"/>
-                    </Grid>
-                    <c:GroupBox Grid.Row="5"
-                                Background="{DynamicResource PanelBackground3}"
-                                BorderBrush="{DynamicResource PanelBackground0}"
-                                BorderThickness="1"
-                                HorizontalHeaderAlignment="Stretch"
-                                VerticalHeaderAlignment="Stretch">
-                        <c:GroupBox.Header>
-                            <DockPanel HorizontalSpacing="4">
-                                <ToggleButton x:Name="PART_MemScanExpander" DockPanel.Dock="Right" Width="20" Height="20" Padding="0" VerticalAlignment="Center"
-                                              Background="{DynamicResource ABrush.Tone7.Background.Static}"
-                                              IsChecked="True">
-                                    <ToggleButton.Resources>
-                                        <converters:BoolConverter x:Key="IsCheckedToTextConverter" TrueValue="-" FalseValue="+"/>
-                                    </ToggleButton.Resources>
-                                    <TextBlock Text="{Binding ElementName=PART_MemScanExpander, Path=IsChecked, Converter={StaticResource IsCheckedToTextConverter}}" Margin="0,-2,0,0"/>
-                                </ToggleButton>
-                                <av:IconButton DockPanel.Dock="Right"
-                                               Icon="{x:Static cb:SimpleIcons.MemoryIconTable}"
-                                               Width="20" Height="20" IconMaxWidth="12" IconMaxHeight="12"
-                                               Padding="2"
-                                               Background="{DynamicResource ABrush.Tone7.Background.Static}"
-                                               cmdu:CommandUsageManager.UsageClassType="{x:Type ac:SelectRangeFromMemoryRegionCommandUsage}">
-                                    <ToolTip.Tip>
-                                        <TextBlock TextWrapping="Wrap">
-                                            <Run Text="Open a dialog with all available memory regions on the console"/>
-                                            <LineBreak/>
-                                            <Run Text="Select one, click Select, and it sets that as the start/length fields"/>
-                                        </TextBlock>
-                                    </ToolTip.Tip>
-                                </av:IconButton>
-                                <av:IconButton DockPanel.Dock="Right"
-                                               Icon="{x:Static cb:SimpleIcons.ResetIcon}"
-                                               Width="20" Height="20"
-                                               IconMaxWidth="12" IconMaxHeight="12"
-                                               Padding="2"
-                                               Background="{DynamicResource ABrush.Tone7.Background.Static}"
-                                               cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ResetScanOptionsCommandUsage}">
-                                    <ToolTip.Tip>
-                                        <TextBlock TextWrapping="Wrap">
-                                            <Run Text="Resets the Start, Length and Scan Memory Pages options to default"/>
-                                        </TextBlock>
-                                    </ToolTip.Tip>
-                                </av:IconButton>
-                                <TextBlock Text="Memory Scanning Options" VerticalAlignment="Center"/>
-                            </DockPanel>
-                        </c:GroupBox.Header>
-                        <StackPanel IsVisible="{Binding ElementName=PART_MemScanExpander, Path=IsChecked}">
-                            <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,20,3,20,3,20" Margin="3">
-                                <TextBlock Grid.Column="0" Grid.Row="0" Text="Start" VerticalAlignment="Center" Padding="4,0"/>
-                                <TextBlock Grid.Column="0" Grid.Row="2" Text="Length" VerticalAlignment="Center" Padding="4,0"/>
-                                <TextBlock Grid.Column="0" Grid.Row="4" Text="Align" VerticalAlignment="Center" Padding="4,0"/>
+        <Grid>
+            <Grid x:Name="PART_ContentGrid">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="5"/>
+                    <RowDefinition Height="30*" MinHeight="200"/>
+                    <RowDefinition Height="5"/>
+                    <RowDefinition Height="15*" MinHeight="120"/>
+                    <RowDefinition Height="5"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="5"/>
+                    <ColumnDefinition Width="5*" MinWidth="200"/>
+                    <ColumnDefinition Width="5"/>
+                    <ColumnDefinition Width="4*" MinWidth="228"/>
+                    <ColumnDefinition Width="5"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="3" Grid.Row="1">
+                    <Grid RowDefinitions="Auto,5,Auto,5,*,Auto">
+                        <Grid ColumnDefinitions="*,5,*,5,*" Grid.Row="0" Height="22">
+                            <Button Grid.Column="0" Content="First Scan" cmdu:CommandUsageManager.UsageClassType="{x:Type ac:FirstScanCommandUsage}"
+                                    ToolTip.Tip="Search the console memory for the value, and display all found results"/>
+                            <Button Grid.Column="2" Content="Next Scan" cmdu:CommandUsageManager.UsageClassType="{x:Type ac:NextScanCommandUsage}"
+                                    ToolTip.Tip="Search the scan result list for the value, and keeps results that still match"/>
+                            <Button Grid.Column="4" Content="Reset" cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ResetScanCommandUsage}"
+                                    ToolTip.Tip="Clears the scan result list, allowing for the first scan to be performed again"/>
+                        </Grid>
+                        <Grid Grid.Row="2">
+                            <av2:ScanOptionsControl x:Name="PART_ScanOptionsControl"/>
+                        </Grid>
+                        <c:GroupBox Grid.Row="5"
+                                    Background="{DynamicResource PanelBackground3}"
+                                    BorderBrush="{DynamicResource PanelBackground0}"
+                                    BorderThickness="1"
+                                    HorizontalHeaderAlignment="Stretch"
+                                    VerticalHeaderAlignment="Stretch">
+                            <c:GroupBox.Header>
+                                <DockPanel HorizontalSpacing="4">
+                                    <ToggleButton x:Name="PART_MemScanExpander" DockPanel.Dock="Right" Width="20" Height="20" Padding="0" VerticalAlignment="Center"
+                                                  Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                                  IsChecked="True">
+                                        <ToggleButton.Resources>
+                                            <converters:BoolConverter x:Key="IsCheckedToTextConverter" TrueValue="-" FalseValue="+"/>
+                                        </ToggleButton.Resources>
+                                        <TextBlock Text="{Binding ElementName=PART_MemScanExpander, Path=IsChecked, Converter={StaticResource IsCheckedToTextConverter}}" Margin="0,-2,0,0"/>
+                                    </ToggleButton>
+                                    <av:IconButton DockPanel.Dock="Right"
+                                                   Icon="{x:Static cb:SimpleIcons.MemoryIconTable}"
+                                                   Width="20" Height="20" IconMaxWidth="12" IconMaxHeight="12"
+                                                   Padding="2"
+                                                   Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                                   cmdu:CommandUsageManager.UsageClassType="{x:Type ac:SelectRangeFromMemoryRegionCommandUsage}">
+                                        <ToolTip.Tip>
+                                            <TextBlock TextWrapping="Wrap">
+                                                <Run Text="Open a dialog with all available memory regions on the console"/>
+                                                <LineBreak/>
+                                                <Run Text="Select one, click Select, and it sets that as the start/length fields"/>
+                                            </TextBlock>
+                                        </ToolTip.Tip>
+                                    </av:IconButton>
+                                    <av:IconButton DockPanel.Dock="Right"
+                                                   Icon="{x:Static cb:SimpleIcons.ResetIcon}"
+                                                   Width="20" Height="20"
+                                                   IconMaxWidth="12" IconMaxHeight="12"
+                                                   Padding="2"
+                                                   Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                                   cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ResetScanOptionsCommandUsage}">
+                                        <ToolTip.Tip>
+                                            <TextBlock TextWrapping="Wrap">
+                                                <Run Text="Resets the Start, Length and Scan Memory Pages options to default"/>
+                                            </TextBlock>
+                                        </ToolTip.Tip>
+                                    </av:IconButton>
+                                    <TextBlock Text="Memory Scanning Options" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </c:GroupBox.Header>
+                            <StackPanel IsVisible="{Binding ElementName=PART_MemScanExpander, Path=IsChecked}">
+                                <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,20,3,20,3,20" Margin="3">
+                                    <TextBlock Grid.Column="0" Grid.Row="0" Text="Start" VerticalAlignment="Center" Padding="4,0"/>
+                                    <TextBlock Grid.Column="0" Grid.Row="2" Text="Length" VerticalAlignment="Center" Padding="4,0"/>
+                                    <TextBlock Grid.Column="0" Grid.Row="4" Text="Align" VerticalAlignment="Center" Padding="4,0"/>
 
-                                <TextBox Grid.Column="2" Grid.Row="0" FontFamily="Consolas" Background="Transparent"
-                                         x:Name="PART_ScanOption_StartAddress" Padding="4,1"
-                                         VerticalAlignment="Stretch" VerticalContentAlignment="Center"
-                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                                         ScrollViewer.VerticalScrollBarVisibility="Disabled" 
-                                         ScrollViewer.HorizontalScrollBarVisibility="Hidden">
-                                    <ToolTip.Tip>
-                                        <TextBlock TextWrapping="Wrap">
-                                            <Run Text="This is the start of the scanning region."/>
-                                            <LineBreak/>
-                                            <Run Text="This is also used when Scan Memory Pages is enabled, so you may want to set this to 0 in that case"/>
-                                        </TextBlock>
-                                    </ToolTip.Tip>
-                                </TextBox>
-                                <TextBox Grid.Column="2" Grid.Row="2" FontFamily="Consolas" Background="Transparent"
-                                         x:Name="PART_ScanOption_Length" Padding="4,1"
-                                         VerticalAlignment="Stretch" VerticalContentAlignment="Center"
-                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                                         ScrollViewer.VerticalScrollBarVisibility="Disabled" 
-                                         ScrollViewer.HorizontalScrollBarVisibility="Hidden">
-                                    <ToolTip.Tip>
-                                        <TextBlock TextWrapping="Wrap">
-                                            <Run Text="This is how many bytes are scanned. The end address (exclusive) is the start address + this value"/>
-                                            <LineBreak/>
-                                            <Run Text="This is also used when Scan Memory Pages is enabled, so you may want to set this to FFFFFFFF in that case"/>
-                                        </TextBlock>
-                                    </ToolTip.Tip>
-                                </TextBox>
-                                <Label Grid.Column="2" Grid.Row="4" FontFamily="Consolas" Background="Transparent"
-                                       x:Name="PART_ScanOption_Alignment"
-                                       VerticalAlignment="Stretch" VerticalContentAlignment="Center"
-                                       HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                       ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                       DoubleTapped="PART_ScanOption_Alignment_OnDoubleTapped">
-                                    <ToolTip.Tip>
-                                        <TextBlock TextWrapping="Wrap">
-                                            <Run Text="Double click to modify"/>
-                                            <LineBreak/>
-                                            <Run Text="The address alignment. This is the value continually added to each address during the scan (e.g, if align is 4, we scan address 0, 4, 8, 12, 16)"/>
-                                            <LineBreak/>
-                                            <Run Text="This is required because if you're scanning for int32, you don't want to read half way through another integer (which would be the case if align was 1, 2 or 3)"/>
-                                        </TextBlock>
-                                    </ToolTip.Tip>
-                                </Label>
-                                <CheckBox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="6"
-                                          x:Name="PART_ScanOption_PauseConsole"
-                                          Content="DEBUG PAUSE while scanning">
-                                    <ToolTip.Tip>
-                                        <TextBlock TextWrapping="Wrap">
-                                            <Run Text="Signal to the Xbox to completely freeze while scanning."/>
-                                            <LineBreak/>
-                                            <Run Text="This prevents memory changing while scanning and speeds up the scan by a huge factor, especially while running a game"/>
-                                        </TextBlock>
-                                    </ToolTip.Tip>
-                                </CheckBox>
-                                <CheckBox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="8"
-                                          x:Name="PART_ScanOption_ScanMemoryPages"
-                                          Content="Scan Memory Pages">
-                                    <ToolTip.Tip>
-                                        <TextBlock TextWrapping="Wrap">
-                                            <Run Text="Fetches the memory pages from the console and scans those instead of a set memory range"/>
-                                        </TextBlock>
-                                    </ToolTip.Tip>
-                                </CheckBox>
-                            </Grid>
-                        </StackPanel>
-                    </c:GroupBox>
+                                    <TextBox Grid.Column="2" Grid.Row="0" FontFamily="Consolas" Background="Transparent"
+                                             x:Name="PART_ScanOption_StartAddress" Padding="4,1"
+                                             VerticalAlignment="Stretch" VerticalContentAlignment="Center"
+                                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                             ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+                                        <ToolTip.Tip>
+                                            <TextBlock TextWrapping="Wrap">
+                                                <Run Text="This is the start of the scanning region."/>
+                                                <LineBreak/>
+                                                <Run Text="This is also used when Scan Memory Pages is enabled, so you may want to set this to 0 in that case"/>
+                                            </TextBlock>
+                                        </ToolTip.Tip>
+                                    </TextBox>
+                                    <TextBox Grid.Column="2" Grid.Row="2" FontFamily="Consolas" Background="Transparent"
+                                             x:Name="PART_ScanOption_Length" Padding="4,1"
+                                             VerticalAlignment="Stretch" VerticalContentAlignment="Center"
+                                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                             ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+                                        <ToolTip.Tip>
+                                            <TextBlock TextWrapping="Wrap">
+                                                <Run Text="This is how many bytes are scanned. The end address (exclusive) is the start address + this value"/>
+                                                <LineBreak/>
+                                                <Run Text="This is also used when Scan Memory Pages is enabled, so you may want to set this to FFFFFFFF in that case"/>
+                                            </TextBlock>
+                                        </ToolTip.Tip>
+                                    </TextBox>
+                                    <Label Grid.Column="2" Grid.Row="4" FontFamily="Consolas" Background="Transparent"
+                                           x:Name="PART_ScanOption_Alignment"
+                                           VerticalAlignment="Stretch" VerticalContentAlignment="Center"
+                                           HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                           ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                           DoubleTapped="PART_ScanOption_Alignment_OnDoubleTapped">
+                                        <ToolTip.Tip>
+                                            <TextBlock TextWrapping="Wrap">
+                                                <Run Text="Double click to modify"/>
+                                                <LineBreak/>
+                                                <Run Text="The address alignment. This is the value continually added to each address during the scan (e.g, if align is 4, we scan address 0, 4, 8, 12, 16)"/>
+                                                <LineBreak/>
+                                                <Run Text="This is required because if you're scanning for int32, you don't want to read half way through another integer (which would be the case if align was 1, 2 or 3)"/>
+                                            </TextBlock>
+                                        </ToolTip.Tip>
+                                    </Label>
+                                    <CheckBox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="6"
+                                              x:Name="PART_ScanOption_PauseConsole"
+                                              Content="DEBUG PAUSE while scanning">
+                                        <ToolTip.Tip>
+                                            <TextBlock TextWrapping="Wrap">
+                                                <Run Text="Signal to the Xbox to completely freeze while scanning."/>
+                                                <LineBreak/>
+                                                <Run Text="This prevents memory changing while scanning and speeds up the scan by a huge factor, especially while running a game"/>
+                                            </TextBlock>
+                                        </ToolTip.Tip>
+                                    </CheckBox>
+                                    <CheckBox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="8"
+                                              x:Name="PART_ScanOption_ScanMemoryPages"
+                                              Content="Scan Memory Pages">
+                                        <ToolTip.Tip>
+                                            <TextBlock TextWrapping="Wrap">
+                                                <Run Text="Fetches the memory pages from the console and scans those instead of a set memory range"/>
+                                            </TextBlock>
+                                        </ToolTip.Tip>
+                                    </CheckBox>
+                                </Grid>
+                            </StackPanel>
+                        </c:GroupBox>
 
-                    <!-- Fills empty space -->
-                    <Border Background="Transparent" Grid.Row="4"/>
-                </Grid>
+                        <!-- Fills empty space -->
+                        <Border Background="Transparent" Grid.Row="4"/>
+                    </Grid>
+                </Border>
+                <c:GroupBox Background="{DynamicResource PanelBackground2}"
+                            HorizontalHeaderAlignment="Stretch"
+                            BorderBrush="{DynamicResource PanelBackground0}"
+                            BorderThickness="1"
+                            Grid.Column="1" Grid.Row="1"
+                            av1:UIInputManager.FocusPath="MemEngineWindow/ScanResultList">
+                    <c:GroupBox.Header>
+                        <DockPanel>
+                            <TextBlock Text="Scan Results" DockPanel.Dock="Left"/>
+                            <TextBlock DockPanel.Dock="Right" Opacity="0.7">
+                                <Run x:Name="PART_Run_CountResults" Text="0"/>
+                            </TextBlock>
+                            <Border/>
+                        </DockPanel>
+                    </c:GroupBox.Header>
+                    <DataGrid x:Name="PART_ScanListResults"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              CanUserResizeColumns="True"
+                              ClipboardCopyMode="None">
+                        <DataGrid.Columns>
+                            <cb:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
+                                                     Header="Address (hex)" Width="85" Binding="{Binding Address, Mode=OneTime, StringFormat=X}"
+                                                     IsReadOnly="True" DoubleTapCommandId="commands.memengine.CopyScanResultsToClipboardCommand"
+                                                     CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
+                                                     CanUserResize="False" FontFamily="{StaticResource FontOxanium}"/> <!-- No need to resize since it's formatted to X8 (fixed length) -->
+
+                            <cb:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
+                                                     Header="Value" Width="85" Binding="{Binding CurrentValue, Mode=OneWay}"
+                                                     IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditScanResultValueCommand"
+                                                     CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
+                                                     CanUserResize="True" FontFamily="{StaticResource FontOxanium}"/>
+
+                            <DataGridTextColumn CanUserResize="True" Header="Previous" Width="85" Binding="{Binding PreviousValue, Mode=OneWay}" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True"/>
+                            <DataGridTextColumn CanUserResize="True" Header="First" Width="85" Binding="{Binding FirstValue, Mode=OneTime}" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </c:GroupBox>
+                <c:GroupBox Background="{DynamicResource PanelBackground2}"
+                            BorderBrush="{DynamicResource PanelBackground0}"
+                            BorderThickness="1"
+                            HorizontalHeaderAlignment="Stretch"
+                            Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="3"
+                            x:Name="PART_SavedAddressGroupBox"
+                            av1:UIInputManager.FocusPath="MemEngineWindow/SavedAddressList" MinHeight="100">
+                    <c:GroupBox.Header>
+                        <DockPanel>
+                            <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="5" Height="20">
+                                <av:IconButton Icon="{x:Static cb:SimpleIcons.MemoryIcon}" Width="20"
+                                               Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                               BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                               cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ShowMemoryCommandUsage}"
+                                               VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                                               ToolTip.Tip="Opens a view of the console's memory" Padding="2,1,2,2"/>
+
+                                <av:IconButton Content="Add Scan Result(s)" Padding="4,1" Height="20" IconMaxWidth="12"
+                                               Icon="{x:Static cb:SimpleIcons.RedArrowCopyToSavedResultsIcon}"
+                                               Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                               BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                               cmdu:CommandUsageManager.UsageClassType="{x:Type ac:AddSelectedScanResultsToSavedAddressListCommandUsage}"
+                                               ToolTip.Tip="Adds the selected results into the saved address list. Does not add addresses that are already present"/>
+
+                                <Button Content="Refresh" Padding="4,1"
+                                        Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                        BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                        cmdu:CommandUsageManager.UsageClassType="{x:Type ac:RefreshSavedAddressesCommandUsage}"
+                                        ToolTip.Tip="Refresh the values. This is done automatically every 2 seconds"/>
+
+                                <av:IconButton Padding="2" Width="20"
+                                               Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                               BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                               cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.AddSavedAddressCommand"
+                                               ToolTip.Tip="Adds a row manually"
+                                               Icon="{x:Static cb:SimpleIcons.GreenPlusIcon}"/>
+
+                                <av:IconButton Padding="2" Width="20"
+                                               Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                               BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                               cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.ClearSavedAddressesCommand"
+                                               ToolTip.Tip="Clears all rows"
+                                               Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"/>
+                            </StackPanel>
+                            <Border/>
+                        </DockPanel>
+                    </c:GroupBox.Header>
+                    <DataGrid x:Name="PART_SavedAddressList"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              CanUserResizeColumns="True"
+                              ClipboardCopyMode="None">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Address (hex)" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}"
+                                                Binding="{Binding Address, Mode=OneWay, StringFormat=X}"
+                                                IsReadOnly="True" FontFamily="{StaticResource FontOxanium}"
+                                                CanUserResize="False"/>
+
+                            <DataGridTextColumn Header="Description" Width="200" x:DataType="{x:Type engine:SavedAddressViewModel}"
+                                                Binding="{Binding Description, Mode=TwoWay}"
+                                                CanUserResize="True"/>
+
+                            <cb:DataGridTextColumnEx Header="Data Type" Width="80" x:DataType="{x:Type engine:SavedAddressViewModel}"
+                                                     Binding="{Binding DataType, Mode=OneWay}"
+                                                     IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressDataTypeCommand"
+                                                     CellDataKeyForDC="{x:Static engine:SavedAddressViewModel.DataKey}"
+                                                     CanUserResize="True"/>
+
+                            <cb:DataGridTextColumnEx Header="Value" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}"
+                                                     Binding="{Binding Value, Mode=OneWay}"
+                                                     IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressValueCommand"
+                                                     CellDataKeyForDC="{x:Static engine:SavedAddressViewModel.DataKey}"
+                                                     CanUserResize="True" FontFamily="{StaticResource FontOxanium}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </c:GroupBox>
+                <GridSplitter Grid.Column="2" Grid.Row="1" Background="Transparent"/>
+                <GridSplitter Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="2" Background="Transparent"/>
+            </Grid>
+            <Border x:Name="PART_ActivityListPanel" Margin="0,0,5,5"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Width="300"
+                    Height="180"
+                    BorderThickness="1"
+                    Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                    Focusable="True">
+                <Border.Styles>
+                    <Style Selector="Border">
+                        <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone7.Border.Static}"/>
+                    </Style>
+                    <Style Selector="Border[IsKeyboardFocusWithin=True]">
+                        <Setter Property="BorderBrush" Value="{DynamicResource ABrush.AccentTone2.Background.Static}"/>
+                    </Style>
+                </Border.Styles>
+                <Border.Effect>
+                    <DropShadowEffect OffsetX="0" OffsetY="0" Opacity="0.3"/>
+                </Border.Effect>
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Height="24"
+                            BorderBrush="{DynamicResource ABrush.Tone7.Border.Static}"
+                            BorderThickness="0,0,0,1">
+                        <DockPanel>
+                            <Button Content="X" Click="CloseActivityListButtonClicked"
+                                    Padding="6,1" DockPanel.Dock="Right"
+                                    Background="Transparent" BorderThickness="0"/>
+                            <TextBlock Text="Background Activities" Padding="4,2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </DockPanel>
+                    </Border>
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <aa:ActivityListControl x:Name="PART_ActivityList" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
+                    </ScrollViewer>
+                </DockPanel>
             </Border>
-            <c:GroupBox Background="{DynamicResource PanelBackground2}"
-                        HorizontalHeaderAlignment="Stretch"
-                        BorderBrush="{DynamicResource PanelBackground0}"
-                        BorderThickness="1"
-                        Grid.Column="1" Grid.Row="1"
-                        av1:UIInputManager.FocusPath="MemEngineWindow/ScanResultList">
-                <c:GroupBox.Header>
-                    <DockPanel>
-                        <TextBlock Text="Scan Results" DockPanel.Dock="Left"/>
-                        <TextBlock DockPanel.Dock="Right" Opacity="0.7">
-                            <Run x:Name="PART_Run_CountResults" Text="0"/>
-                        </TextBlock>
-                        <Border/>
-                    </DockPanel>
-                </c:GroupBox.Header>
-                <DataGrid x:Name="PART_ScanListResults"
-                          Background="Transparent"
-                          BorderThickness="0"
-                          CanUserResizeColumns="True"
-                          ClipboardCopyMode="None">
-                    <DataGrid.Columns>
-                        <cb:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
-                                                  Header="Address (hex)" Width="85" Binding="{Binding Address, Mode=OneTime, StringFormat=X}"
-                                                  IsReadOnly="True" DoubleTapCommandId="commands.memengine.CopyScanResultsToClipboardCommand"
-                                                  CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
-                                                  CanUserResize="False" FontFamily="{StaticResource FontOxanium}"/> <!-- No need to resize since it's formatted to X8 (fixed length) -->
-
-                        <cb:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
-                                                  Header="Value" Width="85" Binding="{Binding CurrentValue, Mode=OneWay}"
-                                                  IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditScanResultValueCommand"
-                                                  CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
-                                                  CanUserResize="True" FontFamily="{StaticResource FontOxanium}"/>
-
-                        <DataGridTextColumn CanUserResize="True" Header="Previous" Width="85" Binding="{Binding PreviousValue, Mode=OneWay}" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True"/>
-                        <DataGridTextColumn CanUserResize="True" Header="First" Width="85" Binding="{Binding FirstValue, Mode=OneTime}" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </c:GroupBox>
-            <c:GroupBox Background="{DynamicResource PanelBackground2}"
-                        BorderBrush="{DynamicResource PanelBackground0}"
-                        BorderThickness="1"
-                        HorizontalHeaderAlignment="Stretch"
-                        Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="3"
-                        x:Name="PART_SavedAddressGroupBox"
-                        av1:UIInputManager.FocusPath="MemEngineWindow/SavedAddressList" MinHeight="100">
-                <c:GroupBox.Header>
-                    <DockPanel>
-                        <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="5" Height="20">
-                            <av:IconButton Icon="{x:Static cb:SimpleIcons.MemoryIcon}" Width="20"
-                                           Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                           BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                           cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ShowMemoryCommandUsage}"
-                                           VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                                           ToolTip.Tip="Opens a view of the console's memory" Padding="2,1,2,2"/>
-
-                            <av:IconButton Content="Add Scan Result(s)" Padding="4,1" Height="20" IconMaxWidth="12"
-                                           Icon="{x:Static cb:SimpleIcons.RedArrowCopyToSavedResultsIcon}"
-                                           Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                           BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                           cmdu:CommandUsageManager.UsageClassType="{x:Type ac:AddSelectedScanResultsToSavedAddressListCommandUsage}"
-                                           ToolTip.Tip="Adds the selected results into the saved address list. Does not add addresses that are already present"/>
-
-                            <Button Content="Refresh" Padding="4,1"
-                                    Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                    BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                    cmdu:CommandUsageManager.UsageClassType="{x:Type ac:RefreshSavedAddressesCommandUsage}"
-                                    ToolTip.Tip="Refresh the values. This is done automatically every 2 seconds"/>
-
-                            <av:IconButton Padding="2" Width="20"
-                                           Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                           BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                           cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.AddSavedAddressCommand"
-                                           ToolTip.Tip="Adds a row manually"
-                                           Icon="{x:Static cb:SimpleIcons.GreenPlusIcon}"/>
-
-                            <av:IconButton Padding="2" Width="20"
-                                           Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                           BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                           cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.ClearSavedAddressesCommand"
-                                           ToolTip.Tip="Clears all rows"
-                                           Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"/>
-                        </StackPanel>
-                        <Border/>
-                    </DockPanel>
-                </c:GroupBox.Header>
-                <DataGrid x:Name="PART_SavedAddressList"
-                          Background="Transparent"
-                          BorderThickness="0"
-                          CanUserResizeColumns="True"
-                          ClipboardCopyMode="None">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Address (hex)" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}"
-                                            Binding="{Binding Address, Mode=OneWay, StringFormat=X}"
-                                            IsReadOnly="True" FontFamily="{StaticResource FontOxanium}"
-                                            CanUserResize="False"/>
-
-                        <DataGridTextColumn Header="Description" Width="200" x:DataType="{x:Type engine:SavedAddressViewModel}"
-                                            Binding="{Binding Description, Mode=TwoWay}"
-                                            CanUserResize="True"/>
-
-                        <cb:DataGridTextColumnEx Header="Data Type" Width="80" x:DataType="{x:Type engine:SavedAddressViewModel}"
-                                                  Binding="{Binding DataType, Mode=OneWay}"
-                                                  IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressDataTypeCommand"
-                                                  CellDataKeyForDC="{x:Static engine:SavedAddressViewModel.DataKey}"
-                                                  CanUserResize="True"/>
-
-                        <cb:DataGridTextColumnEx Header="Value" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}"
-                                                  Binding="{Binding Value, Mode=OneWay}"
-                                                  IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressValueCommand"
-                                                  CellDataKeyForDC="{x:Static engine:SavedAddressViewModel.DataKey}"
-                                                  CanUserResize="True" FontFamily="{StaticResource FontOxanium}"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </c:GroupBox>
-            <GridSplitter Grid.Column="2" Grid.Row="1" Background="Transparent"/>
-            <GridSplitter Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="2" Background="Transparent"/>
         </Grid>
     </DockPanel>
 </c2:WindowingContentControl>
