@@ -253,7 +253,7 @@ public class ScanningProcessor {
             this.NumericScanTypeChanged?.Invoke(this);
         }
     }
-    
+
     /// <summary>
     /// Gets or sets if strings should be searched as case-insensitive
     /// </summary>
@@ -288,7 +288,7 @@ public class ScanningProcessor {
     /// and <see cref="System.StringComparison.CurrentCultureIgnoreCase"/> when true
     /// </summary>
     public StringComparison StringComparison => this.stringIgnoreCase ? StringComparison.CurrentCultureIgnoreCase : StringComparison.CurrentCulture;
-    
+
     public bool CanPerformFirstScan => !this.IsScanning && !this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
     public bool CanPerformNextScan => !this.IsScanning && this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
     public bool CanPerformReset => !this.IsScanning && this.HasDoneFirstScan;
@@ -412,7 +412,7 @@ public class ScanningProcessor {
         byte[] bytes = await connection.ReadBytes(0x80000000, 1000);
 
         // should be impossible since we obtain the busy token which is required before scanning
-        
+
         Debug.Assert(this.isScanning == false, "WTF");
 
         bool debugFreeze = this.PauseConsoleDuringScan;
@@ -605,11 +605,24 @@ public class ScanningProcessor {
         try {
             // TODO: maybe batch together results whose addresses are close by, and read a single chunk?
             // May be faster if the console is not debug frozen and we have to update 100s of results...
-            if (this.SavedAddresses.Count < 100) {
+            List<SavedAddressViewModel>? savedList = new List<SavedAddressViewModel>(100);
+            foreach (SavedAddressViewModel saved in this.SavedAddresses) {
+                if (saved.IsAutoRefreshEnabled) {
+                    if (savedList.Count >= 100) {
+                        savedList = null;
+                        break;
+                    }
+                    
+                    savedList.Add(saved);
+                }
+            }
+
+            if (savedList != null) {
                 this.IsRefreshingAddresses = true;
 
-                foreach (SavedAddressViewModel address in this.SavedAddresses) {
-                    address.Value = await MemoryEngine360.ReadAsText(connection, address.Address, address.DataType, address.NumericDisplayType, address.StringLength);
+                foreach (SavedAddressViewModel address in savedList) {
+                    if (address.IsAutoRefreshEnabled) // may change between dispatcher callbacks
+                        address.Value = await MemoryEngine360.ReadAsText(connection, address.Address, address.DataType, address.NumericDisplayType, address.StringLength);
                 }
             }
 

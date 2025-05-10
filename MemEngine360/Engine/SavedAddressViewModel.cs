@@ -30,6 +30,7 @@ public sealed class SavedAddressViewModel : BaseTransferableViewModel {
 
     public static readonly DataKey<SavedAddressViewModel> DataKey = DataKey<SavedAddressViewModel>.Create("SavedAddressViewModel");
 
+    public static readonly DataParameterBool IsAutoRefreshEnabledParameter = DataParameter.Register(new DataParameterBool(typeof(SavedAddressViewModel), nameof(IsAutoRefreshEnabled), true, ValueAccessors.Reflective<bool>(typeof(SavedAddressViewModel), nameof(isAutoRefreshEnabled))));
     public static readonly DataParameter<uint> AddressParameter = DataParameter.Register(new DataParameter<uint>(typeof(SavedAddressViewModel), nameof(Address), 0, ValueAccessors.Reflective<uint>(typeof(SavedAddressViewModel), nameof(address))));
     public static readonly DataParameter<string> ValueParameter = DataParameter.Register(new DataParameter<string>(typeof(SavedAddressViewModel), nameof(Value), default, ValueAccessors.Reflective<string>(typeof(SavedAddressViewModel), nameof(value))));
     public static readonly DataParameter<string> DescriptionParameter = DataParameter.Register(new DataParameter<string>(typeof(SavedAddressViewModel), nameof(Description), default, ValueAccessors.Reflective<string>(typeof(SavedAddressViewModel), nameof(description))));
@@ -38,6 +39,7 @@ public sealed class SavedAddressViewModel : BaseTransferableViewModel {
     public static readonly DataParameter<uint> StringLengthParameter = DataParameter.Register(new DataParameter<uint>(typeof(SavedAddressViewModel), nameof(StringLength), default, ValueAccessors.Reflective<uint>(typeof(SavedAddressViewModel), nameof(stringLength))));
     public static readonly DataParameter<NumericDisplayType> NumericDisplayTypeParameter = DataParameter.Register(new DataParameter<NumericDisplayType>(typeof(SavedAddressViewModel), nameof(NumericDisplayType), default, ValueAccessors.Reflective<NumericDisplayType>(typeof(SavedAddressViewModel), nameof(numericDisplayType))));
 
+    private bool isAutoRefreshEnabled;
     private uint address;
     private string value = "", description = "";
     private DataType dataType = DataType.Byte;
@@ -45,6 +47,14 @@ public sealed class SavedAddressViewModel : BaseTransferableViewModel {
     private uint stringLength = 0;
     private NumericDisplayType numericDisplayType;
 
+    /// <summary>
+    /// Gets or sets if this saved address is active, as in, being refreshed every so often. False disables auto-refresh
+    /// </summary>
+    public bool IsAutoRefreshEnabled {
+        get => this.isAutoRefreshEnabled;
+        set => DataParameter.SetValueHelper(this, IsAutoRefreshEnabledParameter, ref this.isAutoRefreshEnabled, value);
+    }
+    
     public uint Address {
         get => this.address;
         set => DataParameter.SetValueHelper(this, AddressParameter, ref this.address, value);
@@ -115,11 +125,13 @@ public sealed class SavedAddressViewModel : BaseTransferableViewModel {
     public bool IsVisibleInMainSavedResultList { get; set; } = true;
 
     public SavedAddressViewModel(ScanningProcessor scanningProcessor, uint address) {
+        this.isAutoRefreshEnabled = IsAutoRefreshEnabledParameter.GetDefaultValue(this);
         this.ScanningProcessor = scanningProcessor;
         this.address = address;
     }
 
     public SavedAddressViewModel(ScanResultViewModel result) {
+        this.isAutoRefreshEnabled = IsAutoRefreshEnabledParameter.GetDefaultValue(this);
         this.ScanningProcessor = result.ScanningProcessor;
         this.address = result.Address;
         this.dataType = result.DataType;

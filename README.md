@@ -5,10 +5,15 @@ This is a remake of Cheat Engine, but for consoles.
 
 This project was inspired from https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
 
+I've only just gotten start in console modding, and I don't have much experience in the low level features that this app 
+definitely needs (such as parsing memory blocks as executable code, and displaying as assembnly). So any help/contributions would be great! 
+
+General tips and advice on how the UI can be improved or made more productive are also welcomed.
+
 # Download and built
 Clone repo: `git clone --recursive https://github.com/AngryCarrot789/MemEngine360`
 
-Open `MemEngine360.sln` and then run/debug.~~~~ 
+Open `MemEngine360.sln` and then run/debug.
 
 # How to use
 Press `CTRL + O` (or go to `File > Connect to console...`). A dialog pops up allowing you to connect to different consoles. 
@@ -41,7 +46,7 @@ Click any of the column headers to sort them (e.g. sort by region size and look 
 
 ### First Scan
 
-Then finally, click `First Scan`. The activity status (bottom right) shows the scan progress. You can cancel the scan by clicking the X.
+Click `First Scan`. The activity status (bottom right) shows the scan progress. You can cancel the scan by clicking the X.
 
 The activity bar will show something like `Region a/b (c/d)`. This means it's processing memory region A out of B, and has read C out of D bytes from the console. It may also say `Chunk` when Scan Memory Pages is off, since we read in chunks of 64K 
 
@@ -56,15 +61,18 @@ Then, once the scan is complete, it may show `Updating result list...`. This is 
 Then, if you want to check if any results' current value have changed, click `Next Scan` and it will read the current value of all results
 and compare it to the value field(s) and remove any results that no longer match (because the value changed)
 
-There are 2 additional options during next scan: `First` and `Prev`, to the right of the value field. These toggle whether to use the result rows' First value or Previous Value as a search value, instead of using the value field. 
+There are 2 buttons `First` and `Prev` next to the value field. These toggle whether to use the result rows' First value or Previous Value as a search value, instead of using the value field. 
 
 ## Saved addresses
-If you wish to keep an eye on specific addresses, you can add entries in here. 
+![](MemEngine360-DesktopUI_2025-05-10_14.52.37.png)
 
-You can select results in the scan results panel, then click `Add Scan Result(s)` in the Saved Addresses panel to automatically add them. 
+If you wish to keep an eye on specific addresses, you can add entries in here.
 
-Or, you can add them manually by clicking `Add Entry`. Then, double click cell in the `Data Type` column (it says `Byte` by default), which
-shows a popup to modify the data type. You can specify the length of a string in here too if you specify the data type as string.
+- Select results in the scan results panel, then click `Add Scan Result(s)` to automatically add them. 
+- Add them manually by clicking the green `+` button. It will open two dialogs to configure the row.
+- Open/Save a CSV file containing saved addresses.
+
+The refresh button manually refreshes the values. This is done automatically every second by default (changeable in preferences; CTRL+ALT+S)
 
 ## Changing values
 You can double click the cell in the `Value` column(s) to modify that cell. 
@@ -86,11 +94,22 @@ Then click Read All, and it will first read the data from the console (progress 
 
 ![](MemEngine360-DesktopUI_2025-05-05_17.58.59.png)
 
+This also supports auto-refresh. Select a region (click+drag), then click CTRL+SHIFT+S (or click the north-west arrow button) and it will update the two text fields (optionally you 
+can manually enter a range). Then, click `Start Auto Refresh`, and it will refresh the values 10 times per second. Note, you cannot scan or refresh results/saved addresses in the main UI during auto-refresh.
+
+You can write values back to the console in the Data Inspector panel (e.g. write an int or a double, but not chars at the moment). The field you're writing into will not be refreshed until you click away from it (e.g. click anywhere in the hex editor) 
+
 ### Remote Controls (xbox only so far)
-There's a few remote control commands you can find in the `Remote Controls` menu. These include:
+There's a few remote control commands you can find in the `Remote Controls` menu. Some of which are:
 - `Open Disk Tray` - Opens the console's disk tray (cannot be closed remotely since xbdm does not implement closing...???)
 - `Debug Freeze` - Freezes the console
 - `Debug Unfreeze` - Unfreezes the console
 - `Soft Reboot` - Reboots the current title
 - `Cold Reboot` - Fully reboots the console (shows the xbox boot animation)
 - `Shutdown` - Tells the console to shut down
+
+# What is...
+### "Waiting for busy operations..."
+This means that something else is using the engine elsewhere (scan is running, the hex editor auto-refresh is running, or maybe the results list/saved addresses are being refreshed).
+
+This application is multithreaded, but connections are not thread safe, so there exists a `BusyToken` to synchronize access. This message is shown in the status bar while waiting to obtain the token.

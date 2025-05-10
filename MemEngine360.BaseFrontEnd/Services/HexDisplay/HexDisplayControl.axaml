@@ -129,7 +129,7 @@
                     <!-- <Separator Grid.Column="14" Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,2"/> -->
                 </Grid>
                 <Grid Height="24" ColumnDefinitions="110,3,100,3,95,3,Auto,3,Auto,3,Auto" Margin="3,0">
-                    <ToggleButton x:Name="PART_ToggleAutoRefreshButton" Content="Stop Auto Refresh"/>
+                    <ToggleButton x:Name="PART_ToggleAutoRefreshButton" Content="CODE NO WORKY"/>
                     <TextBox Grid.Column="2" FontFamily="{StaticResource FontOxanium}" x:Name="PART_AutoRefresh_From"
                              Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
@@ -153,7 +153,7 @@
                             <TextBlock>
                                 <Run Text="Set as current selection. Saves typing out by hand"/>
                                 <LineBreak/>
-                                <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/HexEditor/UploadSelection}"/>
+                                <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/HexEditor/SetSelectionAsAutoRefreshRange}"/>
                             </TextBlock>
                         </ToolTip.Tip>
                     </avc:IconButton>
@@ -163,8 +163,6 @@
                         <ToolTip.Tip>
                             <TextBlock>
                                 <Run Text="Clears these two fields for the auto refresh"/>
-                                <LineBreak/>
-                                <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/HexEditor/UploadSelection}"/>
                             </TextBlock>
                         </ToolTip.Tip>
                     </avc:IconButton>
@@ -172,10 +170,15 @@
                 </Grid>
             </StackPanel>
         </Border>
-        <ah:HexEditor Grid.Row="1" Grid.ColumnSpan="1" x:Name="PART_HexEditor" FontFamily="Consolas"
-                      Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                      BorderBrush="{DynamicResource PanelBorderBrush}"
-                      BorderThickness="0,1,1,1"/>
+        <Border Grid.Row="1" Grid.Column="0"
+                BorderBrush="{DynamicResource PanelBorderBrush}"
+                BorderThickness="0,1,1,1">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <ah:HexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
+                              Background="{DynamicResource ABrush.Tone2.Background.Static}"
+                              BorderThickness="0"/>
+            </ScrollViewer>
+        </Border>
         <GridSplitter Grid.Column="1" Grid.Row="1" Background="{DynamicResource ABrush.Tone4.Background.Static}" Focusable="False"/>
         <ScrollViewer Grid.Column="2" Grid.Row="1" DockPanel.Dock="Right" Background="{DynamicResource PanelBackground4}"
                       MinWidth="200">

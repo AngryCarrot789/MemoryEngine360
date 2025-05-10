@@ -45,6 +45,8 @@ public class MemoryEngine360 {
     private volatile int isBusyCount; // this is a boolean. 0 = no token, 1 = token acquired. any other value is invalid
     private BusyToken? activeToken;
 
+    private readonly LinkedList<CancellableTaskCompletionSource> busyLockAsyncWaiters = new LinkedList<CancellableTaskCompletionSource>();
+    
     /// <summary>
     /// Gets or sets the current console connection
     /// <para>
@@ -92,7 +94,8 @@ public class MemoryEngine360 {
 
     /// <summary>
     /// Fired when the <see cref="IsConnectionBusy"/> state changes. It is crucial that no 'busy' operations
-    /// are performed in the event handlers, otherwise, a deadlock could occur
+    /// are performed in the event handlers, otherwise, a deadlock could occur. It's also important that exceptions
+    /// are not thrown in the handlers, because they will be swallowed and never see the light of day
     /// </summary>
     public event MemoryEngine360EventHandler? IsBusyChanged;
 
@@ -138,7 +141,7 @@ public class MemoryEngine360 {
     /// <param name="token">The busy operation token that is valid</param>
     /// <param name="newConnection">The new connection object</param>
     /// <param name="cause">The cause for connection change</param>
-    /// <exception cref="InvalidOperationException">Engine is busy</exception>
+    /// <exception cref="InvalidOperationException">Token is invalid</exception>
     /// <exception cref="ArgumentException">New connection is non-null when cause is <see cref="ConnectionChangeCause.LostConnection"/></exception>
     public void SetConnection(IDisposable busyToken, IConsoleConnection? newConnection, ConnectionChangeCause cause) {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
@@ -210,22 +213,38 @@ public class MemoryEngine360 {
                 Monitor.Exit(this.connectionLock);
         }
     }
-    
+
     /// <summary>
     /// Begins a busy operation, waiting for existing busy operations to finish 
     /// </summary>
     /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
-    /// <param name="sleepMilliseconds">The amount of milliseconds to wait inbetween calls to <see cref="BeginBusyOperation"/></param>
     /// <returns>The acquired token, or null if the task was cancelled</returns>
     /// <exception cref="TaskCanceledException">Operation was cancelled, didn't get token in time</exception>
-    public async Task<IDisposable?> BeginBusyOperationAsync(CancellationToken cancellationToken, int sleepMilliseconds = 10) {
+    public async Task<IDisposable?> BeginBusyOperationAsync(CancellationToken cancellationToken) {
         IDisposable? token = this.BeginBusyOperation();
         while (token == null) {
-            try {
-                await Task.Delay(sleepMilliseconds, cancellationToken);
+            LinkedListNode<CancellableTaskCompletionSource>? tcs = this.EnqueueAsyncWaiter(cancellationToken);
+            if (tcs == null) {
+                try {
+                    await Task.Delay(10, cancellationToken);
+                }
+                catch (OperationCanceledException) {
+                    return null;
+                }
             }
-            catch (OperationCanceledException) {
-                return null;
+            else {
+                try {
+                    await tcs.Value.Task;
+                }
+                catch (OperationCanceledException) {
+                    // We only need to remove on cancelled, because when it
+                    // completes normally, the list gets cleared anyway
+                    lock (this.connectionLock) {
+                        tcs.List!.Remove(tcs);
+                    }
+                    
+                    return null;
+                }
             }
 
             token = this.BeginBusyOperation();
@@ -375,7 +394,7 @@ public class MemoryEngine360 {
             this.myEngine = engine;
             if (Interlocked.Increment(ref engine.isBusyCount) == 1) {
                 try {
-                    engine!.IsBusyChanged?.Invoke(engine);
+                    engine.IsBusyChanged?.Invoke(engine);
                 }
                 catch {
                     Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
@@ -406,8 +425,57 @@ public class MemoryEngine360 {
                         Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
                     }
                 }
+
+                engine.OnTokenDisposedUnderLock();
             }
         }
+    }
+
+    private class CancellableTaskCompletionSource : TaskCompletionSource, IDisposable {
+        private readonly CancellationToken token;
+        private readonly CancellationTokenRegistration registration;
+
+        public CancellableTaskCompletionSource(CancellationToken token) : base(TaskCreationOptions.RunContinuationsAsynchronously) {
+            this.token = token;
+            if (token.CanBeCanceled)
+                this.registration = token.Register(this.SetCanceledCore);
+        }
+
+        private void SetCanceledCore() {
+            this.TrySetCanceled(this.token);
+        }
+
+        public void Dispose() {
+            this.registration.Dispose();
+        }
+    }
+
+    private LinkedListNode<CancellableTaskCompletionSource>? EnqueueAsyncWaiter(CancellationToken token) {
+        bool lockTaken = false;
+        try {
+            Monitor.TryEnter(this.connectionLock, 0, ref lockTaken);
+            if (!lockTaken)
+                return null;
+
+            return this.busyLockAsyncWaiters.AddLast(new CancellableTaskCompletionSource(token));
+        }
+        finally {
+            if (lockTaken)
+                Monitor.Exit(this.connectionLock);
+        }
+    }
+    
+    private void OnTokenDisposedUnderLock() {
+        foreach (CancellableTaskCompletionSource tcs in this.busyLockAsyncWaiters) {
+            try {
+                tcs.TrySetResult();
+            }
+            finally {
+                tcs.Dispose();
+            }
+        }
+        
+        this.busyLockAsyncWaiters.Clear();
     }
 
     public void CheckConnection() {

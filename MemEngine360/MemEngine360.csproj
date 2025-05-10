@@ -19,7 +19,4 @@
 	  <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	</ItemGroup>
-
 </Project>

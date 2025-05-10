@@ -18,6 +18,7 @@
 // 
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -46,6 +47,8 @@ using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Services;
+using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Tasks.Pausable;
 using PFXToolKitUI.Themes;
 
 namespace MemEngine360.Avalonia;
@@ -77,6 +80,8 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.ResetScanOptionsCommand", new ResetScanOptionsCommand());
         manager.Register("commands.memengine.ShowMemoryCommand", new ShowMemoryCommand());
         manager.Register("commands.memengine.DumpMemoryCommand", new DumpMemoryCommand());
+        manager.Register("commands.memengine.OpenFileAsSavedAddressesCommand", new OpenFileAsSavedAddressesCommand());
+        manager.Register("commands.memengine.SaveFileAsSavedAddressesCommand", new SaveFileAsSavedAddressesCommand());
         
         // Remote commands
         manager.Register("commands.memengine.remote.MemProtectionCommand", new MemProtectionCommand());

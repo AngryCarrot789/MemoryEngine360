@@ -141,7 +141,7 @@ public static class SimpleIcons {
                     BrushManager.Instance.CreateConstantLinearGradient([new GradientStop(SKColor.Parse("#008C00")), new GradientStop(SKColor.Parse("#48BF21"), 1.0)], startPoint: new RelativePoint(21.8812F, 12.6667F, RelativeUnit.Absolute), endPoint: new RelativePoint(19.1553F, 16.4F, RelativeUnit.Absolute))),
             ],
             stretch: StretchMode.Uniform);
-    
+
     public static readonly Icon CopyHexSelectionToRefreshRangeIcon =
         IconManager.Instance.RegisterGeometryIcon(
             nameof(CopyHexSelectionToRefreshRangeIcon),
@@ -149,13 +149,33 @@ public static class SimpleIcons {
                 new GeometryEntry("M.5.55.5 9.05 2 10.55 4.8358 7.7142 11.0858 13.9642 13.9142 11.1358 7.6642 4.8858 10.5 2.05 9 .55.5.55Z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
             ],
             stretch: StretchMode.Uniform);
-    
+
     // https://www.svgrepo.com/svg/332278/clear
     public static readonly Icon ClearHexRefreshRangeIcon =
         IconManager.Instance.RegisterGeometryIcon(
             nameof(ClearHexRefreshRangeIcon),
             [
                 new GeometryEntry("M42.5056 42.0889l-2.9444-16.9778H40.5556c.8 0 1.4444-.6444 1.4444-1.4444V13c0-.8-.6444-1.4444-1.4444-1.4444H26.8889V1.4444c0-.8-.6444-1.4444-1.4444-1.4444H16.5556c-.8 0-1.4444.6444-1.4444 1.4444v10.1111H1.4444c-.8 0-1.4444.6444-1.4444 1.4444v10.6667c0 .8.6444 1.4444 1.4444 1.4444h.9944l-2.9444 16.9778c-.0167.0833-.0222.1667-.0222.2444 0 .8.6444 1.4444 1.4444 1.4444h40.1667c.0833 0 .1667-.0056.2444-.0222.7889-.1333 1.3167-.8833 1.1778-1.6667zM3.8889 15.4444h15.1111V3.8889h4v11.5556h15.1111v5.7778H3.8889V15.4444zm26 24.4444V31.2222c0-.2444-.2-.4444-.4444-.4444h-2.6667c-.2444 0-.4444.2-.4444.4444v8.6667H15.6667V31.2222c0-.2444-.2-.4444-.4444-.4444h-2.6667c-.2444 0-.4444.2-.4444.4444v8.6667H3.8222l2.5056-14.4444H35.6667l2.5056 14.4444H29.8889z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
+            ],
+            stretch: StretchMode.Uniform);
+
+    // https://www.svgrepo.com/svg/135180/open-folder-with-document
+    public static readonly Icon OpenFileIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(OpenFileIcon),
+            [
+                new GeometryEntry("M58.9173 33.8232l-10.4756 19.826c-.5125.9858-1.9653 2.0285-3.0872 2.0285l-42.0096.0077c-.8875 0-1.7384-.3518-2.3655-.9794C.3523 54.0783 0 53.2283 0 52.3405l.0068-32.6209c0-1.8448 1.4955-3.3417 3.3405-3.3435l3.0715-.0029v2.8496H4.3639c-.4022 0-.7885.1596-1.0731.4442-.2843.2846-.4442.6706-.4442 1.0731l.003 30.5796c0 .8388.6797 1.5173 1.5176 1.5173h2.1045l9.928-20.0836c.5609-1.1219 1.6208-2.0286 2.7411-2.0286h24.314l.0083-8.0823c1.5876.1472 2.8406 1.4641 2.8406 3.0893v4.9931H57.455C58.7719 30.7384 59.8808 32.0406 58.9173 33.8232zM8.3558 42.7272c-.0907-9.9969 0-39.9884 0-39.9884 0-1.5132 1.2306-2.7429 2.7423-2.7429h21.9614c.3518 0 .6874.1472.9251.4061l7.1 7.7141c.2128.2323.3321.5364.3321.8515v19.9839h-2.3034V10.6932c0-.3159-.2565-.5725-.5728-.5725h-5.4343c-.636 0-1.1532-.5163-1.1532-1.1511V2.8721c0-.316-.2565-.5725-.5728-.5725H11.0995c-.2423 0-.4395.1971-.4395.4392v37.4739l-1.7626 3.566C8.8975 43.7781 8.3649 43.7391 8.3558 42.7272zM34.2588 7.8182H37.68l-3.4212-3.7188V7.8182zM35.5065 12.4667H14.2813c-.782 0-1.4168.6354-1.4168 1.4174 0 .7814.6354 1.4171 1.4168 1.4171h21.2258c.782 0 1.4187-.6362 1.4187-1.4171C36.9245 13.1027 36.288 12.4667 35.5065 12.4667zM36.9245 22.1376c0-.7814-.6359-1.4162-1.418-1.4162H14.2813c-.782 0-1.4168.636-1.4168 1.4162 0 .7814.6354 1.4162 1.4168 1.4162h21.2258C36.288 23.5539 36.9245 22.919 36.9245 22.1376zM12.8636 30.447c0 .7813.6357 1.4162 1.4171 1.4162h.5089c.8958-2.4967 3.1164-2.8324 3.1164-2.8324h-3.6253C13.5005 29.0308 12.8636 29.6656 12.8636 30.447z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
+            ],
+            stretch: StretchMode.Uniform);
+
+    // https://www.svgrepo.com/svg/273782/save-file
+    public static readonly Icon SaveFileIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(SaveFileIcon),
+            [
+                new GeometryEntry("M424.229 12.854 424.229 204.8 87.771 204.8 87.771 0 0 0 0 512 87.771 512 87.771 307.2 424.229 307.2 424.229 512 512 512 512 100.626z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
+                new GeometryEntry("M131.657,351.086V512h248.686V351.086H131.657z M329.143,446.171H182.857v-43.886h146.286V446.171z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
+                new GeometryEntry("M131.657,0v160.914h248.686V0H131.657z M204.8,124.343h-43.886V51.2H204.8V124.343z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
             ],
             stretch: StretchMode.Uniform);
 }

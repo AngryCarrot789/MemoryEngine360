@@ -18,6 +18,7 @@
 // 
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -30,6 +31,8 @@ using Avalonia.Interactivity;
 using MemEngine360.BaseFrontEnd;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
+using MemEngine360.XboxBase;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
@@ -42,6 +45,7 @@ using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.PropertyEditing.DataTransfer.Enums;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -125,7 +129,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
         }
     });
-    
+
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
@@ -142,7 +146,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
     public IListSelectionManager<ScanResultViewModel> ScanResultSelectionManager { get; }
 
     public IListSelectionManager<SavedAddressViewModel> SavedAddressesSelectionManager { get; }
-    
+
     public bool IsActivtyListVisible {
         get => this.PART_ActivityListPanel.IsVisible;
         set {
@@ -171,6 +175,64 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
     private readonly ContextEntryGroup themesSubList;
     private ObservableItemProcessorIndexing<Theme>? themeListHandler;
 
+    private class TestThing : CustomContextEntry {
+        public TestThing(string displayName, string? description, Icon? icon = null) : base(displayName, description, icon) {
+        }
+
+        public override bool CanExecute(IContextData context) {
+            if (!IMemEngineUI.MemUIDataKey.TryGetContext(context, out IMemEngineUI? ui)) {
+                return false;
+            }
+
+            return ui.MemoryEngine360.Connection != null;
+        }
+
+        public static string ConvertStringToHex(string input, Encoding encoding) {
+            byte[] stringBytes = encoding.GetBytes(input);
+            StringBuilder sbBytes = new StringBuilder(stringBytes.Length * 2);
+            foreach (byte b in stringBytes) {
+                sbBytes.Append($"{b:X2}");
+            }
+
+            return sbBytes.ToString();
+        }
+
+        public override async Task OnExecute(IContextData context) {
+            if (!IMemEngineUI.MemUIDataKey.TryGetContext(context, out IMemEngineUI? ui)) {
+                return;
+            }
+
+            using IDisposable? token = await ui.MemoryEngine360.BeginBusyOperationActivityAsync();
+            if (token == null || !(ui.MemoryEngine360.Connection is PhantomRTMConsoleConnection phantom)) {
+                return;
+            }
+
+            DataParameterEnumInfo<XNotiyLogo> dpEnumInfo = DataParameterEnumInfo<XNotiyLogo>.All();
+            DoubleUserInputInfo info = new DoubleUserInputInfo("Thank you for using MemEngine360 <3", nameof(XNotiyLogo.FLASHING_HAPPY_FACE)) {
+                Caption = "Test Notification",
+                Message = "Shows a custom notification on your xbox!",
+                ValidateA = (b) => {
+                    if (string.IsNullOrWhiteSpace(b.Input))
+                        b.Errors.Add("Input cannot be empty or whitespaces only");
+                },
+                ValidateB = (b) => {
+                    if (!dpEnumInfo.TextToEnum.TryGetValue(b.Input, out XNotiyLogo val))
+                        b.Errors.Add("Unknown logo type");
+                },
+                LabelA = "Message",
+                LabelB = "Logo (search for XNotiyLogo)"
+            };
+
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+                XNotiyLogo logo = dpEnumInfo.TextToEnum[info.TextB];
+                int msgLen = info.TextA.Length;
+                string msgHex = ConvertStringToHex(info.TextA, Encoding.ASCII);
+                string command = $"consolefeatures ver=2 type=12 params=\"A\\0\\A\\2\\2/{msgLen}\\{msgHex}\\1\\{(int) logo}\\\"";
+                await phantom.SendCommand(command);   
+            }
+        }
+    }
+
     public MemEngineView() {
         this.InitializeComponent();
 
@@ -180,6 +242,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
             entry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
             entry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.MemoryIcon));
             entry.Items.Add(new CommandContextEntry("commands.memengine.TestShowMemoryCommand", "Test Hex editor"));
+            entry.Items.Add(new TestThing("Test Notification", null, null));
             entry.Items.Add(new SeparatorEntry());
             entry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
             this.TopLevelMenuRegistry.Items.Add(entry);
@@ -264,7 +327,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
     private void UpdateScanResultCounterText() {
         ScanningProcessor processor = this.MemoryEngine360.ScanningProcessor;
-        
+
         int pending = processor.ActualScanResultCount;
         int count = processor.ScanResults.Count;
         pending -= count;
@@ -365,18 +428,17 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.3";
         this.Window.WindowClosing += this.MyWindowOnWindowClosing;
         this.IsActivtyListVisible = false;
-        
+
         using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
         change.Context.Set(MemoryEngine360.DataKey, this.MemoryEngine360).Set(IMemEngineUI.MemUIDataKey, this).Set(ILatestActivityView.LatestActivityDataKey, this);
-        
-        ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineOpened(this);
 
+        ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineOpened(this);
     }
 
     protected override void OnWindowClosed() {
         base.OnWindowClosed();
         ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineClosed(this);
-        
+
         this.Window!.WindowClosing -= this.MyWindowOnWindowClosing;
         using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
         change.Context.Remove(MemoryEngine360.DataKey, IMemEngineUI.MemUIDataKey, ILatestActivityView.LatestActivityDataKey);
@@ -406,7 +468,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
         // Grace period for all activities to become cancelled
         await Task.Delay(100);
-        
+
         IDisposable? token = this.MemoryEngine360.BeginBusyOperation();
         while (token == null) {
             MessageBoxInfo info = new MessageBoxInfo() {
@@ -422,9 +484,10 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
             switch (result) {
                 case MessageBoxResult.None:
-                case MessageBoxResult.Cancel: return true; // stop window closing
-                case MessageBoxResult.No:     return false; // let TCP pipes auto-timeout
-                default:                      break; // continue loop
+                case MessageBoxResult.Cancel:
+                    return true; // stop window closing
+                case MessageBoxResult.No: return false; // let TCP pipes auto-timeout
+                default:                  break; // continue loop
             }
 
             token = await this.MemoryEngine360.BeginBusyOperationActivityAsync("Safely closing window");
