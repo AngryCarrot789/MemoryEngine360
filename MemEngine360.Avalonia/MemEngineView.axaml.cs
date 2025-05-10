@@ -425,7 +425,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.Window.Control.MinHeight = 520;
         this.Window.Width = 680;
         this.Window.Height = 630;
-        this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.3";
+        this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.4";
         this.Window.WindowClosing += this.MyWindowOnWindowClosing;
         this.IsActivtyListVisible = false;
 

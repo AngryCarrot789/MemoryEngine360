@@ -338,7 +338,6 @@
                 <GridSplitter Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="2" Background="Transparent"/>
             </Grid>
             <Border x:Name="PART_ActivityListPanel"
-                    IsVisible="False"
                     Margin="0,0,5,5"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Bottom"
