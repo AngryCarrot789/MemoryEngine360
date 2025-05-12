@@ -64,6 +64,14 @@ public static class ValueScannerUtils {
             return CreateGeneric_double<T>(bytes);
         throw new NotSupportedException();
     }
+    
+    public static T CreateFloat<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {
+        if (typeof(T) == typeof(float))
+            return CreateGeneric_float<T>(bytes);
+        if (typeof(T) == typeof(double))
+            return CreateGeneric_double<T>(bytes);
+        throw new NotSupportedException();
+    }
 
     public static TOut CreateNumberFromRawLong<TOut>(ulong src) where TOut : INumber<TOut> {
         return Unsafe.As<ulong, TOut>(ref src);

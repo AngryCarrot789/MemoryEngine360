@@ -1,18 +1,21 @@
-﻿<s:WindowingContentControl xmlns="https://github.com/avaloniaui"
-                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                           xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                           xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                           xmlns:ah="clr-namespace:AvaloniaHex;assembly=AvaloniaHex"
-                           xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
-                           xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
-                           xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
-                           xmlns:hexDisplay1="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexDisplay"
-                           xmlns:icons="clr-namespace:MemEngine360.BaseFrontEnd"
-                           xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
-                           mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
-                           x:Class="MemEngine360.BaseFrontEnd.Services.HexDisplay.HexDisplayControl"
-                           WindowBorderBrush="DodgerBlue"
-                           WindowTitleBarBrush="{DynamicResource ABrush.Tone4.Background.Static}">
+﻿<w:DesktopWindow xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:ah="clr-namespace:AvaloniaHex;assembly=AvaloniaHex"
+                 xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:hexDisplay1="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexDisplay"
+                 xmlns:icons="clr-namespace:MemEngine360.BaseFrontEnd"
+                 xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
+                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
+                 x:Class="MemEngine360.BaseFrontEnd.Services.HexDisplay.HexDisplayControl"
+                 BorderBrush="DodgerBlue"
+                 TitleBarBrush="{DynamicResource ABrush.Tone4.Background.Static}"
+                 MinWidth="800" MinHeight="480"
+                 Width="1280" Height="720">
     <Grid RowDefinitions="Auto,*,42">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -276,4 +279,4 @@
             </Grid>
         </ScrollViewer>
     </Grid>
-</s:WindowingContentControl>
+</w:DesktopWindow>

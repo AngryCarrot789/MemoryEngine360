@@ -50,7 +50,7 @@ public class MemProtectionCommand : BaseMemoryEngineCommand {
                     prog.Caption = "Memory Regions";
                     prog.Text = "Reading memory regions...";
                     prog.IsIndeterminate = true;
-                    return regions.GetMemoryRegions();
+                    return regions.GetMemoryRegions(false, false);
                 });
             });
 

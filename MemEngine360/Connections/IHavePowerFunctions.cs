@@ -17,23 +17,20 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine.HexDisplay;
-using PFXToolKitUI.Avalonia.Services.Windowing;
-using PFXToolKitUI.Utils;
+namespace MemEngine360.Connections;
 
-namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
-
-public class HexDisplayServiceImpl : IHexDisplayService {
-    public Task ShowHexEditor(HexDisplayInfo info) {
-        Validate.NotNull(info);
-        if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-            HexDisplayControl control = new HexDisplayControl() {
-                HexDisplayInfo = info
-            };
-            
-            system.Register(control).Show(); // specify parent as null so that it isn't always ontop of any window
-        }
-
-        return Task.CompletedTask;
-    }
+/// <summary>
+/// A trait for a console with power functions, such as power off and reboot
+/// </summary>
+public interface IHavePowerFunctions {
+    /// <summary>
+    /// Sends the cold reboot command to restart the console
+    /// </summary>
+    /// <param name="cold">True to fully reboot console, False to only reboot title</param>
+    Task RebootConsole(bool cold = true);
+    
+    /// <summary>
+    /// Sends the shutdown command to the console
+    /// </summary>
+    Task ShutdownConsole();
 }

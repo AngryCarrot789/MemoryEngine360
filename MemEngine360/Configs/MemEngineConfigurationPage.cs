@@ -19,57 +19,90 @@
 
 using PFXToolKitUI.Configurations;
 using PFXToolKitUI.DataTransfer;
-using PFXToolKitUI.Persistence;
-using PFXToolKitUI.PropertyEditing.DataTransfer;
 using PFXToolKitUI.Utils.Accessing;
 
 namespace MemEngine360.Configs;
 
-public class MemEngineConfigurationPage : PropertyEditorConfigurationPage {
+public class MemEngineConfigurationPage : ConfigurationPage, ITransferableData {
     public static readonly DataParameterNumber<uint> ValueRefreshRateParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemEngineConfigurationPage), nameof(ValueRefreshRate), BasicApplicationConfiguration.RefreshRateMillisProperty.DefaultValue, 500, uint.MaxValue, ValueAccessors.Reflective<uint>(typeof(MemEngineConfigurationPage), nameof(valueRefreshRate))));
+    public static readonly DataParameterNumber<uint> AutoRefreshUpdatesPerSecondParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemEngineConfigurationPage), nameof(AutoRefreshUpdatesPerSecond), BasicApplicationConfiguration.AutoRefreshUpdatesPerSecondProperty.DefaultValue, 1, 20, ValueAccessors.Reflective<uint>(typeof(MemEngineConfigurationPage), nameof(autoRefreshUpdatesPerSecond))));
+    public static readonly DataParameterNumber<uint> MaxRowsBeforeDisableAutoRefreshParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemEngineConfigurationPage), nameof(MaxRowsBeforeDisableAutoRefresh), BasicApplicationConfiguration.MaxRowsBeforeDisableAutoRefreshProperty.DefaultValue, ValueAccessors.Reflective<uint>(typeof(MemEngineConfigurationPage), nameof(maxRowsBeforeDisableAutoRefresh))));
+    public static readonly DataParameterBool IsAutoRefreshResultsEnabledParameter = DataParameter.Register(new DataParameterBool(typeof(MemEngineConfigurationPage), nameof(IsAutoRefreshResultsEnabled), BasicApplicationConfiguration.IsAutoRefreshResultsEnabledProperty.DefaultValue, ValueAccessors.Reflective<bool>(typeof(MemEngineConfigurationPage), nameof(isValueRefreshEnabled))));
 
+    private bool ignoreDpChange;
     private uint valueRefreshRate;
+    private uint autoRefreshUpdatesPerSecond;
+    private uint maxRowsBeforeDisableAutoRefresh;
+    private bool isValueRefreshEnabled;
 
     public uint ValueRefreshRate {
         get => this.valueRefreshRate;
         set => DataParameter.SetValueHelper(this, ValueRefreshRateParameter, ref this.valueRefreshRate, value);
     }
-    
-    public MemEngineConfigurationPage() {
-        this.valueRefreshRate = ValueRefreshRateParameter.GetDefaultValue(this);
-        
-        this.PropertyEditor.Root.AddItem(new DataParameterNumberPropertyEditorSlot<uint>(ValueRefreshRateParameter, typeof(MemEngineConfigurationPage), "Refresh Rate"));
+
+    public uint AutoRefreshUpdatesPerSecond {
+        get => this.autoRefreshUpdatesPerSecond;
+        set => DataParameter.SetValueHelper(this, AutoRefreshUpdatesPerSecondParameter, ref this.autoRefreshUpdatesPerSecond, value);
     }
     
+    public uint MaxRowsBeforeDisableAutoRefresh {
+        get => this.maxRowsBeforeDisableAutoRefresh;
+        set => DataParameter.SetValueHelper(this, MaxRowsBeforeDisableAutoRefreshParameter, ref this.maxRowsBeforeDisableAutoRefresh, value);
+    }
+
+    public bool IsAutoRefreshResultsEnabled {
+        get => this.isValueRefreshEnabled;
+        set => DataParameter.SetValueHelper(this, IsAutoRefreshResultsEnabledParameter, ref this.isValueRefreshEnabled, value);
+    }
+
+    public TransferableData TransferableData { get; }
+
+    public MemEngineConfigurationPage() {
+        this.TransferableData = new TransferableData(this);
+        this.valueRefreshRate = ValueRefreshRateParameter.GetDefaultValue(this);
+        this.autoRefreshUpdatesPerSecond = AutoRefreshUpdatesPerSecondParameter.GetDefaultValue(this);
+        this.maxRowsBeforeDisableAutoRefresh = MaxRowsBeforeDisableAutoRefreshParameter.GetDefaultValue(this);
+        this.isValueRefreshEnabled = IsAutoRefreshResultsEnabledParameter.GetDefaultValue(this);
+    }
+
     static MemEngineConfigurationPage() {
-        AffectsModifiedState(ValueRefreshRateParameter);
+        DataParameter.AddMultipleHandlers(MarkModifiedForDPChanged, 
+            ValueRefreshRateParameter, AutoRefreshUpdatesPerSecondParameter, 
+            MaxRowsBeforeDisableAutoRefreshParameter, IsAutoRefreshResultsEnabledParameter);
+    }
+
+    private static void MarkModifiedForDPChanged(DataParameter parameter, ITransferableData owner) {
+        if (!((MemEngineConfigurationPage) owner).ignoreDpChange)
+            ((MemEngineConfigurationPage) owner).IsModified = true;
     }
 
     protected override ValueTask OnContextCreated(ConfigurationContext context) {
-        this.PropertyEditor.Root.SetupHierarchyState([this]);
         return ValueTask.CompletedTask;
     }
 
     protected override ValueTask OnContextDestroyed(ConfigurationContext context) {
-        this.PropertyEditor.Root.ClearHierarchy();
         return ValueTask.CompletedTask;
     }
-    
+
     protected override void OnActiveContextChanged(ConfigurationContext? oldContext, ConfigurationContext? newContext) {
         base.OnActiveContextChanged(oldContext, newContext);
-        if (oldContext != null)
-            BasicApplicationConfiguration.RefreshRateMillisProperty.RemoveValueChangeHandler(BasicApplicationConfiguration.Instance, this.OnRefreshRateChanged);
-        if (newContext != null)
-            BasicApplicationConfiguration.RefreshRateMillisProperty.AddValueChangeHandler(BasicApplicationConfiguration.Instance, this.OnRefreshRateChanged);
-        this.ValueRefreshRate = BasicApplicationConfiguration.Instance.RefreshRateMillis;
-    }
-
-    private void OnRefreshRateChanged(PersistentConfiguration config, PersistentProperty<uint> property, uint oldvalue, uint newvalue) {
-        this.ValueRefreshRate = BasicApplicationConfiguration.Instance.RefreshRateMillis;
+        if (newContext != null) {
+            this.ignoreDpChange = true;
+            this.ValueRefreshRate = BasicApplicationConfiguration.Instance.RefreshRateMillis;
+            this.AutoRefreshUpdatesPerSecond = BasicApplicationConfiguration.Instance.AutoRefreshUpdatesPerSecond;
+            this.MaxRowsBeforeDisableAutoRefresh = BasicApplicationConfiguration.Instance.MaxRowsBeforeDisableAutoRefresh;
+            this.IsAutoRefreshResultsEnabled = BasicApplicationConfiguration.Instance.IsAutoRefreshResultsEnabled;
+            this.ignoreDpChange = false;
+            this.IsModified = false;
+        }
     }
 
     public override ValueTask Apply(List<ApplyChangesFailureEntry>? errors) {
         BasicApplicationConfiguration.Instance.RefreshRateMillis = this.ValueRefreshRate;
+        BasicApplicationConfiguration.Instance.AutoRefreshUpdatesPerSecond = this.AutoRefreshUpdatesPerSecond;
+        BasicApplicationConfiguration.Instance.MaxRowsBeforeDisableAutoRefresh = this.MaxRowsBeforeDisableAutoRefresh;
+        BasicApplicationConfiguration.Instance.IsAutoRefreshResultsEnabled = this.IsAutoRefreshResultsEnabled;
+        this.IsModified = false;
         return ValueTask.CompletedTask;
     }
 }

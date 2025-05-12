@@ -28,7 +28,7 @@ namespace MemEngine360.Xbox360XBDM.Commands;
 
 public abstract class RemoteXbox360Command : BaseRemoteConsoleCommand {
     protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        if (!(connection is IXbox360Connection)) {
+        if (!(connection is IXbdmConnection)) {
             await IMessageDialogService.Instance.ShowMessage("Not an xbox console", "This command cannot be used because we are not connected to an xbox 360");
             return false;
         }
@@ -37,16 +37,16 @@ public abstract class RemoteXbox360Command : BaseRemoteConsoleCommand {
     }
 
     protected sealed override Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        return this.ExecuteRemoteCommandInActivity(engine, (IXbox360Connection) connection, e);
+        return this.ExecuteRemoteCommandInActivity(engine, (IXbdmConnection) connection, e);
     }
     
-    protected abstract Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e);
+    protected abstract Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IXbdmConnection connection, CommandEventArgs e);
 }
 
 public class EjectDiskTrayCommand : RemoteXbox360Command {
     protected override string ActivityText => "Ejecting disk tray...";
 
-    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IXbdmConnection connection, CommandEventArgs e) {
         await connection.OpenDiskTray();
     }
 }

@@ -1,0 +1,31 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:e="clr-namespace:MemEngine360.BaseFrontEnd">
+    <Design.PreviewWith>
+        <e:MemEngineConfigurationPageControl/>
+    </Design.PreviewWith>
+    <ControlTheme x:Key="{x:Type e:MemEngineConfigurationPageControl}" TargetType="{x:Type e:MemEngineConfigurationPageControl}">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="{x:Type e:MemEngineConfigurationPageControl}">
+                <StackPanel Margin="5">
+                    <TextBlock Padding="2,2" Text="Saved/Scan Results Refresh interval (in milliseconds)"/>
+                    <TextBlock Padding="2,0,2,2" Text="Default is the minimum of 500ms (updates twice a second), no upper limit" FontSize="10" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
+                    <DockPanel>
+                        <CheckBox DockPanel.Dock="Left" Content="Is Enabled" x:Name="PART_ToggleRefreshEnabled" VerticalAlignment="Center" Padding="4,1"
+                                  ToolTip.Tip="Toggles whether auto-refreshing saved addresses and scan results is enabled"/>
+                        <TextBox x:Name="PART_RefreshRateTextBox" Padding="4,2" VerticalContentAlignment="Center"
+                                 ToolTip.Tip="Default is 500 (milliseconds)"/>
+                    </DockPanel>
+                    <TextBlock Padding="2,2" Text="Maximum number of rows before auto-refresh is disabled"/>
+                    <TextBox x:Name="PART_UpdateCountLimit" Padding="4,2" VerticalContentAlignment="Center"
+                             ToolTip.Tip="Default is 400"/>
+                    <Separator Margin="1,5"/>
+                    <TextBlock Padding="2,2" Text="Memory Viewer Auto Refresh Rate (updates per second)"/>
+                    <TextBlock Padding="2,0,2,2" Text="Minimum is 1, maximum is 20, default is 12." FontSize="10" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
+                    <TextBlock Padding="2,0,2,2" Text="Beware, higher values result in UI lag. 12 upd/s is just about tolerable." FontSize="10" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
+                    <TextBox x:Name="PART_AutoRefreshPerSecTextBox" Padding="4,2" VerticalContentAlignment="Center"/>
+                </StackPanel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+</ResourceDictionary>

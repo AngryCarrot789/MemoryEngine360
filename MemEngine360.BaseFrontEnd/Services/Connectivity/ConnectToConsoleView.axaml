@@ -1,15 +1,12 @@
-﻿<s:WindowingContentControl xmlns="https://github.com/avaloniaui"
-                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                           xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                           xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                           xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
-                           xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
-                           xmlns:conn="clr-namespace:MemEngine360.BaseFrontEnd.Services.Connectivity"
-                           mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-                           x:Class="MemEngine360.BaseFrontEnd.Services.Connectivity.ConnectToConsoleView"
-                           WindowBorderBrush="DodgerBlue"
-                           WindowTitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}"
-                           WindowTitle="Connect to a console">
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
+             xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:conn="clr-namespace:MemEngine360.BaseFrontEnd.Services.Connectivity"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MemEngine360.BaseFrontEnd.Services.Connectivity.ConnectToConsoleView">
     <DockPanel x:Name="PART_DockPanelRoot" Background="{DynamicResource ABrush.Tone2.Background.Static}">
         <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource PanelBorderBrush}"/>
         <Border DockPanel.Dock="Bottom"
@@ -93,8 +90,8 @@
             <DockPanel Background="{DynamicResource ABrush.Tone6.Background.Static}">
                 <Border DockPanel.Dock="Top" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource PanelBorderBrush}">
                     <DockPanel>
-                        <Border DockPanel.Dock="Right" 
-                                VerticalAlignment="Center" 
+                        <Border DockPanel.Dock="Right"
+                                VerticalAlignment="Center"
                                 Margin="3,0" CornerRadius="3"
                                 Background="{DynamicResource ABrush.Tone7.Background.Static}">
                             <TextBlock Text="?" Padding="5,1">
@@ -112,10 +109,10 @@
                                    FontFamily="{StaticResource FontOxanium}"/>
                     </DockPanel>
                 </Border>
-                <conn:ConsoleTypeListBox x:Name="PART_ListBox" 
-                                                 BorderThickness="0"
-                                                 FontFamily="{StaticResource FontOxanium}"
-                                                 Background="{DynamicResource ABrush.Tone4.Background.Static}">
+                <conn:ConsoleTypeListBox x:Name="PART_ListBox"
+                                         BorderThickness="0"
+                                         FontFamily="{StaticResource FontOxanium}"
+                                         Background="{DynamicResource ABrush.Tone4.Background.Static}">
                     <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel/>
@@ -140,8 +137,8 @@
                                         <Grid ColumnDefinitions="Auto,*">
                                             <avc:IconControl x:Name="PART_IconControl" Width="24" Height="24" Margin="3,3,5,3" VerticalAlignment="Center"/>
                                             <StackPanel Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                                <TextBlock  x:Name="PART_DisplayName" Padding="3,2"/>
-                                                <TextBlock  x:Name="PART_FooterText" Padding="3,1" FontSize="9" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
+                                                <TextBlock x:Name="PART_DisplayName" Padding="3,2"/>
+                                                <TextBlock x:Name="PART_FooterText" Padding="3,1" FontSize="9" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -193,4 +190,4 @@
             <Border Grid.Column="1" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1,0,0,0"/>
         </Grid>
     </DockPanel>
-</s:WindowingContentControl>
+</UserControl>

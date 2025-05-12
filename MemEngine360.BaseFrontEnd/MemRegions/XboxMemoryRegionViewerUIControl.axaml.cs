@@ -63,12 +63,12 @@ public partial class XboxMemoryRegionViewerUIControl : UserControl, IUserInputCo
     }
 
     public void OnWindowOpened() {
-        this.myDialog!.Window!.CanAutoSizeToContent = false;
-        this.myDialog!.Window!.Control.MinHeight = 400;
-        this.myDialog!.Window!.Control.MinWidth = 600;
-        this.myDialog!.Window!.Control.Height = 50;
-        this.myDialog!.Window!.Control.Width = 60;
-        this.myDialog!.Window!.IsResizable = true;
+        this.myDialog!.Window!.SizeToContent = SizeToContent.Manual;
+        this.myDialog!.Window!.MinHeight = 400;
+        this.myDialog!.Window!.MinWidth = 600;
+        this.myDialog!.Window!.Height = 50;
+        this.myDialog!.Window!.Width = 60;
+        this.myDialog!.Window!.CanResize = true;
         // TODO: fix vertical scroll bar incorrect estimate of the effective height of the data grid
         // ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
         //     await Task.Delay(250);

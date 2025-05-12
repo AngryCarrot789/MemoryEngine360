@@ -37,9 +37,9 @@ public class ConsoleTypeXbox360Xbdm : RegisteredConsoleType {
     public static readonly RegisteredConsoleType Instance = new ConsoleTypeXbox360Xbdm();
 
     public override string DisplayName => "Xbox 360 (XBDM)";
-    
+
     public override string? FooterText => "Stable";
-    
+
     public override string LongDescription => "A connection to an xbox 360 via xbdm (using TCP on port 730)";
 
     public override Icon? Icon => SimpleIcons.Xbox360Icon;

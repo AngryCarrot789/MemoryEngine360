@@ -1,0 +1,18 @@
+﻿<w:DesktopWindow xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:avalonia="clr-namespace:MemEngine360.Avalonia"
+                 xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:avalonia1="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
+                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                 x:Class="MemEngine360.Avalonia.MemEngineWindow"
+                 TitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}"
+                 BorderBrush="{DynamicResource PanelBorderBrush}"
+                 avalonia1:UIInputManager.FocusPath="MemEngineWindow"
+                 MinWidth="600" MinHeight="520"
+                 Width="680" Height="630"
+                 Title="MemEngine360 (Cheat Engine for Xbox 360) v1.1.4">
+    <avalonia:MemEngineView x:Name="PART_MemEngineView"/>
+</w:DesktopWindow>

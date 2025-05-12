@@ -1,16 +1,10 @@
-﻿<s:WindowingContentControl xmlns="https://github.com/avaloniaui"
-                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                           xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                           xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                           xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
-                           mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-                           x:Class="MemEngine360.Avalonia.AboutView"
-                           WindowTitle="About MemEngine360"
-                           Background="{DynamicResource PanelBackground2}"
-                           WindowBorderBrush="DodgerBlue"
-                           WindowTitleBarBrush="{DynamicResource ABrush.Tone7.Background.Static}"
-                           FontFamily="{StaticResource FontOxanium}"
-                           FontWeight="Medium">
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MemEngine360.Avalonia.AboutView">
     <Grid Margin="20">
         <StackPanel Spacing="4">
             <TextBlock Text="Memory Engine 360" HorizontalAlignment="Center" FontSize="32" FontWeight="Bold"/>
@@ -32,4 +26,4 @@
         </StackPanel>
         <Button HorizontalAlignment="Right" VerticalAlignment="Bottom" Content="OK" Width="75" Height="24" Click="Button_OnClick"/>
     </Grid>
-</s:WindowingContentControl>
+</UserControl>

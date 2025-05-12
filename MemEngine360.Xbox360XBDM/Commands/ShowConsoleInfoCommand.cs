@@ -36,7 +36,7 @@ public class ShowConsoleInfoCommand : BaseRemoteConsoleCommand {
     }
 
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        if (connection is IXbox360Connection xbox) {
+        if (connection is IXbdmConnection xbox) {
             string debugName = await xbox.GetDebugName();
             ExecutionState execState = await xbox.GetExecutionState();
             IPAddress currTitleAddr = await xbox.GetTitleIPAddress();

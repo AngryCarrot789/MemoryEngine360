@@ -1,33 +1,29 @@
-﻿<c2:WindowingContentControl xmlns="https://github.com/avaloniaui"
-                            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                            xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                            xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                            xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
-                            xmlns:cmdu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
-                            xmlns:av1="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
-                            xmlns:engine="clr-namespace:MemEngine360.Engine;assembly=MemEngine360"
-                            xmlns:ams="clr-namespace:PFXToolKitUI.Avalonia.AdvancedMenuService;assembly=PFXToolKitUI.Avalonia"
-                            xmlns:c2="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
-                            xmlns:converters="clr-namespace:PFXToolKitUI.Avalonia.Converters;assembly=PFXToolKitUI.Avalonia"
-                            xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
-                            xmlns:aa="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
-                            xmlns:av2="clr-namespace:MemEngine360.Avalonia"
-                            xmlns:av3="clr-namespace:MemEngine360.Avalonia;assembly=MemEngine360.BaseFrontEnd"
-                            xmlns:ac="clr-namespace:MemEngine360.BaseFrontEnd.Commands;assembly=MemEngine360.BaseFrontEnd"
-                            xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd;assembly=MemEngine360.BaseFrontEnd"
-                            mc:Ignorable="d"
-                            WindowTitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}"
-                            WindowBorderBrush="{DynamicResource PanelBorderBrush}"
-                            x:Class="MemEngine360.Avalonia.MemEngineView">
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:cmdu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
+             xmlns:av1="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+             xmlns:engine="clr-namespace:MemEngine360.Engine;assembly=MemEngine360"
+             xmlns:ams="clr-namespace:PFXToolKitUI.Avalonia.AdvancedMenuService;assembly=PFXToolKitUI.Avalonia"
+             xmlns:converters="clr-namespace:PFXToolKitUI.Avalonia.Converters;assembly=PFXToolKitUI.Avalonia"
+             xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:aa="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
+             xmlns:av2="clr-namespace:MemEngine360.Avalonia"
+             xmlns:ac="clr-namespace:MemEngine360.BaseFrontEnd.Commands;assembly=MemEngine360.BaseFrontEnd"
+             xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd;assembly=MemEngine360.BaseFrontEnd"
+             mc:Ignorable="d"
+             x:Class="MemEngine360.Avalonia.MemEngineView">
     <DockPanel>
         <ams:AdvancedTopLevelMenu x:Name="PART_TopLevelMenu"
                                   DockPanel.Dock="Top"
                                   Background="{Binding RelativeSource={RelativeSource AncestorType={x:Type c:WindowEx}}, Path=TitleBarBrush}"
-                                  BorderBrush="{DynamicResource PanelBackground0}" BorderThickness="0,0,0,1"/>
+                                  BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,0,0,1"/>
         <Border x:Name="PART_StatusBar"
                 DockPanel.Dock="Bottom"
                 Background="{DynamicResource ABrush.PFX.Editor.StatusBar.Background}"
-                BorderBrush="{DynamicResource PanelBackground0}"
+                BorderBrush="{DynamicResource PanelBorderBrush}"
                 BorderThickness="0,1,0,0"
                 Height="21">
             <Grid ColumnDefinitions="Auto,3,*,3,Auto,3,Auto">
@@ -70,7 +66,7 @@
                         </Grid>
                         <ScrollViewer Grid.Row="5" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                             <c:GroupBox Background="{DynamicResource PanelBackground3}"
-                                        BorderBrush="{DynamicResource PanelBackground0}"
+                                        BorderBrush="{DynamicResource PanelBorderBrush}"
                                         BorderThickness="1"
                                         HorizontalHeaderAlignment="Stretch"
                                         VerticalHeaderAlignment="Stretch">
@@ -201,7 +197,7 @@
                 </Border>
                 <c:GroupBox Background="{DynamicResource PanelBackground2}"
                             HorizontalHeaderAlignment="Stretch"
-                            BorderBrush="{DynamicResource PanelBackground0}"
+                            BorderBrush="{DynamicResource PanelBorderBrush}"
                             BorderThickness="1"
                             Grid.Column="1" Grid.Row="1"
                             av1:UIInputManager.FocusPath="MemEngineWindow/ScanResultList">
@@ -238,7 +234,7 @@
                     </DataGrid>
                 </c:GroupBox>
                 <c:GroupBox Background="{DynamicResource PanelBackground2}"
-                            BorderBrush="{DynamicResource PanelBackground0}"
+                            BorderBrush="{DynamicResource PanelBorderBrush}"
                             BorderThickness="1"
                             HorizontalHeaderAlignment="Stretch"
                             Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="3"
@@ -254,14 +250,14 @@
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenFileAsSavedAddressesCommand"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                ToolTip.Tip="Open a CSV file containing saved addresses" Padding="3,3,2,2"/>
-                                
+
                                 <av:IconButton Icon="{x:Static cb:SimpleIcons.SaveFileIcon}" Width="20"
                                                Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                                BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.SaveFileAsSavedAddressesCommand"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                ToolTip.Tip="Save the saved addresses to a CSV file (including data type, display options, etc.)" Padding="3"/>
-                                
+
                                 <av:IconButton Padding="2" Width="20"
                                                Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                                BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
@@ -275,7 +271,7 @@
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.ClearSavedAddressesCommand"
                                                ToolTip.Tip="Clears all rows"
                                                Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"/>
-                                
+
                                 <Separator Theme="{StaticResource VerticalSeparatorTheme}"/>
 
                                 <av:IconButton Icon="{x:Static cb:SimpleIcons.MemoryIcon}" Width="20"
@@ -310,7 +306,7 @@
                             <DataGridCheckBoxColumn Header="Active" Width="42" x:DataType="{x:Type engine:SavedAddressViewModel}"
                                                     Binding="{Binding IsAutoRefreshEnabled, Mode=TwoWay}"
                                                     CanUserResize="False"/>
-                            
+
                             <DataGridTextColumn Header="Address (hex)" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}"
                                                 Binding="{Binding Address, Mode=OneWay, StringFormat=X}"
                                                 IsReadOnly="True" FontFamily="{StaticResource FontOxanium}"
@@ -376,4 +372,4 @@
             </Border>
         </Grid>
     </DockPanel>
-</c2:WindowingContentControl>
+</UserControl>

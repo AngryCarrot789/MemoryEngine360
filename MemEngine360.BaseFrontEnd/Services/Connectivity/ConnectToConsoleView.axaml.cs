@@ -22,7 +22,7 @@ using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
-using PFXToolKitUI.Avalonia.Services;
+using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
@@ -33,12 +33,12 @@ namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 /// <summary>
 /// The view for the Connect to Console window
 /// </summary>
-public partial class ConnectToConsoleView : WindowingContentControl {
+public partial class ConnectToConsoleView : UserControl {
     public static readonly ModelControlRegistry<UserConnectionInfo, Control> Registry;
 
-    public IMemEngineUI EngineUI { get; init; }
+    public IMemEngineUI EngineUI { get; set; }
 
-    public string? FocusedTypeId { get; init; }
+    public string? FocusedTypeId { get; set; }
 
     private readonly AsyncRelayCommand connectCommand;
     private CancellationTokenSource? currCts;
@@ -50,7 +50,9 @@ public partial class ConnectToConsoleView : WindowingContentControl {
         this.PART_ListBox.SelectionChanged += this.PART_ListBoxOnSelectionChanged;
 
         this.PART_CancelButton.Click += (sender, args) => {
-            this.Window!.Close();
+            if (TopLevel.GetTopLevel(this) is DesktopWindow window) {
+                window.Close();
+            }
         };
 
         this.PART_ConfirmButton.Command = this.connectCommand = new AsyncRelayCommand(async () => {
@@ -81,7 +83,9 @@ public partial class ConnectToConsoleView : WindowingContentControl {
                             entry.Items.Add(en);
                         }
 
-                        this.Window!.Close();
+                        if (TopLevel.GetTopLevel(this) is DesktopWindow window) {
+                            window.Close();
+                        }
                     }
                 }
 
@@ -99,14 +103,7 @@ public partial class ConnectToConsoleView : WindowingContentControl {
         Registry = new ModelControlRegistry<UserConnectionInfo, Control>();
     }
 
-    protected override void OnWindowOpened() {
-        base.OnWindowOpened();
-
-        this.Window!.Control.MinWidth = 600;
-        this.Window!.Control.MinHeight = 350;
-        this.Window!.Control.Width = 700;
-        this.Window!.Control.Height = 450;
-
+    internal void OnWindowOpened() {
         ConsoleTypeListBoxItem? selected = null;
         ConsoleConnectionManager service = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
         foreach (RegisteredConsoleType type in service.RegisteredConsoleTypes) {
@@ -120,14 +117,11 @@ public partial class ConnectToConsoleView : WindowingContentControl {
             this.PART_ListBox.Items.Add(item);
         }
 
-        this.PART_ListBox.SelectedItem = selected ?? Enumerable.FirstOrDefault<object?>(this.PART_ListBox.Items);
-
+        this.PART_ListBox.SelectedItem = selected ?? this.PART_ListBox.Items.FirstOrDefault();
         this.PART_ConfirmButton.Focus();
     }
 
-    protected override void OnWindowClosed() {
-        base.OnWindowClosed();
-
+    internal void OnWindowClosed() {
         try {
             this.currCts?.Cancel();
             this.currCts?.Dispose();
@@ -160,10 +154,10 @@ public partial class ConnectToConsoleView : WindowingContentControl {
     }
 
     private void UpdateConnectButton() {
-        if (this.Window == null || this.Window.IsClosed) {
+        if (!(TopLevel.GetTopLevel(this) is DesktopWindow window) || window.IsClosed) {
             return;
         }
-
+        
         this.PART_ConfirmButton.Content = this.isConnecting ? "Connecting..." : "Connect";
         this.PART_ConfirmButton.Width = this.isConnecting ? 90 : 72;
     }

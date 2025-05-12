@@ -20,10 +20,27 @@
 namespace MemEngine360.Connections;
 
 public readonly struct MemoryRegion {
+    /// <summary>
+    /// The address of the memory region
+    /// </summary>
     public readonly uint BaseAddress;
+    
+    /// <summary>
+    /// The size of the memory region
+    /// </summary>
     public readonly uint Size;
+    
+    /// <summary>
+    /// The protection flags the region has, e.g. ReadWrite, Execute, etc.
+    /// </summary>
     public readonly uint Protection;
+    
+    /// <summary>
+    /// Optional address of this region in physical memory... probably
+    /// </summary>
     public readonly uint PhysicalAddress;
+    
+    public uint EndAddress => this.BaseAddress + this.Size;
 
     public MemoryRegion(uint baseAddress, uint size, uint protection, uint physicalAddress) {
         this.BaseAddress = baseAddress;

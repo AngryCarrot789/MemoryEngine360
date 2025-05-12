@@ -41,9 +41,8 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
 
     protected sealed override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
         engine.CheckConnection();
-        using IDisposable? token = engine.BeginBusyOperation();
+        using IDisposable? token = await engine.BeginBusyOperationActivityAsync(this.ActivityText);
         if (token == null) {
-            await IMessageDialogService.Instance.ShowMessage("Disconnected", "Connection is busy elsewhere");
             return;
         }
 
@@ -57,7 +56,7 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
             await IMessageDialogService.Instance.ShowMessage("Disconnected", "Not connected to a console." + shortcuts);
         }
         else if (engine.ScanningProcessor.IsScanning) {
-            await IMessageDialogService.Instance.ShowMessage("Disconnected", "Scan in progress");
+            await IMessageDialogService.Instance.ShowMessage("Scanning", "Scan in progress");
         }
         else if (await this.TryBeginExecuteAsync(engine, connection, e)) {
             // we won't bother using the async versions because they will most likely have an
@@ -85,24 +84,49 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
 public class ShutdownCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Shutting down console...";
 
+    protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
+        return base.CanExecuteCore(engine, e).MergeValid(engine.Connection is IHavePowerFunctions ? Executability.Valid : Executability.ValidButCannotExecute);
+    }
+
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        if (connection is IHavePowerFunctions)
+            return true;
+        await IMessageDialogService.Instance.ShowMessage("No power functions", "This connection cannot trigger power functions");
+        return false;
+    }
+
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        await connection.ShutdownConsole();
+        await ((IHavePowerFunctions) connection).ShutdownConsole();
     }
 }
 
 public class SoftRebootCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Rebooting title...";
 
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        if (connection is IHavePowerFunctions)
+            return true;
+        await IMessageDialogService.Instance.ShowMessage("No power functions", "This connection cannot trigger power functions");
+        return false;
+    }
+    
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        await connection.RebootConsole(false);
+        await ((IHavePowerFunctions) connection).RebootConsole(false);
     }
 }
 
 public class ColdRebootCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Rebooting console...";
 
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+        if (connection is IHavePowerFunctions)
+            return true;
+        await IMessageDialogService.Instance.ShowMessage("No power functions", "This connection cannot trigger power functions");
+        return false;
+    }
+    
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        await connection.RebootConsole(true);
+        await ((IHavePowerFunctions) connection).RebootConsole(true);
     }
 }
 

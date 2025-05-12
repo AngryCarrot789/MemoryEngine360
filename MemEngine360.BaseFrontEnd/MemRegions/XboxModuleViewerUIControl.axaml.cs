@@ -26,10 +26,10 @@ using PFXToolKitUI.Services.UserInputs;
 namespace MemEngine360.BaseFrontEnd.MemRegions;
 
 public partial class XboxModuleViewerUIControl : UserControl, IUserInputContent {
-private UserInputDialogView? myDialog;
+    private UserInputDialogView? myDialog;
     private ModuleUserInputInfo? myInfo;
     public readonly IBinder<ModuleUserInputInfo> selectedItemBinder = new AvaloniaPropertyToEventPropertyBinder<ModuleUserInputInfo>(ListBox.SelectedItemProperty, nameof(ModuleUserInputInfo.SelectedRegionChanged), (b) => ((ListBox) b.Control).SelectedItem = b.Model.SelectedRegion, (b) => b.Model.SelectedRegion = (string?) ((ListBox) b.Control).SelectedItem);
-    
+
     public XboxModuleViewerUIControl() {
         this.InitializeComponent();
     }
@@ -59,12 +59,12 @@ private UserInputDialogView? myDialog;
     }
 
     public void OnWindowOpened() {
-        this.myDialog!.Window!.CanAutoSizeToContent = false;
-        this.myDialog!.Window!.Control.MinHeight = 400;
-        this.myDialog!.Window!.Control.MinWidth = 600;
-        this.myDialog!.Window!.Control.Height = 50;
-        this.myDialog!.Window!.Control.Width = 60;
-        this.myDialog!.Window!.IsResizable = true;
+        this.myDialog!.Window!.SizeToContent = SizeToContent.Manual;
+        this.myDialog!.Window!.MinHeight = 400;
+        this.myDialog!.Window!.MinWidth = 600;
+        this.myDialog!.Window!.Height = 50;
+        this.myDialog!.Window!.Width = 60;
+        this.myDialog!.Window!.CanResize = true;
     }
 
     public void OnWindowClosed() {

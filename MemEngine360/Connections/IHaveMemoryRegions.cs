@@ -24,8 +24,13 @@ namespace MemEngine360.Connections;
 /// </summary>
 public interface IHaveMemoryRegions {
     /// <summary>
-    /// Walks all the memory regions on the console
+    /// Walks all the memory regions on the console. Optionally you can provide flags on
+    /// intention in order to filter out regions that will not allow such operations (e.g.
+    /// if you intend to write, then read-only regions will not be provided).
+    /// Set all intentions as false to just get all regions no matter what
     /// </summary>
-    /// <returns>A task containing a list of all memory regions</returns>
-    Task<List<MemoryRegion>> GetMemoryRegions();
+    /// <param name="willRead">We intend to read data from this region</param>
+    /// <param name="willWrite">We intend to write data to this region</param>
+    /// <returns>A task containing a list of all memory regions (that fit the intentions)</returns>
+    Task<List<MemoryRegion>> GetMemoryRegions(bool willRead, bool willWrite);
 }

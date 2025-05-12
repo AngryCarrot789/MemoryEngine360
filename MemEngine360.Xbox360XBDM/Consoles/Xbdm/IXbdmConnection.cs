@@ -25,7 +25,7 @@ namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 /// <summary>
 /// Represents a connection to an xbox console
 /// </summary>
-public interface IXbox360Connection : INetworkConsoleConnection, IHaveMemoryRegions, IHaveIceCubes {
+public interface IXbdmConnection : INetworkConsoleConnection, IHaveMemoryRegions, IHaveIceCubes {
     /// <summary>
     /// Gets all the threads running on this console
     /// </summary>
@@ -110,8 +110,4 @@ public interface IXbox360Connection : INetworkConsoleConnection, IHaveMemoryRegi
     /// <param name="address">The address to write to</param>
     /// <param name="filePath">The source file path on this computer</param>
     Task WriteFile(uint address, string filePath);
-    
-    Task WriteHook(uint address, uint destination, bool isLinked);
-    
-    Task WriteNOP(uint address);
 }

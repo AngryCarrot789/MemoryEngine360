@@ -31,7 +31,7 @@ public class ListHelpCommand : RemoteXbox360Command {
         return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
-    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IXbox360Connection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IXbdmConnection connection, CommandEventArgs e) {
         List<string> list = await ((PhantomRTMConsoleConnection) connection).SendCommandAndReceiveLines("help");
         await IMessageDialogService.Instance.ShowMessage("Help", "Available commands", string.Join(Environment.NewLine, list));
     }

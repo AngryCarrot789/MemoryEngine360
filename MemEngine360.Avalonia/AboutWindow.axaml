@@ -1,0 +1,18 @@
+﻿<w:DesktopWindow xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:avalonia="clr-namespace:MemEngine360.Avalonia"
+                 xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
+                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                 x:Class="MemEngine360.Avalonia.AboutWindow"
+                 MinWidth="500" MinHeight="200"
+                 Width="600" Height="250"
+                 Title="About MemEngine360"
+                 BorderBrush="DodgerBlue"
+                 TitleBarBrush="{DynamicResource ABrush.Tone7.Background.Static}"
+                 Background="{DynamicResource PanelBackground2}"
+                 FontFamily="{StaticResource FontOxanium}"
+                 FontWeight="Medium">
+    <avalonia:AboutView/>
+</w:DesktopWindow>

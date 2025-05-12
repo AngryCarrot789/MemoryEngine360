@@ -10,14 +10,12 @@
 
         <Grid x:Name="PART_UseFirstOrPrevButtonGrid" Grid.Column="3" RowDefinitions="*,3,*" Margin="3,0,0,0">
             <ToggleButton Grid.Row="0" Padding="5,0" x:Name="PART_UseFirstValue"
-                          Background="{DynamicResource ABrush.Tone5.Background.Static}"
                           BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                           VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"
                           ToolTip.Tip="Use the rows' First Value as the search value">
                 <TextBlock Text="First" FontSize="8" FontFamily="{StaticResource FontOxanium}" Padding="0" Margin="0,-1,0,0"/>
             </ToggleButton>
             <ToggleButton Grid.Row="2" Padding="5,0" x:Name="PART_UsePreviousValue"
-                          Background="{DynamicResource ABrush.Tone5.Background.Static}"
                           BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                           VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"
                           ToolTip.Tip="Use the rows' Previous Value as the search value">

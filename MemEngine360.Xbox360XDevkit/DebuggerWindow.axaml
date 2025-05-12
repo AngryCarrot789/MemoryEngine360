@@ -1,0 +1,11 @@
+﻿<w:DesktopWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:xbox360XDevkit="clr-namespace:MemEngine360.Xbox360XDevkit"
+        xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="MemEngine360.Xbox360XDevkit.DebuggerWindow"
+        Title="DebuggerWindow">
+    <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" Text="Coming soon!" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
+</w:DesktopWindow>

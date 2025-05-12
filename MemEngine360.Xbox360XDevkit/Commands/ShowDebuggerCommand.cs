@@ -17,21 +17,27 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Configs;
+using MemEngine360.Commands;
 using MemEngine360.Engine;
+using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Services.Messaging;
 
-namespace MemEngine360.Commands;
+namespace MemEngine360.Xbox360XDevkit.Commands;
 
-public class ResetScanOptionsCommand : BaseMemoryEngineCommand {
+public class ShowDebuggerCommand : BaseMemoryEngineCommand {
     protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
-        return engine.ScanningProcessor.IsScanning ? Executability.ValidButCannotExecute : Executability.Valid;
+        return engine.Connection is Devkit360Connection ? Executability.Valid : (engine.Connection == null ? Executability.ValidButCannotExecute : Executability.Invalid);
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
-        if (!engine.ScanningProcessor.IsScanning) {
-            engine.ScanningProcessor.SetScanRange(BasicApplicationConfiguration.StartAddressProperty.DefaultValue, BasicApplicationConfiguration.ScanLengthProperty.DefaultValue);
-            engine.ScanningProcessor.ScanMemoryPages = BasicApplicationConfiguration.ScanMemoryPagesProperty.DefaultValue;
+        if (!(engine.Connection is Devkit360Connection)) {
+            await IMessageDialogService.Instance.ShowMessage("Unsupported", "Debugger view is only supported on the XDevkit connection for now");
+            return;
+        }
+        
+        if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
+            system.Register(new DebuggerWindow(engine)).Show(); // show without owner
         }
     }
 }

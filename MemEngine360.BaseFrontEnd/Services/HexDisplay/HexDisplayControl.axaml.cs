@@ -30,6 +30,7 @@ using Avalonia.Interactivity;
 using AvaloniaHex.Core.Document;
 using AvaloniaHex.Editing;
 using AvaloniaHex.Rendering;
+using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexDisplay;
@@ -40,7 +41,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
-using PFXToolKitUI.Avalonia.Services;
+using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Services.Messaging;
@@ -51,7 +52,7 @@ using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
 
-public partial class HexDisplayControl : WindowingContentControl, IHexDisplayView {
+public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
     public static readonly StyledProperty<HexDisplayInfo?> HexDisplayInfoProperty = AvaloniaProperty.Register<HexDisplayControl, HexDisplayInfo?>("HexDisplayInfo");
 
     public HexDisplayInfo? HexDisplayInfo {
@@ -103,7 +104,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
 
     public event HexDisplayControlTheEndiannessChangedEventHandler? TheEndiannessChanged;
 
-    private readonly AvaloniaPropertyToDataParameterBinder<HexDisplayInfo> captionBinder = new AvaloniaPropertyToDataParameterBinder<HexDisplayInfo>(WindowTitleProperty, HexDisplayInfo.CaptionParameter);
+    private readonly AvaloniaPropertyToDataParameterBinder<HexDisplayInfo> captionBinder = new AvaloniaPropertyToDataParameterBinder<HexDisplayInfo>(TitleProperty, HexDisplayInfo.CaptionParameter);
 
     private readonly TextBoxToDataParameterBinder<HexDisplayInfo, uint> addrBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.StartAddressParameter, (p) => p!.ToString("X8"), async (t, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
@@ -679,21 +680,17 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         HexDisplayInfoProperty.Changed.AddClassHandler<HexDisplayControl, HexDisplayInfo?>((o, e) => o.OnInfoChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
-    protected override void OnWindowOpened() {
-        base.OnWindowOpened();
-        this.Window!.Control.MinWidth = 800;
-        this.Window!.Control.MinHeight = 480;
-        this.Window!.Control.Width = 1280;
-        this.Window!.Control.Height = 720;
-
-        UIInputManager.SetFocusPath(this.Window!.Control, "HexDisplayWindow");
+    protected override void OnOpenedCore() {
+        base.OnOpenedCore();
+        
+        UIInputManager.SetFocusPath(this, "HexDisplayWindow");
         UIInputManager.SetFocusPath(this.PART_HexEditor, "HexDisplayWindow/HexEditor");
-        using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
+        using MultiChangeToken change = DataManager.GetContextData(this).BeginChange();
         change.Context.Set(IHexDisplayView.DataKey, this);
     }
 
-    protected override void OnWindowClosed() {
-        base.OnWindowClosed();
+    protected override void OnClosed(EventArgs e) {
+        base.OnClosed(e);
         this.autoRefreshTask?.RequestCancellation();
         this.HexDisplayInfo = null;
     }
@@ -712,7 +709,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
     }
 
     private void OnCancelButtonClicked(object? sender, RoutedEventArgs e) {
-        this.Window!.Close();
+        this.Close();
     }
 
     private void UpdateAutoRefreshRange() {
@@ -898,6 +895,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
         }
 
         private async Task RunUpdateLoop(CancellationToken pauseOrCancelToken) {
+            BasicApplicationConfiguration settings = BasicApplicationConfiguration.Instance;
             while (true) {
                 pauseOrCancelToken.ThrowIfCancellationRequested();
                 IConsoleConnection? connection = this.info!.MemoryEngine360.Connection;
@@ -909,8 +907,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                     return;
                 }
 
-                TimeSpan interval = TimeSpan.FromSeconds(1.0 / 10.0); // 10 times per second = 100ms
-
+                TimeSpan interval = TimeSpan.FromSeconds(1.0 / settings.AutoRefreshUpdatesPerSecond);
                 DateTime startTime = DateTime.Now;
                 try {
                     // aprox. 50ms to fully read 1.5k bytes, based on simple benchmark with DateTime.Now
@@ -938,6 +935,7 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                 }
 
                 TimeSpan timeTaken = DateTime.Now - startTime;
+                
                 int sleepMillis = (int) (interval - timeTaken - TimeSpan.FromMilliseconds(5)).TotalMilliseconds;
                 if (sleepMillis > 0) {
                     await Task.Delay(sleepMillis, pauseOrCancelToken);
@@ -945,6 +943,8 @@ public partial class HexDisplayControl : WindowingContentControl, IHexDisplayVie
                 else {
                     await Task.Yield();
                 }
+                
+                this.Activity.Progress.Text = $"Auto refresh in progress ({Math.Round(1.0 / (DateTime.Now - startTime).TotalSeconds, 1)} upd/s)";
             }
         }
     }

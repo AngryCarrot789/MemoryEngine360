@@ -17,23 +17,18 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine.HexDisplay;
+using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.Services.Windowing;
-using PFXToolKitUI.Utils;
 
-namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
+namespace MemEngine360.Xbox360XDevkit;
 
-public class HexDisplayServiceImpl : IHexDisplayService {
-    public Task ShowHexEditor(HexDisplayInfo info) {
-        Validate.NotNull(info);
-        if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-            HexDisplayControl control = new HexDisplayControl() {
-                HexDisplayInfo = info
-            };
-            
-            system.Register(control).Show(); // specify parent as null so that it isn't always ontop of any window
-        }
+public partial class DebuggerWindow : DesktopWindow {
+    // WIP: coming soon :D
 
-        return Task.CompletedTask;
+    public MemoryEngine360 Engine { get; }
+    
+    public DebuggerWindow(MemoryEngine360 engine) {
+        InitializeComponent();
+        this.Engine = engine;
     }
 }

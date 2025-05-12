@@ -5,13 +5,6 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MemEngine360.Xbox360XDevkit.Views.ConnectToXboxView">
     <StackPanel Margin="10">
-        <TextBlock Padding="0,0,0,2" 
-                   Text="Ensure you have xbdm running as a plugin on your console!" 
-                   FontSize="16" 
-                   Foreground="{DynamicResource ABrush.ColourfulGlyph.Static}" 
-                   FontWeight="Medium"/>
-        <Separator/>
-        
         <TextBlock Text="IP/Hostname Address" Padding="0,5"/>
         <TextBox x:Name="PART_IpAddressTextBox" Padding="5,5" VerticalContentAlignment="Center"
                  Background="{DynamicResource ABrush.Tone3.Border.Static}"

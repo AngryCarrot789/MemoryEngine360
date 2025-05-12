@@ -106,6 +106,9 @@ public class ScanningProcessor {
         set {
             uint oldValue = this.startAddress;
             if (oldValue != value) {
+                if ((value + this.scanLength) < value) // check end index is less than start address, meaning we overflowed
+                    throw new ArgumentOutOfRangeException(nameof(value), "Start address causes scan range to exceed size of UInt32");
+                
                 this.startAddress = value;
                 this.StartAddressChanged?.Invoke(this, oldValue, value);
                 BasicApplicationConfiguration.Instance.StartAddress = value;
@@ -118,6 +121,9 @@ public class ScanningProcessor {
         set {
             uint oldValue = this.scanLength;
             if (oldValue != value) {
+                if ((this.startAddress + value) < this.startAddress) // check end index is less than start address, meaning we overflowed
+                    throw new ArgumentOutOfRangeException(nameof(value), "Start address causes scan range to exceed size of UInt32");
+                
                 this.scanLength = value;
                 this.ScanLengthChanged?.Invoke(this, oldValue, value);
                 BasicApplicationConfiguration.Instance.ScanLength = value;
@@ -365,9 +371,45 @@ public class ScanningProcessor {
             for (int i = 0; i < 10 && this.resultBuffer.TryDequeue(out ScanResultViewModel? result); i++) {
                 this.ScanResults.Add(result);
             }
-        }, TimeSpan.FromMilliseconds(100));
+        }, TimeSpan.FromMilliseconds(100), DispatchPriority.INTERNAL_BeforeRender);
 
         this.rldaRefreshSavedAddressList = RateLimitedDispatchActionBase.ForDispatcherAsync(this.RefreshSavedAddressesAsync, TimeSpan.FromMilliseconds(100));
+    }
+
+    /// <summary>
+    /// Sets the scan range, without risking <see cref="ArgumentOutOfRangeException"/> when setting
+    /// them individually due to integer overflow. This method may still throw though
+    /// </summary>
+    /// <param name="newStartAddress">The new start address</param>
+    /// <param name="newScanLength">The new scan length</param>
+    public void SetScanRange(uint newStartAddress, uint newScanLength) {
+        if ((newStartAddress + newScanLength) < newStartAddress) {
+            // should we just support 64 bit addresses?
+            // I don't even think there's anything useful beyond 0xFFFFFFFF...
+            throw new ArgumentException("New scan range exceed size of UInt32; it requires a 64 bit address range, which is unsupported");
+        }
+        
+        // Just to ensure there isn't weird glitches by changing both before events,
+        // we first set length to 0 so that we can change StartAddress without
+        // risking observers doing newValue + processor.ScanLength and overflowing
+        
+        uint oldLength = this.scanLength;
+        this.scanLength = 0;
+        this.ScanLengthChanged?.Invoke(this, oldLength, 0);
+        
+        // Now we update start address for real
+        uint oldStart = this.startAddress;
+        this.startAddress = newStartAddress;
+        this.StartAddressChanged?.Invoke(this, oldStart, newStartAddress);
+        
+        // Set scan length to the true value now. We read the prev value again in case some
+        // ass bag changes the value during StartAddressChanged, probably me by accident
+        oldLength = this.scanLength;
+        this.scanLength = newScanLength;
+        this.ScanLengthChanged?.Invoke(this, oldLength, newScanLength);
+        
+        BasicApplicationConfiguration.Instance.StartAddress = this.startAddress;
+        BasicApplicationConfiguration.Instance.ScanLength = this.scanLength;
     }
 
     public static uint GetAlignmentFromDataType(DataType type) {
@@ -409,15 +451,13 @@ public class ScanningProcessor {
             return;
         }
 
-        byte[] bytes = await connection.ReadBytes(0x80000000, 1000);
-
         // should be impossible since we obtain the busy token which is required before scanning
 
         Debug.Assert(this.isScanning == false, "WTF");
 
         bool debugFreeze = this.PauseConsoleDuringScan;
         DefaultProgressTracker progress = new DefaultProgressTracker {
-            Caption = "Scan", Text = "Beginning scan..."
+            Caption = "Memory Scan", Text = "Beginning scan..."
         };
 
         using CancellationTokenSource cts = new CancellationTokenSource();
@@ -601,41 +641,108 @@ public class ScanningProcessor {
 
         IConsoleConnection connection = this.MemoryEngine360.Connection ?? throw new InvalidOperationException("No connection present");
 
-        // ideally this shouldn't throw at all
-        try {
-            // TODO: maybe batch together results whose addresses are close by, and read a single chunk?
-            // May be faster if the console is not debug frozen and we have to update 100s of results...
-            List<SavedAddressViewModel>? savedList = new List<SavedAddressViewModel>(100);
-            foreach (SavedAddressViewModel saved in this.SavedAddresses) {
-                if (saved.IsAutoRefreshEnabled) {
-                    if (savedList.Count >= 100) {
-                        savedList = null;
-                        break;
-                    }
+        uint max = BasicApplicationConfiguration.Instance.MaxRowsBeforeDisableAutoRefresh;
+        
+        // TODO: maybe batch together results whose addresses are close by, and read a single chunk?
+        // May be faster if the console is not debug frozen and we have to update 100s of results...
+        List<SavedAddressViewModel>? savedList = new List<SavedAddressViewModel>(100);
+        foreach (SavedAddressViewModel saved in this.SavedAddresses) {
+            if (saved.IsAutoRefreshEnabled) {
+                if (savedList.Count > max) {
+                    savedList = null;
+                    break;
+                }
                     
-                    savedList.Add(saved);
+                savedList.Add(saved);
+            }
+        }
+            
+        // Lazily prevents concurrent modification due to awaiting read text
+        List<ScanResultViewModel>? list = (savedList == null || this.ScanResults.Count > max) ? null : this.ScanResults.ToList();
+        if ((savedList == null || savedList.Count < 1) && (list == null || list.Count < 1)) {
+            return;
+        }
+        
+        if ((list?.Count + savedList?.Count) > max) {
+            return;
+        }
+
+        this.IsRefreshingAddresses = true;
+        try {
+            using CancellationTokenSource cts = new CancellationTokenSource();
+            CancellationToken token = cts.Token;
+            
+            // The previous implementation of this was just awaiting ReadAsText on the main thread
+            // for each saved address and scan result.
+            // 
+            // However, although it didn't lag the UI, it took forever to update lots of results,
+            // because each time it awaited ReadAsText it almost always has to jump back to the
+            // main thread (from a background thread where maybe the TCP connection fired the continuation).
+            // 
+            // Rather than mess around with ConfigureAwait(false) I decided to just make it
+            // all run on a BG task, and if it's been running for over 500ms, then show an activity
+            // to let the user cancel it (maybe the connection was disconnected or is slow)
+            
+            Task task = Task.Run(async () => {
+                token.ThrowIfCancellationRequested();
+                
+                if (savedList != null) {
+                    string[] values = new string[savedList.Count];
+                    await Task.Run(async () => {
+                        for (int i = 0; i < values.Length; i++) {
+                            token.ThrowIfCancellationRequested();
+                            SavedAddressViewModel item = savedList[i];
+                            if (item.IsAutoRefreshEnabled) // may change between dispatcher callbacks
+                                values[i] = await MemoryEngine360.ReadAsText(connection, item.Address, item.DataType, item.NumericDisplayType, item.StringLength);
+                        }
+                    }, token);
+
+                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                        // Only <=100 values to update, so not too UI intensive
+                        for (int i = 0; i < values.Length; i++) {
+                            SavedAddressViewModel address = savedList[i];
+                            if (address.IsAutoRefreshEnabled) // may change between dispatcher callbacks
+                                address.Value = values[i];
+                        }
+                    }, token: CancellationToken.None);
                 }
+
+                // safety net -- we still need to implement logic to notify view models when they're visible in the
+                // UI, although this does kind of break the MVVM pattern but oh well
+                if (list != null) {
+                    string[] values = new string[list.Count];
+                    await Task.Run(async () => {
+                        for (int i = 0; i < values.Length; i++) {
+                            token.ThrowIfCancellationRequested();
+                            ScanResultViewModel item = list[i];
+                            values[i] = await MemoryEngine360.ReadAsText(connection, item.Address, item.DataType, item.NumericDisplayType, (uint) item.FirstValue.Length);
+                        }
+                    }, token);
+
+                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                        // Only <=100 values to update, so not too UI intensive
+                        for (int i = 0; i < list.Count; i++) {
+                            list[i].CurrentValue = values[i];
+                        }
+                    }, token: CancellationToken.None);
+                }
+            }, CancellationToken.None);
+
+            try {
+                await Task.WhenAny(task, Task.Delay(500, token));
+            }
+            catch (OperationCanceledException) {
+                return;
             }
 
-            if (savedList != null) {
-                this.IsRefreshingAddresses = true;
-
-                foreach (SavedAddressViewModel address in savedList) {
-                    if (address.IsAutoRefreshEnabled) // may change between dispatcher callbacks
-                        address.Value = await MemoryEngine360.ReadAsText(connection, address.Address, address.DataType, address.NumericDisplayType, address.StringLength);
-                }
-            }
-
-            // safety net -- we still need to implement logic to notify view models when they're visible in the
-            // UI, although this does kind of break the MVVM pattern but oh well
-            if (this.ScanResults.Count < 100) {
-                this.IsRefreshingAddresses = true;
-
-                // Lazily prevents concurrent modification due to awaiting read text
-                List<ScanResultViewModel> list = this.ScanResults.ToList();
-                foreach (ScanResultViewModel result in list) {
-                    result.CurrentValue = await MemoryEngine360.ReadAsText(connection, result.Address, result.DataType, result.NumericDisplayType, (uint) result.FirstValue.Length);
-                }
+            if (!task.IsCompleted) {
+                await ActivityManager.Instance.RunTask(async () => {
+                    IActivityProgress p = ActivityManager.Instance.GetCurrentProgressOrEmpty();
+                    p.Caption = "Long refresh";
+                    p.Text = "Values are refreshing...";
+                    p.IsIndeterminate = true;
+                    await task;
+                }, cts);
             }
         }
         finally {

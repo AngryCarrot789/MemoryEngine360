@@ -39,6 +39,7 @@ public class PluginXbox360XDevkit : Plugin {
         base.RegisterCommands(manager);
         manager.Register("commands.memengine.remote.ModulesCommand", new ModulesCommand());
         manager.Register("commands.memengine.remote.XboxRunningProcessCommand", new XboxRunningProcessCommand());
+        manager.Register("commands.memengine.ShowDebuggerCommand", new ShowDebuggerCommand());
     }
 
     public override Task OnApplicationFullyLoaded() {

@@ -18,12 +18,11 @@
 // 
 
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using MemEngine360.BaseFrontEnd.Commands;
+using MemEngine360.BaseFrontEnd;
 using MemEngine360.BaseFrontEnd.MemRegions;
 using MemEngine360.BaseFrontEnd.Services;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
@@ -39,6 +38,7 @@ using MemEngine360.Xbox360XDevkit;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
+using PFXToolKitUI.Avalonia.Configurations.Pages;
 using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Services.UserInputs;
 using PFXToolKitUI.Avalonia.Services.Windowing;
@@ -47,8 +47,6 @@ using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Services;
-using PFXToolKitUI.Tasks;
-using PFXToolKitUI.Tasks.Pausable;
 using PFXToolKitUI.Themes;
 
 namespace MemEngine360.Avalonia;
@@ -82,7 +80,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.DumpMemoryCommand", new DumpMemoryCommand());
         manager.Register("commands.memengine.OpenFileAsSavedAddressesCommand", new OpenFileAsSavedAddressesCommand());
         manager.Register("commands.memengine.SaveFileAsSavedAddressesCommand", new SaveFileAsSavedAddressesCommand());
-        
+
         // Remote commands
         manager.Register("commands.memengine.remote.MemProtectionCommand", new MemProtectionCommand());
         manager.Register("commands.memengine.remote.SoftRebootCommand", new SoftRebootCommand());
@@ -91,24 +89,21 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.remote.DebugFreezeCommand", new DebugFreezeCommand());
         manager.Register("commands.memengine.remote.DebugUnfreezeCommand", new DebugUnfreezeCommand());
 
-        
+
         // Hex editor commands
-        manager.Register("commands.hexeditor.ReloadSelectionFromConsole", new ReloadSelectionFromConsole());        
-        manager.Register("commands.hexeditor.ReadAllFromConsoleCommand", new ReadAllFromConsoleCommand());        
-        manager.Register("commands.hexeditor.UploadSelectionToConsoleCommand", new UploadSelectionToConsoleCommand());        
-        manager.Register("commands.hexeditor.GotoAddressCommand", new GotoAddressCommand());        
-        manager.Register("commands.hexeditor.SetAutoScanRangeAsSelectionCommand", new SetAutoScanRangeAsSelectionCommand());        
-        manager.Register("commands.hexeditor.ClearAutoScanRangeCommand", new ClearAutoScanRangeCommand());        
-        manager.Register("commands.hexeditor.SaveSelectionAsFileCommand", new SaveSelectionAsFileCommand());        
-        
-        // Test commands
-        manager.Register("commands.memengine.TestShowMemoryCommand", new TestShowMemoryCommand());
+        manager.Register("commands.hexeditor.ReloadSelectionFromConsole", new ReloadSelectionFromConsole());
+        manager.Register("commands.hexeditor.ReadAllFromConsoleCommand", new ReadAllFromConsoleCommand());
+        manager.Register("commands.hexeditor.UploadSelectionToConsoleCommand", new UploadSelectionToConsoleCommand());
+        manager.Register("commands.hexeditor.GotoAddressCommand", new GotoAddressCommand());
+        manager.Register("commands.hexeditor.SetAutoScanRangeAsSelectionCommand", new SetAutoScanRangeAsSelectionCommand());
+        manager.Register("commands.hexeditor.ClearAutoScanRangeCommand", new ClearAutoScanRangeCommand());
+        manager.Register("commands.hexeditor.SaveSelectionAsFileCommand", new SaveSelectionAsFileCommand());
     }
 
     protected override async Task OnSetupApplication(IApplicationStartupProgress progress) {
         await base.OnSetupApplication(progress);
         this.PluginLoader.AddCorePlugin(typeof(PluginXbox360Xbdm));
-        
+
         if (OperatingSystem.IsWindows()) {
             this.PluginLoader.AddCorePlugin(typeof(PluginXbox360XDevkit));
         }
@@ -117,7 +112,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     protected override void RegisterServices(ServiceManager manager) {
         if (this.Application.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime) {
             manager.RegisterConstant<IDesktopService>(new DesktopServiceImpl(this.Application));
-            manager.RegisterConstant<WindowingSystem>(new WindowingSystemDesktop());
+            manager.RegisterConstant<WindowingSystem>(new WindowingSystemImpl());
         }
 
         base.RegisterServices(manager);
@@ -139,11 +134,12 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         UserInputDialogView.Registry.RegisterType<SavedResultDataTypeUserInputInfo>(() => new SavedResultDataTypeEditorUserInputControl());
         UserInputDialogView.Registry.RegisterType<MemoryRegionUserInputInfo>(() => new XboxMemoryRegionViewerUIControl());
         UserInputDialogView.Registry.RegisterType<ModuleUserInputInfo>(() => new XboxModuleViewerUIControl());
-        
+        ConfigurationPageRegistry.Registry.RegisterType<MemEngineConfigurationPage>(() => new MemEngineConfigurationPageControl());
+
         ApplicationConfigurationManager.Instance.RootEntry.AddEntry(new ConfigurationEntry() {
             DisplayName = "MemEngine", Id = "config.memengine", Page = new MemEngineConfigurationPage()
         });
-        
+
         return base.OnApplicationFullyLoaded();
     }
 
@@ -162,14 +158,15 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     private class StartupManagerMemEngine360 : IStartupManager {
         public async Task OnApplicationStartupWithArgs(string[] args) {
             // IXboxManager xboxManager = new XboxManager();
-            
+
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
                 desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
             }
-            
+
             if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-                MemEngineView view = new MemEngineView();
-                system.CreateWindow(view, true).Show(null);
+                MemEngineWindow view = new MemEngineWindow();
+                system.Register(view, true);
+                view.Show();
 
                 // using IDisposable? token = await view.MemoryEngine360.BeginBusyOperationActivityAsync();
                 // if (token != null) {
@@ -193,7 +190,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     private class AboutServiceImpl : IAboutService {
         public async Task ShowDialog() {
             if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-                system.CreateWindow(new AboutView()).Show(system.GetActiveWindowOrNull());
+                system.Register(new AboutWindow()).Show(system.GetActiveWindowOrNull());
             }
         }
     }

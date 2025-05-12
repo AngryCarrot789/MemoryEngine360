@@ -60,6 +60,9 @@ public enum DataType {
 }
 
 public static class DataTypeExtensions {
+    /// <summary>
+    /// The data type is byte, short, int, long, float or double
+    /// </summary>
     public static bool IsNumeric(this DataType dataType) {
         switch (dataType) {
             case DataType.Byte:
@@ -73,6 +76,9 @@ public static class DataTypeExtensions {
         }
     }
 
+    /// <summary>
+    /// The data type is byte, short, int or long
+    /// </summary>
     public static bool IsInteger(this DataType dataType) {
         switch (dataType) {
             case DataType.Byte:
@@ -84,6 +90,9 @@ public static class DataTypeExtensions {
         }
     }
     
+    /// <summary>
+    /// The data type is float or double
+    /// </summary>
     public static bool IsFloat(this DataType dataType) {
         switch (dataType) {
             case DataType.Float:

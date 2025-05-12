@@ -17,26 +17,17 @@
 // along with FramePFX. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using Avalonia.Controls;
 using Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Services;
 
 namespace MemEngine360.Avalonia;
 
-public partial class AboutView : WindowingContentControl {
+public partial class AboutView : UserControl {
     public AboutView() {
         this.InitializeComponent();
     }
     
     private void Button_OnClick(object? sender, RoutedEventArgs e) {
-        this.Window?.Close();
-    }
-
-    protected override void OnWindowOpened() {
-        base.OnWindowOpened();
-
-        this.Window!.Control.MinWidth = 500;
-        this.Window!.Control.MinHeight = 200;
-        this.Window!.Control.Width = 600;
-        this.Window!.Control.Height = 250;
+        (TopLevel.GetTopLevel(this) as Window)?.Close();
     }
 }

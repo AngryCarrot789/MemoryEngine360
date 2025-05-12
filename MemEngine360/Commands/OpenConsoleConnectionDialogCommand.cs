@@ -75,6 +75,6 @@ public class OpenConsoleConnectionDialogCommand : Command {
             }
         }
 
-        await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>().OpenDialog(memUi);
+        await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>().OpenOrFocusWindow(memUi);
     }
 }

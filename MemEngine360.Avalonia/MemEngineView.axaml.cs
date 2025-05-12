@@ -18,11 +18,11 @@
 // 
 
 using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -33,15 +33,9 @@ using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using MemEngine360.XboxBase;
-using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
-using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.Selecting;
-using PFXToolKitUI.Avalonia.Services;
-using PFXToolKitUI.Avalonia.Services.Windowing;
-using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -57,7 +51,7 @@ using PFXToolKitUI.Utils.RDA;
 
 namespace MemEngine360.Avalonia;
 
-public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILatestActivityView {
+public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityView {
     #region BINDERS
 
     // PFX framework uses binders to simplify "binding" model values to controls
@@ -108,7 +102,16 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
     private readonly IBinder<ScanningProcessor> addrBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.StartAddressChanged), (b) => $"{b.Model.StartAddress:X8}", async (b, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
-            b.Model.StartAddress = value;
+            if (value == b.Model.StartAddress) {
+                return;
+            }
+
+            if (value + b.Model.ScanLength < value) {
+                await OnAddressOrLengthOutOfRange(b.Model, value, b.Model.ScanLength);
+            }
+            else {
+                b.Model.StartAddress = value;
+            }
         }
         else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
@@ -120,7 +123,16 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
 
     private readonly IBinder<ScanningProcessor> lenBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanLengthChanged), (b) => $"{b.Model.ScanLength:X}", async (b, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
-            b.Model.ScanLength = value;
+            if (value == b.Model.ScanLength) {
+                return;
+            }
+            
+            if (b.Model.StartAddress + value < value) {
+                await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
+            }
+            else {
+                b.Model.ScanLength = value;
+            }
         }
         else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
@@ -129,6 +141,31 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
         }
     });
+
+    private static async Task OnAddressOrLengthOutOfRange(ScanningProcessor processor, uint start, uint length) {
+        bool didChangeStart = processor.StartAddress != start;
+        Debug.Assert(didChangeStart || processor.ScanLength != length);
+        ulong overflowAmount = (ulong) start + (ulong) length - uint.MaxValue;
+        MessageBoxInfo info = new MessageBoxInfo() {
+            Caption = $"Invalid {(didChangeStart ? "start address" : "scan length")}",
+            Message = $"Scan Length causes scan to exceed 32 bit address space by 0x{overflowAmount:X8}.{Environment.NewLine}" +
+                      $"Do you want to auto-adjust the {(didChangeStart ? "scan length" : "start address")} to fit?",
+            Buttons = MessageBoxButton.OKCancel, DefaultButton = MessageBoxResult.OK,
+            YesOkText = "Yes"
+        };
+        
+        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
+        if (result == MessageBoxResult.Cancel) {
+            return;
+        }
+
+        if (didChangeStart) {
+            processor.SetScanRange(start, uint.MaxValue - start);
+        }
+        else {
+            processor.SetScanRange((uint) (start - overflowAmount), length);
+        }
+    }
 
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
@@ -228,7 +265,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
                 int msgLen = info.TextA.Length;
                 string msgHex = ConvertStringToHex(info.TextA, Encoding.ASCII);
                 string command = $"consolefeatures ver=2 type=12 params=\"A\\0\\A\\2\\2/{msgLen}\\{msgHex}\\1\\{(int) logo}\\\"";
-                await phantom.SendCommand(command);   
+                await phantom.SendCommand(command);
             }
         }
     }
@@ -241,7 +278,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
             ContextEntryGroup entry = new ContextEntryGroup("File");
             entry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
             entry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.MemoryIcon));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.TestShowMemoryCommand", "Test Hex editor"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Open debugger"));
             entry.Items.Add(new TestThing("Test Notification", null, null));
             entry.Items.Add(new SeparatorEntry());
             entry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
@@ -316,7 +353,7 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         });
 
         this.PART_ScanOptionsControl.MemoryEngine360 = this.MemoryEngine360;
-        this.PART_ActivityListPanel.KeyDown += PART_ActivityListPanelOnKeyDown;
+        this.PART_ActivityListPanel.KeyDown += this.PART_ActivityListPanelOnKeyDown;
     }
 
     private void PART_ActivityListPanelOnKeyDown(object? sender, KeyEventArgs e) {
@@ -414,97 +451,6 @@ public partial class MemEngineView : WindowingContentControl, IMemEngineUI, ILat
         this.alignmentBinder.Detach();
         this.pauseXboxBinder.Detach();
         this.scanMemoryPagesBinder.Detach();
-    }
-
-    protected override void OnWindowOpened() {
-        base.OnWindowOpened();
-
-        UIInputManager.SetFocusPath(this.Window!.Control, "MemEngineWindow");
-
-        this.Window.Control.MinWidth = 600;
-        this.Window.Control.MinHeight = 520;
-        this.Window.Width = 680;
-        this.Window.Height = 630;
-        this.Window.Title = "MemEngine360 (Cheat Engine for Xbox 360) v1.1.4";
-        this.Window.WindowClosing += this.MyWindowOnWindowClosing;
-        this.IsActivtyListVisible = false;
-
-        using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
-        change.Context.Set(MemoryEngine360.DataKey, this.MemoryEngine360).Set(IMemEngineUI.MemUIDataKey, this).Set(ILatestActivityView.LatestActivityDataKey, this);
-
-        ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineOpened(this);
-    }
-
-    protected override void OnWindowClosed() {
-        base.OnWindowClosed();
-        ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineClosed(this);
-
-        this.Window!.WindowClosing -= this.MyWindowOnWindowClosing;
-        using MultiChangeToken change = DataManager.GetContextData(this.Window.Control).BeginChange();
-        change.Context.Remove(MemoryEngine360.DataKey, IMemEngineUI.MemUIDataKey, ILatestActivityView.LatestActivityDataKey);
-    }
-
-    private async Task<bool> MyWindowOnWindowClosing(IWindow sender, WindowCloseReason reason, bool isCancelled) {
-        if (isCancelled) {
-            return isCancelled;
-        }
-
-        foreach (ActivityTask task in ActivityManager.Instance.ActiveTasks.ToList()) {
-            task.TryCancel();
-        }
-
-        this.MemoryEngine360.IsShuttingDown = true;
-        if (this.MemoryEngine360.ScanningProcessor.IsScanning) {
-            ActivityTask? activity = this.MemoryEngine360.ScanningProcessor.ScanningActivity;
-            if (activity != null && activity.TryCancel()) {
-                await activity;
-
-                if (this.MemoryEngine360.ScanningProcessor.IsScanning) {
-                    await IMessageDialogService.Instance.ShowMessage("Busy", "Rare: still busy. Please wait for scan to complete");
-                    return true;
-                }
-            }
-        }
-
-        // Grace period for all activities to become cancelled
-        await Task.Delay(100);
-
-        IDisposable? token = this.MemoryEngine360.BeginBusyOperation();
-        while (token == null) {
-            MessageBoxInfo info = new MessageBoxInfo() {
-                Caption = "Engine busy", Message = $"Cannot close window yet because the engine is still busy and cannot be shutdown safely.{Environment.NewLine}" +
-                                                   "What do you want to do?",
-                Buttons = MessageBoxButton.YesNoCancel,
-                DefaultButton = MessageBoxResult.Yes,
-                YesOkText = "Wait for operations",
-                NoText = "Force Close",
-                CancelText = "Cancel"
-            };
-
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
-            switch (result) {
-                case MessageBoxResult.None:
-                case MessageBoxResult.Cancel:
-                    return true; // stop window closing
-                case MessageBoxResult.No: return false; // let TCP pipes auto-timeout
-                default:                  break; // continue loop
-            }
-
-            token = await this.MemoryEngine360.BeginBusyOperationActivityAsync("Safely closing window");
-        }
-
-        IConsoleConnection? connection = this.MemoryEngine360.Connection;
-        try {
-            if (connection != null) {
-                connection.Close();
-                this.MemoryEngine360.SetConnection(token, null, ConnectionChangeCause.User);
-            }
-        }
-        finally {
-            token.Dispose();
-        }
-
-        return false;
     }
 
     private void PART_ScanOption_Alignment_OnDoubleTapped(object? sender, TappedEventArgs e) {

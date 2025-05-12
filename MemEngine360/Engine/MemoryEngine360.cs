@@ -101,9 +101,10 @@ public class MemoryEngine360 {
 
     public MemoryEngine360() {
         this.ScanningProcessor = new ScanningProcessor(this);
-        Task.Run(async () => {
+        Task.Factory.StartNew(async () => {
             long timeSinceRefreshedAddresses = DateTime.Now.Ticks;
             BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
+            
             while (true) {
                 IConsoleConnection? conn = this.connection;
                 if (conn != null && !conn.IsConnected) {
@@ -116,12 +117,14 @@ public class MemoryEngine360 {
                 }
                 
                 await Task.Delay(250);
-                if ((DateTime.Now.Ticks - timeSinceRefreshedAddresses) >= (cfg.RefreshRateMillis * Time.TICK_PER_MILLIS)) {
-                    await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.ScanningProcessor.RefreshSavedAddressesAsync());
-                    timeSinceRefreshedAddresses = DateTime.Now.Ticks;
+                if (cfg.IsAutoRefreshResultsEnabled) {
+                    if ((DateTime.Now.Ticks - timeSinceRefreshedAddresses) >= (cfg.RefreshRateMillis * Time.TICK_PER_MILLIS)) {
+                        await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.ScanningProcessor.RefreshSavedAddressesAsync());
+                        timeSinceRefreshedAddresses = DateTime.Now.Ticks;
+                    }
                 }
             }
-        });
+        }, TaskCreationOptions.LongRunning);
     }
 
     /// <summary>
@@ -322,13 +325,13 @@ public class MemoryEngine360 {
     public static async Task<string> ReadAsText(IConsoleConnection connection, uint address, DataType type, NumericDisplayType displayType, uint stringLength) {
         object obj;
         switch (type) {
-            case DataType.Byte:   obj = await connection.ReadByte(address); break;
-            case DataType.Int16:  obj = await connection.ReadValue<short>(address); break;
-            case DataType.Int32:  obj = await connection.ReadValue<int>(address); break;
-            case DataType.Int64:  obj = await connection.ReadValue<long>(address); break;
-            case DataType.Float:  obj = await connection.ReadValue<float>(address); break;
-            case DataType.Double: obj = await connection.ReadValue<double>(address); break;
-            case DataType.String: obj = await connection.ReadString(address, stringLength); break;
+            case DataType.Byte:   obj = await connection.ReadByte(address).ConfigureAwait(false); break;
+            case DataType.Int16:  obj = await connection.ReadValue<short>(address).ConfigureAwait(false); break;
+            case DataType.Int32:  obj = await connection.ReadValue<int>(address).ConfigureAwait(false); break;
+            case DataType.Int64:  obj = await connection.ReadValue<long>(address).ConfigureAwait(false); break;
+            case DataType.Float:  obj = await connection.ReadValue<float>(address).ConfigureAwait(false); break;
+            case DataType.Double: obj = await connection.ReadValue<double>(address).ConfigureAwait(false); break;
+            case DataType.String: obj = await connection.ReadString(address, stringLength).ConfigureAwait(false); break;
             default:              throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
 
@@ -339,33 +342,33 @@ public class MemoryEngine360 {
         NumberStyles style = displayType == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
         switch (type) {
             case DataType.Byte: {
-                await connection.WriteByte(address, byte.Parse(value, style, null));
+                await connection.WriteByte(address, byte.Parse(value, style, null)).ConfigureAwait(false);
                 break;
             }
             case DataType.Int16: {
-                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? ushort.Parse(value, style, null) : (ushort) short.Parse(value, style, null));
+                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? ushort.Parse(value, style, null) : (ushort) short.Parse(value, style, null)).ConfigureAwait(false);
                 break;
             }
             case DataType.Int32: {
-                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? uint.Parse(value, style, null) : (uint) int.Parse(value, style, null));
+                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? uint.Parse(value, style, null) : (uint) int.Parse(value, style, null)).ConfigureAwait(false);
                 break;
             }
             case DataType.Int64: {
-                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? ulong.Parse(value, style, null) : (ulong) long.Parse(value, style, null));
+                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? ulong.Parse(value, style, null) : (ulong) long.Parse(value, style, null)).ConfigureAwait(false);
                 break;
             }
             case DataType.Float: {
                 float f = displayType == NumericDisplayType.Hexadecimal ? BitConverter.UInt32BitsToSingle(uint.Parse(value, NumberStyles.HexNumber, null)) : float.Parse(value);
-                await connection.WriteValue(address, f);
+                await connection.WriteValue(address, f).ConfigureAwait(false);
                 break;
             }
             case DataType.Double: {
                 double d = displayType == NumericDisplayType.Hexadecimal ? BitConverter.UInt64BitsToDouble(ulong.Parse(value, NumberStyles.HexNumber, null)) : double.Parse(value);
-                await connection.WriteValue(address, d);
+                await connection.WriteValue(address, d).ConfigureAwait(false);
                 break;
             }
             case DataType.String: {
-                await connection.WriteString(address, value.Substring(0, (int) Maths.Clamp(stringLength, 0, (uint) value.Length)));
+                await connection.WriteString(address, value.Substring(0, (int) Maths.Clamp(stringLength, 0, (uint) value.Length))).ConfigureAwait(false);
                 break;
             }
             default: throw new ArgumentOutOfRangeException(nameof(type), type, null);

@@ -36,22 +36,6 @@ public interface IConsoleConnection {
     /// Returns whether the underlying connection is valid. E.g. for TCP, returns <see cref="TcpClient.Connected"/>
     /// </summary>
     bool IsConnected { get; }
-    
-    /// <summary>
-    /// Returns true when a read or write operation is currently in progress
-    /// </summary>
-    bool IsBusy { get; }
-
-    /// <summary>
-    /// Sends the cold reboot command to restart the console
-    /// </summary>
-    /// <param name="cold">True to fully reboot console, False to only reboot title</param>
-    Task RebootConsole(bool cold = true);
-    
-    /// <summary>
-    /// Sends the shutdown command to the console
-    /// </summary>
-    Task ShutdownConsole();
 
     /// <summary>
     /// Reads an exact amount of bytes from the console. If the address space
@@ -62,7 +46,7 @@ public interface IConsoleConnection {
     /// <param name="offset">The offset to start writing into the buffer</param>
     /// <param name="count">The amount of bytes to read from the console</param>
     /// <returns>A task representing the read operation. It contains the amount of bytes actually read</returns>
-    Task<int> ReadBytes(uint address, byte[] buffer, int offset, uint count);
+    Task<uint> ReadBytes(uint address, byte[] buffer, int offset, uint count);
 
     /// <summary>
     /// Reads an exact amount of bytes from the console, in chunks. By reading in
@@ -209,6 +193,5 @@ public interface IConsoleConnection {
     /// <summary>
     /// Closes the console connection
     /// </summary>
-    /// <param name="sendGoodbyte"></param>
-    void Close(bool sendGoodbyte = true);
+    void Close();
 }

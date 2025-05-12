@@ -17,17 +17,18 @@
                 <ResourceDictionary x:Key='Dark'>
                     <ResourceDictionary.MergedDictionaries>
                         <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/Colours/SoftDark.axaml"/>
+                        <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/ControlColours.axaml"/>
                     </ResourceDictionary.MergedDictionaries>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key='Light'>
                     <ResourceDictionary.MergedDictionaries>
                         <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/Colours/CrappyLight.axaml"/>
+                        <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/ControlColours.axaml"/>
                     </ResourceDictionary.MergedDictionaries>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
 
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/ControlColours.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/AvControls/ControlStyles.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/AvControls/Dragger/NumberDraggerStyles.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Shortcuts/Trees/ShortcutTreeThemes.axaml"/>
@@ -37,6 +38,7 @@
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Configurations/Pages/Basic/BaseConfigurationPageThemes.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/Configurations/ThemeConfigTreeThemes.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Activities/ActivityControlStyles.axaml"/>
+                <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/MemEngineConfigurationPageStyles.axaml"/>
                 
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
