@@ -22,7 +22,7 @@ using AvaloniaHex.Core.Document;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
 
-namespace MemEngine360.Engine.HexDisplay.Commands;
+namespace MemEngine360.Engine.HexEditing.Commands;
 
 public class GotoAddressCommand : BaseHexEditorCommand {
     // Some BO2 split screen multiplayer addresses ^-^
@@ -31,7 +31,7 @@ public class GotoAddressCommand : BaseHexEditorCommand {
     // 83551F98, Crosshair size,       Float
     // 8354AA08, Enemy Team Score,     Int32
     
-    protected override async Task ExecuteCommandAsync(IHexDisplayView view, HexDisplayInfo info, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(IHexEditorUI view, HexEditorInfo info, CommandEventArgs e) {
         SingleUserInputInfo singleInfo = new SingleUserInputInfo("Go to address", "Specify an address to scroll to", "Address (hex)", (view.CaretLocation.ByteIndex + view.CurrentStartOffset).ToString("X8")) {
             Validate = (a) => {
                 ulong len;

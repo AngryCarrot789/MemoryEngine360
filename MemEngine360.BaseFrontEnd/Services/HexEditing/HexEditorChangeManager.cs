@@ -21,7 +21,7 @@ using AvaloniaHex;
 using AvaloniaHex.Core.Document;
 using AvaloniaHex.Rendering;
 
-namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
+namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
 public class HexEditorChangeManager {
     private readonly HexEditor editor;

@@ -31,7 +31,15 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Commands;
 
 public class OpenFileAsSavedAddressesCommand : Command {
-    public readonly record struct SavedAddress(bool IsRefreshActive, uint Address, string Desc, NumericDisplayType NDT, DataType DataType, StringType StringType, uint StringLength);
+    public readonly struct SavedAddress(bool IsRefreshActive, uint Address, string Desc, NumericDisplayType NDT, DataType DataType, StringType StringType, uint StringLength) {
+        public bool IsRefreshActive { get; } = IsRefreshActive;
+        public uint Address { get; } = Address;
+        public string Desc { get; } = Desc;
+        public NumericDisplayType NDT { get; } = NDT;
+        public DataType DataType { get; } = DataType;
+        public StringType StringType { get; } = StringType;
+        public uint StringLength { get; } = StringLength;
+    }
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         if (!MemoryEngine360.DataKey.TryGetContext(e.ContextData, out MemoryEngine360? engine)) {

@@ -37,6 +37,15 @@ public static class SimpleIcons {
                 new GeometryEntry("M 0 2 L 16 2 L 16 14 L 0 14 Z", BrushManager.Instance.CreateConstant(SKColors.MediumSeaGreen)),
                 new GeometryEntry("M 2 0 L 4 0 L 4 2 L 2 2 Z M 12 0 L 14 0 L 14 2 L 12 2 Z Z Z Z Z M 2 14 L 4 14 L 4 16 L 2 16 Z M 12 14 L 14 14 L 14 16 L 12 16 Z Z M 7 2 L 7 0 L 9 0 L 9 2 L 7 2 M 7 14 L 7 16 L 9 16 L 9 14 L 7 14", BrushManager.Instance.CreateConstant(SKColors.Gold))
             ], stretch: StretchMode.Uniform);
+    
+    public static readonly Icon DownloadMemoryIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(DownloadMemoryIcon),
+            [
+                new GeometryEntry("M 0 2 L 16 2 L 16 14 L 0 14 Z", BrushManager.Instance.CreateConstant(SKColors.MediumSeaGreen)),
+                new GeometryEntry("M 2 0 L 4 0 L 4 2 L 2 2 Z M 12 0 L 14 0 L 14 2 L 12 2 Z Z Z Z Z M 2 14 L 4 14 L 4 16 L 2 16 Z M 12 14 L 14 14 L 14 16 L 12 16 Z Z M 7 2 L 7 0 L 9 0 L 9 2 L 7 2 M 7 14 L 7 16 L 9 16 L 9 14 L 7 14", BrushManager.Instance.CreateConstant(SKColors.Gold)),
+                new GeometryEntry("M14.5858 24.0711 20.5962 18.0607 20.5962 15.9393 16.5858 15.9393 16.5858 7.1005 12.5858 7.1005 12.5858 15.9393 8.5754 15.9393 8.5754 18.0607 14.5858 24.0711Z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static"))
+            ], stretch: StretchMode.Uniform);
 
     public static readonly Icon ResetIcon =
         IconManager.Instance.RegisterGeometryIcon(

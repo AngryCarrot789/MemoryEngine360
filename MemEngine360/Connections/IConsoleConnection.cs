@@ -33,9 +33,15 @@ public interface IConsoleConnection {
     RegisteredConsoleType ConsoleType { get; }
 
     /// <summary>
-    /// Returns whether the underlying connection is valid. E.g. for TCP, returns <see cref="TcpClient.Connected"/>
+    /// Returns whether the underlying connection is logically connected (as in <see cref="Close"/> has not been called)
+    /// and if the underlying connection is still valid. E.g. for TCP, returns <see cref="TcpClient.Connected"/>
     /// </summary>
     bool IsConnected { get; }
+
+    /// <summary>
+    /// Returns true when <see cref="Close"/> is invoked or some other internal method caused the connection to close 
+    /// </summary>
+    bool IsClosed { get; }
 
     /// <summary>
     /// Reads an exact amount of bytes from the console. If the address space

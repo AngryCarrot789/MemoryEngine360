@@ -89,7 +89,7 @@
                     <RadioButton x:Name="PART_DTFloat_Truncate" Content="Truncated to query">
                         <ToolTip.Tip>
                             <TextBlock TextWrapping="Wrap">
-                                <Run Text="Truncates (removes) decimal places from the console value up to the number of decimal places in the query"/>
+                                <Run Text="Truncates (removes) decimal places from the console value to the number of decimal places in the query"/>
                                 <LineBreak/>
                                 <Run Text="E.g. if the console contains '23.12783' and you search for '23.13', the effective comparison is between '23.13' and '23.12', therefor, they won't match"/>
                             </TextBlock>
@@ -98,7 +98,7 @@
                     <RadioButton x:Name="PART_DTFloat_RoundToQuery" Content="Round to query">
                         <ToolTip.Tip>
                             <TextBlock TextWrapping="Wrap">
-                                <Run Text="Rounds the console value up to the number of decimal places in the query"/>
+                                <Run Text="Rounds the console value to the number of decimal places in the query"/>
                                 <LineBreak/>
                                 <Run Text="E.g. if the console contains '23.12783' and you search for '23.13', they will both match"/>
                             </TextBlock>

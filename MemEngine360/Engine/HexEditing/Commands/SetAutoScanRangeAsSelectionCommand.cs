@@ -17,22 +17,26 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using AvaloniaHex.Core.Document;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
 
-namespace MemEngine360.Engine.HexDisplay.Commands;
+namespace MemEngine360.Engine.HexEditing.Commands;
 
-public class UploadSelectionToConsoleCommand : BaseHexEditorCommand {
-    protected override Task ExecuteCommandAsync(IHexDisplayView view, HexDisplayInfo info, CommandEventArgs e) {
-        return view.UploadSelectionToConsoleCommand();
+public class SetAutoScanRangeAsSelectionCommand : Command {
+    protected override Executability CanExecuteCore(CommandEventArgs e) {
+        return e.ContextData.ContainsKey(IHexEditorUI.DataKey) ? Executability.Valid : Executability.Invalid;
     }
-    
-    protected override Task OnAlreadyExecuting(CommandEventArgs args) {
-        // User can hold down CTRL+R, and there's a change it takes just long
-        // enough to execute as to try to run it while already running.
-        // So we don't want to show a dialog saying it's running, just ignore it
-        if (args.Shortcut != null)
+
+    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
+        if (!IHexEditorUI.DataKey.TryGetContext(e.ContextData, out IHexEditorUI? view)) {
             return Task.CompletedTask;
+        }
         
-        return base.OnAlreadyExecuting(args);
+        BitRange selection = view.SelectionRange;
+        view.HexDisplayInfo!.AutoRefreshStartAddress = (uint) (view.CurrentStartOffset + selection.Start.ByteIndex);
+        view.HexDisplayInfo!.AutoRefreshLength = (uint) selection.ByteLength;
+
+        return Task.CompletedTask;
     }
 }

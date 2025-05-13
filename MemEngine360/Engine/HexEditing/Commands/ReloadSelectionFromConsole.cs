@@ -19,10 +19,10 @@
 
 using PFXToolKitUI.CommandSystem;
 
-namespace MemEngine360.Engine.HexDisplay.Commands;
+namespace MemEngine360.Engine.HexEditing.Commands;
 
 public class ReloadSelectionFromConsole : BaseHexEditorCommand {
-    protected override Task ExecuteCommandAsync(IHexDisplayView view, HexDisplayInfo info, CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(IHexEditorUI view, HexEditorInfo info, CommandEventArgs e) {
         return view.ReloadSelectionFromConsole();
     }
     

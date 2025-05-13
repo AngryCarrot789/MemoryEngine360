@@ -17,23 +17,9 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine.HexDisplay;
-using PFXToolKitUI.Avalonia.Services.Windowing;
-using PFXToolKitUI.Utils;
+namespace MemEngine360.Engine.HexEditing;
 
-namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
-
-public class HexDisplayServiceImpl : IHexDisplayService {
-    public Task ShowHexEditor(HexDisplayInfo info) {
-        Validate.NotNull(info);
-        if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-            HexDisplayControl control = new HexDisplayControl() {
-                HexDisplayInfo = info
-            };
-            
-            system.Register(control).Show(); // specify parent as null so that it isn't always ontop of any window
-        }
-
-        return Task.CompletedTask;
-    }
+public enum Endianness {
+    LittleEndian,
+    BigEndian
 }

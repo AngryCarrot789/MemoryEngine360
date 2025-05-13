@@ -18,22 +18,11 @@
 // 
 
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Contexts;
 
-namespace MemEngine360.Engine.HexDisplay.Commands;
+namespace MemEngine360.Engine.HexEditing.Commands;
 
-public class ClearAutoScanRangeCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return e.ContextData.ContainsKey(IHexDisplayView.DataKey) ? Executability.Valid : Executability.Invalid;
-    }
-
-    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IHexDisplayView.DataKey.TryGetContext(e.ContextData, out IHexDisplayView? view)) {
-            return Task.CompletedTask;
-        }
-        
-        view.HexDisplayInfo!.AutoRefreshStartAddress = 0;
-        view.HexDisplayInfo!.AutoRefreshLength = 0;
-        return Task.CompletedTask;
+public class ReadAllFromConsoleCommand : BaseHexEditorCommand {
+    protected override Task ExecuteCommandAsync(IHexEditorUI view, HexEditorInfo info, CommandEventArgs e) {
+        return view.ReadAllFromConsoleCommand();
     }
 }

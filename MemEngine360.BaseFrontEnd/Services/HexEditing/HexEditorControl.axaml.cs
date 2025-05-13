@@ -33,7 +33,7 @@ using AvaloniaHex.Rendering;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
-using MemEngine360.Engine.HexDisplay;
+using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.Scanners;
 using PFXToolKitUI;
@@ -50,12 +50,12 @@ using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Tasks.Pausable;
 using PFXToolKitUI.Utils.Commands;
 
-namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
+namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
-public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
-    public static readonly StyledProperty<HexDisplayInfo?> HexDisplayInfoProperty = AvaloniaProperty.Register<HexDisplayControl, HexDisplayInfo?>("HexDisplayInfo");
+public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
+    public static readonly StyledProperty<HexEditorInfo?> HexDisplayInfoProperty = AvaloniaProperty.Register<HexEditorControl, HexEditorInfo?>("HexDisplayInfo");
 
-    public HexDisplayInfo? HexDisplayInfo {
+    public HexEditorInfo? HexDisplayInfo {
         get => this.GetValue(HexDisplayInfoProperty);
         set => this.SetValue(HexDisplayInfoProperty, value);
     }
@@ -82,31 +82,11 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
 
     private readonly OffsetColumn myOffsetColumn;
 
-    public delegate void HexDisplayControlTheEndiannessChangedEventHandler(HexDisplayControl sender);
+    public delegate void HexDisplayControlTheEndiannessChangedEventHandler(HexEditorControl sender);
 
-    private enum Endianness {
-        LittleEndian,
-        BigEndian,
-    }
+    private readonly AvaloniaPropertyToDataParameterBinder<HexEditorInfo> captionBinder = new AvaloniaPropertyToDataParameterBinder<HexEditorInfo>(TitleProperty, HexEditorInfo.CaptionParameter);
 
-    private Endianness lastEndianness, theEndianness = Endianness.BigEndian;
-
-    private Endianness TheEndianness {
-        get => this.theEndianness;
-        set {
-            if (this.theEndianness != value) {
-                this.theEndianness = value;
-                this.TheEndiannessChanged?.Invoke(this);
-                this.UpdateDataInspector();
-            }
-        }
-    }
-
-    public event HexDisplayControlTheEndiannessChangedEventHandler? TheEndiannessChanged;
-
-    private readonly AvaloniaPropertyToDataParameterBinder<HexDisplayInfo> captionBinder = new AvaloniaPropertyToDataParameterBinder<HexDisplayInfo>(TitleProperty, HexDisplayInfo.CaptionParameter);
-
-    private readonly TextBoxToDataParameterBinder<HexDisplayInfo, uint> addrBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.StartAddressParameter, (p) => p!.ToString("X8"), async (t, x) => {
+    private readonly TextBoxToDataParameterBinder<HexEditorInfo, uint> addrBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.StartAddressParameter, (p) => p!.ToString("X8"), async (t, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
             return value;
         }
@@ -120,7 +100,7 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
         return default;
     });
 
-    private readonly TextBoxToDataParameterBinder<HexDisplayInfo, uint> lenBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.LengthParameter, (p) => p!.ToString("X8"), async (t, x) => {
+    private readonly TextBoxToDataParameterBinder<HexEditorInfo, uint> lenBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.LengthParameter, (p) => p!.ToString("X8"), async (t, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
             return value;
         }
@@ -134,9 +114,9 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
         return default;
     });
 
-    private readonly TextBoxToDataParameterBinder<HexDisplayInfo, uint> bytesPerRowBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.BytesPerRowParameter, (p) => p!.ToString(), async (t, x) => {
+    private readonly TextBoxToDataParameterBinder<HexEditorInfo, uint> bytesPerRowBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.BytesPerRowParameter, (p) => p!.ToString(), async (t, x) => {
         if (uint.TryParse(x, out uint value)) {
-            DataParameterNumber<uint> p = HexDisplayInfo.BytesPerRowParameter;
+            DataParameterNumber<uint> p = HexEditorInfo.BytesPerRowParameter;
             if (value == 0) {
                 await IMessageDialogService.Instance.ShowMessage("Invalid value", "Cannot display 0 bytes per row. Are you crazy??!?", defaultButton: MessageBoxResult.OK);
             }
@@ -155,10 +135,10 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
         return default;
     });
 
-    private readonly IBinder<HexDisplayInfo> autoRefreshAddrBinder;
-    private readonly IBinder<HexDisplayInfo> autoRefreshLenBinder;
+    private readonly IBinder<HexEditorInfo> autoRefreshAddrBinder;
+    private readonly IBinder<HexEditorInfo> autoRefreshLenBinder;
 
-    private readonly EventPropertyEnumBinder<Endianness> endiannessBinder = new EventPropertyEnumBinder<Endianness>(typeof(HexDisplayControl), nameof(TheEndiannessChanged), (x) => ((HexDisplayControl) x).TheEndianness, (x, y) => ((HexDisplayControl) x).TheEndianness = y);
+    private readonly DataParameterEnumBinder<Endianness> endiannessBinder = new DataParameterEnumBinder<Endianness>(HexEditorInfo.InspectorEndiannessParameter);
 
     private readonly AsyncRelayCommand readAllCommand, refreshDataCommand, uploadDataCommand;
 
@@ -175,13 +155,11 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
     private readonly HexEditorChangeManager changeManager;
     private readonly AsyncRelayCommand runAutoRefreshCommand;
 
-    public HexDisplayControl() {
+    public HexEditorControl() {
         this.InitializeComponent();
         this.captionBinder.AttachControl(this);
         this.addrBinder.AttachControl(this.PART_AddressTextBox);
         this.lenBinder.AttachControl(this.PART_LengthTextBox);
-        this.lenBinder.PostUpdateControl += b => {
-        };
 
         this.bytesPerRowBinder.AttachControl(this.PART_BytesPerRowTextBox);
         this.bytesPerRowBinder.PostUpdateControl += b => {
@@ -200,7 +178,6 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
 
         this.endiannessBinder.Assign(this.PART_LittleEndian, Endianness.LittleEndian);
         this.endiannessBinder.Assign(this.PART_BigEndian, Endianness.BigEndian);
-        this.endiannessBinder.Attach(this);
 
         this.PART_CancelButton.Click += this.OnCancelButtonClicked;
         this.readAllCommand = new AsyncRelayCommand(async () => {
@@ -264,7 +241,7 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
                 await this.autoRefreshTask.CancelAsync();
             }
             else {
-                HexDisplayInfo? info = this.HexDisplayInfo;
+                HexEditorInfo? info = this.HexDisplayInfo;
                 if (info == null)
                     return;
 
@@ -299,7 +276,7 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
             }
         });
 
-        this.autoRefreshAddrBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.AutoRefreshStartAddressParameter, (p) => p.ToString("X8"), async (t, x) => {
+        this.autoRefreshAddrBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.AutoRefreshStartAddressParameter, (p) => p.ToString("X8"), async (t, x) => {
             if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint newStartAddress)) {
                 int addrRel2Doc = (int) newStartAddress - (int) this.actualStartAddress;
                 if (addrRel2Doc < 0 || (ulong) addrRel2Doc >= this.DocumentLength) {
@@ -325,7 +302,7 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
             return default;
         }, (b) => this.UpdateAutoRefreshRange());
 
-        this.autoRefreshLenBinder = new TextBoxToDataParameterBinder<HexDisplayInfo, uint>(HexDisplayInfo.AutoRefreshLengthParameter, (p) => p.ToString("X8"), async (t, x) => {
+        this.autoRefreshLenBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.AutoRefreshLengthParameter, (p) => p.ToString("X8"), async (t, x) => {
             if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint newByteCount)) {
                 uint endAddress = (t.Model.AutoRefreshStartAddress - this.actualStartAddress) + newByteCount;
                 if (endAddress >= this.DocumentLength) {
@@ -449,7 +426,8 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
     }
 
     private void NavigateToPointer() {
-        if (this.myDocument == null) {
+        HexEditorInfo? info = this.HexDisplayInfo;
+        if (this.myDocument == null || info == null) {
             return;
         }
 
@@ -462,7 +440,7 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
         Span<byte> buffer = stackalloc byte[4];
         this.myDocument.ReadBytes(caretIndex, buffer);
         uint val32 = MemoryMarshal.Read<UInt32>(buffer);
-        bool displayAsLE = this.TheEndianness == Endianness.LittleEndian;
+        bool displayAsLE = info.InspectorEndianness == Endianness.LittleEndian;
         if (displayAsLE != BitConverter.IsLittleEndian) {
             val32 = BinaryPrimitives.ReverseEndianness(val32);
         }
@@ -485,7 +463,7 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
     }
 
     public async Task ReadAllFromConsoleCommand() {
-        HexDisplayInfo? info = this.HexDisplayInfo;
+        HexEditorInfo? info = this.HexDisplayInfo;
         if (info == null || this.autoRefreshTask != null) {
             return;
         }
@@ -557,7 +535,7 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
     }
 
     public async Task ReloadSelectionFromConsole(uint startRel2Doc, uint length) {
-        HexDisplayInfo? info = this.HexDisplayInfo;
+        HexEditorInfo? info = this.HexDisplayInfo;
         if (info == null || this.autoRefreshTask != null) {
             return;
         }
@@ -607,7 +585,7 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
     }
 
     public async Task UploadSelectionToConsoleCommand() {
-        HexDisplayInfo? info = this.HexDisplayInfo;
+        HexEditorInfo? info = this.HexDisplayInfo;
         if (this.myDocument == null || info == null || this.autoRefreshTask != null) {
             return;
         }
@@ -676,8 +654,8 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
         this.UpdateAutoRefreshSelectionDependentShit();
     }
 
-    static HexDisplayControl() {
-        HexDisplayInfoProperty.Changed.AddClassHandler<HexDisplayControl, HexDisplayInfo?>((o, e) => o.OnInfoChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+    static HexEditorControl() {
+        HexDisplayInfoProperty.Changed.AddClassHandler<HexEditorControl, HexEditorInfo?>((o, e) => o.OnInfoChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     protected override void OnOpenedCore() {
@@ -686,7 +664,7 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
         UIInputManager.SetFocusPath(this, "HexDisplayWindow");
         UIInputManager.SetFocusPath(this.PART_HexEditor, "HexDisplayWindow/HexEditor");
         using MultiChangeToken change = DataManager.GetContextData(this).BeginChange();
-        change.Context.Set(IHexDisplayView.DataKey, this);
+        change.Context.Set(IHexEditorUI.DataKey, this);
     }
 
     protected override void OnClosed(EventArgs e) {
@@ -695,13 +673,17 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
         this.HexDisplayInfo = null;
     }
 
-    private void OnInfoChanged(HexDisplayInfo? oldData, HexDisplayInfo? newData) {
+    private void OnInfoChanged(HexEditorInfo? oldData, HexEditorInfo? newData) {
         this.captionBinder.SwitchModel(newData);
         this.addrBinder.SwitchModel(newData);
         this.lenBinder.SwitchModel(newData);
         this.bytesPerRowBinder.SwitchModel(newData);
         this.autoRefreshAddrBinder.SwitchModel(newData);
         this.autoRefreshLenBinder.SwitchModel(newData);
+        if (oldData != null)
+            this.endiannessBinder.Detach();
+        if (newData != null)
+            this.endiannessBinder.Attach(newData);
 
         if (newData != null) {
             this.PART_CancelButton.Focus();
@@ -713,7 +695,7 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
     }
 
     private void UpdateAutoRefreshRange() {
-        HexDisplayInfo? info = this.HexDisplayInfo;
+        HexEditorInfo? info = this.HexDisplayInfo;
         if (info != null) {
             BitRange range = new BitRange(info.AutoRefreshStartAddress - this.actualStartAddress, (info.AutoRefreshStartAddress + info.AutoRefreshLength) - this.actualStartAddress);
             this.autoRefreshLayer.SetRange(range);
@@ -722,33 +704,24 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
 
     private void UpdateDataInspector() {
         ulong caretIndex = this.SelectionRange.Start.ByteIndex;
-        if (this.myDocument == null) {
+        HexEditorInfo? info = this.HexDisplayInfo;
+        if (this.myDocument == null || info == null) {
             return;
         }
 
-        // Word/int32:
-        // 00        C0        FF        EE
-        // 0000 0000 1100 0000 1111 1111 1110 1110
-        // ^(bit 31)                      (bit 0)^
-        // MSB                                 LSB
-
-        this.lastEndianness = this.theEndianness;
-
-        // The console is big-endian. If we want to display as little endian, we need to reverse the bytes
-        bool displayAsLE = this.TheEndianness == Endianness.LittleEndian;
         ulong cbRemaining = this.myDocument.Length - caretIndex;
 
         byte[] daBuf = new byte[8];
-        this.myDocument.ReadBytes(caretIndex, new Span<byte>(daBuf, 0, (int) Math.Min(8, cbRemaining)));
+        if (cbRemaining > 0)
+            this.myDocument.ReadBytes(caretIndex, new Span<byte>(daBuf, 0, (int) Math.Min(8, cbRemaining)));
 
+        // The console is big-endian. If we want to display as little endian, we need to reverse the bytes
         byte val08 = cbRemaining >= 1 ? daBuf[0] : default;
         ushort val16 = cbRemaining >= 2 ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(daBuf, 0, 2)) : default;
         uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(daBuf, 0, 4)) : 0;
         ulong val64 = cbRemaining >= 8 ? MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(daBuf, 0, 8)) : 0;
-
-        // On LE systems, the LSB is on the right side of a value in the hex editor.
-        // Therefore, we have to flip the bytes (unless the user wants to see them as LE).
-        // The hex editor displays 0xF894, but on LE, val16 would actually be read as 0x94F8.
+        
+        bool displayAsLE = info.InspectorEndianness == Endianness.LittleEndian;
         if (displayAsLE != BitConverter.IsLittleEndian) {
             val16 = BinaryPrimitives.ReverseEndianness(val16);
             val32 = BinaryPrimitives.ReverseEndianness(val32);
@@ -779,8 +752,7 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
             this.PART_Double.Text = Unsafe.As<ulong, double>(ref val64).ToString();
         this.PART_CharUTF8.Text = ((char) val08).ToString();
         this.PART_CharUTF16.Text = ((char) val16).ToString();
-        this.PART_CharUTF32.Text = Encoding.UTF32.GetString(new ReadOnlySpan<byte>(ref Unsafe.As<uint, byte>(ref val32)));
-
+        this.PART_CharUTF32.Text = Encoding.UTF32.GetString(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<uint, byte>(ref val32), 4));
         this.PART_BtnGoToPointerInt32.IsEnabled = this.IsPointerInRange(val32);
     }
 
@@ -801,15 +773,15 @@ public partial class HexDisplayControl : DesktopWindow, IHexDisplayView {
     }
 
     private sealed class AutoRefreshTask : AdvancedPausableTask {
-        private readonly HexDisplayControl control;
-        private readonly HexDisplayInfo? info;
+        private readonly HexEditorControl control;
+        private readonly HexEditorInfo? info;
         private IDisposable? busyToken;
         private readonly uint startAddress, startAddressInDoc, cbRange;
         private readonly MemoryBinaryDocument? myDocument;
         private readonly byte[] myBuffer;
         private bool isInvalidOnFirstRun;
 
-        public AutoRefreshTask(HexDisplayControl control, uint startAddressInDoc, uint cbRange) : base(true) {
+        public AutoRefreshTask(HexEditorControl control, uint startAddressInDoc, uint cbRange) : base(true) {
             this.control = control;
             this.info = control.HexDisplayInfo;
             this.startAddressInDoc = startAddressInDoc;

@@ -17,26 +17,33 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using AvaloniaHex.Core.Document;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Contexts;
 
-namespace MemEngine360.Engine.HexDisplay.Commands;
+namespace MemEngine360.Engine.HexEditing.Commands;
 
-public class SetAutoScanRangeAsSelectionCommand : Command {
+public abstract class BaseHexEditorCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return e.ContextData.ContainsKey(IHexDisplayView.DataKey) ? Executability.Valid : Executability.Invalid;
-    }
-
-    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IHexDisplayView.DataKey.TryGetContext(e.ContextData, out IHexDisplayView? view)) {
-            return Task.CompletedTask;
+        if (!IHexEditorUI.DataKey.TryGetContext(e.ContextData, out var view)) {
+            return Executability.Invalid;
         }
-        
-        BitRange selection = view.SelectionRange;
-        view.HexDisplayInfo!.AutoRefreshStartAddress = (uint) (view.CurrentStartOffset + selection.Start.ByteIndex);
-        view.HexDisplayInfo!.AutoRefreshLength = (uint) selection.ByteLength;
 
-        return Task.CompletedTask;
+        return this.CanExecuteCore(view, e);
     }
+
+    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+        if (!IHexEditorUI.DataKey.TryGetContext(e.ContextData, out var view)) {
+            return;
+        }
+
+        HexEditorInfo? info = view.HexDisplayInfo;
+        if (info == null) {
+            return;
+        }
+
+        await this.ExecuteCommandAsync(view, info, e);
+    }
+
+    protected virtual Executability CanExecuteCore(IHexEditorUI view, CommandEventArgs e) => Executability.Valid;
+    
+    protected abstract Task ExecuteCommandAsync(IHexEditorUI view, HexEditorInfo info, CommandEventArgs e);
 }

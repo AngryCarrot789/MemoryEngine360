@@ -99,7 +99,7 @@ public class ConsoleTypeXbox360XDevkit : RegisteredConsoleType {
             return new Devkit360Connection(this.xboxManager!, result);
         }
 
-        string msg = task.Exception is COMException com ? $"COM error: {com.Message}" : (task.Exception?.Message ?? "(unknown error)");
+        string msg = task.Exception is COMException com ? $"COMException {com.Message}" : (task.Exception?.Message ?? "(unknown error)");
         await IMessageDialogService.Instance.ShowMessage("Error", "Could not connect to Xbox 360: " + msg);
         return null;
     }

@@ -21,7 +21,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
-using MemEngine360.Engine.HexDisplay.Commands;
+using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Scanners;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.FilePicking;

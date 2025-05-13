@@ -21,20 +21,22 @@ using AvaloniaHex.Core.Document;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Utils.Accessing;
 
-namespace MemEngine360.Engine.HexDisplay;
+namespace MemEngine360.Engine.HexEditing;
 
-public class HexDisplayInfo : ITransferableData {
-    public static readonly DataParameterString CaptionParameter = DataParameter.Register(new DataParameterString(typeof(HexDisplayInfo), nameof(Caption), "A message here", ValueAccessors.Reflective<string?>(typeof(HexDisplayInfo), nameof(caption))));
-    public static readonly DataParameterNumber<uint> StartAddressParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(StartAddress), default(uint), ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(startAddress))));
-    public static readonly DataParameterNumber<uint> LengthParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(Length), 0x10000, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(length))));
-    public static readonly DataParameterNumber<uint> AutoRefreshStartAddressParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(AutoRefreshStartAddress), 0, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(autoRefreshStartAddress))));
-    public static readonly DataParameterNumber<uint> AutoRefreshLengthParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(AutoRefreshLength), 0, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(autoRefreshLength))));
-    public static readonly DataParameterNumber<uint> BytesPerRowParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexDisplayInfo), nameof(BytesPerRow), 32, 8, 256, ValueAccessors.Reflective<uint>(typeof(HexDisplayInfo), nameof(bytesPerRow))));
+public class HexEditorInfo : ITransferableData {
+    public static readonly DataParameterString CaptionParameter = DataParameter.Register(new DataParameterString(typeof(HexEditorInfo), nameof(Caption), "A message here", ValueAccessors.Reflective<string?>(typeof(HexEditorInfo), nameof(caption))));
+    public static readonly DataParameterNumber<uint> StartAddressParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexEditorInfo), nameof(StartAddress), 0x82600000, ValueAccessors.Reflective<uint>(typeof(HexEditorInfo), nameof(startAddress))));
+    public static readonly DataParameterNumber<uint> LengthParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexEditorInfo), nameof(Length), 0x100000, ValueAccessors.Reflective<uint>(typeof(HexEditorInfo), nameof(length))));
+    public static readonly DataParameterNumber<uint> AutoRefreshStartAddressParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexEditorInfo), nameof(AutoRefreshStartAddress), 0, ValueAccessors.Reflective<uint>(typeof(HexEditorInfo), nameof(autoRefreshStartAddress))));
+    public static readonly DataParameterNumber<uint> AutoRefreshLengthParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexEditorInfo), nameof(AutoRefreshLength), 0, ValueAccessors.Reflective<uint>(typeof(HexEditorInfo), nameof(autoRefreshLength))));
+    public static readonly DataParameterNumber<uint> BytesPerRowParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(HexEditorInfo), nameof(BytesPerRow), 32, 8, 256, ValueAccessors.Reflective<uint>(typeof(HexEditorInfo), nameof(bytesPerRow))));
+    public static readonly DataParameter<Endianness> InspectorEndiannessParameter = DataParameter.Register(new DataParameter<Endianness>(typeof(HexEditorInfo), nameof(InspectorEndianness), Endianness.BigEndian, ValueAccessors.Reflective<Endianness>(typeof(HexEditorInfo), nameof(inspectorEndianness))));
     
     private string? caption;
     private uint startAddress, autoRefreshStartAddress;
     private uint length, autoRefreshLength;
     private uint bytesPerRow;
+    private Endianness inspectorEndianness;
 
     public string? Caption {
         get => this.caption;
@@ -78,6 +80,11 @@ public class HexDisplayInfo : ITransferableData {
         set => DataParameter.SetValueHelper(this, BytesPerRowParameter, ref this.bytesPerRow, value);
     }
     
+    public Endianness InspectorEndianness {
+        get => this.inspectorEndianness;
+        set => DataParameter.SetValueHelper(this, InspectorEndiannessParameter, ref this.inspectorEndianness, value);
+    }
+    
     /// <summary>
     /// Gets the document used by the hex editor control. Do not set this manually, because it will not affect the control
     /// </summary>
@@ -92,7 +99,7 @@ public class HexDisplayInfo : ITransferableData {
     
     public MemoryEngine360 MemoryEngine360 { get; }
 
-    public HexDisplayInfo(MemoryEngine360 memoryEngine360) {
+    public HexEditorInfo(MemoryEngine360 memoryEngine360) {
         this.MemoryEngine360 = memoryEngine360;
         this.TransferableData = new TransferableData(this);
         this.caption = CaptionParameter.GetDefaultValue(this);
@@ -101,5 +108,6 @@ public class HexDisplayInfo : ITransferableData {
         this.autoRefreshStartAddress = AutoRefreshStartAddressParameter.GetDefaultValue(this);
         this.autoRefreshLength = AutoRefreshLengthParameter.GetDefaultValue(this);
         this.bytesPerRow = BytesPerRowParameter.GetDefaultValue(this);
+        this.inspectorEndianness = InspectorEndiannessParameter.GetDefaultValue(this);
     }
 }

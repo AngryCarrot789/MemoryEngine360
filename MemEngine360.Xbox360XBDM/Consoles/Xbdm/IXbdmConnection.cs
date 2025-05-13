@@ -103,11 +103,4 @@ public interface IXbdmConnection : INetworkConsoleConnection, IHaveMemoryRegions
     /// </summary>
     /// <param name="newName">The new debug name</param>
     Task SetDebugName(string newName);
-    
-    /// <summary>
-    /// Writes the file contents to the console
-    /// </summary>
-    /// <param name="address">The address to write to</param>
-    /// <param name="filePath">The source file path on this computer</param>
-    Task WriteFile(uint address, string filePath);
 }

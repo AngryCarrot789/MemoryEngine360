@@ -17,12 +17,8 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.CommandSystem;
+namespace MemEngine360.Engine.HexEditing;
 
-namespace MemEngine360.Engine.HexDisplay.Commands;
-
-public class ReadAllFromConsoleCommand : BaseHexEditorCommand {
-    protected override Task ExecuteCommandAsync(IHexDisplayView view, HexDisplayInfo info, CommandEventArgs e) {
-        return view.ReadAllFromConsoleCommand();
-    }
+public interface IHexDisplayService {
+    Task ShowHexEditor(HexEditorInfo info);
 }

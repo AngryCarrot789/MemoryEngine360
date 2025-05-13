@@ -17,22 +17,22 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
-using PFXToolKitUI.Avalonia.Services.Windowing;
-using XDevkit;
+using PFXToolKitUI.CommandSystem;
 
-namespace MemEngine360.Xbox360XDevkit;
+namespace MemEngine360.Engine.HexEditing.Commands;
 
-public partial class DebuggerWindow : DesktopWindow {
-    // WIP: coming soon :D
-
-    public MemoryEngine360 Engine { get; }
+public class UploadSelectionToConsoleCommand : BaseHexEditorCommand {
+    protected override Task ExecuteCommandAsync(IHexEditorUI view, HexEditorInfo info, CommandEventArgs e) {
+        return view.UploadSelectionToConsoleCommand();
+    }
     
-    public DebuggerWindow(MemoryEngine360 engine) {
-        InitializeComponent();
-        this.Engine = engine;
-
-        // Devkit360Connection connection = null!;
-        // connection.Console.DebugTarget.SetDataBreakpoint(0, XboxBreakpointType.OnWrite);
+    protected override Task OnAlreadyExecuting(CommandEventArgs args) {
+        // User can hold down CTRL+R, and there's a change it takes just long
+        // enough to execute as to try to run it while already running.
+        // So we don't want to show a dialog saying it's running, just ignore it
+        if (args.Shortcut != null)
+            return Task.CompletedTask;
+        
+        return base.OnAlreadyExecuting(args);
     }
 }

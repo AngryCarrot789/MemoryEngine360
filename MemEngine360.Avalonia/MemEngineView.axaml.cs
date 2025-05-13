@@ -277,7 +277,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         {
             ContextEntryGroup entry = new ContextEntryGroup("File");
             entry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.MemoryIcon));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.DownloadMemoryIcon));
             entry.Items.Add(new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Open debugger"));
             entry.Items.Add(new TestThing("Test Notification", null, null));
             entry.Items.Add(new SeparatorEntry());

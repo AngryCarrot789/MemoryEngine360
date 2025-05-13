@@ -18,7 +18,9 @@
 // 
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using MemEngine360.Connections;
@@ -63,27 +65,36 @@ public partial class MemEngineWindow : DesktopWindow {
         if (await base.OnClosingAsync(reason)) {
             return true;
         }
-        
-        foreach (ActivityTask task in ActivityManager.Instance.ActiveTasks.ToList()) {
-            task.TryCancel();
-        }
 
         MemoryEngine360 engine = this.PART_MemEngineView.MemoryEngine360;
         engine.IsShuttingDown = true;
+        List<ActivityTask> tasks = ActivityManager.Instance.ActiveTasks.ToList();
+        foreach (ActivityTask task in tasks) {
+            task.TryCancel();
+        }
+
         if (engine.ScanningProcessor.IsScanning) {
             ActivityTask? activity = engine.ScanningProcessor.ScanningActivity;
             if (activity != null && activity.TryCancel()) {
                 await activity;
 
                 if (engine.ScanningProcessor.IsScanning) {
-                    await IMessageDialogService.Instance.ShowMessage("Busy", "Rare: still busy. Please wait for scan to complete");
+                    await IMessageDialogService.Instance.ShowMessage("Busy", "Rare: scan still busy");
                     return true;
                 }
             }
         }
 
-        // Grace period for all activities to become cancelled
-        await Task.Delay(100);
+        using (CancellationTokenSource cts = new CancellationTokenSource()) {
+            // Grace period for all activities to become cancelled
+            try {
+                await Task.WhenAny(Task.Delay(500, cts.Token), Task.Run(() => Task.WhenAll(tasks.Select(x => x.Task)), cts.Token));
+                await cts.CancelAsync();
+            }
+            catch (OperationCanceledException) {
+                // ignored
+            }
+        }
 
         IDisposable? token = engine.BeginBusyOperation();
         while (token == null) {

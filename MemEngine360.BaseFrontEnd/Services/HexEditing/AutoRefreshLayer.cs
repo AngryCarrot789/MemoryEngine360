@@ -23,7 +23,7 @@ using AvaloniaHex.Core.Document;
 using AvaloniaHex.Editing;
 using AvaloniaHex.Rendering;
 
-namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
+namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
 public class AutoRefreshLayer : Layer {
     private readonly Caret theCaret;

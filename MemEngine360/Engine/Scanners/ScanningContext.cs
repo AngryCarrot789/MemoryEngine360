@@ -36,19 +36,19 @@ public delegate void ScanningContextResultEventHandler(ScanningContext sender, S
 /// A class used to perform scanning operations. This class takes a snapshot of the options in <see cref="ScanningProcessor"/>
 /// </summary>
 public sealed class ScanningContext {
-    private const uint ChunkSize = 0x10000; // 65536
-    private readonly ScanningProcessor theProcessor;
-    private readonly string inputA, inputB;
-    private readonly uint startAddress, scanLength, scanEndAddress;
-    private readonly uint alignment;
-    private readonly bool scanMemoryPages, isIntInputHexadecimal;
-    private readonly bool nextScanUsesFirstValue, nextScanUsesPreviousValue;
-    private readonly FloatScanOption floatScanOption;
-    private readonly StringType stringScanOption;
-    private readonly DataType dataType;
-    private readonly NumericScanType numericScanType;
-    private readonly StringComparison stringComparison;
-    private readonly bool isSecondInputRequired;
+    internal const uint ChunkSize = 0x10000; // 65536
+    internal readonly ScanningProcessor theProcessor;
+    internal readonly string inputA, inputB;
+    internal readonly uint startAddress, scanLength, scanEndAddress;
+    internal readonly uint alignment;
+    internal readonly bool scanMemoryPages, isIntInputHexadecimal;
+    internal readonly bool nextScanUsesFirstValue, nextScanUsesPreviousValue;
+    internal readonly FloatScanOption floatScanOption;
+    internal readonly StringType stringScanOption;
+    internal readonly DataType dataType;
+    internal readonly NumericScanType numericScanType;
+    internal readonly StringComparison stringComparison;
+    internal readonly bool isSecondInputRequired;
 
     // enough bytes to store all data types except string
     private ulong numericInputA, numericInputB;
@@ -59,7 +59,7 @@ public sealed class ScanningContext {
     /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result
     /// </summary>
-    public event ScanningContextResultEventHandler ResultFound;
+    public event ScanningContextResultEventHandler? ResultFound;
 
     public ScanningContext(ScanningProcessor processor) {
         this.theProcessor = processor;
@@ -154,69 +154,12 @@ public sealed class ScanningContext {
         return true;
     }
 
-    public async Task PerformFirstScan(IConsoleConnection connection) {
-        uint align = this.alignment;
-        ActivityTask task = ActivityManager.Instance.CurrentTask;
-        if (this.scanMemoryPages && connection is IHaveMemoryRegions iHaveRegions) {
-            List<MemoryRegion> allRegions = await iHaveRegions.GetMemoryRegions(true, false);
-            List<MemoryRegion> regions = new List<MemoryRegion>();
-            foreach (MemoryRegion region in allRegions) {
-                if (this.scanEndAddress >= region.BaseAddress && this.startAddress < (region.BaseAddress + region.Size)) {
-                    regions.Add(region);
-                }
-            }
-
-            byte[] buffer = new byte[ChunkSize];
-            for (int rgIdx = 0; rgIdx < regions.Count; rgIdx++) {
-                task.CheckCancelled();
-                MemoryRegion region = regions[rgIdx];
-
-                task.Progress.IsIndeterminate = false;
-
-                uint realStart = Math.Max(region.BaseAddress, this.startAddress);
-                uint realEnd = Math.Min(region.EndAddress, this.scanEndAddress);
-                uint offset = realStart - region.BaseAddress;
-                uint count = realEnd - realStart;
-                
-                // The progress bar should show the true progress of the chunk scanning, so we set the
-                // completion range as the actual range we're going to be reading.
-                // The text will still show the absolute ranges though, which is fine
-                using PopCompletionStateRangeToken token = task.Progress.CompletionState.PushCompletionRange(0, 1.0 / (count - offset));
-                for (; offset < count; offset += ChunkSize) {
-                    task.CheckCancelled();
-                    task.Progress.Text = $"Region {rgIdx + 1}/{regions.Count} ({ValueScannerUtils.ByteFormatter.ToString(offset, false)}/{ValueScannerUtils.ByteFormatter.ToString(region.Size, false)})";
-                    task.Progress.CompletionState.OnProgress(ChunkSize);
-
-                    uint baseAddress = region.BaseAddress + offset;
-                    uint cbTargetRead = Math.Min(ChunkSize, count - offset /* remaining */);
-                    uint cbActualRead = await connection.ReadBytes(baseAddress, buffer, 0, cbTargetRead).ConfigureAwait(false);
-                    if (cbActualRead > 0) {
-                        this.ProcessMemoryBlockForFirstScan(baseAddress, buffer, cbActualRead, align);
-                    }
-                }
-            }
-        }
-        else {
-            uint addr = this.startAddress, scanLen = this.scanLength, range = scanLen;
-            uint totalChunks = range / ChunkSize;
-            byte[] buffer = new byte[ChunkSize];
-            using PopCompletionStateRangeToken token = task.Progress.CompletionState.PushCompletionRange(0, 1.0 / scanLen);
-            for (uint offset = 0, c = 0; offset < scanLen; offset += ChunkSize, c++) {
-                task.CheckCancelled();
-                task.Progress.Text = $"Chunk {c + 1}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(offset, false)}/{ValueScannerUtils.ByteFormatter.ToString(scanLen, false)})";
-                task.Progress.CompletionState.OnProgress(ChunkSize);
-
-                uint baseAddress = addr + offset;
-                uint cbTargetRead = Math.Min(ChunkSize, Math.Max(scanLen - offset, 0));
-                uint cbActualRead = await connection.ReadBytes(baseAddress, buffer, 0, cbTargetRead).ConfigureAwait(false);
-                if (cbActualRead > 0) {
-                    this.ProcessMemoryBlockForFirstScan(baseAddress, buffer, cbActualRead, align);
-                }
-            }
-        }
+    public async Task PerformFirstScan(IConsoleConnection connection, IDisposable busyToken) {
+        FirstScanTask task = new FirstScanTask(this, connection, busyToken);
+        await task.RunWithCurrentActivity();
     }
 
-    private void ProcessMemoryBlockForFirstScan(uint baseAddress, byte[] buffer, uint count, uint align) {
+    internal void ProcessMemoryBlockForFirstScan(uint baseAddress, byte[] buffer, uint count, uint align) {
         int cbData = this.cbDataType;
         bool checkBounds = align < cbData;
         if (this.dataType.IsNumeric()) {

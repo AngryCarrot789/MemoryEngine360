@@ -23,18 +23,18 @@ using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 
-namespace MemEngine360.Engine.HexDisplay.Commands;
+namespace MemEngine360.Engine.HexEditing.Commands;
 
 public class SaveSelectionAsFileCommand : Command {
     public static readonly FileFilter BinaryType = FileFilter.Builder("Binary File").Patterns("*.bin").AppleUniformTypeIds("public.binary").Build();
     public static readonly IReadOnlyList<FileFilter> BinaryTypeAndAll = [BinaryType, Filters.All];
     
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IHexDisplayView.DataKey.TryGetContext(e.ContextData, out IHexDisplayView? view)) {
+        if (!IHexEditorUI.DataKey.TryGetContext(e.ContextData, out IHexEditorUI? view)) {
             return Executability.Invalid;
         }
 
-        HexDisplayInfo info = view.HexDisplayInfo!;
+        HexEditorInfo info = view.HexDisplayInfo!;
         if (info.Document == null) {
             return Executability.ValidButCannotExecute;
         }
@@ -48,11 +48,11 @@ public class SaveSelectionAsFileCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IHexDisplayView.DataKey.TryGetContext(e.ContextData, out IHexDisplayView? view)) {
+        if (!IHexEditorUI.DataKey.TryGetContext(e.ContextData, out IHexEditorUI? view)) {
             return;
         }
 
-        HexDisplayInfo info = view.HexDisplayInfo!;
+        HexEditorInfo info = view.HexDisplayInfo!;
         if (info.Document == null) {
             return;
         }

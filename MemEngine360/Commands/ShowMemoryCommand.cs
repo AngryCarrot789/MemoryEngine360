@@ -18,7 +18,7 @@
 // 
 
 using MemEngine360.Engine;
-using MemEngine360.Engine.HexDisplay;
+using MemEngine360.Engine.HexEditing;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 
@@ -31,7 +31,7 @@ public class ShowMemoryCommand : BaseMemoryEngineCommand {
 
     protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
         if (ApplicationPFX.Instance.ServiceManager.TryGetService(out IHexDisplayService? service)) {
-            HexDisplayInfo info = new HexDisplayInfo(engine) {
+            HexEditorInfo info = new HexEditorInfo(engine) {
                 Caption = "Console Memory",
                 StartAddress = engine.ScanningProcessor.StartAddress,
                 Length = engine.ScanningProcessor.ScanLength,

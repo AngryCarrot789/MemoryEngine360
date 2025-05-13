@@ -18,32 +18,22 @@
 // 
 
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
 
-namespace MemEngine360.Engine.HexDisplay.Commands;
+namespace MemEngine360.Engine.HexEditing.Commands;
 
-public abstract class BaseHexEditorCommand : Command {
+public class ClearAutoScanRangeCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IHexDisplayView.DataKey.TryGetContext(e.ContextData, out var view)) {
-            return Executability.Invalid;
-        }
-
-        return this.CanExecuteCore(view, e);
+        return e.ContextData.ContainsKey(IHexEditorUI.DataKey) ? Executability.Valid : Executability.Invalid;
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IHexDisplayView.DataKey.TryGetContext(e.ContextData, out var view)) {
-            return;
+    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
+        if (!IHexEditorUI.DataKey.TryGetContext(e.ContextData, out IHexEditorUI? view)) {
+            return Task.CompletedTask;
         }
-
-        HexDisplayInfo? info = view.HexDisplayInfo;
-        if (info == null) {
-            return;
-        }
-
-        await this.ExecuteCommandAsync(view, info, e);
+        
+        view.HexDisplayInfo!.AutoRefreshStartAddress = 0;
+        view.HexDisplayInfo!.AutoRefreshLength = 0;
+        return Task.CompletedTask;
     }
-
-    protected virtual Executability CanExecuteCore(IHexDisplayView view, CommandEventArgs e) => Executability.Valid;
-    
-    protected abstract Task ExecuteCommandAsync(IHexDisplayView view, HexDisplayInfo info, CommandEventArgs e);
 }

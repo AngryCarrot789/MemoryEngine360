@@ -20,15 +20,15 @@
 using AvaloniaHex.Core.Document;
 using PFXToolKitUI.Interactivity.Contexts;
 
-namespace MemEngine360.Engine.HexDisplay;
+namespace MemEngine360.Engine.HexEditing;
 
-public interface IHexDisplayView {
-    public static readonly DataKey<IHexDisplayView> DataKey = DataKey<IHexDisplayView>.Create("IHexDisplayView");
+public interface IHexEditorUI {
+    public static readonly DataKey<IHexEditorUI> DataKey = DataKey<IHexEditorUI>.Create("IHexDisplayView");
 
     /// <summary>
     /// Gets the hex display info
     /// </summary>
-    HexDisplayInfo? HexDisplayInfo { get; }
+    HexEditorInfo? HexDisplayInfo { get; }
 
     /// <summary>
     /// Gets or sets the caret's location
@@ -46,7 +46,7 @@ public interface IHexDisplayView {
     ulong DocumentLength { get; }
 
     /// <summary>
-    /// The value of <see cref="HexDisplay.HexDisplayInfo.StartAddress"/> the last time we <see cref="ReadAllFromConsoleCommand"/>
+    /// The value of <see cref="HexEditorInfo.StartAddress"/> the last time we <see cref="ReadAllFromConsoleCommand"/>
     /// </summary>
     uint CurrentStartOffset { get; }
 

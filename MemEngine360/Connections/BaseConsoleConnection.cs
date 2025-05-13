@@ -37,6 +37,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public abstract RegisteredConsoleType ConsoleType { get; }
 
     public bool IsConnected => !this.isClosed && this.IsConnectedCore;
+    
+    public bool IsClosed => this.isClosed;
 
     protected abstract bool IsConnectedCore { get; }
 
@@ -66,10 +68,11 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return await this.ReadBytesCore(address, buffer, offset, count).ConfigureAwait(false);
     }
 
-    public Task ReadBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
-        if (count == chunkSize)
-            return this.ReadBytes(address, buffer, offset, count);
-        return this.ReadBytesInChunksWithCancellation(address, buffer, offset, count, chunkSize, cancellationToken, completion);
+    public async Task ReadBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
+        this.EnsureNotDisposed();
+        using BusyToken x = this.CreateBusyToken();
+        
+        await this.ReadBytesInChunksUnderBusyLock(address, buffer, offset, count, chunkSize, completion, cancellationToken);
     }
 
     public async Task<byte[]> ReadBytes(uint address, uint count) {
@@ -141,15 +144,14 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
 
-        await this.WriteBytesAndGetResponseInternal(address, buffer, 0, (uint) buffer.Length, null, CancellationToken.None).ConfigureAwait(false);
+        await this.WriteBytesCore(address, buffer, 0, (uint) buffer.Length).ConfigureAwait(false);
     }
 
     public async Task WriteBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
-
-        // we ignore chunkSize because we literally write in chunks of 64 bytes so there's no reason to write less per second
-        await this.WriteBytesAndGetResponseInternal(address, buffer, offset, count, completion, cancellationToken).ConfigureAwait(false);
+        
+        await this.WriteBytesInChunksUnderBusyLock(address, buffer, offset, count, chunkSize, completion, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task WriteByte(uint address, byte value) {
@@ -157,7 +159,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         using BusyToken x = this.CreateBusyToken();
 
         this.sharedOneByteArray[0] = value;
-        await this.WriteBytesAndGetResponseInternal(address, this.sharedOneByteArray, 0, 1, null, CancellationToken.None).ConfigureAwait(false);
+        await this.WriteBytesCore(address, this.sharedOneByteArray, 0, 1U).ConfigureAwait(false);
     }
 
     public Task WriteBool(uint address, bool value) {
@@ -204,14 +206,6 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return this.WriteBytes(address, Encoding.ASCII.GetBytes(value));
     }
 
-    public async Task WriteFile(uint address, string filePath) {
-        this.EnsureNotDisposed();
-        using BusyToken x = this.CreateBusyToken();
-
-        byte[] buffer = await File.ReadAllBytesAsync(filePath);
-        await this.WriteBytesAndGetResponseInternal(address, buffer, 0, (uint) buffer.Length, null, CancellationToken.None);
-    }
-
     protected BusyToken CreateBusyToken() {
         if (Interlocked.CompareExchange(ref this.busyStack, 1, 0) != 0)
             throw new InvalidOperationException("Already busy performing another operation");
@@ -232,46 +226,44 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return this.WriteStruct(Offset, vec3, 4, 4, 4);
     }
 
-    protected async Task ReadBytesInChunksWithCancellation(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CancellationToken cancellationToken, CompletionState? completion) {
+    protected async Task ReadBytesInChunksUnderBusyLock(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        this.EnsureNotDisposed();
-        using BusyToken x = this.CreateBusyToken();
-
-        // just in case
-        if (chunkSize > count)
-            chunkSize = count;
-
-        int remaining = (int) count;
-        using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / remaining);
-        while (remaining > 0) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int cbRead = (int) Math.Min(chunkSize, remaining);
-            await this.ReadBytesCore(address, buffer, offset, (uint) cbRead).ConfigureAwait(false);
-            remaining -= cbRead;
-            offset += cbRead;
-            address += (uint) cbRead;
-
-            completion?.OnProgress(cbRead);
+        if (count == 0) {
+            return;
         }
 
-        if (remaining < 0)
-            throw new Exception("Error: got more bytes that we wanted");
+        using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
+        do {
+            cancellationToken.ThrowIfCancellationRequested();
+            uint cbRead = Math.Min(chunkSize, count);
+            await this.ReadBytesCore(address, buffer, offset, cbRead).ConfigureAwait(false);
+
+            count -= cbRead;
+            offset += (int) cbRead;
+            address += cbRead;
+
+            completion?.OnProgress(cbRead);
+        } while (count > 0);
     }
 
-    protected async Task WriteBytesAndGetResponseInternal(uint address, byte[] bytes, int offset, uint count, CompletionState? completion, CancellationToken cancellationToken) {
+    protected async Task WriteBytesInChunksUnderBusyLock(uint address, byte[] bytes, int offset, uint count, uint chunkSize, CompletionState? completion, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        if (count == 0) {
+            return;
+        }
+        
         using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
-
-        while (count > 0) {
+        do {
             cancellationToken.ThrowIfCancellationRequested();
-            uint cbWrite = Math.Min(count, 64);
+            uint cbWrite = Math.Min(count, chunkSize);
             await this.WriteBytesCore(address, bytes, offset, cbWrite).ConfigureAwait(false);
 
             address += cbWrite;
             offset += (int) cbWrite;
             count -= cbWrite;
+
             completion?.OnProgress(cbWrite);
-        }
+        } while (count > 0);
     }
 
     /// <summary>
@@ -281,7 +273,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// <param name="dstBuffer">The array to write the bytes into</param>
     /// <param name="offset">The offset within <see cref="dstBuffer"/> to begin writing into</param>
     /// <param name="count">The amount of bytes to read</param>
-    /// <returns>The amount of bytes actually read</returns>
+    /// <returns>The amount of bytes actually read. Ignores by certain operations such as <see cref="ReadBytes(uint,byte[],int,uint)"/></returns>
     protected abstract Task<uint> ReadBytesCore(uint address, byte[] dstBuffer, int offset, uint count);
 
     /// <summary>
@@ -290,10 +282,14 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// <param name="address">The address to write to</param>
     /// <param name="srcBuffer">The array to read the bytes from</param>
     /// <param name="offset">The offset within <see cref="srcBuffer"/> to begin reading from</param>
-    /// <param name="count">The amount of bytes to write to the console</param>
+    /// <param name="count">The amount of bytes to write to the console.</param>
     /// <returns>The amount of bytes actually written</returns>
     protected abstract Task<uint> WriteBytesCore(uint address, byte[] srcBuffer, int offset, uint count);
 
+    /// <summary>
+    /// A token used to safeguard against concurrent read/write operations
+    /// </summary>
+    /// <param name="connection">The connection</param>
     protected readonly struct BusyToken(BaseConsoleConnection connection) : IDisposable {
         public void Dispose() {
             int value = Interlocked.Decrement(ref connection.busyStack);

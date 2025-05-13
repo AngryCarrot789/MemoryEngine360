@@ -27,7 +27,7 @@ using AvaloniaHex.Editing;
 using AvaloniaHex.Rendering;
 using PFXToolKitUI;
 
-namespace MemEngine360.BaseFrontEnd.Services.HexDisplay;
+namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
 // 8303A000, 4000
 

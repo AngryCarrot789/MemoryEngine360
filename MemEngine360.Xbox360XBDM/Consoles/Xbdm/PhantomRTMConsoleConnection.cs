@@ -25,6 +25,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Connections;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
@@ -32,8 +33,6 @@ namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 // https://github.com/XeClutch/Cheat-Engine-For-Xbox-360/blob/master/Cheat%20Engine%20for%20Xbox%20360/PhantomRTM.cs
 
 public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHavePowerFunctions {
-    // private static readonly char[] HEX_CHARS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'];
-    private static readonly byte[] HEX_CHARS_ASCII;
     private readonly byte[] sharedSetMemCommandBuffer = new byte[14 + 8 + 6 + 128 + 2];
     private readonly byte[] sharedGetMemCommandBuffer = new byte[14 + 8 + 10 + 8 + 2];
 
@@ -54,10 +53,6 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
         " data="u8.CopyTo(new Span<byte>(this.sharedSetMemCommandBuffer, 22, 6));
         "getmem addr=0x"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 0, 14));
         " length=0x"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 22, 10));
-    }
-
-    static PhantomRTMConsoleConnection() {
-        HEX_CHARS_ASCII = "0123456789ABCDEF"u8.ToArray();
     }
 
     protected override void CloseCore() {
@@ -208,7 +203,7 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
         string[] lines = path.Split("\\".ToCharArray());
         string Directory = "";
         for (int i = 0; i < (lines.Length - 1); i++)
-            Directory += lines[i] + "\\";
+            Directory += (lines[i] + "\\");
         await this.SendCommand("delete title=\"" + path + "\" dir=\"" + Directory + "\"").ConfigureAwait(false);
     }
 
@@ -319,6 +314,10 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
     }
 
     protected override async Task<uint> ReadBytesCore(uint address, byte[] dstBuffer, int offset, uint count) {
+        if (count == 0) {
+            return 0;
+        }
+        
         this.FillGetMemCommandBuffer(address, count);
         await this.WriteCommandBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
         ConsoleResponse response = await this.ReadResponseCore().ConfigureAwait(false);
@@ -340,7 +339,7 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
                     lineBytes[i] = 0; // protected memory maybe?
                 }
                 else {
-                    lineBytes[i] = (byte) ((CharToInteger(line[j]) << 4) | CharToInteger(line[j + 1]));
+                    lineBytes[i] = (byte) ((NumberUtils.HexCharToInt(line[j]) << 4) | NumberUtils.HexCharToInt(line[j + 1]));
                 }
             }
 
@@ -352,11 +351,18 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
     }
 
     protected override async Task<uint> WriteBytesCore(uint address, byte[] srcBuffer, int offset, uint count) {
-        this.FillSetMemCommandBuffer(address, srcBuffer, offset, count);
-        await this.WriteCommandBytes(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, (int) (30 + (count << 1)))).ConfigureAwait(false);
-        ConsoleResponse response = await this.ReadResponseCore().ConfigureAwait(false);
-        if (response.ResponseType != ResponseType.SingleResponse && response.ResponseType != ResponseType.MemoryNotMapped) {
-            throw new Exception($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
+        while (count > 0) {
+            uint cbWrite = Math.Min(count, 64 /* Fixed Chunk Size */);
+            this.FillSetMemCommandBuffer(address, srcBuffer, offset, count);
+            await this.WriteCommandBytes(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, (int) (30 + (count << 1)))).ConfigureAwait(false);
+            ConsoleResponse response = await this.ReadResponseCore().ConfigureAwait(false);
+            if (response.ResponseType != ResponseType.SingleResponse && response.ResponseType != ResponseType.MemoryNotMapped) {
+                throw new Exception($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
+            }
+
+            address += cbWrite;
+            offset += (int) cbWrite;
+            count -= cbWrite;
         }
 
         return count;
@@ -407,10 +413,10 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void FillSetMemCommandBuffer(uint address, byte[] srcData, int srcOffset, uint cbData) {
         ref byte dstAscii = ref MemoryMarshal.GetArrayDataReference(this.sharedSetMemCommandBuffer);
-        UIntToHexAscii(address, ref dstAscii, 14);
+        NumberUtils.UInt32ToHexAscii(address, ref dstAscii, 14);
         
         int i = 28;
-        ref byte hexChars = ref MemoryMarshal.GetArrayDataReference(HEX_CHARS_ASCII);
+        ref byte hexChars = ref MemoryMarshal.GetArrayDataReference(NumberUtils.HEX_CHARS_ASCII);
         for (int j = 0; j < cbData; j++, i += 2) {
             byte b = srcData[srcOffset + j];
             Unsafe.AddByteOffset(ref dstAscii, i + 0) = Unsafe.ReadUnaligned<byte>(ref Unsafe.AddByteOffset(ref hexChars, b >> 4));
@@ -424,20 +430,9 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void FillGetMemCommandBuffer(uint address, uint count) {
         ref byte dstAscii = ref MemoryMarshal.GetArrayDataReference(this.sharedGetMemCommandBuffer);
-        UIntToHexAscii(address, ref dstAscii, 14);
-        UIntToHexAscii(count, ref dstAscii, 32);
+        NumberUtils.UInt32ToHexAscii(address, ref dstAscii, 14);
+        NumberUtils.UInt32ToHexAscii(count, ref dstAscii, 32);
         Unsafe.AddByteOffset(ref dstAscii, 40) = (byte) '\r';
         Unsafe.AddByteOffset(ref dstAscii, 41) = (byte) '\n';
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int CharToInteger(char c) => c <= '9' ? (c - '0') : ((c & ~0x20 /* LOWER TO UPPER CASE */) - 'A' + 10);
-    
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static void UIntToHexAscii(uint address, ref byte dstAsciiChars, int offset) {
-        ref byte asciiHexChars = ref MemoryMarshal.GetArrayDataReference(HEX_CHARS_ASCII);
-        for (int j = 7; j >= 0; j--, address >>= 4) {
-            Unsafe.AddByteOffset(ref dstAsciiChars, j + offset) = Unsafe.ReadUnaligned<byte>(ref Unsafe.AddByteOffset(ref asciiHexChars, address & 0xF));
-        }
     }
 }

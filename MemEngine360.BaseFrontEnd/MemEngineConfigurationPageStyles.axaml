@@ -9,12 +9,12 @@
             <ControlTemplate TargetType="{x:Type e:MemEngineConfigurationPageControl}">
                 <StackPanel Margin="5">
                     <TextBlock Padding="2,2" Text="Saved/Scan Results Refresh interval (in milliseconds)"/>
-                    <TextBlock Padding="2,0,2,2" Text="Default is the minimum of 500ms (updates twice a second), no upper limit" FontSize="10" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
+                    <TextBlock Padding="2,0,2,2" Text="Default is the minimum of 250ms (updates twice a second), no upper limit" FontSize="10" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
                     <DockPanel>
                         <CheckBox DockPanel.Dock="Left" Content="Is Enabled" x:Name="PART_ToggleRefreshEnabled" VerticalAlignment="Center" Padding="4,1"
                                   ToolTip.Tip="Toggles whether auto-refreshing saved addresses and scan results is enabled"/>
                         <TextBox x:Name="PART_RefreshRateTextBox" Padding="4,2" VerticalContentAlignment="Center"
-                                 ToolTip.Tip="Default is 500 (milliseconds)"/>
+                                 ToolTip.Tip="Default is 250 (milliseconds)"/>
                     </DockPanel>
                     <TextBlock Padding="2,2" Text="Maximum number of rows before auto-refresh is disabled"/>
                     <TextBox x:Name="PART_UpdateCountLimit" Padding="4,2" VerticalContentAlignment="Center"

@@ -17,8 +17,23 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Engine.HexDisplay;
+using MemEngine360.Engine.HexEditing;
+using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Utils;
 
-public interface IHexDisplayService {
-    Task ShowHexEditor(HexDisplayInfo info);
+namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
+
+public class HexDisplayServiceImpl : IHexDisplayService {
+    public Task ShowHexEditor(HexEditorInfo info) {
+        Validate.NotNull(info);
+        if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
+            HexEditorControl control = new HexEditorControl() {
+                HexDisplayInfo = info
+            };
+            
+            system.Register(control).Show(); // specify parent as null so that it isn't always ontop of any window
+        }
+
+        return Task.CompletedTask;
+    }
 }

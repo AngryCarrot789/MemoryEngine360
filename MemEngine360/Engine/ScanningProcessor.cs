@@ -352,6 +352,10 @@ public class ScanningProcessor {
         this.numericScanType = NumericScanType.Equals;
         this.startAddress = cfg.StartAddress;
         this.scanLength = cfg.ScanLength;
+        if (((ulong) this.startAddress + this.scanLength) > uint.MaxValue) {
+            this.scanLength = uint.MaxValue - this.startAddress;
+        }
+        
         this.alignment = GetAlignmentFromDataType(this.dataType);
         this.pauseConsoleDuringScan = cfg.PauseConsoleDuringScan;
         this.scanMemoryPages = cfg.ScanMemoryPages;
@@ -536,7 +540,7 @@ public class ScanningProcessor {
 
                         try {
                             result = true;
-                            await context.PerformFirstScan(connection);
+                            await context.PerformFirstScan(connection, token);
                         }
                         catch (OperationCanceledException) {
                             // ignored

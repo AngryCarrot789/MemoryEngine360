@@ -6,12 +6,12 @@
                  xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
                  xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:hexDisplay1="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexDisplay"
                  xmlns:icons="clr-namespace:MemEngine360.BaseFrontEnd"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:hexEditing="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexEditing"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
-                 x:Class="MemEngine360.BaseFrontEnd.Services.HexDisplay.HexDisplayControl"
+                 x:Class="MemEngine360.BaseFrontEnd.Services.HexEditing.HexEditorControl"
                  BorderBrush="DodgerBlue"
                  TitleBarBrush="{DynamicResource ABrush.Tone4.Background.Static}"
                  MinWidth="800" MinHeight="480"
@@ -53,7 +53,7 @@
             </DockPanel>
         </Border>
         <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
-                Background="{Binding RelativeSource={RelativeSource AncestorType=hexDisplay1:HexDisplayControl}, Path=WindowTitleBarBrush}"
+                Background="{Binding RelativeSource={RelativeSource AncestorType=hexEditing:HexEditorControl}, Path=WindowTitleBarBrush}"
                 BorderThickness="0,0,0,1"
                 BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}">
             <StackPanel Margin="0,3" Spacing="4">
