@@ -27,9 +27,9 @@ namespace MemEngine360.Engine.SavedAddressing;
 
 public delegate void BaseAddressTableEntryEventHandler(BaseAddressTableEntry sender);
 
-public delegate void BaseLayerTreeObjectParentChangedEventHandler(BaseAddressTableEntry sender, AddressTableGroupEntry? oldPar, AddressTableGroupEntry? newPar);
+public delegate void BaseAddressTableEntryParentChangedEventHandler(BaseAddressTableEntry sender, AddressTableGroupEntry? oldPar, AddressTableGroupEntry? newPar);
 
-public delegate void BaseLayerTreeObjectATMChangedEventHandler(BaseAddressTableEntry sender, AddressTableManager? oldATM, AddressTableManager? newATM);
+public delegate void BaseAddressTableEntryManagerChangedEventHandler(BaseAddressTableEntry sender, AddressTableManager? oldATM, AddressTableManager? newATM);
 
 /// <summary>
 /// The base class for an object in the entry hierarchy for a address table manager
@@ -72,12 +72,12 @@ public abstract class BaseAddressTableEntry : ITransferableData {
     /// If the new parent is attached to a address table manager, our address table manager will be updates
     /// after this event is fired (see <see cref="ATMChanged"/>)
     /// </summary>
-    public event BaseLayerTreeObjectParentChangedEventHandler? ParentChanged;
+    public event BaseAddressTableEntryParentChangedEventHandler? ParentChanged;
 
     /// <summary>
     /// An event fired when our <see cref="AddressTableManager"/> property changes due to address table manager attachment or detachment.
     /// </summary>
-    public event BaseLayerTreeObjectATMChangedEventHandler? ATMChanged;
+    public event BaseAddressTableEntryManagerChangedEventHandler? ATMChanged;
 
     public event BaseAddressTableEntryEventHandler? DescriptionChanged;
 

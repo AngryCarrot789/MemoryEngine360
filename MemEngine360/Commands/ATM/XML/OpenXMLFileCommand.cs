@@ -90,7 +90,8 @@ public class OpenXMLFileCommand : Command {
             if (item is XmlAddressEntryGroup subGroup) {
                 AddressTableGroupEntry subEntry = new AddressTableGroupEntry() {
                     Description = subGroup.Description,
-                    GroupAddress = subGroup.GroupAddress
+                    GroupAddress = subGroup.GroupAddress,
+                    IsAddressAbsolute = subGroup.IsAddressAbsolute,
                 };
                 
                 entry.AddEntry(subEntry);

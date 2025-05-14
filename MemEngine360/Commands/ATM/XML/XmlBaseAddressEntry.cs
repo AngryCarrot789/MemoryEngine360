@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Globalization;
 using System.Xml.Serialization;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
@@ -30,13 +31,20 @@ public abstract class XmlBaseAddressEntry {
 }
 
 public class XmlAddressEntry : XmlBaseAddressEntry {
-    [XmlElement] public bool IsRefreshActive { get; set; }
-    [XmlElement] public uint Address { get; set; }
-    [XmlElement] public bool IsAddressAbsolute { get; set; } = true;
-    [XmlElement] public NumericDisplayType NumericDisplayType { get; set; }
-    [XmlElement] public DataType DataType { get; set; }
-    [XmlElement] public StringType StringType { get; set; }
-    [XmlElement] public uint StringLength { get; set; }
+    [XmlAttribute] public bool IsRefreshActive { get; set; }
+    [XmlIgnore] public uint Address { get; set; }
+
+    [XmlAttribute(nameof(Address))]
+    public string AddressText {
+        get => this.Address.ToString("X8");
+        set => this.Address = uint.Parse(value, NumberStyles.HexNumber);
+    }
+    
+    [XmlAttribute] public bool IsAddressAbsolute { get; set; } = true;
+    [XmlAttribute] public NumericDisplayType NumericDisplayType { get; set; }
+    [XmlAttribute] public DataType DataType { get; set; }
+    [XmlAttribute] public StringType StringType { get; set; }
+    [XmlAttribute] public uint StringLength { get; set; }
 }
 
 public class XmlAddressEntryGroup : XmlBaseAddressEntry {
@@ -45,5 +53,13 @@ public class XmlAddressEntryGroup : XmlBaseAddressEntry {
     [XmlArrayItem("GroupEntry", typeof(XmlAddressEntryGroup))]
     public List<XmlBaseAddressEntry> Items { get; set; } = new List<XmlBaseAddressEntry>();
 
-    [XmlElement] public uint? GroupAddress { get; set; }
+    [XmlAttribute] public bool IsAddressAbsolute { get; set; } = true;
+    
+    [XmlIgnore] public uint GroupAddress { get; set; }
+
+    [XmlAttribute(nameof(GroupAddress))]
+    public string GroupAddressText {
+        get => this.GroupAddress.ToString("X8");
+        set => this.GroupAddress = uint.Parse(value, NumberStyles.HexNumber);
+    }
 }

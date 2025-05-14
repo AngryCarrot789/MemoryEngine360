@@ -116,7 +116,8 @@ public class SaveSavedAddressesToFileCommand : Command {
             if (item is AddressTableGroupEntry subEntry1) {
                 XmlAddressEntryGroup subGroup = new XmlAddressEntryGroup() {
                     Description = subEntry1.Description,
-                    GroupAddress = subEntry1.GroupAddress
+                    GroupAddress = subEntry1.GroupAddress,
+                    IsAddressAbsolute = subEntry1.IsAddressAbsolute,
                 };
 
                 group.Items.Add(subGroup);

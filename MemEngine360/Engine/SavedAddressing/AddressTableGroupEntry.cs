@@ -31,8 +31,8 @@ public delegate void AddressTableGroupEntryEventHandler(AddressTableGroupEntry s
 /// </summary>
 public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
     private readonly SuspendableObservableList<BaseAddressTableEntry> items;
-    private uint? groupAddress;
-    private bool isAddressAbsolute;
+    private uint groupAddress;
+    private bool isAddressAbsolute = true;
 
     public ReadOnlyObservableList<BaseAddressTableEntry> Items { get; }
 
@@ -42,7 +42,7 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
     /// Gets or sets this group's base address, used for relative addressing. May be relative
     /// to parent, so use <see cref="AbsoluteAddress"/> for absolute address
     /// </summary>
-    public uint? GroupAddress {
+    public uint GroupAddress {
         get => this.groupAddress;
         set {
             uint? oldGroupAddress = this.groupAddress;
@@ -54,6 +54,9 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
         }
     }
 
+    /// <summary>
+    /// Gets or sets if <see cref="GroupAddress"/> is absolute and not relative to <see cref="BaseAddressTableEntry.Parent"/>
+    /// </summary>
     public bool IsAddressAbsolute {
         get => this.isAddressAbsolute;
         set {
@@ -68,7 +71,7 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
     /// <summary>
     /// Gets the absolute resolved address for this group
     /// </summary>
-    public uint AbsoluteAddress => this.isAddressAbsolute ? (this.groupAddress ?? 0) : ((this.Parent?.AbsoluteAddress ?? 0) + (this.groupAddress ?? 0));
+    public uint AbsoluteAddress => this.isAddressAbsolute ? this.groupAddress : ((this.Parent?.AbsoluteAddress ?? 0) + this.groupAddress);
 
     public event AddressTableGroupEntryGroupAddressChangedEventHandler? GroupAddressChanged;
     public event AddressTableGroupEntryEventHandler? IsAddressAbsoluteChanged;
