@@ -18,20 +18,21 @@
 // 
 
 using MemEngine360.Engine;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
 
-namespace MemEngine360.Xbox360XDevkit;
+namespace MemEngine360.Commands.ATM;
 
-public partial class DebuggerWindow : DesktopWindow {
-    // WIP: coming soon :D
+public class ClearSavedAddressesCommand : Command {
+    protected override Executability CanExecuteCore(CommandEventArgs e) {
+        return e.ContextData.ContainsKey(MemoryEngine360.DataKey) ? Executability.Valid : Executability.Invalid;
+    }
 
-    public MemoryEngine360 Engine { get; }
-    
-    public DebuggerWindow(MemoryEngine360 engine) {
-        InitializeComponent();
-        this.Engine = engine;
-
-        // Devkit360Connection connection = null!;
-        // connection.Console.DebugTarget.SetDataBreakpoint(0, XboxBreakpointType.OnWrite);
+    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
+        if (MemoryEngine360.DataKey.TryGetContext(e.ContextData, out MemoryEngine360? engine)) {
+            engine.AddressTableManager.RootEntry.Clear();
+        }
+        
+        return Task.CompletedTask;
     }
 }

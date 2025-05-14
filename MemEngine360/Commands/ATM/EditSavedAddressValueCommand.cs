@@ -20,13 +20,14 @@
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
+using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
 
-namespace MemEngine360.Commands;
+namespace MemEngine360.Commands.ATM;
 
 public class EditSavedAddressValueCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
@@ -54,16 +55,17 @@ public class EditSavedAddressValueCommand : Command {
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         MemoryEngine360? memoryEngine360 = null;
-        List<SavedAddressViewModel> savedList = new List<SavedAddressViewModel>();
+        List<AddressTableEntry> savedList = new List<AddressTableEntry>();
         if (IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
-            savedList.AddRange(ui.SavedAddressesSelectionManager.SelectedItems);
+            savedList.AddRange(ui.AddressTableSelectionManager.SelectedItems.Where(x => x.Entry is AddressTableEntry).Select(x => (AddressTableEntry) x.Entry));
             memoryEngine360 = ui.MemoryEngine360;
         }
 
-        if (SavedAddressViewModel.DataKey.TryGetContext(e.ContextData, out SavedAddressViewModel? theResult)) {
-            memoryEngine360 ??= theResult.ScanningProcessor.MemoryEngine360;
-            if (!savedList.Contains(theResult))
-                savedList.Add(theResult);
+        if (IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? theResult)) {
+            memoryEngine360 ??= theResult.Entry.AddressTableManager!.MemoryEngine360;
+            if (theResult.Entry is AddressTableEntry entry && !savedList.Contains(entry)) {
+                savedList.Add(entry);
+            }
         }
 
         if (memoryEngine360 == null || savedList.Count < 1) {
@@ -77,7 +79,7 @@ public class EditSavedAddressValueCommand : Command {
 
         SingleUserInputInfo input;
         if (savedList.Count == 1) {
-            input = new SingleUserInputInfo("Change value at 0x" + savedList[0].Address.ToString("X8"), "Immediately change the value at this address", "Value", savedList[0].Value);
+            input = new SingleUserInputInfo("Change value at 0x" + savedList[0].AbsoluteAddress.ToString("X8"), "Immediately change the value at this address", "Value", savedList[0].Value);
             input.Validate = (args) => {
                 if (savedList[0].DataType.IsNumeric()) {
                     MemoryEngine360.CanParseTextAsNumber(args, savedList[0].DataType, savedList[0].NumericDisplayType);
@@ -117,16 +119,17 @@ public class EditSavedAddressValueCommand : Command {
         using CancellationTokenSource cts = new CancellationTokenSource();
         await ActivityManager.Instance.RunTask(async () => {
             ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Edit value", "Editing values");
-            foreach (SavedAddressViewModel result in savedList) {
+            foreach (AddressTableEntry result in savedList) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
-                await MemoryEngine360.WriteAsText(conn, result.Address, result.DataType, result.NumericDisplayType, input.Text, (uint) result.Value.Length);
-                string newValue = await MemoryEngine360.ReadAsText(conn, result.Address, result.DataType, result.NumericDisplayType, (uint) result.Value.Length);
+                uint absAddress = result.AbsoluteAddress;
+                await MemoryEngine360.WriteAsText(conn, absAddress, result.DataType, result.NumericDisplayType, input.Text, (uint) result.Value.Length);
+                string newValue = await MemoryEngine360.ReadAsText(conn, absAddress, result.DataType, result.NumericDisplayType, (uint) result.Value.Length);
 
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     result.Value = newValue;
                     if (result.DataType == DataType.String)
                         result.StringLength = (uint) newValue.Length;
-                });
+                }, token:CancellationToken.None);
             }
         }, cts);
     }

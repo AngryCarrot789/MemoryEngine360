@@ -23,6 +23,7 @@ using System.Diagnostics;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
+using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.Scanners;
 using PFXToolKitUI;
 using PFXToolKitUI.Services.Messaging;
@@ -108,7 +109,7 @@ public class ScanningProcessor {
             if (oldValue != value) {
                 if ((value + this.scanLength) < value) // check end index is less than start address, meaning we overflowed
                     throw new ArgumentOutOfRangeException(nameof(value), "Start address causes scan range to exceed size of UInt32");
-                
+
                 this.startAddress = value;
                 this.StartAddressChanged?.Invoke(this, oldValue, value);
                 BasicApplicationConfiguration.Instance.StartAddress = value;
@@ -123,7 +124,7 @@ public class ScanningProcessor {
             if (oldValue != value) {
                 if ((this.startAddress + value) < this.startAddress) // check end index is less than start address, meaning we overflowed
                     throw new ArgumentOutOfRangeException(nameof(value), "Start address causes scan range to exceed size of UInt32");
-                
+
                 this.scanLength = value;
                 this.ScanLengthChanged?.Invoke(this, oldValue, value);
                 BasicApplicationConfiguration.Instance.ScanLength = value;
@@ -305,20 +306,13 @@ public class ScanningProcessor {
     public ObservableCollection<ScanResultViewModel> ScanResults { get; } = new ObservableCollection<ScanResultViewModel>();
 
     /// <summary>
-    /// Gets the saved addresses
-    /// </summary>
-    public ObservableCollection<SavedAddressViewModel> SavedAddresses { get; } = new ObservableCollection<SavedAddressViewModel>();
-
-    /// <summary>
     /// Returns the actual amount of results (visible and hidden). The user may choose to cancel the
     /// "Updating result list..." operation and instead leave the remaining results as hidden.
     /// They will still be processed, just not visible
     /// </summary>
     public int ActualScanResultCount => this.ScanResults.Count + this.resultBuffer.Count;
-
-
+    
     public MemoryEngine360 MemoryEngine360 { get; }
-
 
     public event ScanningProcessorEventHandler? InputAChanged;
     public event ScanningProcessorEventHandler? InputBChanged;
@@ -344,7 +338,7 @@ public class ScanningProcessor {
     private readonly RateLimitedDispatchAction rldaRefreshSavedAddressList;
 
     public ScanningProcessor(MemoryEngine360 memoryEngine360) {
-        this.MemoryEngine360 = memoryEngine360;
+        this.MemoryEngine360 = memoryEngine360 ?? throw new ArgumentNullException(nameof(memoryEngine360));
         BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
 
         this.inputA = "";
@@ -355,7 +349,7 @@ public class ScanningProcessor {
         if (((ulong) this.startAddress + this.scanLength) > uint.MaxValue) {
             this.scanLength = uint.MaxValue - this.startAddress;
         }
-        
+
         this.alignment = GetAlignmentFromDataType(this.dataType);
         this.pauseConsoleDuringScan = cfg.PauseConsoleDuringScan;
         this.scanMemoryPages = cfg.ScanMemoryPages;
@@ -392,26 +386,26 @@ public class ScanningProcessor {
             // I don't even think there's anything useful beyond 0xFFFFFFFF...
             throw new ArgumentException("New scan range exceed size of UInt32; it requires a 64 bit address range, which is unsupported");
         }
-        
+
         // Just to ensure there isn't weird glitches by changing both before events,
         // we first set length to 0 so that we can change StartAddress without
         // risking observers doing newValue + processor.ScanLength and overflowing
-        
+
         uint oldLength = this.scanLength;
         this.scanLength = 0;
         this.ScanLengthChanged?.Invoke(this, oldLength, 0);
-        
+
         // Now we update start address for real
         uint oldStart = this.startAddress;
         this.startAddress = newStartAddress;
         this.StartAddressChanged?.Invoke(this, oldStart, newStartAddress);
-        
+
         // Set scan length to the true value now. We read the prev value again in case some
         // ass bag changes the value during StartAddressChanged, probably me by accident
         oldLength = this.scanLength;
         this.scanLength = newScanLength;
         this.ScanLengthChanged?.Invoke(this, oldLength, newScanLength);
-        
+
         BasicApplicationConfiguration.Instance.StartAddress = this.startAddress;
         BasicApplicationConfiguration.Instance.ScanLength = this.scanLength;
     }
@@ -459,7 +453,6 @@ public class ScanningProcessor {
 
         Debug.Assert(this.isScanning == false, "WTF");
 
-        bool debugFreeze = this.PauseConsoleDuringScan;
         DefaultProgressTracker progress = new DefaultProgressTracker {
             Caption = "Memory Scan", Text = "Beginning scan..."
         };
@@ -475,12 +468,10 @@ public class ScanningProcessor {
                 }
 
                 this.IsScanning = true;
-                if (debugFreeze && connection is IHaveIceCubes)
-                    await ((IHaveIceCubes) connection).DebugFreeze();
             });
 
             bool result = false;
-            if (connection.IsConnected) {
+            if (this.isScanning && connection.IsConnected) {
                 thisTask.CancellationToken.ThrowIfCancellationRequested();
                 try {
                     context.ResultFound += (sender, model) => {
@@ -520,18 +511,43 @@ public class ScanningProcessor {
                             result = false;
                         }
                         else {
+                            bool canContinue = false;
                             progress.Text = "Scanning...";
-
+                            IHaveIceCubes? cubes = context.pauseConsoleDuringScan ? connection as IHaveIceCubes : null;
                             try {
-                                result = true;
-                                await context.PerformNextScan(connection, srcList);
-                            }
-                            catch (OperationCanceledException) {
-                                // ignored
+                                if (cubes != null && connection.IsConnected) {
+                                    await cubes.DebugFreeze();
+                                }
+
+                                canContinue = true;
                             }
                             catch (Exception e) {
-                                await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing next scan", e.ToString());
+                                await IMessageDialogService.Instance.ShowMessage("Error", "Error while freezing console", e.ToString());
                                 result = false;
+                            }
+
+                            if (canContinue) {
+                                try {
+                                    result = true;
+                                    await context.PerformNextScan(connection, srcList);
+                                }
+                                catch (OperationCanceledException) {
+                                    // ignored
+                                }
+                                catch (Exception e) {
+                                    await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing next scan", e.ToString());
+                                    result = false;
+                                }
+
+                                try {
+                                    if (cubes != null && connection.IsConnected) {
+                                        await cubes.DebugUnFreeze();
+                                    }
+                                }
+                                catch (Exception e) {
+                                    await IMessageDialogService.Instance.ShowMessage("Error", "Error while unfreezing console", e.ToString());
+                                    result = false;
+                                }
                             }
                         }
                     }
@@ -540,7 +556,8 @@ public class ScanningProcessor {
 
                         try {
                             result = true;
-                            await context.PerformFirstScan(connection, token);
+                            FirstScanTask task = new FirstScanTask(context, connection, token);
+                            await task.RunWithCurrentActivity();
                         }
                         catch (OperationCanceledException) {
                             // ignored
@@ -585,9 +602,6 @@ public class ScanningProcessor {
             await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
                 this.HasDoneFirstScan = result;
                 this.IsScanning = false;
-                if (debugFreeze && connection is IHaveIceCubes && connection.IsConnected) // race condition ^-^ so rare don't care
-                    await ((IHaveIceCubes) connection).DebugUnFreeze();
-
                 if (!this.MemoryEngine360.IsShuttingDown) // another race condition i suppose
                     this.MemoryEngine360.CheckConnection();
             });
@@ -646,27 +660,27 @@ public class ScanningProcessor {
         IConsoleConnection connection = this.MemoryEngine360.Connection ?? throw new InvalidOperationException("No connection present");
 
         uint max = BasicApplicationConfiguration.Instance.MaxRowsBeforeDisableAutoRefresh;
-        
+
         // TODO: maybe batch together results whose addresses are close by, and read a single chunk?
         // May be faster if the console is not debug frozen and we have to update 100s of results...
-        List<SavedAddressViewModel>? savedList = new List<SavedAddressViewModel>(100);
-        foreach (SavedAddressViewModel saved in this.SavedAddresses) {
+        List<AddressTableEntry>? savedList = new List<AddressTableEntry>(100);
+        foreach (AddressTableEntry saved in this.MemoryEngine360.AddressTableManager.GetAllAddressEntries()) {
             if (saved.IsAutoRefreshEnabled) {
                 if (savedList.Count > max) {
                     savedList = null;
                     break;
                 }
-                    
+
                 savedList.Add(saved);
             }
         }
-            
+
         // Lazily prevents concurrent modification due to awaiting read text
         List<ScanResultViewModel>? list = (savedList == null || this.ScanResults.Count > max) ? null : this.ScanResults.ToList();
         if ((savedList == null || savedList.Count < 1) && (list == null || list.Count < 1)) {
             return;
         }
-        
+
         if ((list?.Count + savedList?.Count) > max) {
             return;
         }
@@ -675,7 +689,7 @@ public class ScanningProcessor {
         try {
             using CancellationTokenSource cts = new CancellationTokenSource();
             CancellationToken token = cts.Token;
-            
+
             // The previous implementation of this was just awaiting ReadAsText on the main thread
             // for each saved address and scan result.
             // 
@@ -686,25 +700,25 @@ public class ScanningProcessor {
             // Rather than mess around with ConfigureAwait(false) I decided to just make it
             // all run on a BG task, and if it's been running for over 500ms, then show an activity
             // to let the user cancel it (maybe the connection was disconnected or is slow)
-            
+
             Task task = Task.Run(async () => {
                 token.ThrowIfCancellationRequested();
-                
+
                 if (savedList != null) {
                     string[] values = new string[savedList.Count];
                     await Task.Run(async () => {
                         for (int i = 0; i < values.Length; i++) {
                             token.ThrowIfCancellationRequested();
-                            SavedAddressViewModel item = savedList[i];
+                            AddressTableEntry item = savedList[i];
                             if (item.IsAutoRefreshEnabled) // may change between dispatcher callbacks
-                                values[i] = await MemoryEngine360.ReadAsText(connection, item.Address, item.DataType, item.NumericDisplayType, item.StringLength);
+                                values[i] = await MemoryEngine360.ReadAsText(connection, item.AbsoluteAddress, item.DataType, item.NumericDisplayType, item.StringLength);
                         }
                     }, token);
 
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         // Only <=100 values to update, so not too UI intensive
                         for (int i = 0; i < values.Length; i++) {
-                            SavedAddressViewModel address = savedList[i];
+                            AddressTableEntry address = savedList[i];
                             if (address.IsAutoRefreshEnabled) // may change between dispatcher callbacks
                                 address.Value = values[i];
                         }

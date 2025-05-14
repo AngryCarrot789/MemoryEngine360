@@ -19,14 +19,15 @@
 
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
+using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
 
-namespace MemEngine360.Commands;
+namespace MemEngine360.Commands.ATM;
 
 public class EditSavedAddressDataTypeCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!SavedAddressViewModel.DataKey.TryGetContext(e.ContextData, out SavedAddressViewModel? result)) {
+        if (!BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out BaseAddressTableEntry? result) || !(result is AddressTableEntry)) {
             return Executability.Invalid;
         }
 
@@ -34,34 +35,34 @@ public class EditSavedAddressDataTypeCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!SavedAddressViewModel.DataKey.TryGetContext(e.ContextData, out SavedAddressViewModel? result)) {
+        if (!BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out BaseAddressTableEntry? result) || !(result is AddressTableEntry saved)) {
             return;
         }
 
-        SavedResultDataTypeUserInputInfo info = new SavedResultDataTypeUserInputInfo(result) {
+        SavedResultDataTypeUserInputInfo info = new SavedResultDataTypeUserInputInfo(saved) {
             Caption = "Modify data type"
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
             if (info.DataType.IsNumeric()) {
                 if (info.DisplayAsHex) {
-                    result.NumericDisplayType = NumericDisplayType.Hexadecimal;
+                    saved.NumericDisplayType = NumericDisplayType.Hexadecimal;
                 }
                 else if (info.DisplayAsUnsigned) {
-                    result.NumericDisplayType = NumericDisplayType.Unsigned;
+                    saved.NumericDisplayType = NumericDisplayType.Unsigned;
                 }
                 else {
-                    result.NumericDisplayType = NumericDisplayType.Normal;
+                    saved.NumericDisplayType = NumericDisplayType.Normal;
                 }
             }
             else {
-                result.NumericDisplayType = NumericDisplayType.Normal;
+                saved.NumericDisplayType = NumericDisplayType.Normal;
             }
             
-            result.StringType = info.StringScanOption;
-            result.StringLength = info.StringLength;
-            result.DataType = info.DataType;
-            result.ScanningProcessor.RefreshSavedAddressesLater();
+            saved.StringType = info.StringScanOption;
+            saved.StringLength = info.StringLength;
+            saved.DataType = info.DataType;
+            saved.ScanningProcessor.RefreshSavedAddressesLater();
         }
     }
 }
@@ -146,7 +147,7 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
     public SavedResultDataTypeUserInputInfo() {
     }
 
-    public SavedResultDataTypeUserInputInfo(SavedAddressViewModel result) {
+    public SavedResultDataTypeUserInputInfo(AddressTableEntry result) {
         this.stringLength = result.StringLength;
         this.displayAsHex = result.NumericDisplayType == NumericDisplayType.Hexadecimal;
         this.displayAsSigned = result.NumericDisplayType == NumericDisplayType.Unsigned;

@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -52,7 +53,7 @@ public interface IMemEngineUI : ILatestActivityView {
     /// <summary>
     /// Gets the saved address list selection manager
     /// </summary>
-    IListSelectionManager<SavedAddressViewModel> SavedAddressesSelectionManager { get; }
+    IListSelectionManager<IAddressTableEntryUI> AddressTableSelectionManager { get; }
 
     /// <summary>
     /// Gets or sets if the activity list is visible in the UI

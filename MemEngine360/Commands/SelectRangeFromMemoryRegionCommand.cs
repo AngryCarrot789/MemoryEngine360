@@ -67,12 +67,12 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
         MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(list!) {
             Caption = "Change scan region",
             Message = "Select a memory region to set as the start/length fields",
-            ConfirmText = "Select"
+            ConfirmText = "Select",
+            RegionFlagsToTextConverter = MemoryRegionUserInputInfo.ConvertXboxFlagsToText
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true && info.SelectedRegion != null) {
             engine.ScanningProcessor.SetScanRange(info.SelectedRegion.BaseAddress, info.SelectedRegion.Size);
-            engine.ScanningProcessor.ScanMemoryPages = false;
         }
     }
 }

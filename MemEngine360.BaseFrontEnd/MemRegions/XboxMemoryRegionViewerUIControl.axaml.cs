@@ -30,12 +30,10 @@ public partial class XboxMemoryRegionViewerUIControl : UserControl, IUserInputCo
     private MemoryRegionUserInputInfo? myInfo;
     public readonly IBinder<MemoryRegionUserInputInfo> selectedItemBinder = new AvaloniaPropertyToEventPropertyBinder<MemoryRegionUserInputInfo>(DataGrid.SelectedItemProperty, nameof(MemoryRegionUserInputInfo.SelectedRegionChanged), (b) => ((DataGrid) b.Control).SelectedItem = b.Model.SelectedRegion, (b) => b.Model.SelectedRegion = (MemoryRegionViewModel?) ((DataGrid) b.Control).SelectedItem);
     
+    public MemoryRegionUserInputInfo? Info => this.myInfo;
+    
     public XboxMemoryRegionViewerUIControl() {
         this.InitializeComponent();
-    }
-
-    private void PART_DataGridOnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
-        this.myInfo?.RaiseHasErrorsChanged();
     }
 
     public void Connect(UserInputDialogView dialog, UserInputInfo info) {
@@ -65,9 +63,9 @@ public partial class XboxMemoryRegionViewerUIControl : UserControl, IUserInputCo
     public void OnWindowOpened() {
         this.myDialog!.Window!.SizeToContent = SizeToContent.Manual;
         this.myDialog!.Window!.MinHeight = 400;
-        this.myDialog!.Window!.MinWidth = 600;
-        this.myDialog!.Window!.Height = 50;
-        this.myDialog!.Window!.Width = 60;
+        this.myDialog!.Window!.MinWidth = 800;
+        this.myDialog!.Window!.Height = 400;
+        this.myDialog!.Window!.Width = 800;
         this.myDialog!.Window!.CanResize = true;
         // TODO: fix vertical scroll bar incorrect estimate of the effective height of the data grid
         // ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {

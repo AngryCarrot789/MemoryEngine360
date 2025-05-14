@@ -21,6 +21,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using MemEngine360.Connections;
 using PFXToolKitUI.Services.UserInputs;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.XboxInfo;
 
@@ -28,7 +29,7 @@ public delegate void MemoryRegionUserInputInfoSelectedRegionChangedEventHandler(
 
 public class MemoryRegionUserInputInfo : UserInputInfo {
     private MemoryRegionViewModel? selectedRegion;
-    
+
     /// <summary>
     /// Gets the collection of memory regions presented to the user
     /// </summary>
@@ -51,7 +52,9 @@ public class MemoryRegionUserInputInfo : UserInputInfo {
             }
         }
     }
-    
+
+    public Func<uint, string>? RegionFlagsToTextConverter { get; set; }
+
     public event MemoryRegionUserInputInfoSelectedRegionChangedEventHandler? SelectedRegionChanged;
 
     public MemoryRegionUserInputInfo() : this(new ObservableCollection<MemoryRegionViewModel>()) {
@@ -59,7 +62,7 @@ public class MemoryRegionUserInputInfo : UserInputInfo {
 
     public MemoryRegionUserInputInfo(IEnumerable<MemoryRegion> regions) : this(new ObservableCollection<MemoryRegionViewModel>(regions.Select(x => new MemoryRegionViewModel(x)))) {
     }
-    
+
     private MemoryRegionUserInputInfo(ObservableCollection<MemoryRegionViewModel> items) {
         this.MemoryRegions = items;
         items.CollectionChanged += this.ItemsOnCollectionChanged;
@@ -75,5 +78,36 @@ public class MemoryRegionUserInputInfo : UserInputInfo {
     }
 
     public override void UpdateAllErrors() {
+    }
+
+    public static string ConvertXboxFlagsToText(uint flags) {
+        StringJoiner sj = new StringJoiner(", ");
+        if ((flags & 1) != 0)
+            sj.Append("NoAccess");
+        if ((flags & 2) != 0)
+            sj.Append("ReadOnly");
+        if ((flags & 4) != 0)
+            sj.Append("ReadWrite");
+        if ((flags & 8) != 0)
+            sj.Append("WriteCopy");
+        if ((flags & 16) != 0)
+            sj.Append("Execute");
+        if ((flags & 32) != 0)
+            sj.Append("ExecuteRead");
+        if ((flags & 64) != 0)
+            sj.Append("ExecuteReadWrite");
+        if ((flags & 128) != 0)
+            sj.Append("ExecuteWriteCopy");
+        if ((flags & 256) != 0)
+            sj.Append("Guard");
+        if ((flags & 512) != 0)
+            sj.Append("NoCache");
+        if ((flags & 1024) != 0)
+            sj.Append("WriteCombine");
+        if ((flags & 4096) != 0)
+            sj.Append("UserReadOnly");
+        if ((flags & 8192) != 0)
+            sj.Append("UserReadWrite");
+        return sj.ToString();
     }
 }

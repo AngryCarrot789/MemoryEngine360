@@ -22,15 +22,16 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using MemEngine360.BaseFrontEnd;
+using MemEngine360.BaseFrontEnd.SavedAddressing;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using MemEngine360.XboxBase;
 using PFXToolKitUI.AdvancedMenuService;
@@ -155,7 +156,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         };
         
         MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
-        if (result == MessageBoxResult.Cancel) {
+        if (result == MessageBoxResult.Cancel || result == MessageBoxResult.None) {
             return;
         }
 
@@ -182,7 +183,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
 
     public IListSelectionManager<ScanResultViewModel> ScanResultSelectionManager { get; }
 
-    public IListSelectionManager<SavedAddressViewModel> SavedAddressesSelectionManager { get; }
+    public IListSelectionManager<IAddressTableEntryUI> AddressTableSelectionManager { get; }
 
     public bool IsActivtyListVisible {
         get => this.PART_ActivityListPanel.IsVisible;
@@ -307,11 +308,12 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
 
         this.MemoryEngine360 = new MemoryEngine360();
         this.ScanResultSelectionManager = new DataGridSelectionManager<ScanResultViewModel>(this.PART_ScanListResults);
-        this.SavedAddressesSelectionManager = new DataGridSelectionManager<SavedAddressViewModel>(this.PART_SavedAddressList);
+        // this.SavedAddressesSelectionManager = new DataGridSelectionManager<AddressTableEntry>(this.PART_SavedAddressList);
+        this.AddressTableSelectionManager = new TreeViewSelectionManager<IAddressTableEntryUI>(this.PART_SavedAddressTree);
 
         this.Activity = "Welcome to MemEngine360.";
-        this.PART_SavedAddressList.ItemsSource = this.MemoryEngine360.ScanningProcessor.SavedAddresses;
         this.PART_ScanListResults.ItemsSource = this.MemoryEngine360.ScanningProcessor.ScanResults;
+        this.PART_SavedAddressTree.AddressTableManager = this.MemoryEngine360.AddressTableManager;
 
         this.MemoryEngine360.ScanningProcessor.ScanResults.CollectionChanged += (sender, args) => {
             this.UpdateScanResultCounterText();

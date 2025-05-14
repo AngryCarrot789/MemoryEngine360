@@ -19,14 +19,28 @@
         </Group>
 
         <Group Name="SavedAddressList">
+            <Group Name="RowItem">
+                <Shortcut Name="ToggleIsAutoRefreshEnabled" CommandId="commands.memengine.ToggleSavedAddressAutoRefreshCommand">
+                    <KeyStroke Key="Space"/>
+                </Shortcut>
+            </Group>
             <Shortcut Name="EditSavedAddressValue" CommandId="commands.memengine.EditSavedAddressValueCommand">
                 <KeyStroke Mods="CTRL" Key="E"/>
             </Shortcut>
-            <Shortcut Name="CopyResultsToClipboardCSV" CommandId="commands.memengine.CopySavedResultsToClipboardCommand">
+            <Shortcut Name="ChangeDescription1" CommandId="commands.memengine.EditSavedAddressDescriptionCommand">
+                <KeyStroke Key="F2"/>
+            </Shortcut>
+            <Shortcut Name="ChangeDescription2" CommandId="commands.memengine.EditSavedAddressDescriptionCommand">
+                <KeyStroke Mods="CTRL" Key="R"/>
+            </Shortcut>
+            <Shortcut Name="CopyResultsToClipboardCSV" CommandId="commands.memengine.CopyAddressTableEntryToClipboard">
                 <KeyStroke Mods="CTRL" Key="C"/>
             </Shortcut>
             <Shortcut Name="DeleteSelections" CommandId="commands.memengine.DeleteSelectedSavedAddressesCommand">
                 <KeyStroke Key="Delete"/>
+            </Shortcut>
+            <Shortcut Name="GroupSelection" CommandId="commands.memengine.GroupEntriesCommand">
+                <KeyStroke Mods="CTRL" Key="G"/>
             </Shortcut>
         </Group>
         

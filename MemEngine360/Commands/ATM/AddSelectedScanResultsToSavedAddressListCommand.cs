@@ -17,11 +17,11 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Collections.ObjectModel;
 using MemEngine360.Engine;
+using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
 
-namespace MemEngine360.Commands;
+namespace MemEngine360.Commands.ATM;
 
 public class AddSelectedScanResultsToSavedAddressListCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
@@ -52,17 +52,10 @@ public class AddSelectedScanResultsToSavedAddressListCommand : Command {
             return Task.CompletedTask;
         }
 
-        ObservableCollection<SavedAddressViewModel> saved = ui.MemoryEngine360.ScanningProcessor.SavedAddresses;
+        AddressTableGroupEntry saved = ui.MemoryEngine360.AddressTableManager.RootEntry;
         List<ScanResultViewModel> selection = ui.ScanResultSelectionManager.SelectedItemList.ToList();
-        HashSet<uint> existing = ui.MemoryEngine360.ScanningProcessor.SavedAddresses.Select(x => x.Address).ToHashSet();
         foreach (ScanResultViewModel result in selection) {
-            if (!existing.Contains(result.Address)) {
-                saved.Add(new SavedAddressViewModel(result));
-            }
-        }
-        
-        if (selection.All(x => existing.Contains(x.Address))) {
-            
+            saved.AddEntry(new AddressTableEntry(result));
         }
 
         return Task.CompletedTask;

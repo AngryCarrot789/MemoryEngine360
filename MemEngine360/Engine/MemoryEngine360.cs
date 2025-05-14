@@ -22,6 +22,7 @@ using System.Globalization;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
+using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.UserInputs;
@@ -80,6 +81,11 @@ public class MemoryEngine360 {
     public bool IsConnectionBusy => this.isBusyCount > 0;
 
     public ScanningProcessor ScanningProcessor { get; }
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    public AddressTableManager AddressTableManager { get; }
 
     /// <summary>
     /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working
@@ -101,6 +107,7 @@ public class MemoryEngine360 {
 
     public MemoryEngine360() {
         this.ScanningProcessor = new ScanningProcessor(this);
+        this.AddressTableManager = new AddressTableManager(this);
         Task.Factory.StartNew(async () => {
             long timeSinceRefreshedAddresses = DateTime.Now.Ticks;
             BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;

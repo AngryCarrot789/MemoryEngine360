@@ -38,8 +38,8 @@
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Configurations/Pages/Basic/BaseConfigurationPageThemes.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/Configurations/ThemeConfigTreeThemes.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Activities/ActivityControlStyles.axaml"/>
+                <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/SavedAddressing/AddressTableTreeViewStyles.axaml"/>
                 <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/MemEngineConfigurationPageStyles.axaml"/>
-                
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

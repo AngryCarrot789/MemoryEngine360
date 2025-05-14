@@ -17,22 +17,23 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
-using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 
-namespace MemEngine360.Commands;
+namespace MemEngine360.Engine.SavedAddressing;
 
-public class ClearSavedAddressesCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return e.ContextData.ContainsKey(MemoryEngine360.DataKey) ? Executability.Valid : Executability.Invalid;
-    }
+/// <summary>
+/// An interface that represents the state of a node in a layer tree control
+/// </summary>
+public interface IAddressTableEntryUI {
+    public static readonly DataKey<IAddressTableEntryUI> DataKey = DataKey<IAddressTableEntryUI>.Create("ILayerNodeItem");
+    
+    /// <summary>
+    /// Gets the layer model for this node
+    /// </summary>
+    BaseAddressTableEntry Entry { get; }
 
-    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (MemoryEngine360.DataKey.TryGetContext(e.ContextData, out MemoryEngine360? engine)) {
-            engine.ScanningProcessor.SavedAddresses.Clear();
-        }
-        
-        return Task.CompletedTask;
-    }
+    /// <summary>
+    /// Gets or sets if this item is selected
+    /// </summary>
+    bool IsSelected { get; set; }
 }

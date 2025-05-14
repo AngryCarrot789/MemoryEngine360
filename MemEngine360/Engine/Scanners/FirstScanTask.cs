@@ -72,21 +72,42 @@ public sealed class FirstScanTask : AdvancedPausableTask {
         await this.RunScan(pauseOrCancelToken);
     }
 
-    protected override Task OnPaused(bool isFirst) {
+    protected override async Task OnPaused(bool isFirst) {
         this.Activity.Progress.Text += " (paused)";
         this.Activity.Progress.CompletionState.TotalCompletion = 0.0;
+        await this.SetFrozenState(false);
+        
         this.myBusyToken?.Dispose();
         this.myBusyToken = null;
-        return Task.CompletedTask;
     }
 
-    protected override Task OnCompleted() {
+    protected override async Task OnCompleted() {
+        await this.SetFrozenState(false);
+        
         this.myBusyToken?.Dispose();
         this.myBusyToken = null;
-        return Task.CompletedTask;
+    }
+
+    private async Task<bool> SetFrozenState(bool isFrozen) {
+        try {
+            if (this.ctx.pauseConsoleDuringScan && this.connection is IHaveIceCubes ice) {
+                await (isFrozen ? ice.DebugFreeze() : ice.DebugUnFreeze());
+            }
+        }
+        catch (IOException e) {
+            await this.OnConnectionException(e);
+            return false;
+        }
+        
+        return true;
     }
 
     private async Task RunScan(CancellationToken pauseOrCancelToken) {
+        if (!await this.SetFrozenState(true)) {
+            pauseOrCancelToken.ThrowIfCancellationRequested();
+            return;
+        }
+        
         IActivityProgress progress = ActivityManager.Instance.CurrentTask.Progress;
         byte[] tmpBuffer = new byte[ScanningContext.ChunkSize];
         if (this.ctx.scanMemoryPages && this.connection is IHaveMemoryRegions iHaveRegions) {
@@ -106,7 +127,9 @@ public sealed class FirstScanTask : AdvancedPausableTask {
 
                 List<MemoryRegion> regions = new List<MemoryRegion>();
                 foreach (MemoryRegion region in allRegions) {
-                    if (this.ctx.scanEndAddress >= region.BaseAddress && this.ctx.startAddress < (region.BaseAddress + region.Size)) {
+                    // Putting this comment here cus it's the 3rd time I fucked this up
+                    // ------------- Do not use >= !!! scanEndAddress is exclusive
+                    if (this.ctx.scanEndAddress > region.BaseAddress && this.ctx.startAddress < (region.BaseAddress + region.Size)) {
                         regions.Add(region);
                     }
                 }

@@ -17,20 +17,19 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Text;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
+using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
-namespace MemEngine360.Commands;
+namespace MemEngine360.Commands.ATM;
 
-public class OpenFileAsSavedAddressesCommand : Command {
+public class OpenCSVFileCommand : Command {
     public readonly struct SavedAddress(bool IsRefreshActive, uint Address, string Desc, NumericDisplayType NDT, DataType DataType, StringType StringType, uint StringLength) {
         public bool IsRefreshActive { get; } = IsRefreshActive;
         public uint Address { get; } = Address;
@@ -65,7 +64,7 @@ public class OpenFileAsSavedAddressesCommand : Command {
             task.Progress.Caption = "Read addresses from CSV";
             task.Progress.Text = "Reading file...";
             task.Progress.IsIndeterminate = true;
-            
+
             try {
                 return await File.ReadAllLinesAsync(path, ActivityManager.Instance.CurrentTask.CancellationToken);
             }
@@ -97,7 +96,7 @@ public class OpenFileAsSavedAddressesCommand : Command {
             task.Progress.Caption = "Read addresses from CSV";
             task.Progress.Text = "Deserializing...";
             task.Progress.IsIndeterminate = true;
-            
+
             List<SavedAddress> list = new List<SavedAddress>();
             foreach (string line in trueLines) {
                 task.CheckCancelled();
@@ -121,9 +120,9 @@ public class OpenFileAsSavedAddressesCommand : Command {
             return list;
         }, cts);
 
-        ObservableCollection<SavedAddressViewModel> saved = engine.ScanningProcessor.SavedAddresses;
+        AddressTableGroupEntry saved = engine.AddressTableManager.RootEntry;
         MessageBoxResult keepExistingResults = MessageBoxResult.Yes;
-        if (saved.Count > 0) {
+        if (saved.Items.Count > 0) {
             MessageBoxInfo info = new MessageBoxInfo("Existing results", "Add the opened values to the end of your current saved addresses, or clear the existing ones?") {
                 YesOkText = "Merge",
                 NoText = "Clear existing",
@@ -132,7 +131,7 @@ public class OpenFileAsSavedAddressesCommand : Command {
             };
 
             keepExistingResults = await IMessageDialogService.Instance.ShowMessage(info);
-            if (keepExistingResults == MessageBoxResult.Cancel) {
+            if (keepExistingResults == MessageBoxResult.Cancel || keepExistingResults == MessageBoxResult.None) {
                 task.TryCancel();
                 return;
             }
@@ -146,13 +145,13 @@ public class OpenFileAsSavedAddressesCommand : Command {
 
             return;
         }
-        
+
         if (keepExistingResults == MessageBoxResult.No) {
-            engine.ScanningProcessor.SavedAddresses.Clear();
+            saved.Clear();
         }
 
         foreach (SavedAddress address in list) {
-            saved.Add(new SavedAddressViewModel(engine.ScanningProcessor, address.Address) {
+            saved.AddEntry(new AddressTableEntry(engine.ScanningProcessor, address.Address) {
                 DataType = address.DataType,
                 Address = address.Address,
                 Description = address.Desc,
@@ -162,56 +161,5 @@ public class OpenFileAsSavedAddressesCommand : Command {
                 IsAutoRefreshEnabled = address.IsRefreshActive,
             });
         }
-    }
-}
-
-public class SaveFileAsSavedAddressesCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngine360.DataKey.TryGetContext(e.ContextData, out MemoryEngine360? engine)) {
-            return Executability.Invalid;
-        }
-
-        return Executability.Valid;
-    }
-
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine360.DataKey.TryGetContext(e.ContextData, out MemoryEngine360? engine)) {
-            return;
-        }
-
-        string? path = await IFilePickDialogService.Instance.SaveFile("Open a CSV containing saved addresses", Filters.CsvAndAll);
-        if (path == null) {
-            return;
-        }
-
-        List<SavedAddressViewModel> saved = engine.ScanningProcessor.SavedAddresses.ToList();
-        if (saved.Count < 1) {
-            return;
-        }
-        
-        using CancellationTokenSource cts = new CancellationTokenSource();
-        await ActivityManager.Instance.RunTask(async () => {
-            ActivityTask task = ActivityManager.Instance.CurrentTask;
-            task.Progress.Caption = "Save addresses to CSV";
-            task.Progress.Text = "Serializing...";
-            task.Progress.IsIndeterminate = true;
-
-            List<string> lines = new List<string>();
-            foreach (SavedAddressViewModel address in saved) {
-                task.CheckCancelled();
-                StringBuilder sb = new StringBuilder();
-                sb.Append(address.IsAutoRefreshEnabled).Append(',').
-                   Append(address.Address.ToString("X8")).Append(',').
-                   Append(address.Description ?? "").Append(',').
-                   Append((uint) address.NumericDisplayType).Append(',').
-                   Append((uint) address.DataType).Append(',').
-                   Append((uint) address.StringType).Append(',').
-                   Append(address.StringLength);
-                lines.Add(sb.ToString());
-            }
-            
-            task.Progress.Text = "Writing to file...";
-            await File.WriteAllLinesAsync(path, lines, task.CancellationToken);
-        }, cts);
     }
 }

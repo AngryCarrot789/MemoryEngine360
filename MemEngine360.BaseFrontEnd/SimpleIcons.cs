@@ -187,6 +187,29 @@ public static class SimpleIcons {
                 new GeometryEntry("M131.657,0v160.914h248.686V0H131.657z M204.8,124.343h-43.886V51.2H204.8V124.343z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
             ],
             stretch: StretchMode.Uniform);
+    
+    // https://www.svgrepo.com/svg/368622/csv
+    // https://www.svgrepo.com/svg/374198/xml
+    
+    // CSV: M4.5.5V0H4v.5h.5Zm0 2H4V3h.5V2.5Zm2 0H7V2H6.5v.5Zm0 2V5H7v-.5H6.5Zm2-1H8v.2071l.1464.1464L8.5 3.5Zm1 1-.3536.3536.3536.3535.3536-.3535L9.5 4.5Zm1-1 .3536.3536L11 3.7071V3.5h-.5ZM.5.5V0H0v.5h.5Zm0 4H0V5h.5ZH0Zh10ZM7 0H4.5V1H7V0ZM4 .5v2H5v-2H4ZM4.5 3h2V2h-2V3ZM6 2.5v2H7v-2H6ZM6.5 4H4v1H6.5V4ZM8 0V3.5h1V0H8Zm.1464 3.8536 1 1 .7072-.7072-1-1-.7072.7071Zm1.7072 1 1-1-.7072-.7071-1 1 .7072.7072ZM11 3.5V0H10V3.5h1ZM3 0H.5V1H3V0ZM0 .5v4H1v-4H0ZM.5 5H3V4H.5v1Z
+    // XML: M12.89,3l2,.4L11.11,21l-2-.4L12.89,3m6.7,9L16,8.41V5.58L22.42,12,16,18.41V15.58L19.59,12m-18,0L8,5.58V8.41L4.41,12,8,15.58v2.83Z
+    // DIR: M11.7407 3.0144C11.397 2.4087 10.7462 2 10 2L8 2 6.2929.2929C6.1054.1054 5.851 0 5.5858 0L2 0C.8954 0 0 .8954 0 2L0 10C0 11.1046.8954 12 2 12L11 12C11.0024 12 11.0047 12 11.0071 12L11.6516 12C12.5554 12 13.3469 11.3939 13.5825 10.5213L14.9286 5.5357C15.2718 4.2646 14.3144 3.0144 12.9977 3.0144L11.7407 3.0144ZM3.3483 5.0144 2.0022 10 11.6516 10 12.9977 5.0144 3.3483 5.0144Z
+    
+    public static readonly Icon OpenFileCSVIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(OpenFileCSVIcon),
+            [
+                new GeometryEntry("M8.5 4.5V4H8v.5h.5Zm0 2H8V7h.5V6.5Zm2 0H11V6H10.5v.5Zm0 2V9H11v-.5H10.5Zm2-1H12v.2071l.1464.1464L12.5 7.5Zm1 1-.3536.3536.3536.3535.3536-.3535L13.5 8.5Zm1-1 .3536.3536L15 7.7071V7.5h-.5ZM4.5 4.5V4H4v.5h.5Zm0 4H4V9h.5ZH4Zh10ZM11 4H8.5V5H11V4ZM8 4.5v2H9v-2H8ZM8.5 7h2V6h-2V7ZM10 6.5v2H11v-2H10ZM10.5 8H8v1H10.5V8ZM12 4V7.5h1V4H12Zm.1464 3.8536 1 1 .7072-.7072-1-1-.7072.7071Zm1.7072 1 1-1-.7072-.7071-1 1 .7072.7072ZM15 7.5V4H14V7.5h1ZM7 4H4.5V5H7V4ZM4 4.5v4H5v-4H4ZM4.5 9H7V8H4.5v1Z", BrushManager.Instance.CreateConstant(SKColors.LawnGreen)),
+            ],
+            stretch: StretchMode.Uniform);
+    
+    public static readonly Icon OpenFileXMLIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(OpenFileXMLIcon),
+            [
+                new GeometryEntry("M9.6675 2.25l1.5.3L8.3325 15.75l-1.5-.3L9.6675 2.25m5.025 6.75L12 6.3075V4.185L16.815 9 12 13.8075V11.685L14.6925 9m-13.5 0L6 4.185V6.3075L3.3075 9 6 11.685v2.1225Z", BrushManager.Instance.CreateConstant(SKColors.OrangeRed))
+            ],
+            stretch: StretchMode.Uniform);
 }
 
 /*

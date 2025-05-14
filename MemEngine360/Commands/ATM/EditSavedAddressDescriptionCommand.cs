@@ -17,34 +17,34 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Collections.ObjectModel;
-using MemEngine360.Engine;
+using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Services.UserInputs;
 
-namespace MemEngine360.Commands;
+namespace MemEngine360.Commands.ATM;
 
-public class DeleteSelectedSavedAddressesCommand : Command {
+public class EditSavedAddressDescriptionCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? engine))
+        if (!BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out BaseAddressTableEntry? result)) {
             return Executability.Invalid;
-        
-        return engine.SavedAddressesSelectionManager.Count < 1 ? Executability.ValidButCannotExecute : Executability.Valid;
+        }
+
+        return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? engine)) {
+        if (!BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out BaseAddressTableEntry? result)) {
             return;
         }
 
-        ObservableCollection<SavedAddressViewModel> items = engine.MemoryEngine360.ScanningProcessor.SavedAddresses;
-        if (engine.SavedAddressesSelectionManager.Count == items.Count) {
-            items.Clear();
-        }
-        else {
-            List<SavedAddressViewModel> list = engine.SavedAddressesSelectionManager.SelectedItemList.ToList();
-            foreach (SavedAddressViewModel address in list) {
-                items.Remove(address);
-            }
+        SingleUserInputInfo info = new SingleUserInputInfo(result.Description) {
+            Caption = "Change description",
+            DefaultButton = true,
+            Label = "New description"
+        };
+
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+            result.Description = info.Text;
         }
     }
 }

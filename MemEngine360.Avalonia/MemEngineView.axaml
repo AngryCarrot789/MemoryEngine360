@@ -13,6 +13,7 @@
              xmlns:av2="clr-namespace:MemEngine360.Avalonia"
              xmlns:ac="clr-namespace:MemEngine360.BaseFrontEnd.Commands;assembly=MemEngine360.BaseFrontEnd"
              xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd;assembly=MemEngine360.BaseFrontEnd"
+             xmlns:sa="clr-namespace:MemEngine360.BaseFrontEnd.SavedAddressing;assembly=MemEngine360.BaseFrontEnd"
              mc:Ignorable="d"
              x:Class="MemEngine360.Avalonia.MemEngineView">
     <DockPanel>
@@ -244,19 +245,26 @@
                         <DockPanel>
                             <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="5" Height="20">
-                                <av:IconButton Icon="{x:Static cb:SimpleIcons.OpenFileIcon}" Width="20"
+                                <av:IconButton Icon="{x:Static cb:SimpleIcons.OpenFileCSVIcon}" Width="20"
                                                Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                                BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                               cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenFileAsSavedAddressesCommand"
+                                               cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenCSVFileCommand"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                                               ToolTip.Tip="Open a CSV file containing saved addresses" Padding="3,3,2,2"/>
+                                               ToolTip.Tip="(Depreciated) Open a CSV file containing saved addresses. This feature will be removed soon in favour for XML, so that groups can be supported" Padding="3,3,2,2"/>
+                                
+                                <av:IconButton Icon="{x:Static cb:SimpleIcons.OpenFileXMLIcon}" Width="20"
+                                               Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                               BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                               cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenXMLFileCommand"
+                                               VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                                               ToolTip.Tip="Open an XML file containing saved addresses" Padding="3,3,2,2"/>
 
                                 <av:IconButton Icon="{x:Static cb:SimpleIcons.SaveFileIcon}" Width="20"
                                                Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                                BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                               cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.SaveFileAsSavedAddressesCommand"
+                                               cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.SaveSavedAddressesToFileCommand"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                                               ToolTip.Tip="Save the saved addresses to a CSV file (including data type, display options, etc.)" Padding="3"/>
+                                               ToolTip.Tip="Save these addresses to a file (including data type, display options, etc.)" Padding="3"/>
 
                                 <av:IconButton Padding="2" Width="20"
                                                Background="{DynamicResource ABrush.Tone6.Background.Static}"
@@ -297,38 +305,41 @@
                             <Border/>
                         </DockPanel>
                     </c:GroupBox.Header>
-                    <DataGrid x:Name="PART_SavedAddressList"
-                              Background="Transparent"
-                              BorderThickness="0"
-                              CanUserResizeColumns="True"
-                              ClipboardCopyMode="None">
-                        <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Header="Active" Width="42" x:DataType="{x:Type engine:SavedAddressViewModel}"
-                                                    Binding="{Binding IsAutoRefreshEnabled, Mode=TwoWay}"
-                                                    CanUserResize="False"/>
-
-                            <DataGridTextColumn Header="Address (hex)" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}"
-                                                Binding="{Binding Address, Mode=OneWay, StringFormat=X}"
-                                                IsReadOnly="True" FontFamily="{StaticResource FontOxanium}"
-                                                CanUserResize="False"/>
-
-                            <DataGridTextColumn Header="Description" Width="200" x:DataType="{x:Type engine:SavedAddressViewModel}"
-                                                Binding="{Binding Description, Mode=TwoWay}"
-                                                CanUserResize="True"/>
-
-                            <cb:DataGridTextColumnEx Header="Data Type" Width="80" x:DataType="{x:Type engine:SavedAddressViewModel}"
-                                                     Binding="{Binding DataType, Mode=OneWay}"
-                                                     IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressDataTypeCommand"
-                                                     CellDataKeyForDC="{x:Static engine:SavedAddressViewModel.DataKey}"
-                                                     CanUserResize="True"/>
-
-                            <cb:DataGridTextColumnEx Header="Value" Width="100" x:DataType="{x:Type engine:SavedAddressViewModel}"
-                                                     Binding="{Binding Value, Mode=OneWay}"
-                                                     IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressValueCommand"
-                                                     CellDataKeyForDC="{x:Static engine:SavedAddressViewModel.DataKey}"
-                                                     CanUserResize="True" FontFamily="{StaticResource FontOxanium}"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <sa:AddressTableTreeView x:Name="PART_SavedAddressTree" Background="Transparent" BorderThickness="0"/>
+                    <!-- <DataGrid x:Name="PART_SavedAddressList" -->
+                    <!--           Background="Transparent" -->
+                    <!--           BorderThickness="0" -->
+                    <!--           CanUserResizeColumns="True" -->
+                    <!--           ClipboardCopyMode="None"> -->
+                    <!--     <DataGrid.Columns> -->
+                    <!--         <DataGridCheckBoxColumn Header="Active" Width="42" x:DataType="{x:Type engine:AddressTableEntry}" -->
+                    <!--                                 Binding="{Binding IsAutoRefreshEnabled, Mode=TwoWay}" -->
+                    <!--                                 CanUserResize="False"/> -->
+                    <!-- -->
+                    <!--         <cb:DataGridTextColumnEx Header="Address (hex)" Width="100" x:DataType="{x:Type engine:AddressTableEntry}" -->
+                    <!--                                  Binding="{Binding Address, Mode=OneWay, StringFormat=X}" -->
+                    <!--                                  IsReadOnly="True" FontFamily="{StaticResource FontOxanium}" -->
+                    <!--                                  DoubleTapCommandId="commands.memengine.CopyScanResultsToClipboardCommand" -->
+                    <!--                                  CellDataKeyForDC="{x:Static engine:AddressTableEntry.DataKey}" -->
+                    <!--                                  CanUserResize="False"/> -->
+                    <!-- -->
+                    <!--         <DataGridTextColumn Header="Description" Width="200" x:DataType="{x:Type engine:AddressTableEntry}" -->
+                    <!--                             Binding="{Binding Description, Mode=TwoWay}" -->
+                    <!--                             CanUserResize="True"/> -->
+                    <!-- -->
+                    <!--         <cb:DataGridTextColumnEx Header="Data Type" Width="80" x:DataType="{x:Type engine:AddressTableEntry}" -->
+                    <!--                                  Binding="{Binding DataType, Mode=OneWay}" -->
+                    <!--                                  IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressDataTypeCommand" -->
+                    <!--                                  CellDataKeyForDC="{x:Static engine:AddressTableEntry.DataKey}" -->
+                    <!--                                  CanUserResize="True"/> -->
+                    <!-- -->
+                    <!--         <cb:DataGridTextColumnEx Header="Value" Width="100" x:DataType="{x:Type engine:AddressTableEntry}" -->
+                    <!--                                  Binding="{Binding Value, Mode=OneWay}" -->
+                    <!--                                  IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressValueCommand" -->
+                    <!--                                  CellDataKeyForDC="{x:Static engine:AddressTableEntry.DataKey}" -->
+                    <!--                                  CanUserResize="True" FontFamily="{StaticResource FontOxanium}"/> -->
+                    <!--     </DataGrid.Columns> -->
+                    <!-- </DataGrid> -->
                 </c:GroupBox>
                 <GridSplitter Grid.Column="2" Grid.Row="1" Background="Transparent"/>
                 <GridSplitter Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="2" Background="Transparent"/>

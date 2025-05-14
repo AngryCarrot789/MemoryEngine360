@@ -20,11 +20,12 @@
 using System.Globalization;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
+using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.UserInputs;
 
-namespace MemEngine360.Commands;
+namespace MemEngine360.Commands.ATM;
 
 public class AddSavedAddressCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
@@ -55,7 +56,7 @@ public class AddSavedAddressCommand : Command {
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(addrDescInfo) == true) {
-            SavedAddressViewModel result = new SavedAddressViewModel(engine.ScanningProcessor, uint.Parse(addrDescInfo.TextA, NumberStyles.HexNumber, null)) {
+            AddressTableEntry result = new AddressTableEntry(engine.ScanningProcessor, uint.Parse(addrDescInfo.TextA, NumberStyles.HexNumber, null)) {
                 Description = addrDescInfo.TextB
             };
 
@@ -82,7 +83,7 @@ public class AddSavedAddressCommand : Command {
                 result.StringType = dataTypeInfo.StringScanOption;
                 result.StringLength = dataTypeInfo.StringLength;
                 result.DataType = dataTypeInfo.DataType;
-                engine.ScanningProcessor.SavedAddresses.Add(result);
+                engine.AddressTableManager.RootEntry.AddEntry(result);
                 engine.ScanningProcessor.RefreshSavedAddressesLater();
             }
         }

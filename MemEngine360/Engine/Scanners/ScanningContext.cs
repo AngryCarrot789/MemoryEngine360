@@ -41,6 +41,7 @@ public sealed class ScanningContext {
     internal readonly string inputA, inputB;
     internal readonly uint startAddress, scanLength, scanEndAddress;
     internal readonly uint alignment;
+    internal readonly bool pauseConsoleDuringScan;
     internal readonly bool scanMemoryPages, isIntInputHexadecimal;
     internal readonly bool nextScanUsesFirstValue, nextScanUsesPreviousValue;
     internal readonly FloatScanOption floatScanOption;
@@ -69,6 +70,7 @@ public sealed class ScanningContext {
         this.scanLength = processor.ScanLength;
         this.scanEndAddress = this.startAddress + this.scanLength;
         this.alignment = processor.Alignment;
+        this.pauseConsoleDuringScan = processor.PauseConsoleDuringScan;
         this.scanMemoryPages = processor.ScanMemoryPages;
         this.isIntInputHexadecimal = processor.IsIntInputHexadecimal;
         this.nextScanUsesFirstValue = processor.UseFirstValueForNextScan;
@@ -152,11 +154,6 @@ public sealed class ScanningContext {
         }
 
         return true;
-    }
-
-    public async Task PerformFirstScan(IConsoleConnection connection, IDisposable busyToken) {
-        FirstScanTask task = new FirstScanTask(this, connection, busyToken);
-        await task.RunWithCurrentActivity();
     }
 
     internal void ProcessMemoryBlockForFirstScan(uint baseAddress, byte[] buffer, uint count, uint align) {

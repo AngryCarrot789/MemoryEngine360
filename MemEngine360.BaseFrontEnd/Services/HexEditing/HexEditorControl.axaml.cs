@@ -721,6 +721,9 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
         uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(daBuf, 0, 4)) : 0;
         ulong val64 = cbRemaining >= 8 ? MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(daBuf, 0, 8)) : 0;
         
+        // Rather than use something like BinaryPrimitives.ReadUInt32BigEndian, we just
+        // reverse the endianness here so that we aren't reversing possibly twice if the user
+        // wants to display in LE for some reason
         bool displayAsLE = info.InspectorEndianness == Endianness.LittleEndian;
         if (displayAsLE != BitConverter.IsLittleEndian) {
             val16 = BinaryPrimitives.ReverseEndianness(val16);

@@ -27,7 +27,7 @@ using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Commands;
 
-public class MemProtectionCommand : BaseMemoryEngineCommand {
+public class ShowMemoryRegionsCommand : BaseMemoryEngineCommand {
     protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
         if (engine.Connection != null) {
             return engine.Connection is IHaveMemoryRegions ? Executability.Valid : Executability.Invalid;
@@ -60,7 +60,8 @@ public class MemProtectionCommand : BaseMemoryEngineCommand {
 
             MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(list) {
                 Caption = "Memory Regions",
-                ConfirmText = "Epic", CancelText = "Close" // UserInputDialog limitation -- cannot disable OK :-)
+                ConfirmText = "Epic", CancelText = "Close", // UserInputDialog limitation -- cannot disable OK :-)
+                RegionFlagsToTextConverter = MemoryRegionUserInputInfo.ConvertXboxFlagsToText
             };
 
             await IUserInputDialogService.Instance.ShowInputDialogAsync(info);
