@@ -149,21 +149,24 @@ public abstract class BaseAddressTableEntry : ITransferableData {
     }
 
     public static bool CheckHaveParentsAndAllMatch(ISelectionManager<BaseAddressTableEntry> manager, [NotNullWhen(true)] out AddressTableGroupEntry? sameParent) {
-        using (IEnumerator<BaseAddressTableEntry> enumerator = manager.SelectedItems.GetEnumerator()) {
-            if (!enumerator.MoveNext())
-                throw new InvalidOperationException("Expected items to contain at least 1 item");
+        return CheckHaveParentsAndAllMatch(manager.SelectedItems, out sameParent);
+    }
+    
+    public static bool CheckHaveParentsAndAllMatch(IEnumerable<BaseAddressTableEntry> items, [NotNullWhen(true)] out AddressTableGroupEntry? sameParent) {
+        using IEnumerator<BaseAddressTableEntry> enumerator = items.GetEnumerator();
+        if (!enumerator.MoveNext())
+            throw new InvalidOperationException("Expected items to contain at least 1 item");
 
-            if ((sameParent = enumerator.Current.Parent) == null)
+        if ((sameParent = enumerator.Current.Parent) == null)
+            return false;
+
+        while (enumerator.MoveNext()) {
+            if (!ReferenceEquals(enumerator.Current.Parent, sameParent)) {
                 return false;
-
-            while (enumerator.MoveNext()) {
-                if (!ReferenceEquals(enumerator.Current.Parent, sameParent)) {
-                    return false;
-                }
             }
-
-            return true;
         }
+
+        return true;
     }
 
     /// <summary>

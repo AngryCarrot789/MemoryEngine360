@@ -31,19 +31,16 @@ public class GroupEntriesCommand : Command {
             return Executability.Invalid;
         }
 
-        List<IAddressTableEntryUI> list = ui.AddressTableSelectionManager.SelectedItems.ToList();
+        List<BaseAddressTableEntry> list = ui.AddressTableSelectionManager.SelectedItems.Select(x => x.Entry).ToList();
         if (list.Count < 1) {
             return Executability.ValidButCannotExecute;
         }
 
-        BaseAddressTableEntry firstParent = list[0].Entry.Parent!;
-        for (int i = 1; i < list.Count; i++) {
-            if (firstParent != list[i].Entry.Parent) {
-                return Executability.ValidButCannotExecute;
-            }
+        if (!BaseAddressTableEntry.CheckHaveParentsAndAllMatch(list, out AddressTableGroupEntry? parent)) {
+            return Executability.ValidButCannotExecute;
         }
-        
-        return base.CanExecuteCore(e);
+
+        return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {

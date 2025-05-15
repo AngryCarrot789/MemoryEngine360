@@ -31,18 +31,22 @@ namespace MemEngine360.Commands.ATM;
 
 public class EditSavedAddressValueCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        ScanningProcessor processor;
-        if (!ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? result)) {
-            if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+        ScanningProcessor processor = null;
+        if (IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? theResult)) {
+            if (!(theResult.Entry is AddressTableEntry)) {
                 return Executability.Invalid;
             }
-
+            
+            processor = theResult.Entry.AddressTableManager!.MemoryEngine360.ScanningProcessor;
+        }
+        
+        if (IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
             processor = ui.MemoryEngine360.ScanningProcessor;
         }
-        else {
-            processor = result.ScanningProcessor;
-        }
 
+        if (processor == null)
+            return Executability.Invalid;
+        
         if (processor.IsScanning)
             return Executability.ValidButCannotExecute;
 

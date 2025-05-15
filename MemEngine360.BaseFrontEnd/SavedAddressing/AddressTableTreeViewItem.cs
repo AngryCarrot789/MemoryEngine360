@@ -17,18 +17,17 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
-using Avalonia.Media;
 using MemEngine360.Engine.SavedAddressing;
+using PFXToolKitUI.AdvancedMenuService;
+using PFXToolKitUI.Avalonia.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Commands;
 
@@ -49,8 +48,8 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     private ObservableItemProcessorIndexing<BaseAddressTableEntry>? compositeListener;
 
     private readonly IBinder<BaseAddressTableEntry> descriptionBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<BaseAddressTableEntry>(TextBlock.TextProperty, nameof(BaseAddressTableEntry.DescriptionChanged), b => ((TextBlock) b.Control).Text = b.Model.Description, null);
-    private readonly IBinder<AddressTableGroupEntry> groupAddressBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableGroupEntry>(HeaderProperty, nameof(AddressTableGroupEntry.GroupAddressChanged), b => b.Model.GroupAddress.ToString("X8"), null);
-    private readonly IBinder<AddressTableEntry> entryAddressBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableEntry>(HeaderProperty, nameof(AddressTableEntry.AddressChanged), b => b.Model.Address.ToString("X8"), null);
+    private readonly IBinder<AddressTableGroupEntry> groupAddressBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableGroupEntry>(HeaderProperty, nameof(AddressTableGroupEntry.GroupAddressChanged), GroupAddressToHeader, null);
+    private readonly IBinder<AddressTableEntry> entryAddressBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableEntry>(HeaderProperty, nameof(AddressTableEntry.AddressChanged), EntryAddressToHeader, null);
     private readonly IBinder<AddressTableEntry> dataTypeTextBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableEntry>(TextBlock.TextProperty, nameof(AddressTableEntry.DataTypeChanged), b => ((TextBlock) b.Control).Text = b.Model.DataType.ToString(), null);
     private readonly IBinder<AddressTableEntry> valueTextBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableEntry>(TextBlock.TextProperty, nameof(AddressTableEntry.ValueChanged), b => ((TextBlock) b.Control).Text = b.Model.Value, null);
     private Border? PART_DragDropMoveBorder;
@@ -69,31 +68,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         DataManager.GetContextData(this).Set(IAddressTableEntryUI.DataKey, this);
 
         this.EditAddressCommand = new AsyncRelayCommand(async () => {
-            if (!(this.EntryObject is AddressTableEntry entry)) {
-                return;
-            }
-
-            SingleUserInputInfo info = new SingleUserInputInfo(entry.Address.ToString("X8")) {
-                Caption = "Dump memory region",
-                Message = "Change the address of this saved address table entry",
-                DefaultButton = true,
-                Label = "Address (hex)",
-                Validate = (a) => {
-                    if (!uint.TryParse(a.Input, NumberStyles.HexNumber, null, out _)) {
-                        if (ulong.TryParse(a.Input, NumberStyles.HexNumber, null, out _)) {
-                            a.Errors.Add("Value is too big. Maximum is 0xFFFFFFFF");
-                        }
-                        else {
-                            a.Errors.Add("Invalid UInt32.");
-                        }
-                    }
-                }
-            };
-
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-                entry.Address = uint.Parse(info.Text, NumberStyles.HexNumber);
-                entry.ScanningProcessor.RefreshSavedAddressesLater();
-            }
+            await CommandManager.Instance.Execute("commands.memengine.EditSavedAddressAddressCommand", DataManager.GetFullContextData(this));
         });
         
         this.EditDescriptionCommand = new AsyncRelayCommand(async () => {
@@ -106,6 +81,15 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     }
 
     static AddressTableTreeViewItem() {
+    }
+    
+    private static string GroupAddressToHeader(IBinder<AddressTableGroupEntry> b) {
+        uint addr = b.Model.GroupAddress;
+        return addr == 0 ? "Group" : $"Group ({(b.Model.IsAddressAbsolute ? "" : "+")}{addr:X})";
+    }
+    
+    private static string EntryAddressToHeader(IBinder<AddressTableEntry> b) {
+        return $"{(b.Model.IsAddressAbsolute ? "" : "+")}{b.Model.Address:X}";
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
@@ -162,6 +146,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         }
 
         DataManager.GetContextData(this).Set(BaseAddressTableEntry.DataKey, this.EntryObject);
+        AdvancedContextMenu.SetContextRegistry(this, AddressTableContextRegistry.Registry);
     }
 
     private void OnIsAutoRefreshEnabledChanged(AddressTableEntry? sender) {
@@ -202,6 +187,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         this.ParentNode = null;
         this.EntryObject = null;
         this.IsFolderItem = false;
+        AdvancedContextMenu.SetContextRegistry(this, null);
         DataManager.ClearContextData(this);
     }
 
@@ -279,5 +265,26 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                 }
             }
         }
+    }
+}
+
+public class AddressTableContextRegistry {
+    public static readonly ContextRegistry Registry = new ContextRegistry("Saved Address Entry");
+
+    static AddressTableContextRegistry() {
+        FixedContextGroup modEdit = Registry.GetFixedGroup("modify.edit");
+        modEdit.AddHeader("Edit");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressAddressCommand",       "Edit Address");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressValueCommand",         "Edit Value");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressDataTypeCommand",      "Edit Data Type");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressDescriptionCommand",   "Edit Description");
+        
+        FixedContextGroup modGeneric = Registry.GetFixedGroup("modify.general");
+        modGeneric.AddHeader("General");
+        modGeneric.AddCommand("commands.memengine.CopyAddressTableEntryToClipboard",     "Copy (as dialog)");
+        modGeneric.AddCommand("commands.memengine.RefreshSavedAddressesCommand",         "Refresh");
+        modGeneric.AddCommand("commands.memengine.DeleteSelectedSavedAddressesCommand",  "Delete");
+        modGeneric.AddCommand("commands.memengine.GroupEntriesCommand",                  "Group");
+        modGeneric.AddCommand("commands.memengine.ToggleSavedAddressAutoRefreshCommand", "Toggle Enabled");
     }
 }

@@ -1,16 +1,11 @@
 # MemEngine360 v1.1.4
-This is a remake of Cheat Engine, but for consoles. 
+This is a remake of Cheat Engine, but for consoles (and so far only Xbox 360)
 
 ![](MemEngine360-DesktopUI_2025-05-10_15.03.51.png)
 
-This project was inspired from https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
+This project was inspired by https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
 
-I've only just gotten start in console modding, and I don't have much experience in the low level features that this app 
-definitely needs (such as parsing memory blocks as executable code, and displaying as assembnly). So any help/contributions would be great! 
-
-General tips and advice on how the UI can be improved or made more productive are also welcomed.
-
-# Download and built
+# Download and build
 Clone repo: `git clone --recursive https://github.com/AngryCarrot789/MemEngine360`
 
 Open `MemEngine360.sln` and then run/debug.
@@ -113,3 +108,11 @@ There's a few remote control commands you can find in the `Remote Controls` menu
 This means that something else is using the engine elsewhere (scan is running, the hex editor auto-refresh is running, or maybe the results list/saved addresses are being refreshed).
 
 This application is multithreaded, but connections are not thread safe, so there exists a `BusyToken` to synchronize access. This message is shown in the status bar while waiting to obtain the token.
+
+# Contributions
+are most welcome! Even just general tips and advice on how the UI can be improved or made more productive are helpful.
+
+# Licence
+The project is licenced under GPLv3. See COPYING.GPLv3 for more information. All files should contain the licence header
+
+This project references a project called PFXToolKitUI licenced under LGPL, and AvaloniaHex is licenced under MIT 
