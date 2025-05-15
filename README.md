@@ -112,6 +112,18 @@ This application is multithreaded, but connections are not thread safe, so there
 # Contributions
 are most welcome! Even just general tips and advice on how the UI can be improved or made more productive are helpful.
 
+Here are some helpful pages that describe the inner workings of the PFXToolKitUI and MemEngine360.
+
+[API, plugins, projects and codebase](docs/Projects-and-Codebase.md)
+
+[Models, Binding, Where is MVVM?](docs/Models-And-Binding.md)
+
+[Command system, Context Menu System, Shortcuts](docs/Command-System.md)
+
+[Opening Custom Windows](docs/Opening-Windows.md)
+
+[The basic dialogs (input, message, etc.)](docs/Basic-Dialogs.md)
+
 # Licence
 The project is licenced under GPLv3. See COPYING.GPLv3 for more information. All files should contain the licence header
 

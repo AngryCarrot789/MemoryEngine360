@@ -33,6 +33,8 @@ public class PluginXbox360Xbdm : Plugin {
         base.RegisterCommands(manager);
         
         manager.Register("commands.memengine.remote.ListHelpCommand", new ListHelpCommand());
+        
+        // TODO: move commands to ME360 project and use a trait like IDiskEjectable
         manager.Register("commands.memengine.remote.ShowConsoleInfoCommand", new ShowConsoleInfoCommand());
         manager.Register("commands.memengine.remote.ShowXbeInfoCommand", new ShowXbeInfoCommand());
         manager.Register("commands.memengine.remote.EjectDiskTrayCommand", new EjectDiskTrayCommand());

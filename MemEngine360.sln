@@ -27,6 +27,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XDevkit", "XDevkit\XDevkit.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemEngine360.BaseFrontEnd", "MemEngine360.BaseFrontEnd\MemEngine360.BaseFrontEnd.csproj", "{EA6159F6-22D5-4588-AB30-E65A30D3C79F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{07FB257C-2685-4797-9B72-62720F5A9170}"
+	ProjectSection(SolutionItems) = preProject
+		docs\Opening-Windows.md = docs\Opening-Windows.md
+		docs\Models-And-Binding.md = docs\Models-And-Binding.md
+		docs\Basic-Dialogs.md = docs\Basic-Dialogs.md
+		docs\Command-System.md = docs\Command-System.md
+		docs\Projects-and-Codebase.md = docs\Projects-and-Codebase.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
