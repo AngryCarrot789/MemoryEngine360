@@ -100,18 +100,16 @@ The property editor consists of rows that we call "Slots". A slot typically cons
 For example, this is the property editor slot used to modify the `Line Spacing` of a text clip, which is also animatable:
 
 ```csharp  
-new ParameterFloatPropertyEditorSlot(   // Built-in slot which manages animatable float parameters  
-    TextVideoClip.LineSpacingParameter, // The specific parameter we want to modify
-    typeof(TextVideoClip),              // The type of object the slot is applicable to, typically the Owner of the parameter 
-    "Line Spacing",                     // A readable display name string, on the left column 
-    DragStepProfile.Pixels)             // The NumberDragger's increment behaviour. Pixels is fine tuned
+new DataParameterNumberPropertyEditorSlot<float>(// Built-in slot which manages float parameters  
+    MyObject.MyFloatParameter,                  // The specific parameter we want to modify
+    typeof(MyObject),                           // The type of object the slot is applicable to, typically the Owner of the parameter 
+    "My awesome float",                         // A readable display name string, on the left column 
+    DragStepProfile.Pixels)                     // The NumberDragger's increment behaviour. Pixels is fine tuned
 {   
     // Converts, say, "25.3" into "25.3 px", and supports converting back too "25.3"  
     ValueFormatter = SuffixValueFormatter.StandardPixels 
 });
 ```  
-
-This example is for an automatable parameter though, and you might not need animatable parameters, in which case, you can use `DataParameterNumberPropertyEditorSlot<float>`  for a `DataParameterNumber<float>`.
 
 You can register your own custom property editor slot UI controls via the registry object `BasePropertyEditorSlotControl.Registry`, like so:
 
@@ -139,15 +137,9 @@ However, the main property editor in the UI has 2 sub-root slots, one for clips 
 Should you wish to add your own slot to the main UI, maybe your plugin adds a 2nd window and you want selected objects in that window to be reflected
 in the main UI's property editor, you should add that slot to the `VideoEditorPropertyEditor`'s root, and managed the handlers of the slot you added.
 
-## Automatable and Data Parameters
+## Data Parameters
 
-MemEngine360 provides two parameter subsystems: data parameters, and automatable parameters.
-
-Data parameters are represented by the base class `DataParameter`, but you shouldn't override this class directly, instead override `DataParameter<T>` if you need your own type. These parameters are used to make interfacing with a `PropertyEditor` or binding to the UI in code-behind generally easier; it saves having to use reflection everywhere by instead going through a `ValueAccessor<T>`.
-
-Automatable parameters have a more specific usage, in that they are just keys to a dictionary of automation sequences. The file `docs/Automation.md` has more information about the automation system. Automatable parameters, just like data parameters, can also be used with property editors, and the standard automation property editor slots provide insert key frame/toggle override/reset value commands, which saves doing it manually.
-
-You can find live templated for JetBrains Rider that allow you to easily define data parameters and automatable parameters in the `LIVETEMPLATES.md` file in the solution.
+MemEngine360 has a data parameter system. The base class is `DataParameter`, but you shouldn't override this class directly, instead override `DataParameter<T>` if you need your own type. These parameters are used to make interfacing with a `PropertyEditor` or binding to the UI in code-behind generally easier; it saves having to use reflection everywhere by instead going through a `ValueAccessor<T>`.
 
 ## Configuration pages
 
