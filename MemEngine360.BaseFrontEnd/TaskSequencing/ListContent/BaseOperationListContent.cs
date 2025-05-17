@@ -23,11 +23,14 @@ using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Operations;
 using PFXToolKitUI.Avalonia.Utils;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing.OperationControls;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
 
-public class BaseOperationControl : UserControl {
-    public static readonly ModelTypeControlRegistry<BaseOperationControl> Registry = new ModelTypeControlRegistry<BaseOperationControl>();
-    public static readonly StyledProperty<BaseSequenceOperation?> OperationProperty = AvaloniaProperty.Register<BaseOperationControl, BaseSequenceOperation?>(nameof(Operation));
+/// <summary>
+/// The base class for the content of a <see cref="OperationListBoxItem"/>
+/// </summary>
+public class BaseOperationListContent : UserControl {
+    public static readonly ModelTypeControlRegistry<BaseOperationListContent> Registry = new ModelTypeControlRegistry<BaseOperationListContent>();
+    public static readonly StyledProperty<BaseSequenceOperation?> OperationProperty = AvaloniaProperty.Register<BaseOperationListContent, BaseSequenceOperation?>(nameof(Operation));
 
     /// <summary>
     /// Gets or sets our operation
@@ -37,13 +40,13 @@ public class BaseOperationControl : UserControl {
         set => this.SetValue(OperationProperty, value);
     }
 
-    public BaseOperationControl() {
+    public BaseOperationListContent() {
     }
     
-    static BaseOperationControl() {
-        OperationProperty.Changed.AddClassHandler<BaseOperationControl, BaseSequenceOperation?>((o, e) => o.OnOperationChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
-        Registry.RegisterType(typeof(DelayOperation), () => new DelayOperationControl());
-        Registry.RegisterType(typeof(SetMemoryOperation), () => new SetMemoryOperationControl());
+    static BaseOperationListContent() {
+        OperationProperty.Changed.AddClassHandler<BaseOperationListContent, BaseSequenceOperation?>((o, e) => o.OnOperationChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+        Registry.RegisterType(typeof(DelayOperation), () => new DelayOperationListContent());
+        Registry.RegisterType(typeof(SetMemoryOperation), () => new SetMemoryOperationListContent());
     }
     
     protected virtual void OnOperationChanged(BaseSequenceOperation? oldOperation, BaseSequenceOperation? newOperation) {

@@ -51,6 +51,11 @@ public abstract class BaseSequenceOperation : ITransferableData {
         }
     }
 
+    /// <summary>
+    /// Gets a short readable description of this operation, e.g. "Set Memory"
+    /// </summary>
+    public abstract string DisplayName { get; }
+
     public event BaseSequenceOperationEventHandler? IsRunningChanged;
 
     protected BaseSequenceOperation() {

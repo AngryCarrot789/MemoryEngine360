@@ -17,15 +17,19 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent;
+using MemEngine360.Engine;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
-using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
+using PFXToolKitUI.Avalonia.Interactivity.Selecting;
 using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
@@ -39,46 +43,95 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
     }
     
     public TaskSequencerManager Manager => this.TaskSequencerManager ?? throw new Exception("Window Closed");
+    
+    public IListSelectionManager<ITaskSequenceEntryUI> SequenceSelectionManager { get; }
+    
+    public IListSelectionManager<IOperationItemUI> OperationSelectionManager { get; }
+    
+    public ITaskSequenceEntryUI? PrimarySelectedSequence { get; private set; }
 
-    private readonly IBinder<TaskSequencerManager> selectedSequenceBinder1 = new EventPropertyBinder<TaskSequencerManager>(nameof(Sequencing.TaskSequencerManager.SelectedSequenceChanged), (b) => ((OperationListBox) b.Control).TaskSequence = b.Model.SelectedSequence);
-    private readonly IBinder<TaskSequencerManager> selectedSequenceBinder2 = new EventPropertyBinder<TaskSequencerManager>(nameof(Sequencing.TaskSequencerManager.SelectedSequenceChanged), (b) => ((TextBlock) b.Control).Text = b.Model.SelectedSequence?.DisplayName ?? "<No Sequence Select>");
+    public IOperationItemUI? PrimarySelectedOperation { get; private set; }
+
+    private readonly Dictionary<Type, BaseOperationEditorContent> itemEditorCacheMap;
     
     public TaskSequencerWindow() {
         this.InitializeComponent();
-        this.selectedSequenceBinder1.AttachControl(this.PART_OperationListBox);
-        this.selectedSequenceBinder2.AttachControl(this.PART_SelectedSequenceTextBlock);
+        this.itemEditorCacheMap = new Dictionary<Type, BaseOperationEditorContent>();
+        
+        this.PART_OperationListBox.TaskSequencerUI = this;
+        
+        this.SequenceSelectionManager = new ListBoxSelectionManager<ITaskSequenceEntryUI>(this.PART_SequenceListBox);
+        this.SequenceSelectionManager.LightSelectionChanged += this.OnSelectionChanged;
+
+        this.OperationSelectionManager = new ListBoxSelectionManager<IOperationItemUI>(this.PART_OperationListBox);
+        this.OperationSelectionManager.LightSelectionChanged += this.OnOperationSelectionChanged;
+        
         DataManager.GetContextData(this).Set(ITaskSequencerUI.TaskSequencerUIDataKey, this);
+
+        if (Design.IsDesignMode) {
+            this.TaskSequencerManager = new MemoryEngine360().TaskSequencerManager;
+        }
+    }
+
+    public ITaskSequenceEntryUI GetControl(TaskSequence sequence) {
+        return (ITaskSequenceEntryUI) this.PART_SequenceListBox.ItemMap.GetControl(sequence);
     }
     
+    private void OnSelectionChanged(ILightSelectionManager<ITaskSequenceEntryUI> sender) {
+        ITaskSequenceEntryUI? newPrimary = sender.Count == 1 ? ((IListSelectionManager<ITaskSequenceEntryUI>) sender).SelectedItemList[0] : null;
+        this.PART_OperationListBox.TaskSequence = newPrimary?.TaskSequence;
+        this.PART_SelectedSequenceTextBlock.Text = newPrimary?.TaskSequence.DisplayName ?? (sender.Count == 0 ? "(No Sequence Selected)" : "(Too many sequences selected)");
+        
+        if (this.PrimarySelectedSequence != null)
+            this.PrimarySelectedSequence.TaskSequence.Progress.TextChanged -= this.OnSequenceProgressTextChanged;
+        if (newPrimary != null)
+            newPrimary.TaskSequence.Progress.TextChanged += this.OnSequenceProgressTextChanged;
+        
+        this.PrimarySelectedSequence = newPrimary;
+        this.OnSequenceProgressTextChanged(newPrimary?.TaskSequence.Progress ?? EmptyActivityProgress.Instance);
+    }
+    
+    private void OnOperationSelectionChanged(ILightSelectionManager<IOperationItemUI> sender) {
+        IOperationItemUI? newPrimary = sender.Count == 1 ? ((IListSelectionManager<IOperationItemUI>) sender).SelectedItemList[0] : null;
+        this.PART_PrimarySelectedOperationText.Text = newPrimary?.Operation.DisplayName ?? (sender.Count == 0 ? "(No operation Selected)" : "(Too many operations selected)");
+
+        if (this.PrimarySelectedOperation != null) {
+            BaseOperationEditorContent content = (BaseOperationEditorContent) this.PART_SelectedOperationEditorControl.Content!;
+            BaseSequenceOperation operation = content.Operation!;
+            Debug.Assert(ReferenceEquals(this.PrimarySelectedOperation.Operation, operation));
+            
+            content.Operation = null;
+            this.PART_SelectedOperationEditorControl.Content = null;
+            this.ReleaseOperationEditorObject(operation, content);
+        }
+
+        if (newPrimary != null) {
+            BaseOperationEditorContent content = this.GetOperationEditorObject(newPrimary.Operation);
+            this.PART_SelectedOperationEditorControl.Content = content;
+            content.Operation = newPrimary.Operation;
+        }
+
+        this.PrimarySelectedOperation = newPrimary;
+    }
+
     static TaskSequencerWindow() {
         TaskSequencerManagerProperty.Changed.AddClassHandler<TaskSequencerWindow, TaskSequencerManager?>((s, e) => s.OnTaskSequencerManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
     
-    private void OnTaskSequencerManagerChanged(TaskSequencerManager? oldManager, TaskSequencerManager? newManager) {
-        this.PART_SequenceListBox.TaskSequencerManager = newManager;
-        if (oldManager != null) {
-            oldManager.SelectedSequenceChanged -= this.OnSelectedSequenceChanged;
-            if (oldManager.SelectedSequence != null)
-                this.OnSelectedSequenceChanged(oldManager, oldManager.SelectedSequence, null);
-        }
-
-        if (newManager != null) {
-            newManager.SelectedSequenceChanged += this.OnSelectedSequenceChanged;
-            if (newManager.SelectedSequence != null)
-                this.OnSelectedSequenceChanged(newManager, null, newManager.SelectedSequence);
-        }
-
-        this.selectedSequenceBinder1.SwitchModel(newManager);
-        this.selectedSequenceBinder2.SwitchModel(newManager);
+    public BaseOperationEditorContent GetOperationEditorObject(BaseSequenceOperation operation) {
+        return this.itemEditorCacheMap.Remove(operation.GetType(), out BaseOperationEditorContent? cachedEditor) 
+            ? cachedEditor 
+            : BaseOperationEditorContent.Registry.NewInstance(operation.GetType());
     }
 
-    private void OnSelectedSequenceChanged(TaskSequencerManager sender, TaskSequence? oldSeq, TaskSequence? newSeq) {
-        if (oldSeq != null)
-            oldSeq.Progress.TextChanged -= this.OnSequenceProgressTextChanged;
-        if (newSeq != null)
-            newSeq.Progress.TextChanged += this.OnSequenceProgressTextChanged;
-        
-        this.OnSequenceProgressTextChanged(newSeq?.Progress ?? EmptyActivityProgress.Instance);
+    public bool ReleaseOperationEditorObject(BaseSequenceOperation operation, BaseOperationEditorContent editor) {
+        return this.itemEditorCacheMap.TryAdd(operation.GetType(), editor);
+    }
+    
+    private void OnTaskSequencerManagerChanged(TaskSequencerManager? oldManager, TaskSequencerManager? newManager) {
+        this.PART_SequenceListBox.TaskSequencerManager = newManager;
+        if (newManager != null && newManager.Sequences.Count > 0)
+            this.SequenceSelectionManager.Select((ITaskSequenceEntryUI) this.PART_SequenceListBox.ItemMap.GetControl(newManager.Sequences[0]));
     }
 
     private void OnSequenceProgressTextChanged(IActivityProgress tracker) {
@@ -86,20 +139,14 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
     }
 
     private void PART_ClearOperationsClick(object? sender, RoutedEventArgs e) {
-        if (this.TaskSequencerManager is TaskSequencerManager tsm && tsm.SelectedSequence != null) {
-            tsm.SelectedSequence.ClearOperations();
-        }
+        this.PrimarySelectedSequence?.TaskSequence.ClearOperations();
     }
 
     private void Button_InsertDelay(object? sender, RoutedEventArgs e) {
-        if (this.TaskSequencerManager is TaskSequencerManager tsm && tsm.SelectedSequence != null) {
-            tsm.SelectedSequence.AddOperation(new DelayOperation(500));
-        }
+        this.PrimarySelectedSequence?.TaskSequence.AddOperation(new DelayOperation(500));
     }
 
     private void Button_InsertSetMemory(object? sender, RoutedEventArgs e) {
-        if (this.TaskSequencerManager is TaskSequencerManager tsm && tsm.SelectedSequence != null) {
-            tsm.SelectedSequence.AddOperation(new SetMemoryOperation() {Address = 0x82600000, DataValue = new DataValueInt32(125)});
-        }
+        this.PrimarySelectedSequence?.TaskSequence.AddOperation(new SetMemoryOperation() {Address = 0x82600000, DataValue = new DataValueInt32(125)});
     }
 }

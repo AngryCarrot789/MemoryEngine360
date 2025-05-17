@@ -33,10 +33,7 @@ public class SequenceListBox : ModelBasedListBox<TaskSequence> {
         set => this.SetValue(TaskSequencerManagerProperty, value);
     }
 
-    private readonly IBinder<TaskSequencerManager> selectedSequenceBinder = new AvaloniaPropertyToEventPropertyBinder<TaskSequencerManager>(ListBox.SelectedItemProperty, nameof(TaskSequencerManager.SelectedSequenceChanged), (b) => ((SequenceListBox) b.Control).SelectedModel = b.Model.SelectedSequence, (b) => b.Model.SelectedSequence = ((SequenceListBox) b.Control).SelectedModel);
-
     public SequenceListBox() {
-        this.selectedSequenceBinder.AttachControl(this);
     }
 
     static SequenceListBox() {
@@ -45,7 +42,6 @@ public class SequenceListBox : ModelBasedListBox<TaskSequence> {
 
     private void OnTaskSequencerManagerChanged(TaskSequencerManager? oldManager, TaskSequencerManager? newManager) {
         this.SetItemsSource(newManager?.Sequences);
-        this.selectedSequenceBinder.SwitchModel(newManager);
     }
 
     protected override ModelBasedListBoxItem<TaskSequence> CreateItem() => new SequenceListBoxItem();

@@ -26,6 +26,7 @@ using PFXToolKitUI.Avalonia.AvControls;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
+using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
@@ -34,22 +35,22 @@ using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
-public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
+public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSequenceEntryUI {
     private readonly IBinder<TaskSequence> nameBinder = new AvaloniaPropertyToEventPropertyBinder<TaskSequence>(ContentProperty, nameof(TaskSequence.DisplayNameChanged), (b) => ((SequenceListBoxItem) b.Control).Content = b.Model.DisplayName, null);
     private readonly IBinder<TaskSequence> busyLockPriorityBinder = new AvaloniaPropertyToEventPropertyBinder<TaskSequence>(CheckBox.IsCheckedProperty, nameof(TaskSequence.HasBusyLockPriorityChanged), (b) => ((CheckBox) b.Control).IsChecked = b.Model.HasBusyLockPriority, (b) => b.Model.HasBusyLockPriority = ((CheckBox) b.Control).IsChecked == true);
 
-    private readonly IBinder<TaskSequence> repeatBinder = new TextBoxToEventPropertyBinder<TaskSequence>(nameof(TaskSequence.RepeatCountChanged), (b) => b.Model.RepeatCount.ToString(), async (b, text) => {
+    private readonly IBinder<TaskSequence> runCountBinder = new TextBoxToEventPropertyBinder<TaskSequence>(nameof(TaskSequence.RunCountChanged), (b) => b.Model.RunCount.ToString(), async (b, text) => {
         if (uint.TryParse(text, out uint value)) {
-            b.Model.RepeatCount = value;
+            b.Model.RunCount = value;
         }
         else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Repeat count is invalid", defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", $"Run count is invalid. Is must be between 0 and {uint.MaxValue}", defaultButton: MessageBoxResult.OK);
         }
     });
 
     private IconButton? PART_CancelActivityButton;
     private IconButton? PART_RunButton;
-    private TextBox? PART_RepeatCounter;
+    private TextBox? PART_RunCountTextBox;
     private CheckBox? PART_ToggleBusyExclusive;
 
     private readonly AsyncRelayCommand runCommand, cancelCommand;
@@ -57,6 +58,8 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
     private CancellationTokenSource? myCts;
     private MemoryEngine360? myEngine;
 
+    public TaskSequence TaskSequence => this.Model ?? throw new Exception("Not connected to a model");
+    
     public SequenceListBoxItem() {
         this.runCommand = new AsyncRelayCommand(async () => {
             TaskSequence? seq = this.Model;
@@ -117,17 +120,19 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
             return seq != null && seq.IsRunning && this.myCts != null;
         });
     }
-
+    
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
         base.OnApplyTemplate(e);
+        this.SetDragSourceControl(e.NameScope.GetTemplateChild<Border>("PART_DragGrip"));
+        
         this.PART_CancelActivityButton = e.NameScope.GetTemplateChild<IconButton>(nameof(this.PART_CancelActivityButton));
         this.PART_CancelActivityButton.Command = this.cancelCommand;
 
         this.PART_RunButton = e.NameScope.GetTemplateChild<IconButton>(nameof(this.PART_RunButton));
         this.PART_RunButton.Command = this.runCommand;
 
-        this.PART_RepeatCounter = e.NameScope.GetTemplateChild<TextBox>(nameof(this.PART_RepeatCounter));
-        this.repeatBinder.AttachControl(this.PART_RepeatCounter);
+        this.PART_RunCountTextBox = e.NameScope.GetTemplateChild<TextBox>(nameof(this.PART_RunCountTextBox));
+        this.runCountBinder.AttachControl(this.PART_RunCountTextBox);
 
         this.PART_ToggleBusyExclusive = e.NameScope.GetTemplateChild<CheckBox>(nameof(this.PART_ToggleBusyExclusive));
         this.busyLockPriorityBinder.AttachControl(this.PART_ToggleBusyExclusive);
@@ -139,26 +144,28 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
     protected override void OnAddedToList() {
         this.nameBinder.Attach(this, this.Model!);
         this.busyLockPriorityBinder.AttachModel(this.Model!);
-        this.repeatBinder.AttachModel(this.Model!);
+        this.runCountBinder.AttachModel(this.Model!);
         this.Model!.IsRunningChanged += this.OnIsRunningChanged;
         this.myEngine = this.Model!.Manager!.Engine;
 
         this.myEngine.ConnectionChanged += this.OnEngineConnectionChanged;
         this.myEngine.ConnectionAboutToChange += this.OnConnectionAboutToChange;
 
-        DataManager.GetContextData(this).Set(ITaskSequencerUI.TaskSequenceDataKey, this.Model!);
+        using MultiChangeToken batch = DataManager.GetContextData(this).BeginChange();
+        batch.Context.Set(ITaskSequencerUI.TaskSequenceDataKey, this.Model!).Set(ITaskSequenceEntryUI.DataKey, this);
     }
 
     protected override void OnRemovingFromList() {
         this.nameBinder.DetachModel();
         this.busyLockPriorityBinder.DetachModel();
-        this.repeatBinder.DetachModel();
+        this.runCountBinder.DetachModel();
         this.Model!.IsRunningChanged -= this.OnIsRunningChanged;
         this.myEngine!.ConnectionChanged -= this.OnEngineConnectionChanged;
         this.myEngine!.ConnectionAboutToChange -= this.OnConnectionAboutToChange;
         this.myEngine = null;
 
-        DataManager.GetContextData(this).Set(ITaskSequencerUI.TaskSequenceDataKey, null);
+        using MultiChangeToken batch = DataManager.GetContextData(this).BeginChange();
+        batch.Context.Set(ITaskSequencerUI.TaskSequenceDataKey, null).Set(ITaskSequenceEntryUI.DataKey, null);
     }
 
     protected override void OnRemovedFromList() {

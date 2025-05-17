@@ -29,7 +29,7 @@ public delegate void SetVariableOperationEventHandler(SetMemoryOperation sender)
 public class SetMemoryOperation : BaseSequenceOperation {
     private uint address;
     private IDataValue? dataValue;
-    private uint repeatCount;
+    private uint iterateCount;
 
     /// <summary>
     /// Gets or sets the address we write at
@@ -60,21 +60,26 @@ public class SetMemoryOperation : BaseSequenceOperation {
     /// <summary>
     /// Gets or sets the number of times to repeat writing the value. Default is 0, meaning do not repeat, just write once
     /// </summary>
-    public uint RepeatCount {
-        get => this.repeatCount;
+    public uint IterateCount {
+        get => this.iterateCount;
         set {
-            if (this.repeatCount == value) {
+            if (this.iterateCount == value) {
                 return;
             }
 
-            this.repeatCount = value;
-            this.RepeatCountChanged?.Invoke(this);
+            this.iterateCount = value;
+            this.IterateCountChanged?.Invoke(this);
         }
     }
 
+    public override string DisplayName => "Set Memory";
+    
     public event SetVariableOperationEventHandler? AddressChanged;
     public event SetVariableOperationEventHandler? DataValueChanged;
-    public event SetVariableOperationEventHandler? RepeatCountChanged;
+    public event SetVariableOperationEventHandler? IterateCountChanged;
+
+    public SetMemoryOperation() {
+    }
 
     protected override async Task RunOperation(SequenceExecutionContext ctx, CancellationToken token) {
         if (this.dataValue != null) {
@@ -88,15 +93,11 @@ public class SetMemoryOperation : BaseSequenceOperation {
 
             try {
                 ctx.Progress.Text = "Setting memory";
-                if (this.repeatCount == 0) {
+                if (this.iterateCount == 0) {
                     await this.dataValue.WriteToConnection(this.address, ctx.Connection);
                 }
                 else {
-                    uint count = this.repeatCount + 1;
-                    if (count < this.repeatCount) { // lul this shit about to expode
-                        count = this.repeatCount;
-                    }
-
+                    uint count = this.iterateCount;
                     // optimised repeat write
                     byte[] data = this.dataValue.GetBytes();
                     byte[] buffer = new byte[data.Length * count];

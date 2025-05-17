@@ -34,7 +34,7 @@ public sealed class TaskSequence {
     private readonly LinkedList<TaskCompletionSource> completionNotifications = [];
     internal TaskSequencerManager? myManager;
     private string displayName = "Empty Sequence";
-    private uint repeatCount;
+    private uint runCount = 1;
     private bool hasBusyLockPriority;
 
     // Running info
@@ -82,14 +82,14 @@ public sealed class TaskSequence {
         }
     }
 
-    public uint RepeatCount {
-        get => this.repeatCount;
+    public uint RunCount {
+        get => this.runCount;
         set {
-            if (this.repeatCount == value)
+            if (this.runCount == value)
                 return;
 
-            this.repeatCount = value;
-            this.RepeatCountChanged?.Invoke(this);
+            this.runCount = value;
+            this.RunCountChanged?.Invoke(this);
         }
     }
 
@@ -112,13 +112,14 @@ public sealed class TaskSequence {
     public event TaskSequenceEventHandler? IsRunningChanged;
 
     public event TaskSequenceEventHandler? DisplayNameChanged;
-    public event TaskSequenceEventHandler? RepeatCountChanged;
+    public event TaskSequenceEventHandler? RunCountChanged;
     public event TaskSequenceEventHandler? HasBusyLockPriorityChanged;
 
     public TaskSequence() {
         this.operations = new ObservableList<BaseSequenceOperation>();
         this.Operations = new ReadOnlyObservableList<BaseSequenceOperation>(this.operations);
         this.Progress = new DefaultProgressTracker();
+        this.Progress.Text = "Sequence not running";
     }
 
     public async Task Run(CancellationTokenSource cts, IConsoleConnection connection, IDisposable? busyToken) {
@@ -133,14 +134,10 @@ public sealed class TaskSequence {
         this.LastException = null;
         TaskSequencerManager.InternalSetIsRunning(this.myManager!, this, true);
         this.IsRunning = true;
-        uint count = this.repeatCount + 1;
-        if (count < this.repeatCount) // lul
-            count = this.repeatCount;
-
         this.Progress.Text = "Running sequence";
 
         CancellationToken token = this.myCts.Token;
-        for (; count != 0 && !token.IsCancellationRequested; count--) {
+        for (uint count = this.runCount; count != 0 && !token.IsCancellationRequested; count--) {
             foreach (BaseSequenceOperation operation in this.operations) {
                 try {
                     await operation.Run(this.myContext, token);
@@ -155,7 +152,7 @@ public sealed class TaskSequence {
             }
         }
 
-        this.Progress.Text = "Finished";
+        this.Progress.Text = "Sequence finished";
         this.myCts = null;
         this.myContext = null;
         TaskSequencerManager.InternalSetIsRunning(this.myManager!, this, false);

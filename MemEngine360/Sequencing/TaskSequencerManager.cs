@@ -29,7 +29,6 @@ public delegate void TaskSequencerManagerSelectedSequenceChangedEventHandler(Tas
 
 public class TaskSequencerManager {
     private readonly ObservableList<TaskSequence> sequences, activeSequences;
-    private TaskSequence? selectedSequence;
 
     /// <summary>
     /// Gets our operations
@@ -43,25 +42,9 @@ public class TaskSequencerManager {
     public ReadOnlyObservableList<TaskSequence> ActiveSequences { get; }
 
     /// <summary>
-    /// Gets or sets the sequence that is currently selected in the UI
-    /// </summary>
-    public TaskSequence? SelectedSequence {
-        get => this.selectedSequence;
-        set {
-            TaskSequence? oldSelectedSequence = this.selectedSequence;
-            if (oldSelectedSequence != value) {
-                this.selectedSequence = value;
-                this.SelectedSequenceChanged?.Invoke(this, oldSelectedSequence, value);
-            }
-        }
-    }
-
-    /// <summary>
     /// Gets the memory engine that owns this sequencer
     /// </summary>
     public MemoryEngine360 Engine { get; }
-
-    public event TaskSequencerManagerSelectedSequenceChangedEventHandler? SelectedSequenceChanged;
 
     public TaskSequencerManager(MemoryEngine360 engine) {
         this.Engine = engine ?? throw new ArgumentNullException(nameof(engine));
@@ -111,10 +94,6 @@ public class TaskSequencerManager {
         
         entry.myManager = this;
         this.sequences.Insert(index, entry);
-
-        // Select first
-        if (this.sequences.Count == 1)
-            this.SelectedSequence = entry;
     }
 
     public bool RemoveSequence(TaskSequence entry) {
@@ -134,10 +113,6 @@ public class TaskSequencerManager {
     public void RemoveSequenceAt(int index) {
         TaskSequence entry = this.sequences[index];
         entry.CheckNotRunning("Cannot remove sequence while it's running");
-        if (this.sequences.Count == 1) {
-            Debug.Assert(index == 0, "Impossible to not be 0.");
-            this.SelectedSequence = null;
-        }
 
         try {
             this.sequences.RemoveAt(index);

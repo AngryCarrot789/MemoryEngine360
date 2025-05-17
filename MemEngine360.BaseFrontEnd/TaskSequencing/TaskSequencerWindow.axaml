@@ -11,22 +11,26 @@
                  xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd"
                  xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
-                 mc:Ignorable="d" Width="960" Height="640"
+                 mc:Ignorable="d" 
+                 MinWidth="640" MinHeight="400"
+                 Width="960" Height="640"
                  Title="Task Sequencer"
-                 avalonia:UIInputManager.FocusPath="SequencerWindow">
+                 avalonia:UIInputManager.FocusPath="SequencerWindow"
+                 TitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="251" MinWidth="201"/>
+                <ColumnDefinition Width="251" MinWidth="226"/>
                 <ColumnDefinition Width="1"/>
-                <ColumnDefinition/>
+                <ColumnDefinition Width="*"  MinWidth="200"/>
             </Grid.ColumnDefinitions>
-            <c:GroupBox Grid.Column="0" Background="{DynamicResource ABrush.Tone3.Background.Static}"
+            <c:GroupBox Grid.Column="0" Background="{DynamicResource ABrush.Tone4.Background.Static}"
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
+                        HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
                         avalonia:UIInputManager.FocusPath="SequencerWindow/SequenceList">
                 <c:GroupBox.Header>
-                    <DockPanel HorizontalSpacing="3">
+                    <DockPanel HorizontalSpacing="2">
                         <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
                                        ToolTip.Tip="Clears all sequences" DockPanel.Dock="Right"
                                        Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"
@@ -43,7 +47,7 @@
                                        BorderThickness="0"
                                        FontFamily="{StaticResource FontOxanium}"
                                        Background="Transparent"
-                                       SelectionMode="Single"
+                                       SelectionMode="Multiple"
                                        CanDragItemPosition="True"
                                        ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.Theme>
@@ -56,22 +60,25 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemContainerTheme>
                         <ControlTheme TargetType="{x:Type local:SequenceListBoxItem}">
-                            <Setter Property="Background" Value="{DynamicResource ABrush.Tone5.Background.Static}"/>
+                            <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
                             <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
                             <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
                             <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                            <Setter Property="Padding" Value="6,2"/>
                             <Setter Property="Template">
                                 <ControlTemplate TargetType="{x:Type local:SequenceListBoxItem}">
                                     <Border x:Name="PART_Border" Background="{TemplateBinding Background}"
                                             BorderBrush="{TemplateBinding BorderBrush}"
                                             BorderThickness="{TemplateBinding BorderThickness}">
-                                        <DockPanel Margin="{TemplateBinding Padding}">
-                                            <DockPanel DockPanel.Dock="Bottom">
-                                                <StackPanel Orientation="Horizontal" Spacing="3">
-                                                    <TextBlock Text="Repeat" VerticalAlignment="Center"/>
-                                                    <TextBox x:Name="PART_RepeatCounter" Padding="3,1" VerticalContentAlignment="Center" MinWidth="50"
-                                                             ToolTip.Tip="The amount of times to repeat the sequence. Default is 0. If you set this to e.g. 5, it runs 6 times"/>
+                                        <DockPanel>
+                                            <Border x:Name="PART_DragGrip" Background="Transparent" Width="16" DockPanel.Dock="Left">
+                                                <av:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16"/>
+                                            </Border>
+                                            <DockPanel DockPanel.Dock="Bottom" Margin="2,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="3" Margin="0,1,0,2">
+                                                    <TextBlock Text="Run Count" VerticalAlignment="Center"/>
+                                                    <TextBox x:Name="PART_RunCountTextBox" Padding="3,1" VerticalContentAlignment="Center" MinWidth="50"
+                                                             ToolTip.Tip="The amount of times to run the sequence. Default is 1. This lets you repeat the operations"
+                                                             Background="{DynamicResource ABrush.Tone1.Background.Static}"/>
                                                 </StackPanel>
                                                 <CheckBox x:Name="PART_ToggleBusyExclusive" DockPanel.Dock="Right" Content="Busy Priority">
                                                     <ToolTip.Tip>
@@ -88,9 +95,10 @@
                                                 <Border Background="Transparent"/>
                                             </DockPanel>
 
-                                            <av:IconButton DockPanel.Dock="Right" x:Name="PART_CancelActivityButton"
+                                            <av:IconButton x:Name="PART_CancelActivityButton" 
+                                                           DockPanel.Dock="Right" VerticalAlignment="Top"
                                                            Width="16" Height="16"
-                                                           Padding="4,1" Margin="0,0,2,0"
+                                                           Padding="4,1" Margin="0,2,2,0"
                                                            BorderThickness="0"
                                                            CornerRadius="2"
                                                            ToolTip.Tip="Stop the sequence"
@@ -99,9 +107,10 @@
                                                            VerticalContentAlignment="Center"
                                                            HorizontalContentAlignment="Center"/>
 
-                                            <av:IconButton DockPanel.Dock="Right" x:Name="PART_RunButton"
+                                            <av:IconButton x:Name="PART_RunButton" 
+                                                           DockPanel.Dock="Right" VerticalAlignment="Top"
                                                            Width="16" Height="16"
-                                                           Padding="4,1" Margin="0"
+                                                           Padding="4,1" Margin="0,2,2,0"
                                                            BorderThickness="0"
                                                            CornerRadius="2"
                                                            ToolTip.Tip="Starts this sequence"
@@ -115,13 +124,13 @@
                                                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                                        Text="{TemplateBinding Content}"
                                                        FontFamily="{StaticResource FontOxanium}"
-                                                       TextWrapping="Wrap"/>
+                                                       TextWrapping="Wrap" Padding="3,1"/>
                                         </DockPanel>
                                     </Border>
                                 </ControlTemplate>
                             </Setter>
                             <Style Selector="^:pointerover /template/ Border#PART_Border">
-                                <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.MouseOver}"/>
+                                <Setter Property="Background" Value="{DynamicResource ABrush.Tone6.Background.Static}"/>
                             </Style>
 
                             <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_Border">
@@ -136,24 +145,29 @@
                 </local:SequenceListBox>
             </c:GroupBox>
 
-            <c:GroupBox Grid.Column="2" Background="{DynamicResource ABrush.Tone3.Background.Static}"
+            <c:GroupBox Grid.Column="2" Background="{DynamicResource ABrush.Tone4.Background.Static}"
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
+                        HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
                         avalonia:UIInputManager.FocusPath="SequencerWindow/OperationList">
                 <c:GroupBox.Header>
                     <DockPanel HorizontalSpacing="3">
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="3">
                             <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}" 
                                     BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
-                                    Content="Set Memory" ToolTip.Tip="Adds an operation that sets memory (e.g. an integer or string) at an address"
-                                    Click="Button_InsertSetMemory"/>
+                                    ToolTip.Tip="Adds an operation that sets memory (e.g. an integer or string) at an address"
+                                    Click="Button_InsertSetMemory">
+                                <DockPanel HorizontalSpacing="4">
+                                    <TextBlock Text="Set Memory"/>
+                                </DockPanel>
+                            </Button>
                             <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}" 
                                     BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                     Content="Delay" ToolTip.Tip="Adds a pause into the operation"
                                     Click="Button_InsertDelay"/>
                             <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,1"/>
-                            <av:IconButton Padding="2" Width="20" BorderThickness="0"
-                                           ToolTip.Tip="Clears all sequences"
+                            <av:IconButton Padding="2" Width="24" BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
+                                           ToolTip.Tip="Clears all operations"
                                            Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"
                                            Click="PART_ClearOperationsClick"/>
                         </StackPanel>
@@ -162,16 +176,21 @@
                                    VerticalAlignment="Center"/>
                     </DockPanel>
                 </c:GroupBox.Header>
-                <DockPanel>
-                    <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource PanelBorderBrush}">
-                        <TextBlock x:Name="PART_ActivityStatusText" Text="Caption here" Padding="4,2"/>
-                    </Border>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="10*" MinHeight="100"/>
+                        <RowDefinition Height="0"/>
+                        <RowDefinition Height="4*" MinHeight="100"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <local:OperationListBox x:Name="PART_OperationListBox"
+                                            Grid.Row="0"
                                             BorderThickness="0"
                                             FontFamily="{StaticResource FontOxanium}"
                                             Background="{DynamicResource ABrush.Tone1.Background.Static}"
-                                            SelectionMode="Single"
-                                            CanDragItemPosition="True">
+                                            SelectionMode="Multiple"
+                                            CanDragItemPosition="True"
+                                            ScrollViewer.VerticalScrollBarVisibility="Visible">
                         <ListBox.Theme>
                             <ControlTheme TargetType="{x:Type local:OperationListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
                         </ListBox.Theme>
@@ -182,43 +201,53 @@
                         </ListBox.ItemsPanel>
                         <ListBox.ItemContainerTheme>
                             <ControlTheme TargetType="{x:Type local:OperationListBoxItem}">
-                                <Setter Property="Background" Value="{DynamicResource ABrush.Tone3.Background.Static}"/>
+                                <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
                                 <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
                                 <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                <Setter Property="Padding" Value="4,2"/>
+                                <Setter Property="Padding" Value="2,2"/>
                                 <Setter Property="Template">
                                     <ControlTemplate TargetType="{x:Type local:OperationListBoxItem}">
-                                        <ContentPresenter x:Name="PART_ContentPresenter"
-                                                          Padding="{TemplateBinding Padding}"
-                                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
-                                                          Background="{TemplateBinding Background}"
-                                                          BorderBrush="{TemplateBinding BorderBrush}"
-                                                          BorderThickness="{TemplateBinding BorderThickness}"
-                                                          Content="{TemplateBinding Content}"
-                                                          ContentTemplate="{TemplateBinding ContentTemplate}"
-                                                          CornerRadius="{TemplateBinding CornerRadius}"/>
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                x:Name="PART_RootOLBI">
+                                            <DockPanel>
+                                                <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right">
+                                                    <av:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16"/>
+                                                </Border>
+                                                <ContentPresenter x:Name="PART_ContentPresenter"
+                                                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                                  Background="Transparent"
+                                                                  BorderBrush="Transparent"
+                                                                  Padding="{TemplateBinding Padding}"
+                                                                  BorderThickness="0"
+                                                                  Content="{TemplateBinding Content}"
+                                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                                  CornerRadius="{TemplateBinding CornerRadius}"/>
+                                            </DockPanel>
+                                        </Border>
                                     </ControlTemplate>
                                 </Setter>
-                                <Style Selector="^:pointerover /template/ ContentPresenter">
+                                <Style Selector="^:pointerover /template/ Border#PART_RootOLBI">
                                     <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.MouseOver}"/>
                                 </Style>
 
-                                <Style Selector="^:selected[IsFocused=False] /template/ ContentPresenter">
+                                <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_RootOLBI">
                                     <Setter Property="Background" Value="{DynamicResource Item.SelectedInactive.Background}"/>
                                 </Style>
 
-                                <Style Selector="^:selected[IsFocused=True] /template/ ContentPresenter">
+                                <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_RootOLBI">
                                     <Setter Property="Background" Value="{DynamicResource Item.SelectedActive.Background}"/>
                                 </Style>
                                 
-                                <Style Selector="^[IsRunning=true] /template/ ContentPresenter">
+                                <Style Selector="^[IsRunning=true] /template/ Border#PART_RootOLBI">
                                     <Setter Property="Background">
                                         <Setter.Value>
                                             <LinearGradientBrush>
                                                 <GradientStop Color="{DynamicResource ABrush.AccentTone1.Border.Static.Color}"/>
-                                                <GradientStop Color="{DynamicResource ABrush.Tone3.Background.Static.Color}" Offset="1.0"/>
+                                                <GradientStop Color="{DynamicResource ABrush.Tone4.Background.Static.Color}" Offset="1.0"/>
                                             </LinearGradientBrush>
                                         </Setter.Value>
                                     </Setter>
@@ -226,11 +255,29 @@
                             </ControlTheme>
                         </ListBox.ItemContainerTheme>
                     </local:OperationListBox>
-                </DockPanel>
+                    <c:GroupBox Grid.Row="2" Background="{DynamicResource ABrush.Tone2.Background.Static}" 
+                                BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,1"
+                                HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}">
+                        <c:GroupBox.Header>
+                            <DockPanel>
+                                <TextBlock Text="Operation Editor Panel"/>
+                                <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,0"/>
+                                <TextBlock x:Name="PART_PrimarySelectedOperationText"/>
+                            </DockPanel>
+                        </c:GroupBox.Header>
+                        <ContentControl x:Name="PART_SelectedOperationEditorControl" Background="Transparent">
+                            
+                        </ContentControl>
+                    </c:GroupBox>
+                    <Border Grid.Row="3" BorderThickness="0,1,0,0" >
+                        <TextBlock x:Name="PART_ActivityStatusText" Text="Caption here" Padding="4,2"/>
+                    </Border>
+                    <GridSplitter Grid.Row="1" Background="Transparent" Margin="0,-2,0,-10" Cursor="SizeNorthSouth"/>
+                </Grid>
             </c:GroupBox>
 
             <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="1"/>
-            <GridSplitter Grid.Column="1" Margin="-4,0" Background="Transparent"/>
+            <GridSplitter Grid.Column="1" Margin="-2,0,-8,0" Background="Transparent"  Cursor="SizeWestEast"/>
         </Grid>
     </Border>
 </w:DesktopWindow>

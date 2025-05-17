@@ -18,7 +18,7 @@
 // 
 
 using Avalonia;
-using MemEngine360.BaseFrontEnd.TaskSequencing.OperationControls;
+using MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 
@@ -32,10 +32,12 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
         set => this.SetValue(TaskSequenceProperty, value);
     }
 
-    private readonly Dictionary<Type, Stack<BaseOperationControl>> itemContentCacheMap;
+    public ITaskSequencerUI TaskSequencerUI { get; internal set; }
+
+    private readonly Dictionary<Type, Stack<BaseOperationListContent>> itemContentCacheMap;
 
     public OperationListBox() : base(32) {
-        this.itemContentCacheMap = new Dictionary<Type, Stack<BaseOperationControl>>();
+        this.itemContentCacheMap = new Dictionary<Type, Stack<BaseOperationListContent>>();
     }
 
     static OperationListBox() {
@@ -48,24 +50,24 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
 
     protected override ModelBasedListBoxItem<BaseSequenceOperation> CreateItem() => new OperationListBoxItem();
 
-    public BaseOperationControl GetContentObject(BaseSequenceOperation resource) {
-        BaseOperationControl content;
-        if (this.itemContentCacheMap.TryGetValue(resource.GetType(), out Stack<BaseOperationControl>? stack) && stack.Count > 0) {
+    public BaseOperationListContent GetContentObject(BaseSequenceOperation operation) {
+        BaseOperationListContent content;
+        if (this.itemContentCacheMap.TryGetValue(operation.GetType(), out Stack<BaseOperationListContent>? stack) && stack.Count > 0) {
             content = stack.Pop();
         }
         else {
-            content = BaseOperationControl.Registry.NewInstance(resource.GetType());
+            content = BaseOperationListContent.Registry.NewInstance(operation.GetType());
         }
 
         return content;
     }
 
-    public bool ReleaseContentObject(BaseSequenceOperation resource, BaseOperationControl content) {
+    public bool ReleaseContentObject(BaseSequenceOperation operation, BaseOperationListContent content) {
         const int MaxItemContentCacheSize = 64;
         
-        Type resourceType = resource.GetType();
-        if (!this.itemContentCacheMap.TryGetValue(resourceType, out Stack<BaseOperationControl>? stack)) {
-            this.itemContentCacheMap[resourceType] = stack = new Stack<BaseOperationControl>();
+        Type resourceType = operation.GetType();
+        if (!this.itemContentCacheMap.TryGetValue(resourceType, out Stack<BaseOperationListContent>? stack)) {
+            this.itemContentCacheMap[resourceType] = stack = new Stack<BaseOperationListContent>();
         }
         else if (stack.Count == MaxItemContentCacheSize) {
             return false;
@@ -73,5 +75,9 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
 
         stack.Push(content);
         return true;
+    }
+
+    public ITaskSequenceEntryUI GetTaskSequence(OperationListBoxItem item) {
+        return this.TaskSequencerUI.GetControl(item.Model!.Sequence!);
     }
 }

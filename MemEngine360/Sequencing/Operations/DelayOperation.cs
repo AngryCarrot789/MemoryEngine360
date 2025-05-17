@@ -38,6 +38,8 @@ public class DelayOperation : BaseSequenceOperation {
         }
     }
 
+    public override string DisplayName => "Delay";
+    
     public event DelayOperationEventHandler? DelayChanged;
 
     public DelayOperation() {

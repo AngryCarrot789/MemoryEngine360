@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Sequencing;
@@ -29,4 +30,26 @@ public interface ITaskSequencerUI {
     /// Gets the task sequence manager
     /// </summary>
     TaskSequencerManager Manager { get; }
+    
+    /// <summary>
+    /// Gets the selection manager for sequences
+    /// </summary>
+    IListSelectionManager<ITaskSequenceEntryUI> SequenceSelectionManager { get; }
+    
+    /// <summary>
+    /// Gets the selection manager for the currently selected operations
+    /// </summary>
+    IListSelectionManager<IOperationItemUI> OperationSelectionManager { get; }
+    
+    /// <summary>
+    /// Gets the primary selected task sequence item, or null, if there's none selected or more than 1
+    /// </summary>
+    ITaskSequenceEntryUI? PrimarySelectedSequence { get; }
+    
+    /// <summary>
+    /// Gets the primary selected operation, or null, if there's none selected or more than 1
+    /// </summary>
+    IOperationItemUI? PrimarySelectedOperation { get; }
+    
+    ITaskSequenceEntryUI GetControl(TaskSequence sequence);
 }

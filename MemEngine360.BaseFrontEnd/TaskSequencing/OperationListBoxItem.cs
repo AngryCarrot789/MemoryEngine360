@@ -18,15 +18,20 @@
 // 
 
 using Avalonia;
-using MemEngine360.BaseFrontEnd.TaskSequencing.OperationControls;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent;
+using MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
 using MemEngine360.Sequencing;
+using PFXToolKitUI.Avalonia.AvControls;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
-public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation> {
+public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>, IOperationItemUI {
     public static readonly StyledProperty<bool> IsRunningProperty = AvaloniaProperty.Register<OperationListBoxItem, bool>(nameof(IsRunning));
     
     public bool IsRunning {
@@ -34,9 +39,19 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
         set => this.SetValue(IsRunningProperty, value);
     }
     
+    public BaseSequenceOperation Operation => this.Model ?? throw new Exception("Not connected to a model");
+
+    public ITaskSequenceEntryUI TaskSequenceUI => ((OperationListBox) this.ListBox!).GetTaskSequence(this);
+
     private readonly IBinder<BaseSequenceOperation> isRunningBinder = new EventPropertyBinder<BaseSequenceOperation>(nameof(BaseSequenceOperation.IsRunningChanged), (b) => ((OperationListBoxItem) b.Control).IsRunning = b.Model.IsRunning, null);
     
     public OperationListBoxItem() {
+        DataManager.GetContextData(this).Set(IOperationItemUI.DataKey, this);
+    }
+
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
+        base.OnApplyTemplate(e);
+        this.SetDragSourceControl(e.NameScope.GetTemplateChild<Border>("PART_DragGrip"));
     }
 
     protected override void OnAddingToList() {
@@ -44,7 +59,7 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
     }
 
     protected override void OnAddedToList() {
-        BaseOperationControl content = (BaseOperationControl) this.Content!;
+        BaseOperationListContent content = (BaseOperationListContent) this.Content!;
         TemplateUtils.Apply(content);
         content.Operation = this.Model;
         
@@ -54,7 +69,7 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
     protected override void OnRemovingFromList() {
         this.isRunningBinder.Detach();
         
-        BaseOperationControl content = (BaseOperationControl) this.Content!;
+        BaseOperationListContent content = (BaseOperationListContent) this.Content!;
         BaseSequenceOperation operation = content.Operation!;
         content.Operation = null;
         this.Content = null;

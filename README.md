@@ -108,7 +108,7 @@ The task sequencer system allows you to run small operations as a large task. Th
 and in the future, will support many more customisations, e.g. randomly allow or disallow operations to run,
 random delay times, etc.
 
-![](MemEngine360-DesktopUI_2025-05-17_13.54.11.png)
+![](MemEngine360-DesktopUI_2025-05-17_20.04.01.png)
 
 In this example, we set 0x8303A988 to an int value of 22, wait 2 seconds, set the value to 44, and wait 1 second.
 

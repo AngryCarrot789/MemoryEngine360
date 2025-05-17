@@ -17,15 +17,14 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using Avalonia.Interactivity;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Operations;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Services.Messaging;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing.OperationControls;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
 
-public partial class DelayOperationControl : BaseOperationControl {
+public partial class DelayOperationListContent : BaseOperationListContent {
     private readonly IBinder<DelayOperation> delayBinder = new TextBoxToEventPropertyBinder<DelayOperation>(nameof(DelayOperation.DelayChanged), (b) => b.Model.Delay.ToString(), async (b, text) => {
         if (uint.TryParse(text, out uint value)) {
             b.Model.Delay = value;
@@ -35,7 +34,7 @@ public partial class DelayOperationControl : BaseOperationControl {
         }
     });
     
-    public DelayOperationControl() {
+    public DelayOperationListContent() {
         this.InitializeComponent();
         this.delayBinder.AttachControl(this.PART_DelayTextBox);
     }
@@ -43,9 +42,5 @@ public partial class DelayOperationControl : BaseOperationControl {
     protected override void OnOperationChanged(BaseSequenceOperation? oldOperation, BaseSequenceOperation? newOperation) {
         base.OnOperationChanged(oldOperation, newOperation);
         this.delayBinder.SwitchModel((DelayOperation?) newOperation);
-    }
-
-    private void Button_RemoveClick(object? sender, RoutedEventArgs e) {
-        this.Operation?.Sequence!.RemoveOperation(this.Operation);
     }
 }

@@ -110,7 +110,8 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.hexeditor.SaveSelectionAsFileCommand", new SaveSelectionAsFileCommand());
         
         manager.Register("commands.memengine.OpenTaskSequencerCommand", new OpenTaskSequencerCommand());
-        manager.Register("commands.sequencer.DeleteSequenceCommand", new DeleteSequenceCommand());
+        manager.Register("commands.sequencer.DeleteSequenceSelectionCommand", new DeleteSequenceSelectionCommand());
+        manager.Register("commands.sequencer.DeleteOperationSelectionCommand", new DeleteOperationSelectionCommand());
         manager.Register("commands.sequencer.ClearSequencesCommand", new ClearSequencesCommand());
         manager.Register("commands.sequencer.NewSequenceCommand", new NewSequenceCommand());
         manager.Register("commands.sequencer.RenameSequenceCommand", new RenameSequenceCommand());

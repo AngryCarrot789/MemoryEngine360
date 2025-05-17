@@ -29,11 +29,11 @@ using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing.OperationControls;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
 
-public delegate void SetMemoryOperationControlEventHandler(SetMemoryOperationControl sender);
+public partial class SetMemoryOperationListContent : BaseOperationListContent {
+    public delegate void SetMemoryOperationListContentEventHandler(SetMemoryOperationListContent sender);
 
-public partial class SetMemoryOperationControl : BaseOperationControl {
     private DataType? myDataType;
     private string textValue = "";
 
@@ -49,13 +49,13 @@ public partial class SetMemoryOperationControl : BaseOperationControl {
         }
     });
 
-    private readonly IBinder<SetMemoryOperationControl> valueBinder = new TextBoxToEventPropertyBinder<SetMemoryOperationControl>(nameof(TextValueChanged), (b) => b.Model.TextValue, async (b, text) => {
+    private readonly IBinder<SetMemoryOperationListContent> valueBinder = new TextBoxToEventPropertyBinder<SetMemoryOperationListContent>(nameof(TextValueChanged), (b) => b.Model.TextValue, async (b, text) => {
         bool hexPrefix = text.StartsWith("0x");
         ValidationArgs args = new ValidationArgs(hexPrefix ? text.Substring(2) : text, [], false);
         if (b.Model.myDataType is DataType dt) {
             NumericDisplayType intNdt = dt.IsInteger() && hexPrefix ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
             if (MemoryEngine360.TryParseTextAsDataValue(args, dt, intNdt, StringType.UTF8, out IDataValue? value)) {
-                ((SetMemoryOperation) b.Model.Operation!).DataValue = value;
+                b.Model.Operation!.DataValue = value;
                 b.Model.TextValue = (hexPrefix ? "0x" : "") + intNdt.AsString(dt, value.BoxedValue);
             }
             else {
@@ -67,14 +67,14 @@ public partial class SetMemoryOperationControl : BaseOperationControl {
         }
     });
 
-    private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(SetMemoryOperationControl), nameof(MyDataTypeChanged), (x) => ((SetMemoryOperationControl) x).MyDataType, (x, y) => ((SetMemoryOperationControl) x).MyDataType = y);
+    private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(SetMemoryOperationListContent), nameof(MyDataTypeChanged), (x) => ((SetMemoryOperationListContent) x).MyDataType, (x, y) => ((SetMemoryOperationListContent) x).MyDataType = y);
 
-    private readonly IBinder<SetMemoryOperation> repeatBinder = new TextBoxToEventPropertyBinder<SetMemoryOperation>(nameof(SetMemoryOperation.RepeatCountChanged), (b) => b.Model.RepeatCount.ToString(), async (b, text) => {
+    private readonly IBinder<SetMemoryOperation> iterateBinder = new TextBoxToEventPropertyBinder<SetMemoryOperation>(nameof(SetMemoryOperation.IterateCountChanged), (b) => b.Model.IterateCount.ToString(), async (b, text) => {
         if (uint.TryParse(text, out uint value)) {
-            b.Model.RepeatCount = value;
+            b.Model.IterateCount = value;
         }
         else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Repeat count is invalid", defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", $"Iterate count is invalid. It must be between 0 and {uint.MaxValue}", defaultButton: MessageBoxResult.OK);
         }
     });
 
@@ -99,22 +99,24 @@ public partial class SetMemoryOperationControl : BaseOperationControl {
             this.TextValueChanged?.Invoke(this);
         }
     }
+    
+    public new SetMemoryOperation? Operation => (SetMemoryOperation?) base.Operation;
 
-    public event SetMemoryOperationControlEventHandler? MyDataTypeChanged;
-    public event SetMemoryOperationControlEventHandler? TextValueChanged;
+    public event SetMemoryOperationListContentEventHandler? MyDataTypeChanged;
+    public event SetMemoryOperationListContentEventHandler? TextValueChanged;
 
-    public SetMemoryOperationControl() {
+    public SetMemoryOperationListContent() {
         this.InitializeComponent();
         this.dataTypeBinder.Attach(this.PART_DataTypeComboBox, this);
         this.addressBinder.AttachControl(this.PART_AddressTextBox);
         this.valueBinder.Attach(this.PART_ValueTextBox, this);
-        this.repeatBinder.AttachControl(this.PART_RepeatTextBox);
+        this.iterateBinder.AttachControl(this.PART_IterateCountTextBox);
     }
 
     protected override void OnOperationChanged(BaseSequenceOperation? oldOperation, BaseSequenceOperation? newOperation) {
         base.OnOperationChanged(oldOperation, newOperation);
         this.addressBinder.SwitchModel((SetMemoryOperation?) newOperation);
-        this.repeatBinder.SwitchModel((SetMemoryOperation?) newOperation);
+        this.iterateBinder.SwitchModel((SetMemoryOperation?) newOperation);
 
         if (oldOperation != null)
             ((SetMemoryOperation) oldOperation).DataValueChanged -= this.OnDataValueChanged;
@@ -141,9 +143,5 @@ public partial class SetMemoryOperationControl : BaseOperationControl {
             this.MyDataType = sender.DataValue.DataType;
             this.TextValue = (hexPrefix ? "0x" : "") + intNdt.AsString(sender.DataValue.DataType, sender.DataValue.BoxedValue);
         }
-    }
-
-    private void Button_RemoveClick(object? sender, RoutedEventArgs e) {
-        this.Operation?.Sequence!.RemoveOperation(this.Operation);
     }
 }

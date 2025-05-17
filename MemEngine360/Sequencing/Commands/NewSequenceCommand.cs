@@ -43,7 +43,7 @@ public class NewSequenceCommand : Command {
             };
             
             ui.Manager.AddSequence(sequence);
-            ui.Manager.SelectedSequence = sequence;
+            ui.SequenceSelectionManager.SetSelection(ui.GetControl(sequence));
         }
     }
 }

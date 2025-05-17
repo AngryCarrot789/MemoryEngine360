@@ -41,4 +41,19 @@
       <AdditionalFiles Include="Services\SavedResultDataTypeEditorUserInputControl.axaml" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="TaskSequencing\OperationControls\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="TaskSequencing\EditorContent\DelayOperationEditorContent.axaml.cs">
+        <DependentUpon>DelayOperationEditorContent.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="TaskSequencing\EditorContent\SetMemoryOperationEditorContent.axaml.cs">
+        <DependentUpon>SetMemoryOperationEditorContent.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+    </ItemGroup>
+
 </Project>

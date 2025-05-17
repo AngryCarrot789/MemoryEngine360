@@ -17,22 +17,23 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
 
-namespace MemEngine360.Sequencing.Commands;
+namespace MemEngine360.Sequencing;
 
-public class ClearSequencesCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return ITaskSequencerUI.TaskSequencerUIDataKey.GetExecutabilityForPresence(e.ContextData);
-    }
+/// <summary>
+/// The UI interface for an operation in a sequence
+/// </summary>
+public interface IOperationItemUI {
+    public static readonly DataKey<IOperationItemUI> DataKey = DataKey<IOperationItemUI>.Create("IOperationItemUI");
+    
+    /// <summary>
+    /// Gets the operation model
+    /// </summary>
+    BaseSequenceOperation Operation { get; }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
-            return;
-        }
-
-        if (await DeleteSequenceSelectionCommand.TryCancelActiveSequences(ui)) {
-            ui.Manager.ClearSequences();
-        }
-    }
+    /// <summary>
+    /// Gets the task sequence UI
+    /// </summary>
+    ITaskSequenceEntryUI TaskSequenceUI { get; }
 }

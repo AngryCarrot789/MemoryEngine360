@@ -12,7 +12,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <FontFamily x:Key="FontOxanium">avares://PFXToolKitUI.Avalonia/Resources/Fonts/Oxanium/#Oxanium</FontFamily>
-
+            
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key='Dark'>
                     <ResourceDictionary.MergedDictionaries>
