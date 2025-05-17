@@ -140,7 +140,7 @@ public sealed class TaskSequence {
         this.Progress.Text = "Running sequence";
 
         CancellationToken token = this.myCts.Token;
-        for (; count != 0; count--) {
+        for (; count != 0 && !token.IsCancellationRequested; count--) {
             foreach (BaseSequenceOperation operation in this.operations) {
                 try {
                     await operation.Run(this.myContext, token);

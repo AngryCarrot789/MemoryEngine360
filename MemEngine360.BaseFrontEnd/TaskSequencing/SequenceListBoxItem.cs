@@ -37,6 +37,7 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
     private readonly IBinder<TaskSequence> nameBinder = new AvaloniaPropertyToEventPropertyBinder<TaskSequence>(ContentProperty, nameof(TaskSequence.DisplayNameChanged), (b) => ((SequenceListBoxItem) b.Control).Content = b.Model.DisplayName, null);
     private readonly IBinder<TaskSequence> busyLockPriorityBinder = new AvaloniaPropertyToEventPropertyBinder<TaskSequence>(CheckBox.IsCheckedProperty, nameof(TaskSequence.HasBusyLockPriorityChanged), (b) => ((CheckBox) b.Control).IsChecked = b.Model.HasBusyLockPriority, (b) => b.Model.HasBusyLockPriority = ((CheckBox) b.Control).IsChecked == true);
+
     private readonly IBinder<TaskSequence> repeatBinder = new TextBoxToEventPropertyBinder<TaskSequence>(nameof(TaskSequence.RepeatCountChanged), (b) => b.Model.RepeatCount.ToString(), async (b, text) => {
         if (uint.TryParse(text, out uint value)) {
             b.Model.RepeatCount = value;
@@ -45,14 +46,14 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Repeat count is invalid", defaultButton: MessageBoxResult.OK);
         }
     });
-    
+
     private IconButton? PART_CancelActivityButton;
     private IconButton? PART_RunButton;
     private TextBox? PART_RepeatCounter;
     private CheckBox? PART_ToggleBusyExclusive;
-    
+
     private readonly AsyncRelayCommand runCommand, cancelCommand;
-    
+
     private CancellationTokenSource? myCts;
     private MemoryEngine360? myEngine;
 
@@ -72,7 +73,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
                     task.Progress.Text = "Waiting for busy operations...";
                     return seq.Manager!.Engine.BeginBusyOperationAsync(task.CancellationToken);
                 }, seq.Progress, cts);
-                
+
                 // User cancelled operation so don't run the sequence, since it wants busy lock priority
                 if (token == null) {
                     return;
@@ -100,7 +101,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
             TaskSequence? seq = this.Model;
             return seq != null && !seq.IsRunning && seq.Manager!.Engine.Connection != null;
         });
-        
+
         this.cancelCommand = new AsyncRelayCommand(async () => {
             try {
                 this.myCts?.Cancel();
@@ -121,13 +122,13 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
         base.OnApplyTemplate(e);
         this.PART_CancelActivityButton = e.NameScope.GetTemplateChild<IconButton>(nameof(this.PART_CancelActivityButton));
         this.PART_CancelActivityButton.Command = this.cancelCommand;
-        
+
         this.PART_RunButton = e.NameScope.GetTemplateChild<IconButton>(nameof(this.PART_RunButton));
         this.PART_RunButton.Command = this.runCommand;
-        
+
         this.PART_RepeatCounter = e.NameScope.GetTemplateChild<TextBox>(nameof(this.PART_RepeatCounter));
         this.repeatBinder.AttachControl(this.PART_RepeatCounter);
-        
+
         this.PART_ToggleBusyExclusive = e.NameScope.GetTemplateChild<CheckBox>(nameof(this.PART_ToggleBusyExclusive));
         this.busyLockPriorityBinder.AttachControl(this.PART_ToggleBusyExclusive);
     }
@@ -144,7 +145,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
 
         this.myEngine.ConnectionChanged += this.OnEngineConnectionChanged;
         this.myEngine.ConnectionAboutToChange += this.OnConnectionAboutToChange;
-        
+
         DataManager.GetContextData(this).Set(ITaskSequencerUI.TaskSequenceDataKey, this.Model!);
     }
 
@@ -156,23 +157,23 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
         this.myEngine!.ConnectionChanged -= this.OnEngineConnectionChanged;
         this.myEngine!.ConnectionAboutToChange -= this.OnConnectionAboutToChange;
         this.myEngine = null;
-        
+
         DataManager.GetContextData(this).Set(ITaskSequencerUI.TaskSequenceDataKey, null);
     }
 
     protected override void OnRemovedFromList() {
     }
-    
+
     private void OnIsRunningChanged(TaskSequence sender) {
         this.runCommand.RaiseCanExecuteChanged();
         this.cancelCommand.RaiseCanExecuteChanged();
     }
-    
+
     private void OnEngineConnectionChanged(MemoryEngine360 sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
         this.runCommand.RaiseCanExecuteChanged();
         this.cancelCommand.RaiseCanExecuteChanged();
     }
-    
+
     private async Task OnConnectionAboutToChange(MemoryEngine360 sender, IActivityProgress progress) {
         await this.cancelCommand.ExecuteAsync(null);
     }
