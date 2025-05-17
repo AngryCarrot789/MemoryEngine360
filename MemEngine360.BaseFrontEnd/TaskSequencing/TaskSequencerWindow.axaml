@@ -1,0 +1,236 @@
+﻿<w:DesktopWindow x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.TaskSequencerWindow"
+                 xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing"
+                 xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:activities="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd"
+                 xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
+                 mc:Ignorable="d" Width="960" Height="640"
+                 Title="Task Sequencer"
+                 avalonia:UIInputManager.FocusPath="SequencerWindow">
+    <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="251" MinWidth="201"/>
+                <ColumnDefinition Width="1"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <c:GroupBox Grid.Column="0" Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                        HorizontalHeaderAlignment="Stretch" BorderThickness="0"
+                        BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
+                        avalonia:UIInputManager.FocusPath="SequencerWindow/SequenceList">
+                <c:GroupBox.Header>
+                    <DockPanel HorizontalSpacing="3">
+                        <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                                       ToolTip.Tip="Clears all sequences" DockPanel.Dock="Right"
+                                       Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"
+                                       cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.ClearSequencesCommand"/>
+
+                        <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                                       ToolTip.Tip="Add a new sequence" DockPanel.Dock="Right"
+                                       Icon="{x:Static cb:SimpleIcons.GreenPlusIcon}"
+                                       cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.NewSequenceCommand"/>
+                        <TextBlock Text="Sequences" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </c:GroupBox.Header>
+                <local:SequenceListBox x:Name="PART_SequenceListBox"
+                                       BorderThickness="0"
+                                       FontFamily="{StaticResource FontOxanium}"
+                                       Background="Transparent"
+                                       SelectionMode="Single"
+                                       CanDragItemPosition="True"
+                                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.Theme>
+                        <ControlTheme TargetType="{x:Type local:SequenceListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
+                    </ListBox.Theme>
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemContainerTheme>
+                        <ControlTheme TargetType="{x:Type local:SequenceListBoxItem}">
+                            <Setter Property="Background" Value="{DynamicResource ABrush.Tone5.Background.Static}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                            <Setter Property="Padding" Value="6,2"/>
+                            <Setter Property="Template">
+                                <ControlTemplate TargetType="{x:Type local:SequenceListBoxItem}">
+                                    <Border x:Name="PART_Border" Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}">
+                                        <DockPanel Margin="{TemplateBinding Padding}">
+                                            <DockPanel DockPanel.Dock="Bottom">
+                                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                                    <TextBlock Text="Repeat" VerticalAlignment="Center"/>
+                                                    <TextBox x:Name="PART_RepeatCounter" Padding="3,1" VerticalContentAlignment="Center" MinWidth="50"
+                                                             ToolTip.Tip="The amount of times to repeat the sequence. Default is 0. If you set this to e.g. 5, it runs 6 times"/>
+                                                </StackPanel>
+                                                <CheckBox x:Name="PART_ToggleBusyExclusive" DockPanel.Dock="Right" Content="Busy Priority">
+                                                    <ToolTip.Tip>
+                                                        <TextBlock>
+                                                            <Run Text="Makes this sequence take the busy lock before starting. By doing this, it means the sequence can run without interruption"/>
+                                                            <LineBreak/>
+                                                            <LineBreak/>
+                                                            <Run Text="However, most MemEngine360 functions (scan, hex editor, changing values, etc.) will be unavailable until you stop the sequence."/>
+                                                            <LineBreak/>
+                                                            <Run Text="You also won't be able to run other busy priority sequences at the same time; they'll just sit there waiting for the first one to finish"/>
+                                                        </TextBlock>
+                                                    </ToolTip.Tip>
+                                                </CheckBox>
+                                                <Border Background="Transparent"/>
+                                            </DockPanel>
+
+                                            <av:IconButton DockPanel.Dock="Right" x:Name="PART_CancelActivityButton"
+                                                           Width="16" Height="16"
+                                                           Padding="4,1" Margin="0,0,2,0"
+                                                           BorderThickness="0"
+                                                           CornerRadius="2"
+                                                           ToolTip.Tip="Stop the sequence"
+                                                           Icon="{x:Static activities:ActivityStatusBarControl.CancelIcon}"
+                                                           IconMaxHeight="12" IconMaxWidth="12"
+                                                           VerticalContentAlignment="Center"
+                                                           HorizontalContentAlignment="Center"/>
+
+                                            <av:IconButton DockPanel.Dock="Right" x:Name="PART_RunButton"
+                                                           Width="16" Height="16"
+                                                           Padding="4,1" Margin="0"
+                                                           BorderThickness="0"
+                                                           CornerRadius="2"
+                                                           ToolTip.Tip="Starts this sequence"
+                                                           Icon="{x:Static activities:ActivityStatusBarControl.ContinueActivityIcon}"
+                                                           IconMaxHeight="12" IconMaxWidth="12"
+                                                           VerticalContentAlignment="Center"
+                                                           HorizontalContentAlignment="Center"/>
+
+                                            <TextBlock x:Name="PART_HeaderText" 
+                                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                       Text="{TemplateBinding Content}"
+                                                       FontFamily="{StaticResource FontOxanium}"
+                                                       TextWrapping="Wrap"/>
+                                        </DockPanel>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter>
+                            <Style Selector="^:pointerover /template/ Border#PART_Border">
+                                <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.MouseOver}"/>
+                            </Style>
+
+                            <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_Border">
+                                <Setter Property="Background" Value="{DynamicResource Item.SelectedInactive.Background}"/>
+                            </Style>
+
+                            <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_Border">
+                                <Setter Property="Background" Value="{DynamicResource Item.SelectedActive.Background}"/>
+                            </Style>
+                        </ControlTheme>
+                    </ListBox.ItemContainerTheme>
+                </local:SequenceListBox>
+            </c:GroupBox>
+
+            <c:GroupBox Grid.Column="2" Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                        HorizontalHeaderAlignment="Stretch" BorderThickness="0"
+                        BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
+                        avalonia:UIInputManager.FocusPath="SequencerWindow/OperationList">
+                <c:GroupBox.Header>
+                    <DockPanel HorizontalSpacing="3">
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="3">
+                            <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}" 
+                                    BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
+                                    Content="Set Memory" ToolTip.Tip="Adds an operation that sets memory (e.g. an integer or string) at an address"
+                                    Click="Button_InsertSetMemory"/>
+                            <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}" 
+                                    BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
+                                    Content="Delay" ToolTip.Tip="Adds a pause into the operation"
+                                    Click="Button_InsertDelay"/>
+                            <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,1"/>
+                            <av:IconButton Padding="2" Width="20" BorderThickness="0"
+                                           ToolTip.Tip="Clears all sequences"
+                                           Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"
+                                           Click="PART_ClearOperationsClick"/>
+                        </StackPanel>
+                        <TextBlock x:Name="PART_SelectedSequenceTextBlock" Text="Current Operation"
+                                   FontFamily="{StaticResource FontOxanium}"
+                                   VerticalAlignment="Center"/>
+                    </DockPanel>
+                </c:GroupBox.Header>
+                <DockPanel>
+                    <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource PanelBorderBrush}">
+                        <TextBlock x:Name="PART_ActivityStatusText" Text="Caption here" Padding="4,2"/>
+                    </Border>
+                    <local:OperationListBox x:Name="PART_OperationListBox"
+                                            BorderThickness="0"
+                                            FontFamily="{StaticResource FontOxanium}"
+                                            Background="{DynamicResource ABrush.Tone1.Background.Static}"
+                                            SelectionMode="Single"
+                                            CanDragItemPosition="True">
+                        <ListBox.Theme>
+                            <ControlTheme TargetType="{x:Type local:OperationListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
+                        </ListBox.Theme>
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemContainerTheme>
+                            <ControlTheme TargetType="{x:Type local:OperationListBoxItem}">
+                                <Setter Property="Background" Value="{DynamicResource ABrush.Tone3.Background.Static}"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
+                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                <Setter Property="Padding" Value="4,2"/>
+                                <Setter Property="Template">
+                                    <ControlTemplate TargetType="{x:Type local:OperationListBoxItem}">
+                                        <ContentPresenter x:Name="PART_ContentPresenter"
+                                                          Padding="{TemplateBinding Padding}"
+                                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                          Background="{TemplateBinding Background}"
+                                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                                          BorderThickness="{TemplateBinding BorderThickness}"
+                                                          Content="{TemplateBinding Content}"
+                                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                          CornerRadius="{TemplateBinding CornerRadius}"/>
+                                    </ControlTemplate>
+                                </Setter>
+                                <Style Selector="^:pointerover /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.MouseOver}"/>
+                                </Style>
+
+                                <Style Selector="^:selected[IsFocused=False] /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="{DynamicResource Item.SelectedInactive.Background}"/>
+                                </Style>
+
+                                <Style Selector="^:selected[IsFocused=True] /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="{DynamicResource Item.SelectedActive.Background}"/>
+                                </Style>
+                                
+                                <Style Selector="^[IsRunning=true] /template/ ContentPresenter">
+                                    <Setter Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush>
+                                                <GradientStop Color="{DynamicResource ABrush.AccentTone1.Border.Static.Color}"/>
+                                                <GradientStop Color="{DynamicResource ABrush.Tone3.Background.Static.Color}" Offset="1.0"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ControlTheme>
+                        </ListBox.ItemContainerTheme>
+                    </local:OperationListBox>
+                </DockPanel>
+            </c:GroupBox>
+
+            <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="1"/>
+            <GridSplitter Grid.Column="1" Margin="-4,0" Background="Transparent"/>
+        </Grid>
+    </Border>
+</w:DesktopWindow>

@@ -1,0 +1,51 @@
+﻿// 
+// Copyright (c) 2024-2025 REghZy
+// 
+// This file is part of MemEngine360.
+// 
+// MemEngine360 is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either
+// version 3.0 of the License, or (at your option) any later version.
+// 
+// MemEngine360 is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+// Lesser General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// 
+
+using Avalonia.Interactivity;
+using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.Operations;
+using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Services.Messaging;
+
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.OperationControls;
+
+public partial class DelayOperationControl : BaseOperationControl {
+    private readonly IBinder<DelayOperation> delayBinder = new TextBoxToEventPropertyBinder<DelayOperation>(nameof(DelayOperation.DelayChanged), (b) => b.Model.Delay.ToString(), async (b, text) => {
+        if (uint.TryParse(text, out uint value)) {
+            b.Model.Delay = value;
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Delay is an invalid (unsigned) integer.", defaultButton: MessageBoxResult.OK);
+        }
+    });
+    
+    public DelayOperationControl() {
+        this.InitializeComponent();
+        this.delayBinder.AttachControl(this.PART_DelayTextBox);
+    }
+
+    protected override void OnOperationChanged(BaseSequenceOperation? oldOperation, BaseSequenceOperation? newOperation) {
+        base.OnOperationChanged(oldOperation, newOperation);
+        this.delayBinder.SwitchModel((DelayOperation?) newOperation);
+    }
+
+    private void Button_RemoveClick(object? sender, RoutedEventArgs e) {
+        this.Operation?.Sequence!.RemoveOperation(this.Operation);
+    }
+}

@@ -22,6 +22,7 @@ using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands;
@@ -53,6 +54,8 @@ public class OpenConsoleConnectionDialogCommand : Command {
                 }
 
                 using (ErrorList errors = new ErrorList()) {
+                    await memUi.MemoryEngine360.BroadcastConnectionAboutToChange(EmptyActivityProgress.Instance);
+                    
                     try {
                         memUi.MemoryEngine360.SetConnection(token, null, ConnectionChangeCause.User);
                     }

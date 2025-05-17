@@ -28,7 +28,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using MemEngine360.BaseFrontEnd;
-using MemEngine360.BaseFrontEnd.SavedAddressing;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
@@ -222,7 +221,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
                 return false;
             }
 
-            return ui.MemoryEngine360.Connection != null;
+            return ui.MemoryEngine360.Connection is PhantomRTMConsoleConnection;
         }
 
         public static string ConvertStringToHex(string input, Encoding encoding) {
@@ -280,7 +279,8 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
             entry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
             entry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.DownloadMemoryIcon));
             entry.Items.Add(new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Open debugger"));
-            entry.Items.Add(new TestThing("Test Notification", null, null));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Open Sequencer"));
+            entry.Items.Add(new TestThing("Test Notification (XBDM)", null, null));
             entry.Items.Add(new SeparatorEntry());
             entry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
             this.TopLevelMenuRegistry.Items.Add(entry);
@@ -356,6 +356,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
 
         this.PART_ScanOptionsControl.MemoryEngine360 = this.MemoryEngine360;
         this.PART_ActivityListPanel.KeyDown += this.PART_ActivityListPanelOnKeyDown;
+       
     }
 
     private void PART_ActivityListPanelOnKeyDown(object? sender, KeyEventArgs e) {

@@ -17,15 +17,14 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
-using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Services.UserInputs;
 
-namespace MemEngine360.Commands.ATM;
+namespace MemEngine360.Sequencing.Commands;
 
-public class ToggleSavedAddressAutoRefreshCommand : Command {
+public class NewSequenceCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return Executability.Invalid;
         }
 
@@ -33,25 +32,18 @@ public class ToggleSavedAddressAutoRefreshCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return;
         }
 
-        List<AddressTableEntry> list = ui.AddressTableSelectionManager.SelectedItems.Where(x => x.Entry is AddressTableEntry).Select(x => (AddressTableEntry) x.Entry).ToList();
-        if (list.Count < 1) {
-            return;
-        }
-
-        int countDisabled = 0;
-        foreach (AddressTableEntry entry in list) {
-            if (!entry.IsAutoRefreshEnabled) {
-                countDisabled++;
-            }
-        }
-
-        bool isEnabled = list.Count == 1 ? (countDisabled != 0) : countDisabled >= (list.Count / 2);
-        foreach (AddressTableEntry entry in list) {
-            entry.IsAutoRefreshEnabled = isEnabled;
+        SingleUserInputInfo info = new SingleUserInputInfo("New sequence", "What do you want to call it?", "Sequence " + (ui.Manager.Sequences.Count + 1));
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+            TaskSequence sequence = new TaskSequence() {
+                DisplayName = info.Text
+            };
+            
+            ui.Manager.AddSequence(sequence);
+            ui.Manager.SelectedSequence = sequence;
         }
     }
 }

@@ -31,7 +31,7 @@ namespace MemEngine360.BaseFrontEnd.SavedAddressing;
 public sealed class AddressTableTreeView : TreeView {
     public static readonly StyledProperty<AddressTableManager?> AddressTableManagerProperty = AvaloniaProperty.Register<AddressTableTreeView, AddressTableManager?>("AddressTableManager");
     public static readonly StyledProperty<GridLength> ColumnWidth0Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth0", new GridLength(125));
-    public static readonly StyledProperty<GridLength> ColumnWidth1Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth1", new GridLength(1, GridUnitType.Star));
+    public static readonly StyledProperty<GridLength> ColumnWidth1Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth1", new GridLength(250));
     public static readonly StyledProperty<GridLength> ColumnWidth2Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth2", new GridLength(75));
     public static readonly StyledProperty<GridLength> ColumnWidth3Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth3", new GridLength(150));
     
@@ -113,6 +113,7 @@ public sealed class AddressTableTreeView : TreeView {
 
     private void OnATMChanged(AvaloniaPropertyChangedEventArgs<AddressTableManager?> e) {
         this.collectionChangeListener?.Dispose();
+        this.collectionChangeListener = null;
         if (e.TryGetOldValue(out AddressTableManager? oldAtm)) {
             for (int i = this.Items.Count - 1; i >= 0; i--) {
                 this.RemoveNode(i);

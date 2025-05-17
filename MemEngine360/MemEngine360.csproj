@@ -19,4 +19,8 @@
 	  <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Commands\Sequencer\" />
+	</ItemGroup>
+
 </Project>

@@ -1,0 +1,3 @@
+﻿Either we can write our own corruption engine, or use Real Time Corruptor somehow.
+
+But RTC's API doesn't seem very clean, and still uses .NET Framework, whereas we target .NET 8

@@ -84,12 +84,18 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     }
     
     private static string GroupAddressToHeader(IBinder<AddressTableGroupEntry> b) {
-        uint addr = b.Model.GroupAddress;
-        return addr == 0 ? "Group" : $"Group ({(b.Model.IsAddressAbsolute ? "" : "+")}{addr:X})";
+        uint address = b.Model.GroupAddress;
+        if (address == 0) {
+            return "Group";
+        }
+        
+        bool abs = b.Model.IsAddressAbsolute;
+        return $"Group ({(abs ? "" : "+") + address.ToString(abs ? "X8" : "X")})"; 
     }
     
     private static string EntryAddressToHeader(IBinder<AddressTableEntry> b) {
-        return $"{(b.Model.IsAddressAbsolute ? "" : "+")}{b.Model.Address:X}";
+        bool abs = b.Model.IsAddressAbsolute;
+        return (abs ? "" : "+") + b.Model.Address.ToString(abs ? "X8" : "X"); 
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {

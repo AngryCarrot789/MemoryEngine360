@@ -1,0 +1,40 @@
+﻿<local:BaseOperationControl xmlns="https://github.com/avaloniaui"
+                            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                            xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                            xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                            xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.OperationControls"
+                            mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="48"
+                            x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.OperationControls.SetMemoryOperationControl">
+    <DockPanel>
+        <Button Click="Button_RemoveClick" DockPanel.Dock="Right" Content="X" VerticalAlignment="Top" Width="20" Height="20" Background="Transparent" BorderThickness="0"/>
+        <StackPanel Spacing="2">
+            <TextBlock Text="Set Memory At" FontFamily="{StaticResource FontOxanium}" FontWeight="Medium"/>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Address" Padding="4,1" VerticalAlignment="Center"/>
+                <TextBox x:Name="PART_AddressTextBox" VerticalContentAlignment="Center" Padding="4,2" Width="105"
+                         ToolTip.Tip="The address to write at">
+                    <TextBox.InnerLeftContent>
+                        <TextBlock Text="0x" Opacity="0.7"/>
+                    </TextBox.InnerLeftContent>
+                </TextBox>
+                <TextBlock Text="Value" Padding="4,1" VerticalAlignment="Center"/>
+                <TextBox x:Name="PART_ValueTextBox" VerticalContentAlignment="Center" Padding="2,2" MinWidth="150"
+                         ToolTip.Tip="The value to write. Prefix with '0x' to write the integer as hex">
+                </TextBox>
+                <ComboBox x:Name="PART_DataTypeComboBox" Margin="3,0,0,0" Width="64" VerticalContentAlignment="Center"/>
+                <TextBlock Text="Repeat" Padding="4,1" VerticalAlignment="Center"/>
+                <TextBox x:Name="PART_RepeatTextBox" VerticalContentAlignment="Center" Padding="4,2" Width="60">
+                    <ToolTip.Tip>
+                        <TextBlock>
+                            <Run Text="Repeats the write by writing the same value multiple times, offsetting the address by the data type size each time"/>
+                            <LineBreak/>
+                            <Run Text="This does not repeat the write operation at the same location X number of times"/>
+                            <LineBreak/>
+                            <Run Text="E.g. With repeat set to 3, this writes an Int32 x4 times, which is 16 bytes in total (at 0x0, 0x4, 0x8, 0xC)"/>
+                        </TextBlock>
+                    </ToolTip.Tip>
+                </TextBox>
+            </StackPanel>
+        </StackPanel>
+    </DockPanel>
+</local:BaseOperationControl>

@@ -27,6 +27,7 @@ using MemEngine360.BaseFrontEnd.MemRegions;
 using MemEngine360.BaseFrontEnd.Services;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.BaseFrontEnd.Services.HexEditing;
+using MemEngine360.BaseFrontEnd.TaskSequencing;
 using MemEngine360.Commands;
 using MemEngine360.Commands.ATM;
 using MemEngine360.Commands.ATM.XML;
@@ -35,6 +36,8 @@ using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.HexEditing.Commands;
+using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.Commands;
 using MemEngine360.Xbox360XBDM;
 using MemEngine360.Xbox360XDevkit;
 using MemEngine360.XboxInfo;
@@ -105,6 +108,12 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.hexeditor.SetAutoScanRangeAsSelectionCommand", new SetAutoScanRangeAsSelectionCommand());
         manager.Register("commands.hexeditor.ClearAutoScanRangeCommand", new ClearAutoScanRangeCommand());
         manager.Register("commands.hexeditor.SaveSelectionAsFileCommand", new SaveSelectionAsFileCommand());
+        
+        manager.Register("commands.memengine.OpenTaskSequencerCommand", new OpenTaskSequencerCommand());
+        manager.Register("commands.sequencer.DeleteSequenceCommand", new DeleteSequenceCommand());
+        manager.Register("commands.sequencer.ClearSequencesCommand", new ClearSequencesCommand());
+        manager.Register("commands.sequencer.NewSequenceCommand", new NewSequenceCommand());
+        manager.Register("commands.sequencer.RenameSequenceCommand", new RenameSequenceCommand());
     }
 
     protected override async Task OnSetupApplication(IApplicationStartupProgress progress) {
@@ -129,6 +138,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.RegisterConstant<IAboutService>(new AboutServiceImpl());
         manager.RegisterConstant<IHexDisplayService>(new HexDisplayServiceImpl());
         manager.RegisterConstant<ConsoleConnectionManager>(new ConsoleConnectionManagerImpl());
+        manager.RegisterConstant<ITaskSequencerService>(new TaskSequencerServiceImpl());
         manager.RegisterConstant<MemoryEngineManager>(new MemoryEngineManagerImpl());
     }
 

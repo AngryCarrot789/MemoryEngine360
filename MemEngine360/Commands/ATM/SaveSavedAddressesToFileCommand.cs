@@ -52,26 +52,27 @@ public class SaveSavedAddressesToFileCommand : Command {
             return;
         }
 
-        // workaround for some avalonia bug where the UI freezes due to
-        // us showing a custom dialog right before the save file picker
-        await Task.Delay(400 /* arbitrary sleep time */);
-
         if (result == MessageBoxResult.Yes) {
             string? path = await IFilePickDialogService.Instance.SaveFile("Save addresses to XML", Filters.XmlAndAll);
             if (path == null) {
                 return;
             }
 
-            try {
-                XmlAddressEntryGroup rootGroup = new XmlAddressEntryGroup();
-                AddToGroup(engine.AddressTableManager.RootEntry, rootGroup);
-                
-                await using BufferedStream stream = new BufferedStream(File.OpenWrite(path));
-                OpenXMLFileCommand.XmlGroupSerializer.Serialize(stream, rootGroup);
-            }
-            catch (Exception ex) {
-                await IMessageDialogService.Instance.ShowMessage("Error", "Error serializing", ex.GetToString());
-            }
+            await ActivityManager.Instance.RunTask(async () => {
+                ActivityTask task = ActivityManager.Instance.CurrentTask;
+                task.Progress.Caption = "Save addresses to XML";
+                task.Progress.Text = "Serializing...";
+                task.Progress.IsIndeterminate = true;
+                try {
+                    await using BufferedStream stream = new BufferedStream(File.OpenWrite(path));
+                    XmlAddressEntryGroup rootGroup = new XmlAddressEntryGroup();
+                    AddToGroup(engine.AddressTableManager.RootEntry, rootGroup);
+                    OpenXMLFileCommand.XmlGroupSerializer.Serialize(stream, rootGroup);
+                }
+                catch (Exception ex) {
+                    await IMessageDialogService.Instance.ShowMessage("Error", "Error serializing", ex.GetToString());
+                }
+            });
         }
         else {
             string? path = await IFilePickDialogService.Instance.SaveFile("Open a CSV containing saved addresses", Filters.CsvAndAll);

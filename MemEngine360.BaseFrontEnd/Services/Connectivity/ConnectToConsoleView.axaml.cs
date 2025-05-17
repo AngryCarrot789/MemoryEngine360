@@ -25,6 +25,7 @@ using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 
@@ -61,9 +62,22 @@ public partial class ConnectToConsoleView : UserControl {
 
             ConsoleTypeListBoxItem? selection = ((ConsoleTypeListBoxItem?) this.PART_ListBox.SelectedItem);
             if (selection != null && selection.RegisteredConsoleType != null) {
-                this.currCts = new CancellationTokenSource();
+                bool fireConnectionChanging = false;
+                if (this.EngineUI!.MemoryEngine360.Connection != null) {
+                    // Someone's naughty plugin set the connection after the window has opened.
+                    // We could disconnect it but it would be sort of unsafe so just ask the user if they're sure
+                    if (await IMessageDialogService.Instance.ShowMessage(
+                            "Connection still valid", 
+                            "Still connected to a console, somehow. Are you sure you want to continue?", 
+                            MessageBoxButton.OKCancel) != MessageBoxResult.OK) {
+                        return;
+                    }
 
-                using IDisposable? token = await this.EngineUI!.MemoryEngine360.BeginBusyOperationActivityAsync("Connect to console", cancellationTokenSource: this.currCts);
+                    fireConnectionChanging = true;
+                }
+                
+                this.currCts = new CancellationTokenSource();
+                using IDisposable? token = await this.EngineUI.MemoryEngine360.BeginBusyOperationActivityAsync("Connect to console", cancellationTokenSource: this.currCts);
                 if (token != null) {
                     IConsoleConnection? connection;
                     try {
@@ -75,6 +89,9 @@ public partial class ConnectToConsoleView : UserControl {
                     }
 
                     if (connection != null) {
+                        if (fireConnectionChanging)
+                            await this.EngineUI.MemoryEngine360.BroadcastConnectionAboutToChange(EmptyActivityProgress.Instance);
+                        
                         this.EngineUI.MemoryEngine360.SetConnection(token, connection, ConnectionChangeCause.User);
                         this.EngineUI.Activity = "Connected to console";
 

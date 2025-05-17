@@ -94,7 +94,7 @@ can manually enter a range). Then, click `Start Auto Refresh`, and it will refre
 
 You can write values back to the console in the Data Inspector panel (e.g. write an int or a double, but not chars at the moment). The field you're writing into will not be refreshed until you click away from it (e.g. click anywhere in the hex editor) 
 
-### Remote Controls (xbox only so far)
+## Remote Controls (xbox only so far)
 There's a few remote control commands you can find in the `Remote Controls` menu. Some of which are:
 - `Open Disk Tray` - Opens the console's disk tray (cannot be closed remotely since xbdm does not implement closing...???)
 - `Debug Freeze` - Freezes the console
@@ -103,8 +103,23 @@ There's a few remote control commands you can find in the `Remote Controls` menu
 - `Cold Reboot` - Fully reboots the console (shows the xbox boot animation)
 - `Shutdown` - Tells the console to shut down
 
+## Task Sequencer
+The task sequencer system allows you to run small operations as a large task. The system is still WIP,
+and in the future, will support many more customisations, e.g. randomly allow or disallow operations to run,
+random delay times, etc.
+
+![](MemEngine360-DesktopUI_2025-05-17_13.54.11.png)
+
+In this example, we set 0x8303A988 to an int value of 22, wait 2 seconds, set the value to 44, and wait 1 second.
+
+You can add operations by clicking the buttons in the top-right corner. So far, only setting memory and delay are available.
+
+A sequence can be repeated X number of times. The default is 0, meaning run once. When set to 3, the sequence runs 4 times in a row. (this may get renamed to "Run count" in the future, with a default value of 1)
+
+`Busy Priority` is an option that lets a sequence run without interruptions from other parts of the application, e.g. scanning or the memory viewer. But by doing this, is stops those from working until the sequence stops. Enable this option if you really need the task to run pretty accurately with real time
+
 # What is...
-### "Waiting for busy operations..."
+### "Waiting for busy operations..." and Busy Tokens
 This means that something else is using the engine elsewhere (scan is running, the hex editor auto-refresh is running, or maybe the results list/saved addresses are being refreshed).
 
 This application is multithreaded, but connections are not thread safe, so there exists a `BusyToken` to synchronize access. This message is shown in the status bar while waiting to obtain the token.

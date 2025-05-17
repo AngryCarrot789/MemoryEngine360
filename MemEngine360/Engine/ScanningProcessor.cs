@@ -51,7 +51,6 @@ public class ScanningProcessor {
     private bool stringIgnoreCase;
     private bool isRefreshingAddresses;
 
-
     public ActivityTask? ScanningActivity { get; private set; }
 
     /// <summary>
@@ -372,6 +371,17 @@ public class ScanningProcessor {
         }, TimeSpan.FromMilliseconds(100), DispatchPriority.INTERNAL_BeforeRender);
 
         this.rldaRefreshSavedAddressList = RateLimitedDispatchActionBase.ForDispatcherAsync(this.RefreshSavedAddressesAsync, TimeSpan.FromMilliseconds(100));
+        
+        this.MemoryEngine360.ConnectionAboutToChange += this.OnEngineConnectionAboutToChange;
+    }
+
+    private async Task OnEngineConnectionAboutToChange(MemoryEngine360 sender, IActivityProgress progress) {
+        if (this.ScanningActivity != null && this.ScanningActivity.IsRunning) {
+            if (this.ScanningActivity.TryCancel()) { // should always return true
+                progress.Text = "Stopping scan...";
+                await this.ScanningActivity;
+            }
+        }
     }
 
     /// <summary>

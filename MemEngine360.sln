@@ -36,6 +36,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{07FB257C-2
 		docs\Projects-and-Codebase.md = docs\Projects-and-Codebase.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemEngine360.Corruptor", "MemEngine360.Corruptor\MemEngine360.Corruptor.csproj", "{2EC04982-F858-43A0-9A8A-751935C3721D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +84,10 @@ Global
 		{EA6159F6-22D5-4588-AB30-E65A30D3C79F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EA6159F6-22D5-4588-AB30-E65A30D3C79F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EA6159F6-22D5-4588-AB30-E65A30D3C79F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2EC04982-F858-43A0-9A8A-751935C3721D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2EC04982-F858-43A0-9A8A-751935C3721D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2EC04982-F858-43A0-9A8A-751935C3721D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2EC04982-F858-43A0-9A8A-751935C3721D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -96,5 +102,6 @@ Global
 		{B0EE1F47-F1FE-43B3-9B13-745FEFA67E14} = {41FD8850-2EFD-4067-A016-B1AB043C9DE8}
 		{7D545B1C-414D-4BBF-98A8-BD75405D013C} = {4B9F43C6-26CB-4AAB-8002-12E81CB64800}
 		{2D8C352A-CAF0-48C0-841C-C4D174F71566} = {4B9F43C6-26CB-4AAB-8002-12E81CB64800}
+		{2EC04982-F858-43A0-9A8A-751935C3721D} = {4B9F43C6-26CB-4AAB-8002-12E81CB64800}
 	EndGlobalSection
 EndGlobal

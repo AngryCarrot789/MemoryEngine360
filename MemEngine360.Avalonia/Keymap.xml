@@ -86,4 +86,19 @@
             <KeyStroke Mods="CTRL+ALT" Key="S"/>
         </Shortcut>
     </Group>
+    <Group Name="SequencerWindow" DisplayName="Task Sequencer Window">
+        <Group Name="SequenceList" DisplayName="Hex editor" Description="The actual hex editor control">
+            <Shortcut Name="RenameSequence" CommandId="commands.sequencer.RenameSequenceCommand">
+                <KeyStroke Key="F2"/>
+            </Shortcut>
+            <Shortcut Name="DeleteSequence" CommandId="commands.sequencer.DeleteSequenceCommand">
+                <KeyStroke Key="Delete"/>
+            </Shortcut>
+        </Group>
+        <Group Name="OperationList" DisplayName="Hex editor" Description="The actual hex editor control">
+        </Group>
+        <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
+            <KeyStroke Mods="CTRL+ALT" Key="S"/>
+        </Shortcut>
+    </Group>
 </KeyMap>
