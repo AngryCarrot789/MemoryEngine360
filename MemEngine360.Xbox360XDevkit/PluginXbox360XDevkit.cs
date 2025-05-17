@@ -28,6 +28,8 @@ using PFXToolKitUI.Plugins;
 namespace MemEngine360.Xbox360XDevkit;
 
 public class PluginXbox360XDevkit : Plugin {
+    public override string Name => "Xbox360 XDevkit";
+
     public override void OnCreated() {
         base.OnCreated();
         if (!OperatingSystem.IsWindows()) {
@@ -40,6 +42,8 @@ public class PluginXbox360XDevkit : Plugin {
         manager.Register("commands.memengine.remote.ModulesCommand", new ModulesCommand());
         manager.Register("commands.memengine.remote.XboxRunningProcessCommand", new XboxRunningProcessCommand());
         manager.Register("commands.memengine.ShowDebuggerCommand", new ShowDebuggerCommand());
+        manager.Register("commands.memengine.ShowModulesCommand", new ShowModulesCommand());
+        manager.Register("commands.moduleviewer.ShowModuleSectionInfoInDialogCommand", new ShowModuleSectionInfoInDialogCommand());
     }
 
     public override Task OnApplicationFullyLoaded() {

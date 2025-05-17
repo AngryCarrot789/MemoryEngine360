@@ -55,7 +55,7 @@ public class ConsoleTypeXbox360XDevkit : RegisteredConsoleType {
         yield return new CommandContextEntry("commands.memengine.remote.ShowConsoleInfoCommand", "Console info");
         yield return new CommandContextEntry("commands.memengine.remote.ShowXbeInfoCommand", "Show XBE info");
         yield return new CommandContextEntry("commands.memengine.remote.MemProtectionCommand", "Show Memory Regions");
-        yield return new CommandContextEntry("commands.memengine.remote.ModulesCommand", "Show Modules");
+        yield return new CommandContextEntry("commands.memengine.ShowModulesCommand", "Show Modules");
         yield return new CommandContextEntry("commands.memengine.remote.XboxRunningProcessCommand", "Show Running process");
         yield return new SeparatorEntry();
         yield return new CommandContextEntry("commands.memengine.remote.EjectDiskTrayCommand", "Open Disk Tray");

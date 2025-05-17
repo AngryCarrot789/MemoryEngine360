@@ -38,6 +38,9 @@ public class DataGridTextColumnEx : DataGridTextColumn {
         set => this.SetValue(DoubleTapCommandIdProperty, value);
     }
     
+    /// <summary>
+    /// Gets or sets the data key that keys the cell's data context in the <see cref="IContextData"/> when executing the command.
+    /// </summary>
     public DataKey? CellDataKeyForDC {
         get => this.cellDataKeyForDC;
         set => this.SetAndRaise(CellDataKeyForDCProperty, ref this.cellDataKeyForDC, value);

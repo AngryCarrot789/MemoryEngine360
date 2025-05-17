@@ -150,7 +150,7 @@ public class MemoryEngine360 {
             long timeSinceRefreshedAddresses = DateTime.Now.Ticks;
             BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
 
-            while (true) {
+            while (!this.IsShuttingDown) {
                 IConsoleConnection? conn = this.connection;
                 if (conn != null && !conn.IsConnected) {
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
@@ -162,7 +162,7 @@ public class MemoryEngine360 {
                 }
 
                 await Task.Delay(250);
-                if (cfg.IsAutoRefreshResultsEnabled) {
+                if (cfg.IsAutoRefreshResultsEnabled && !this.IsShuttingDown) {
                     if ((DateTime.Now.Ticks - timeSinceRefreshedAddresses) >= (cfg.RefreshRateMillis * Time.TICK_PER_MILLIS)) {
                         await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.ScanningProcessor.RefreshSavedAddressesAsync());
                         timeSinceRefreshedAddresses = DateTime.Now.Ticks;

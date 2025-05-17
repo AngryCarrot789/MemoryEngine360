@@ -88,7 +88,7 @@ public partial class MemEngineWindow : DesktopWindow {
         using (CancellationTokenSource cts = new CancellationTokenSource()) {
             // Grace period for all activities to become cancelled
             try {
-                await Task.WhenAny(Task.Delay(500, cts.Token), Task.Run(() => Task.WhenAll(tasks.Select(x => x.Task)), cts.Token));
+                await Task.WhenAny(Task.Delay(1000, cts.Token), Task.Run(() => Task.WhenAll(tasks.Select(x => x.Task)), cts.Token));
                 await cts.CancelAsync();
             }
             catch (OperationCanceledException) {

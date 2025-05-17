@@ -28,7 +28,7 @@ public class RefreshSavedAddressesCommand : Command {
             return Executability.Invalid;
         }
 
-        if (engine.Connection == null || engine.ScanningProcessor.IsScanning || engine.ScanningProcessor.IsRefreshingAddresses) {
+        if (engine.Connection == null || engine.ScanningProcessor.IsRefreshingAddresses) {
             return Executability.ValidButCannotExecute;
         }
         
@@ -46,10 +46,8 @@ public class RefreshSavedAddressesCommand : Command {
         }
 
         ScanningProcessor p = engine.ScanningProcessor;
-        if (engine.Connection == null || p.IsRefreshingAddresses || p.IsScanning) {
-            return;
+        if (engine.Connection != null && !p.IsRefreshingAddresses) {
+            await engine.ScanningProcessor.RefreshSavedAddressesAsync(token, true);
         }
-        
-        await engine.ScanningProcessor.RefreshSavedAddressesAsync(token);
     }
 }

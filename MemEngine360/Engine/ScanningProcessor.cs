@@ -643,7 +643,9 @@ public class ScanningProcessor {
         this.rldaRefreshSavedAddressList.InvokeAsync();
     }
 
-    public async Task RefreshSavedAddressesAsync() {
+    public Task RefreshSavedAddressesAsync() => this.RefreshSavedAddressesAsync(false);
+
+    public async Task RefreshSavedAddressesAsync(bool bypassLimits) {
         if (this.IsScanning || this.IsRefreshingAddresses || this.MemoryEngine360.IsConnectionBusy || this.MemoryEngine360.Connection == null) {
             return; // concurrent operations are dangerous and can corrupt the communication pipe until restarting connection
         }
@@ -653,7 +655,7 @@ public class ScanningProcessor {
             return; // do not read while connection busy
         }
 
-        await this.RefreshSavedAddressesAsync(token);
+        await this.RefreshSavedAddressesAsync(token, bypassLimits);
     }
 
     /// <summary>
@@ -661,7 +663,7 @@ public class ScanningProcessor {
     /// </summary>
     /// <param name="busyOperationToken">The busy operation token. Does not dispose once finished</param>
     /// <exception cref="InvalidOperationException">No connection is present</exception>
-    public async Task RefreshSavedAddressesAsync(IDisposable busyOperationToken) {
+    public async Task RefreshSavedAddressesAsync(IDisposable busyOperationToken, bool bypassLimits = false) {
         Validate.NotNull(busyOperationToken);
         if (this.IsRefreshingAddresses) {
             throw new InvalidOperationException("Already refreshing");
@@ -676,7 +678,7 @@ public class ScanningProcessor {
         List<AddressTableEntry>? savedList = new List<AddressTableEntry>(100);
         foreach (AddressTableEntry saved in this.MemoryEngine360.AddressTableManager.GetAllAddressEntries()) {
             if (saved.IsAutoRefreshEnabled) {
-                if (savedList.Count > max) {
+                if (!bypassLimits && savedList.Count > max) {
                     savedList = null;
                     break;
                 }
@@ -686,12 +688,13 @@ public class ScanningProcessor {
         }
 
         // Lazily prevents concurrent modification due to awaiting read text
-        List<ScanResultViewModel>? list = (savedList == null || this.ScanResults.Count > max) ? null : this.ScanResults.ToList();
+        List<ScanResultViewModel>? list = (savedList == null || (!bypassLimits && this.ScanResults.Count > max)) ? null : this.ScanResults.ToList();
         if ((savedList == null || savedList.Count < 1) && (list == null || list.Count < 1)) {
             return;
         }
 
-        if ((list?.Count + savedList?.Count) > max) {
+        int grandTotalCount = (list?.Count ?? 0) + (savedList?.Count ?? 0);
+        if (!bypassLimits && grandTotalCount > max) {
             return;
         }
 
@@ -767,7 +770,7 @@ public class ScanningProcessor {
                 await ActivityManager.Instance.RunTask(async () => {
                     IActivityProgress p = ActivityManager.Instance.GetCurrentProgressOrEmpty();
                     p.Caption = "Long refresh";
-                    p.Text = "Values are refreshing...";
+                    p.Text = $"Refreshing {grandTotalCount} value{Lang.S(grandTotalCount)}...";
                     p.IsIndeterminate = true;
                     await task;
                 }, cts);

@@ -16,7 +16,9 @@ So far, only the Xbox 360 is implemented, however, plugins are supported to add 
 
 In the case you want to connect to an xbox 360, just supply its IP address in the text field and click `Connect`
 
-![](MemEngine360-DesktopUI_2025-05-03_13.08.07.png)
+The XDevkit connection is semi-stable but slower than XBDM, but provides cooler features like module viewer, debugging (coming soon), and more.
+
+![](MemEngine360-DesktopUI_2025-05-18_00.19.41.png)
 
 You'll see in the bottom right corner a progress bar will sometimes appear. They represent 'Activities', such as read/write operation status, scan status, and more.
 You can click that area to open a window which shows all activities.
@@ -28,7 +30,7 @@ You can click that area to open a window which shows all activities.
 - Select the data type you wish to scan for (e.g. Byte, Int32, String)
 - Specify search options such as the `Scan Type` (match equal values, less than, between and more), and string type (ASCII, UTF32, etc.)
 
-Then, specify a start address in the `Memory Scanning Options` panel and also how many bytes you want to read (default is `0x10000000` or 256MB). 
+Then, specify a start address in the `Memory Scanning Options` panel and also how many bytes you want to read (default is `0x1000000` or 16MB). 
 
 On supported consoles, you can click the little green table button to open a dialog, which lets you select a memory region to scan.
 Click any of the column headers to sort them (e.g. sort by region size and look for the bigger ones; that's where the games usually are, usually after base address 0x80000000)
@@ -59,13 +61,13 @@ and compare it to the value field(s) and remove any results that no longer match
 There are 2 buttons `First` and `Prev` next to the value field. These toggle whether to use the result rows' First value or Previous Value as a search value, instead of using the value field. 
 
 ## Saved addresses
-![](MemEngine360-DesktopUI_2025-05-10_14.52.37.png)
+![](MemEngine360-DesktopUI_2025-05-18_00.23.00.png)
 
 If you wish to keep an eye on specific addresses, you can add entries in here.
 
 - Select results in the scan results panel, then click `Add Scan Result(s)` to automatically add them. 
 - Add them manually by clicking the green `+` button. It will open two dialogs to configure the row.
-- Open/Save a CSV file containing saved addresses.
+- You can open/save an XML file containing saved addresses (or CSV if you wish).
 
 The refresh button manually refreshes the values. This is done automatically every second by default (changeable in preferences; CTRL+ALT+S)
 
@@ -117,6 +119,11 @@ You can add operations by clicking the buttons in the top-right corner. So far, 
 A sequence can be repeated X number of times. The default is 0, meaning run once. When set to 3, the sequence runs 4 times in a row. (this may get renamed to "Run count" in the future, with a default value of 1)
 
 `Busy Priority` is an option that lets a sequence run without interruptions from other parts of the application, e.g. scanning or the memory viewer. But by doing this, is stops those from working until the sequence stops. Enable this option if you really need the task to run pretty accurately with real time
+
+## Module Viewer
+This is only available via the XDevkit connection type. It can be opened in `Remote Controls > Show Modules`. It presents all the modules and specific details, such as base address, entry point, sections, etc.
+
+![](MemEngine360-DesktopUI_2025-05-18_00.15.15.png)
 
 # What is...
 ### "Waiting for busy operations..." and Busy Tokens
