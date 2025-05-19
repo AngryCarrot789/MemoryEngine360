@@ -127,7 +127,7 @@ You can add operations by clicking the buttons in the top-right corner. So far, 
 > Note, all sequences will be stopped when you change the connection type (CTRL+O)
 
 ## Module Viewer
-This is only available via the XDevkit connection type. It can be opened in `Remote Controls > Show Modules`. It presents all the modules and specific details, such as base address, entry point, sections, etc.
+It can be opened in `Remote Controls > Show Modules`. It presents all the modules and specific details, such as base address, entry point, sections, etc.
 
 ![](MemEngine360-DesktopUI_2025-05-18_00.15.15.png)
 
