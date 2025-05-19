@@ -121,12 +121,12 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         }
     });
 
-    private readonly IBinder<ScanningProcessor> lenBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanLengthChanged), (b) => $"{b.Model.ScanLength:X}", async (b, x) => {
+    private readonly IBinder<ScanningProcessor> lenBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanLengthChanged), (b) => $"{b.Model.ScanLength:X8}", async (b, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
             if (value == b.Model.ScanLength) {
                 return;
             }
-            
+
             if (b.Model.StartAddress + value < value) {
                 await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
             }
@@ -153,7 +153,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
             Buttons = MessageBoxButton.OKCancel, DefaultButton = MessageBoxResult.OK,
             YesOkText = "Yes"
         };
-        
+
         MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
         if (result == MessageBoxResult.Cancel || result == MessageBoxResult.None) {
             return;
@@ -278,8 +278,13 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
             ContextEntryGroup entry = new ContextEntryGroup("File");
             entry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
             entry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.DownloadMemoryIcon));
+            entry.Items.Add(new SeparatorEntry());
             entry.Items.Add(new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Open debugger"));
             entry.Items.Add(new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Open Sequencer"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.ShowModulesCommand", "Show Modules"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Show Memory Regions"));
+            entry.Items.Add(new SeparatorEntry());
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
             entry.Items.Add(new TestThing("Test Notification (XBDM)", null, null));
             entry.Items.Add(new SeparatorEntry());
             entry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
@@ -356,7 +361,6 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
 
         this.PART_ScanOptionsControl.MemoryEngine360 = this.MemoryEngine360;
         this.PART_ActivityListPanel.KeyDown += this.PART_ActivityListPanelOnKeyDown;
-       
     }
 
     private void PART_ActivityListPanelOnKeyDown(object? sender, KeyEventArgs e) {

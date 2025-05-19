@@ -19,17 +19,17 @@
 
 using Avalonia;
 using Avalonia.Controls;
-using MemEngine360.Xbox360XDevkit.Modules.Models;
+using MemEngine360.XboxBase;
+using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Services.Windowing;
-using XDevkit;
 
-namespace MemEngine360.Xbox360XDevkit.Modules;
+namespace MemEngine360.BaseFrontEnd.XboxBase.Modules;
 
 public partial class ModuleViewerWindow : DesktopWindow {
     public static readonly StyledProperty<XboxModuleManager?> XboxModuleManagerProperty = AvaloniaProperty.Register<ModuleViewerWindow, XboxModuleManager?>(nameof(XboxModuleManager));
-    private readonly IBinder<XboxModule> shortNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.ShortNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.ShortName);
-    private readonly IBinder<XboxModule> fullNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.LongNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.LongName);
+    private readonly IBinder<XboxModule> shortNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.NameChanged), (b) => ((TextBox) b.Control).Text = b.Model.Name);
+    private readonly IBinder<XboxModule> fullNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.FullNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.FullName);
     private readonly IBinder<XboxModule> peModuleNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.PEModuleNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.PEModuleName);
     private readonly IBinder<XboxModule> baseAddressBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.BaseAddressChanged), (b) => ((TextBox) b.Control).Text = b.Model.BaseAddress.ToString("X8"));
     private readonly IBinder<XboxModule> entryPointBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.EntryPointChanged), (b) => ((TextBox) b.Control).Text = b.Model.EntryPoint.ToString("X8"));
@@ -59,8 +59,8 @@ public partial class ModuleViewerWindow : DesktopWindow {
             this.XboxModuleManager = new XboxModuleManager() {
                 Modules = {
                     new XboxModule() {
-                        ShortName = "redacted.xex",
-                        LongName = @"HDD:\MyGames\DONOTGOINHERE\sexsimulator.xex",
+                        Name = "redacted.xex",
+                        FullName = @"HDD:\MyGames\DONOTGOINHERE\sexsimulator.xex",
                         BaseAddress = 0x2169420,
                         EntryPoint = 0x8008135,
                         ModuleSize = 0x4000,
@@ -73,8 +73,8 @@ public partial class ModuleViewerWindow : DesktopWindow {
                         }
                     },
                     new XboxModule() {
-                        ShortName = "default.xex",
-                        LongName = @"HDD:\MyGames\BlackOps1\default.xex",
+                        Name = "default.xex",
+                        FullName = @"HDD:\MyGames\BlackOps1\default.xex",
                         BaseAddress = 0x82600000,
                         EntryPoint = 0x82600000,
                         ModuleSize = 0x100000,

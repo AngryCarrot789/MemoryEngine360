@@ -17,13 +17,20 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Runtime.InteropServices;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
+using MemEngine360.BaseFrontEnd.XboxBase;
 using MemEngine360.Connections;
+using MemEngine360.Engine;
 using MemEngine360.Xbox360XDevkit.Commands;
 using MemEngine360.Xbox360XDevkit.Views;
+using MemEngine360.XboxBase;
+using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Plugins;
+using PFXToolKitUI.Tasks;
+using XDevkit;
 
 namespace MemEngine360.Xbox360XDevkit;
 
@@ -39,11 +46,8 @@ public class PluginXbox360XDevkit : Plugin {
 
     public override void RegisterCommands(CommandManager manager) {
         base.RegisterCommands(manager);
-        manager.Register("commands.memengine.remote.ModulesCommand", new ModulesCommand());
         manager.Register("commands.memengine.remote.XboxRunningProcessCommand", new XboxRunningProcessCommand());
         manager.Register("commands.memengine.ShowDebuggerCommand", new ShowDebuggerCommand());
-        manager.Register("commands.memengine.ShowModulesCommand", new ShowModulesCommand());
-        manager.Register("commands.moduleviewer.ShowModuleSectionInfoInDialogCommand", new ShowModuleSectionInfoInDialogCommand());
     }
 
     public override Task OnApplicationFullyLoaded() {
@@ -51,6 +55,55 @@ public class PluginXbox360XDevkit : Plugin {
         
         ConsoleConnectionManager manager = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
         manager.Register(ConsoleTypeXbox360XDevkit.TheID, ConsoleTypeXbox360XDevkit.Instance);
+        
+        XboxModuleManager.RegisterHandlerForConnectionType<Devkit360Connection>(FillModuleManager);
+        
         return Task.CompletedTask;
+    }
+
+    private static async Task FillModuleManager(MemoryEngine360 arg1, Devkit360Connection connection, XboxModuleManager manager) {
+        ActivityTask task = ActivityManager.Instance.CurrentTask;
+        task.Progress.Caption = "Reading Modules";
+        task.Progress.Text = "Reading modules...";
+        task.Progress.IsIndeterminate = true;
+
+        foreach (IXboxModule module in connection.Console.DebugTarget.Modules) {
+            task.CheckCancelled();
+            
+            XBOX_MODULE_INFO info = module.ModuleInfo;
+            task.Progress.Text = "Processing " + info.Name;
+
+            uint entryPoint = module.GetEntryPointAddress();
+            XboxModule xboxModule = new XboxModule() {
+                Name = info.Name,
+                FullName = info.FullName,
+                BaseAddress = info.BaseAddress,
+                ModuleSize = info.Size,
+                OriginalModuleSize = module.OriginalSize,
+                EntryPoint = entryPoint
+            };
+            
+            try {
+                xboxModule.PEModuleName = module.Executable.GetPEModuleName();
+            }
+            catch (COMException ex) {
+                xboxModule.PEModuleName = $"<COMException: {ex.Message}>";
+            }
+            
+            foreach (IXboxSection section in module.Sections) {
+                task.CheckCancelled();
+            
+                XBOX_SECTION_INFO secInf = section.SectionInfo;
+                xboxModule.Sections.Add(new XboxModuleSection() {
+                    Name = secInf.Name,
+                    BaseAddress = secInf.BaseAddress,
+                    Size = secInf.Size,
+                    Index = secInf.Index,
+                    Flags = (MemEngine360.XboxBase.XboxSectionInfoFlags) secInf.Flags,
+                });
+            }
+            
+            manager.Modules.Add(xboxModule);
+        }
     }
 }

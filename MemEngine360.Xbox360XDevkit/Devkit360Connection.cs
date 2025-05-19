@@ -41,14 +41,39 @@ public class Devkit360Connection : BaseConsoleConnection, IConsoleConnection, IH
     public Devkit360Connection(XboxManager manager, XboxConsole console) {
         this.manager = manager;
         this.console = console;
+        this.console.DebugTarget.MemoryCacheEnabled = false;
+        // this.console.add_OnStdNotify(this.OnStdNotify);
+        // this.console.add_OnTextNotify(this.OnTextNotify);
         this.isConnectedAsDebugger = true;
 
         // console.DebugTarget.SetDataBreakpoint(0, XboxBreakpointType.OnExecute);
     }
 
+    // private void OnStdNotify(XboxDebugEventType eventcode, IXboxEventInfo eventinfo) {
+    //     XBOX_EVENT_INFO inf = eventinfo.Info;
+    //     StringBuilder sb = new StringBuilder();
+    //     sb.Append($"IsThreadStopped: {inf.IsThreadStopped != 0}, ");
+    //     sb.Append($"ExecState: {inf.ExecState}, ");
+    //     sb.Append($"Message: {inf.Message}, ");
+    //     sb.Append($"Code: {inf.Code}, ");
+    //     sb.Append($"Address: {inf.Address}, ");
+    //     sb.Append($"Flags: {inf.Flags}, ");
+    //     sb.Append($"ParameterCount: {inf.ParameterCount}");
+    //     if (inf.ParameterCount > 0)
+    //         sb.Append($", Parameters: {string.Join(", ", inf.Parameters)}");
+    //     
+    //     Debug.WriteLine($"[StdNotify] {eventcode} -> {sb.ToString()}");
+    // }
+    //
+    // private void OnTextNotify(string source, string notification) {
+    //     Debug.WriteLine($"[TextNotify] {source} -> {notification}");
+    // }
+
     protected override void CloseCore() {
         if (this.isConnectedAsDebugger) {
             this.isConnectedAsDebugger = false;
+            // this.console.remove_OnStdNotify(this.OnStdNotify);
+            // this.console.remove_OnTextNotify(this.OnTextNotify);
             this.console.DebugTarget.DisconnectAsDebugger();
         }
     }
@@ -97,8 +122,8 @@ public class Devkit360Connection : BaseConsoleConnection, IConsoleConnection, IH
 
     protected override Task<uint> ReadBytesCore(uint address, byte[] dstBuffer, int offset, uint count) {
         return Task.Run(() => {
-            this.console.DebugTarget.GetMemory_cpp(address, count, ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dstBuffer), offset), out uint cbRead);
-            this.console.DebugTarget.InvalidateMemoryCache(true, address, count);
+            IXboxDebugTarget target = this.console.DebugTarget;
+            target.GetMemory_cpp(address, count, ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dstBuffer), offset), out uint cbRead);
             return cbRead;
         });
     }

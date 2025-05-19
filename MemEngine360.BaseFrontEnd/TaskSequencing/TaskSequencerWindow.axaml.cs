@@ -43,10 +43,10 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
     }
     
     public TaskSequencerManager Manager => this.TaskSequencerManager ?? throw new Exception("Window Closed");
-    
-    public IListSelectionManager<ITaskSequenceEntryUI> SequenceSelectionManager { get; }
-    
-    public IListSelectionManager<IOperationItemUI> OperationSelectionManager { get; }
+
+    public IListSelectionManager<ITaskSequenceEntryUI> SequenceSelectionManager => this.PART_SequenceListBox.ControlSelectionManager;
+
+    public IListSelectionManager<IOperationItemUI> OperationSelectionManager => this.PART_OperationListBox.ControlSelectionManager;
     
     public ITaskSequenceEntryUI? PrimarySelectedSequence { get; private set; }
 
@@ -60,10 +60,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
         
         this.PART_OperationListBox.TaskSequencerUI = this;
         
-        this.SequenceSelectionManager = new ListBoxSelectionManager<ITaskSequenceEntryUI>(this.PART_SequenceListBox);
         this.SequenceSelectionManager.LightSelectionChanged += this.OnSelectionChanged;
-
-        this.OperationSelectionManager = new ListBoxSelectionManager<IOperationItemUI>(this.PART_OperationListBox);
         this.OperationSelectionManager.LightSelectionChanged += this.OnOperationSelectionChanged;
         
         DataManager.GetContextData(this).Set(ITaskSequencerUI.TaskSequencerUIDataKey, this);

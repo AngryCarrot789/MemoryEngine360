@@ -112,7 +112,7 @@
                                     </DockPanel>
                                 </c:GroupBox.Header>
                                 <StackPanel IsVisible="{Binding ElementName=PART_MemScanExpander, Path=IsChecked}">
-                                    <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,20,3,20,3,20" Margin="3">
+                                    <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,22,3,20,3,20" Margin="3">
                                         <TextBlock Grid.Column="0" Grid.Row="0" Text="Start" VerticalAlignment="Center" Padding="4,0"/>
                                         <TextBlock Grid.Column="0" Grid.Row="2" Text="Length" VerticalAlignment="Center" Padding="4,0"/>
                                         <TextBlock Grid.Column="0" Grid.Row="4" Text="Align" VerticalAlignment="Center" Padding="4,0"/>
@@ -151,12 +151,23 @@
                                                 </TextBlock>
                                             </ToolTip.Tip>
                                         </TextBox>
-                                        <Label Grid.Column="2" Grid.Row="4" FontFamily="Consolas" Background="Transparent"
+                                        <Label Grid.Column="2" Grid.Row="4" FontFamily="Consolas" 
+                                               Background="Transparent"
+                                               BorderThickness="1"
+                                               Padding="4,0"
                                                x:Name="PART_ScanOption_Alignment"
                                                VerticalAlignment="Stretch" VerticalContentAlignment="Center"
                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                                                ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
                                                DoubleTapped="PART_ScanOption_Alignment_OnDoubleTapped">
+                                            <Label.Styles>
+                                                <Style Selector="Label">
+                                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                                </Style>
+                                                <Style Selector="Label[IsPointerOver=True]">
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource ABrush.AccentTone2.Background.Static}"/>
+                                                </Style>
+                                            </Label.Styles>
                                             <ToolTip.Tip>
                                                 <TextBlock TextWrapping="Wrap">
                                                     <Run Text="Double click to modify"/>
@@ -224,13 +235,34 @@
                                                      CanUserResize="False" FontFamily="{StaticResource FontOxanium}"/> <!-- No need to resize since it's formatted to X8 (fixed length) -->
 
                             <cb:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
-                                                     Header="Value" Width="85" Binding="{Binding CurrentValue, Mode=OneWay}"
+                                                     Header="Value" Width="85"
                                                      IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditScanResultValueCommand"
                                                      CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
-                                                     CanUserResize="True" FontFamily="{StaticResource FontOxanium}"/>
+                                                     CanUserResize="True" FontFamily="{StaticResource FontOxanium}">
+                                <cb:DataGridTextColumnEx.Binding>
+                                    <MultiBinding Converter="{x:Static av2:ScanResultCurrentValueConverter.Instance}">
+                                        <Binding Path="CurrentValue" Mode="OneWay"/>
+                                        <Binding Path="DataType" Mode="OneWay"/>
+                                    </MultiBinding>
+                                </cb:DataGridTextColumnEx.Binding>
+                            </cb:DataGridTextColumnEx>
 
-                            <DataGridTextColumn CanUserResize="True" Header="Previous" Width="85" Binding="{Binding PreviousValue, Mode=OneWay}" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True"/>
-                            <DataGridTextColumn CanUserResize="True" Header="First" Width="85" Binding="{Binding FirstValue, Mode=OneTime}" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True"/>
+                            <DataGridTextColumn CanUserResize="True" Header="Previous" Width="85" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True">
+                               <DataGridTextColumn.Binding>
+                                    <MultiBinding Converter="{x:Static av2:ScanResultCurrentValueConverter.Instance}">
+                                        <Binding Path="PreviousValue" Mode="OneWay"/>
+                                        <Binding Path="DataType" Mode="OneWay"/>
+                                    </MultiBinding>
+                                </DataGridTextColumn.Binding>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn CanUserResize="True" Header="First" Width="85" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True">
+                               <DataGridTextColumn.Binding>
+                                    <MultiBinding Converter="{x:Static av2:ScanResultCurrentValueConverter.Instance}">
+                                        <Binding Path="FirstValue" Mode="OneWay"/>
+                                        <Binding Path="DataType" Mode="OneWay"/>
+                                    </MultiBinding>
+                                </DataGridTextColumn.Binding>
+                            </DataGridTextColumn> 
                         </DataGrid.Columns>
                     </DataGrid>
                 </c:GroupBox>
@@ -306,40 +338,6 @@
                         </DockPanel>
                     </c:GroupBox.Header>
                     <sa:AddressTableTreeView x:Name="PART_SavedAddressTree" Background="Transparent" BorderThickness="0"/>
-                    <!-- <DataGrid x:Name="PART_SavedAddressList" -->
-                    <!--           Background="Transparent" -->
-                    <!--           BorderThickness="0" -->
-                    <!--           CanUserResizeColumns="True" -->
-                    <!--           ClipboardCopyMode="None"> -->
-                    <!--     <DataGrid.Columns> -->
-                    <!--         <DataGridCheckBoxColumn Header="Active" Width="42" x:DataType="{x:Type engine:AddressTableEntry}" -->
-                    <!--                                 Binding="{Binding IsAutoRefreshEnabled, Mode=TwoWay}" -->
-                    <!--                                 CanUserResize="False"/> -->
-                    <!-- -->
-                    <!--         <cb:DataGridTextColumnEx Header="Address (hex)" Width="100" x:DataType="{x:Type engine:AddressTableEntry}" -->
-                    <!--                                  Binding="{Binding Address, Mode=OneWay, StringFormat=X}" -->
-                    <!--                                  IsReadOnly="True" FontFamily="{StaticResource FontOxanium}" -->
-                    <!--                                  DoubleTapCommandId="commands.memengine.CopyScanResultsToClipboardCommand" -->
-                    <!--                                  CellDataKeyForDC="{x:Static engine:AddressTableEntry.DataKey}" -->
-                    <!--                                  CanUserResize="False"/> -->
-                    <!-- -->
-                    <!--         <DataGridTextColumn Header="Description" Width="200" x:DataType="{x:Type engine:AddressTableEntry}" -->
-                    <!--                             Binding="{Binding Description, Mode=TwoWay}" -->
-                    <!--                             CanUserResize="True"/> -->
-                    <!-- -->
-                    <!--         <cb:DataGridTextColumnEx Header="Data Type" Width="80" x:DataType="{x:Type engine:AddressTableEntry}" -->
-                    <!--                                  Binding="{Binding DataType, Mode=OneWay}" -->
-                    <!--                                  IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressDataTypeCommand" -->
-                    <!--                                  CellDataKeyForDC="{x:Static engine:AddressTableEntry.DataKey}" -->
-                    <!--                                  CanUserResize="True"/> -->
-                    <!-- -->
-                    <!--         <cb:DataGridTextColumnEx Header="Value" Width="100" x:DataType="{x:Type engine:AddressTableEntry}" -->
-                    <!--                                  Binding="{Binding Value, Mode=OneWay}" -->
-                    <!--                                  IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditSavedAddressValueCommand" -->
-                    <!--                                  CellDataKeyForDC="{x:Static engine:AddressTableEntry.DataKey}" -->
-                    <!--                                  CanUserResize="True" FontFamily="{StaticResource FontOxanium}"/> -->
-                    <!--     </DataGrid.Columns> -->
-                    <!-- </DataGrid> -->
                 </c:GroupBox>
                 <GridSplitter Grid.Column="2" Grid.Row="1" Background="Transparent"/>
                 <GridSplitter Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="2" Background="Transparent"/>

@@ -8,11 +8,11 @@
                  xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd;assembly=MemEngine360.BaseFrontEnd"
-                 xmlns:local="clr-namespace:MemEngine360.Xbox360XDevkit.Modules"
-                 xmlns:models="clr-namespace:MemEngine360.Xbox360XDevkit.Modules.Models"
                  xmlns:memRegions="clr-namespace:MemEngine360.BaseFrontEnd.MemRegions;assembly=MemEngine360.BaseFrontEnd"
+                 xmlns:modules="clr-namespace:MemEngine360.BaseFrontEnd.XboxBase.Modules"
+                 xmlns:models="clr-namespace:MemEngine360.XboxBase.Modules;assembly=MemEngine360"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-                 x:Class="MemEngine360.Xbox360XDevkit.Modules.ModuleViewerWindow"
+                 x:Class="MemEngine360.BaseFrontEnd.XboxBase.Modules.ModuleViewerWindow"
                  Title="Module Viewer"
                  MinWidth="640" MinHeight="400"
                  Width="960" Height="640"
@@ -36,7 +36,7 @@
                         <TextBlock Text="Modules" VerticalAlignment="Center"/>
                     </DockPanel>
                 </c:GroupBox.Header>
-                <local:ModuleListBox x:Name="PART_ModuleListBox"
+                <modules:ModuleListBox x:Name="PART_ModuleListBox"
                                      BorderThickness="0"
                                      FontFamily="{StaticResource FontOxanium}"
                                      Background="Transparent"
@@ -44,7 +44,7 @@
                                      CanDragItemPosition="True"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.Theme>
-                        <ControlTheme TargetType="{x:Type local:ModuleListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
+                        <ControlTheme TargetType="{x:Type modules:ModuleListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
                     </ListBox.Theme>
                     <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -52,13 +52,13 @@
                         </ItemsPanelTemplate>
                     </ListBox.ItemsPanel>
                     <ListBox.ItemContainerTheme>
-                        <ControlTheme TargetType="{x:Type local:ModuleListBoxItem}">
+                        <ControlTheme TargetType="{x:Type modules:ModuleListBoxItem}">
                             <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
                             <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
                             <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
                             <Setter Property="BorderThickness" Value="0,0,0,1"/>
                             <Setter Property="Template">
-                                <ControlTemplate TargetType="{x:Type local:ModuleListBoxItem}">
+                                <ControlTemplate TargetType="{x:Type modules:ModuleListBoxItem}">
                                     <Border x:Name="PART_Border" Background="{TemplateBinding Background}"
                                             BorderBrush="{TemplateBinding BorderBrush}"
                                             BorderThickness="{TemplateBinding BorderThickness}">
@@ -107,7 +107,7 @@
                             </Style>
                         </ControlTheme>
                     </ListBox.ItemContainerTheme>
-                </local:ModuleListBox>
+                </modules:ModuleListBox>
             </c:GroupBox>
 
             <c:GroupBox Grid.Column="2" Background="{DynamicResource ABrush.Tone4.Background.Static}"
@@ -170,6 +170,12 @@
                                     <DataGridTextColumn x:DataType="{x:Type models:XboxModuleSection}" Width="40"
                                                         Header="Index" CanUserResize="False" IsReadOnly="True"
                                                         Binding="{Binding Index, Mode=OneWay}"/>
+
+                                    <cb:DataGridTextColumnEx x:DataType="{x:Type models:XboxModuleSection}" Width="125"
+                                                             Header="Name" CanUserResize="True" IsReadOnly="True"
+                                                             Binding="{Binding Name, Mode=OneWay}"
+                                                             CellDataKeyForDC="{x:Static models:XboxModuleSection.DataKey}"
+                                                             DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
 
                                     <cb:DataGridTextColumnEx x:DataType="{x:Type models:XboxModuleSection}" Width="100"
                                                              Header="Base Address" CanUserResize="False" IsReadOnly="True"

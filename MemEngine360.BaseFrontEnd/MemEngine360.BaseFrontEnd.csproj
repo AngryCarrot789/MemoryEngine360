@@ -36,7 +36,6 @@
 
     <ItemGroup>
       <AdditionalFiles Include="MemRegions\XboxMemoryRegionViewerUIControl.axaml" />
-      <AdditionalFiles Include="MemRegions\XboxModuleViewerUIControl.axaml" />
       <AdditionalFiles Include="Services\Connectivity\ConnectToConsoleView.axaml" />
       <AdditionalFiles Include="Services\SavedResultDataTypeEditorUserInputControl.axaml" />
     </ItemGroup>
@@ -52,6 +51,10 @@
       </Compile>
       <Compile Update="TaskSequencing\EditorContent\SetMemoryOperationEditorContent.axaml.cs">
         <DependentUpon>SetMemoryOperationEditorContent.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="XboxBase\Modules\ModuleViewerWindow.axaml.cs">
+        <DependentUpon>ModuleViewerWindow.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>
     </ItemGroup>

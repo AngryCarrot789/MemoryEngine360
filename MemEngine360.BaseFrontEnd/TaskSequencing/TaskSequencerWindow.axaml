@@ -105,7 +105,8 @@
                                                            Icon="{x:Static activities:ActivityStatusBarControl.CancelIcon}"
                                                            IconMaxHeight="12" IconMaxWidth="12"
                                                            VerticalContentAlignment="Center"
-                                                           HorizontalContentAlignment="Center"/>
+                                                           HorizontalContentAlignment="Center"
+                                                           cu:CommandUsageManager.UsageClassType="{x:Type local:CancelSequenceCommandUsage}"/>
 
                                             <av:IconButton x:Name="PART_RunButton" 
                                                            DockPanel.Dock="Right" VerticalAlignment="Top"
@@ -117,7 +118,8 @@
                                                            Icon="{x:Static activities:ActivityStatusBarControl.ContinueActivityIcon}"
                                                            IconMaxHeight="12" IconMaxWidth="12"
                                                            VerticalContentAlignment="Center"
-                                                           HorizontalContentAlignment="Center"/>
+                                                           HorizontalContentAlignment="Center"
+                                                           cu:CommandUsageManager.UsageClassType="{x:Type local:RunSequenceCommandUsage}"/>
 
                                             <TextBlock x:Name="PART_HeaderText" 
                                                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"

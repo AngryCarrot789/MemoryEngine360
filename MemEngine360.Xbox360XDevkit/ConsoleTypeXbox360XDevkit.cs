@@ -40,8 +40,7 @@ public class ConsoleTypeXbox360XDevkit : RegisteredConsoleType {
     public override string? FooterText => "Mostly stable";
 
     public override string LongDescription => $"Uses XDevkit's COM interfaces to interact with the xbox.{Environment.NewLine}" +
-                                              $"Most features tested, most non-read/write operations are not async so expect freezing{Environment.NewLine}" +
-                                              $"Unless you want running process(es) or modules list, Just use XBDM";
+                                              $"Most features tested, most non-read/write operations are not async so expect freezing";
 
     public override Icon? Icon => SimpleIcons.CursedXbox360Icon;
 
@@ -54,8 +53,6 @@ public class ConsoleTypeXbox360XDevkit : RegisteredConsoleType {
         yield return new CommandContextEntry("commands.memengine.remote.ListHelpCommand", "List all commands in popup");
         yield return new CommandContextEntry("commands.memengine.remote.ShowConsoleInfoCommand", "Console info");
         yield return new CommandContextEntry("commands.memengine.remote.ShowXbeInfoCommand", "Show XBE info");
-        yield return new CommandContextEntry("commands.memengine.remote.MemProtectionCommand", "Show Memory Regions");
-        yield return new CommandContextEntry("commands.memengine.ShowModulesCommand", "Show Modules");
         yield return new CommandContextEntry("commands.memengine.remote.XboxRunningProcessCommand", "Show Running process");
         yield return new SeparatorEntry();
         yield return new CommandContextEntry("commands.memengine.remote.EjectDiskTrayCommand", "Open Disk Tray");

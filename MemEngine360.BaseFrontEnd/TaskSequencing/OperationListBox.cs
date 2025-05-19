@@ -21,6 +21,7 @@ using Avalonia;
 using MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Interactivity;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
@@ -36,8 +37,11 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
 
     private readonly Dictionary<Type, Stack<BaseOperationListContent>> itemContentCacheMap;
 
+    public IListSelectionManager<IOperationItemUI> ControlSelectionManager { get; }
+
     public OperationListBox() : base(32) {
         this.itemContentCacheMap = new Dictionary<Type, Stack<BaseOperationListContent>>();
+        this.ControlSelectionManager = new ModelListBoxSelectionManagerForControl<BaseSequenceOperation, IOperationItemUI>(this);
     }
 
     static OperationListBox() {
@@ -64,7 +68,7 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
 
     public bool ReleaseContentObject(BaseSequenceOperation operation, BaseOperationListContent content) {
         const int MaxItemContentCacheSize = 64;
-        
+
         Type resourceType = operation.GetType();
         if (!this.itemContentCacheMap.TryGetValue(resourceType, out Stack<BaseOperationListContent>? stack)) {
             this.itemContentCacheMap[resourceType] = stack = new Stack<BaseOperationListContent>();
@@ -75,9 +79,5 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
 
         stack.Push(content);
         return true;
-    }
-
-    public ITaskSequenceEntryUI GetTaskSequence(OperationListBoxItem item) {
-        return this.TaskSequencerUI.GetControl(item.Model!.Sequence!);
     }
 }

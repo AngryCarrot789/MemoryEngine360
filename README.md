@@ -1,22 +1,23 @@
 # MemEngine360 v1.1.4
-This is a remake of Cheat Engine, but for consoles (and so far only Xbox 360)
+This is a remake of Cheat Engine, but for consoles (so far only Xbox 360). This project was inspired by https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
 
 ![](MemEngine360-DesktopUI_2025-05-10_15.03.51.png)
 
-This project was inspired by https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
+> Hopefully this is obvious, but please take care when changing ('poking') values on your console. 
+> You may break things, maybe even permanently if you change the wrong things.
 
 # Download and build
 Clone repo: `git clone --recursive https://github.com/AngryCarrot789/MemEngine360`
 
 Open `MemEngine360.sln` and then run/debug.
 
+If you wish to publish as a single .exe with a few (native) DLLs alongside, run `MemEngine360/MemEngine360.Avalonia/publish.bat`. This is how I create releases for this project
+
 # How to use
-Press `CTRL + O` (or go to `File > Connect to console...`). A dialog pops up allowing you to connect to different consoles. 
-So far, only the Xbox 360 is implemented, however, plugins are supported to add more.
+First, connect to a console by clicking `CTRL + O` in the main window (or go to `File > Connect to console...`). 
+A dialog pops up allowing you to connect to different consoles. So far, only the Xbox 360 is implemented, however, plugins are supported to add more.
 
 In the case you want to connect to an xbox 360, just supply its IP address in the text field and click `Connect`
-
-The XDevkit connection is semi-stable but slower than XBDM, but provides cooler features like module viewer, debugging (coming soon), and more.
 
 ![](MemEngine360-DesktopUI_2025-05-18_00.19.41.png)
 
@@ -26,7 +27,7 @@ You can click that area to open a window which shows all activities.
 ![](rider64_2025-04-27_22.07.31.png)
 
 ## Scanning
-- Enter a value in the `Value` field
+- Enter a value in the `Value` field (or both fields if scan type is `Between`)
 - Select the data type you wish to scan for (e.g. Byte, Int32, String)
 - Specify search options such as the `Scan Type` (match equal values, less than, between and more), and string type (ASCII, UTF32, etc.)
 
@@ -38,12 +39,14 @@ Click any of the column headers to sort them (e.g. sort by region size and look 
 ![](MemEngine360-DesktopUI_2025-04-27_22.02.37.png)
 
 - DEBUG PAUSE will freeze the console during scan (speeds up scan and useful if you don't want values to change during scan). Only works on consoles supporting freezing (including Xbox 360) 
-- Scan Memory Pages will scan the console's memory regions rather than blindly scan the entire search range. Only works on consoles supporting memory region querying (including Xbox 360)
+- Scan Memory Pages will scan the console's memory regions rather than blindly scan the entire search range. Only works on consoles supporting memory region querying (including Xbox 360). You should keep this enabled for faster scanning
 - Align... code explains it better: `for (addr = start; addr < end; addr += align) /* scan addr */`
+
+> Note, if the console is already frozen when DEBUG PAUSE is enabled, it will become unfrozen after the scan finishes. Disable DEBUG PAUSE to stop this
 
 ### First Scan
 
-Click `First Scan`. The activity status (bottom right) shows the scan progress. You can cancel the scan by clicking the X.
+Click `First Scan`. The activity status (bottom right) shows the scan progress. You can pause or cancel at any time. 
 
 The activity bar will show something like `Region a/b (c/d)`. This means it's processing memory region A out of B, and has read C out of D bytes from the console. It may also say `Chunk` when Scan Memory Pages is off, since we read in chunks of 64K 
 
@@ -55,10 +58,13 @@ Then, once the scan is complete, it may show `Updating result list...`. This is 
 
 ### Next Scan
 
-Then, if you want to check if any results' current value have changed, click `Next Scan` and it will read the current value of all results
-and compare it to the value field(s) and remove any results that no longer match (because the value changed)
+This removes scan results whose current value does not match the search query. 
 
-There are 2 buttons `First` and `Prev` next to the value field. These toggle whether to use the result rows' First value or Previous Value as a search value, instead of using the value field. 
+For example, in COD you run First and Next scan for "25" (that being an ammo count), but after first scan, you shot rounds, so the value became 24, and therefore won't show up in the next scan as you're searching for 25. 
+
+There are 2 buttons `First` and `Prev` next to the value field. These toggle whether to use the scan results' First Value or Previous Value as a search value, instead of using the search query. 
+
+For example, say you want to find results whose values changed relative to the previous scan (includes first and all subsequent next scans), Select `Prev` and set the `Scan Type` to `NotEqual` 
 
 ## Saved addresses
 ![](MemEngine360-DesktopUI_2025-05-18_00.23.00.png)
@@ -116,9 +122,9 @@ In this example, we set 0x8303A988 to an int value of 22, wait 2 seconds, set th
 
 You can add operations by clicking the buttons in the top-right corner. So far, only setting memory and delay are available.
 
-A sequence can be repeated X number of times. The default is 0, meaning run once. When set to 3, the sequence runs 4 times in a row. (this may get renamed to "Run count" in the future, with a default value of 1)
-
 `Busy Priority` is an option that lets a sequence run without interruptions from other parts of the application, e.g. scanning or the memory viewer. But by doing this, is stops those from working until the sequence stops. Enable this option if you really need the task to run pretty accurately with real time
+
+> Note, all sequences will be stopped when you change the connection type (CTRL+O)
 
 ## Module Viewer
 This is only available via the XDevkit connection type. It can be opened in `Remote Controls > Show Modules`. It presents all the modules and specific details, such as base address, entry point, sections, etc.

@@ -18,6 +18,7 @@
 // 
 
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
@@ -48,7 +49,7 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
     public PhantomRTMConsoleConnection(TcpClient client, StreamReader stream) {
         this.client = client;
         this.stream = stream;
-        
+
         "setmem addr=0x"u8.CopyTo(new Span<byte>(this.sharedSetMemCommandBuffer, 0, 14));
         " data="u8.CopyTo(new Span<byte>(this.sharedSetMemCommandBuffer, 22, 6));
         "getmem addr=0x"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 0, 14));
@@ -100,6 +101,22 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
             throw new Exception("Command response is not multi-response: " + command);
         }
 
+        return await this.ReadMultiLineResponseInternal();
+    }
+
+    /// <summary>
+    /// Reads lines
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="IOException"></exception>
+    public async Task<List<string>> ReadMultiLineResponse() {
+        this.EnsureNotDisposed();
+        using BusyToken x = this.CreateBusyToken();
+
+        return await this.ReadMultiLineResponseInternal();
+    }
+    
+    private async Task<List<string>> ReadMultiLineResponseInternal() {
         List<string> list = new List<string>();
         try {
             string line;
@@ -244,7 +261,7 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
         foreach (string line in list) {
             // base=0x00000000 size=0x00000000 protect=0x00000000 phys=0x00000000
             uint p = uint.Parse(line.AsSpan(42, 8), NumberStyles.HexNumber);
-            
+
             // Both flags contain NoCache because we cannot clear memory caches via XBDM,
             // therefore, readers and writers just can't read from/write to the region
             // without risking freezing the console.
@@ -317,7 +334,7 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
         if (count == 0) {
             return 0;
         }
-        
+
         this.FillGetMemCommandBuffer(address, count);
         await this.WriteCommandBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
         ConsoleResponse response = await this.ReadResponseCore().ConfigureAwait(false);
@@ -367,7 +384,7 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
 
         return count;
     }
-    
+
     private async Task<ConsoleResponse> ReadResponseCore() {
         string responseText = await this.ReadLineFromStream().ConfigureAwait(false);
         return ConsoleResponse.FromFirstLine(responseText);
@@ -398,6 +415,8 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
         ConsoleResponse response = await this.ReadResponseCore().ConfigureAwait(false);
         if (response.ResponseType == ResponseType.UnknownCommand) {
             if (this.client.Available > 0) {
+                Debugger.Break(); // this was originally to fix an issue where we sent
+                                  // extra \r\n but we fixed that so this checking shouldn't be necessary
                 string responseText = await this.ReadLineFromStream().ConfigureAwait(false) ?? "";
                 response = ConsoleResponse.FromFirstLine(responseText);
             }
@@ -414,7 +433,7 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
     private void FillSetMemCommandBuffer(uint address, byte[] srcData, int srcOffset, uint cbData) {
         ref byte dstAscii = ref MemoryMarshal.GetArrayDataReference(this.sharedSetMemCommandBuffer);
         NumberUtils.UInt32ToHexAscii(address, ref dstAscii, 14);
-        
+
         int i = 28;
         ref byte hexChars = ref MemoryMarshal.GetArrayDataReference(NumberUtils.HEX_CHARS_ASCII);
         for (int j = 0; j < cbData; j++, i += 2) {
@@ -426,7 +445,7 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
         Unsafe.AddByteOffset(ref dstAscii, i + 0) = (byte) '\r';
         Unsafe.AddByteOffset(ref dstAscii, i + 1) = (byte) '\n';
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void FillGetMemCommandBuffer(uint address, uint count) {
         ref byte dstAscii = ref MemoryMarshal.GetArrayDataReference(this.sharedGetMemCommandBuffer);

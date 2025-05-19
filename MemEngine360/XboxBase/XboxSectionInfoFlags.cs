@@ -17,15 +17,13 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Utils.Collections.Observable;
+namespace MemEngine360.XboxBase;
 
-namespace MemEngine360.Xbox360XDevkit.Modules.Models;
-
-public class XboxModuleManager {
-    public ObservableList<XboxModule> Modules { get; }
-
-    public XboxModuleManager() {
-        this.Modules = new ObservableList<XboxModule>();
-        ObservableItemProcessor.MakeSimple(this.Modules, module => module.Manager = this, module => module.Manager = null);
-    }
+[Flags]
+public enum XboxSectionInfoFlags {
+    Loaded = 1,
+    Readable = 2,
+    Writeable = 4,
+    Executable = 8,
+    Uninitialized = 16, // 0x00000010
 }

@@ -18,7 +18,6 @@
 // 
 
 using System.Globalization;
-using Avalonia.Interactivity;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing;

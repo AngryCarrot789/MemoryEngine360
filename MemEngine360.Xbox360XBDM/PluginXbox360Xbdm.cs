@@ -17,34 +17,113 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Globalization;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
+using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Commands;
 using MemEngine360.Xbox360XBDM.Consoles;
+using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using MemEngine360.Xbox360XBDM.Views;
+using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Plugins;
+using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Xbox360XBDM;
 
 public class PluginXbox360Xbdm : Plugin {
     public override void RegisterCommands(CommandManager manager) {
         base.RegisterCommands(manager);
-        
+
         manager.Register("commands.memengine.remote.ListHelpCommand", new ListHelpCommand());
-        
+
         // TODO: move commands to ME360 project and use a trait like IDiskEjectable
         manager.Register("commands.memengine.remote.ShowConsoleInfoCommand", new ShowConsoleInfoCommand());
         manager.Register("commands.memengine.remote.ShowXbeInfoCommand", new ShowXbeInfoCommand());
         manager.Register("commands.memengine.remote.EjectDiskTrayCommand", new EjectDiskTrayCommand());
+        manager.Register("commands.memengine.remote.SendCmdCommand", new SendCmdCommand());
     }
-    
+
     public override Task OnApplicationFullyLoaded() {
         ConnectToConsoleView.Registry.RegisterType<ConnectToXboxInfo>(() => new ConnectToXboxView());
-        
+
         ConsoleConnectionManager manager = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
         manager.Register(ConsoleTypeXbox360Xbdm.TheID, ConsoleTypeXbox360Xbdm.Instance);
+
+        XboxModuleManager.RegisterHandlerForConnectionType<PhantomRTMConsoleConnection>(FillModuleManager);
+
         return Task.CompletedTask;
+    }
+
+    private static async Task FillModuleManager(MemoryEngine360 engine, PhantomRTMConsoleConnection connection, XboxModuleManager manager) {
+        ActivityTask task = ActivityManager.Instance.CurrentTask;
+        task.Progress.Caption = "Reading Modules";
+        task.Progress.Text = "Reading modules...";
+        task.Progress.IsIndeterminate = true;
+
+        List<string> modules = await connection.SendCommandAndReceiveLines("modules");
+        foreach (string moduleLine in modules) {
+            task.CheckCancelled();
+
+            if (!ParamUtils.GetStringParam(moduleLine, "name", false, out string? name) || 
+                !ParamUtils.GetDwParam(moduleLine, "base", false, out uint modBase) || 
+                !ParamUtils.GetDwParam(moduleLine, "size", false, out uint modSize)) {
+                continue;
+            }
+
+            ParamUtils.GetDwParam(moduleLine, "timestamp", false, out uint modTimestamp);
+            ParamUtils.GetDwParam(moduleLine, "checksum", false, out uint modChecksum);
+            ParamUtils.GetDwParam(moduleLine, "osize", false, out uint modOriginalSize);
+
+            task.Progress.Text = "Processing " + name;
+
+            XboxModule xboxModule = new XboxModule() {
+                Name = name,
+                FullName = name,
+                BaseAddress = modBase,
+                ModuleSize = modSize,
+                OriginalModuleSize = modOriginalSize,
+                // EntryPoint = module.GetEntryPointAddress()
+            };
+            
+            // 0x10100 = entry point for most things, apart from xboxkrnl.exe
+            // format: 
+            //   fieldsize=0x<size in uint32 hex>
+            //   <value>
+            // may return ResponseType.XexFieldNotFound
+            ConsoleResponse entryPointResponse = await connection.SendCommand($"xexfield module=\"{name}\" field=0x10100");
+            if (entryPointResponse.ResponseType == ResponseType.MultiResponse) {
+                List<string> lines = await connection.ReadMultiLineResponse();
+                if (lines.Count == 2 && uint.TryParse(lines[1], NumberStyles.HexNumber, null, out uint entryPoint)) {
+                    xboxModule.EntryPoint = entryPoint;
+                }
+            }
+
+            ConsoleResponse response = await connection.SendCommand($"modsections name=\"{name}\"");
+            if (response.ResponseType != ResponseType.FileNotFound) {
+                List<string> sections = await connection.ReadMultiLineResponse();
+                foreach (string sectionLine in sections) {
+                    task.CheckCancelled();
+
+                    ParamUtils.GetStringParam(sectionLine, "name", false, out string? sec_name);
+                    ParamUtils.GetDwParam(sectionLine, "base", false, out uint sec_base);
+                    ParamUtils.GetDwParam(sectionLine, "size", false, out uint sec_size);
+                    ParamUtils.GetDwParam(sectionLine, "index", false, out uint sec_index);
+                    ParamUtils.GetDwParam(sectionLine, "flags", false, out uint sec_flags);
+
+                    xboxModule.Sections.Add(new XboxModuleSection() {
+                        Name = sec_name ?? "",
+                        BaseAddress = sec_base,
+                        Size = sec_size,
+                        Index = sec_index,
+                        Flags = (XboxBase.XboxSectionInfoFlags) sec_flags,
+                    });
+                }
+
+                manager.Modules.Add(xboxModule);
+            }
+        }
     }
 }

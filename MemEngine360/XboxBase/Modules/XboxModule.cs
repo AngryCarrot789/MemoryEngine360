@@ -19,13 +19,13 @@
 
 using PFXToolKitUI.Utils.Collections.Observable;
 
-namespace MemEngine360.Xbox360XDevkit.Modules.Models;
+namespace MemEngine360.XboxBase.Modules;
 
 public delegate void XboxModuleEventHandler(XboxModule sender);
 
 public class XboxModule {
-    private string shortName = "";
-    private string longName = "";
+    private string name = "";
+    private string fullName = "";
     private uint baseAddress;
     private uint moduleSize;
     private uint originalModuleSize;
@@ -35,28 +35,28 @@ public class XboxModule {
     /// <summary>
     /// Gets or sets the shorthand name, typically the file name (e.g. default.xex)
     /// </summary>
-    public string ShortName {
-        get => this.shortName;
+    public string Name {
+        get => this.name;
         set {
-            if (this.shortName == value)
+            if (this.name == value)
                 return;
 
-            this.shortName = value;
-            this.ShortNameChanged?.Invoke(this);
+            this.name = value;
+            this.NameChanged?.Invoke(this);
         }
     }
 
     /// <summary>
-    /// Gets or sets the long name, typically the full path of the file (e.g. hdd:\Games\Shit\default.xex)
+    /// Gets or sets the long name
     /// </summary>
-    public string LongName {
-        get => this.longName;
+    public string FullName {
+        get => this.fullName;
         set {
-            if (this.longName == value)
+            if (this.fullName == value)
                 return;
 
-            this.longName = value;
-            this.LongNameChanged?.Invoke(this);
+            this.fullName = value;
+            this.FullNameChanged?.Invoke(this);
         }
     }
 
@@ -138,8 +138,8 @@ public class XboxModule {
     /// </summary>
     public XboxModuleManager? Manager { get; internal set; }
 
-    public event XboxModuleEventHandler? ShortNameChanged;
-    public event XboxModuleEventHandler? LongNameChanged;
+    public event XboxModuleEventHandler? NameChanged;
+    public event XboxModuleEventHandler? FullNameChanged;
     public event XboxModuleEventHandler? BaseAddressChanged;
     public event XboxModuleEventHandler? ModuleSizeChanged;
     public event XboxModuleEventHandler? OriginalModuleSizeChanged;

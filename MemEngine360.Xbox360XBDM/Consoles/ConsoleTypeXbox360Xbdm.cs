@@ -51,7 +51,6 @@ public class ConsoleTypeXbox360Xbdm : RegisteredConsoleType {
         yield return new CommandContextEntry("commands.memengine.remote.ListHelpCommand", "List all commands in popup");
         yield return new CommandContextEntry("commands.memengine.remote.ShowConsoleInfoCommand", "Console info");
         yield return new CommandContextEntry("commands.memengine.remote.ShowXbeInfoCommand", "Show XBE info");
-        yield return new CommandContextEntry("commands.memengine.remote.MemProtectionCommand", "Show Memory Regions");
         yield return new SeparatorEntry();
         yield return new CommandContextEntry("commands.memengine.remote.EjectDiskTrayCommand", "Open Disk Tray");
         yield return new CommandContextEntry("commands.memengine.remote.DebugFreezeCommand", "Debug Freeze");

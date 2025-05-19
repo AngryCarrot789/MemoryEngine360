@@ -17,10 +17,10 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Xbox360XDevkit.Modules.Models;
+using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 
-namespace MemEngine360.Xbox360XDevkit.Modules;
+namespace MemEngine360.BaseFrontEnd.XboxBase.Modules;
 
 public class ModuleListBox : ModelBasedListBox<XboxModule> {
     protected override ModelBasedListBoxItem<XboxModule> CreateItem() => new ModuleListBoxItem();

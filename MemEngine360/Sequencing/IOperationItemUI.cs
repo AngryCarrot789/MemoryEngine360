@@ -31,9 +31,4 @@ public interface IOperationItemUI {
     /// Gets the operation model
     /// </summary>
     BaseSequenceOperation Operation { get; }
-
-    /// <summary>
-    /// Gets the task sequence UI
-    /// </summary>
-    ITaskSequenceEntryUI TaskSequenceUI { get; }
 }

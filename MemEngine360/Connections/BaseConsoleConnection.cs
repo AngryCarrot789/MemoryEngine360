@@ -273,7 +273,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// <param name="dstBuffer">The array to write the bytes into</param>
     /// <param name="offset">The offset within <see cref="dstBuffer"/> to begin writing into</param>
     /// <param name="count">The amount of bytes to read</param>
-    /// <returns>The amount of bytes actually read. Ignores by certain operations such as <see cref="ReadBytes(uint,byte[],int,uint)"/></returns>
+    /// <returns>The amount of bytes actually read. Ignored by certain operations such as <see cref="ReadStruct{T}"/></returns>
     protected abstract Task<uint> ReadBytesCore(uint address, byte[] dstBuffer, int offset, uint count);
 
     /// <summary>

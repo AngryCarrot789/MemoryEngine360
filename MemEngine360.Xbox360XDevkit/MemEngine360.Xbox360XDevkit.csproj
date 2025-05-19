@@ -23,4 +23,8 @@
             <HintPath>..\libs\XDevkit.dll</HintPath>
         </Reference>
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Modules\Models\" />
+    </ItemGroup>
 </Project>

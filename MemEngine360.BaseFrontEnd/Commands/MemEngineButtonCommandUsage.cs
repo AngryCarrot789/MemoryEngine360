@@ -36,13 +36,14 @@ public abstract class MemEngineButtonCommandUsage : SimpleButtonCommandUsage {
         base.OnContextChanged();
         MemoryEngine360? oldEngine = this.Engine;
         MemoryEngine360? newEngine = null;
-        bool hasEngine = this.GetContextData() is IContextData data && MemoryEngine360.DataKey.TryGetContext(data, out newEngine);
-        if (hasEngine && oldEngine == newEngine) {
-            return;
+        if (this.GetContextData() is IContextData data) {
+            MemoryEngine360.DataKey.TryGetContext(data, out newEngine);
         }
 
-        this.Engine = newEngine;
-        this.OnEngineChanged(oldEngine, newEngine);
+        if (oldEngine != newEngine) {
+            this.Engine = newEngine;
+            this.OnEngineChanged(oldEngine, newEngine);
+        }
     }
 
     protected virtual void OnEngineChanged(MemoryEngine360? oldEngine, MemoryEngine360? newEngine) {

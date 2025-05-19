@@ -19,7 +19,6 @@
 
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.AvControls;
@@ -29,9 +28,6 @@ using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Tasks;
-using PFXToolKitUI.Utils;
-using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
@@ -52,73 +48,11 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
     private IconButton? PART_RunButton;
     private TextBox? PART_RunCountTextBox;
     private CheckBox? PART_ToggleBusyExclusive;
-
-    private readonly AsyncRelayCommand runCommand, cancelCommand;
-
-    private CancellationTokenSource? myCts;
     private MemoryEngine360? myEngine;
 
     public TaskSequence TaskSequence => this.Model ?? throw new Exception("Not connected to a model");
     
     public SequenceListBoxItem() {
-        this.runCommand = new AsyncRelayCommand(async () => {
-            TaskSequence? seq = this.Model;
-            if (seq == null || seq.IsRunning) {
-                return;
-            }
-
-            IDisposable? token = null;
-            if (seq.HasBusyLockPriority && (token = seq.Manager!.Engine.BeginBusyOperation()) == null) {
-                using CancellationTokenSource cts = new CancellationTokenSource();
-                token = await ActivityManager.Instance.RunTask(() => {
-                    ActivityTask task = ActivityManager.Instance.CurrentTask;
-                    task.Progress.Caption = $"Start '{seq.DisplayName}'";
-                    task.Progress.Text = "Waiting for busy operations...";
-                    return seq.Manager!.Engine.BeginBusyOperationAsync(task.CancellationToken);
-                }, seq.Progress, cts);
-
-                // User cancelled operation so don't run the sequence, since it wants busy lock priority
-                if (token == null) {
-                    return;
-                }
-            }
-
-            try {
-                IConsoleConnection? connection = seq.Manager!.Engine.Connection;
-                if (connection != null && connection.IsConnected) {
-                    this.myCts = new CancellationTokenSource();
-                    await seq.Run(this.myCts, connection, token);
-                    this.myCts.Dispose();
-                    this.myCts = null;
-                    this.cancelCommand!.RaiseCanExecuteChanged();
-
-                    if (seq.LastException != null) {
-                        await IMessageDialogService.Instance.ShowMessage("Error encountered", "An exception occured while running sequence", seq.LastException.GetToString());
-                    }
-                }
-            }
-            finally {
-                token?.Dispose();
-            }
-        }, () => {
-            TaskSequence? seq = this.Model;
-            return seq != null && !seq.IsRunning && seq.Manager!.Engine.Connection != null;
-        });
-
-        this.cancelCommand = new AsyncRelayCommand(async () => {
-            try {
-                this.myCts?.Cancel();
-            }
-            catch (ObjectDisposedException) {
-                // ignored
-            }
-
-            if (this.Model != null)
-                await this.Model!.WaitForCompletion();
-        }, () => {
-            TaskSequence? seq = this.Model;
-            return seq != null && seq.IsRunning && this.myCts != null;
-        });
     }
     
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
@@ -126,10 +60,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
         this.SetDragSourceControl(e.NameScope.GetTemplateChild<Border>("PART_DragGrip"));
         
         this.PART_CancelActivityButton = e.NameScope.GetTemplateChild<IconButton>(nameof(this.PART_CancelActivityButton));
-        this.PART_CancelActivityButton.Command = this.cancelCommand;
-
         this.PART_RunButton = e.NameScope.GetTemplateChild<IconButton>(nameof(this.PART_RunButton));
-        this.PART_RunButton.Command = this.runCommand;
 
         this.PART_RunCountTextBox = e.NameScope.GetTemplateChild<TextBox>(nameof(this.PART_RunCountTextBox));
         this.runCountBinder.AttachControl(this.PART_RunCountTextBox);
@@ -145,11 +76,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
         this.nameBinder.Attach(this, this.Model!);
         this.busyLockPriorityBinder.AttachModel(this.Model!);
         this.runCountBinder.AttachModel(this.Model!);
-        this.Model!.IsRunningChanged += this.OnIsRunningChanged;
         this.myEngine = this.Model!.Manager!.Engine;
-
-        this.myEngine.ConnectionChanged += this.OnEngineConnectionChanged;
-        this.myEngine.ConnectionAboutToChange += this.OnConnectionAboutToChange;
 
         using MultiChangeToken batch = DataManager.GetContextData(this).BeginChange();
         batch.Context.Set(ITaskSequencerUI.TaskSequenceDataKey, this.Model!).Set(ITaskSequenceEntryUI.DataKey, this);
@@ -159,9 +86,6 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
         this.nameBinder.DetachModel();
         this.busyLockPriorityBinder.DetachModel();
         this.runCountBinder.DetachModel();
-        this.Model!.IsRunningChanged -= this.OnIsRunningChanged;
-        this.myEngine!.ConnectionChanged -= this.OnEngineConnectionChanged;
-        this.myEngine!.ConnectionAboutToChange -= this.OnConnectionAboutToChange;
         this.myEngine = null;
 
         using MultiChangeToken batch = DataManager.GetContextData(this).BeginChange();
@@ -169,19 +93,5 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
     }
 
     protected override void OnRemovedFromList() {
-    }
-
-    private void OnIsRunningChanged(TaskSequence sender) {
-        this.runCommand.RaiseCanExecuteChanged();
-        this.cancelCommand.RaiseCanExecuteChanged();
-    }
-
-    private void OnEngineConnectionChanged(MemoryEngine360 sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
-        this.runCommand.RaiseCanExecuteChanged();
-        this.cancelCommand.RaiseCanExecuteChanged();
-    }
-
-    private async Task OnConnectionAboutToChange(MemoryEngine360 sender, IActivityProgress progress) {
-        await this.cancelCommand.ExecuteAsync(null);
     }
 }

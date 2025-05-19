@@ -19,16 +19,16 @@
 
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using MemEngine360.Xbox360XDevkit.Modules.Models;
+using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Utils;
 
-namespace MemEngine360.Xbox360XDevkit.Modules;
+namespace MemEngine360.BaseFrontEnd.XboxBase.Modules;
 
 public class ModuleListBoxItem : ModelBasedListBoxItem<XboxModule> {
-    private readonly IBinder<XboxModule> shortNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.ShortNameChanged), (b) => ((TextBlock) b.Control).Text = b.Model.ShortName);
-    private readonly IBinder<XboxModule> longNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.LongNameChanged), (b) => ((TextBlock) b.Control).Text = b.Model.LongName);
+    private readonly IBinder<XboxModule> shortNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.NameChanged), (b) => ((TextBlock) b.Control).Text = b.Model.Name);
+    private readonly IBinder<XboxModule> longNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.FullNameChanged), (b) => ((TextBlock) b.Control).Text = b.Model.FullName);
 
     private TextBlock? PART_HeaderText;
     private TextBlock? PART_FooterText;

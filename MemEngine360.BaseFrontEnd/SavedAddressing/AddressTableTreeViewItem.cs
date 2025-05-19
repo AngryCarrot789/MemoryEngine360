@@ -21,6 +21,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.AdvancedMenuService;
@@ -47,11 +48,11 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
 
     private ObservableItemProcessorIndexing<BaseAddressTableEntry>? compositeListener;
 
-    private readonly IBinder<BaseAddressTableEntry> descriptionBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<BaseAddressTableEntry>(TextBlock.TextProperty, nameof(BaseAddressTableEntry.DescriptionChanged), b => ((TextBlock) b.Control).Text = b.Model.Description, null);
+    private readonly IBinder<BaseAddressTableEntry> descriptionBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<BaseAddressTableEntry>(TextBlock.TextProperty, nameof(BaseAddressTableEntry.DescriptionChanged), b => b.Model.Description, null);
     private readonly IBinder<AddressTableGroupEntry> groupAddressBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableGroupEntry>(HeaderProperty, nameof(AddressTableGroupEntry.GroupAddressChanged), GroupAddressToHeader, null);
     private readonly IBinder<AddressTableEntry> entryAddressBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableEntry>(HeaderProperty, nameof(AddressTableEntry.AddressChanged), EntryAddressToHeader, null);
-    private readonly IBinder<AddressTableEntry> dataTypeTextBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableEntry>(TextBlock.TextProperty, nameof(AddressTableEntry.DataTypeChanged), b => ((TextBlock) b.Control).Text = b.Model.DataType.ToString(), null);
-    private readonly IBinder<AddressTableEntry> valueTextBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableEntry>(TextBlock.TextProperty, nameof(AddressTableEntry.ValueChanged), b => ((TextBlock) b.Control).Text = b.Model.Value, null);
+    private readonly IBinder<AddressTableEntry> dataTypeTextBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableEntry>(TextBlock.TextProperty, nameof(AddressTableEntry.DataTypeChanged), b => b.Model.DataType.ToString(), null);
+    private readonly IBinder<AddressTableEntry> valueTextBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableEntry>(TextBlock.TextProperty, nameof(AddressTableEntry.ValueChanged), b => b.Model.DataType == DataType.String ? $"\"{b.Model.Value}\"" : b.Model.Value, null);
     private Border? PART_DragDropMoveBorder;
     private bool isFolderItem;
 

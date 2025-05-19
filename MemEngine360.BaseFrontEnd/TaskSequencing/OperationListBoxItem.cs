@@ -20,10 +20,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent;
 using MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
 using MemEngine360.Sequencing;
-using PFXToolKitUI.Avalonia.AvControls;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
@@ -40,8 +38,6 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
     }
     
     public BaseSequenceOperation Operation => this.Model ?? throw new Exception("Not connected to a model");
-
-    public ITaskSequenceEntryUI TaskSequenceUI => ((OperationListBox) this.ListBox!).GetTaskSequence(this);
 
     private readonly IBinder<BaseSequenceOperation> isRunningBinder = new EventPropertyBinder<BaseSequenceOperation>(nameof(BaseSequenceOperation.IsRunningChanged), (b) => ((OperationListBoxItem) b.Control).IsRunning = b.Model.IsRunning, null);
     

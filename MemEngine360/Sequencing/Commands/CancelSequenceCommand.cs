@@ -17,18 +17,27 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Xbox360XDevkit.Modules.Models;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Services.Messaging;
 
-namespace MemEngine360.Xbox360XDevkit.Commands;
+namespace MemEngine360.Sequencing.Commands;
 
-public class ShowModuleSectionInfoInDialogCommand : Command {
+public class CancelSequenceCommand : Command {
+    protected override Executability CanExecuteCore(CommandEventArgs e) {
+        if (!ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? sequence)) {
+            return Executability.Invalid;
+        }
+
+        return sequence.IsRunning ? Executability.Valid : Executability.ValidButCannotExecute;
+    }
+    
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (XboxModuleSection.DataKey.TryGetContext(e.ContextData, out XboxModuleSection? section)) {
-            await IMessageDialogService.Instance.ShowMessage("Module size", $"Base Address: {section.BaseAddress:X8} (hex){Environment.NewLine}" +
-                                                                            $"Section Size: {section.Size:X} (hex){Environment.NewLine}" +
-                                                                            $"Flags: {(uint) section.Flags} ({section.Flags.ToString()})");
+        if (!ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? sequence)) {
+            return;
+        }
+
+        if (sequence.IsRunning) {
+            sequence.RequestCancellation();
+            await sequence.WaitForCompletion();
         }
     }
 }

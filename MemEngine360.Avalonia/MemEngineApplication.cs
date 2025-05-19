@@ -28,6 +28,7 @@ using MemEngine360.BaseFrontEnd.Services;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.BaseFrontEnd.Services.HexEditing;
 using MemEngine360.BaseFrontEnd.TaskSequencing;
+using MemEngine360.BaseFrontEnd.XboxBase;
 using MemEngine360.Commands;
 using MemEngine360.Commands.ATM;
 using MemEngine360.Commands.ATM.XML;
@@ -40,6 +41,7 @@ using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Commands;
 using MemEngine360.Xbox360XBDM;
 using MemEngine360.Xbox360XDevkit;
+using MemEngine360.XboxBase;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
@@ -90,15 +92,16 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.OpenXMLFileCommand", new OpenXMLFileCommand());
         manager.Register("commands.memengine.SaveSavedAddressesToFileCommand", new SaveSavedAddressesToFileCommand());
         manager.Register("commands.memengine.ToggleSavedAddressAutoRefreshCommand", new ToggleSavedAddressAutoRefreshCommand());
+        manager.Register("commands.memengine.ShowModulesCommand", new ShowModulesCommand());
+        manager.Register("commands.moduleviewer.ShowModuleSectionInfoInDialogCommand", new ShowModuleSectionInfoInDialogCommand());
 
         // Remote commands
-        manager.Register("commands.memengine.remote.MemProtectionCommand", new ShowMemoryRegionsCommand());
+        manager.Register("commands.memengine.remote.ShowMemoryRegionsCommand", new ShowMemoryRegionsCommand());
         manager.Register("commands.memengine.remote.SoftRebootCommand", new SoftRebootCommand());
         manager.Register("commands.memengine.remote.ColdRebootCommand", new ColdRebootCommand());
         manager.Register("commands.memengine.remote.ShutdownCommand", new ShutdownCommand());
         manager.Register("commands.memengine.remote.DebugFreezeCommand", new DebugFreezeCommand());
         manager.Register("commands.memengine.remote.DebugUnfreezeCommand", new DebugUnfreezeCommand());
-
 
         // Hex editor commands
         manager.Register("commands.hexeditor.ReloadSelectionFromConsole", new ReloadSelectionFromConsole());
@@ -115,6 +118,8 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.ClearSequencesCommand", new ClearSequencesCommand());
         manager.Register("commands.sequencer.NewSequenceCommand", new NewSequenceCommand());
         manager.Register("commands.sequencer.RenameSequenceCommand", new RenameSequenceCommand());
+        manager.Register("commands.sequencer.CancelSequenceCommand", new CancelSequenceCommand());
+        manager.Register("commands.sequencer.RunSequenceCommand", new RunSequenceCommand());
     }
 
     protected override async Task OnSetupApplication(IApplicationStartupProgress progress) {
@@ -151,7 +156,6 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     protected override Task OnApplicationFullyLoaded() {
         UserInputDialogView.Registry.RegisterType<SavedResultDataTypeUserInputInfo>(() => new SavedResultDataTypeEditorUserInputControl());
         UserInputDialogView.Registry.RegisterType<MemoryRegionUserInputInfo>(() => new XboxMemoryRegionViewerUIControl());
-        UserInputDialogView.Registry.RegisterType<ModuleUserInputInfo>(() => new XboxModuleViewerUIControl());
         ConfigurationPageRegistry.Registry.RegisterType<MemEngineConfigurationPage>(() => new MemEngineConfigurationPageControl());
 
         ApplicationConfigurationManager.Instance.RootEntry.AddEntry(new ConfigurationEntry() {

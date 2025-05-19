@@ -18,10 +18,9 @@
 // 
 
 using Avalonia;
-using Avalonia.Controls;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
-using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Interactivity;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
@@ -33,7 +32,10 @@ public class SequenceListBox : ModelBasedListBox<TaskSequence> {
         set => this.SetValue(TaskSequencerManagerProperty, value);
     }
 
+    public IListSelectionManager<ITaskSequenceEntryUI> ControlSelectionManager { get; }
+
     public SequenceListBox() {
+        this.ControlSelectionManager = new ModelListBoxSelectionManagerForControl<TaskSequence, ITaskSequenceEntryUI>(this);
     }
 
     static SequenceListBox() {

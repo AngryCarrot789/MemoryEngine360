@@ -131,25 +131,45 @@ public sealed class ScanningContext {
         }
 
         if (string.IsNullOrEmpty(this.inputA)) {
-            await IMessageDialogService.Instance.ShowMessage("Input format", this.isSecondInputRequired ? "'From' input is empty" : "Input is empty");
+            await IMessageDialogService.Instance.ShowMessage("Input format", this.isSecondInputRequired ? "FROM input is empty" : "Input is empty");
             return false;
         }
 
         if (this.isSecondInputRequired && string.IsNullOrEmpty(this.inputB)) {
-            await IMessageDialogService.Instance.ShowMessage("Input format", "'To' input is empty");
+            await IMessageDialogService.Instance.ShowMessage("Input format", "TO input is empty");
             return false;
         }
 
         if (this.dataType.IsNumeric()) {
             NumericDisplayType ndt = this.dataType.IsInteger() && this.isIntInputHexadecimal ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
             if (!TryParseNumeric(this.inputA, this.dataType, ndt, out this.numericInputA)) {
-                await IMessageDialogService.Instance.ShowMessage("Invalid input", $"{(this.isSecondInputRequired ? "'From' value" : "Input")} is invalid: {this.inputA}");
+                await IMessageDialogService.Instance.ShowMessage("Invalid input", $"{(this.isSecondInputRequired ? "FROM value" : "Input")} is invalid '{this.inputA}'. Cannot be parsed as {this.dataType}.");
                 return false;
             }
 
-            if (this.isSecondInputRequired && !TryParseNumeric(this.inputB, this.dataType, ndt, out this.numericInputB)) {
-                await IMessageDialogService.Instance.ShowMessage("Invalid input", $"'To' value is invalid: {this.inputB}");
-                return false;
+            if (this.isSecondInputRequired) {
+                if (!TryParseNumeric(this.inputB, this.dataType, ndt, out this.numericInputB)) {
+                    await IMessageDialogService.Instance.ShowMessage("Invalid input", $"TO value is invalid '{this.inputB}'. Cannot be parsed as {this.dataType}.");
+                    return false;
+                }
+
+                // ensure FROM <= TO 
+                bool isBackward = false;
+                switch (this.dataType) {
+                    case DataType.Byte:   isBackward = Unsafe.As<ulong, byte>(ref this.numericInputA) > Unsafe.As<ulong, byte>(ref this.numericInputB); break;
+                    case DataType.Int16:  isBackward = Unsafe.As<ulong, short>(ref this.numericInputA) > Unsafe.As<ulong, short>(ref this.numericInputB); break;
+                    case DataType.Int32:  isBackward = Unsafe.As<ulong, int>(ref this.numericInputA) > Unsafe.As<ulong, int>(ref this.numericInputB); break;
+                    case DataType.Int64:  isBackward = Unsafe.As<ulong, long>(ref this.numericInputA) > Unsafe.As<ulong, long>(ref this.numericInputB); break;
+                    case DataType.Float:  isBackward = Unsafe.As<ulong, float>(ref this.numericInputA) > Unsafe.As<ulong, float>(ref this.numericInputB); break;
+                    case DataType.Double: isBackward = Unsafe.As<ulong, double>(ref this.numericInputA) > Unsafe.As<ulong, double>(ref this.numericInputB); break;
+                    case DataType.String: break;
+                    default:              throw new ArgumentOutOfRangeException();
+                }
+
+                if (isBackward) {
+                    await IMessageDialogService.Instance.ShowMessage("Invalid input", $"You put them in the wrong way around!", $"FROM is greater than TO ({this.inputA} > {this.inputB})");
+                    return false;
+                }
             }
         }
 

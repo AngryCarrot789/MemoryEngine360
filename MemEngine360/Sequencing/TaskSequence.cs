@@ -122,14 +122,14 @@ public sealed class TaskSequence {
         this.Progress.Text = "Sequence not running";
     }
 
-    public async Task Run(CancellationTokenSource cts, IConsoleConnection connection, IDisposable? busyToken) {
+    public async Task Run(IConsoleConnection connection, IDisposable? busyToken) {
         this.CheckNotRunning("Cannot run while already running");
         if (this.myManager == null)
             throw new InvalidOperationException("Cannot run standalone without a " + nameof(TaskSequencerManager));
 
         Debug.Assert(this.myCts == null);
         Debug.Assert(this.myContext == null);
-        this.myCts = cts;
+        using CancellationTokenSource cts = this.myCts = new CancellationTokenSource();
         this.myContext = new SequenceExecutionContext(this, this.Progress, connection, busyToken);
         this.LastException = null;
         TaskSequencerManager.InternalSetIsRunning(this.myManager!, this, true);
@@ -158,8 +158,12 @@ public sealed class TaskSequence {
         TaskSequencerManager.InternalSetIsRunning(this.myManager!, this, false);
         this.IsRunning = false;
 
-        List<TaskCompletionSource> completions = this.completionNotifications.ToList();
-        this.completionNotifications.Clear();
+        List<TaskCompletionSource> completions;
+        lock (this.completionNotifications) {
+            completions = this.completionNotifications.ToList();
+            this.completionNotifications.Clear();
+        }
+        
         foreach (TaskCompletionSource tcs in completions) {
             tcs.TrySetResult();
         }
@@ -170,7 +174,15 @@ public sealed class TaskSequence {
             return;
         }
 
-        LinkedListNode<TaskCompletionSource> node = this.completionNotifications.AddLast(new TaskCompletionSource());
+        LinkedListNode<TaskCompletionSource> node;
+        lock (this.completionNotifications) {
+            if (!this.isRunning) {
+                return;
+            }   
+            
+            node = this.completionNotifications.AddLast(new TaskCompletionSource());
+        }
+
         await node.Value.Task.ConfigureAwait(false);
     }
 

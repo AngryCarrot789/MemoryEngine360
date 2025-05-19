@@ -30,10 +30,10 @@ namespace MemEngine360.BaseFrontEnd.SavedAddressing;
 
 public sealed class AddressTableTreeView : TreeView {
     public static readonly StyledProperty<AddressTableManager?> AddressTableManagerProperty = AvaloniaProperty.Register<AddressTableTreeView, AddressTableManager?>("AddressTableManager");
-    public static readonly StyledProperty<GridLength> ColumnWidth0Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth0", new GridLength(125));
-    public static readonly StyledProperty<GridLength> ColumnWidth1Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth1", new GridLength(250));
-    public static readonly StyledProperty<GridLength> ColumnWidth2Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth2", new GridLength(75));
-    public static readonly StyledProperty<GridLength> ColumnWidth3Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth3", new GridLength(150));
+    // public static readonly StyledProperty<GridLength> ColumnWidth0Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth0", new GridLength(125));
+    // public static readonly StyledProperty<GridLength> ColumnWidth1Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth1", new GridLength(250));
+    // public static readonly StyledProperty<GridLength> ColumnWidth2Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth2", new GridLength(75));
+    // public static readonly StyledProperty<GridLength> ColumnWidth3Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth3", new GridLength(150));
     
     internal readonly Stack<AddressTableTreeViewItem> itemCache;
     private IDisposable? collectionChangeListener;
@@ -41,10 +41,10 @@ public sealed class AddressTableTreeView : TreeView {
     internal readonly Dictionary<BaseAddressTableEntry, AddressTableTreeViewItem> modelToControl;
     private readonly AvaloniaList<AddressTableTreeViewItem> selectedItemsList;
 
-    public GridLength ColumnWidth0 { get => this.GetValue(ColumnWidth0Property); set => this.SetValue(ColumnWidth0Property, value); }
-    public GridLength ColumnWidth1 { get => this.GetValue(ColumnWidth1Property); set => this.SetValue(ColumnWidth1Property, value); }
-    public GridLength ColumnWidth2 { get => this.GetValue(ColumnWidth2Property); set => this.SetValue(ColumnWidth2Property, value); }
-    public GridLength ColumnWidth3 { get => this.GetValue(ColumnWidth3Property); set => this.SetValue(ColumnWidth3Property, value); }
+    // public GridLength ColumnWidth0 { get => this.GetValue(ColumnWidth0Property); set => this.SetValue(ColumnWidth0Property, value); }
+    // public GridLength ColumnWidth1 { get => this.GetValue(ColumnWidth1Property); set => this.SetValue(ColumnWidth1Property, value); }
+    // public GridLength ColumnWidth2 { get => this.GetValue(ColumnWidth2Property); set => this.SetValue(ColumnWidth2Property, value); }
+    // public GridLength ColumnWidth3 { get => this.GetValue(ColumnWidth3Property); set => this.SetValue(ColumnWidth3Property, value); }
     
     public AddressTableManager? AddressTableManager {
         get => this.GetValue(AddressTableManagerProperty);

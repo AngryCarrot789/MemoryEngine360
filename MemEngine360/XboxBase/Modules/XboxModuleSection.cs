@@ -19,19 +19,31 @@
 
 using System.ComponentModel;
 using PFXToolKitUI.Interactivity.Contexts;
-using XDevkit;
 
-namespace MemEngine360.Xbox360XDevkit.Modules.Models;
+namespace MemEngine360.XboxBase.Modules;
 
 public delegate void XboxModuleSectionEventHandler(XboxModuleSection sender);
 
 public class XboxModuleSection : INotifyPropertyChanged {
     public static readonly DataKey<XboxModuleSection> DataKey = DataKey<XboxModuleSection>.Create("XboxModuleSection");
-    
+
+    private string name;
     private uint baseAddress;
     private uint size;
     private uint index;
     private XboxSectionInfoFlags flags;
+
+    public string Name {
+        get => this.name;
+        set {
+            if (this.name == value)
+                return;
+
+            this.name = value;
+            this.NameChanged?.Invoke(this);
+            this.OnPropertyChanged(nameof(this.Name));
+        }
+    }
 
     public uint BaseAddress {
         get => this.baseAddress;
@@ -92,6 +104,7 @@ public class XboxModuleSection : INotifyPropertyChanged {
     public bool IsExecutable => (this.flags & XboxSectionInfoFlags.Executable) != 0;
     public bool IsUninitialized => (this.flags & XboxSectionInfoFlags.Uninitialized) != 0;
 
+    public event XboxModuleSectionEventHandler? NameChanged;
     public event XboxModuleSectionEventHandler? BaseAddressChanged;
     public event XboxModuleSectionEventHandler? SizeChanged;
     public event XboxModuleSectionEventHandler? IndexChanged;

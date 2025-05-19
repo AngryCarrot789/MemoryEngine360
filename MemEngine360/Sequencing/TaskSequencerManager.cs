@@ -21,6 +21,8 @@ using System.Diagnostics;
 using MemEngine360.Engine;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
+using PFXToolKitUI;
+using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing;
@@ -52,6 +54,8 @@ public class TaskSequencerManager {
         this.Sequences = new ReadOnlyObservableList<TaskSequence>(this.sequences);
         this.activeSequences = new ObservableList<TaskSequence>();
         this.ActiveSequences = new ReadOnlyObservableList<TaskSequence>(this.activeSequences);
+        
+        this.Engine.ConnectionAboutToChange += this.OnEngineConnectionAboutToChange;
 
         {
             TaskSequence sequence = new TaskSequence() {
@@ -72,6 +76,17 @@ public class TaskSequencerManager {
 
             sequence.AddOperation(new DelayOperation(1000));
             this.AddSequence(sequence);
+        }
+    }
+
+    private async Task OnEngineConnectionAboutToChange(MemoryEngine360 sender, IActivityProgress progress) {
+        List<TaskSequence> items = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.ActiveSequences.ToList());
+        if (items.Count > 0) {
+            foreach (TaskSequence sequence in items) {
+                sequence.RequestCancellation();
+            }
+
+            await Task.WhenAll(items.Select(x => x.WaitForCompletion()));
         }
     }
 
