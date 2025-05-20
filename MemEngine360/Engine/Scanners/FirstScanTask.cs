@@ -196,6 +196,9 @@ public sealed class FirstScanTask : AdvancedPausableTask {
         else {
             uint len = this.ctx.scanLength, totalChunks = len / ScanningContext.ChunkSize;
             using PopCompletionStateRangeToken token = progress.CompletionState.PushCompletionRange(0, 1.0 / len);
+            if (this.offset != 0) {
+                progress.CompletionState.OnProgress(this.offset);
+            }
 
             if (!this.isProcessingCurrentRegion) {
                 this.chunkIdx = 0;
