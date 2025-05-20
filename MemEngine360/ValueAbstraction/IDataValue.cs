@@ -46,7 +46,12 @@ public interface IDataValue : IEquatable<IDataValue> {
     /// <returns></returns>
     Task WriteToConnection(uint address, IConsoleConnection connection);
 
-    byte[] GetBytes();
+    /// <summary>
+    /// Gets this data value as an array of bytes. E.g. an int32 would return 4 elements.
+    /// </summary>
+    /// <param name="asLittleEndian">True to specify the value as little endian, false to specify as big endian</param>
+    /// <returns></returns>
+    byte[] GetBytes(bool asLittleEndian);
     
     static IDataValue Create(DataType dataType, object value) {
         switch (dataType) {

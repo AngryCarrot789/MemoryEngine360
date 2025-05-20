@@ -42,6 +42,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
 
     protected abstract bool IsConnectedCore { get; }
 
+    public abstract bool IsLittleEndian { get; }
+
     protected BaseConsoleConnection() {
     }
 
@@ -81,8 +83,11 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return buffer;
     }
 
-    public async Task<byte> ReadByte(uint Offset) {
-        await this.ReadBytes(Offset, this.sharedOneByteArray, 0, 1).ConfigureAwait(false);
+    public async Task<byte> ReadByte(uint address) {
+        this.EnsureNotDisposed();
+        using BusyToken x = this.CreateBusyToken();
+
+        await this.ReadBytesCore(address, this.sharedOneByteArray, 0, 1).ConfigureAwait(false);
         return this.sharedOneByteArray[0];
     }
 
@@ -91,18 +96,19 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public async Task<char> ReadChar(uint address) => (char) await this.ReadByte(address).ConfigureAwait(false);
 
     public async Task<T> ReadValue<T>(uint address) where T : unmanaged {
-        byte[] buffer = await this.ReadBytes(address, (uint) Unsafe.SizeOf<T>()).ConfigureAwait(false);
-        if (BitConverter.IsLittleEndian)
+        this.EnsureNotDisposed();
+        using BusyToken x = this.CreateBusyToken();
+
+        byte[] buffer = new byte[Unsafe.SizeOf<T>()];
+        await this.ReadBytesCore(address, buffer, 0, (uint) buffer.Length).ConfigureAwait(false);
+        if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
             Array.Reverse(buffer);
+        }
 
         return MemoryMarshal.Read<T>(buffer);
     }
 
     public async Task<T> ReadStruct<T>(uint address, params int[] fields) where T : unmanaged {
-        if (!BitConverter.IsLittleEndian) {
-            return await this.ReadValue<T>(address).ConfigureAwait(false);
-        }
-
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
 
@@ -110,7 +116,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
             await this.ReadBytesCore((uint) (address + offset), buffer, offset, (uint) cbField).ConfigureAwait(false);
-            Array.Reverse(buffer, offset, cbField);
+            if (BitConverter.IsLittleEndian != this.IsLittleEndian)
+                Array.Reverse(buffer, offset, cbField);
             offset += cbField;
 
             Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadString));
@@ -120,7 +127,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             Debugger.Break();
         }
 
-        return Unsafe.ReadUnaligned<T>(ref buffer[0]);
+        return Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetArrayDataReference(buffer));
     }
 
     public async Task<string> ReadString(uint address, uint count, bool removeNull = true) {
@@ -172,24 +179,20 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
 
     public Task WriteValue<T>(uint address, T value) where T : unmanaged {
         byte[] bytes = new byte[Unsafe.SizeOf<T>()];
-        Unsafe.As<byte, T>(ref bytes[0]) = value;
-        if (BitConverter.IsLittleEndian)
+        Unsafe.As<byte, T>(ref MemoryMarshal.GetArrayDataReference(bytes)) = value;
+        if (BitConverter.IsLittleEndian != this.IsLittleEndian)
             Array.Reverse(bytes);
 
         return this.WriteBytes(address, bytes);
     }
 
     public async Task WriteStruct<T>(uint address, T value, params int[] fields) where T : unmanaged {
-        if (!BitConverter.IsLittleEndian) {
-            // TODO: I don't have a big endian computer nor a big enough brain to know if this works
-            await this.WriteValue(address, value).ConfigureAwait(false);
-        }
-
         int offset = 0;
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
             Unsafe.As<byte, T>(ref buffer[offset]) = value;
-            Array.Reverse(buffer, offset, cbField);
+            if (BitConverter.IsLittleEndian != this.IsLittleEndian)
+                Array.Reverse(buffer, offset, cbField);
             offset += cbField;
 
             Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadString));

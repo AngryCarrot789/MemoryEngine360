@@ -99,7 +99,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
                 else {
                     uint count = this.iterateCount;
                     // optimised repeat write
-                    byte[] data = this.dataValue.GetBytes();
+                    byte[] data = this.dataValue.GetBytes(ctx.Connection.IsLittleEndian);
                     byte[] buffer = new byte[data.Length * count];
                     for (int i = 0, j = 0; i < count; i++, j += data.Length) {
                         Buffer.BlockCopy(data, 0, buffer, j, data.Length);

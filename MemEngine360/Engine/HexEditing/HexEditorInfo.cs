@@ -18,6 +18,7 @@
 // 
 
 using AvaloniaHex.Core.Document;
+using MemEngine360.Connections;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Utils.Accessing;
 
@@ -108,6 +109,11 @@ public class HexEditorInfo : ITransferableData {
         this.autoRefreshStartAddress = AutoRefreshStartAddressParameter.GetDefaultValue(this);
         this.autoRefreshLength = AutoRefreshLengthParameter.GetDefaultValue(this);
         this.bytesPerRow = BytesPerRowParameter.GetDefaultValue(this);
-        this.inspectorEndianness = InspectorEndiannessParameter.GetDefaultValue(this);
+        if (memoryEngine360.Connection is IConsoleConnection connection) {
+            this.inspectorEndianness = connection.IsLittleEndian ? Endianness.LittleEndian : Endianness.BigEndian;
+        }
+        else {
+            this.inspectorEndianness = InspectorEndiannessParameter.GetDefaultValue(this);
+        }
     }
 }

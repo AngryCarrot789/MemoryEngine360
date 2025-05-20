@@ -37,6 +37,8 @@ public class Devkit360Connection : BaseConsoleConnection, IConsoleConnection, IH
     public override RegisteredConsoleType ConsoleType => ConsoleTypeXbox360XDevkit.Instance;
 
     protected override bool IsConnectedCore => this.isConnectedAsDebugger;
+    
+    public override bool IsLittleEndian => false;
 
     public Devkit360Connection(XboxManager manager, XboxConsole console) {
         this.manager = manager;

@@ -44,6 +44,11 @@ public interface IConsoleConnection {
     bool IsClosed { get; }
 
     /// <summary>
+    /// Returns true when this console's byte order is little-endian. Xbox 360 is big endian, so this returns false 
+    /// </summary>
+    bool IsLittleEndian { get; }
+
+    /// <summary>
     /// Reads an exact amount of bytes from the console. If the address space
     /// contains protected memory, the buffer will have 0s written into it
     /// </summary>
@@ -81,7 +86,7 @@ public interface IConsoleConnection {
     /// Reads a single byte from the console
     /// </summary>
     /// <param name="address">The address to read from</param>
-    Task<byte> ReadByte(uint Offset);
+    Task<byte> ReadByte(uint address);
     
     /// <summary>
     /// Reads a boolean from the console. Same as reading a single byte and checking it's not equal to 0
@@ -167,8 +172,7 @@ public interface IConsoleConnection {
     Task WriteChar(uint address, char value);
     
     /// <summary>
-    /// Writes a value to the console's memory. This method corrects the
-    /// endianness (as in, the bytes are flipped when this computer is LE)
+    /// Writes a value to the console's memory. This method corrects the endianness
     /// </summary>
     /// <param name="address">The address to write to</param>
     /// <param name="value">The value to write</param>

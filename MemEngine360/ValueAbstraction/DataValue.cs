@@ -46,10 +46,10 @@ public abstract class BaseNumericDataValue<T> : IDataValue where T : unmanaged, 
 
     public Task WriteToConnection(uint address, IConsoleConnection connection) => connection.WriteValue(address, this.Value);
     
-    public byte[] GetBytes() {
+    public byte[] GetBytes(bool asLittleEndian) {
         byte[] bytes = new byte[TypeSize];
         Unsafe.As<byte, T>(ref MemoryMarshal.GetArrayDataReference(bytes)) = this.Value;
-        if (BitConverter.IsLittleEndian)
+        if (asLittleEndian != BitConverter.IsLittleEndian)
             Array.Reverse(bytes);
         return bytes;
     }
@@ -119,6 +119,8 @@ public class DataValueString : IDataValue {
         return connection.WriteBytes(address, this.GetBytes());
     }
 
+    public byte[] GetBytes(bool asLittleEndian) => this.GetBytes();
+    
     public byte[] GetBytes() {
         switch (this.StringType) {
             case StringType.ASCII: return Encoding.ASCII.GetBytes(this.Value);

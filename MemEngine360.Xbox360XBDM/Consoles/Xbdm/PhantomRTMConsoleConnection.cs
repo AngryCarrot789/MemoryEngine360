@@ -45,7 +45,9 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
     public override RegisteredConsoleType ConsoleType => ConsoleTypeXbox360Xbdm.Instance;
 
     protected override bool IsConnectedCore => this.client.Connected;
-
+    
+    public override bool IsLittleEndian => false;
+    
     public PhantomRTMConsoleConnection(TcpClient client, StreamReader stream) {
         this.client = client;
         this.stream = stream;
