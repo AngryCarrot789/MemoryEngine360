@@ -93,6 +93,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.SaveSavedAddressesToFileCommand", new SaveSavedAddressesToFileCommand());
         manager.Register("commands.memengine.ToggleSavedAddressAutoRefreshCommand", new ToggleSavedAddressAutoRefreshCommand());
         manager.Register("commands.memengine.ShowModulesCommand", new ShowModulesCommand());
+        manager.Register("commands.memengine.PointerScanCommand", new PointerScanCommand());
         manager.Register("commands.moduleviewer.ShowModuleSectionInfoInDialogCommand", new ShowModuleSectionInfoInDialogCommand());
 
         // Remote commands

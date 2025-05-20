@@ -374,9 +374,7 @@
                             <TextBlock Text="Background Activities" Padding="4,2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                         </DockPanel>
                     </Border>
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                        <aa:ActivityListControl x:Name="PART_ActivityList" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
-                    </ScrollViewer>
+                    <aa:ActivityListControl x:Name="PART_ActivityList" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
                 </DockPanel>
             </Border>
         </Grid>

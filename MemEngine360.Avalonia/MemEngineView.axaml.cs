@@ -283,6 +283,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
             entry.Items.Add(new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Open Sequencer"));
             entry.Items.Add(new CommandContextEntry("commands.memengine.ShowModulesCommand", "Show Modules"));
             entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Show Memory Regions"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scan [DEBUG ONLY]"));
             entry.Items.Add(new SeparatorEntry());
             entry.Items.Add(new CommandContextEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
             entry.Items.Add(new TestThing("Test Notification (XBDM)", null, null));

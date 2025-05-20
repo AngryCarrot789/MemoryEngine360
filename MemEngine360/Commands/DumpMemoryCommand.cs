@@ -172,7 +172,6 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
         private async Task RunDownloadLoop(bool isFirst, CancellationToken pauseOrCancelToken) {
             // We don't handle the exception here
             this.fileOutput = new FileStream(this.filePath, isFirst ? FileMode.Create : FileMode.Append, FileAccess.Write, FileShare.Read);
-
             Task taskDownload = Task.Run(async () => {
                 IConsoleConnection? connection = this.engine.Connection;
                 if (this.engine.IsShuttingDown || connection?.IsConnected != true) {
@@ -189,7 +188,11 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                         pauseOrCancelToken.ThrowIfCancellationRequested();
                         byte[] downloadBuffer = new byte[0x10000];
                         uint cbRead = Math.Min((uint) downloadBuffer.Length, this.dlCbRemaining);
-                        await connection.ReadBytes(this.dlCurrAddress, downloadBuffer, 0, cbRead);
+                        uint cbActualRead = await connection.ReadBytes(this.dlCurrAddress, downloadBuffer, 0, cbRead);
+                        for (uint j = cbActualRead; j < cbRead; j++) {
+                            downloadBuffer[j] = 0;
+                        }
+                        
                         this.dlCbRemaining -= cbRead;
                         this.dlCurrAddress += cbRead;
 

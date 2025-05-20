@@ -184,6 +184,11 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                     }
                     
                     if (cbActualRead > 0) {
+                        // in case we read less, clear the buffer region that may have been unmodified
+                        for (uint j = cbActualRead; j < cbTargetRead; j++) {
+                            tmpBuffer[j] = 0;
+                        }
+                        
                         this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, tmpBuffer, cbActualRead, this.ctx.alignment);
                     }
 
@@ -224,6 +229,11 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                 }
                 
                 if (cbActualRead > 0) {
+                    // in case we read less, clear the buffer region that may have been unmodified
+                    for (uint j = cbActualRead; j < cbTargetRead; j++) {
+                        tmpBuffer[j] = 0;
+                    }
+                    
                     this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, tmpBuffer, cbActualRead, this.ctx.alignment);
                 }
                 
