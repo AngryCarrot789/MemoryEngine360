@@ -53,13 +53,13 @@ public sealed class ScanningContext {
     internal readonly bool isSecondInputRequired;
 
     // enough bytes to store all data types except string
-    private ulong numericInputA, numericInputB;
+    internal ulong numericInputA, numericInputB;
 
     // number of bytes the data type takes up. for strings, calculates based on StringType and char count
-    private int cbDataType;
+    internal int cbDataType;
 
     // engine's forced LE state is not automatic, and it forces an endianness different from the connection.
-    private bool reverseEndianness;
+    internal bool reverseEndianness;
 
     /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result
@@ -184,17 +184,16 @@ public sealed class ScanningContext {
         return true;
     }
 
-    internal void ProcessMemoryBlockForFirstScan(uint baseAddress, byte[] buffer, uint count, uint align) {
-        int cbData = this.cbDataType;
-        bool checkBounds = align < cbData;
+    internal void ProcessMemoryBlockForFirstScan(uint baseAddress, ReadOnlySpan<byte> buffer, uint count, uint align) {
+        bool checkBounds = align < this.cbDataType;
         if (this.dataType.IsNumeric()) {
             for (uint i = 0; i < count; i += align) {
-                if (checkBounds && (buffer.Length - i) < cbData) {
+                if (checkBounds && (count - i) < this.cbDataType) {
                     break;
                 }
 
                 object? matchBoxed;
-                ReadOnlySpan<byte> span = new ReadOnlySpan<byte>(buffer, (int) i, cbData);
+                ReadOnlySpan<byte> span = buffer.Slice((int) i, this.cbDataType);
                 switch (this.dataType) {
                     case DataType.Byte:   matchBoxed = this.CompareInt<byte>(span); break;
                     case DataType.Int16:  matchBoxed = this.CompareInt<short>(span); break;
@@ -213,31 +212,11 @@ public sealed class ScanningContext {
         }
         else if (this.dataType == DataType.String) {
             for (uint i = 0; i < count; i += align) {
-                if (checkBounds && (buffer.Length - i) < cbData) {
+                if (checkBounds && (count - i) < this.cbDataType) {
                     break;
                 }
 
-                string readText;
-                switch (this.stringScanOption) {
-                    case StringType.ASCII: {
-                        readText = Encoding.ASCII.GetString(new ReadOnlySpan<byte>(buffer, (int) i, cbData));
-                        break;
-                    }
-                    case StringType.UTF8: {
-                        readText = Encoding.UTF8.GetString(new ReadOnlySpan<byte>(buffer, (int) i, cbData));
-                        break;
-                    }
-                    case StringType.UTF16: {
-                        readText = Encoding.Unicode.GetString(new ReadOnlySpan<byte>(buffer, (int) i, cbData));
-                        break;
-                    }
-                    case StringType.UTF32: {
-                        readText = Encoding.UTF32.GetString(new ReadOnlySpan<byte>(buffer, (int) i, cbData));
-                        break;
-                    }
-                    default: throw new ArgumentOutOfRangeException();
-                }
-
+                string readText = this.stringScanOption.ToEncoding().GetString(buffer.Slice((int) i, this.cbDataType));
                 if (readText.Equals(this.inputA, this.stringComparison)) {
                     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, baseAddress + i, this.dataType, NumericDisplayType.Normal, readText));
                 }

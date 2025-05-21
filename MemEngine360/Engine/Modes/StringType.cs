@@ -17,6 +17,8 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Text;
+
 namespace MemEngine360.Engine.Modes;
 
 public enum StringType {
@@ -24,4 +26,16 @@ public enum StringType {
     UTF8,
     UTF16,
     UTF32
+}
+
+public static class StringTypeExtensions {
+    public static Encoding ToEncoding(this StringType stringType) {
+        switch (stringType) {
+            case StringType.ASCII: return Encoding.ASCII;
+            case StringType.UTF8:  return Encoding.UTF8;
+            case StringType.UTF16: return Encoding.Unicode;
+            case StringType.UTF32: return Encoding.UTF32;
+            default:               throw new ArgumentOutOfRangeException(nameof(stringType), stringType, null);
+        }
+    }
 }

@@ -164,12 +164,6 @@ The methods available are:
 
 There's a singleton configuration page for the entire application stored in `ApplicationConfigurationManager.Instance`. You can add your own configuration entries and pages in your plugin's `OnApplicationLoading` method
 
-### Project configuration pages
-
-Project settings are stored in a `ProjectConfigurationManager`.
-
-Since there's a configuration manager for each instance of a project, you must listen to the `ProjectConfigurationManager.SetupProjectConfiguration` event, and add your own configuration entries and pages to the `ProjectConfigurationManager` given as an event parameter.
-
 ### Page controls
 
 The simplest way to create a configuration page would be to derive from `PropertyEditorConfigurationPage` and use its property editor
@@ -250,40 +244,6 @@ public override void RegisterConfigurations(PersistentStorageManager manager) {
     manager.Register(new EditorWindowConfigurationOptions(), "editor", "windowinfo");
 }
 ```
-
-## Registering exporters
-
-#### Defining the exporter
-
-First you need a class that derives `BaseExporterInfo`. This base class defines the standard information and behaviours for exporters.
-
-This class then needs to override the `CreateContext` method, which creates an export context object. This object should derive from `BaseExportContext`.  
-This class can then implement the `Export` method, which is what actually does the exporting (including creating the file and writing media information)
-
-#### Exporter properties
-
-Exporters might want adjustable parameters to change the export process (e.g. bitrate or resolution). Currently, this can  
-only be done via the `PropertyEditor` instance defined in `BaseExporterInfo`. You can define data parameters (or use custom property editor slots),  
-and register them in the property editor. The front end will automatically create standard UI controls for built-in property editor slots.
-
-#### Export setup
-
-The `ExportSetup` class contains basic information about the export process, which is common across every exporter (e.g. the start and end frame to export, and target file/directory)
-
-#### Registration
-
-Finally, you register the exporter via the `ExporterRegistry` (accessible by the `Instance` static property),  
-and by invoking `RegisterExporter(ExporterKey, BaseExporterInfo)`. An exporter key contains a unique key and display name for the exporter
-
-## Custom timeline clips
-
-Creating a custom clip is very simple. Your clip should derive from `VideoClip` or `AudioClip` (audio is currently not working, since a rework of the rendering system is needed to make it work property).
-
-Video clips have two main methods: `bool PrepareRenderFrame(PreRenderContext rc, long frame)` and `void RenderFrame(RenderContext rc, ref SKRect renderArea)`.
-
-The prepare render frame method indicates to the rendering system whether the clip should be rendered. For example, if a resource reference required by the clip is not linked, then this method returns false. This method is invoked on the main thread
-
-The render frame method is invoked on a background rendering thread, and is what should render the clip. You can access the skia canvas via `rc.Canvas`. the `ref renderArea` is used to tell the rendering system the affected pixel area, as an optimisation. For example, if you draw a 10x10 square starting at 5,5, then you would do: `renderArea = rc.TranslateRect(new SKRect(5, 5, 15, 15));`. The method `rc.TranslateRect` translates the rect into the effective rectangle based on the current `TotalMatrix` of the canvas
 
 ## Custom Commands
 

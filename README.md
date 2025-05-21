@@ -112,7 +112,7 @@ There's a few remote control commands you can find in the `Remote Controls` menu
 - `Shutdown` - Tells the console to shut down
 
 ## Task Sequencer
-The task sequencer system allows you to run small operations as a large task. The system is still WIP,
+ `File > Open Sequencer` The task sequencer system allows you to run small operations as a large task. The system is still WIP,
 and in the future, will support many more customisations, e.g. randomly allow or disallow operations to run,
 random delay times, etc.
 
@@ -127,7 +127,7 @@ You can add operations by clicking the buttons in the top-right corner. So far, 
 > Note, all sequences will be stopped when you change the connection type (CTRL+O)
 
 ## Module Viewer
-It can be opened in `Remote Controls > Show Modules`. It presents all the modules and specific details, such as base address, entry point, sections, etc.
+`File > Show Modules`. It presents all the modules and specific details, such as base address, entry point, sections, etc.
 
 ![](MemEngine360-DesktopUI_2025-05-18_00.15.15.png)
 
