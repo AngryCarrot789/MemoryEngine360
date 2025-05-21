@@ -22,6 +22,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
@@ -53,6 +54,7 @@ public class MemoryEngine360 {
     private volatile int isBusyCount; // this is a boolean. 0 = no token, 1 = token acquired. any other value is invalid
     private BusyToken? activeToken;
     private bool isShuttingDown;
+    private bool? isForcedLittleEndian;
 
     private readonly LinkedList<CancellableTaskCompletionSource> busyLockAsyncWaiters = new LinkedList<CancellableTaskCompletionSource>();
 
@@ -108,6 +110,23 @@ public class MemoryEngine360 {
     }
 
     /// <summary>
+    /// Gets or sets whether byte order of the search value and displayed values is treated as little endian (true) or big endian (false), or
+    /// automatic (null) to use the current connection's endianness (see <see cref="IConsoleConnection.IsLittleEndian"/>).
+    /// <para>
+    /// This only affects the scanning engine, scan results' values and saved addresses' values
+    /// </para>
+    /// </summary>
+    public bool? IsForcedLittleEndian {
+        get => this.isForcedLittleEndian;
+        set {
+            if (this.isForcedLittleEndian != value) {
+                this.isForcedLittleEndian = value;
+                this.IsForcedLittleEndianChanged?.Invoke(this);
+            }
+        }
+    }
+
+    /// <summary>
     /// An event fired when a connection is most likely about to change. This can be used by custom activities
     /// to cancel operations that are using the connection. There is no guarantee that the connection will actually
     /// change, and this event may get fired multiple times before the connection really changes 
@@ -142,6 +161,8 @@ public class MemoryEngine360 {
     /// </summary>
     public event MemoryEngine360EventHandler? IsBusyChanged;
 
+    public event MemoryEngine360EventHandler? IsForcedLittleEndianChanged;
+    
     public MemoryEngine360() {
         this.ScanningProcessor = new ScanningProcessor(this);
         this.AddressTableManager = new AddressTableManager(this);
@@ -172,6 +193,33 @@ public class MemoryEngine360 {
         }, TaskCreationOptions.LongRunning);
     }
 
+    /// <summary>
+    /// Returns our forced endianness state, or the connection's <see cref="IConsoleConnection.IsLittleEndian"/> state when automatic
+    /// </summary>
+    /// <param name="conn">The connection</param>
+    /// <returns>True to use little endian byte ordering, false to use big endian</returns>
+    public bool IsLittleEndianHelper(IConsoleConnection conn) => this.IsForcedLittleEndian ?? conn.IsLittleEndian;
+
+    /// <summary>
+    /// Returns whether things like integers, floats, etc. should have their endianness reversed again when the
+    /// data has already been reversed by the <see cref="IConsoleConnection"/>. This is not needed when reading
+    /// chunks of bytes, since they do not necessarily represent a data type, so byte order doesn't matter
+    /// </summary>
+    /// <param name="conn"></param>
+    /// <returns></returns>
+    public bool ShouldReverseEndianness(IConsoleConnection conn) {
+        // When we force an endianness, reverse when they don't match
+        if (this.IsForcedLittleEndian is bool isLittleEndian) {
+            // e.g. say connection is xbox (big endian), if we want to show as LE,
+            // (true != false) == true, so data must be flipped
+            return isLittleEndian != conn.IsLittleEndian;
+        }
+        
+        // no forced endianness, so just leave everything as is. The connection will
+        // correct the endianness for data values automatically
+        return false;
+    }
+    
     /// <summary>
     /// Gets the connection while validating the token
     /// </summary>
@@ -391,30 +439,43 @@ public class MemoryEngine360 {
     /// Reads a specific data type from the console, and formats it according to the display type.
     /// When reading strings, the <see cref="stringLength"/> parameter is how many chars to read
     /// </summary>
-    /// <param name="connection">The connection to read from</param>
+    /// <param name="conn">The connection to read from</param>
     /// <param name="address">The absolute address of the value</param>
     /// <param name="type">The type of value to read</param>
     /// <param name="displayType">The display type for numeric data types</param>
     /// <param name="stringLength">The amount of chars to read for the string data type</param>
+    /// <param name="forceLittleEndian">The forced endianness state</param>
     /// <returns>A task representing the formatted value that was read</returns>
     /// <exception cref="ArgumentOutOfRangeException">Invalid data type</exception>
-    public static async Task<string> ReadAsText(IConsoleConnection connection, uint address, DataType type, NumericDisplayType displayType, uint stringLength) {
+    public static async Task<string> ReadAsText(IConsoleConnection conn, uint address, DataType type, NumericDisplayType displayType, uint stringLength, bool? forceLittleEndian = null) {
         object obj;
         switch (type) {
-            case DataType.Byte:   obj = await connection.ReadByte(address).ConfigureAwait(false); break;
-            case DataType.Int16:  obj = await connection.ReadValue<short>(address).ConfigureAwait(false); break;
-            case DataType.Int32:  obj = await connection.ReadValue<int>(address).ConfigureAwait(false); break;
-            case DataType.Int64:  obj = await connection.ReadValue<long>(address).ConfigureAwait(false); break;
-            case DataType.Float:  obj = await connection.ReadValue<float>(address).ConfigureAwait(false); break;
-            case DataType.Double: obj = await connection.ReadValue<double>(address).ConfigureAwait(false); break;
-            case DataType.String: obj = await connection.ReadString(address, stringLength).ConfigureAwait(false); break;
+            case DataType.Byte:   obj = await conn.ReadByte(address).ConfigureAwait(false); break;
+            case DataType.Int16:  obj = CorrectEndianness(await conn.ReadValue<short>(address).ConfigureAwait(false), conn, forceLittleEndian); break;
+            case DataType.Int32:  obj = CorrectEndianness(await conn.ReadValue<int>(address).ConfigureAwait(false), conn, forceLittleEndian); break;
+            case DataType.Int64:  obj = CorrectEndianness(await conn.ReadValue<long>(address).ConfigureAwait(false), conn, forceLittleEndian); break;
+            case DataType.Float:  obj = CorrectEndianness(await conn.ReadValue<float>(address).ConfigureAwait(false), conn, forceLittleEndian); break;
+            case DataType.Double: obj = CorrectEndianness(await conn.ReadValue<double>(address).ConfigureAwait(false), conn, forceLittleEndian); break;
+            case DataType.String: obj = await conn.ReadString(address, stringLength).ConfigureAwait(false); break;
             default:              throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
 
         return displayType.AsString(type, obj);
     }
 
-    public static async Task WriteAsText(IConsoleConnection connection, uint address, DataType type, NumericDisplayType displayType, string value, uint stringLength) {
+    private static T CorrectEndianness<T>(T input, IConsoleConnection connection, bool? isLittleEndian) where T : unmanaged {
+        if (isLittleEndian.HasValue && connection.IsLittleEndian != isLittleEndian.Value) {
+            byte[] buffer = new byte[Unsafe.SizeOf<T>()]; // allocate value on heap
+            ref byte refBuf = ref MemoryMarshal.GetArrayDataReference(buffer); // get ref to elem 0, same as ref buffer[0] but cooler
+            Unsafe.As<byte, T>(ref refBuf) = input; // write input to buffer
+            Array.Reverse(buffer); // reverse bytes
+            input = Unsafe.As<byte, T>(ref refBuf); // write buffer to input
+        }
+
+        return input;
+    }
+
+    public static async Task WriteAsText(IConsoleConnection connection, uint address, DataType type, NumericDisplayType displayType, string value, uint stringLength, bool? isForcedLittleEndian = null) {
         NumberStyles style = displayType == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
         switch (type) {
             case DataType.Byte: {
@@ -422,24 +483,24 @@ public class MemoryEngine360 {
                 break;
             }
             case DataType.Int16: {
-                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? ushort.Parse(value, style, null) : (ushort) short.Parse(value, style, null)).ConfigureAwait(false);
+                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? CorrectEndianness(ushort.Parse(value, style, null), connection, isForcedLittleEndian) : CorrectEndianness((ushort) short.Parse(value, style, null), connection, isForcedLittleEndian)).ConfigureAwait(false);
                 break;
             }
             case DataType.Int32: {
-                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? uint.Parse(value, style, null) : (uint) int.Parse(value, style, null)).ConfigureAwait(false);
+                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? CorrectEndianness(uint.Parse(value, style, null), connection, isForcedLittleEndian) : CorrectEndianness((uint) int.Parse(value, style, null), connection, isForcedLittleEndian)).ConfigureAwait(false);
                 break;
             }
             case DataType.Int64: {
-                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? ulong.Parse(value, style, null) : (ulong) long.Parse(value, style, null)).ConfigureAwait(false);
+                await connection.WriteValue(address, displayType == NumericDisplayType.Unsigned ? CorrectEndianness(ulong.Parse(value, style, null), connection, isForcedLittleEndian) : CorrectEndianness((ulong) long.Parse(value, style, null), connection, isForcedLittleEndian)).ConfigureAwait(false);
                 break;
             }
             case DataType.Float: {
-                float f = displayType == NumericDisplayType.Hexadecimal ? BitConverter.UInt32BitsToSingle(uint.Parse(value, NumberStyles.HexNumber, null)) : float.Parse(value);
+                float f = displayType == NumericDisplayType.Hexadecimal ? BitConverter.UInt32BitsToSingle(CorrectEndianness(uint.Parse(value, NumberStyles.HexNumber, null), connection, isForcedLittleEndian)) : CorrectEndianness(float.Parse(value), connection, isForcedLittleEndian);
                 await connection.WriteValue(address, f).ConfigureAwait(false);
                 break;
             }
             case DataType.Double: {
-                double d = displayType == NumericDisplayType.Hexadecimal ? BitConverter.UInt64BitsToDouble(ulong.Parse(value, NumberStyles.HexNumber, null)) : double.Parse(value);
+                double d = displayType == NumericDisplayType.Hexadecimal ? BitConverter.UInt64BitsToDouble(CorrectEndianness(ulong.Parse(value, NumberStyles.HexNumber, null), connection, isForcedLittleEndian)) : CorrectEndianness(double.Parse(value), connection, isForcedLittleEndian);
                 await connection.WriteValue(address, d).ConfigureAwait(false);
                 break;
             }

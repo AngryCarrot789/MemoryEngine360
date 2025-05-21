@@ -18,11 +18,13 @@
 // 
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using MemEngine360.BaseFrontEnd;
+using MemEngine360.BaseFrontEnd.FileConnections;
 using MemEngine360.BaseFrontEnd.MemRegions;
 using MemEngine360.BaseFrontEnd.Services;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
@@ -163,6 +165,15 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
             DisplayName = "MemEngine", Id = "config.memengine", Page = new MemEngineConfigurationPage()
         });
 
+#if DEBUG
+        if (Debugger.IsAttached) {
+            ConsoleConnectionManager manager = Instance.ServiceManager.GetService<ConsoleConnectionManager>();
+            manager.Register(DebuggingFileConsoleType.TheID, DebuggingFileConsoleType.Instance);
+        }  
+#endif
+
+        ConnectToConsoleView.Registry.RegisterType<OpenDebuggingFileInfo>(() => new OpenDebuggingFileView());
+        
         return base.OnApplicationFullyLoaded();
     }
 

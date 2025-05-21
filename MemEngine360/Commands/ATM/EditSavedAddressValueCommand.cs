@@ -58,25 +58,25 @@ public class EditSavedAddressValueCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        MemoryEngine360? memoryEngine360 = null;
+        MemoryEngine360? engine = null;
         List<AddressTableEntry> savedList = new List<AddressTableEntry>();
         if (IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
             savedList.AddRange(ui.AddressTableSelectionManager.SelectedItems.Where(x => x.Entry is AddressTableEntry).Select(x => (AddressTableEntry) x.Entry));
-            memoryEngine360 = ui.MemoryEngine360;
+            engine = ui.MemoryEngine360;
         }
 
         if (IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? theResult)) {
-            memoryEngine360 ??= theResult.Entry.AddressTableManager!.MemoryEngine360;
+            engine ??= theResult.Entry.AddressTableManager!.MemoryEngine360;
             if (theResult.Entry is AddressTableEntry entry && !savedList.Contains(entry)) {
                 savedList.Add(entry);
             }
         }
 
-        if (memoryEngine360 == null || savedList.Count < 1) {
+        if (engine == null || savedList.Count < 1) {
             return;
         }
 
-        if (memoryEngine360.Connection == null) {
+        if (engine.Connection == null) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
             return;
         }
@@ -114,9 +114,9 @@ public class EditSavedAddressValueCommand : Command {
             return;
         }
 
-        using IDisposable? token = await memoryEngine360.BeginBusyOperationActivityAsync("Edit saved result value");
+        using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Edit saved result value");
         IConsoleConnection? conn;
-        if (token == null || (conn = memoryEngine360.Connection) == null) {
+        if (token == null || (conn = engine.Connection) == null) {
             return;
         }
 
@@ -126,8 +126,8 @@ public class EditSavedAddressValueCommand : Command {
             foreach (AddressTableEntry result in savedList) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
                 uint absAddress = result.AbsoluteAddress;
-                await MemoryEngine360.WriteAsText(conn, absAddress, result.DataType, result.NumericDisplayType, input.Text, (uint) result.Value.Length);
-                string newValue = await MemoryEngine360.ReadAsText(conn, absAddress, result.DataType, result.NumericDisplayType, (uint) result.Value.Length);
+                await MemoryEngine360.WriteAsText(conn, absAddress, result.DataType, result.NumericDisplayType, input.Text, (uint) result.Value.Length, engine.IsForcedLittleEndian);
+                string newValue = await MemoryEngine360.ReadAsText(conn, absAddress, result.DataType, result.NumericDisplayType, (uint) result.Value.Length, engine.IsForcedLittleEndian);
 
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     result.Value = newValue;

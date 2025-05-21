@@ -129,7 +129,7 @@ public partial class ConnectToConsoleView : UserControl {
                 RegisteredConsoleType = type
             };
             
-            if (selected != null && this.FocusedTypeId != null && type.RegisteredId == this.FocusedTypeId)
+            if (selected == null && this.FocusedTypeId != null && type.RegisteredId == this.FocusedTypeId)
                 selected = item;
             this.PART_ListBox.Items.Add(item);
         }

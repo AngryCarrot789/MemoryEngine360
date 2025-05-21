@@ -26,7 +26,7 @@ namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
     private WeakReference<ConnectToConsoleWindow>? currentWindow;
     
-    public override Task OpenOrFocusWindow(IMemEngineUI engine, string? focusedTypeId = null) {
+    public override Task OpenOrFocusWindow(IMemEngineUI engine, string? focusedTypeId = "console.xbox360.xbdm-coreimpl") {
         if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
             if (this.currentWindow == null || !this.currentWindow.TryGetTarget(out ConnectToConsoleWindow? existing) || existing.IsClosed) {
                 ConnectToConsoleWindow window = new ConnectToConsoleWindow() {

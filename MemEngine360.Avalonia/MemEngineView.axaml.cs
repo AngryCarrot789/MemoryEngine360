@@ -169,6 +169,13 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
 
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
+    private readonly IBinder<MemoryEngine360> forceLEBinder = new AvaloniaPropertyToEventPropertyBinder<MemoryEngine360>(ToggleButton.IsCheckedProperty, nameof(MemoryEngine360.IsForcedLittleEndianChanged), (b) => {
+        ((ToggleButton) b.Control).IsChecked = b.Model.IsForcedLittleEndian;
+        ((ToggleButton) b.Control).Content = b.Model.IsForcedLittleEndian is bool state ? ((state ? "Endianness: Little" : "Endianness: Big") + " (mostly works)") : "Endianness: Automatic";
+    }, (b) => {
+        b.Model.IsForcedLittleEndian = ((ToggleButton) b.Control).IsChecked;
+        b.Model.ScanningProcessor.RefreshSavedAddressesLater();
+    });
     private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
     private readonly AsyncRelayCommand editAlignmentCommand;
 
@@ -388,6 +395,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         this.lenBinder.Attach(this.PART_ScanOption_Length, this.MemoryEngine360.ScanningProcessor);
         this.alignmentBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, this.MemoryEngine360.ScanningProcessor);
+        this.forceLEBinder.Attach(this.PART_ForcedEndianness, this.MemoryEngine360);
         this.scanMemoryPagesBinder.Attach(this.PART_ScanOption_ScanMemoryPages, this.MemoryEngine360.ScanningProcessor);
         this.MemoryEngine360.ConnectionChanged += this.OnConnectionChanged;
 
@@ -458,6 +466,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         this.lenBinder.Detach();
         this.alignmentBinder.Detach();
         this.pauseXboxBinder.Detach();
+        this.forceLEBinder.Detach();
         this.scanMemoryPagesBinder.Detach();
     }
 

@@ -53,24 +53,24 @@ public class EditScanResultValueCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        MemoryEngine360? memoryEngine360 = null;
+        MemoryEngine360? engine = null;
         List<ScanResultViewModel> scanResults = new List<ScanResultViewModel>();
         if (IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
             scanResults.AddRange(ui.ScanResultSelectionManager.SelectedItems);
-            memoryEngine360 = ui.MemoryEngine360;
+            engine = ui.MemoryEngine360;
         }
 
         if (ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? theResult)) {
-            memoryEngine360 ??= theResult.ScanningProcessor.MemoryEngine360;
+            engine ??= theResult.ScanningProcessor.MemoryEngine360;
             if (!scanResults.Contains(theResult))
                 scanResults.Add(theResult);
         }
 
-        if (memoryEngine360 == null || scanResults.Count < 1) {
+        if (engine == null || scanResults.Count < 1) {
             return;
         }
 
-        if (memoryEngine360.Connection == null) {
+        if (engine.Connection == null) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
             return;
         }
@@ -108,9 +108,9 @@ public class EditScanResultValueCommand : Command {
             return;
         }
 
-        using IDisposable? token = await memoryEngine360.BeginBusyOperationActivityAsync("Edit scan result value");
+        using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Edit scan result value");
         IConsoleConnection? conn;
-        if (token == null || (conn = memoryEngine360.Connection) == null) {
+        if (token == null || (conn = engine.Connection) == null) {
             return;
         }
 
@@ -122,8 +122,8 @@ public class EditScanResultValueCommand : Command {
 
                 string newCurrValue;
                 if (conn.IsConnected) {
-                    await MemoryEngine360.WriteAsText(conn, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, input.Text, (uint) scanResult.FirstValue.Length);
-                    newCurrValue = await MemoryEngine360.ReadAsText(conn, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, (uint) scanResult.FirstValue.Length);
+                    await MemoryEngine360.WriteAsText(conn, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, input.Text, (uint) scanResult.FirstValue.Length, engine.IsForcedLittleEndian);
+                    newCurrValue = await MemoryEngine360.ReadAsText(conn, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, (uint) scanResult.FirstValue.Length, engine.IsForcedLittleEndian);
                 }
                 else {
                     newCurrValue = input.Text;

@@ -38,6 +38,7 @@ public partial class ConnectToXboxView : UserControl, IConsoleConnectivityContro
     }
 
     public void OnDisconnected() {
+        this.ipBinder.Detach();
         this.myInfo = null;
     }
 }

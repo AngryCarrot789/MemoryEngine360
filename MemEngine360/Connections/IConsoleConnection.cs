@@ -201,6 +201,17 @@ public interface IConsoleConnection {
     Task WriteString(uint address, string value);
 
     /// <summary>
+    /// Finds a memory pattern in the console
+    /// </summary>
+    /// <param name="address">The start address to begin scanning</param>
+    /// <param name="count">The amount of bytes to process</param>
+    /// <param name="pattern">The pattern</param>
+    /// <param name="completion">Completion progress</param>
+    /// <param name="cancellationToken">Used to notify cancellation of the operation</param>
+    /// <returns>A task containing the found memory address </returns>
+    Task<uint?> FindPattern(uint address, uint count, MemoryPattern pattern, CompletionState? completion = null, CancellationToken cancellationToken = default);
+    
+    /// <summary>
     /// Closes the console connection
     /// </summary>
     void Close();

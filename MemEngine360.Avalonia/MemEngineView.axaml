@@ -112,7 +112,7 @@
                                     </DockPanel>
                                 </c:GroupBox.Header>
                                 <StackPanel IsVisible="{Binding ElementName=PART_MemScanExpander, Path=IsChecked}">
-                                    <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,22,3,20,3,20" Margin="3">
+                                    <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,22,3,20,3,20,3,20" Margin="3">
                                         <TextBlock Grid.Column="0" Grid.Row="0" Text="Start" VerticalAlignment="Center" Padding="4,0"/>
                                         <TextBlock Grid.Column="0" Grid.Row="2" Text="Length" VerticalAlignment="Center" Padding="4,0"/>
                                         <TextBlock Grid.Column="0" Grid.Row="4" Text="Align" VerticalAlignment="Center" Padding="4,0"/>
@@ -195,6 +195,16 @@
                                             <ToolTip.Tip>
                                                 <TextBlock TextWrapping="Wrap">
                                                     <Run Text="Fetches the memory pages from the console and scans those instead of a set memory range"/>
+                                                </TextBlock>
+                                            </ToolTip.Tip>
+                                        </CheckBox>
+                                        <CheckBox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="10"
+                                                  x:Name="PART_ForcedEndianness"
+                                                  Content="[ENDIANNESS]"
+                                                  IsThreeState="True">
+                                            <ToolTip.Tip>
+                                                <TextBlock TextWrapping="Wrap">
+                                                    <Run Text="Forces data to be interpolated as little-endian. By default, the connection type specifies the endianness, but this allows you to override that."/>
                                                 </TextBlock>
                                             </ToolTip.Tip>
                                         </CheckBox>

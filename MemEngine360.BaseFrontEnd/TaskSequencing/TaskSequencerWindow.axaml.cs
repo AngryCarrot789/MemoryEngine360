@@ -27,7 +27,6 @@ using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Interactivity.Selecting;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Tasks;

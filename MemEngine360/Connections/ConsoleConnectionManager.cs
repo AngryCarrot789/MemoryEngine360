@@ -80,5 +80,5 @@ public abstract class ConsoleConnectionManager {
     ///     The ID of the console type to focus on by default. When null, defaults to the first registered console type
     /// </param>
     /// <returns></returns>
-    public abstract Task OpenOrFocusWindow(IMemEngineUI engine, string? focusedTypeId = null);
+    public abstract Task OpenOrFocusWindow(IMemEngineUI engine, string? focusedTypeId = "console.xbox360.xbdm-coreimpl");
 }

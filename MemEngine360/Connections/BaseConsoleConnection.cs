@@ -37,7 +37,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public abstract RegisteredConsoleType ConsoleType { get; }
 
     public bool IsConnected => !this.isClosed && this.IsConnectedCore;
-    
+
     public bool IsClosed => this.isClosed;
 
     protected abstract bool IsConnectedCore { get; }
@@ -73,7 +73,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public async Task ReadBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
-        
+
         await this.ReadBytesInChunksUnderBusyLock(address, buffer, offset, count, chunkSize, completion, cancellationToken);
     }
 
@@ -157,7 +157,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public async Task WriteBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
-        
+
         await this.WriteBytesInChunksUnderBusyLock(address, buffer, offset, count, chunkSize, completion, cancellationToken).ConfigureAwait(false);
     }
 
@@ -209,6 +209,42 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return this.WriteBytes(address, Encoding.ASCII.GetBytes(value));
     }
 
+    public async Task<uint?> FindPattern(uint address, uint count, MemoryPattern pattern, CompletionState? completion = null, CancellationToken cancellationToken = default) {
+        // if (!pattern.IsValid)
+        //     throw new ArgumentException("Pattern is invalid", nameof(pattern));
+        //
+        // this.EnsureNotDisposed();
+        // using BusyToken x = this.CreateBusyToken();
+        //
+        // cancellationToken.ThrowIfCancellationRequested();
+        //
+        // byte?[] pat = pattern.pattern;
+        // if (pat.Length < 1) {
+        //     return null;
+        // }
+        //
+        // using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
+        // uint chunkSize = (uint) (65535 + 65535 % pat.Length);
+        // byte[] buffer = new byte[chunkSize];
+        // do {
+        //     cancellationToken.ThrowIfCancellationRequested();
+        //     uint cbRead = Math.Min(chunkSize, count);
+        //     await this.ReadBytesCore(address, buffer, 0, cbRead).ConfigureAwait(false);
+        //
+        //     for (uint i = 0; i < count; i++) {
+        //         if ((buffer.Length - i) < pat.Length) {
+        //             break;
+        //         }
+        //     }
+        //
+        //     count -= cbRead;
+        //     address += cbRead;
+        //     
+        //     completion?.OnProgress(cbRead);
+        // } while (count > 0);
+        return null;
+    }
+
     protected BusyToken CreateBusyToken() {
         if (Interlocked.CompareExchange(ref this.busyStack, 1, 0) != 0)
             throw new InvalidOperationException("Already busy performing another operation");
@@ -254,7 +290,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         if (count == 0) {
             return;
         }
-        
+
         using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
         do {
             cancellationToken.ThrowIfCancellationRequested();

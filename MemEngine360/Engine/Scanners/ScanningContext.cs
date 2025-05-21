@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -56,6 +57,9 @@ public sealed class ScanningContext {
 
     // number of bytes the data type takes up. for strings, calculates based on StringType and char count
     private int cbDataType;
+
+    // engine's forced LE state is not automatic, and it forces an endianness different from the connection.
+    private bool reverseEndianness;
 
     /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result
@@ -126,6 +130,10 @@ public sealed class ScanningContext {
             }
         }
 
+        IConsoleConnection connection = this.theProcessor.MemoryEngine360.Connection!;
+        Debug.Assert(connection != null);
+        this.reverseEndianness = this.theProcessor.MemoryEngine360.IsForcedLittleEndian is bool forcedLittle && forcedLittle != connection.IsLittleEndian;
+
         if (this.theProcessor.HasDoneFirstScan && (this.nextScanUsesFirstValue || this.nextScanUsesPreviousValue)) {
             return true;
         }
@@ -142,13 +150,13 @@ public sealed class ScanningContext {
 
         if (this.dataType.IsNumeric()) {
             NumericDisplayType ndt = this.dataType.IsInteger() && this.isIntInputHexadecimal ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
-            if (!TryParseNumeric(this.inputA, this.dataType, ndt, out this.numericInputA)) {
+            if (!TryParseNumeric(this.inputA, this.dataType, ndt, out this.numericInputA, this.reverseEndianness)) {
                 await IMessageDialogService.Instance.ShowMessage("Invalid input", $"{(this.isSecondInputRequired ? "FROM value" : "Input")} is invalid '{this.inputA}'. Cannot be parsed as {this.dataType}.");
                 return false;
             }
 
             if (this.isSecondInputRequired) {
-                if (!TryParseNumeric(this.inputB, this.dataType, ndt, out this.numericInputB)) {
+                if (!TryParseNumeric(this.inputB, this.dataType, ndt, out this.numericInputB, this.reverseEndianness)) {
                     await IMessageDialogService.Instance.ShowMessage("Invalid input", $"TO value is invalid '{this.inputB}'. Cannot be parsed as {this.dataType}.");
                     return false;
                 }
@@ -261,13 +269,13 @@ public sealed class ScanningContext {
                     ulong searchA, searchB;
                     if (this.nextScanUsesFirstValue) {
                         searchB = 0;
-                        if (!TryParseNumeric(res.FirstValue, res, out searchA)) {
+                        if (!TryParseNumeric(res.FirstValue, res, out searchA, this.reverseEndianness)) {
                             throw new Exception("Failed to reparse first value");
                         }
                     }
                     else if (this.nextScanUsesPreviousValue) {
                         searchB = 0;
-                        if (!TryParseNumeric(res.PreviousValue, res, out searchA)) {
+                        if (!TryParseNumeric(res.PreviousValue, res, out searchA, this.reverseEndianness)) {
                             throw new Exception("Failed to reparse previous value");
                         }
                     }
@@ -391,44 +399,45 @@ public sealed class ScanningContext {
         return null;
     }
 
-    private static bool TryParseNumeric(string text, ScanResultViewModel scan, out ulong value) {
-        return TryParseNumeric(text, scan.DataType, scan.NumericDisplayType, out value);
+    private static bool TryParseNumeric(string text, ScanResultViewModel scan, out ulong value, bool reverseEndianness) {
+        return TryParseNumeric(text, scan.DataType, scan.NumericDisplayType, out value, reverseEndianness);
     }
 
     [SuppressMessage("ReSharper", "AssignmentInConditionalExpression")]
-    private static bool TryParseNumeric(string text, DataType dataType, NumericDisplayType ndt, out ulong value) {
+    private static bool TryParseNumeric(string text, DataType dataType, NumericDisplayType ndt, out ulong value, bool reverseEndianness) {
         bool result;
         value = 0;
         NumberStyles intNumStyle = ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
         switch (dataType) {
             case DataType.Byte: {
                 if (result = byte.TryParse(text, intNumStyle, null, out byte val))
-                    value = val;
+                    value = reverseEndianness ? BinaryPrimitives.ReverseEndianness(val) : val;
                 break;
             }
             case DataType.Int16: {
                 if (result = short.TryParse(text, intNumStyle, null, out short val))
-                    value = (ulong) val;
+                    value = (ulong) (reverseEndianness ? BinaryPrimitives.ReverseEndianness(val) : val);
                 break;
             }
             case DataType.Int32: {
                 if (result = int.TryParse(text, intNumStyle, null, out int val))
-                    value = (ulong) val;
+                    value = (ulong) (reverseEndianness ? BinaryPrimitives.ReverseEndianness(val) : val);
                 break;
             }
             case DataType.Int64: {
                 if (result = long.TryParse(text, intNumStyle, null, out long val))
-                    value = (ulong) val;
+                    value = (ulong) (reverseEndianness ? BinaryPrimitives.ReverseEndianness(val) : val);
                 break;
             }
             case DataType.Float: {
                 if (ndt == NumericDisplayType.Hexadecimal) {
                     if (result = uint.TryParse(text, NumberStyles.HexNumber, null, out uint val)) {
-                        value = val;
+                        value = reverseEndianness ? BinaryPrimitives.ReverseEndianness(val) : val;
                     }
                 }
                 else if (result = float.TryParse(text, out float val)) {
-                    value = Unsafe.As<float, uint>(ref val);
+                    uint val2 = Unsafe.As<float, uint>(ref val);
+                    value = reverseEndianness ? BinaryPrimitives.ReverseEndianness(val2) : val2;
                 }
 
                 break;
@@ -436,11 +445,12 @@ public sealed class ScanningContext {
             case DataType.Double: {
                 if (ndt == NumericDisplayType.Hexadecimal) {
                     if (result = ulong.TryParse(text, NumberStyles.HexNumber, null, out ulong val)) {
-                        value = val;
+                        value = reverseEndianness ? BinaryPrimitives.ReverseEndianness(val) : val;
                     }
                 }
                 else if (result = double.TryParse(text, out double val)) {
-                    value = Unsafe.As<double, ulong>(ref val);
+                    ulong val2 = Unsafe.As<double, ulong>(ref val);
+                    value = reverseEndianness ? BinaryPrimitives.ReverseEndianness(val2) : val2;
                 }
 
                 break;

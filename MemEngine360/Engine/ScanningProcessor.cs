@@ -717,6 +717,7 @@ public class ScanningProcessor {
             Task task = Task.Run(async () => {
                 token.ThrowIfCancellationRequested();
 
+                bool? isLE = this.MemoryEngine360.IsForcedLittleEndian;
                 if (savedList != null) {
                     string[] values = new string[savedList.Count];
                     await Task.Run(async () => {
@@ -724,7 +725,7 @@ public class ScanningProcessor {
                             token.ThrowIfCancellationRequested();
                             AddressTableEntry item = savedList[i];
                             if (item.IsAutoRefreshEnabled) // may change between dispatcher callbacks
-                                values[i] = await MemoryEngine360.ReadAsText(connection, item.AbsoluteAddress, item.DataType, item.NumericDisplayType, item.StringLength);
+                                values[i] = await MemoryEngine360.ReadAsText(connection, item.AbsoluteAddress, item.DataType, item.NumericDisplayType, item.StringLength, isLE);
                         }
                     }, token);
 
@@ -746,7 +747,7 @@ public class ScanningProcessor {
                         for (int i = 0; i < values.Length; i++) {
                             token.ThrowIfCancellationRequested();
                             ScanResultViewModel item = list[i];
-                            values[i] = await MemoryEngine360.ReadAsText(connection, item.Address, item.DataType, item.NumericDisplayType, (uint) item.FirstValue.Length);
+                            values[i] = await MemoryEngine360.ReadAsText(connection, item.Address, item.DataType, item.NumericDisplayType, (uint) item.FirstValue.Length, isLE);
                         }
                     }, token);
 

@@ -1,0 +1,30 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MemEngine360.BaseFrontEnd.FileConnections.OpenDebuggingFileView">
+    <StackPanel Margin="10">
+        <TextBlock Padding="2" TextWrapping="Wrap">
+            <Run Text="This is a debug feature and is untested, unstable and dangerous." 
+                 FontSize="24"
+                 Foreground="Red"
+                 FontWeight="Bold"/>
+            <LineBreak/>
+            <Run Text="Do not use unless you know exactly what you're doing!!!"
+                 FontSize="24"
+                 Foreground="Red"
+                 FontWeight="Bold"/>
+        </TextBlock>
+        <Separator/>
+
+        <TextBlock Text="File Path" Padding="0,5"/>
+        <DockPanel HorizontalSpacing="4">
+            <Button x:Name="PART_BrowseFileButton" Content="..." DockPanel.Dock="Right"/>
+            <TextBox x:Name="PART_FilePathTextBox" Padding="5,5" VerticalContentAlignment="Center"
+                     Background="{DynamicResource ABrush.Tone3.Border.Static}"
+                     Text="Text Here"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        </DockPanel>
+    </StackPanel>
+</UserControl>
