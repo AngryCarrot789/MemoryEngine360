@@ -81,6 +81,10 @@ public class ConsoleTypeXbox360XDevkit : RegisteredConsoleType {
         ActivityTask<XboxConsole> task = ActivityManager.Instance.RunTask(() => {
             this.xboxManager ??= new XboxManagerClass();
 
+            // TODO: figure out how to listen to events.
+            // I assume the console connects to a Tcp connection on the port, and sends text with \r\n at the end of each line
+            // DEBUGGER CONNECT PORT=0x<PORT_HERE> override user=<COMPUTER_NAME_HERE> name="MemEngine360"
+
             IActivityProgress progress = ActivityManager.Instance.GetCurrentProgressOrEmpty();
             progress.Caption = "XDevkit";
             progress.Text = "Connecting to console...";

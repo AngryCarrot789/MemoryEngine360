@@ -19,10 +19,8 @@
 
 using System.Diagnostics;
 using MemEngine360.Connections;
-using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Tasks.Pausable;
-using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Scanners;
 
@@ -89,13 +87,18 @@ public sealed class FirstScanTask : AdvancedPausableTask {
     }
 
     private async Task<bool> SetFrozenState(bool isFrozen) {
+        if (this.ctx.HasIOError) {
+            return false;
+        }
+        
+        Debug.Assert(!this.connection.IsClosed);
         try {
             if (this.ctx.pauseConsoleDuringScan && this.connection is IHaveIceCubes ice) {
                 await (isFrozen ? ice.DebugFreeze() : ice.DebugUnFreeze());
             }
         }
         catch (IOException e) {
-            await this.OnConnectionException(e);
+            this.ctx.IOException = e;
             return false;
         }
 
@@ -108,9 +111,10 @@ public sealed class FirstScanTask : AdvancedPausableTask {
             return;
         }
 
+        Debug.Assert(!this.connection.IsClosed);
         IActivityProgress progress = ActivityManager.Instance.CurrentTask.Progress;
-        byte[] tmpBuffer = new byte[ScanningContext.ChunkSize];
         if (this.ctx.scanMemoryPages && this.connection is IHaveMemoryRegions iHaveRegions) {
+            byte[] tmpBuffer = new byte[ScanningContext.ChunkSize];
             if (this.myRegions == null) {
                 progress.IsIndeterminate = true;
                 progress.Text = "Preparing memory regions...";
@@ -120,7 +124,7 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                     allRegions = await iHaveRegions.GetMemoryRegions(true, false);
                 }
                 catch (IOException e) {
-                    await this.OnConnectionException(e);
+                    this.ctx.IOException = e;
                     pauseOrCancelToken.ThrowIfCancellationRequested();
                     return;
                 }
@@ -173,10 +177,21 @@ public sealed class FirstScanTask : AdvancedPausableTask {
 
                     uint baseAddress = region.BaseAddress + this.offset;
                     uint targetReadCount = Math.Min(ScanningContext.ChunkSize, this.cbRegion - this.offset /* remaining */);
-                    if (await this.ProcessMemoryBlock(baseAddress, targetReadCount, tmpBuffer, pauseOrCancelToken)) {
+                    uint cbActualRead;
+                    try {
+                        cbActualRead = await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, targetReadCount).ConfigureAwait(false);
+                    }
+                    catch (IOException e) {
+                        this.ctx.IOException = e;
+                        pauseOrCancelToken.ThrowIfCancellationRequested();
                         return;
                     }
 
+                    // in case we read less, clear the buffer region that may have been unmodified
+                    for (uint j = cbActualRead; j < targetReadCount; j++)
+                        tmpBuffer[j] = 0;
+
+                    this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, new ReadOnlySpan<byte>(tmpBuffer, 0, (int) cbActualRead));
                     this.offset += ScanningContext.ChunkSize;
                 }
 
@@ -184,6 +199,7 @@ public sealed class FirstScanTask : AdvancedPausableTask {
             }
         }
         else {
+            // uint overlap = (uint) Math.Max(this.ctx.cbDataType - (int) this.ctx.alignment, 0);
             uint len = this.ctx.scanLength, totalChunks = len / ScanningContext.ChunkSize;
             using PopCompletionStateRangeToken token = progress.CompletionState.PushCompletionRange(0, 1.0 / len);
             if (this.offset != 0) {
@@ -195,45 +211,41 @@ public sealed class FirstScanTask : AdvancedPausableTask {
             }
 
             this.isProcessingCurrentRegion = true;
+            byte[] tmpBuffer = new byte[ScanningContext.ChunkSize]; //  + overlap
             while (this.offset < len) {
                 pauseOrCancelToken.ThrowIfCancellationRequested();
                 progress.Text = $"Chunk {this.chunkIdx + 1}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(this.offset, false)}/{ValueScannerUtils.ByteFormatter.ToString(len, false)})";
                 progress.CompletionState.OnProgress(ScanningContext.ChunkSize);
 
+                // if (overlap > 0) {
+                //     Buffer.BlockCopy(tmpBuffer, (int) (ScanningContext.ChunkSize - overlap + currentOverlap), tmpBuffer, 0, (int) overlap);
+                // }
+
                 uint baseAddress = this.ctx.startAddress + this.offset;
-                uint targetReadCount = Math.Min(ScanningContext.ChunkSize, Math.Max(this.ctx.scanLength - this.offset, 0));
-                if (await this.ProcessMemoryBlock(baseAddress, targetReadCount, tmpBuffer, pauseOrCancelToken)) {
+                uint cbTargetRead = Math.Min(ScanningContext.ChunkSize, Math.Max(this.ctx.scanLength - this.offset, 0));
+                uint cbActualRead;
+                try {
+                    cbActualRead = await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, cbTargetRead).ConfigureAwait(false);
+                }
+                catch (IOException e) {
+                    this.ctx.IOException = e;
+                    pauseOrCancelToken.ThrowIfCancellationRequested();
                     return;
                 }
+                
+                // in case we read less, clear the buffer region that may have been unmodified
+                // for (uint j = (cbActualRead + (uint) currentOverlap); j < cbTargetRead; j++)
+                //     tmpBuffer[j] = 0;
 
-                this.offset += ScanningContext.ChunkSize;
+                this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, new ReadOnlySpan<byte>(tmpBuffer, 0, (int) cbActualRead));
+
+                this.offset += ScanningContext.ChunkSize; // + (uint) (overlap - currentOverlap);
                 this.chunkIdx++;
+                // currentOverlap = (int) overlap;
+                // totalOverlap += (int) overlap;
             }
 
             this.isProcessingCurrentRegion = false;
         }
-    }
-
-    private async Task<bool> ProcessMemoryBlock(uint baseAddress, uint cbReadData, byte[] buffer, CancellationToken pauseOrCancelToken) {
-        uint cbActualRead;
-        try {
-            cbActualRead = await this.connection.ReadBytes(baseAddress, buffer, 0, cbReadData).ConfigureAwait(false);
-        }
-        catch (IOException e) {
-            await this.OnConnectionException(e);
-            pauseOrCancelToken.ThrowIfCancellationRequested();
-            return true;
-        }
-
-        // in case we read less, clear the buffer region that may have been unmodified
-        for (uint j = cbActualRead; j < cbReadData; j++)
-            buffer[j] = 0;
-
-        this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, buffer, cbActualRead, this.ctx.alignment);
-        return false;
-    }
-
-    private async Task OnConnectionException(IOException e) {
-        await IMessageDialogService.Instance.ShowMessage("Network error", "An exception occurred while performing console operation", e.GetToString());
     }
 }

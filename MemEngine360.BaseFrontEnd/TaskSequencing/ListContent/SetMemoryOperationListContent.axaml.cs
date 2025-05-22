@@ -21,8 +21,11 @@ using System.Globalization;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
+using PFXToolKitUI;
+using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Services.Messaging;
@@ -39,6 +42,7 @@ public partial class SetMemoryOperationListContent : BaseOperationListContent {
     private readonly IBinder<SetMemoryOperation> addressBinder = new TextBoxToEventPropertyBinder<SetMemoryOperation>(nameof(SetMemoryOperation.AddressChanged), (b) => b.Model.Address.ToString("X8"), async (b, text) => {
         if (uint.TryParse(text, NumberStyles.HexNumber, null, out uint value)) {
             b.Model.Address = value;
+            return true;
         }
         else if (ulong.TryParse(text, NumberStyles.HexNumber, null, out _)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
@@ -46,23 +50,28 @@ public partial class SetMemoryOperationListContent : BaseOperationListContent {
         else {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
         }
+        
+        return false;
     });
 
-    private readonly IBinder<SetMemoryOperationListContent> valueBinder = new TextBoxToEventPropertyBinder<SetMemoryOperationListContent>(nameof(TextValueChanged), (b) => b.Model.TextValue, async (b, text) => {
+    private readonly TextBoxToEventPropertyBinder<SetMemoryOperationListContent> valueBinder = new TextBoxToEventPropertyBinder<SetMemoryOperationListContent>(nameof(TextValueChanged), (b) => b.Model.TextValue, async (b, text) => {
         bool hexPrefix = text.StartsWith("0x");
         ValidationArgs args = new ValidationArgs(hexPrefix ? text.Substring(2) : text, [], false);
         if (b.Model.myDataType is DataType dt) {
             NumericDisplayType intNdt = dt.IsInteger() && hexPrefix ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
             if (MemoryEngine360.TryParseTextAsDataValue(args, dt, intNdt, StringType.UTF8, out IDataValue? value)) {
-                b.Model.Operation!.DataValue = value;
+                b.Model.Operation!.DataValueProvider = new ConstantDataProvider(value);
                 b.Model.TextValue = (hexPrefix ? "0x" : "") + intNdt.AsString(dt, value.BoxedValue);
+                return true;
             }
             else {
                 await IMessageDialogService.Instance.ShowMessage("Invalid text", args.Errors.Count > 0 ? args.Errors[0] : "Could not parse value as " + dt, defaultButton: MessageBoxResult.OK);
+                return false;
             }
         }
         else {
             b.Model.TextValue = text;
+            return true;
         }
     });
 
@@ -71,9 +80,11 @@ public partial class SetMemoryOperationListContent : BaseOperationListContent {
     private readonly IBinder<SetMemoryOperation> iterateBinder = new TextBoxToEventPropertyBinder<SetMemoryOperation>(nameof(SetMemoryOperation.IterateCountChanged), (b) => b.Model.IterateCount.ToString(), async (b, text) => {
         if (uint.TryParse(text, out uint value)) {
             b.Model.IterateCount = value;
+            return true;
         }
         else {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", $"Iterate count is invalid. It must be between 0 and {uint.MaxValue}", defaultButton: MessageBoxResult.OK);
+            return false;
         }
     });
 
@@ -85,6 +96,15 @@ public partial class SetMemoryOperationListContent : BaseOperationListContent {
 
             this.myDataType = value;
             this.MyDataTypeChanged?.Invoke(this);
+
+            if (this.PART_DataTypeComboBox.IsEffectivelyVisible) {
+                // this.PART_ValueTextBox.SelectAll();
+                ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                    BugFix.TextBox_FocusSelectAll(this.PART_ValueTextBox);
+                }, DispatchPriority.Background);
+                // BugFix.TextBox_FocusSelectAll(this.PART_ValueTextBox);
+                // this.valueBinder.OnHandleUpdateModel();
+            }
         }
     }
 
@@ -98,7 +118,7 @@ public partial class SetMemoryOperationListContent : BaseOperationListContent {
             this.TextValueChanged?.Invoke(this);
         }
     }
-    
+
     public new SetMemoryOperation? Operation => (SetMemoryOperation?) base.Operation;
 
     public event SetMemoryOperationListContentEventHandler? MyDataTypeChanged;
@@ -118,29 +138,36 @@ public partial class SetMemoryOperationListContent : BaseOperationListContent {
         this.iterateBinder.SwitchModel((SetMemoryOperation?) newOperation);
 
         if (oldOperation != null)
-            ((SetMemoryOperation) oldOperation).DataValueChanged -= this.OnDataValueChanged;
+            ((SetMemoryOperation) oldOperation).DataValueProviderChanged -= this.OnDataValueProviderChanged;
 
         if (newOperation != null) {
-            ((SetMemoryOperation) newOperation).DataValueChanged += this.OnDataValueChanged;
-            this.OnDataValueChanged((SetMemoryOperation) newOperation);
+            ((SetMemoryOperation) newOperation).DataValueProviderChanged += this.OnDataValueProviderChanged;
+            this.OnDataValueProviderChanged((SetMemoryOperation) newOperation);
         }
 
         if (newOperation is SetMemoryOperation operation) {
-            this.MyDataType = operation.DataValue?.DataType ?? DataType.Int32;
-            this.TextValue = operation.DataValue?.BoxedValue.ToString() ?? "";
+            if (operation.DataValueProvider is ConstantDataProvider provider) {
+                this.MyDataType = provider.DataValue?.DataType ?? DataType.Int32;
+                this.TextValue = provider.DataValue?.BoxedValue.ToString() ?? "";
+                this.PART_ToValueStackPanel.IsVisible = true;
+            }
+            else {
+                this.PART_ToValueStackPanel.IsVisible = false;
+            }
         }
     }
 
-    private void OnDataValueChanged(SetMemoryOperation sender) {
-        if (sender.DataValue == null) {
+    private void OnDataValueProviderChanged(SetMemoryOperation sender) {
+        this.PART_ToValueStackPanel.IsVisible = sender.DataValueProvider == null || sender.DataValueProvider is ConstantDataProvider;
+        if (sender.DataValueProvider == null || !(sender.DataValueProvider is ConstantDataProvider provider) || provider.DataValue == null) {
             this.MyDataType = null;
             this.TextValue = "";
         }
         else {
             bool hexPrefix = this.TextValue.StartsWith("0x");
-            NumericDisplayType intNdt = sender.DataValue.DataType.IsInteger() && hexPrefix ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
-            this.MyDataType = sender.DataValue.DataType;
-            this.TextValue = (hexPrefix ? "0x" : "") + intNdt.AsString(sender.DataValue.DataType, sender.DataValue.BoxedValue);
+            NumericDisplayType intNdt = provider.DataValue.DataType.IsInteger() && hexPrefix ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
+            this.MyDataType = provider.DataValue.DataType;
+            this.TextValue = (hexPrefix ? "0x" : "") + intNdt.AsString(provider.DataValue.DataType, provider.DataValue.BoxedValue);
         }
     }
 }

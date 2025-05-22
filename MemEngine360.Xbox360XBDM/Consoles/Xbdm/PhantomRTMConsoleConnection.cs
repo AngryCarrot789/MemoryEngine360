@@ -26,6 +26,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Connections;
+using MemEngine360.XboxBase;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
@@ -33,7 +34,7 @@ namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 // Rewrite with fixes and performance improvements, based on:
 // https://github.com/XeClutch/Cheat-Engine-For-Xbox-360/blob/master/Cheat%20Engine%20for%20Xbox%20360/PhantomRTM.cs
 
-public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHavePowerFunctions {
+public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHavePowerFunctions, IXboxDebuggable {
     private readonly byte[] sharedSetMemCommandBuffer = new byte[14 + 8 + 6 + 128 + 2];
     private readonly byte[] sharedGetMemCommandBuffer = new byte[14 + 8 + 10 + 8 + 2];
 
@@ -45,9 +46,9 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
     public override RegisteredConsoleType ConsoleType => ConsoleTypeXbox360Xbdm.Instance;
 
     protected override bool IsConnectedCore => this.client.Connected;
-    
+
     public override bool IsLittleEndian => false;
-    
+
     public PhantomRTMConsoleConnection(TcpClient client, StreamReader stream) {
         this.client = client;
         this.stream = stream;
@@ -90,6 +91,12 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
         return result;
     }
 
+    /// <summary>
+    /// Sends a command and receives a multi-line response
+    /// </summary>
+    /// <param name="command">The command to send</param>
+    /// <returns></returns>
+    /// <exception cref="Exception">No such command or response was not a multi-line response</exception>
     public async Task<List<string>> SendCommandAndReceiveLines(string command) {
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
@@ -117,7 +124,7 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
 
         return await this.ReadMultiLineResponseInternal();
     }
-    
+
     private async Task<List<string>> ReadMultiLineResponseInternal() {
         List<string> list = new List<string>();
         try {
@@ -126,10 +133,10 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
                 list.Add(line);
             }
         }
-        catch (IOException e) {
+        catch (IOException) {
             this.client.Client.Close();
             this.isClosed = true;
-            throw new IOException("IOError while reading bytes", e);
+            throw;
         }
 
         return list;
@@ -341,7 +348,7 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
         await this.WriteCommandBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
         ConsoleResponse response = await this.ReadResponseCore().ConfigureAwait(false);
         if (response.ResponseType != ResponseType.MultiResponse) {
-            throw new Exception($"Xbox responded to getmem with {response.ResponseType} instead of {nameof(ResponseType.MultiResponse)}, which is unexpected");
+            throw new IOException($"Xbox responded to getmem with {response.ResponseType} instead of {nameof(ResponseType.MultiResponse)}, which is unexpected");
         }
 
         uint cbRead = 0;
@@ -376,7 +383,7 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
             await this.WriteCommandBytes(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, (int) (30 + (count << 1)))).ConfigureAwait(false);
             ConsoleResponse response = await this.ReadResponseCore().ConfigureAwait(false);
             if (response.ResponseType != ResponseType.SingleResponse && response.ResponseType != ResponseType.MemoryNotMapped) {
-                throw new Exception($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
+                throw new IOException($"Xbox responded to setmem without {nameof(ResponseType.SingleResponse)}, which is unexpected");
             }
 
             address += cbWrite;
@@ -405,10 +412,10 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
         try {
             await this.client.GetStream().WriteAsync(buffer).ConfigureAwait(false);
         }
-        catch (IOException e) {
+        catch (IOException) {
             this.client.Client.Close();
             this.isClosed = true;
-            throw new IOException("IOError while writing bytes", e);
+            throw;
         }
     }
 
@@ -418,7 +425,7 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
         if (response.ResponseType == ResponseType.UnknownCommand) {
             if (this.client.Available > 0) {
                 Debugger.Break(); // this was originally to fix an issue where we sent
-                                  // extra \r\n but we fixed that so this checking shouldn't be necessary
+                // extra \r\n but we fixed that so this checking shouldn't be necessary
                 string responseText = await this.ReadLineFromStream().ConfigureAwait(false) ?? "";
                 response = ConsoleResponse.FromFirstLine(responseText);
             }
@@ -455,5 +462,51 @@ public class PhantomRTMConsoleConnection : BaseConsoleConnection, IXbdmConnectio
         NumberUtils.UInt32ToHexAscii(count, ref dstAscii, 32);
         Unsafe.AddByteOffset(ref dstAscii, 40) = (byte) '\r';
         Unsafe.AddByteOffset(ref dstAscii, 41) = (byte) '\n';
+    }
+
+    public Task AddBreakpoint(uint address) {
+        return this.SetBreakpoint(address, false);
+    }
+
+    public Task AddDataBreakpoint(uint address, XboxBreakpointType type, uint size) {
+        return this.SetDataBreakpoint(address, type, size, false);
+    }
+
+    public Task RemoveBreakpoint(uint address) {
+        return this.SetBreakpoint(address, true);
+    }
+
+    public Task RemoveDataBreakpoint(uint address, XboxBreakpointType type, uint size) {
+        return this.SetDataBreakpoint(address, type, size, true);
+    }
+
+    public async Task SetBreakpoint(uint address, bool clear) {
+        this.EnsureNotDisposed();
+        using BusyToken token = this.CreateBusyToken();
+
+        await this.SendCommand($"break addr=0x{address:X8}{(clear ? " clear" : "")}");
+    }
+
+    public async Task SetDataBreakpoint(uint address, XboxBreakpointType type, uint size, bool clear) {
+        this.EnsureNotDisposed();
+        using BusyToken token = this.CreateBusyToken();
+
+        string strType;
+        switch (type) {
+            case XboxBreakpointType.None:
+            case XboxBreakpointType.OnWrite:
+                strType = "write";
+                break;
+            case XboxBreakpointType.OnRead: 
+                strType = "read"; 
+                break;
+            case XboxBreakpointType.OnExecuteHW:
+            case XboxBreakpointType.OnExecute:
+                strType = "execute";
+                break;
+            default: throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+
+        await this.SendCommand($"break {strType}=0x{address:X8} size=0x{size:X8}{(clear ? " clear" : "")}");
     }
 }

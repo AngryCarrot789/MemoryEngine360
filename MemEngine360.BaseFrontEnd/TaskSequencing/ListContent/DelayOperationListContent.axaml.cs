@@ -28,9 +28,11 @@ public partial class DelayOperationListContent : BaseOperationListContent {
     private readonly IBinder<DelayOperation> delayBinder = new TextBoxToEventPropertyBinder<DelayOperation>(nameof(DelayOperation.DelayChanged), (b) => b.Model.Delay.ToString(), async (b, text) => {
         if (uint.TryParse(text, out uint value)) {
             b.Model.Delay = value;
+            return true;
         }
         else {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Delay is an invalid (unsigned) integer.", defaultButton: MessageBoxResult.OK);
+            return false;
         }
     });
     

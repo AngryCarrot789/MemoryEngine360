@@ -27,14 +27,22 @@
                 BorderBrush="{DynamicResource PanelBorderBrush}"
                 BorderThickness="0,1,0,0"
                 Height="21">
-            <Grid ColumnDefinitions="Auto,3,*,3,Auto,3,Auto">
-                <TextBlock Grid.Column="0" x:Name="PART_LatestActivity" Padding="2,0" VerticalAlignment="Center" ToolTip.Tip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
-                <aa:ActivityStatusBarControl Grid.Column="4" x:Name="PART_ActivityStatusBar"/>
-                <TextBlock Grid.Column="6" x:Name="PART_ConnectedHostName" Padding="2,0" VerticalAlignment="Center"/>
+            <!-- <Grid ColumnDefinitions="Auto,3,*,3,Auto,3,Auto"> -->
+            <!--     <TextBlock Grid.Column="0" x:Name="PART_LatestActivity" Padding="2,0" VerticalAlignment="Center" ToolTip.Tip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/> -->
+            <!--     <aa:ActivityStatusBarControl Grid.Column="4" x:Name="PART_ActivityStatusBar" IsVisible="True"/> -->
+            <!--     <TextBlock Grid.Column="6" x:Name="PART_ConnectedHostName" Padding="2,0" VerticalAlignment="Center"/> -->
+            <!--     ~1~ <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="1" Margin="2,2" VerticalAlignment="Stretch"/> @1@ -->
+            <!--     <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="3" Margin="2,2" VerticalAlignment="Stretch"/> -->
+            <!--     <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="5" Margin="2,2" VerticalAlignment="Stretch"/> -->
+            <!-- </Grid> -->
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" x:Name="PART_LatestActivity" Padding="2,0" VerticalAlignment="Center" ToolTip.Tip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
+                <Separator DockPanel.Dock="Left" Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="3" Margin="2,2" VerticalAlignment="Stretch"/>
+                <TextBlock DockPanel.Dock="Right" x:Name="PART_ConnectedHostName" Padding="2,0" VerticalAlignment="Center"/>
                 <!-- <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="1" Margin="2,2" VerticalAlignment="Stretch"/> -->
-                <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="3" Margin="2,2" VerticalAlignment="Stretch"/>
-                <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="5" Margin="2,2" VerticalAlignment="Stretch"/>
-            </Grid>
+                <Separator DockPanel.Dock="Right" Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="5" Margin="2,2" VerticalAlignment="Stretch"/>
+                <aa:ActivityStatusBarControl x:Name="PART_ActivityStatusBar"/>
+            </DockPanel>
         </Border>
         <Grid>
             <Grid x:Name="PART_ContentGrid">
@@ -360,7 +368,8 @@
                     Height="180"
                     BorderThickness="1"
                     Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                    Focusable="True">
+                    Focusable="True"
+                    IsVisible="False">
                 <Border.Styles>
                     <Style Selector="Border">
                         <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone7.Border.Static}"/>

@@ -38,7 +38,7 @@ public abstract class BaseSequenceOperation : ITransferableData {
     public TaskSequence? Sequence { get; private set; }
 
     /// <summary>
-    /// Gets whether this operation is currently running
+    /// Gets whether this operation is currently running. This may be changed from any thread
     /// </summary>
     public bool IsRunning {
         get => this.isRunning;
@@ -56,6 +56,9 @@ public abstract class BaseSequenceOperation : ITransferableData {
     /// </summary>
     public abstract string DisplayName { get; }
 
+    /// <summary>
+    /// Fired when <see cref="IsRunning"/> changes. This may be fired on any thread
+    /// </summary>
     public event BaseSequenceOperationEventHandler? IsRunningChanged;
 
     protected BaseSequenceOperation() {

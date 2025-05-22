@@ -38,9 +38,11 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
     private readonly IBinder<TaskSequence> runCountBinder = new TextBoxToEventPropertyBinder<TaskSequence>(nameof(TaskSequence.RunCountChanged), (b) => b.Model.RunCount.ToString(), async (b, text) => {
         if (uint.TryParse(text, out uint value)) {
             b.Model.RunCount = value;
+            return true;
         }
         else {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", $"Run count is invalid. Is must be between 0 and {uint.MaxValue}", defaultButton: MessageBoxResult.OK);
+            return false;
         }
     });
 

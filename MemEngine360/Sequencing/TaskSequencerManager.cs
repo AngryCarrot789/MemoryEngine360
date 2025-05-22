@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using MemEngine360.Engine;
+using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
@@ -62,9 +63,9 @@ public class TaskSequencerManager {
                 DisplayName = "Demo | Set BO1 secondary reserve ammo"
             };
 
-            sequence.AddOperation(new SetMemoryOperation() { Address = 0x8303A988, DataValue = IDataValue.CreateNumeric((int) 22) });
+            sequence.AddOperation(new SetMemoryOperation() { Address = 0x8303A988, DataValueProvider = new ConstantDataProvider(IDataValue.CreateNumeric((int) 22)) });
             sequence.AddOperation(new DelayOperation(500));
-            sequence.AddOperation(new SetMemoryOperation() { Address = 0x8303A988, DataValue = IDataValue.CreateNumeric((int) 44) });
+            sequence.AddOperation(new SetMemoryOperation() { Address = 0x8303A988, DataValueProvider = new ConstantDataProvider(IDataValue.CreateNumeric((int) 44)) });
             sequence.AddOperation(new DelayOperation(500));
             this.AddSequence(sequence);
         }

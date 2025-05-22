@@ -103,14 +103,15 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
     private readonly IBinder<ScanningProcessor> addrBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.StartAddressChanged), (b) => $"{b.Model.StartAddress:X8}", async (b, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
             if (value == b.Model.StartAddress) {
-                return;
+                return true;
             }
 
             if (value + b.Model.ScanLength < value) {
-                await OnAddressOrLengthOutOfRange(b.Model, value, b.Model.ScanLength);
+                return await OnAddressOrLengthOutOfRange(b.Model, value, b.Model.ScanLength);
             }
             else {
                 b.Model.StartAddress = value;
+                return true;
             }
         }
         else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
@@ -119,19 +120,22 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         else {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
         }
+        
+        return false;
     });
 
     private readonly IBinder<ScanningProcessor> lenBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanLengthChanged), (b) => $"{b.Model.ScanLength:X8}", async (b, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
             if (value == b.Model.ScanLength) {
-                return;
+                return true;
             }
 
             if (b.Model.StartAddress + value < value) {
-                await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
+                return await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
             }
             else {
                 b.Model.ScanLength = value;
+                return true;
             }
         }
         else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
@@ -140,9 +144,11 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         else {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
         }
+        
+        return false;
     });
 
-    private static async Task OnAddressOrLengthOutOfRange(ScanningProcessor processor, uint start, uint length) {
+    private static async Task<bool> OnAddressOrLengthOutOfRange(ScanningProcessor processor, uint start, uint length) {
         bool didChangeStart = processor.StartAddress != start;
         Debug.Assert(didChangeStart || processor.ScanLength != length);
         ulong overflowAmount = (ulong) start + (ulong) length - uint.MaxValue;
@@ -156,7 +162,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
 
         MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
         if (result == MessageBoxResult.Cancel || result == MessageBoxResult.None) {
-            return;
+            return false;
         }
 
         if (didChangeStart) {
@@ -165,6 +171,8 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         else {
             processor.SetScanRange((uint) (start - overflowAmount), length);
         }
+        
+        return true;
     }
 
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());

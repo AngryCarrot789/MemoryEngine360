@@ -21,7 +21,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
 
 namespace MemEngine360.ValueAbstraction;
@@ -44,8 +43,6 @@ public abstract class BaseNumericDataValue<T> : IDataValue where T : unmanaged, 
         this.DataType = dataType;
     }
 
-    public Task WriteToConnection(uint address, IConsoleConnection connection) => connection.WriteValue(address, this.Value);
-    
     public byte[] GetBytes(bool asLittleEndian) {
         byte[] bytes = new byte[TypeSize];
         Unsafe.As<byte, T>(ref MemoryMarshal.GetArrayDataReference(bytes)) = this.Value;
@@ -113,10 +110,6 @@ public class DataValueString : IDataValue {
             case StringType.UTF32: break;
             default:               throw new ArgumentOutOfRangeException();
         }
-    }
-
-    public Task WriteToConnection(uint address, IConsoleConnection connection) {
-        return connection.WriteBytes(address, this.GetBytes());
     }
 
     public byte[] GetBytes(bool asLittleEndian) => this.GetBytes();

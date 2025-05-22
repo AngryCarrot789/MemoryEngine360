@@ -23,7 +23,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Services.Messaging;
@@ -60,6 +59,13 @@ public sealed class ScanningContext {
 
     // engine's forced LE state is not automatic, and it forces an endianness different from the connection.
     internal bool reverseEndianness;
+
+    public IOException? IOException { get; set; }
+    
+    /// <summary>
+    /// Gets or sets if the scan encountered an IO error while reading data from the console
+    /// </summary>
+    public bool HasIOError => this.IOException != null;
 
     /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result
@@ -184,11 +190,18 @@ public sealed class ScanningContext {
         return true;
     }
 
-    internal void ProcessMemoryBlockForFirstScan(uint baseAddress, ReadOnlySpan<byte> buffer, uint count, uint align) {
-        bool checkBounds = align < this.cbDataType;
+    /// <summary>
+    /// Scans the buffer for a value 
+    /// </summary>
+    /// <param name="address">The address that is relative to the 0th element in the buffer</param>
+    /// <param name="buffer">The buffer containing data to scan</param>
+    internal void ProcessMemoryBlockForFirstScan(uint address, ReadOnlySpan<byte> buffer) {
+        // by default, align is set to cbDataType except for string where it's 1. So in most cases, only check bounds for strings
+        // There's also another issue with values between chunks, which we don't process because I can't get it to work...
+        bool checkBounds = this.alignment < this.cbDataType;
         if (this.dataType.IsNumeric()) {
-            for (uint i = 0; i < count; i += align) {
-                if (checkBounds && (count - i) < this.cbDataType) {
+            for (uint i = 0; i < buffer.Length; i += this.alignment) {
+                if (checkBounds && (buffer.Length - i) < this.cbDataType) {
                     break;
                 }
 
@@ -201,24 +214,26 @@ public sealed class ScanningContext {
                     case DataType.Int64:  matchBoxed = this.CompareInt<long>(span); break;
                     case DataType.Float:  matchBoxed = this.CompareFloat<float>(span); break;
                     case DataType.Double: matchBoxed = this.CompareFloat<double>(span); break;
-                    default:              throw new ArgumentOutOfRangeException();
+                    default:
+                        Debug.Fail("Invalid data type");
+                        return;
                 }
 
                 if (matchBoxed != null) {
                     NumericDisplayType ndt = this.isIntInputHexadecimal && this.dataType.IsInteger() ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
-                    this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, baseAddress + i, this.dataType, ndt, ndt.AsString(this.dataType, matchBoxed)));
+                    this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, address + i, this.dataType, ndt, ndt.AsString(this.dataType, matchBoxed)));
                 }
             }
         }
         else if (this.dataType == DataType.String) {
-            for (uint i = 0; i < count; i += align) {
-                if (checkBounds && (count - i) < this.cbDataType) {
+            for (uint i = 0; i < buffer.Length; i += this.alignment) {
+                if (checkBounds && (buffer.Length - i) < this.cbDataType) {
                     break;
                 }
 
                 string readText = this.stringScanOption.ToEncoding().GetString(buffer.Slice((int) i, this.cbDataType));
                 if (readText.Equals(this.inputA, this.stringComparison)) {
-                    this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, baseAddress + i, this.dataType, NumericDisplayType.Normal, readText));
+                    this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, address + i, this.dataType, NumericDisplayType.Normal, readText));
                 }
             }
         }

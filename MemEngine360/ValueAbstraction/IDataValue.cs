@@ -19,13 +19,12 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
 
 namespace MemEngine360.ValueAbstraction;
 
 /// <summary>
-/// An interface that safely represents a value of a specific <see cref="DataType"/>
+/// An immutable object that safely stores a value of a specific <see cref="DataType"/>
 /// </summary>
 public interface IDataValue : IEquatable<IDataValue> {
     /// <summary>
@@ -39,15 +38,8 @@ public interface IDataValue : IEquatable<IDataValue> {
     object BoxedValue { get; }
 
     /// <summary>
-    /// Writes this data value to the connection at the address
-    /// </summary>
-    /// <param name="address">The address to write the value at</param>
-    /// <param name="connection">The connection to write the value to</param>
-    /// <returns></returns>
-    Task WriteToConnection(uint address, IConsoleConnection connection);
-
-    /// <summary>
     /// Gets this data value as an array of bytes. E.g. an int32 would return 4 elements.
+    /// For a string type, no null character will be present in the array
     /// </summary>
     /// <param name="asLittleEndian">True to specify the value as little endian, false to specify as big endian</param>
     /// <returns></returns>

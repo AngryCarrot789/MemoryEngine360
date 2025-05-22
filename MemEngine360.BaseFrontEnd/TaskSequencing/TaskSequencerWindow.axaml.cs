@@ -24,6 +24,7 @@ using Avalonia.Interactivity;
 using MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent;
 using MemEngine360.Engine;
 using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Interactivity;
@@ -143,6 +144,6 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
     }
 
     private void Button_InsertSetMemory(object? sender, RoutedEventArgs e) {
-        this.PrimarySelectedSequence?.TaskSequence.AddOperation(new SetMemoryOperation() {Address = 0x82600000, DataValue = new DataValueInt32(125)});
+        this.PrimarySelectedSequence?.TaskSequence.AddOperation(new SetMemoryOperation() {Address = 0x82600000, DataValueProvider = new ConstantDataProvider(new DataValueInt32(125))});
     }
 }

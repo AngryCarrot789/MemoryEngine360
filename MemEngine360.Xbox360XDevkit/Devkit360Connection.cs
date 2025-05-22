@@ -37,14 +37,15 @@ public class Devkit360Connection : BaseConsoleConnection, IConsoleConnection, IH
     public override RegisteredConsoleType ConsoleType => ConsoleTypeXbox360XDevkit.Instance;
 
     protected override bool IsConnectedCore => this.isConnectedAsDebugger;
-    
+
     public override bool IsLittleEndian => false;
 
     public Devkit360Connection(XboxManager manager, XboxConsole console) {
         this.manager = manager;
         this.console = console;
         this.console.DebugTarget.MemoryCacheEnabled = false;
-        // this.console.add_OnStdNotify(this.OnStdNotify);
+        // XboxEvents_OnStdNotifyEventHandler handler = this.OnStdNotify;
+        // this.console.add_OnStdNotify(handler);
         // this.console.add_OnTextNotify(this.OnTextNotify);
         this.isConnectedAsDebugger = true;
 

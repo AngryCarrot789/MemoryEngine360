@@ -19,12 +19,10 @@
 
 using System.Runtime.InteropServices;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
-using MemEngine360.BaseFrontEnd.XboxBase;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Xbox360XDevkit.Commands;
 using MemEngine360.Xbox360XDevkit.Views;
-using MemEngine360.XboxBase;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;

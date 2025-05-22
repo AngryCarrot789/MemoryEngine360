@@ -16,15 +16,17 @@
                 <TextBlock Text="0x" Opacity="0.7"/>
             </TextBox.InnerLeftContent>
         </TextBox>
-        <TextBlock Text="To Value" FontFamily="{StaticResource FontOxanium}" FontWeight="Medium" VerticalAlignment="Center" Padding="4,0"/>
-        <TextBox x:Name="PART_ValueTextBox" VerticalContentAlignment="Center"  VerticalAlignment="Center"
-                 Padding="4,2" MinWidth="150" 
-                 ToolTip.Tip="The value to write. Prefix with '0x' to write the integer as hex"
-                 Background="{DynamicResource ABrush.Tone1.Background.Static}">
-        </TextBox>
-        <ComboBox x:Name="PART_DataTypeComboBox" Margin="3,0,0,0" Width="65" 
-                  VerticalContentAlignment="Center" VerticalAlignment="Center"
-                  Background="{DynamicResource ABrush.Tone1.Background.Static}"/>
+        <StackPanel x:Name="PART_ToValueStackPanel" Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="To Value" FontFamily="{StaticResource FontOxanium}" FontWeight="Medium" VerticalAlignment="Center" Padding="4,0"/>
+            <TextBox x:Name="PART_ValueTextBox" VerticalContentAlignment="Center"
+                     Padding="4,2" MinWidth="150" 
+                     ToolTip.Tip="The value to write. Prefix with '0x' to write the integer as hex"
+                     Background="{DynamicResource ABrush.Tone1.Background.Static}">
+            </TextBox>
+            <ComboBox x:Name="PART_DataTypeComboBox" Margin="3,0,0,0" Width="65" 
+                      VerticalContentAlignment="Center"
+                      Background="{DynamicResource ABrush.Tone1.Background.Static}"/>
+        </StackPanel>
         <TextBlock Text="Iterate" Padding="4,1" VerticalAlignment="Center"/>
         <TextBox x:Name="PART_IterateCountTextBox" VerticalContentAlignment="Center"  VerticalAlignment="Center"
                  Padding="4,2" Width="60" 

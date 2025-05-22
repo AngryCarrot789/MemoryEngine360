@@ -137,20 +137,22 @@ public sealed class TaskSequence {
         this.Progress.Text = "Running sequence";
 
         CancellationToken token = this.myCts.Token;
-        for (uint count = this.runCount; count != 0 && !token.IsCancellationRequested; count--) {
-            foreach (BaseSequenceOperation operation in this.operations) {
-                try {
-                    await operation.Run(this.myContext, token);
-                }
-                catch (OperationCanceledException) {
-                    break;
-                }
-                catch (Exception e) {
-                    this.LastException = e;
-                    break;
+        await ActivityManager.Instance.RunTask(async () => {
+            for (uint count = this.runCount; count != 0 && !token.IsCancellationRequested; count--) {
+                foreach (BaseSequenceOperation operation in this.operations) {
+                    try {
+                        await operation.Run(this.myContext, token);
+                    }
+                    catch (OperationCanceledException) {
+                        break;
+                    }
+                    catch (Exception e) {
+                        this.LastException = e;
+                        break;
+                    }
                 }
             }
-        }
+        }, this.Progress, this.myCts, TaskCreationOptions.LongRunning);
 
         this.Progress.Text = "Sequence finished";
         this.myCts = null;

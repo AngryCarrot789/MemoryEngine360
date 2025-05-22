@@ -19,23 +19,46 @@
 
 namespace MemEngine360.Sequencing;
 
+public delegate void RandomTriggerHelperEventHandler(RandomTriggerHelper sender);
+
 /// <summary>
 /// A helper class for sequence operations that allows them to randomly trigger
 /// </summary>
 public class RandomTriggerHelper {
     private readonly Random random = new Random();
-    
+    private TimeSpan? waitForTriggerInterval;
+    private int chance;
+
     /// <summary>
     /// Gets or sets how long to sleep in a loop waiting until we trigger. When non-null,
     /// <see cref="TryTrigger"/> is guaranteed to return true unless cancelled.
     /// </summary>
-    public TimeSpan? WaitForTriggerInterval { get; set; }
+    public TimeSpan? WaitForTriggerInterval {
+        get => this.waitForTriggerInterval;
+        set {
+            if (this.waitForTriggerInterval != value) {
+                this.waitForTriggerInterval = value;
+                this.WaitForTriggerIntervalChanged?.Invoke(this);
+            }
+        }
+    }
 
     /// <summary>
     /// Gets or sets the chance that we can trigger successfully.
     /// For example. if set to 10, there's a 1/10 chance of triggering. If set to a value equal or below 1, we can always trigger
     /// </summary>
-    public int Chance { get; set; }
+    public int Chance {
+        get => this.chance;
+        set {
+            if (this.chance != value) {
+                this.chance = value;
+                this.ChanceChanged?.Invoke(this);
+            }
+        }
+    }
+
+    public event RandomTriggerHelperEventHandler? ChanceChanged;
+    public event RandomTriggerHelperEventHandler? WaitForTriggerIntervalChanged;
 
     public RandomTriggerHelper() {
     }
@@ -46,12 +69,12 @@ public class RandomTriggerHelper {
     /// <param name="token">A cancellation token to cancel the trigger countdowns</param>
     public async Task<bool> TryTrigger(CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        int chance = this.Chance;
-        if (chance <= 1) {
+        int theChance = this.Chance;
+        if (theChance <= 1) {
             return true;
         }
 
-        int rnd = this.random.Next(0, chance);
+        int rnd = this.random.Next(0, theChance);
         if (rnd == 0) {
             return true;
         }
@@ -59,7 +82,7 @@ public class RandomTriggerHelper {
         TimeSpan? delay;
         while ((delay = this.WaitForTriggerInterval).HasValue) {
             await Task.Delay(delay.Value, token);
-            if ((chance = this.Chance) <= 1 || (rnd = this.random.Next(0, chance)) == 0) {
+            if ((theChance = this.Chance) <= 1 || (rnd = this.random.Next(0, theChance)) == 0) {
                 return true;
             }
         }

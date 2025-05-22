@@ -17,6 +17,8 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Engine.Modes;
+using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.ValueAbstraction;
 
 namespace MemEngine360.Sequencing.Operations;
@@ -28,7 +30,7 @@ public delegate void SetVariableOperationEventHandler(SetMemoryOperation sender)
 /// </summary>
 public class SetMemoryOperation : BaseSequenceOperation {
     private uint address;
-    private IDataValue? dataValue;
+    private DataValueProvider? dataValueProvider;
     private uint iterateCount;
 
     /// <summary>
@@ -47,12 +49,12 @@ public class SetMemoryOperation : BaseSequenceOperation {
     /// <summary>
     /// Gets or sets the value we write to the console
     /// </summary>
-    public IDataValue? DataValue {
-        get => this.dataValue;
+    public DataValueProvider? DataValueProvider {
+        get => this.dataValueProvider;
         set {
-            if (!Equals(this.dataValue, value)) {
-                this.dataValue = value;
-                this.DataValueChanged?.Invoke(this);
+            if (!Equals(this.dataValueProvider, value)) {
+                this.dataValueProvider = value;
+                this.DataValueProviderChanged?.Invoke(this);
             }
         }
     }
@@ -73,16 +75,18 @@ public class SetMemoryOperation : BaseSequenceOperation {
     }
 
     public override string DisplayName => "Set Memory";
-    
+
     public event SetVariableOperationEventHandler? AddressChanged;
-    public event SetVariableOperationEventHandler? DataValueChanged;
+    public event SetVariableOperationEventHandler? DataValueProviderChanged;
     public event SetVariableOperationEventHandler? IterateCountChanged;
 
     public SetMemoryOperation() {
     }
 
     protected override async Task RunOperation(SequenceExecutionContext ctx, CancellationToken token) {
-        if (this.dataValue != null) {
+        DataValueProvider? provider = this.dataValueProvider;
+        IDataValue? value;
+        if (provider != null && (value = provider.Provide()) != null) {
             IDisposable? busyToken = ctx.BusyToken;
             if (busyToken == null) {
                 ctx.Progress.Text = "Waiting for busy operations...";
@@ -93,20 +97,15 @@ public class SetMemoryOperation : BaseSequenceOperation {
 
             try {
                 ctx.Progress.Text = "Setting memory";
-                if (this.iterateCount == 0) {
-                    await this.dataValue.WriteToConnection(this.address, ctx.Connection);
+                bool appendNullChar = value.DataType == DataType.String && provider.AppendNullCharToString;
+                uint count = this.iterateCount;
+                byte[] data = value.GetBytes(ctx.Connection.IsLittleEndian);
+                byte[] buffer = new byte[data.Length * count + (appendNullChar ? 1 : 0)];
+                for (int i = 0, j = 0; i < count; i++, j += data.Length) {
+                    Buffer.BlockCopy(data, 0, buffer, j, data.Length);
                 }
-                else {
-                    uint count = this.iterateCount;
-                    // optimised repeat write
-                    byte[] data = this.dataValue.GetBytes(ctx.Connection.IsLittleEndian);
-                    byte[] buffer = new byte[data.Length * count];
-                    for (int i = 0, j = 0; i < count; i++, j += data.Length) {
-                        Buffer.BlockCopy(data, 0, buffer, j, data.Length);
-                    }
 
-                    await ctx.Connection.WriteBytes(this.address, buffer);
-                }
+                await ctx.Connection.WriteBytes(this.address, buffer);
             }
             finally {
                 if (!busyToken.Equals(ctx.BusyToken)) {

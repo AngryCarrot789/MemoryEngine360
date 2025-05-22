@@ -577,7 +577,7 @@ public class ScanningProcessor {
                             result = false;
                         }
                     }
-
+                    
                     this.rldaMoveBufferIntoResultList.InvokeAsync();
                 }
                 catch {
@@ -585,13 +585,14 @@ public class ScanningProcessor {
                     result = false;
                 }
 
+                Task updateListTask = Task.CompletedTask;
                 if (result && !this.MemoryEngine360.IsShuttingDown && !thisTask.IsCancellationRequested) {
                     progress.Text = "Updating result list...";
                     int count = this.resultBuffer.Count;
                     const int chunkSize = 500;
                     int range = count / chunkSize;
                     using PopCompletionStateRangeToken x = progress.CompletionState.PushCompletionRange(0.0, 1.0 / range);
-                    await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+                    updateListTask = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
                         while (!this.resultBuffer.IsEmpty) {
                             for (int i = 0; i < chunkSize && this.resultBuffer.TryDequeue(out ScanResultViewModel? scanResult); i++) {
                                 this.ScanResults.Add(scanResult);
@@ -607,6 +608,12 @@ public class ScanningProcessor {
                         }
                     });
                 }
+
+                if (context.HasIOError) {
+                    await IMessageDialogService.Instance.ShowMessage("Network error", context.IOException!.Message, defaultButton:MessageBoxResult.OK);
+                }
+
+                await updateListTask;
             }
 
             await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
