@@ -64,7 +64,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
                 string text;
 
                 // TODO: maybe implement a custom control that represents the connection state
-                // Though I don't see a point ATM since RTM is the only thing we will probably use, 
+                // Though I don't see a point ATM since XBDM/XDevkit are the only things we will probably use, 
                 // since what else is there?
                 // Unless a custom circuit that probes the memory exists and connects via serial port,
                 // then I suppose we could just show COM5 or whatever
@@ -83,12 +83,6 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
 
                 b.Control.SetValue(TextBlock.TextProperty, text);
             }, null /* UI changes do not reflect back into models, so no updateModel */);
-
-    // private readonly IBinder<MemoryEngine360> isBusyBinder = 
-    //     new EventPropertyBinder<MemoryEngine360>(
-    //         nameof(MemoryEngine360.IsBusyChanged), 
-    //         (b) => b.Control.SetValue(IsVisibleProperty, b.Model.IsBusy), 
-    //         null /* UI changes do not reflect back into models, so no updateModel */);
 
     private readonly IBinder<ScanningProcessor> isScanningBinder =
         new EventPropertyBinder<ScanningProcessor>(
@@ -177,13 +171,16 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
 
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
-    private readonly IBinder<MemoryEngine360> forceLEBinder = new AvaloniaPropertyToEventPropertyBinder<MemoryEngine360>(ToggleButton.IsCheckedProperty, nameof(MemoryEngine360.IsForcedLittleEndianChanged), (b) => {
-        ((ToggleButton) b.Control).IsChecked = b.Model.IsForcedLittleEndian;
-        ((ToggleButton) b.Control).Content = b.Model.IsForcedLittleEndian is bool state ? ((state ? "Endianness: Little" : "Endianness: Big") + " (mostly works)") : "Endianness: Automatic";
-    }, (b) => {
-        b.Model.IsForcedLittleEndian = ((ToggleButton) b.Control).IsChecked;
-        b.Model.ScanningProcessor.RefreshSavedAddressesLater();
-    });
+    
+    // Will reimplement at some point
+    // private readonly IBinder<MemoryEngine360> forceLEBinder = new AvaloniaPropertyToEventPropertyBinder<MemoryEngine360>(ToggleButton.IsCheckedProperty, nameof(MemoryEngine360.IsForcedLittleEndianChanged), (b) => {
+    //     ((ToggleButton) b.Control).IsChecked = b.Model.IsForcedLittleEndian;
+    //     ((ToggleButton) b.Control).Content = b.Model.IsForcedLittleEndian is bool state ? ((state ? "Endianness: Little" : "Endianness: Big") + " (mostly works)") : "Endianness: Automatic";
+    // }, (b) => {
+    //     b.Model.IsForcedLittleEndian = ((ToggleButton) b.Control).IsChecked;
+    //     b.Model.ScanningProcessor.RefreshSavedAddressesLater();
+    // });
+    
     private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
     private readonly AsyncRelayCommand editAlignmentCommand;
 
@@ -228,7 +225,29 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
     private ObservableItemProcessorIndexing<Theme>? themeListHandler;
 
     private class TestThing : CustomContextEntry {
+        private IMemEngineUI? ctxMemUI;
+
         public TestThing(string displayName, string? description, Icon? icon = null) : base(displayName, description, icon) {
+        }
+
+        // Sort of pointless unless the user tries to connect to a console while it's booting
+        // and then they open the File menu, they'll see that this entry is greyed out until we
+        // connect, then once connected, it's either now invisible or clickable. This is just a POF really
+        protected override void OnContextChanged() {
+            base.OnContextChanged();
+            if (this.CapturedContext != null) {
+                if (IMemEngineUI.MemUIDataKey.TryGetContext(this.CapturedContext, out this.ctxMemUI)) {
+                    this.ctxMemUI.MemoryEngine360.ConnectionChanged += this.OnContextMemUIConnectionChanged;
+                }
+            }
+            else if (this.ctxMemUI != null) {
+                this.ctxMemUI.MemoryEngine360.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
+                this.ctxMemUI = null;
+            }
+        }
+
+        private void OnContextMemUIConnectionChanged(MemoryEngine360 sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
+            this.RaiseCanExecuteChanged();
         }
 
         public override bool CanExecute(IContextData context) {
@@ -236,7 +255,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
                 return false;
             }
 
-            return ui.MemoryEngine360.Connection is PhantomRTMConsoleConnection;
+            return ui.MemoryEngine360.Connection is XbdmConsoleConnection;
         }
 
         public static string ConvertStringToHex(string input, Encoding encoding) {
@@ -255,7 +274,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
             }
 
             using IDisposable? token = await ui.MemoryEngine360.BeginBusyOperationActivityAsync();
-            if (token == null || !(ui.MemoryEngine360.Connection is PhantomRTMConsoleConnection phantom)) {
+            if (token == null || !(ui.MemoryEngine360.Connection is XbdmConsoleConnection xbdm)) {
                 return;
             }
 
@@ -280,10 +299,26 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
                 int msgLen = info.TextA.Length;
                 string msgHex = ConvertStringToHex(info.TextA, Encoding.ASCII);
                 string command = $"consolefeatures ver=2 type=12 params=\"A\\0\\A\\2\\2/{msgLen}\\{msgHex}\\1\\{(int) logo}\\\"";
-                await phantom.SendCommand(command);
+                await xbdm.SendCommand(command);
             }
         }
     }
+
+    // TODO: we need a better way to raise the CanExecuteChanged event than this, because this is awful
+    // private class CommandContextEntryEx : CommandContextEntry {
+    //     private readonly IMemEngineUI ui;
+    //     private readonly RapidDispatchAction rda;
+    //
+    //     public CommandContextEntryEx(IMemEngineUI ui, string commandId, string displayName, string? description = null, Icon? icon = null, StretchMode stretchMode = StretchMode.None) : base(commandId, displayName, description, icon, stretchMode) {
+    //         this.ui = ui;
+    //         this.ui.MemoryEngine360.IsBusyChanged += this.MemoryEngine360OnIsBusyChanged;
+    //         this.rda = new RapidDispatchAction(this.RaiseCanExecuteChanged, DispatchPriority.Loaded, nameof(CommandContextEntryEx));
+    //     }
+    //
+    //     private void MemoryEngine360OnIsBusyChanged(MemoryEngine360 sender) {
+    //         this.rda.InvokeAsync();
+    //     }
+    // }
 
     public MemEngineView() {
         this.InitializeComponent();
@@ -397,42 +432,22 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
         this.connectedHostNameBinder.Attach(this.PART_ConnectedHostName, this.MemoryEngine360);
-        // this.isBusyBinder.Attach(this.PART_BusyIndicator, this.MemoryEngine360);
         this.isScanningBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.addrBinder.Attach(this.PART_ScanOption_StartAddress, this.MemoryEngine360.ScanningProcessor);
         this.lenBinder.Attach(this.PART_ScanOption_Length, this.MemoryEngine360.ScanningProcessor);
         this.alignmentBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
         this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, this.MemoryEngine360.ScanningProcessor);
-        this.forceLEBinder.Attach(this.PART_ForcedEndianness, this.MemoryEngine360);
+        // this.forceLEBinder.Attach(this.PART_ForcedEndianness, this.MemoryEngine360);
         this.scanMemoryPagesBinder.Attach(this.PART_ScanOption_ScanMemoryPages, this.MemoryEngine360.ScanningProcessor);
         this.MemoryEngine360.ConnectionChanged += this.OnConnectionChanged;
 
         this.themeListHandler = ObservableItemProcessor.MakeIndexable(ThemeManager.Instance.Themes, (sender, index, item) => {
-            this.themesSubList.Items.Add(new SetThemeContextEntry(item));
+            this.themesSubList.Items.Insert(index, new SetThemeContextEntry(item));
         }, (sender, index, item) => {
             this.themesSubList.Items.RemoveAt(index);
         }, (sender, oldIndex, newIndex, item) => {
             this.themesSubList.Items.Move(oldIndex, newIndex);
         }).AddExistingItems();
-
-        // ActivityManager.Instance.RunTask(async () => {
-        //     ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Task 1", "Hey!!!");
-        //     await Task.Delay(3000);
-        //     await ActivityManager.Instance.RunTask(async () => {
-        //         ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Task 2", "Waiting...");
-        //         await Task.Delay(1000);
-        //         await ActivityManager.Instance.RunTask(async () => {
-        //             ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Task 3", "Stuff");
-        //             await Task.Delay(1000);
-        //         });
-        //     });
-        //     
-        //     await Task.Delay(1000);
-        //     await ActivityManager.Instance.RunTask(async () => {
-        //         ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Task 1 v2", "More stuff");
-        //         await Task.Delay(3000);
-        //     });
-        // });
     }
 
     private class SetThemeContextEntry : CustomContextEntry {
@@ -448,16 +463,26 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         }
     }
 
-    private void OnConnectionChanged(MemoryEngine360 sender, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
+    private void OnConnectionChanged(MemoryEngine360 sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
         switch (cause) {
             case ConnectionChangeCause.User:
             case ConnectionChangeCause.Custom: {
-                this.Activity = newConn != null ? "Connected to console" : "Disconnected from console";
+                this.Activity = newConn != null ? $"Connected to console" : "Disconnected from console";
                 break;
             }
             case ConnectionChangeCause.ClosingWindow:  break;
             case ConnectionChangeCause.LostConnection: this.Activity = "Lost connection to console"; break;
             default:                                   throw new ArgumentOutOfRangeException(nameof(cause), cause, null);
+        }
+        
+        ContextEntryGroup entry = this.RemoteCommandsContextEntry;
+        if (newConn != null) {
+            foreach (IContextObject en in newConn.ConnectionType.GetRemoteContextOptions()) {
+                entry.Items.Add(en);
+            }
+        }
+        else {
+            entry.Items.Clear();
         }
     }
 
@@ -468,13 +493,12 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         this.themeListHandler = null;
 
         this.connectedHostNameBinder.Detach();
-        // this.isBusyBinder.Detach();
         this.isScanningBinder.Detach();
         this.addrBinder.Detach();
         this.lenBinder.Detach();
         this.alignmentBinder.Detach();
         this.pauseXboxBinder.Detach();
-        this.forceLEBinder.Detach();
+        // this.forceLEBinder.Detach();
         this.scanMemoryPagesBinder.Detach();
     }
 

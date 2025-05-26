@@ -69,6 +69,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
 
         manager.Register("commands.pfx.ShowActivityListCommand", new ShowActivityListCommand());
         manager.Register("commands.memengine.OpenConsoleConnectionDialogCommand", new OpenConsoleConnectionDialogCommand());
+        manager.Register("commands.memengine.OpenConsoleConnectionInSequencerCommand", new OpenConsoleConnectionInSequencerCommand());
         manager.Register("commands.memengine.FirstScanCommand", new FirstScanCommand());
         manager.Register("commands.memengine.NextScanCommand", new NextScanCommand());
         manager.Register("commands.memengine.ResetScanCommand", new ResetScanCommand());
@@ -168,11 +169,11 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
 #if DEBUG
         if (Debugger.IsAttached) {
             ConsoleConnectionManager manager = Instance.ServiceManager.GetService<ConsoleConnectionManager>();
-            manager.Register(DebuggingFileConsoleType.TheID, DebuggingFileConsoleType.Instance);
+            manager.Register(DebuggingFileConnectionType.TheID, DebuggingFileConnectionType.Instance);
         }  
 #endif
 
-        ConnectToConsoleView.Registry.RegisterType<OpenDebuggingFileInfo>(() => new OpenDebuggingFileView());
+        OpenConnectionView.Registry.RegisterType<OpenDebuggingFileInfo>(() => new OpenDebuggingFileView());
         
         return base.OnApplicationFullyLoaded();
     }

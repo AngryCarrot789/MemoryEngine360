@@ -32,7 +32,7 @@ using PFXToolKitUI.Services.Messaging;
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSequenceEntryUI {
-    private readonly IBinder<TaskSequence> nameBinder = new AvaloniaPropertyToEventPropertyBinder<TaskSequence>(ContentProperty, nameof(TaskSequence.DisplayNameChanged), (b) => ((SequenceListBoxItem) b.Control).Content = b.Model.DisplayName, null);
+    private readonly IBinder<TaskSequence> nameBinder = new EventPropertyBinder<TaskSequence>(nameof(TaskSequence.DisplayNameChanged), (b) => ((SequenceListBoxItem) b.Control).Content = b.Model.DisplayName);
     private readonly IBinder<TaskSequence> busyLockPriorityBinder = new AvaloniaPropertyToEventPropertyBinder<TaskSequence>(CheckBox.IsCheckedProperty, nameof(TaskSequence.HasBusyLockPriorityChanged), (b) => ((CheckBox) b.Control).IsChecked = b.Model.HasBusyLockPriority, (b) => b.Model.HasBusyLockPriority = ((CheckBox) b.Control).IsChecked == true);
 
     private readonly IBinder<TaskSequence> runCountBinder = new TextBoxToEventPropertyBinder<TaskSequence>(nameof(TaskSequence.RunCountChanged), (b) => b.Model.RunCount.ToString(), async (b, text) => {

@@ -23,27 +23,27 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MemEngine360.Connections;
 using XDevkit;
-using MemoryRegion = MemEngine360.Connections.MemoryRegion;
 
 namespace MemEngine360.Xbox360XDevkit;
 
-public class Devkit360Connection : BaseConsoleConnection, IConsoleConnection, IHaveIceCubes, IHaveMemoryRegions {
+public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnection, IHaveIceCubes, IHaveMemoryRegions {
     private readonly XboxManager manager;
     private readonly XboxConsole console;
     private bool isConnectedAsDebugger;
 
     public XboxConsole Console => this.console;
 
-    public override RegisteredConsoleType ConsoleType => ConsoleTypeXbox360XDevkit.Instance;
+    public override RegisteredConnectionType ConnectionType => ConnectionTypeXbox360XDevkit.Instance;
 
     protected override bool IsConnectedCore => this.isConnectedAsDebugger;
 
     public override bool IsLittleEndian => false;
 
-    public Devkit360Connection(XboxManager manager, XboxConsole console) {
+    public XDevkitConsoleConnection(XboxManager manager, XboxConsole console) {
         this.manager = manager;
         this.console = console;
-        this.console.DebugTarget.MemoryCacheEnabled = false;
+        IXboxDebugTarget dbgTarget = this.console.DebugTarget;
+        dbgTarget.MemoryCacheEnabled = false;
         // XboxEvents_OnStdNotifyEventHandler handler = this.OnStdNotify;
         // this.console.add_OnStdNotify(handler);
         // this.console.add_OnTextNotify(this.OnTextNotify);
@@ -65,20 +65,26 @@ public class Devkit360Connection : BaseConsoleConnection, IConsoleConnection, IH
     //     if (inf.ParameterCount > 0)
     //         sb.Append($", Parameters: {string.Join(", ", inf.Parameters)}");
     //     
-    //     Debug.WriteLine($"[StdNotify] {eventcode} -> {sb.ToString()}");
+    //     System.Console.WriteLine($"[StdNotify] {eventcode} -> {sb.ToString()}");
     // }
     //
     // private void OnTextNotify(string source, string notification) {
-    //     Debug.WriteLine($"[TextNotify] {source} -> {notification}");
+    //     System.Console.WriteLine($"[TextNotify] {source} -> {notification}");
     // }
 
-    protected override void CloseCore() {
+    public override Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count) {
+        return Task.FromResult<bool?>(null);
+    }
+
+    protected override Task CloseCore() {
         if (this.isConnectedAsDebugger) {
             this.isConnectedAsDebugger = false;
             // this.console.remove_OnStdNotify(this.OnStdNotify);
             // this.console.remove_OnTextNotify(this.OnTextNotify);
             this.console.DebugTarget.DisconnectAsDebugger();
         }
+
+        return Task.CompletedTask;
     }
 
     public async Task DebugFreeze() {

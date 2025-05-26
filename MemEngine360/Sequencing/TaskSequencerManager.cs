@@ -23,7 +23,6 @@ using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
-using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing;
@@ -80,7 +79,7 @@ public class TaskSequencerManager {
         }
     }
 
-    private async Task OnEngineConnectionAboutToChange(MemoryEngine360 sender, IActivityProgress progress) {
+    private async Task OnEngineConnectionAboutToChange(MemoryEngine360 sender, ulong frame) {
         List<TaskSequence> items = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.ActiveSequences.ToList());
         if (items.Count > 0) {
             foreach (TaskSequence sequence in items) {

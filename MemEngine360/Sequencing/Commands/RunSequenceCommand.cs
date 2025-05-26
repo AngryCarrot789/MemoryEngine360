@@ -50,6 +50,12 @@ public class RunSequenceCommand : Command {
         if (sequence.IsRunning || sequence.Manager == null /* shouldn't be null... */) {
             return;
         }
+        
+        IConsoleConnection? connection = sequence.Manager.Engine.Connection;
+        if (connection == null || !connection.IsConnected) {
+            await IMessageDialogService.Instance.ShowMessage("Not connected", "Not connected to a console");
+            return;
+        }
 
         IDisposable? token = null;
         if (sequence.HasBusyLockPriority && (token = sequence.Manager.Engine.BeginBusyOperation()) == null) {
@@ -68,16 +74,21 @@ public class RunSequenceCommand : Command {
         }
 
         try {
-            IConsoleConnection? connection = sequence.Manager.Engine.Connection;
-            if (connection != null && connection.IsConnected) {
+            if ((connection = sequence.Manager.Engine.Connection) == null || !connection.IsConnected) {
+                await IMessageDialogService.Instance.ShowMessage("Not connected", "Not connected to a console");
+            }
+            else {
                 await sequence.Run(connection, token);
                 if (sequence.LastException != null) {
                     await IMessageDialogService.Instance.ShowMessage("Error encountered", "An exception occured while running sequence", sequence.LastException.GetToString());
                 }
             }
+            
+            if (token != null) {
+                sequence.Manager.Engine.CheckConnection(token);
+            }
             else {
                 sequence.Manager.Engine.CheckConnection();
-                await IMessageDialogService.Instance.ShowMessage("Not connected", "Not connected to a console");
             }
         }
         finally {

@@ -47,17 +47,17 @@ public class PluginXbox360Xbdm : Plugin {
     }
 
     public override Task OnApplicationFullyLoaded() {
-        ConnectToConsoleView.Registry.RegisterType<ConnectToXboxInfo>(() => new ConnectToXboxView());
+        OpenConnectionView.Registry.RegisterType<ConnectToXboxInfo>(() => new OpenXbdmConnectionView());
 
         ConsoleConnectionManager manager = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
-        manager.Register(ConsoleTypeXbox360Xbdm.TheID, ConsoleTypeXbox360Xbdm.Instance);
+        manager.Register(ConnectionTypeXbox360Xbdm.TheID, ConnectionTypeXbox360Xbdm.Instance);
 
-        XboxModuleManager.RegisterHandlerForConnectionType<PhantomRTMConsoleConnection>(FillModuleManager);
+        XboxModuleManager.RegisterHandlerForConnectionType<XbdmConsoleConnection>(FillModuleManager);
 
         return Task.CompletedTask;
     }
 
-    private static async Task FillModuleManager(MemoryEngine360 engine, PhantomRTMConsoleConnection connection, XboxModuleManager manager) {
+    private static async Task FillModuleManager(MemoryEngine360 engine, XbdmConsoleConnection connection, XboxModuleManager manager) {
         ActivityTask task = ActivityManager.Instance.CurrentTask;
         task.Progress.Caption = "Reading Modules";
         task.Progress.Text = "Reading modules...";
@@ -67,15 +67,15 @@ public class PluginXbox360Xbdm : Plugin {
         foreach (string moduleLine in modules) {
             task.CheckCancelled();
 
-            if (!ParamUtils.GetStringParam(moduleLine, "name", false, out string? name) || 
-                !ParamUtils.GetDwParam(moduleLine, "base", false, out uint modBase) || 
-                !ParamUtils.GetDwParam(moduleLine, "size", false, out uint modSize)) {
+            if (!ParamUtils.GetStrParam(moduleLine, "name", true, out string? name) || 
+                !ParamUtils.GetDwParam(moduleLine, "base", true, out uint modBase) || 
+                !ParamUtils.GetDwParam(moduleLine, "size", true, out uint modSize)) {
                 continue;
             }
 
-            ParamUtils.GetDwParam(moduleLine, "timestamp", false, out uint modTimestamp);
-            ParamUtils.GetDwParam(moduleLine, "checksum", false, out uint modChecksum);
-            ParamUtils.GetDwParam(moduleLine, "osize", false, out uint modOriginalSize);
+            ParamUtils.GetDwParam(moduleLine, "timestamp", true, out uint modTimestamp);
+            ParamUtils.GetDwParam(moduleLine, "checksum", true, out uint modChecksum);
+            ParamUtils.GetDwParam(moduleLine, "osize", true, out uint modOriginalSize);
 
             task.Progress.Text = "Processing " + name;
 
@@ -107,11 +107,11 @@ public class PluginXbox360Xbdm : Plugin {
                 foreach (string sectionLine in sections) {
                     task.CheckCancelled();
 
-                    ParamUtils.GetStringParam(sectionLine, "name", false, out string? sec_name);
-                    ParamUtils.GetDwParam(sectionLine, "base", false, out uint sec_base);
-                    ParamUtils.GetDwParam(sectionLine, "size", false, out uint sec_size);
-                    ParamUtils.GetDwParam(sectionLine, "index", false, out uint sec_index);
-                    ParamUtils.GetDwParam(sectionLine, "flags", false, out uint sec_flags);
+                    ParamUtils.GetStrParam(sectionLine, "name", true, out string? sec_name);
+                    ParamUtils.GetDwParam(sectionLine, "base", true, out uint sec_base);
+                    ParamUtils.GetDwParam(sectionLine, "size", true, out uint sec_size);
+                    ParamUtils.GetDwParam(sectionLine, "index", true, out uint sec_index);
+                    ParamUtils.GetDwParam(sectionLine, "flags", true, out uint sec_flags);
 
                     xboxModule.Sections.Add(new XboxModuleSection() {
                         Name = sec_name ?? "",

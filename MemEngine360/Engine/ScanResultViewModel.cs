@@ -20,45 +20,69 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using MemEngine360.Engine.Modes;
+using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Engine;
 
 public class ScanResultViewModel : INotifyPropertyChanged {
     public static readonly DataKey<ScanResultViewModel> DataKey = DataKey<ScanResultViewModel>.Create("ScanResultViewModel");
-    
-    private string currentValue, previousValue;
+
+    private IDataValue currentValue, previousValue;
 
     public uint Address { get; }
 
     public DataType DataType { get; }
-    
+
     public NumericDisplayType NumericDisplayType { get; }
-    
-    public string FirstValue { get; }
-    
-    public string CurrentValue {
-        get => this.currentValue; 
-        set => this.SetField(ref this.currentValue, value ?? "");
+
+    public StringType StringType { get; }
+
+    public IDataValue FirstValue { get; }
+
+    public IDataValue CurrentValue {
+        get => this.currentValue;
+        set {
+            if (value.DataType != this.DataType)
+                throw new ArgumentException($"New value's data type does not match our data type: {value.DataType} != {this.DataType}");
+
+            this.SetField(ref this.currentValue, value ?? throw new ArgumentNullException(nameof(value), nameof(this.CurrentValue) + " cannot be null"));
+        }
     }
-    
-    public string PreviousValue {
-        get => this.previousValue; 
-        set => this.SetField(ref this.previousValue, value ?? "");
+
+    public IDataValue PreviousValue {
+        get => this.previousValue;
+        set {
+            if (value.DataType != this.DataType)
+                throw new ArgumentException($"New value's data type does not match our data type: {value.DataType} != {this.DataType}");
+
+            this.SetField(ref this.previousValue, value ?? throw new ArgumentNullException(nameof(value), nameof(this.PreviousValue) + " cannot be null"));
+        }
     }
-    
+
+    /// <summary>
+    /// Gets the string length of <see cref="CurrentValue"/>, or zero if not a string. This is just a helper property used for auto refresh
+    /// </summary>
+    public int CurrentStringLength => (this.currentValue as DataValueString)?.Value.Length ?? 0;
+
+    /// <summary>
+    /// Gets the length of the array in <see cref="CurrentValue"/>, or zero if not an array. This is just a helper property used for auto refresh
+    /// </summary>
+    public int CurrentArrayLength => (this.currentValue as DataValueByteArray)?.Value.Length ?? 0;
+
     public ScanningProcessor ScanningProcessor { get; }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public ScanResultViewModel(ScanningProcessor scanningProcessor, uint address, DataType dataType, NumericDisplayType numericDisplayType, string firstValue) {
+    public ScanResultViewModel(ScanningProcessor scanningProcessor, uint address, DataType dataType, NumericDisplayType numericDisplayType, StringType stringType, IDataValue firstValue) {
         this.ScanningProcessor = scanningProcessor;
         this.Address = address;
         this.DataType = dataType;
+        this.StringType = stringType;
         this.NumericDisplayType = numericDisplayType;
         this.FirstValue = this.currentValue = this.previousValue = firstValue;
     }
-    
+
     protected void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
         this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }

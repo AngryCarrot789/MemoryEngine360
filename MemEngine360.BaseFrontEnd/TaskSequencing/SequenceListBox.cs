@@ -34,6 +34,8 @@ public class SequenceListBox : ModelBasedListBox<TaskSequence> {
 
     public IListSelectionManager<ITaskSequenceEntryUI> ControlSelectionManager { get; }
 
+    protected override bool CanDragItemPositionCore => this.TaskSequencerManager != null;
+    
     public SequenceListBox() {
         this.ControlSelectionManager = new ModelListBoxSelectionManagerForControl<TaskSequence, ITaskSequenceEntryUI>(this);
     }
@@ -42,6 +44,14 @@ public class SequenceListBox : ModelBasedListBox<TaskSequence> {
         TaskSequencerManagerProperty.Changed.AddClassHandler<SequenceListBox, TaskSequencerManager?>((s, e) => s.OnTaskSequencerManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
+    protected override void MoveItemIndex(int oldIndex, int newIndex) {
+        if (this.TaskSequencerManager is TaskSequencerManager manager) {
+            TaskSequence entry = manager.Sequences[oldIndex];
+            manager.RemoveSequenceAt(oldIndex);
+            manager.InsertSequence(newIndex, entry);
+        }
+    }
+    
     private void OnTaskSequencerManagerChanged(TaskSequencerManager? oldManager, TaskSequencerManager? newManager) {
         this.SetItemsSource(newManager?.Sequences);
     }

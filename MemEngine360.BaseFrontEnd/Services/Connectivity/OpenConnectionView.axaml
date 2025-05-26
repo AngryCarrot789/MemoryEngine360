@@ -2,11 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
              xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
              xmlns:conn="clr-namespace:MemEngine360.BaseFrontEnd.Services.Connectivity"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="MemEngine360.BaseFrontEnd.Services.Connectivity.ConnectToConsoleView">
+             x:Class="MemEngine360.BaseFrontEnd.Services.Connectivity.OpenConnectionView">
     <DockPanel x:Name="PART_DockPanelRoot" Background="{DynamicResource ABrush.Tone2.Background.Static}">
         <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource PanelBorderBrush}"/>
         <Border DockPanel.Dock="Bottom"

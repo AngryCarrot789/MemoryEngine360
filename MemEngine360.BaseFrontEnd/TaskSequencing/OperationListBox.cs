@@ -28,16 +28,18 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
     public static readonly StyledProperty<TaskSequence?> TaskSequenceProperty = AvaloniaProperty.Register<OperationListBox, TaskSequence?>(nameof(TaskSequence));
 
+    private readonly Dictionary<Type, Stack<BaseOperationListContent>> itemContentCacheMap;
+    
     public TaskSequence? TaskSequence {
         get => this.GetValue(TaskSequenceProperty);
         set => this.SetValue(TaskSequenceProperty, value);
     }
 
     public ITaskSequencerUI TaskSequencerUI { get; internal set; }
-
-    private readonly Dictionary<Type, Stack<BaseOperationListContent>> itemContentCacheMap;
-
+    
     public IListSelectionManager<IOperationItemUI> ControlSelectionManager { get; }
+
+    protected override bool CanDragItemPositionCore => this.TaskSequence != null;
 
     public OperationListBox() : base(32) {
         this.itemContentCacheMap = new Dictionary<Type, Stack<BaseOperationListContent>>();
@@ -46,6 +48,14 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
 
     static OperationListBox() {
         TaskSequenceProperty.Changed.AddClassHandler<OperationListBox, TaskSequence?>((s, e) => s.OnTaskSequenceChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+    }
+    
+    protected override void MoveItemIndex(int oldIndex, int newIndex) {
+        if (this.TaskSequence is TaskSequence seq) {
+            BaseSequenceOperation entry = seq.Operations[oldIndex];
+            seq.RemoveOperationAt(oldIndex);
+            seq.InsertOperation(newIndex, entry);
+        }
     }
 
     private void OnTaskSequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {

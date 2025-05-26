@@ -36,7 +36,6 @@
 
     <ItemGroup>
       <AdditionalFiles Include="MemRegions\XboxMemoryRegionViewerUIControl.axaml" />
-      <AdditionalFiles Include="Services\Connectivity\ConnectToConsoleView.axaml" />
       <AdditionalFiles Include="Services\SavedResultDataTypeEditorUserInputControl.axaml" />
     </ItemGroup>
 

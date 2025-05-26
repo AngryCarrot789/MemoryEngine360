@@ -26,20 +26,20 @@ namespace MemEngine360.Connections;
 /// A service which manages registered console types and provides information and mechanisms for connecting to consoles
 /// </summary>
 public abstract class ConsoleConnectionManager {
-    private readonly Dictionary<string, RegisteredConsoleType> idToConsoleType;
-    private readonly Dictionary<RegisteredConsoleType, string> consoleTypeToId;
+    private readonly Dictionary<string, RegisteredConnectionType> idToConsoleType;
+    private readonly Dictionary<RegisteredConnectionType, string> consoleTypeToId;
 
     protected ConsoleConnectionManager() {
-        this.idToConsoleType = new Dictionary<string, RegisteredConsoleType>();
-        this.consoleTypeToId = new Dictionary<RegisteredConsoleType, string>();
+        this.idToConsoleType = new Dictionary<string, RegisteredConnectionType>();
+        this.consoleTypeToId = new Dictionary<RegisteredConnectionType, string>();
     }
 
     /// <summary>
     /// Gets all of the registered console types
     /// </summary>
-    public IEnumerable<RegisteredConsoleType> RegisteredConsoleTypes => this.idToConsoleType.Values;
+    public IEnumerable<RegisteredConnectionType> RegisteredConsoleTypes => this.idToConsoleType.Values;
 
-    public void Register(string id, RegisteredConsoleType type) {
+    public void Register(string id, RegisteredConnectionType type) {
         ArgumentException.ThrowIfNullOrEmpty(id);
         ArgumentNullException.ThrowIfNull(type);
 
@@ -58,7 +58,7 @@ public abstract class ConsoleConnectionManager {
     /// <param name="id">The ID</param>
     /// <param name="type">The found type</param>
     /// <returns>True when found</returns>
-    public bool TryGetConsoleType(string id, [NotNullWhen(true)] out RegisteredConsoleType? type) {
+    public bool TryGetConsoleType(string id, [NotNullWhen(true)] out RegisteredConnectionType? type) {
         return this.idToConsoleType.TryGetValue(id, out type);
     }
 
@@ -68,17 +68,17 @@ public abstract class ConsoleConnectionManager {
     /// <param name="type">The console type</param>
     /// <param name="id">The found ID</param>
     /// <returns>True when the console type was registered</returns>
-    public bool TryGetId(RegisteredConsoleType type, [NotNullWhen(true)] out string? id) {
+    public bool TryGetId(RegisteredConnectionType type, [NotNullWhen(true)] out string? id) {
         return this.consoleTypeToId.TryGetValue(type, out id);
     }
 
     /// <summary>
-    /// Opens the application's main dialog for connecting to a console
+    /// Opens a new window for  application's main dialog for connecting to a console
     /// </summary>
     /// <param name="engine">The engine</param>
     /// <param name="focusedTypeId">
     ///     The ID of the console type to focus on by default. When null, defaults to the first registered console type
     /// </param>
-    /// <returns></returns>
-    public abstract Task OpenOrFocusWindow(IMemEngineUI engine, string? focusedTypeId = "console.xbox360.xbdm-coreimpl");
+    /// <returns>The dialog, or null, if there's no windowing system</returns>
+    public abstract Task<IOpenConnectionView?> ShowOpenConnectionView(MemoryEngine360 engine, string? focusedTypeId = "console.xbox360.xbdm-coreimpl");
 }

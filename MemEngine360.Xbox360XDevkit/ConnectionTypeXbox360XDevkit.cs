@@ -31,9 +31,9 @@ using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Xbox360XDevkit;
 
-public class ConsoleTypeXbox360XDevkit : RegisteredConsoleType {
+public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
     public const string TheID = "console.xbox360.xdevkit-coreimpl";
-    public static readonly RegisteredConsoleType Instance = new ConsoleTypeXbox360XDevkit();
+    public static readonly RegisteredConnectionType Instance = new ConnectionTypeXbox360XDevkit();
 
     public override string DisplayName => "Xbox 360 (XDevkit)";
 
@@ -46,21 +46,14 @@ public class ConsoleTypeXbox360XDevkit : RegisteredConsoleType {
 
     private XboxManager? xboxManager;
 
-    private ConsoleTypeXbox360XDevkit() {
+    private ConnectionTypeXbox360XDevkit() {
     }
 
     public override IEnumerable<IContextObject> GetRemoteContextOptions() {
-        yield return new CommandContextEntry("commands.memengine.remote.ListHelpCommand", "List all commands in popup");
-        yield return new CommandContextEntry("commands.memengine.remote.ShowConsoleInfoCommand", "Console info");
-        yield return new CommandContextEntry("commands.memengine.remote.ShowXbeInfoCommand", "Show XBE info");
         yield return new CommandContextEntry("commands.memengine.remote.XboxRunningProcessCommand", "Show Running process");
         yield return new SeparatorEntry();
-        yield return new CommandContextEntry("commands.memengine.remote.EjectDiskTrayCommand", "Open Disk Tray");
         yield return new CommandContextEntry("commands.memengine.remote.DebugFreezeCommand", "Debug Freeze");
         yield return new CommandContextEntry("commands.memengine.remote.DebugUnfreezeCommand", "Debug Un-freeze");
-        yield return new CommandContextEntry("commands.memengine.remote.SoftRebootCommand", "Soft Reboot (restart title)");
-        yield return new CommandContextEntry("commands.memengine.remote.ColdRebootCommand", "Cold Reboot");
-        yield return new CommandContextEntry("commands.memengine.remote.ShutdownCommand", "Shutdown");
     }
 
     public override UserConnectionInfo? CreateConnectionInfo(MemoryEngine360 engine) {
@@ -97,7 +90,7 @@ public class ConsoleTypeXbox360XDevkit : RegisteredConsoleType {
 
         XboxConsole? result = await task;
         if (result != null) {
-            return new Devkit360Connection(this.xboxManager!, result);
+            return new XDevkitConsoleConnection(this.xboxManager!, result);
         }
 
         string msg = task.Exception is COMException com ? $"COMException {com.Message}" : (task.Exception?.Message ?? "(unknown error)");

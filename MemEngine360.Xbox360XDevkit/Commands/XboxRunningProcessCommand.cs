@@ -29,7 +29,7 @@ namespace MemEngine360.Xbox360XDevkit.Commands;
 
 public abstract class BaseXDevkitRemoteCommand : BaseRemoteConsoleCommand {
     protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        if (!(connection is Devkit360Connection)) {
+        if (!(connection is XDevkitConsoleConnection)) {
             await IMessageDialogService.Instance.ShowMessage("Not an xbox console", "This command cannot be used because we are not connected to an xbox 360");
             return false;
         }
@@ -38,16 +38,16 @@ public abstract class BaseXDevkitRemoteCommand : BaseRemoteConsoleCommand {
     }
 
     protected sealed override Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
-        return this.ExecuteRemoteCommandInActivity(engine, (Devkit360Connection) connection, e);
+        return this.ExecuteRemoteCommandInActivity(engine, (XDevkitConsoleConnection) connection, e);
     }
     
-    protected abstract Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, Devkit360Connection connection, CommandEventArgs e);
+    protected abstract Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, XDevkitConsoleConnection connection, CommandEventArgs e);
 }
 
 public class XboxRunningProcessCommand : BaseXDevkitRemoteCommand {
     protected override string ActivityText => "Getting running process";
     
-    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, Devkit360Connection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, XDevkitConsoleConnection connection, CommandEventArgs e) {
         XBOX_PROCESS_INFO result;
         try {
             result = await Task.Run(() => connection.Console.RunningProcessInfo);

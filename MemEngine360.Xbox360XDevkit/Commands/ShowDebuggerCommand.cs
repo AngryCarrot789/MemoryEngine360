@@ -27,11 +27,11 @@ namespace MemEngine360.Xbox360XDevkit.Commands;
 
 public class ShowDebuggerCommand : BaseMemoryEngineCommand {
     protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
-        return engine.Connection is Devkit360Connection ? Executability.Valid : (engine.Connection == null ? Executability.ValidButCannotExecute : Executability.Invalid);
+        return engine.Connection is XDevkitConsoleConnection ? Executability.Valid : (engine.Connection == null ? Executability.ValidButCannotExecute : Executability.Invalid);
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
-        if (!(engine.Connection is Devkit360Connection)) {
+        if (!(engine.Connection is XDevkitConsoleConnection)) {
             await IMessageDialogService.Instance.ShowMessage("Unsupported", "Debugger view is only supported on the XDevkit connection for now");
             return;
         }

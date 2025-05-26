@@ -27,12 +27,14 @@ public class MemEngineConfigurationPage : ConfigurationPage, ITransferableData {
     public static readonly DataParameterNumber<uint> ValueRefreshRateParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemEngineConfigurationPage), nameof(ValueRefreshRate), BasicApplicationConfiguration.RefreshRateMillisProperty.DefaultValue, 250, uint.MaxValue, ValueAccessors.Reflective<uint>(typeof(MemEngineConfigurationPage), nameof(valueRefreshRate))));
     public static readonly DataParameterNumber<uint> AutoRefreshUpdatesPerSecondParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemEngineConfigurationPage), nameof(AutoRefreshUpdatesPerSecond), BasicApplicationConfiguration.AutoRefreshUpdatesPerSecondProperty.DefaultValue, 1, 20, ValueAccessors.Reflective<uint>(typeof(MemEngineConfigurationPage), nameof(autoRefreshUpdatesPerSecond))));
     public static readonly DataParameterNumber<uint> MaxRowsBeforeDisableAutoRefreshParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemEngineConfigurationPage), nameof(MaxRowsBeforeDisableAutoRefresh), BasicApplicationConfiguration.MaxRowsBeforeDisableAutoRefreshProperty.DefaultValue, ValueAccessors.Reflective<uint>(typeof(MemEngineConfigurationPage), nameof(maxRowsBeforeDisableAutoRefresh))));
+    public static readonly DataParameterNumber<double> FloatingPointEpsilonParameter = DataParameter.Register(new DataParameterNumber<double>(typeof(MemEngineConfigurationPage), nameof(FloatingPointEpsilon), BasicApplicationConfiguration.FloatingPointEpsilonProperty.DefaultValue, 0, 0.9999D, ValueAccessors.Reflective<double>(typeof(MemEngineConfigurationPage), nameof(floatingPointEpsilon))));
     public static readonly DataParameterBool IsAutoRefreshResultsEnabledParameter = DataParameter.Register(new DataParameterBool(typeof(MemEngineConfigurationPage), nameof(IsAutoRefreshResultsEnabled), BasicApplicationConfiguration.IsAutoRefreshResultsEnabledProperty.DefaultValue, ValueAccessors.Reflective<bool>(typeof(MemEngineConfigurationPage), nameof(isValueRefreshEnabled))));
 
     private bool ignoreDpChange;
     private uint valueRefreshRate;
     private uint autoRefreshUpdatesPerSecond;
     private uint maxRowsBeforeDisableAutoRefresh;
+    private double floatingPointEpsilon;
     private bool isValueRefreshEnabled;
 
     public uint ValueRefreshRate {
@@ -55,6 +57,11 @@ public class MemEngineConfigurationPage : ConfigurationPage, ITransferableData {
         set => DataParameter.SetValueHelper(this, IsAutoRefreshResultsEnabledParameter, ref this.isValueRefreshEnabled, value);
     }
 
+    public double FloatingPointEpsilon {
+        get => this.floatingPointEpsilon;
+        set => DataParameter.SetValueHelper(this, FloatingPointEpsilonParameter, ref this.floatingPointEpsilon, value);
+    }
+    
     public TransferableData TransferableData { get; }
 
     public MemEngineConfigurationPage() {
@@ -92,6 +99,7 @@ public class MemEngineConfigurationPage : ConfigurationPage, ITransferableData {
             this.AutoRefreshUpdatesPerSecond = BasicApplicationConfiguration.Instance.AutoRefreshUpdatesPerSecond;
             this.MaxRowsBeforeDisableAutoRefresh = BasicApplicationConfiguration.Instance.MaxRowsBeforeDisableAutoRefresh;
             this.IsAutoRefreshResultsEnabled = BasicApplicationConfiguration.Instance.IsAutoRefreshResultsEnabled;
+            this.FloatingPointEpsilon = BasicApplicationConfiguration.Instance.FloatingPointEpsilon;
             this.ignoreDpChange = false;
             this.IsModified = false;
         }
@@ -102,6 +110,7 @@ public class MemEngineConfigurationPage : ConfigurationPage, ITransferableData {
         BasicApplicationConfiguration.Instance.AutoRefreshUpdatesPerSecond = this.AutoRefreshUpdatesPerSecond;
         BasicApplicationConfiguration.Instance.MaxRowsBeforeDisableAutoRefresh = this.MaxRowsBeforeDisableAutoRefresh;
         BasicApplicationConfiguration.Instance.IsAutoRefreshResultsEnabled = this.IsAutoRefreshResultsEnabled;
+        BasicApplicationConfiguration.Instance.FloatingPointEpsilon = this.FloatingPointEpsilon;
         this.IsModified = false;
         return ValueTask.CompletedTask;
     }

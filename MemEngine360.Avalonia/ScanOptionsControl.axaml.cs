@@ -74,7 +74,6 @@ public partial class ScanOptionsControl : UserControl {
         // AVPToEventPropertyBinder.Attach<ScanOptionsControl>(this.FindNameScope()!, new ScanningProcessor(null));
 
         this.stringIgnoreCaseBinder.AttachControl(this.PART_IgnoreCases);
-        this.floatScanModeBinder.Assign(this.PART_DTFloat_UseExactValue, FloatScanOption.UseExactValue);
         this.floatScanModeBinder.Assign(this.PART_DTFloat_Truncate, FloatScanOption.TruncateToQuery);
         this.floatScanModeBinder.Assign(this.PART_DTFloat_RoundToQuery, FloatScanOption.RoundToQuery);
         this.stringScanModeBinder.Assign(this.PART_DTString_ASCII, StringType.ASCII);
@@ -100,18 +99,22 @@ public partial class ScanOptionsControl : UserControl {
                     ((TabControl) b.Control).SelectedIndex = 2;
                     break;
                 }
+                case DataType.ByteArray: {
+                    ((TabControl) b.Control).SelectedIndex = 3;
+                    break;
+                }
                 default: throw new ArgumentOutOfRangeException();
             }
 
             this.UpdateUIForScanTypeAndDataType();
         }, (b) => {
-            if (b.Model.HasDoneFirstScan)
-                return;
-
-            switch (((TabControl) b.Control).SelectedIndex) {
-                case 0: b.Model.DataType = this.lastIntegerDataType; break;
-                case 1: b.Model.DataType = this.lastFloatDataType; break;
-                case 2: b.Model.DataType = DataType.String; break;
+            if (!b.Model.HasDoneFirstScan) {
+                switch (((TabControl) b.Control).SelectedIndex) {
+                    case 0: b.Model.DataType = this.lastIntegerDataType; break;
+                    case 1: b.Model.DataType = this.lastFloatDataType; break;
+                    case 2: b.Model.DataType = DataType.String; break;
+                    case 3: b.Model.DataType = DataType.ByteArray; break;
+                }
             }
         });
     }
@@ -133,8 +136,8 @@ public partial class ScanOptionsControl : UserControl {
 
             oldEngine.ScanningProcessor.NumericScanTypeChanged -= c.ScanningProcessorOnNumericScanTypeChanged;
             oldEngine.ScanningProcessor.DataTypeChanged -= c.OnScanningProcessorOnDataTypeChanged;
-            oldEngine.ScanningProcessor.UseFirstValueForNextScanChanged -= c.UpdateOtherShit;
-            oldEngine.ScanningProcessor.UsePreviousValueForNextScanChanged -= c.UpdateOtherShit;
+            oldEngine.ScanningProcessor.UseFirstValueForNextScanChanged -= c.UpdateNonBetweenInput;
+            oldEngine.ScanningProcessor.UsePreviousValueForNextScanChanged -= c.UpdateNonBetweenInput;
         }
 
         if (e.NewValue.GetValueOrDefault() is MemoryEngine360 newEngine) {
@@ -152,8 +155,8 @@ public partial class ScanOptionsControl : UserControl {
 
             newEngine.ScanningProcessor.NumericScanTypeChanged += c.ScanningProcessorOnNumericScanTypeChanged;
             newEngine.ScanningProcessor.DataTypeChanged += c.OnScanningProcessorOnDataTypeChanged;
-            newEngine.ScanningProcessor.UseFirstValueForNextScanChanged += c.UpdateOtherShit;
-            newEngine.ScanningProcessor.UsePreviousValueForNextScanChanged += c.UpdateOtherShit;
+            newEngine.ScanningProcessor.UseFirstValueForNextScanChanged += c.UpdateNonBetweenInput;
+            newEngine.ScanningProcessor.UsePreviousValueForNextScanChanged += c.UpdateNonBetweenInput;
 
             c.UpdateUIForScanTypeAndDataType();
         }
@@ -172,8 +175,8 @@ public partial class ScanOptionsControl : UserControl {
         }
     }
 
-    private void UpdateOtherShit(ScanningProcessor p) {
-        this.PART_Input_Value1.IsEnabled = p.DataType == DataType.String || !p.UseFirstValueForNextScan && !p.UsePreviousValueForNextScan;
+    private void UpdateNonBetweenInput(ScanningProcessor p) {
+        this.PART_Input_Value1.IsEnabled = p.DataType == DataType.ByteArray || p.DataType == DataType.String || (!p.UseFirstValueForNextScan && !p.UsePreviousValueForNextScan);
     }
 
     protected override void OnLoaded(RoutedEventArgs e) {
@@ -228,6 +231,6 @@ public partial class ScanOptionsControl : UserControl {
                 this.inputValueBinder.Attach(this.PART_Input_Value1, engine.ScanningProcessor);
         }
 
-        this.UpdateOtherShit(sp);
+        this.UpdateNonBetweenInput(sp);
     }
 }

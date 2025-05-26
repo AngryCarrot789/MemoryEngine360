@@ -33,7 +33,7 @@
                  Background="{DynamicResource ABrush.Tone1.Background.Static}">
             <ToolTip.Tip>
                 <TextBlock>
-                    <Run Text="The amount of times to iterate writing the value, offsetting the address by the data type size each iteration"/>
+                    <Run Text="The amount of times to write the value, offsetting the address by the data type size each iteration"/>
                     <LineBreak/>
                     <Run Text="The default value is 1, meaning the value is written once at the address"/>
                     <LineBreak/>

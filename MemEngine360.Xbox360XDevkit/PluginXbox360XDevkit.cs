@@ -49,17 +49,17 @@ public class PluginXbox360XDevkit : Plugin {
     }
 
     public override Task OnApplicationFullyLoaded() {
-        ConnectToConsoleView.Registry.RegisterType<ConnectToXboxInfo>(() => new ConnectToXboxView());
+        OpenConnectionView.Registry.RegisterType<ConnectToXboxInfo>(() => new OpenXDevkitConnectionView());
         
         ConsoleConnectionManager manager = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
-        manager.Register(ConsoleTypeXbox360XDevkit.TheID, ConsoleTypeXbox360XDevkit.Instance);
+        manager.Register(ConnectionTypeXbox360XDevkit.TheID, ConnectionTypeXbox360XDevkit.Instance);
         
-        XboxModuleManager.RegisterHandlerForConnectionType<Devkit360Connection>(FillModuleManager);
+        XboxModuleManager.RegisterHandlerForConnectionType<XDevkitConsoleConnection>(FillModuleManager);
         
         return Task.CompletedTask;
     }
 
-    private static async Task FillModuleManager(MemoryEngine360 arg1, Devkit360Connection connection, XboxModuleManager manager) {
+    private static async Task FillModuleManager(MemoryEngine360 arg1, XDevkitConsoleConnection connection, XboxModuleManager manager) {
         ActivityTask task = ActivityManager.Instance.CurrentTask;
         task.Progress.Caption = "Reading Modules";
         task.Progress.Text = "Reading modules...";

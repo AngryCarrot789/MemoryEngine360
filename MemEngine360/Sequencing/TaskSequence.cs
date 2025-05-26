@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using MemEngine360.Connections;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing;
@@ -160,12 +161,7 @@ public sealed class TaskSequence {
         TaskSequencerManager.InternalSetIsRunning(this.myManager!, this, false);
         this.IsRunning = false;
 
-        List<TaskCompletionSource> completions;
-        lock (this.completionNotifications) {
-            completions = this.completionNotifications.ToList();
-            this.completionNotifications.Clear();
-        }
-        
+        List<TaskCompletionSource> completions = CollectionUtils.AtomicGetAndClear(this.completionNotifications, this.completionNotifications);
         foreach (TaskCompletionSource tcs in completions) {
             tcs.TrySetResult();
         }

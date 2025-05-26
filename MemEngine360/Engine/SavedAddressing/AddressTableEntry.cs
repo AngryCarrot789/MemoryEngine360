@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Engine.Modes;
+using MemEngine360.ValueAbstraction;
 
 namespace MemEngine360.Engine.SavedAddressing;
 
@@ -26,10 +27,10 @@ public delegate void AddressTableEntryEventHandler(AddressTableEntry sender);
 public class AddressTableEntry : BaseAddressTableEntry {
     private bool isAutoRefreshEnabled = true;
     private uint address;
-    private string value = "";
+    private IDataValue? value;
     private DataType dataType = DataType.Byte;
     private StringType stringType = StringType.UTF8;
-    private uint stringLength = 0;
+    private uint stringLength = 0, arrayLength = 0;
     private NumericDisplayType numericDisplayType;
     private bool isAddressAbsolute = true;
 
@@ -67,12 +68,14 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// <summary>
     /// Gets or sets the current presented value
     /// </summary>
-    public string Value {
+    public IDataValue? Value {
         get => this.value;
         set {
-            if (this.value != value) {
+            if (!Equals(this.value, value)) {
+                if (value != null && value.DataType != this.DataType)
+                    throw new ArgumentException($"New value's data type does not match our data type: {value.DataType} != {this.DataType}");
+                
                 this.value = value;
-
                 this.CurrentValueDisplayType = this.NumericDisplayType;
                 this.ValueChanged?.Invoke(this);
             }
@@ -114,6 +117,16 @@ public class AddressTableEntry : BaseAddressTableEntry {
             if (this.stringLength != value) {
                 this.stringLength = value;
                 this.StringLengthChanged?.Invoke(this);
+            }
+        }
+    }
+
+    public uint ArrayLength {
+        get => this.arrayLength;
+        set {
+            if (this.arrayLength != value) {
+                this.arrayLength = value;
+                this.ArrayLengthChanged?.Invoke(this);
             }
         }
     }
@@ -168,6 +181,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
     public event AddressTableEntryEventHandler? DataTypeChanged;
     public event AddressTableEntryEventHandler? StringTypeChanged;
     public event AddressTableEntryEventHandler? StringLengthChanged;
+    public event AddressTableEntryEventHandler? ArrayLengthChanged;
     public event AddressTableEntryEventHandler? NumericDisplayTypeChanged;
     public event AddressTableEntryEventHandler? IsAddressAbsoluteChanged;
 
@@ -184,7 +198,10 @@ public class AddressTableEntry : BaseAddressTableEntry {
         this.numericDisplayType = result.NumericDisplayType;
         if (this.dataType == DataType.String) {
             this.stringType = this.ScanningProcessor.StringScanOption;
-            this.stringLength = (uint) this.value.Length;
+            this.stringLength = (uint) ((DataValueString) this.value).Value.Length;
+        }
+        else if (this.dataType == DataType.ByteArray) {
+            this.ArrayLength = (uint) ((DataValueByteArray) this.value).Value.Length;
         }
     }
 }

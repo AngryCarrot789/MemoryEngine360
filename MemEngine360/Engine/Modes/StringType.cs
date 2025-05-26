@@ -22,9 +22,21 @@ using System.Text;
 namespace MemEngine360.Engine.Modes;
 
 public enum StringType {
+    /// <summary>
+    /// ASCII chars, basically the same as UTF8, one byte per character
+    /// </summary>
     ASCII,
+    /// <summary>
+    /// UTF8 chars, basically the same as ASCII, one byte per character
+    /// </summary>
     UTF8,
+    /// <summary>
+    /// Unicode chars, two bytes per character
+    /// </summary>
     UTF16,
+    /// <summary>
+    /// UTF32 chars, four bytes per character
+    /// </summary>
     UTF32
 }
 
@@ -37,5 +49,9 @@ public static class StringTypeExtensions {
             case StringType.UTF32: return Encoding.UTF32;
             default:               throw new ArgumentOutOfRangeException(nameof(stringType), stringType, null);
         }
+    }
+    
+    public static uint GetByteCount(this StringType stringType, string value) {
+        return (uint) stringType.ToEncoding().GetByteCount(value);
     }
 }

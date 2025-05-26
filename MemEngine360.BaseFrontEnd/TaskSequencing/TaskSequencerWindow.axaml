@@ -11,6 +11,7 @@
                  xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd"
                  xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:commands="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Commands"
                  mc:Ignorable="d" 
                  MinWidth="640" MinHeight="400"
                  Width="960" Height="640"
@@ -40,6 +41,11 @@
                                        ToolTip.Tip="Add a new sequence" DockPanel.Dock="Right"
                                        Icon="{x:Static cb:SimpleIcons.GreenPlusIcon}"
                                        cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.NewSequenceCommand"/>
+                        
+                        <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                                       ToolTip.Tip="Connect to a console" DockPanel.Dock="Right"
+                                       Icon="{x:Static cb:SimpleIcons.ConnectToConsoleIcon}"
+                                       cu:CommandUsageManager.UsageClassType="{x:Type commands:OpenConsoleConnectionInSequencerCommandUsage}"/>
                         <TextBlock Text="Sequences" VerticalAlignment="Center"/>
                     </DockPanel>
                 </c:GroupBox.Header>
@@ -106,7 +112,7 @@
                                                            IconMaxHeight="12" IconMaxWidth="12"
                                                            VerticalContentAlignment="Center"
                                                            HorizontalContentAlignment="Center"
-                                                           cu:CommandUsageManager.UsageClassType="{x:Type local:CancelSequenceCommandUsage}"/>
+                                                           cu:CommandUsageManager.UsageClassType="{x:Type commands:CancelSequenceCommandUsage}"/>
 
                                             <av:IconButton x:Name="PART_RunButton" 
                                                            DockPanel.Dock="Right" VerticalAlignment="Top"
@@ -119,7 +125,7 @@
                                                            IconMaxHeight="12" IconMaxWidth="12"
                                                            VerticalContentAlignment="Center"
                                                            HorizontalContentAlignment="Center"
-                                                           cu:CommandUsageManager.UsageClassType="{x:Type local:RunSequenceCommandUsage}"/>
+                                                           cu:CommandUsageManager.UsageClassType="{x:Type commands:RunSequenceCommandUsage}"/>
 
                                             <TextBlock x:Name="PART_HeaderText" 
                                                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"

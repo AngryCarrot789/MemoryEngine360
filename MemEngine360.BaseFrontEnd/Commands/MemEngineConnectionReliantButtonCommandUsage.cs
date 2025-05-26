@@ -39,7 +39,7 @@ public abstract class MemEngineConnectionReliantButtonCommandUsage : MemEngineBu
             newEngine.ConnectionChanged += this.OnConnectionChanged;
     }
     
-    protected virtual void OnConnectionChanged(MemoryEngine360 sender, IConsoleConnection? oldConnection, IConsoleConnection? newConnection, ConnectionChangeCause cause) {
+    protected virtual void OnConnectionChanged(MemoryEngine360 sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
         this.UpdateCanExecuteLater();
     }
 }

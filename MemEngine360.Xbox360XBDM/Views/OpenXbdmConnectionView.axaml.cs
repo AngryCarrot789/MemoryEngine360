@@ -23,17 +23,17 @@ using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
 using PFXToolKitUI.Avalonia.Bindings;
 
-namespace MemEngine360.Xbox360XDevkit.Views;
+namespace MemEngine360.Xbox360XBDM.Views;
 
-public partial class ConnectToXboxView : UserControl, IConsoleConnectivityControl {
+public partial class OpenXbdmConnectionView : UserControl, IConsoleConnectivityControl {
     private readonly IBinder<ConnectToXboxInfo> ipBinder = new TextBoxToDataParameterBinder<ConnectToXboxInfo, string?>(ConnectToXboxInfo.IpAddressParameter, null, (t, s) => Task.FromResult<Optional<string?>>(s));
     private ConnectToXboxInfo? myInfo;
 
-    public ConnectToXboxView() {
+    public OpenXbdmConnectionView() {
         this.InitializeComponent();
     }
 
-    public void OnConnected(ConnectToConsoleView dialog, UserConnectionInfo info) {
+    public void OnConnected(OpenConnectionView dialog, UserConnectionInfo info) {
         this.ipBinder.Attach(this.PART_IpAddressTextBox, this.myInfo = (ConnectToXboxInfo) info);
     }
 

@@ -17,13 +17,12 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.CommandUsages;
 using PFXToolKitUI.Interactivity.Contexts;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.Commands;
 
 public abstract class BaseSequenceCommandUsage : SimpleButtonCommandUsage {
     public MemoryEngine360? Engine { get; private set; }
@@ -66,41 +65,5 @@ public abstract class BaseSequenceCommandUsage : SimpleButtonCommandUsage {
 
     protected virtual void OnEngineChanged(MemoryEngine360? oldEngine, MemoryEngine360? newEngine) {
         
-    }
-}
-
-public abstract class BaseSequenceIsRunningDependentCommandUsage : BaseSequenceCommandUsage {
-    protected BaseSequenceIsRunningDependentCommandUsage(string commandId) : base(commandId) {
-    }
-
-    protected override void OnSequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {
-        base.OnSequenceChanged(oldSeq, newSeq);
-        if (oldSeq != null)
-            oldSeq.IsRunningChanged -= this.OnIsRunningChanged;
-        if (newSeq != null)
-            newSeq.IsRunningChanged += this.OnIsRunningChanged;
-    }
-
-    protected virtual void OnIsRunningChanged(TaskSequence sender) {
-        this.UpdateCanExecuteLater();
-    }
-}
-
-public class CancelSequenceCommandUsage() : BaseSequenceIsRunningDependentCommandUsage("commands.sequencer.CancelSequenceCommand");
-
-public class RunSequenceCommandUsage : BaseSequenceIsRunningDependentCommandUsage {
-    public RunSequenceCommandUsage() : base("commands.sequencer.RunSequenceCommand") {
-    }
-
-    protected override void OnEngineChanged(MemoryEngine360? oldEngine, MemoryEngine360? newEngine) {
-        base.OnEngineChanged(oldEngine, newEngine);
-        if (oldEngine != null)
-            oldEngine.ConnectionChanged -= this.OnConnectionChanged;
-        if (newEngine != null)
-            newEngine.ConnectionChanged += this.OnConnectionChanged;
-    }
-
-    private void OnConnectionChanged(MemoryEngine360 sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
-        this.UpdateCanExecuteLater();
     }
 }

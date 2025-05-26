@@ -32,13 +32,17 @@ public class DebugFileConnection : BaseConsoleConnection {
         this.myFileStream = stream;
     }
 
-    public override RegisteredConsoleType ConsoleType => DebuggingFileConsoleType.Instance;
+    public override RegisteredConnectionType ConnectionType => DebuggingFileConnectionType.Instance;
 
     protected override bool IsConnectedCore => this.myFileStream != null;
     
     public override bool IsLittleEndian => BitConverter.IsLittleEndian;
-    
-    protected override void CloseCore() {
+
+    public override Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count) {
+        return Task.FromResult<bool?>(null);
+    }
+
+    protected override Task CloseCore() {
         try {
             this.myFileStream?.Close();
             this.myFileStream?.Dispose();
@@ -46,6 +50,8 @@ public class DebugFileConnection : BaseConsoleConnection {
         finally {
             this.myFileStream = null;
         }
+
+        return Task.CompletedTask;
     }
 
     protected override async Task<uint> ReadBytesCore(uint address, byte[] dstBuffer, int offset, uint count) {

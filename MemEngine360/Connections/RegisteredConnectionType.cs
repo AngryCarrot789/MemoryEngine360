@@ -25,9 +25,10 @@ using PFXToolKitUI.Icons;
 namespace MemEngine360.Connections;
 
 /// <summary>
-/// Represents a registered connection type
+/// Provides information about a specific type of connection to a console. For example, XBDM commands
+/// and XDevkit COM objects are two different connection types (despite the fact XDevkit uses XBDM commands under the hood)
 /// </summary>
-public abstract class RegisteredConsoleType {
+public abstract class RegisteredConnectionType {
     internal string? internalRegisteredId;
     
     // TODO: allow custom controls to be presented in the MemEngine connection dialog.
@@ -67,7 +68,13 @@ public abstract class RegisteredConsoleType {
     /// <summary>
     /// Gets the icon that represents this console type. Null means no icon (duh)
     /// </summary>
-    public virtual Icon? Icon { get; }
+    public virtual Icon? Icon => null;
+
+    // TODO: Coming soon, connection limiting. Xbox has no limit AFAIK, so no need to implement it yet
+    // /// <summary>
+    // /// Gets whether this connection type 
+    // /// </summary>
+    // public virtual bool HasConnectionLimit => false;
 
     /// <summary>
     /// The main procedure for connecting to the console. How this is done is completely up to the implementation; it may

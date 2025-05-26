@@ -25,7 +25,7 @@ public interface IConsoleConnectivityControl {
     /// <summary>
     /// Invoked when the registered console type which represents this control is selected in the connection view
     /// </summary>
-    void OnConnected(ConnectToConsoleView dialog, UserConnectionInfo info);
+    void OnConnected(OpenConnectionView dialog, UserConnectionInfo info);
 
     /// <summary>
     /// The list box item is no longer selected

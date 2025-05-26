@@ -34,7 +34,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     private volatile int busyStack;
     protected bool isClosed;
 
-    public abstract RegisteredConsoleType ConsoleType { get; }
+    public abstract RegisteredConnectionType ConnectionType { get; }
 
     public bool IsConnected => !this.isClosed && this.IsConnectedCore;
 
@@ -47,21 +47,21 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     protected BaseConsoleConnection() {
     }
 
-    public void Close() {
-        if (this.isClosed) {
-            return;
-        }
+    public abstract Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);
 
-        using BusyToken x = this.CreateBusyToken();
-        try {
-            this.CloseCore();
-        }
-        finally {
-            this.isClosed = true;
+    public async Task Close() {
+        if (!this.isClosed) {
+            using BusyToken x = this.CreateBusyToken();
+            try {
+                await this.CloseCore();
+            }
+            finally {
+                this.isClosed = true;
+            }
         }
     }
 
-    protected abstract void CloseCore();
+    protected abstract Task CloseCore();
 
     public async Task<uint> ReadBytes(uint address, byte[] buffer, int offset, uint count) {
         this.EnsureNotDisposed();
@@ -147,6 +147,13 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return Encoding.ASCII.GetString(buffer, 0, (int) count);
     }
 
+    public async Task<string> ReadString(uint address, uint count, Encoding encoding) {
+        int bytes = encoding.GetMaxByteCount((int) count);
+        byte[] buffer = new byte[bytes];
+        await this.ReadBytes(address, buffer, 0, (uint) buffer.Length).ConfigureAwait(false);
+        return encoding.GetString(buffer);
+    }
+
     public async Task WriteBytes(uint address, byte[] buffer) {
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
@@ -205,8 +212,10 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         await this.WriteBytes(address, buffer).ConfigureAwait(false);
     }
 
-    public Task WriteString(uint address, string value) {
-        return this.WriteBytes(address, Encoding.ASCII.GetBytes(value));
+    public Task WriteString(uint address, string value) => this.WriteString(address, value, Encoding.ASCII);
+
+    public Task WriteString(uint address, string value, Encoding encoding) {
+        return this.WriteBytes(address, encoding.GetBytes(value));
     }
 
     public async Task<uint?> FindPattern(uint address, uint count, MemoryPattern pattern, CompletionState? completion = null, CancellationToken cancellationToken = default) {

@@ -24,6 +24,10 @@
                     <TextBlock Padding="2,0,2,2" Text="Minimum is 1, maximum is 20, default is 12." FontSize="10" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
                     <TextBlock Padding="2,0,2,2" Text="Beware, higher values result in UI lag. 12 upd/s is just about tolerable." FontSize="10" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
                     <TextBox x:Name="PART_AutoRefreshPerSecTextBox" Padding="4,2" VerticalContentAlignment="Center"/>
+                    <Separator Margin="1,5"/>
+                    <TextBlock Padding="2,2" Text="Floating Point Epsilon"/>
+                    <TextBox x:Name="PART_FloatingEpsilonTextBox" Padding="4,2" VerticalContentAlignment="Center" ToolTip.Tip="Default is 400"/>
+                    <TextBlock Padding="2,0,2,2" Text="Default is 0.000001. This should be a tiny value. It is only used to check if two floats are equal or not equal." FontSize="10" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
                 </StackPanel>
             </ControlTemplate>
         </Setter>

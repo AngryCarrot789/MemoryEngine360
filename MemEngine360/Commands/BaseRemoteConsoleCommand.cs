@@ -40,7 +40,6 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
     }
 
     protected sealed override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
-        engine.CheckConnection();
         using IDisposable? token = await engine.BeginBusyOperationActivityAsync(this.ActivityText);
         if (token == null) {
             return;
@@ -53,10 +52,8 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
             if (!string.IsNullOrEmpty(shortcuts))
                 shortcuts = " Use the shortcut(s) to connect: " + Environment.NewLine + shortcuts;
 
+            engine.CheckConnection(token);
             await IMessageDialogService.Instance.ShowMessage("Disconnected", "Not connected to a console." + shortcuts);
-        }
-        else if (engine.ScanningProcessor.IsScanning) {
-            await IMessageDialogService.Instance.ShowMessage("Scanning", "Scan in progress");
         }
         else if (await this.TryBeginExecuteAsync(engine, connection, e)) {
             // we won't bother using the async versions because they will most likely have an
@@ -69,13 +66,16 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
                 try {
                     await this.ExecuteRemoteCommandInActivity(engine, connection, e);
                 }
+                catch (IOException exception) {
+                    await IMessageDialogService.Instance.ShowMessage("Error", "Connection timed out", exception.Message);
+                }
                 catch (Exception exception) {
                     await IMessageDialogService.Instance.ShowMessage("Error", "Error while executing remote command", exception.GetToString());
                 }
             });
-
-            engine.CheckConnection();
         }
+        
+        engine.CheckConnection(token);
     }
 
     protected abstract Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e);

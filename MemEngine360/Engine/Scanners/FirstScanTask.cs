@@ -35,13 +35,13 @@ public sealed class FirstScanTask : AdvancedPausableTask {
     // region scanning info
     private List<MemoryRegion>? myRegions;
     private int rgIdx;
-    private uint cbRegion;
+    private uint rgScanStart, rgScanEnd;
 
     // chunk scanning
     private int chunkIdx;
 
     // general variables
-    private uint originalOffset, offset;
+    private uint rgBaseOriginalOffset, rgBaseOffset;
     private bool isProcessingCurrentRegion;
 
     public FirstScanTask(ScanningContext context, IConsoleConnection connection, IDisposable busyToken) : base(true) {
@@ -151,32 +151,31 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                 // we do not want to re-scan from the start again if the task was paused.
                 // Technically we only need to account for offset not the other 2
                 if (!this.isProcessingCurrentRegion) {
-                    uint realStart = Math.Max(region.BaseAddress, this.ctx.startAddress);
-                    uint realEnd = Math.Min(region.EndAddress, this.ctx.scanEndAddress);
-                    this.offset = this.originalOffset = realStart - region.BaseAddress;
-                    this.cbRegion = realEnd - realStart;
+                    this.rgScanStart = Math.Max(region.BaseAddress, this.ctx.startAddress);
+                    this.rgScanEnd = Math.Min(region.EndAddress, this.ctx.scanEndAddress);
+                    this.rgBaseOffset = this.rgBaseOriginalOffset = this.rgScanStart - region.BaseAddress;
                 }
 
                 // The progress bar should show the true progress of the chunk scanning, so we set the
                 // completion range as the actual range we're going to be reading.
                 // The text will still show the absolute ranges though, which is fine
-                using PopCompletionStateRangeToken token = progress.CompletionState.PushCompletionRange(0.0, 1.0 / (this.cbRegion - this.originalOffset));
-                if (this.offset != this.originalOffset) {
-                    progress.CompletionState.OnProgress(this.offset - this.originalOffset);
+                using PopCompletionStateRangeToken token = progress.CompletionState.PushCompletionRange(0.0, 1.0 / (this.rgScanEnd - this.rgScanStart));
+                if (this.rgBaseOffset != this.rgBaseOriginalOffset) {
+                    progress.CompletionState.OnProgress(this.rgBaseOffset - this.rgBaseOriginalOffset);
                 }
 
                 // mark the beginning of memory region processing -- if the 
                 this.isProcessingCurrentRegion = true;
-                while (this.offset < this.cbRegion) {
+                while ((region.BaseAddress + this.rgBaseOffset) < this.rgScanEnd) {
                     pauseOrCancelToken.ThrowIfCancellationRequested();
 
                     // Beyond here we can't pause. Or if we could, we would
                     // need a 2nd flag and a rewrite of ProcessMemoryBlockForFirstScan
-                    progress.Text = $"Region {this.rgIdx + 1}/{this.myRegions.Count} ({ValueScannerUtils.ByteFormatter.ToString(this.offset, false)}/{ValueScannerUtils.ByteFormatter.ToString(region.Size, false)})";
+                    progress.Text = $"Region {this.rgIdx + 1}/{this.myRegions.Count} ({ValueScannerUtils.ByteFormatter.ToString(this.rgBaseOffset, false)}/{ValueScannerUtils.ByteFormatter.ToString(region.Size, false)})";
                     progress.CompletionState.OnProgress(ScanningContext.ChunkSize);
 
-                    uint baseAddress = region.BaseAddress + this.offset;
-                    uint targetReadCount = Math.Min(ScanningContext.ChunkSize, this.cbRegion - this.offset /* remaining */);
+                    uint baseAddress = region.BaseAddress + this.rgBaseOffset;
+                    uint targetReadCount = Math.Min(ScanningContext.ChunkSize, this.rgScanEnd - this.rgBaseOffset /* remaining */);
                     uint cbActualRead;
                     try {
                         cbActualRead = await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, targetReadCount).ConfigureAwait(false);
@@ -187,12 +186,8 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                         return;
                     }
 
-                    // in case we read less, clear the buffer region that may have been unmodified
-                    for (uint j = cbActualRead; j < targetReadCount; j++)
-                        tmpBuffer[j] = 0;
-
                     this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, new ReadOnlySpan<byte>(tmpBuffer, 0, (int) cbActualRead));
-                    this.offset += ScanningContext.ChunkSize;
+                    this.rgBaseOffset += ScanningContext.ChunkSize;
                 }
 
                 this.isProcessingCurrentRegion = false;
@@ -202,8 +197,8 @@ public sealed class FirstScanTask : AdvancedPausableTask {
             // uint overlap = (uint) Math.Max(this.ctx.cbDataType - (int) this.ctx.alignment, 0);
             uint len = this.ctx.scanLength, totalChunks = len / ScanningContext.ChunkSize;
             using PopCompletionStateRangeToken token = progress.CompletionState.PushCompletionRange(0, 1.0 / len);
-            if (this.offset != 0) {
-                progress.CompletionState.OnProgress(this.offset);
+            if (this.rgBaseOffset != 0) {
+                progress.CompletionState.OnProgress(this.rgBaseOffset);
             }
 
             if (!this.isProcessingCurrentRegion) {
@@ -212,17 +207,17 @@ public sealed class FirstScanTask : AdvancedPausableTask {
 
             this.isProcessingCurrentRegion = true;
             byte[] tmpBuffer = new byte[ScanningContext.ChunkSize]; //  + overlap
-            while (this.offset < len) {
+            while (this.rgBaseOffset < len) {
                 pauseOrCancelToken.ThrowIfCancellationRequested();
-                progress.Text = $"Chunk {this.chunkIdx + 1}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(this.offset, false)}/{ValueScannerUtils.ByteFormatter.ToString(len, false)})";
+                progress.Text = $"Chunk {this.chunkIdx + 1}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(this.rgBaseOffset, false)}/{ValueScannerUtils.ByteFormatter.ToString(len, false)})";
                 progress.CompletionState.OnProgress(ScanningContext.ChunkSize);
 
                 // if (overlap > 0) {
                 //     Buffer.BlockCopy(tmpBuffer, (int) (ScanningContext.ChunkSize - overlap + currentOverlap), tmpBuffer, 0, (int) overlap);
                 // }
 
-                uint baseAddress = this.ctx.startAddress + this.offset;
-                uint cbTargetRead = Math.Min(ScanningContext.ChunkSize, Math.Max(this.ctx.scanLength - this.offset, 0));
+                uint baseAddress = this.ctx.startAddress + this.rgBaseOffset;
+                uint cbTargetRead = Math.Min(ScanningContext.ChunkSize, Math.Max(this.ctx.scanLength - this.rgBaseOffset, 0));
                 uint cbActualRead;
                 try {
                     cbActualRead = await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, cbTargetRead).ConfigureAwait(false);
@@ -232,14 +227,10 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                     pauseOrCancelToken.ThrowIfCancellationRequested();
                     return;
                 }
-                
-                // in case we read less, clear the buffer region that may have been unmodified
-                // for (uint j = (cbActualRead + (uint) currentOverlap); j < cbTargetRead; j++)
-                //     tmpBuffer[j] = 0;
 
                 this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, new ReadOnlySpan<byte>(tmpBuffer, 0, (int) cbActualRead));
 
-                this.offset += ScanningContext.ChunkSize; // + (uint) (overlap - currentOverlap);
+                this.rgBaseOffset += ScanningContext.ChunkSize; // + (uint) (overlap - currentOverlap);
                 this.chunkIdx++;
                 // currentOverlap = (int) overlap;
                 // totalOverlap += (int) overlap;

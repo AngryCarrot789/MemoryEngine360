@@ -17,6 +17,8 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Connections;
+
 namespace MemEngine360.Engine.Modes;
 
 /// <summary>
@@ -56,7 +58,12 @@ public enum DataType {
     /// <summary>
     /// A searchable string
     /// </summary>
-    String
+    String,
+
+    /// <summary>
+    /// A searchable sequence of bytes, while also supporting a wildcard ('?') character
+    /// </summary>
+    ByteArray
 }
 
 public static class DataTypeExtensions {
@@ -89,7 +96,7 @@ public static class DataTypeExtensions {
             default: return false;
         }
     }
-    
+
     /// <summary>
     /// The data type is float or double
     /// </summary>
@@ -99,6 +106,67 @@ public static class DataTypeExtensions {
             case DataType.Double:
                 return true;
             default: return false;
+        }
+    }
+    
+    /// <summary>
+    /// Returns true when the data type requires reversing the array of bytes used to represent the value.
+    /// So far, this is only true for short, int, long, float and double.
+    /// <para>
+    /// This method is only required when dealing with word-based values greater than 1 byte as a sequence of bytes.
+    /// Most IO operations involving the native value types (e.g. <see cref="IConsoleConnection.WriteValue{T}"/>)
+    /// handle endianness reversal automatically
+    /// </para>
+    /// </summary>
+    /// <param name="dataType"></param>
+    /// <returns></returns>
+    public static bool IsEndiannessSensitive(this DataType dataType) {
+        switch (dataType) {
+            case DataType.Int16:
+            case DataType.Int32:
+            case DataType.Int64:
+            case DataType.Float:
+            case DataType.Double:
+                return true;
+            default: return false;
+        }
+    }
+
+    /// <summary>
+    /// Returns the data type size (ONLY FOR NUMERIC PRIMITIVES)
+    /// </summary>
+    /// <param name="dataType"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentOutOfRangeException">Data type is not a numeric primitive or is an invalid data type</exception>
+    public static uint GetNumericSize(this DataType dataType) {
+        switch (dataType) {
+            case DataType.Byte:      return 1u;
+            case DataType.Int16:     return 2u;
+            case DataType.Int32:     return 4u;
+            case DataType.Int64:     return 8u;
+            case DataType.Float:     return 4u;
+            case DataType.Double:    return 8u;
+            case DataType.String:    throw new ArgumentOutOfRangeException(nameof(dataType), dataType, "Cannot get the byte count of a string purely from the data type");
+            case DataType.ByteArray: throw new ArgumentOutOfRangeException(nameof(dataType), dataType, "Cannot get the byte count of a sequence of bytes purely from the data type");
+            default:                 throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
+        }
+    }
+
+    /// <summary>
+    /// Gets the recommended byte alignment for the data type. For example, word values (primitives) return
+    /// their data type size, and everything else returns 1
+    /// </summary>
+    public static uint GetAlignmentFromDataType(this DataType type) {
+        switch (type) {
+            case DataType.Byte:      return 1u;
+            case DataType.Int16:     return 2u;
+            case DataType.Int32:     return 4u;
+            case DataType.Int64:     return 8u;
+            case DataType.Float:     return 4u;
+            case DataType.Double:    return 8u;
+            case DataType.String:    return 1u; // scan for the entire string for each next char
+            case DataType.ByteArray: return 1u;
+            default:                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
     }
 }

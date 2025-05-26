@@ -47,7 +47,7 @@ public partial class OpenDebuggingFileView : UserControl, IConsoleConnectivityCo
         this.PART_BrowseFileButton.Command = this.openFileCommand;
     }
 
-    public void OnConnected(ConnectToConsoleView dialog, UserConnectionInfo info) {
+    public void OnConnected(OpenConnectionView dialog, UserConnectionInfo info) {
         this.filePathBinder.Attach(this.PART_FilePathTextBox, this.myInfo = (OpenDebuggingFileInfo) info);
     }
 

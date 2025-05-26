@@ -24,7 +24,7 @@ namespace MemEngine360.Connections;
 
 /// <summary>
 /// The base class for a model used in MemEngine's connection dialog, which contains
-/// properties that can be used during <see cref="RegisteredConsoleType.OpenConnection"/>
+/// properties that can be used during <see cref="RegisteredConnectionType.OpenConnection"/>
 /// </summary>
 public abstract class UserConnectionInfo : ITransferableData {
     public MemoryEngine360 Engine { get; }

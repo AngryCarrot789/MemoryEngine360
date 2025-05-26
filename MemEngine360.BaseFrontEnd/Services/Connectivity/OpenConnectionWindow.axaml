@@ -5,11 +5,11 @@
                  xmlns:connectivity="clr-namespace:MemEngine360.BaseFrontEnd.Services.Connectivity"
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-                 x:Class="MemEngine360.BaseFrontEnd.Services.Connectivity.ConnectToConsoleWindow"
+                 x:Class="MemEngine360.BaseFrontEnd.Services.Connectivity.OpenConnectionWindow"
                  BorderBrush="DodgerBlue"
                  TitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}"
                  Title="Connect to a console"
                  MinWidth="600" MinHeight="350"
                  Width="700" Height="450">
-    <connectivity:ConnectToConsoleView x:Name="PART_ConnectToConsoleView"/>
+    <connectivity:OpenConnectionView x:Name="PART_ConnectToConsoleView"/>
 </w:DesktopWindow>

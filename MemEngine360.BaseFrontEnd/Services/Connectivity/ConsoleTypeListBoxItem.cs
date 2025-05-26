@@ -29,9 +29,9 @@ namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 public class ConsoleTypeListBoxItem : ListBoxItem {
     private IconControl? PART_IconControl;
     private TextBlock? PART_DisplayName, PART_FooterText;
-    private RegisteredConsoleType? myConsoleType;
+    private RegisteredConnectionType? myConsoleType;
 
-    public RegisteredConsoleType? RegisteredConsoleType {
+    public RegisteredConnectionType? RegisteredConsoleType {
         get => this.myConsoleType;
         set {
             if (ReferenceEquals(value, this.myConsoleType)) {

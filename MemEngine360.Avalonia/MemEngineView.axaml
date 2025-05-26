@@ -37,11 +37,11 @@
             <!-- </Grid> -->
             <DockPanel>
                 <TextBlock DockPanel.Dock="Left" x:Name="PART_LatestActivity" Padding="2,0" VerticalAlignment="Center" ToolTip.Tip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
-                <Separator DockPanel.Dock="Left" Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="3" Margin="2,2" VerticalAlignment="Stretch"/>
+                <Separator DockPanel.Dock="Left" Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,2" VerticalAlignment="Stretch"/>
                 <TextBlock DockPanel.Dock="Right" x:Name="PART_ConnectedHostName" Padding="2,0" VerticalAlignment="Center"/>
-                <!-- <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="1" Margin="2,2" VerticalAlignment="Stretch"/> -->
-                <Separator DockPanel.Dock="Right" Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="5" Margin="2,2" VerticalAlignment="Stretch"/>
-                <aa:ActivityStatusBarControl x:Name="PART_ActivityStatusBar"/>
+                <Separator DockPanel.Dock="Right" Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,2" VerticalAlignment="Stretch"/>
+                <aa:ActivityStatusBarControl x:Name="PART_ActivityStatusBar" DockPanel.Dock="Right"/>
+                <Border Background="Transparent"/>
             </DockPanel>
         </Border>
         <Grid>
@@ -120,7 +120,7 @@
                                     </DockPanel>
                                 </c:GroupBox.Header>
                                 <StackPanel IsVisible="{Binding ElementName=PART_MemScanExpander, Path=IsChecked}">
-                                    <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,22,3,20,3,20,3,20" Margin="3">
+                                    <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,22,3,20,3,20" Margin="3">
                                         <TextBlock Grid.Column="0" Grid.Row="0" Text="Start" VerticalAlignment="Center" Padding="4,0"/>
                                         <TextBlock Grid.Column="0" Grid.Row="2" Text="Length" VerticalAlignment="Center" Padding="4,0"/>
                                         <TextBlock Grid.Column="0" Grid.Row="4" Text="Align" VerticalAlignment="Center" Padding="4,0"/>
@@ -159,7 +159,7 @@
                                                 </TextBlock>
                                             </ToolTip.Tip>
                                         </TextBox>
-                                        <Label Grid.Column="2" Grid.Row="4" FontFamily="Consolas" 
+                                        <Label Grid.Column="2" Grid.Row="4" FontFamily="Consolas"
                                                Background="Transparent"
                                                BorderThickness="1"
                                                Padding="4,0"
@@ -206,16 +206,16 @@
                                                 </TextBlock>
                                             </ToolTip.Tip>
                                         </CheckBox>
-                                        <CheckBox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="10"
-                                                  x:Name="PART_ForcedEndianness"
-                                                  Content="[ENDIANNESS]"
-                                                  IsThreeState="True">
-                                            <ToolTip.Tip>
-                                                <TextBlock TextWrapping="Wrap">
-                                                    <Run Text="Forces data to be interpolated as little-endian. By default, the connection type specifies the endianness, but this allows you to override that."/>
-                                                </TextBlock>
-                                            </ToolTip.Tip>
-                                        </CheckBox>
+                                        <!-- <CheckBox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="10" -->
+                                        <!--           x:Name="PART_ForcedEndianness" -->
+                                        <!--           Content="[ENDIANNESS]" -->
+                                        <!--           IsThreeState="True"> -->
+                                        <!--     <ToolTip.Tip> -->
+                                        <!--         <TextBlock TextWrapping="Wrap"> -->
+                                        <!--             <Run Text="Forces data to be interpolated as little-endian. By default, the connection type specifies the endianness, but this allows you to override that."/> -->
+                                        <!--         </TextBlock> -->
+                                        <!--     </ToolTip.Tip> -->
+                                        <!-- </CheckBox> -->
                                     </Grid>
                                 </StackPanel>
                             </c:GroupBox>
@@ -260,27 +260,27 @@
                                 <cb:DataGridTextColumnEx.Binding>
                                     <MultiBinding Converter="{x:Static av2:ScanResultCurrentValueConverter.Instance}">
                                         <Binding Path="CurrentValue" Mode="OneWay"/>
-                                        <Binding Path="DataType" Mode="OneWay"/>
+                                        <Binding Path="NumericDisplayType" Mode="OneWay"/>
                                     </MultiBinding>
                                 </cb:DataGridTextColumnEx.Binding>
                             </cb:DataGridTextColumnEx>
 
                             <DataGridTextColumn CanUserResize="True" Header="Previous" Width="85" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True">
-                               <DataGridTextColumn.Binding>
+                                <DataGridTextColumn.Binding>
                                     <MultiBinding Converter="{x:Static av2:ScanResultCurrentValueConverter.Instance}">
                                         <Binding Path="PreviousValue" Mode="OneWay"/>
-                                        <Binding Path="DataType" Mode="OneWay"/>
+                                        <Binding Path="NumericDisplayType" Mode="OneWay"/>
                                     </MultiBinding>
                                 </DataGridTextColumn.Binding>
                             </DataGridTextColumn>
                             <DataGridTextColumn CanUserResize="True" Header="First" Width="85" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True">
-                               <DataGridTextColumn.Binding>
+                                <DataGridTextColumn.Binding>
                                     <MultiBinding Converter="{x:Static av2:ScanResultCurrentValueConverter.Instance}">
                                         <Binding Path="FirstValue" Mode="OneWay"/>
-                                        <Binding Path="DataType" Mode="OneWay"/>
+                                        <Binding Path="NumericDisplayType" Mode="OneWay"/>
                                     </MultiBinding>
                                 </DataGridTextColumn.Binding>
-                            </DataGridTextColumn> 
+                            </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                 </c:GroupBox>
@@ -301,7 +301,7 @@
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenCSVFileCommand"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                ToolTip.Tip="(Depreciated) Open a CSV file containing saved addresses. This feature will be removed soon in favour for XML, so that groups can be supported" Padding="3,3,2,2"/>
-                                
+
                                 <av:IconButton Icon="{x:Static cb:SimpleIcons.OpenFileXMLIcon}" Width="20"
                                                Background="{DynamicResource ABrush.Tone6.Background.Static}"
                                                BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"

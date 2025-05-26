@@ -25,6 +25,7 @@ using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.Scanners;
+using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
@@ -244,7 +245,7 @@ public class ScanningProcessor {
             if (this.dataType != value) {
                 this.dataType = value;
                 this.DataTypeChanged?.Invoke(this);
-                this.Alignment = GetAlignmentFromDataType(this.dataType);
+                this.Alignment = this.dataType.GetAlignmentFromDataType();
             }
         }
     }
@@ -310,7 +311,7 @@ public class ScanningProcessor {
     /// They will still be processed, just not visible
     /// </summary>
     public int ActualScanResultCount => this.ScanResults.Count + this.resultBuffer.Count;
-    
+
     public MemoryEngine360 MemoryEngine360 { get; }
 
     public event ScanningProcessorEventHandler? InputAChanged;
@@ -340,7 +341,7 @@ public class ScanningProcessor {
         this.MemoryEngine360 = memoryEngine360 ?? throw new ArgumentNullException(nameof(memoryEngine360));
         BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
 
-        this.inputA = "";
+        this.inputA = this.inputB = "";
         this.dataType = DataType.Int32;
         this.numericScanType = NumericScanType.Equals;
         this.startAddress = cfg.StartAddress;
@@ -349,7 +350,7 @@ public class ScanningProcessor {
             this.scanLength = uint.MaxValue - this.startAddress;
         }
 
-        this.alignment = GetAlignmentFromDataType(this.dataType);
+        this.alignment = this.dataType.GetAlignmentFromDataType();
         this.pauseConsoleDuringScan = cfg.PauseConsoleDuringScan;
         this.scanMemoryPages = cfg.ScanMemoryPages;
         this.isIntInputHexadecimal = cfg.DTInt_UseHexValue;
@@ -371,14 +372,13 @@ public class ScanningProcessor {
         }, TimeSpan.FromMilliseconds(100), DispatchPriority.INTERNAL_BeforeRender);
 
         this.rldaRefreshSavedAddressList = RateLimitedDispatchActionBase.ForDispatcherAsync(this.RefreshSavedAddressesAsync, TimeSpan.FromMilliseconds(100));
-        
+
         this.MemoryEngine360.ConnectionAboutToChange += this.OnEngineConnectionAboutToChange;
     }
 
-    private async Task OnEngineConnectionAboutToChange(MemoryEngine360 sender, IActivityProgress progress) {
+    private async Task OnEngineConnectionAboutToChange(MemoryEngine360 sender, ulong frame) {
         if (this.ScanningActivity != null && this.ScanningActivity.IsRunning) {
             if (this.ScanningActivity.TryCancel()) { // should always return true
-                progress.Text = "Stopping scan...";
                 await this.ScanningActivity;
             }
         }
@@ -418,19 +418,6 @@ public class ScanningProcessor {
 
         BasicApplicationConfiguration.Instance.StartAddress = this.startAddress;
         BasicApplicationConfiguration.Instance.ScanLength = this.scanLength;
-    }
-
-    public static uint GetAlignmentFromDataType(DataType type) {
-        switch (type) {
-            case DataType.Byte:   return 1u;
-            case DataType.Int16:  return 2u;
-            case DataType.Int32:  return 4u;
-            case DataType.Int64:  return 8u;
-            case DataType.Float:  return 4u;
-            case DataType.Double: return 8u;
-            case DataType.String: return 1u; // scan for the entire string for each next char
-            default:              throw new ArgumentOutOfRangeException(nameof(type), type, null);
-        }
     }
 
     public async Task ScanFirstOrNext() {
@@ -577,7 +564,7 @@ public class ScanningProcessor {
                             result = false;
                         }
                     }
-                    
+
                     this.rldaMoveBufferIntoResultList.InvokeAsync();
                 }
                 catch {
@@ -610,7 +597,7 @@ public class ScanningProcessor {
                 }
 
                 if (context.HasIOError) {
-                    await IMessageDialogService.Instance.ShowMessage("Network error", context.IOException!.Message, defaultButton:MessageBoxResult.OK);
+                    await IMessageDialogService.Instance.ShowMessage("Network error", context.IOException!.Message, "Please reconnect to the console", defaultButton: MessageBoxResult.OK);
                 }
 
                 await updateListTask;
@@ -705,6 +692,7 @@ public class ScanningProcessor {
             return;
         }
 
+        bool hasIOError = false;
         this.IsRefreshingAddresses = true;
         try {
             using CancellationTokenSource cts = new CancellationTokenSource();
@@ -724,15 +712,14 @@ public class ScanningProcessor {
             Task task = Task.Run(async () => {
                 token.ThrowIfCancellationRequested();
 
-                bool? isLE = this.MemoryEngine360.IsForcedLittleEndian;
                 if (savedList != null) {
-                    string[] values = new string[savedList.Count];
+                    IDataValue[] values = new IDataValue[savedList.Count];
                     await Task.Run(async () => {
                         for (int i = 0; i < values.Length; i++) {
                             token.ThrowIfCancellationRequested();
                             AddressTableEntry item = savedList[i];
                             if (item.IsAutoRefreshEnabled) // may change between dispatcher callbacks
-                                values[i] = await MemoryEngine360.ReadAsText(connection, item.AbsoluteAddress, item.DataType, item.NumericDisplayType, item.StringLength, isLE);
+                                values[i] = await MemoryEngine360.ReadAsDataValue(connection, item.AbsoluteAddress, item.DataType, item.StringType, item.StringLength, item.ArrayLength);
                         }
                     }, token);
 
@@ -749,12 +736,12 @@ public class ScanningProcessor {
                 // safety net -- we still need to implement logic to notify view models when they're visible in the
                 // UI, although this does kind of break the MVVM pattern but oh well
                 if (list != null) {
-                    string[] values = new string[list.Count];
+                    IDataValue[] values = new IDataValue[list.Count];
                     await Task.Run(async () => {
                         for (int i = 0; i < values.Length; i++) {
                             token.ThrowIfCancellationRequested();
                             ScanResultViewModel item = list[i];
-                            values[i] = await MemoryEngine360.ReadAsText(connection, item.Address, item.DataType, item.NumericDisplayType, (uint) item.FirstValue.Length, isLE);
+                            values[i] = await MemoryEngine360.ReadAsDataValue(connection, item.Address, item.DataType, item.StringType, (uint) item.CurrentStringLength, (uint) item.CurrentArrayLength);
                         }
                     }, token);
 
@@ -770,22 +757,34 @@ public class ScanningProcessor {
             try {
                 await Task.WhenAny(task, Task.Delay(500, token));
             }
+            catch (IOException) {
+                hasIOError = true;
+            }
             catch (OperationCanceledException) {
                 return;
             }
 
-            if (!task.IsCompleted) {
+            if (!hasIOError && !task.IsCompleted) {
                 await ActivityManager.Instance.RunTask(async () => {
                     IActivityProgress p = ActivityManager.Instance.GetCurrentProgressOrEmpty();
                     p.Caption = "Long refresh";
                     p.Text = $"Refreshing {grandTotalCount} value{Lang.S(grandTotalCount)}...";
                     p.IsIndeterminate = true;
-                    await task;
+                    try {
+                        await task;
+                    }
+                    catch (IOException) {
+                        hasIOError = true;
+                    }
                 }, cts);
             }
         }
         finally {
             this.IsRefreshingAddresses = false;
+        }
+
+        if (hasIOError) {
+            this.MemoryEngine360.CheckConnection();
         }
     }
 }

@@ -29,6 +29,14 @@ using PFXToolKitUI.Tasks;
 namespace MemEngine360.BaseFrontEnd.XboxBase;
 
 public class ShowModulesCommand : Command {
+    protected override Executability CanExecuteCore(CommandEventArgs e) {
+        if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+            return Executability.Invalid;
+        }
+
+        return ui.MemoryEngine360.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
+    }
+
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
             return;

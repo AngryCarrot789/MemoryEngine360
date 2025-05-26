@@ -22,7 +22,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Data.Converters;
-using MemEngine360.Engine.Modes;
+using MemEngine360.Engine;
+using MemEngine360.ValueAbstraction;
 
 namespace MemEngine360.Avalonia;
 
@@ -33,11 +34,9 @@ public class ScanResultCurrentValueConverter : IMultiValueConverter {
         if (values[0] == AvaloniaProperty.UnsetValue || values[1] == AvaloniaProperty.UnsetValue) {
             return AvaloniaProperty.UnsetValue;
         }
-        
-        string value = (string) values[0]!;
-        DataType dataType = (DataType) values[1]!;
-        if (dataType == DataType.String)
-            return $"\"{value}\"";
-        return value;
+
+        IDataValue value = (IDataValue) values[0]!;
+        NumericDisplayType ndt = (NumericDisplayType) values[1]!;
+        return MemoryEngine360.GetStringFromDataValue(value, ndt, putStringInQuotes:true);
     }
 }

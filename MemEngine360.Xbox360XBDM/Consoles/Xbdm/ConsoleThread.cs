@@ -20,18 +20,18 @@
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
 public struct ConsoleThread {
-    public int id;
-    public int suspendCount;      // "suspend"
-    public int priority;          // "priority"
-    public int tlsBaseAddress;    // "tlsbase"
-    public int baseAddress;       // "base"
-    public int limit;             // "limit"
-    public int slack;             // "slack"
+    public uint id;
+    public uint suspendCount;      // "suspend"
+    public uint priority;          // "priority"
+    public uint tlsBaseAddress;    // "tlsbase"
+    public uint baseAddress;       // "base"
+    public uint limit;             // "limit"
+    public uint slack;             // "slack"
     public ulong creationTime;    // createhi | createlo
-    public int nameAddress;       // "nameaddr";
-    public int nameLength;        // "namelen";
-    public int currentProcessor;  // "proc";
-    public int lastError;         // "proc";
+    public uint nameAddress;       // "nameaddr";
+    public uint nameLength;        // "namelen";
+    public uint currentProcessor;  // "proc";
+    public uint lastError;         // "proc";
     public string readableName;
 
     public override string ToString() {

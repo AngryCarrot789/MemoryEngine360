@@ -123,10 +123,11 @@ public partial class MemEngineWindow : DesktopWindow {
         IConsoleConnection? connection = engine.Connection;
         try {
             if (connection != null) {
-                await engine.BroadcastConnectionAboutToChange(EmptyActivityProgress.Instance);
+                ulong frame = engine.GetNextConnectionChangeFrame();
                 
-                connection.Close();
-                engine.SetConnection(token, null, ConnectionChangeCause.User);
+                await engine.BroadcastConnectionAboutToChange(frame);
+                engine.SetConnection(token, frame, null, ConnectionChangeCause.User);
+                await connection.Close();
             }
         }
         finally {

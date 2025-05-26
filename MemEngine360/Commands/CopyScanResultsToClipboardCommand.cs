@@ -58,7 +58,10 @@ public class CopyScanResultsToClipboardCommand : Command {
         }
 
         MessageBoxInfo info = new MessageBoxInfo("Copy Rows", "Below is the selected rows") {
-            Message = string.Join(Environment.NewLine, scanResults.Select(x => x.Address.ToString("X8") + "," + x.CurrentValue + "," + x.PreviousValue + "," + x.FirstValue)),
+            Message = string.Join(Environment.NewLine, scanResults.Select(x => x.Address.ToString("X8") + "," + 
+                                                                               MemoryEngine360.GetStringFromDataValue(x, x.CurrentValue) + "," + 
+                                                                               MemoryEngine360.GetStringFromDataValue(x, x.PreviousValue) + "," + 
+                                                                               MemoryEngine360.GetStringFromDataValue(x, x.FirstValue))),
             Buttons = MessageBoxButton.OKCancel, DefaultButton = MessageBoxResult.OK,
             YesOkText = "Copy to Clipboard",
             CancelText = "Close"

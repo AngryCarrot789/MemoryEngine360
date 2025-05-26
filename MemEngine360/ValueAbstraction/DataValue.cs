@@ -19,8 +19,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
 using MemEngine360.Engine.Modes;
 
 namespace MemEngine360.ValueAbstraction;
@@ -37,18 +35,22 @@ public abstract class BaseNumericDataValue<T> : IDataValue where T : unmanaged, 
     public T Value { get; }
 
     public object BoxedValue => this.Value;
+    
+    public uint ByteCount => (uint) TypeSize;
+    
+    public void GetBytes(Span<byte> buffer) {
+        if (buffer.Length < TypeSize) {
+            throw new ArgumentException($"Buffer is too small ({buffer.Length} < {TypeSize})");
+        }
+        
+        Span<byte> bytes = stackalloc byte[TypeSize];
+        Unsafe.As<byte, T>(ref bytes.GetPinnableReference()) = this.Value;
+        bytes.CopyTo(buffer);
+    }
 
     protected BaseNumericDataValue(T myValue, DataType dataType) {
         this.Value = myValue;
         this.DataType = dataType;
-    }
-
-    public byte[] GetBytes(bool asLittleEndian) {
-        byte[] bytes = new byte[TypeSize];
-        Unsafe.As<byte, T>(ref MemoryMarshal.GetArrayDataReference(bytes)) = this.Value;
-        if (asLittleEndian != BitConverter.IsLittleEndian)
-            Array.Reverse(bytes);
-        return bytes;
     }
 
     protected bool Equals(BaseNumericDataValue<T> other) {
@@ -98,6 +100,8 @@ public class DataValueString : IDataValue {
     public StringType StringType { get; }
     
     public object BoxedValue => this.Value;
+    
+    public uint ByteCount => this.StringType.GetByteCount(this.Value);
 
     public DataValueString(string value, StringType stringType) {
         this.Value = value;
@@ -112,17 +116,8 @@ public class DataValueString : IDataValue {
         }
     }
 
-    public byte[] GetBytes(bool asLittleEndian) => this.GetBytes();
-    
-    public byte[] GetBytes() {
-        switch (this.StringType) {
-            case StringType.ASCII: return Encoding.ASCII.GetBytes(this.Value);
-            case StringType.UTF8:  return Encoding.UTF8.GetBytes(this.Value);
-            case StringType.UTF16: return Encoding.Unicode.GetBytes(this.Value);
-            case StringType.UTF32: return Encoding.UTF32.GetBytes(this.Value);
-            default:
-                throw new Exception("Memory corruption");
-        }
+    public void GetBytes(Span<byte> buffer) {
+        this.StringType.ToEncoding().GetBytes(this.Value, buffer);
     }
 
     protected bool Equals(DataValueString other) {
@@ -137,6 +132,42 @@ public class DataValueString : IDataValue {
         if (ReferenceEquals(this, obj))
             return true;
         return obj is DataValueString str && this.Equals(str);
+    }
+    
+    public override int GetHashCode() {
+        return HashCode.Combine((int) this.DataType, this.Value);
+    }
+}
+
+public class DataValueByteArray : IDataValue {
+    public DataType DataType => DataType.ByteArray;
+
+    public byte[] Value { get; }
+
+    public object BoxedValue => this.Value;
+
+    public uint ByteCount => (uint) this.Value.Length;
+
+    public DataValueByteArray(byte[] value) {
+        this.Value = value;
+    }
+
+    public void GetBytes(Span<byte> buffer) {
+        this.Value.CopyTo(buffer);
+    }
+
+    protected bool Equals(DataValueByteArray other) {
+        return this.DataType == other.DataType && this.Value.SequenceEqual(other.Value);
+    }
+
+    public bool Equals(IDataValue? other) => other is DataValueByteArray str && this.Equals(str);
+
+    public override bool Equals(object? obj) {
+        if (obj is null)
+            return false;
+        if (ReferenceEquals(this, obj))
+            return true;
+        return obj is DataValueByteArray str && this.Equals(str);
     }
     
     public override int GetHashCode() {

@@ -41,7 +41,7 @@ public class CopyAddressTableEntryToClipboard : Command {
         }
         else {
             List<AddressTableEntry> items = selection.Select(x => (AddressTableEntry) x.Entry).ToList();
-            List<string> text = items.Select(x => x.Address + "," + x.Description + "," + x.DataType + "," + x.Value).ToList();
+            List<string> text = items.Select(x => x.Address + "," + x.Description + "," + x.DataType + "," + (x.Value != null ? MemoryEngine360.GetStringFromDataValue(x, x.Value) : "")).ToList();
             await IMessageDialogService.Instance.ShowMessage("Address table entries", string.Join(Environment.NewLine, text), defaultButton: MessageBoxResult.OK);
         }
     }

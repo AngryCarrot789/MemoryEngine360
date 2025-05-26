@@ -31,11 +31,6 @@ public static class ValueScannerUtils {
         AllowedFormats = [MemoryFormatType.Byte, MemoryFormatType.KiloByte1000, MemoryFormatType.MegaByte1000, MemoryFormatType.GigaByte1000, MemoryFormatType.TeraByte1000]
     };
 
-    public static float TruncateFloat(float value, int decimals) {
-        float factor = (float) Math.Pow(10, decimals);
-        return (float) (Math.Truncate(value * factor) / factor);
-    }
-
     public static double TruncateDouble(double value, int decimals) {
         double factor = Math.Pow(10, decimals);
         return Math.Truncate(value * factor) / factor;

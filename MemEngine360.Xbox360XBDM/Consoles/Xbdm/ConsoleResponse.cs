@@ -48,4 +48,11 @@ public readonly struct ConsoleResponse {
 
         throw new Exception("Invalid response: " + line);
     }
+
+    public override string ToString() {
+        string intResponse = ((int) this.ResponseType).ToString();
+        string strResponse = this.ResponseType.ToString();
+        
+        return ((intResponse == strResponse) ? strResponse : $"{strResponse} ({intResponse})") + " - " + this.Message;
+    }
 }

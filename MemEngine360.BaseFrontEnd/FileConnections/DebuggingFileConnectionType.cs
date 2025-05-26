@@ -25,9 +25,9 @@ using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.BaseFrontEnd.FileConnections;
 
-public class DebuggingFileConsoleType : RegisteredConsoleType {
+public class DebuggingFileConnectionType : RegisteredConnectionType {
     public const string TheID = "memeng360.debugfile-coreimpl"; // -coreimpl suffix added to core plugins, not that we need to but eh
-    public static readonly RegisteredConsoleType Instance = new DebuggingFileConsoleType();
+    public static readonly RegisteredConnectionType Instance = new DebuggingFileConnectionType();
 
     public override string DisplayName => "Debug File";
 
@@ -38,7 +38,7 @@ public class DebuggingFileConsoleType : RegisteredConsoleType {
 
     public override Icon Icon => SimpleIcons.OpenFileXMLIcon;
 
-    private DebuggingFileConsoleType() {
+    private DebuggingFileConnectionType() {
     }
 
     public override IEnumerable<IContextObject> GetRemoteContextOptions() {

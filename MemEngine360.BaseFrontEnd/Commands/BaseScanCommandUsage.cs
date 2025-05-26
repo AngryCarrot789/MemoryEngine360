@@ -44,7 +44,7 @@ public class BaseScanCommandUsage : MemEngineButtonCommandUsage {
         }
     }
 
-    private void OnConnectionChanged(MemoryEngine360 sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
+    private void OnConnectionChanged(MemoryEngine360 sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
         this.UpdateCanExecuteLater();
     }
 

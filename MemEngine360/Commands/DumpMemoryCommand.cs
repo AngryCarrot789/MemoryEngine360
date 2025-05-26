@@ -18,7 +18,9 @@
 // 
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing.Commands;
@@ -34,11 +36,7 @@ namespace MemEngine360.Commands;
 
 public class DumpMemoryCommand : BaseMemoryEngineCommand {
     protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
-        if (engine.IsConnectionBusy || engine.Connection == null) {
-            return Executability.ValidButCannotExecute;
-        }
-
-        return Executability.Valid;
+        return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
@@ -90,6 +88,21 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
 
             DumpMemoryTask task = new DumpMemoryTask(engine, filePath, start, length, freezeResult == MessageBoxResult.Yes, token);
             await task.Run();
+            if (task.FileException != null || task.ConnectionIOException != null) {
+                StringBuilder sb = new StringBuilder();
+                if (task.ConnectionIOException != null) {
+                    sb.Append("Download IO error: ").Append(task.ConnectionIOException.Message);
+                }
+                
+                if (task.FileException != null) {
+                    if (sb.Length > 0)
+                        sb.Append(Environment.NewLine);
+                    
+                    sb.Append("File IO error: ").Append(task.FileException.Message);
+                }
+                
+                await IMessageDialogService.Instance.ShowMessage("Errors", "One or more errors occurred during memory dump", sb.ToString(), defaultButton:MessageBoxResult.OK);
+            }
         }
     }
 
@@ -107,10 +120,22 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
         private uint cbDownloaded, cbWritten;
         private volatile bool isDoneDownloading;
         private readonly ConcurrentQueue<byte[]> buffers;
+        private volatile IOException? connIoException;
+        private volatile Exception? fileException;
 
         // live handles
         private IDisposable? busyToken;
         private FileStream? fileOutput;
+
+        /// <summary>
+        /// Gets the IO exception encountered while downloading data from the console.
+        /// </summary>
+        public IOException? ConnectionIOException => this.connIoException;
+
+        /// <summary>
+        /// Gets the IO exception encountered while writing to the file
+        /// </summary>
+        public Exception? FileException => this.fileException;
 
         public DumpMemoryTask(MemoryEngine360 engine, string filePath, uint startAddress, uint countBytes, bool freezeConsole, IDisposable busyToken) : base(true) {
             this.engine = engine;
@@ -122,13 +147,13 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             this.dlCurrAddress = this.startAddress;
             this.dlCbRemaining = this.countBytes;
             this.buffers = new ConcurrentQueue<byte[]>();
-            
+
             this.downloadCompletion = new SimpleCompletionState();
             this.downloadCompletion.CompletionValueChanged += state => {
                 this.Activity.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
                 this.Activity.Progress.Text = $"Downloaded {ValueScannerUtils.ByteFormatter.ToString(this.countBytes * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(this.countBytes, false)}";
             };
-            
+
             this.downloadCompletionToken = this.downloadCompletion.PushCompletionRange(0.0, 1.0 / this.countBytes);
         }
 
@@ -178,8 +203,15 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                     return;
                 }
 
-                if (this.freezeConsole && connection is IHaveIceCubes)
-                    await ((IHaveIceCubes) connection).DebugFreeze();
+                if (this.freezeConsole && connection is IHaveIceCubes) {
+                    try {
+                        await ((IHaveIceCubes) connection).DebugFreeze();
+                    }
+                    catch (IOException ex) {
+                        this.connIoException = ex;
+                        this.FailNow(pauseOrCancelToken);
+                    }
+                }
 
                 Exception? e = null;
                 try {
@@ -192,7 +224,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                         for (uint j = cbActualRead; j < cbRead; j++) {
                             downloadBuffer[j] = 0;
                         }
-                        
+
                         this.dlCbRemaining -= cbRead;
                         this.dlCurrAddress += cbRead;
 
@@ -200,23 +232,41 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                         this.downloadCompletion?.OnProgress(cbRead);
                     }
                 }
+                catch (IOException ex) {
+                    this.connIoException = ex;
+                }
                 catch (OperationCanceledException ex) {
                     e = ex;
                 }
 
-                if (this.freezeConsole && connection is IHaveIceCubes)
-                    await ((IHaveIceCubes) connection).DebugUnFreeze();
+                if (this.freezeConsole && connection is IHaveIceCubes) {
+                    try {
+                        await ((IHaveIceCubes) connection).DebugUnFreeze();
+                    }
+                    catch (IOException) {
+                        // ignored -- maybe connIoException is already non-null
+                    }
+                }
 
                 if (e != null)
                     throw e;
-                
+
+                if (this.connIoException != null)
+                    this.FailNow(pauseOrCancelToken);
+
                 this.isDoneDownloading = true;
             }, CancellationToken.None);
 
             Task taskFileIO = Task.Run(async () => {
                 while (!this.isDoneDownloading || !this.buffers.IsEmpty) {
                     while (!pauseOrCancelToken.IsCancellationRequested && this.buffers.TryDequeue(out byte[]? buffer)) {
-                        await this.fileOutput.WriteAsync(buffer, CancellationToken.None);
+                        try {
+                            await this.fileOutput.WriteAsync(buffer, CancellationToken.None);
+                        }
+                        catch (Exception ex) {
+                            this.fileException = ex;
+                            this.FailNow(pauseOrCancelToken);
+                        }
                     }
 
                     pauseOrCancelToken.ThrowIfCancellationRequested();
@@ -225,6 +275,14 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             }, CancellationToken.None);
 
             await Task.WhenAll(taskDownload, taskFileIO);
+        }
+
+        private void FailNow(CancellationToken pauseOrCancelToken) {
+            bool cancelled = this.RequestCancellation();
+            Debug.Assert(cancelled); // this task is cancellable so it should be true
+
+            pauseOrCancelToken.ThrowIfCancellationRequested();
+            Debug.Fail("Unreachable statement");
         }
     }
 }

@@ -32,10 +32,10 @@ namespace MemEngine360.BaseFrontEnd.Services;
 
 public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IUserInputContent {
     public static readonly StyledProperty<uint> StringLengthProperty = AvaloniaProperty.Register<SavedResultDataTypeEditorUserInputControl, uint>(nameof(StringLength));
-    
+
     private UserInputDialogView? myDialog;
     private SavedResultDataTypeUserInputInfo? myData;
-    private DataType lastIntegerDataType;
+    private DataType lastNumericDataType;
     private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(SavedResultDataTypeUserInputInfo), nameof(SavedResultDataTypeUserInputInfo.DataTypeChanged), (x) => ((SavedResultDataTypeUserInputInfo) x).DataType, (x, y) => ((SavedResultDataTypeUserInputInfo) x).DataType = y);
 
     private readonly IBinder<SavedResultDataTypeUserInputInfo> displayAsHexBinder = new AvaloniaPropertyToEventPropertyBinder<SavedResultDataTypeUserInputInfo>(CheckBox.IsCheckedProperty, nameof(SavedResultDataTypeUserInputInfo.DisplayAsHexChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.DisplayAsHex, (b) => b.Model.DisplayAsHex = ((ToggleButton) b.Control).IsChecked == true);
@@ -47,10 +47,10 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
         get => this.GetValue(StringLengthProperty);
         set => this.SetValue(StringLengthProperty, value);
     }
-    
+
     public SavedResultDataTypeEditorUserInputControl() {
         this.InitializeComponent();
-        
+
         this.stringScanModeBinder.Assign(this.PART_String_ASCII, StringType.ASCII);
         this.stringScanModeBinder.Assign(this.PART_String_UTF8, StringType.UTF8);
         this.stringScanModeBinder.Assign(this.PART_String_UTF16, StringType.UTF16);
@@ -62,20 +62,18 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
                 case DataType.Int32:
                 case DataType.Int64:
                 case DataType.Float:
-                case DataType.Double: {
+                case DataType.Double:
                     ((TabControl) b.Control).SelectedIndex = 0;
                     break;
-                }
-                case DataType.String: {
-                    ((TabControl) b.Control).SelectedIndex = 1;
-                    break;
-                }
-                default: throw new ArgumentOutOfRangeException();
+                case DataType.String:  ((TabControl) b.Control).SelectedIndex = 1; break;
+                case DataType.ByteArray: ((TabControl) b.Control).SelectedIndex = 2; break;
+                default:               throw new ArgumentOutOfRangeException();
             }
         }, (b) => {
             switch (((TabControl) b.Control).SelectedIndex) {
-                case 0: b.Model.DataType = this.lastIntegerDataType; break;
+                case 0: b.Model.DataType = this.lastNumericDataType; break;
                 case 1: b.Model.DataType = DataType.String; break;
+                case 2: b.Model.DataType = DataType.ByteArray; break;
             }
         });
     }
@@ -90,7 +88,7 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
     public void Connect(UserInputDialogView dialog, UserInputInfo info) {
         this.myDialog = dialog;
         this.myData = (SavedResultDataTypeUserInputInfo) info;
-        this.lastIntegerDataType = this.myData.DataType;
+        this.lastNumericDataType = this.myData.DataType;
         this.myData.DataTypeChanged += this.MyDataOnDataTypeChanged;
         this.myData.StringLengthChanged += this.MyDataOnStringLengthChanged;
         this.selectedTabIndexBinder.Attach(this.PART_TabControl, this.myData);
@@ -102,8 +100,8 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
     }
 
     private void MyDataOnDataTypeChanged(SavedResultDataTypeUserInputInfo sender) {
-        if (sender.DataType != DataType.String) {
-            this.lastIntegerDataType = sender.DataType;
+        if (sender.DataType.IsNumeric()) {
+            this.lastNumericDataType = sender.DataType;
         }
     }
 

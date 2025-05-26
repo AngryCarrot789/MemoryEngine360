@@ -32,9 +32,9 @@ using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Xbox360XBDM.Consoles;
 
-public class ConsoleTypeXbox360Xbdm : RegisteredConsoleType {
+public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
     public const string TheID = "console.xbox360.xbdm-coreimpl"; // -coreimpl suffix added to core plugins, not that we need to but eh
-    public static readonly RegisteredConsoleType Instance = new ConsoleTypeXbox360Xbdm();
+    public static readonly RegisteredConnectionType Instance = new ConnectionTypeXbox360Xbdm();
 
     public override string DisplayName => "Xbox 360 (XBDM)";
 
@@ -44,7 +44,7 @@ public class ConsoleTypeXbox360Xbdm : RegisteredConsoleType {
 
     public override Icon? Icon => SimpleIcons.Xbox360Icon;
 
-    private ConsoleTypeXbox360Xbdm() {
+    private ConnectionTypeXbox360Xbdm() {
     }
 
     public override IEnumerable<IContextObject> GetRemoteContextOptions() {
@@ -76,12 +76,13 @@ public class ConsoleTypeXbox360Xbdm : RegisteredConsoleType {
         BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
 
         try {
-            PhantomRTMConsoleConnection? result = await ActivityManager.Instance.RunTask(async () => {
+            XbdmConsoleConnection? result = await ActivityManager.Instance.RunTask(async () => {
                 IActivityProgress progress = ActivityManager.Instance.GetCurrentProgressOrEmpty();
-                progress.Caption = "PhantomRTM";
+                progress.Caption = "XBDM Connection";
                 progress.Text = "Connecting to console...";
                 progress.IsIndeterminate = true;
                 TcpClient client = new TcpClient();
+                
                 try {
                     await client.ConnectAsync(info.IpAddress, 730, cancellation.Token);
                 }
@@ -103,11 +104,11 @@ public class ConsoleTypeXbox360Xbdm : RegisteredConsoleType {
                     return null;
                 }
 
-                progress.Text = "Waiting for hot chocolate...";
-                StreamReader reader = new StreamReader(client.GetStream());
-                string? response = (await reader.ReadLineAsync(cancellation.Token))?.ToLower();
+                progress.Text = "Connected. Waiting for acknowledgement...";
+                StreamReader reader = new StreamReader(client.GetStream(), leaveOpen:true);
+                string? response = (await Task.Run(() => reader.ReadLine(), cancellation.Token))?.ToLower();
                 if (response == "201- connected") {
-                    return new PhantomRTMConsoleConnection(client, reader);
+                    return new XbdmConsoleConnection(client, reader);
                 }
 
                 await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => IMessageDialogService.Instance.ShowMessage("Error", "Received invalid response from console: " + (response ?? "")));

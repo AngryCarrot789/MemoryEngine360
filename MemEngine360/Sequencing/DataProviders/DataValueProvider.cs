@@ -24,7 +24,7 @@ namespace MemEngine360.Sequencing.DataProviders;
 public delegate void DataValueProviderEventHandler(DataValueProvider sender);
 
 public abstract class DataValueProvider {
-    private bool appendNullCharToString;
+    private bool appendNullCharToString = true;
 
     /// <summary>
     /// Gets or sets whether to add a null-character to the end of strings. Setting this to false could cause the

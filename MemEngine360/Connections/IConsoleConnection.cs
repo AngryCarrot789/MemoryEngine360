@@ -19,6 +19,7 @@
 
 using System.Net.Sockets;
 using System.Numerics;
+using System.Text;
 using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Connections;
@@ -30,7 +31,7 @@ public interface IConsoleConnection {
     /// <summary>
     /// Gets the console type for this connection
     /// </summary>
-    RegisteredConsoleType ConsoleType { get; }
+    RegisteredConnectionType ConnectionType { get; }
 
     /// <summary>
     /// Returns whether the underlying connection is logically connected (as in <see cref="Close"/> has not been called)
@@ -126,9 +127,17 @@ public interface IConsoleConnection {
     /// Reads the given number of single byte characters from the console (ASCII chars)
     /// </summary>
     /// <param name="address">The address to read from</param>
-    /// <param name="count">The number of bytes to read</param>
+    /// <param name="count">The number of chars to read</param>
     /// <param name="removeNull">Removes null characters</param>
     Task<string> ReadString(uint address, uint count, bool removeNull = true);
+    
+    /// <summary>
+    /// Reads the given number of single byte characters from the console (ASCII chars)
+    /// </summary>
+    /// <param name="address">The address to read from</param>
+    /// <param name="count">The number of chars to read</param>
+    /// <param name="encoding">The encoding to use to read chars</param>
+    Task<string> ReadString(uint address, uint count, Encoding encoding);
 
     /// <summary>
     /// Writes the exact number of bytes to the console
@@ -199,6 +208,14 @@ public interface IConsoleConnection {
     /// <param name="address">The address to write to</param>
     /// <param name="value">The string value to write</param>
     Task WriteString(uint address, string value);
+    
+    /// <summary>
+    /// Writes the string's characters to the console (ASCII chars)
+    /// </summary>
+    /// <param name="address">The address to write to</param>
+    /// <param name="value">The string value to write</param>
+    /// <param name="encoding">The encoding to use to write the string</param>
+    Task WriteString(uint address, string value, Encoding encoding);
 
     /// <summary>
     /// Finds a memory pattern in the console
@@ -210,9 +227,29 @@ public interface IConsoleConnection {
     /// <param name="cancellationToken">Used to notify cancellation of the operation</param>
     /// <returns>A task containing the found memory address </returns>
     Task<uint?> FindPattern(uint address, uint count, MemoryPattern pattern, CompletionState? completion = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Figures out if the memory region is either unallocated or intersects a protected region of memory at all,
+    /// even if it's a single byte. Returns false when <see cref="count"/> is 0
+    /// <para>
+    /// When this returns null, the only thing you can really do is assume unprotected using this code:
+    /// <code>
+    /// <![CDATA[
+    /// bool isProtected = (await connection.IsMemoryProtected(addr, cbData)) ?? false
+    /// ]]>
+    /// </code>
+    /// </para>
+    /// </summary>
+    /// <param name="address">The address to start the search</param>
+    /// <param name="count">The number of bytes to search</param>
+    /// <returns>
+    /// True when protected, false when not protected, null when cannot be determined (e.g. this method is
+    /// unsupported), in which case you can just assume the memory is not protected
+    /// </returns>
+    Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);
     
     /// <summary>
     /// Closes the console connection
     /// </summary>
-    void Close();
+    Task Close();
 }

@@ -10,7 +10,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\MemEngine360.BaseFrontEnd\MemEngine360.BaseFrontEnd.csproj" />
-        <ProjectReference Include="..\MemEngine360\MemEngine360.csproj" Private="False"/>
-        <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI.Avalonia\PFXToolKitUI.Avalonia.csproj" Private="False"/>
+        <ProjectReference Include="..\MemEngine360\MemEngine360.csproj"/>
+        <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI.Avalonia\PFXToolKitUI.Avalonia.csproj"/>
     </ItemGroup>
 </Project>

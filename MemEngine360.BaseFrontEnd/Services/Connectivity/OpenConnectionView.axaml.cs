@@ -21,31 +21,50 @@ using Avalonia.Controls;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI;
-using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
+public delegate void OpenConnectionViewCurrentConnectionChangedEventHandler(OpenConnectionView sender, IConsoleConnection? oldCurrentConnection, IConsoleConnection? newCurrentConnection);
+
 /// <summary>
-/// The view for the Connect to Console window
+/// The view used to present a means of connecting to a console
 /// </summary>
-public partial class ConnectToConsoleView : UserControl {
+public partial class OpenConnectionView : UserControl {
+    /// <summary>
+    /// Gets the registry that maps <see cref="UserConnectionInfo"/> models to a control to present in this view.
+    /// When a model is not registered, the application crashes. Register a blank function that just returns new Control()
+    /// if you don't need a control but still want to use the UCInfo for some reason
+    /// </summary>
     public static readonly ModelControlRegistry<UserConnectionInfo, Control> Registry;
 
-    public IMemEngineUI EngineUI { get; set; }
+    public MemoryEngine360 MemoryEngine360 { get; internal set; }
 
-    public string? FocusedTypeId { get; set; }
+    public string? TypeToFocusOnOpened { get; internal set; }
 
-    private readonly AsyncRelayCommand connectCommand;
+    private IConsoleConnection? currentConnection;
+
+    public IConsoleConnection? CurrentConnection {
+        get => this.currentConnection;
+        private set {
+            IConsoleConnection? oldCurrentConnection = this.currentConnection;
+            if (oldCurrentConnection != value) {
+                this.currentConnection = value;
+                this.CurrentConnectionChanged?.Invoke(this, oldCurrentConnection, value);
+            }
+        }
+    }
+
+    public event OpenConnectionViewCurrentConnectionChangedEventHandler? CurrentConnectionChanged;
+
     private CancellationTokenSource? currCts;
     private bool isConnecting;
 
-    public ConnectToConsoleView() {
+    public OpenConnectionView() {
         this.InitializeComponent();
         this.PART_ListBox.SelectionMode = SelectionMode.Single;
         this.PART_ListBox.SelectionChanged += this.PART_ListBoxOnSelectionChanged;
@@ -56,32 +75,18 @@ public partial class ConnectToConsoleView : UserControl {
             }
         };
 
-        this.PART_ConfirmButton.Command = this.connectCommand = new AsyncRelayCommand(async () => {
+        this.PART_ConfirmButton.Command = new AsyncRelayCommand(async () => {
             this.isConnecting = true;
             this.UpdateConnectButton();
 
             ConsoleTypeListBoxItem? selection = ((ConsoleTypeListBoxItem?) this.PART_ListBox.SelectedItem);
             if (selection != null && selection.RegisteredConsoleType != null) {
-                bool fireConnectionChanging = false;
-                if (this.EngineUI!.MemoryEngine360.Connection != null) {
-                    // Someone's naughty plugin set the connection after the window has opened.
-                    // We could disconnect it but it would be sort of unsafe so just ask the user if they're sure
-                    if (await IMessageDialogService.Instance.ShowMessage(
-                            "Connection still valid", 
-                            "Still connected to a console, somehow. Are you sure you want to continue?", 
-                            MessageBoxButton.OKCancel) != MessageBoxResult.OK) {
-                        return;
-                    }
-
-                    fireConnectionChanging = true;
-                }
-                
                 this.currCts = new CancellationTokenSource();
-                using IDisposable? token = await this.EngineUI.MemoryEngine360.BeginBusyOperationActivityAsync("Connect to console", cancellationTokenSource: this.currCts);
+                using IDisposable? token = await this.MemoryEngine360!.BeginBusyOperationActivityAsync("Connect to console", cancellationTokenSource: this.currCts);
                 if (token != null) {
                     IConsoleConnection? connection;
                     try {
-                        connection = await selection.RegisteredConsoleType.OpenConnection(this.EngineUI.MemoryEngine360, selection.UserConnectionInfo, this.currCts);
+                        connection = await selection.RegisteredConsoleType.OpenConnection(this.MemoryEngine360, selection.UserConnectionInfo, this.currCts);
                     }
                     catch (Exception e) {
                         await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
@@ -89,17 +94,7 @@ public partial class ConnectToConsoleView : UserControl {
                     }
 
                     if (connection != null) {
-                        if (fireConnectionChanging)
-                            await this.EngineUI.MemoryEngine360.BroadcastConnectionAboutToChange(EmptyActivityProgress.Instance);
-                        
-                        this.EngineUI.MemoryEngine360.SetConnection(token, connection, ConnectionChangeCause.User);
-                        this.EngineUI.Activity = "Connected to console";
-
-                        ContextEntryGroup entry = this.EngineUI.RemoteCommandsContextEntry;
-                        foreach (IContextObject en in connection.ConsoleType.GetRemoteContextOptions()) {
-                            entry.Items.Add(en);
-                        }
-
+                        this.CurrentConnection = connection;
                         if (TopLevel.GetTopLevel(this) is DesktopWindow window) {
                             window.Close();
                         }
@@ -116,20 +111,20 @@ public partial class ConnectToConsoleView : UserControl {
         });
     }
 
-    static ConnectToConsoleView() {
+    static OpenConnectionView() {
         Registry = new ModelControlRegistry<UserConnectionInfo, Control>();
     }
 
     internal void OnWindowOpened() {
         ConsoleTypeListBoxItem? selected = null;
         ConsoleConnectionManager service = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
-        foreach (RegisteredConsoleType type in service.RegisteredConsoleTypes) {
+        foreach (RegisteredConnectionType type in service.RegisteredConsoleTypes) {
             ConsoleTypeListBoxItem item = new ConsoleTypeListBoxItem() {
-                Engine = this.EngineUI.MemoryEngine360,
+                Engine = this.MemoryEngine360,
                 RegisteredConsoleType = type
             };
-            
-            if (selected == null && this.FocusedTypeId != null && type.RegisteredId == this.FocusedTypeId)
+
+            if (selected == null && this.TypeToFocusOnOpened != null && type.RegisteredId == this.TypeToFocusOnOpened)
                 selected = item;
             this.PART_ListBox.Items.Add(item);
         }
@@ -148,7 +143,7 @@ public partial class ConnectToConsoleView : UserControl {
         }
 
         this.currCts = null;
-        
+
         foreach (ConsoleTypeListBoxItem itm in this.PART_ListBox.Items)
             itm!.RegisteredConsoleType = null;
         this.PART_ListBox.Items.Clear();
@@ -174,7 +169,7 @@ public partial class ConnectToConsoleView : UserControl {
         if (!(TopLevel.GetTopLevel(this) is DesktopWindow window) || window.IsClosed) {
             return;
         }
-        
+
         this.PART_ConfirmButton.Content = this.isConnecting ? "Connecting..." : "Connect";
         this.PART_ConfirmButton.Width = this.isConnecting ? 90 : 72;
     }

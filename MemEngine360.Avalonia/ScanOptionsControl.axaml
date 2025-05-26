@@ -77,15 +77,6 @@
             </TabItem>
             <TabItem Header="Float" ToolTip.Tip="Search options for floating point numbers (float/single, double)">
                 <StackPanel Margin="3" Spacing="3">
-                    <RadioButton x:Name="PART_DTFloat_UseExactValue" Content="Use Exact">
-                        <ToolTip.Tip>
-                            <TextBlock TextWrapping="Wrap">
-                                <Run Text="Does not post-process the console value before comparing. This usually is not what you want to use."/>
-                                <LineBreak/>
-                                <Run Text="E.g. if the console contains '23.12783' and you search for '23.13', they won't match because you're basically searching for '23.13000'"/>
-                            </TextBlock>
-                        </ToolTip.Tip>
-                    </RadioButton>
                     <RadioButton x:Name="PART_DTFloat_Truncate" Content="Truncated to query">
                         <ToolTip.Tip>
                             <TextBlock TextWrapping="Wrap">
@@ -122,6 +113,8 @@
                     </Grid>
                     <CheckBox Content="Ignore Cases" x:Name="PART_IgnoreCases"/>
                 </StackPanel>
+            </TabItem>
+            <TabItem Header="Pattern" ToolTip.Tip="Search options for sequences of bytes">
             </TabItem>
         </TabControl>
     </Grid>

@@ -17,14 +17,17 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
+using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands;
 
@@ -62,8 +65,9 @@ public class EditScanResultValueCommand : Command {
 
         if (ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? theResult)) {
             engine ??= theResult.ScanningProcessor.MemoryEngine360;
-            if (!scanResults.Contains(theResult))
+            if (!scanResults.Contains(theResult)) {
                 scanResults.Add(theResult);
+            }
         }
 
         if (engine == null || scanResults.Count < 1) {
@@ -75,34 +79,24 @@ public class EditScanResultValueCommand : Command {
             return;
         }
 
-        SingleUserInputInfo input;
-        if (scanResults.Count == 1) {
-            input = new SingleUserInputInfo("Change value at 0x" + scanResults[0].Address.ToString("X8"), "Immediately change the value at this address", "Value", scanResults[0].CurrentValue);
-            input.Validate = (args) => {
-                if (scanResults[0].DataType.IsNumeric()) {
-                    MemoryEngine360.CanParseTextAsNumber(args, scanResults[0].DataType, scanResults[0].NumericDisplayType);
-                }
-                else if (args.Input.Length > scanResults[0].FirstValue.Length) {
-                    args.Errors.Add("Length must not exceed the first value's length, otherwise, you'd be writing into an unknown area");
-                }
-            };
-        }
-        else {
-            DataType dataType = scanResults[0].DataType;
-            for (int i = 1; i < scanResults.Count; i++) {
-                if (dataType != scanResults[i].DataType) {
-                    await IMessageDialogService.Instance.ShowMessage("Error", "Data types for the selected results are not all the same");
-                    return;
-                }
+        DataType dataType = scanResults[0].DataType;
+        for (int i = 1; i < scanResults.Count; i++) {
+            if (dataType != scanResults[i].DataType) {
+                await IMessageDialogService.Instance.ShowMessage("Error", "Data types for the selected results are not all the same");
+                return;
             }
-
-            input = new SingleUserInputInfo("Change " + scanResults.Count + " values", "Immediately change the value these addresses", "Value", scanResults[scanResults.Count - 1].CurrentValue);
-            input.Validate = (args) => {
-                if (scanResults[0].DataType.IsNumeric()) {
-                    MemoryEngine360.CanParseTextAsNumber(args, scanResults[0].DataType, scanResults[0].NumericDisplayType);
-                }
-            };
         }
+
+        int c = scanResults.Count;
+        ScanResultViewModel lastResult = scanResults[scanResults.Count - 1];
+        SingleUserInputInfo input = new SingleUserInputInfo(
+            $"Change {c} value{Lang.S(c)}",
+            $"Immediately change the value at {Lang.ThisThese(c)} address{Lang.Es(c)}", "Value",
+            MemoryEngine360.GetStringFromDataValue(lastResult, lastResult.CurrentValue)) {
+            Validate = (args) => {
+                MemoryEngine360.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out _);
+            }
+        };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) != true) {
             return;
@@ -114,23 +108,19 @@ public class EditScanResultValueCommand : Command {
             return;
         }
 
+        ValidationArgs args = new ValidationArgs(input.Text, new List<string>(), false);
+        bool parsed = MemoryEngine360.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out IDataValue? value);
+        Debug.Assert(parsed && value != null);
+        Debug.Assert(dataType == value.DataType);
+        
         using CancellationTokenSource cts = new CancellationTokenSource();
         await ActivityManager.Instance.RunTask(async () => {
             ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Edit value", "Editing values");
             foreach (ScanResultViewModel scanResult in scanResults) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
-
-                string newCurrValue;
-                if (conn.IsConnected) {
-                    await MemoryEngine360.WriteAsText(conn, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, input.Text, (uint) scanResult.FirstValue.Length, engine.IsForcedLittleEndian);
-                    newCurrValue = await MemoryEngine360.ReadAsText(conn, scanResult.Address, scanResult.DataType, scanResult.NumericDisplayType, (uint) scanResult.FirstValue.Length, engine.IsForcedLittleEndian);
-                }
-                else {
-                    newCurrValue = input.Text;
-                }
-
+                await MemoryEngine360.WriteAsDataValue(conn, scanResult.Address, value!);
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                    scanResult.CurrentValue = newCurrValue;
+                    scanResult.CurrentValue = value;
                 });
             }
         }, cts);

@@ -33,11 +33,11 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
         if (engine.Connection == null)
             return Executability.ValidButCannotExecute;
 
-        return engine.Connection is PhantomRTMConsoleConnection ? Executability.Valid : Executability.Invalid;
+        return engine.Connection is XbdmConsoleConnection ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
-        if (engine.Connection == null || !(engine.Connection is PhantomRTMConsoleConnection phantom)) {
+        if (engine.Connection == null || !(engine.Connection is XbdmConsoleConnection xbdm)) {
             return;
         }
 
@@ -52,20 +52,20 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
             using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Sending command");
             if (token != null) {
-                // phantomRTM appends \r\n for us so we remove it
+                // XBDM appends \r\n for us so we remove it
                 string text = info.Text;
                 while (text.EndsWith("\r\n")) {
                     text = text.Substring(0, text.Length - 2);
                 }
 
                 info.Text = text; // allow lastCommand to have \r\n removed
-                ConsoleResponse command = await phantom.SendCommand(text);
+                ConsoleResponse command = await xbdm.SendCommand(text);
                 int crt = (int) command.ResponseType;
 
                 switch (command.ResponseType) {
                     case ResponseType.SingleResponse:
                         if (command.Message.EndsWith("Follows", StringComparison.OrdinalIgnoreCase)) {
-                            await IMessageDialogService.Instance.ShowMessage("Single response with lines", command.Message, string.Join(Environment.NewLine, await phantom.ReadMultiLineResponse()));
+                            await IMessageDialogService.Instance.ShowMessage("Single response with lines", command.Message, string.Join(Environment.NewLine, await xbdm.ReadMultiLineResponse()));
                         }
                         else {
                             await IMessageDialogService.Instance.ShowMessage($"Single response ({crt})", command.Message);
@@ -73,7 +73,7 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
 
                         break;
                     case ResponseType.Connected:                     await IMessageDialogService.Instance.ShowMessage($"Connected ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.MultiResponse:                 await IMessageDialogService.Instance.ShowMessage("Multi-Response", string.Join(Environment.NewLine, await phantom.ReadMultiLineResponse()), defaultButton:MessageBoxResult.OK); break;
+                    case ResponseType.MultiResponse:                 await IMessageDialogService.Instance.ShowMessage("Multi-Response", string.Join(Environment.NewLine, await xbdm.ReadMultiLineResponse()), defaultButton:MessageBoxResult.OK); break;
                     case ResponseType.BinaryResponse:                await IMessageDialogService.Instance.ShowMessage($"Binary Response ({crt})", "(Cannot received data! Command line may now be broken)", command.Message, defaultButton:MessageBoxResult.OK); break;
                     case ResponseType.ReadyForBinary:                await IMessageDialogService.Instance.ShowMessage($"Ready For Binary ({crt})", "(Cannot received data! Command line may now be broken)", command.Message, defaultButton:MessageBoxResult.OK); break;
                     case ResponseType.DedicatedConnection:           await IMessageDialogService.Instance.ShowMessage($"Dedicated Connection ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;

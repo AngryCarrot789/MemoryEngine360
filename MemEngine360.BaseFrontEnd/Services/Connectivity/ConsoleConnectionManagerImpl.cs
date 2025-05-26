@@ -24,28 +24,16 @@ using PFXToolKitUI.Avalonia.Services.Windowing;
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
-    private WeakReference<ConnectToConsoleWindow>? currentWindow;
-    
-    public override Task OpenOrFocusWindow(IMemEngineUI engine, string? focusedTypeId = "console.xbox360.xbdm-coreimpl") {
-        if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-            if (this.currentWindow == null || !this.currentWindow.TryGetTarget(out ConnectToConsoleWindow? existing) || existing.IsClosed) {
-                ConnectToConsoleWindow window = new ConnectToConsoleWindow() {
-                    EngineUI = engine, FocusedTypeId = focusedTypeId
-                };
-
-                if (this.currentWindow == null)
-                    this.currentWindow = new WeakReference<ConnectToConsoleWindow>(window);
-                else
-                    this.currentWindow.SetTarget(window);
-                
-                system.Register(window).Show();
-            }
-            else {
-                existing.Activate();
-                return Task.CompletedTask;
-            }
+    public override async Task<IOpenConnectionView?> ShowOpenConnectionView(MemoryEngine360 engine, string? focusedTypeId = "console.xbox360.xbdm-coreimpl") {
+        if (!WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
+            return null;
         }
 
-        return Task.CompletedTask;
+        OpenConnectionWindow window = new OpenConnectionWindow() {
+            MemoryEngine360 = engine, TypeToFocusOnOpened = focusedTypeId
+        };
+
+        system.Register(window).Show();
+        return window;
     }
 }

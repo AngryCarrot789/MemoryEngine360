@@ -36,6 +36,7 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.Scanners;
+using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
@@ -349,6 +350,8 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
     }
 
     private async Task ParseTextBoxAndUpload(UploadTextBoxInfo info) {
+        Debug.Assert(info.DataType.IsNumeric(), "Cannot upload non-numeric data as of yet");
+
         MemoryEngine360 engine = this.HexDisplayInfo!.MemoryEngine360;
         if (engine.Connection == null) {
             await IMessageDialogService.Instance.ShowMessage("No connection", "Not connected to any console", defaultButton: MessageBoxResult.OK);
@@ -370,45 +373,40 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
         }
 
         ValidationArgs args = new ValidationArgs(input, new List<string>(), false);
-        if (MemoryEngine360.CanParseTextAsNumber(args, info.DataType, intNdt)) {
-            ulong caretIndex = this.SelectionRange.Start.ByteIndex;
+        if (!MemoryEngine360.TryParseTextAsDataValue(args, info.DataType, intNdt, StringType.ASCII, out IDataValue? value)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid text", args.Errors.Count > 0 ? args.Errors[0] : "Could not parse value as " + info.DataType, defaultButton: MessageBoxResult.OK);
+            return;
+        }
 
-            await this.PerformOperationBetweenAutoRefresh(async () => {
-                IConsoleConnection connection;
-                using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Upload DI value");
-                if (token != null && (connection = engine.Connection) != null && connection.IsConnected) {
-                    await MemoryEngine360.WriteAsText(connection, (uint) caretIndex + this.actualStartAddress, info.DataType, NumericDisplayType.Normal, args.Input, (uint) args.Input.Length);
-
-                    if (this.PART_ToggleShowChanges.IsChecked == true && this.myDocument != null && !this.myDocument.IsReadOnly) {
-                        uint dataLength = 0;
-                        switch (info.DataType) {
-                            case DataType.Byte:   dataLength = 1; break;
-                            case DataType.Int16:  dataLength = 2; break;
-                            case DataType.Int32:  dataLength = 4; break;
-                            case DataType.Int64:  dataLength = 8; break;
-                            case DataType.Float:  dataLength = 4; break;
-                            case DataType.Double: dataLength = 8; break;
-                            default:              break;
-                        }
-
-                        if (dataLength > 0) {
-                            byte[] buffer = await connection.ReadBytes((uint) (this.actualStartAddress + caretIndex), dataLength);
-
-                            if (this.PART_ToggleShowChanges.IsChecked == true)
-                                this.changeManager.ProcessChanges((uint) caretIndex, buffer, buffer.Length);
-                            this.myDocument!.WriteBytes((uint) caretIndex, buffer);
-
-                            this.UpdateDataInspector();
-                        }
+        ulong caretIndex = this.SelectionRange.Start.ByteIndex;
+        await this.PerformOperationBetweenAutoRefresh(async () => {
+            IConsoleConnection connection;
+            using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Upload DI value");
+            if (token != null && (connection = engine.Connection) != null && connection.IsConnected) {
+                await MemoryEngine360.WriteAsDataValue(connection, (uint) caretIndex + this.actualStartAddress, value);
+                if (this.PART_ToggleShowChanges.IsChecked == true && this.myDocument != null && !this.myDocument.IsReadOnly) {
+                    uint dataLength = 0;
+                    switch (info.DataType) {
+                        case DataType.Byte:   dataLength = 1; break;
+                        case DataType.Int16:  dataLength = 2; break;
+                        case DataType.Int32:  dataLength = 4; break;
+                        case DataType.Int64:  dataLength = 8; break;
+                        case DataType.Float:  dataLength = 4; break;
+                        case DataType.Double: dataLength = 8; break;
                     }
 
-                    // await this.ReloadSelectionFromConsole((uint) caretIndex, 8);
+                    if (dataLength > 0) {
+                        byte[] buffer = await connection.ReadBytes((uint) (this.actualStartAddress + caretIndex), dataLength);
+
+                        if (this.PART_ToggleShowChanges.IsChecked == true)
+                            this.changeManager.ProcessChanges((uint) caretIndex, buffer, buffer.Length);
+                        this.myDocument!.WriteBytes((uint) caretIndex, buffer);
+
+                        this.UpdateDataInspector();
+                    }
                 }
-            });
-        }
-        else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid text", args.Errors.Count > 0 ? args.Errors[0] : "Could not parse value as " + info.DataType, defaultButton: MessageBoxResult.OK);
-        }
+            }
+        });
     }
 
     private async Task PerformOperationBetweenAutoRefresh(Func<Task> operation) {
@@ -660,7 +658,7 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
 
     protected override void OnOpenedCore() {
         base.OnOpenedCore();
-        
+
         UIInputManager.SetFocusPath(this, "HexDisplayWindow");
         UIInputManager.SetFocusPath(this.PART_HexEditor, "HexDisplayWindow/HexEditor");
         using MultiChangeToken change = DataManager.GetContextData(this).BeginChange();
@@ -680,13 +678,21 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
         this.bytesPerRowBinder.SwitchModel(newData);
         this.autoRefreshAddrBinder.SwitchModel(newData);
         this.autoRefreshLenBinder.SwitchModel(newData);
-        if (oldData != null)
+        if (oldData != null) {
+            oldData.MemoryEngine360.ConnectionAboutToChange -= this.OnConnectionAboutToChange;
             this.endiannessBinder.Detach();
-        if (newData != null)
-            this.endiannessBinder.Attach(newData);
+        }
 
         if (newData != null) {
+            newData.MemoryEngine360.ConnectionAboutToChange += this.OnConnectionAboutToChange;
+            this.endiannessBinder.Attach(newData);
             this.PART_CancelButton.Focus();
+        }
+    }
+
+    private async Task OnConnectionAboutToChange(MemoryEngine360 sender, ulong frame) {
+        if (this.autoRefreshTask != null) {
+            await this.autoRefreshTask.CancelAsync();
         }
     }
 
@@ -720,7 +726,7 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
         ushort val16 = cbRemaining >= 2 ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(daBuf, 0, 2)) : default;
         uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(daBuf, 0, 4)) : 0;
         ulong val64 = cbRemaining >= 8 ? MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(daBuf, 0, 8)) : 0;
-        
+
         // Rather than use something like BinaryPrimitives.ReadUInt32BigEndian, we just
         // reverse the endianness here so that we aren't reversing possibly twice if the user
         // wants to display in LE for some reason
@@ -910,7 +916,7 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
                 }
 
                 TimeSpan timeTaken = DateTime.Now - startTime;
-                
+
                 int sleepMillis = (int) (interval - timeTaken - TimeSpan.FromMilliseconds(5)).TotalMilliseconds;
                 if (sleepMillis > 0) {
                     await Task.Delay(sleepMillis, pauseOrCancelToken);
@@ -918,7 +924,7 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
                 else {
                     await Task.Yield();
                 }
-                
+
                 this.Activity.Progress.Text = $"Auto refresh in progress ({Math.Round(1.0 / (DateTime.Now - startTime).TotalSeconds, 1)} upd/s)";
             }
         }

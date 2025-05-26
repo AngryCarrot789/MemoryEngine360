@@ -31,7 +31,7 @@ public delegate void SetVariableOperationEventHandler(SetMemoryOperation sender)
 public class SetMemoryOperation : BaseSequenceOperation {
     private uint address;
     private DataValueProvider? dataValueProvider;
-    private uint iterateCount;
+    private uint iterateCount = 1;
 
     /// <summary>
     /// Gets or sets the address we write at
@@ -60,7 +60,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
     }
 
     /// <summary>
-    /// Gets or sets the number of times to repeat writing the value. Default is 0, meaning do not repeat, just write once
+    /// Gets or sets the number of times to write the value. Default is 1, meaning write once. Setting this to 0 basically disables this operation
     /// </summary>
     public uint IterateCount {
         get => this.iterateCount;
@@ -84,6 +84,10 @@ public class SetMemoryOperation : BaseSequenceOperation {
     }
 
     protected override async Task RunOperation(SequenceExecutionContext ctx, CancellationToken token) {
+        if (this.iterateCount < 1) {
+            return; // no point in doing anything when we won't write anything
+        }
+        
         DataValueProvider? provider = this.dataValueProvider;
         IDataValue? value;
         if (provider != null && (value = provider.Provide()) != null) {
@@ -97,9 +101,13 @@ public class SetMemoryOperation : BaseSequenceOperation {
 
             try {
                 ctx.Progress.Text = "Setting memory";
-                bool appendNullChar = value.DataType == DataType.String && provider.AppendNullCharToString;
                 uint count = this.iterateCount;
-                byte[] data = value.GetBytes(ctx.Connection.IsLittleEndian);
+                byte[] data = value.GetBytes();
+                if (value.DataType.IsEndiannessSensitive() && BitConverter.IsLittleEndian != ctx.Connection.IsLittleEndian) {
+                    Array.Reverse(data);
+                }
+                
+                bool appendNullChar = value.DataType == DataType.String && provider.AppendNullCharToString;
                 byte[] buffer = new byte[data.Length * count + (appendNullChar ? 1 : 0)];
                 for (int i = 0, j = 0; i < count; i++, j += data.Length) {
                     Buffer.BlockCopy(data, 0, buffer, j, data.Length);
