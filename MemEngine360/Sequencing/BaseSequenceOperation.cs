@@ -57,12 +57,18 @@ public abstract class BaseSequenceOperation : ITransferableData {
     public abstract string DisplayName { get; }
 
     /// <summary>
+    /// Gets the random trigger helper for this operation
+    /// </summary>
+    public RandomTriggerHelper RandomTriggerHelper { get; }
+
+    /// <summary>
     /// Fired when <see cref="IsRunning"/> changes. This may be fired on any thread
     /// </summary>
     public event BaseSequenceOperationEventHandler? IsRunningChanged;
 
     protected BaseSequenceOperation() {
         this.TransferableData = new TransferableData(this);
+        this.RandomTriggerHelper = new RandomTriggerHelper();
     }
 
     /// <summary>
@@ -79,10 +85,14 @@ public abstract class BaseSequenceOperation : ITransferableData {
             throw new InvalidOperationException("Already running");
         }
 
+        if (!await this.RandomTriggerHelper.TryTrigger(token)) {
+            return;
+        }
+
         this.IsRunning = true;
         
         OperationCanceledException? cancellation = null;
-        using (ErrorList list = new ErrorList()) {
+        using (ErrorList list = new ErrorList("One or more errors occurred", true, true)) {
             try {
                 await this.RunOperation(ctx, token);
             }

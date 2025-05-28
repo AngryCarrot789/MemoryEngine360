@@ -61,7 +61,7 @@ public partial class OpenConnectionWindow : DesktopWindow, IOpenConnectionView {
         base.OnClosed(e);
         this.PART_ConnectToConsoleView.OnWindowClosed();
         this.closedConnection = this.PART_ConnectToConsoleView.CurrentConnection;
-        this.tcs?.SetResult(this.closedConnection);
+        this.tcs?.TrySetResult(this.closedConnection);
     }
 
     public Task<IConsoleConnection?> WaitForClose() {

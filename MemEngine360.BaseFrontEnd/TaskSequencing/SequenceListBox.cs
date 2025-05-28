@@ -36,7 +36,10 @@ public class SequenceListBox : ModelBasedListBox<TaskSequence> {
 
     protected override bool CanDragItemPositionCore => this.TaskSequencerManager != null;
     
-    public SequenceListBox() {
+    // For some reason, to make dragging items work properly, we need to
+    // used cached items. Not entirely sure why, maybe some internal avalonia
+    // states aren't set in new objects but are once they become loaded
+    public SequenceListBox() : base(8) {
         this.ControlSelectionManager = new ModelListBoxSelectionManagerForControl<TaskSequence, ITaskSequenceEntryUI>(this);
     }
 

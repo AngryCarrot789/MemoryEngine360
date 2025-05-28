@@ -21,12 +21,12 @@ using System.Net.Sockets;
 using MemEngine360.BaseFrontEnd;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
-using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using MemEngine360.Xbox360XBDM.Views;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Icons;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 
@@ -60,11 +60,11 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
         yield return new CommandContextEntry("commands.memengine.remote.ShutdownCommand", "Shutdown");
     }
 
-    public override UserConnectionInfo? CreateConnectionInfo(MemoryEngine360 engine) {
-        return new ConnectToXboxInfo(engine);
+    public override UserConnectionInfo? CreateConnectionInfo(IContextData context) {
+        return new ConnectToXboxInfo();
     }
 
-    public override async Task<IConsoleConnection?> OpenConnection(MemoryEngine360 engine, UserConnectionInfo? _info, CancellationTokenSource cancellation) {
+    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, CancellationTokenSource cancellation) {
         ConnectToXboxInfo info = (ConnectToXboxInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.IpAddress)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid address", "Address cannot be an empty string");

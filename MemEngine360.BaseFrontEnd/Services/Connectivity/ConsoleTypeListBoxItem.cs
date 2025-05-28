@@ -23,6 +23,7 @@ using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.AvControls;
 using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
@@ -45,14 +46,14 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
             }
 
             this.myConsoleType = value;
-            this.UserConnectionInfo = value?.CreateConnectionInfo(this.Engine!);
+            this.UserConnectionInfo = value?.CreateConnectionInfo(this.ContextData ?? EmptyContext.Instance);
             this.UserConnectionInfo?.OnCreated();
             
             ToolTip.SetTip(this, value?.RegisteredId);
         }
     }
-    
-    public MemoryEngine360? Engine { get; set; }
+
+    public IContextData? ContextData { get; set; }
 
     public UserConnectionInfo? UserConnectionInfo { get; private set; }
 

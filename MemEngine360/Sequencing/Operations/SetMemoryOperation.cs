@@ -17,6 +17,8 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.ValueAbstraction;
@@ -101,19 +103,9 @@ public class SetMemoryOperation : BaseSequenceOperation {
 
             try {
                 ctx.Progress.Text = "Setting memory";
-                uint count = this.iterateCount;
-                byte[] data = value.GetBytes();
-                if (value.DataType.IsEndiannessSensitive() && BitConverter.IsLittleEndian != ctx.Connection.IsLittleEndian) {
-                    Array.Reverse(data);
-                }
-                
-                bool appendNullChar = value.DataType == DataType.String && provider.AppendNullCharToString;
-                byte[] buffer = new byte[data.Length * count + (appendNullChar ? 1 : 0)];
-                for (int i = 0, j = 0; i < count; i++, j += data.Length) {
-                    Buffer.BlockCopy(data, 0, buffer, j, data.Length);
-                }
-
-                await ctx.Connection.WriteBytes(this.address, buffer);
+                byte[]? buffer = GetDataBuffer(ctx, value, provider, this.iterateCount);
+                if (buffer != null)
+                    await ctx.Connection.WriteBytes(this.address, buffer);
             }
             finally {
                 if (!busyToken.Equals(ctx.BusyToken)) {
@@ -121,5 +113,27 @@ public class SetMemoryOperation : BaseSequenceOperation {
                 }
             }
         }
+    }
+
+    private static byte[]? GetDataBuffer(SequenceExecutionContext ctx, IDataValue value, DataValueProvider provider, uint iterate) {
+        uint byteCount = value.ByteCount;
+        if (byteCount == 0 || (iterate > (int.MaxValue / byteCount)) /* overflow check */) {
+            return null;
+        }
+        
+        Span<byte> bytes = stackalloc byte[(int) byteCount];
+        value.GetBytes(bytes);
+        if (value.DataType.IsEndiannessSensitive() && BitConverter.IsLittleEndian != ctx.Connection.IsLittleEndian) {
+            bytes.Reverse();
+        }
+                
+        bool appendNullChar = value.DataType == DataType.String && provider.AppendNullCharToString;
+        byte[] buffer = new byte[bytes.Length * iterate + (appendNullChar ? 1 : 0)];
+        ref byte bufferAddress = ref MemoryMarshal.GetArrayDataReference(buffer);
+        for (int i = 0, j = 0; i < iterate; i++, j += bytes.Length) {
+            bytes.CopyTo(MemoryMarshal.CreateSpan(ref Unsafe.AddByteOffset(ref bufferAddress, j), bytes.Length));
+        }
+
+        return buffer;
     }
 }

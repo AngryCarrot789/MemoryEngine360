@@ -35,7 +35,7 @@ public class ConnectToXboxInfo : UserConnectionInfo {
         set => DataParameter.SetValueHelper(this, IpAddressParameter, ref this.ipAddress, value);
     }
 
-    public ConnectToXboxInfo(MemoryEngine360 engine) : base(engine) {
+    public ConnectToXboxInfo() {
     }
 
     public override void OnCreated() {

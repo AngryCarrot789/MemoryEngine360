@@ -46,7 +46,8 @@ public class ScanResultViewModel : INotifyPropertyChanged {
             if (value.DataType != this.DataType)
                 throw new ArgumentException($"New value's data type does not match our data type: {value.DataType} != {this.DataType}");
 
-            this.SetField(ref this.currentValue, value ?? throw new ArgumentNullException(nameof(value), nameof(this.CurrentValue) + " cannot be null"));
+            if (!this.currentValue.Equals(value))
+                this.SetField(ref this.currentValue, value ?? throw new ArgumentNullException(nameof(value), nameof(this.CurrentValue) + " cannot be null"));
         }
     }
 
@@ -56,7 +57,8 @@ public class ScanResultViewModel : INotifyPropertyChanged {
             if (value.DataType != this.DataType)
                 throw new ArgumentException($"New value's data type does not match our data type: {value.DataType} != {this.DataType}");
 
-            this.SetField(ref this.previousValue, value ?? throw new ArgumentNullException(nameof(value), nameof(this.PreviousValue) + " cannot be null"));
+            if (!this.previousValue.Equals(value))
+                this.SetField(ref this.previousValue, value ?? throw new ArgumentNullException(nameof(value), nameof(this.PreviousValue) + " cannot be null"));
         }
     }
 

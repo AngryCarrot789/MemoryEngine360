@@ -23,6 +23,6 @@ namespace MemEngine360.BaseFrontEnd.MemoryFreezing;
 
 public partial class MemoryFreezingWindow : Window {
     public MemoryFreezingWindow() {
-        InitializeComponent();
+        this.InitializeComponent();
     }
 }

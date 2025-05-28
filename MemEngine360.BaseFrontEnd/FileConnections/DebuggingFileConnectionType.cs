@@ -18,9 +18,9 @@
 // 
 
 using MemEngine360.Connections;
-using MemEngine360.Engine;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Icons;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.BaseFrontEnd.FileConnections;
@@ -45,11 +45,11 @@ public class DebuggingFileConnectionType : RegisteredConnectionType {
         yield break;
     }
 
-    public override UserConnectionInfo? CreateConnectionInfo(MemoryEngine360 engine) {
-        return new OpenDebuggingFileInfo(engine);
+    public override UserConnectionInfo? CreateConnectionInfo(IContextData context) {
+        return new OpenDebuggingFileInfo();
     }
 
-    public override async Task<IConsoleConnection?> OpenConnection(MemoryEngine360 engine, UserConnectionInfo? _info, CancellationTokenSource cancellation) {
+    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, CancellationTokenSource cancellation) {
         OpenDebuggingFileInfo info = (OpenDebuggingFileInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.FilePath) || !File.Exists(info.FilePath)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid file", "File does not exist");

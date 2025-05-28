@@ -18,9 +18,9 @@
 // 
 
 using System.Runtime.CompilerServices;
-using MemEngine360.Engine;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Icons;
+using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Connections;
 
@@ -30,11 +30,11 @@ namespace MemEngine360.Connections;
 /// </summary>
 public abstract class RegisteredConnectionType {
     internal string? internalRegisteredId;
-    
+
     // TODO: allow custom controls to be presented in the MemEngine connection dialog.
     // Maybe we can use a similar system to the UserInputInfo, where you register a
     // control type with a model class, and we add a method in here called "CreateConsoleUserInputInfo()"
-    
+
     /// <summary>
     /// Gets a readable string which is the name of this console type, e.g. "Xbox 360 (XBDM)".
     /// This is typically shown in the list box of possible consoles to connect to.
@@ -43,13 +43,13 @@ public abstract class RegisteredConnectionType {
     /// </para>
     /// </summary>
     public abstract string DisplayName { get; }
-    
+
     /// <summary>
     /// Gets the text to display below the <see cref="DisplayName"/> in greyed out text.
     /// This can be used to indicate a version, a warning or more.  
     /// </summary>
     public virtual string? FooterText => null;
-    
+
     /// <summary>
     /// Gets a string containing a readable description of this console type. E.g. for an
     /// Xbox 360 XBDM connection, it may say "This connects to the Xbox 360 via TCP to xbdm on port 730".
@@ -86,10 +86,6 @@ public abstract class RegisteredConnectionType {
     /// (and return null from this method).
     /// </para> 
     /// </summary>
-    /// <param name="engine">
-    ///     The engine trying to connect. Do not call <see cref="MemoryEngine360.SetConnection"/>, since it
-    ///     will be done once this async method completes, if it returns a non-null value
-    /// </param>
     /// <param name="_info">
     ///     Information that the user specified in the connection dialog. Value is null when <see cref="CreateConnectionInfo"/> is null
     /// </param>
@@ -100,7 +96,7 @@ public abstract class RegisteredConnectionType {
     /// <returns>
     /// The valid console connection, or null if a connection could not be made, or cancellation was requested
     /// </returns>
-    public abstract Task<IConsoleConnection?> OpenConnection(MemoryEngine360 engine, UserConnectionInfo? _info, CancellationTokenSource cancellation);
+    public abstract Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, CancellationTokenSource cancellation);
 
     /// <summary>
     /// Creates an instance of <see cref="UserConnectionInfo"/> which is used by the front end to
@@ -111,9 +107,9 @@ public abstract class RegisteredConnectionType {
     /// sakes, then return null, and no control will be created
     /// </para>
     /// </summary>
-    /// <param name="engine"></param>
+    /// <param name="context">The context available when the open connection window was opened</param>
     /// <returns>The info to pass to <see cref="OpenConnection"/>, or null if a custom control is not wanted</returns>
-    public virtual UserConnectionInfo? CreateConnectionInfo(MemoryEngine360 engine) {
+    public virtual UserConnectionInfo? CreateConnectionInfo(IContextData context) {
         return null;
     }
 
@@ -122,7 +118,7 @@ public abstract class RegisteredConnectionType {
     // 
     // And besides there's no real reason to implement actual comparison or even
     // have multiple instances of the same console type
-    
+
     public sealed override bool Equals(object? obj) {
         return ReferenceEquals(this, obj);
     }

@@ -17,10 +17,13 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Notifications;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 
@@ -55,46 +58,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
                 return;
             }
 
-            using CancellationTokenSource cts = new CancellationTokenSource();
-            bool isConnectionClearSuccess = await ActivityManager.Instance.RunTask(async () => {
-                ActivityTask task = ActivityManager.Instance.CurrentTask;
-                task.Progress.Caption = "Disconnect from connection";
-                task.Progress.Text = "Stopping all tasks...";
-
-                // ConnectionAboutToChange can be called at any time even if the connection isn't
-                // about to change. It's purely just to signal tasks to stop
-                await memUi.MemoryEngine360.BroadcastConnectionAboutToChange(frame);
-
-                task.Progress.Text = "Waiting for busy operations...";
-                using IDisposable? token = await memUi.MemoryEngine360.BeginBusyOperationAsync(task.CancellationToken);
-                if (token == null) {
-                    return false;
-                }
-
-                // Doesn't matter if the connection became null in the meantime
-                IConsoleConnection? existingConnection = memUi.MemoryEngine360.GetConnection(token);
-                if (existingConnection == null) {
-                    return true;
-                }
-
-                await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                    memUi.MemoryEngine360.SetConnection(token, frame, null, ConnectionChangeCause.User);
-                });
-
-                try {
-                    await existingConnection.Close();
-                }
-                catch (Exception) {
-                    // ignored
-                }
-
-                if (ILatestActivityView.LatestActivityDataKey.TryGetContext(e.ContextData, out ILatestActivityView? view))
-                    view.Activity = "Disconnected from console";
-
-                return true;
-            }, cts);
-
-            if (!isConnectionClearSuccess) {
+            if (!await DisconnectInActivity(memUi, frame)) {
                 return;
             }
         }
@@ -109,7 +73,27 @@ public class OpenConsoleConnectionDialogCommand : Command {
                     // do anything else with the connection since the user cancelled the operation
                     if ((token = await SetEngineConnectionAndHandleProblemsAsync(memUi.MemoryEngine360, connection, frame)) == null) {
                         await connection.Close();
+                        connection = null;
                     }
+                }
+
+                if (connection != null) {
+                    new TextNotification() {
+                        Caption = "Connected", Text = $"Connect to '{connection.ConnectionType.DisplayName}'",
+                        ContextData = new ContextData().Set(IMemEngineUI.MemUIDataKey, memUi),
+                        Commands = {
+                            new LambdaNotificationCommand("Disconnect", static async (c) => {
+                                if (c.ContextData != null) {
+                                    IMemEngineUI mem = IMemEngineUI.MemUIDataKey.GetContext(c.ContextData)!;
+                                    if (mem.MemoryEngine360.Connection != null)
+                                        await DisconnectInActivity(mem, 0);
+                                }
+
+                                c.Notification?.Close();
+                            })
+                        },
+                        AutoHideDelay = TimeSpan.FromSeconds(3)
+                    }.Open(memUi.NotificationManager);
                 }
             }
             finally {
@@ -117,6 +101,52 @@ public class OpenConsoleConnectionDialogCommand : Command {
                 token?.Dispose();
             }
         }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="e"></param>
+    /// <param name="memUi"></param>
+    /// <param name="frame"></param>
+    /// <returns>False when token could not be acquired</returns>
+    private static async Task<bool> DisconnectInActivity(IMemEngineUI memUi, ulong frame) {
+        using CancellationTokenSource cts = new CancellationTokenSource();
+        bool isOperationCancelled = await ActivityManager.Instance.RunTask(async () => {
+            ActivityTask task = ActivityManager.Instance.CurrentTask;
+            task.Progress.Caption = "Disconnect from connection";
+            task.Progress.Text = "Stopping all tasks...";
+
+            // ConnectionAboutToChange can be called at any time even if the connection isn't
+            // about to change. It's purely just to signal tasks to stop
+            await memUi.MemoryEngine360.BroadcastConnectionAboutToChange(frame);
+
+            task.Progress.Text = "Waiting for busy operations...";
+            using IDisposable? token = await memUi.MemoryEngine360.BeginBusyOperationAsync(task.CancellationToken);
+            if (token == null) {
+                return false;
+            }
+
+            // Doesn't matter if the connection became null in the meantime
+            IConsoleConnection? existingConnection = memUi.MemoryEngine360.GetConnection(token);
+            if (existingConnection != null) {
+                await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                    memUi.MemoryEngine360.SetConnection(token, frame, null, ConnectionChangeCause.User);
+                });
+
+                try {
+                    await existingConnection.Close();
+                }
+                catch (Exception) {
+                    // ignored
+                }
+
+                memUi.Activity = "Disconnected from console";
+            }
+
+            return true;
+        }, cts);
+        return isOperationCancelled;
     }
 
     /// <summary>
@@ -128,26 +158,49 @@ public class OpenConsoleConnectionDialogCommand : Command {
     /// </para>
     /// </summary>
     /// <param name="engine">The memory engine</param>
-    /// <param name="connection">The new connection</param>
+    /// <param name="newConnection">The new connection</param>
     /// <param name="frame">The connection changing frame</param>
     /// <returns>The token</returns>
-    public static async Task<IDisposable?> SetEngineConnectionAndHandleProblemsAsync(MemoryEngine360 engine, IConsoleConnection connection, ulong frame) {
+    public static async Task<IDisposable?> SetEngineConnectionAndHandleProblemsAsync(MemoryEngine360 engine, IConsoleConnection newConnection, ulong frame) {
+        ArgumentNullException.ThrowIfNull(engine);
+        ArgumentNullException.ThrowIfNull(newConnection);
+
         IDisposable? token = await engine.BeginBusyOperationActivityAsync("Change connection");
         if (token == null) {
             return null;
         }
 
-        if (engine.Connection != null) {
+        IConsoleConnection? oldConnection = engine.Connection;
+        Debug.Assert(oldConnection != newConnection);
+
+        if (oldConnection != null) {
             // Somehow a connection was set before we got here and user doesn't want to overwrite it.
             // Maybe they opened two windows for some reason? Perhaps via the task sequencer and main window.
-            
+
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
             if (result != MessageBoxResult.OK) {
-                await connection.Close();
+                try {
+                    await newConnection.Close();
+                }
+                catch (Exception) {
+                    // ignored
+                }
+
+                return token;
             }
         }
 
-        engine.SetConnection(token, frame, connection, ConnectionChangeCause.User);
+        engine.SetConnection(token, frame, newConnection, ConnectionChangeCause.User);
+        if (oldConnection != null) {
+            // Always close AFTER changing, just in case a listener wants to send data or whatever
+            try {
+                await oldConnection.Close();
+            }
+            catch (Exception) {
+                // ignored
+            }
+        }
+
         return token;
     }
 }

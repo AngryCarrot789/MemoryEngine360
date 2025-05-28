@@ -43,9 +43,7 @@ public abstract class BaseNumericDataValue<T> : IDataValue where T : unmanaged, 
             throw new ArgumentException($"Buffer is too small ({buffer.Length} < {TypeSize})");
         }
         
-        Span<byte> bytes = stackalloc byte[TypeSize];
-        Unsafe.As<byte, T>(ref bytes.GetPinnableReference()) = this.Value;
-        bytes.CopyTo(buffer);
+        Unsafe.As<byte, T>(ref buffer.GetPinnableReference()) = this.Value;
     }
 
     protected BaseNumericDataValue(T myValue, DataType dataType) {
@@ -58,7 +56,9 @@ public abstract class BaseNumericDataValue<T> : IDataValue where T : unmanaged, 
     }
 
     public bool Equals(IDataValue? other) {
-        return other != null && other.DataType == this.DataType && other.BoxedValue == this.BoxedValue;
+        if (ReferenceEquals(other, this))
+            return true;
+        return other != null && other.DataType == this.DataType && other is BaseNumericDataValue<T> numeric && this.Equals(numeric);
     }
 
     public override bool Equals(object? obj) {

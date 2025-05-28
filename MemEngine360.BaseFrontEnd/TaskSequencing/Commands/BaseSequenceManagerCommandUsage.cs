@@ -24,12 +24,12 @@ using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Commands;
 
-public abstract class BaseSequenceCommandUsage : SimpleButtonCommandUsage {
+public abstract class BaseSequenceManagerCommandUsage : SimpleButtonCommandUsage {
     public MemoryEngine360? Engine { get; private set; }
     
-    public TaskSequence? TaskSequence { get; private set; }
+    public TaskSequencerManager? TaskSequencerManager { get; private set; }
 
-    protected BaseSequenceCommandUsage(string commandId) : base(commandId) {
+    protected BaseSequenceManagerCommandUsage(string commandId) : base(commandId) {
     }
 
     protected override void OnConnected() {
@@ -39,18 +39,18 @@ public abstract class BaseSequenceCommandUsage : SimpleButtonCommandUsage {
 
     protected override void OnContextChanged() {
         base.OnContextChanged();
-        TaskSequence? oldSeq = this.TaskSequence;
-        TaskSequence? newSeq = null;
-        if (this.GetContextData() is IContextData data) {
-            ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(data, out newSeq);
+        TaskSequencerManager? oldManager = this.TaskSequencerManager;
+        TaskSequencerManager? newManager = null;
+        if (this.GetContextData() is IContextData data && ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(data, out ITaskSequencerUI? ui)) {
+            newManager = ui.Manager;
         }
 
-        if (oldSeq != newSeq) {
+        if (oldManager != newManager) {
             MemoryEngine360? oldEngine = this.Engine;
-            MemoryEngine360? newEngine = newSeq?.Manager?.Engine;
+            MemoryEngine360? newEngine = newManager?.Engine;
             
-            this.TaskSequence = newSeq;
-            this.OnTaskSequenceChanged(oldSeq, newSeq);
+            this.TaskSequencerManager = newManager;
+            this.OnTaskSequencerManagerChanged(oldManager, newManager);
             if (oldEngine != newEngine) {
                 this.Engine = newEngine;
                 this.OnEngineChanged(oldEngine, newEngine);
@@ -60,15 +60,10 @@ public abstract class BaseSequenceCommandUsage : SimpleButtonCommandUsage {
         }
     }
 
-    protected virtual void OnTaskSequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {
+    protected virtual void OnTaskSequencerManagerChanged(TaskSequencerManager? oldManager, TaskSequencerManager? newManager) {
         
     }
 
-    /// <summary>
-    /// Always called after <see cref="OnTaskSequenceChanged"/>. Invoked when the effective engine changes
-    /// </summary>
-    /// <param name="oldEngine">Previous engine ref</param>
-    /// <param name="newEngine">New engine ref</param>
     protected virtual void OnEngineChanged(MemoryEngine360? oldEngine, MemoryEngine360? newEngine) {
         
     }

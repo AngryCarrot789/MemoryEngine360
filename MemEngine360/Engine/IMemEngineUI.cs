@@ -21,6 +21,7 @@ using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Notifications;
 
 namespace MemEngine360.Engine;
 
@@ -34,6 +35,11 @@ public interface IMemEngineUI : ILatestActivityView {
     /// Gets the memory engine
     /// </summary>
     MemoryEngine360 MemoryEngine360 { get; }
+    
+    /// <summary>
+    /// Gets the memory engine window's notification manager
+    /// </summary>
+    NotificationManager NotificationManager { get; }
     
     /// <summary>
     /// Gets our top-level menu

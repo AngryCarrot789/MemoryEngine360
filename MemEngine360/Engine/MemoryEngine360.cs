@@ -348,7 +348,7 @@ public class MemoryEngine360 {
             LinkedListNode<CancellableTaskCompletionSource>? tcs = this.EnqueueAsyncWaiter(cancellationToken);
             if (tcs == null) {
                 if (this.busyCount == 0) {
-                    continue;
+                    goto TryTakeToken;
                 }
 
                 try {
@@ -374,6 +374,7 @@ public class MemoryEngine360 {
                 }
             }
 
+            TryTakeToken:
             token = this.BeginBusyOperation();
         }
 

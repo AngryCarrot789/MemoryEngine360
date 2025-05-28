@@ -27,8 +27,8 @@ public abstract class BaseSequenceIsRunningDependentCommandUsage : BaseSequenceC
     protected BaseSequenceIsRunningDependentCommandUsage(string commandId) : base(commandId) {
     }
 
-    protected override void OnSequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {
-        base.OnSequenceChanged(oldSeq, newSeq);
+    protected override void OnTaskSequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {
+        base.OnTaskSequenceChanged(oldSeq, newSeq);
         if (oldSeq != null)
             oldSeq.IsRunningChanged -= this.OnIsRunningChanged;
         if (newSeq != null)

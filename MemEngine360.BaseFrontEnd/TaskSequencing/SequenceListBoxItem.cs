@@ -53,14 +53,16 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
     private MemoryEngine360? myEngine;
 
     public TaskSequence TaskSequence => this.Model ?? throw new Exception("Not connected to a model");
-    
+
     public SequenceListBoxItem() {
+        this.nameBinder.AttachControl(this);
+        this.AddBinderForModel(this.nameBinder, this.busyLockPriorityBinder, this.runCountBinder);
     }
-    
+
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
         base.OnApplyTemplate(e);
         this.SetDragSourceControl(e.NameScope.GetTemplateChild<Border>("PART_DragGrip"));
-        
+
         this.PART_CancelActivityButton = e.NameScope.GetTemplateChild<IconButton>(nameof(this.PART_CancelActivityButton));
         this.PART_RunButton = e.NameScope.GetTemplateChild<IconButton>(nameof(this.PART_RunButton));
 
@@ -75,9 +77,6 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
     }
 
     protected override void OnAddedToList() {
-        this.nameBinder.Attach(this, this.Model!);
-        this.busyLockPriorityBinder.AttachModel(this.Model!);
-        this.runCountBinder.AttachModel(this.Model!);
         this.myEngine = this.Model!.Manager!.Engine;
 
         using MultiChangeToken batch = DataManager.GetContextData(this).BeginChange();
@@ -85,9 +84,6 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
     }
 
     protected override void OnRemovingFromList() {
-        this.nameBinder.DetachModel();
-        this.busyLockPriorityBinder.DetachModel();
-        this.runCountBinder.DetachModel();
         this.myEngine = null;
 
         using MultiChangeToken batch = DataManager.GetContextData(this).BeginChange();

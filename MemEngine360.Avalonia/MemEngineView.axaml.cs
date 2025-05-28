@@ -39,6 +39,7 @@ using PFXToolKitUI.Avalonia.Interactivity.Selecting;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Notifications;
 using PFXToolKitUI.PropertyEditing.DataTransfer.Enums;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
@@ -57,7 +58,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
     // PFX framework uses binders to simplify "binding" model values to controls
     // and vice versa. There's a bunch of different binders that exist for us to use.
 
-    private readonly IBinder<MemoryEngine360> connectedHostNameBinder =
+    private readonly EventPropertyBinder<MemoryEngine360> connectedHostNameBinder =
         new EventPropertyBinder<MemoryEngine360>(
             nameof(MemoryEngine360.ConnectionChanged),
             (b) => {
@@ -82,9 +83,9 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
                 }
 
                 b.Control.SetValue(TextBlock.TextProperty, text);
-            }, null /* UI changes do not reflect back into models, so no updateModel */);
+            } /* UI changes do not reflect back into models, so no updateModel */);
 
-    private readonly IBinder<ScanningProcessor> isScanningBinder =
+    private readonly EventPropertyBinder<ScanningProcessor> isScanningBinder =
         new EventPropertyBinder<ScanningProcessor>(
             nameof(ScanningProcessor.IsScanningChanged),
             (b) => {
@@ -114,7 +115,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         else {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
         }
-        
+
         return false;
     });
 
@@ -138,7 +139,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         else {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
         }
-        
+
         return false;
     });
 
@@ -165,13 +166,13 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         else {
             processor.SetScanRange((uint) (start - overflowAmount), length);
         }
-        
+
         return true;
     }
 
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
-    
+
     // Will reimplement at some point
     // private readonly IBinder<MemoryEngine360> forceLEBinder = new AvaloniaPropertyToEventPropertyBinder<MemoryEngine360>(ToggleButton.IsCheckedProperty, nameof(MemoryEngine360.IsForcedLittleEndianChanged), (b) => {
     //     ((ToggleButton) b.Control).IsChecked = b.Model.IsForcedLittleEndian;
@@ -180,13 +181,15 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
     //     b.Model.IsForcedLittleEndian = ((ToggleButton) b.Control).IsChecked;
     //     b.Model.ScanningProcessor.RefreshSavedAddressesLater();
     // });
-    
+
     private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
     private readonly AsyncRelayCommand editAlignmentCommand;
 
     #endregion
 
     public MemoryEngine360 MemoryEngine360 { get; }
+
+    public NotificationManager NotificationManager => this.PART_NotificationListBox.NotificationManager!;
 
     public TopLevelMenuRegistry TopLevelMenuRegistry { get; }
 
@@ -412,6 +415,25 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
 
         this.PART_ScanOptionsControl.MemoryEngine360 = this.MemoryEngine360;
         this.PART_ActivityListPanel.KeyDown += this.PART_ActivityListPanelOnKeyDown;
+
+        this.PART_NotificationListBox.NotificationManager = new NotificationManager();
+        
+        this.MemoryEngine360.ScanningProcessor.IsScanningChanged += this.OnIsScanningChanged;
+    }
+
+    private ActivityNotification? notification;
+    
+    private void OnIsScanningChanged(ScanningProcessor sender) {
+        if (sender.IsScanning) {
+            if (this.notification == null) {
+                this.notification = new ActivityNotification(sender.ScanningActivity!);
+                this.NotificationManager.AddNotification(this.notification);
+            }
+        }
+        else if (this.notification != null) {
+            this.notification.Close();
+            this.notification = null;
+        }
     }
 
     private void PART_ActivityListPanelOnKeyDown(object? sender, KeyEventArgs e) {
@@ -448,6 +470,18 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
         }, (sender, oldIndex, newIndex, item) => {
             this.themesSubList.Items.Move(oldIndex, newIndex);
         }).AddExistingItems();
+
+        // if (Debugger.IsAttached) {
+        //     this.NotificationManager.AddNotification(new TextNotification() {
+        //         Caption = "Test", Text = "Hello there!!!", Commands = {
+        //             new LambdaNotificationCommand(async (ctx) => {
+        //                 await IMessageDialogService.Instance.ShowMessage("Test...", "Ello", defaultButton: MessageBoxResult.OK);
+        //             }) {
+        //                 Text = "Show MSG Box", ContextData = new EmptyContext()
+        //             }
+        //         }
+        //     });
+        // }
     }
 
     private class SetThemeContextEntry : CustomContextEntry {
@@ -474,7 +508,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI, ILatestActivityV
             case ConnectionChangeCause.LostConnection: this.Activity = "Lost connection to console"; break;
             default:                                   throw new ArgumentOutOfRangeException(nameof(cause), cause, null);
         }
-        
+
         ContextEntryGroup entry = this.RemoteCommandsContextEntry;
         if (newConn != null) {
             foreach (IContextObject en in newConn.ConnectionType.GetRemoteContextOptions()) {

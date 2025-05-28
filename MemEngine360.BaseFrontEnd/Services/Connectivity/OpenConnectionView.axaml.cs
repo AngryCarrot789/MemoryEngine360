@@ -23,6 +23,7 @@ using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
@@ -86,7 +87,7 @@ public partial class OpenConnectionView : UserControl {
                 if (token != null) {
                     IConsoleConnection? connection;
                     try {
-                        connection = await selection.RegisteredConsoleType.OpenConnection(this.MemoryEngine360, selection.UserConnectionInfo, this.currCts);
+                        connection = await selection.RegisteredConsoleType.OpenConnection(selection.UserConnectionInfo, this.currCts);
                     }
                     catch (Exception e) {
                         await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
@@ -116,12 +117,13 @@ public partial class OpenConnectionView : UserControl {
     }
 
     internal void OnWindowOpened() {
+        IContextData context = new ContextData().Set(MemoryEngine360.DataKey, this.MemoryEngine360);
+        
         ConsoleTypeListBoxItem? selected = null;
         ConsoleConnectionManager service = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
         foreach (RegisteredConnectionType type in service.RegisteredConsoleTypes) {
             ConsoleTypeListBoxItem item = new ConsoleTypeListBoxItem() {
-                Engine = this.MemoryEngine360,
-                RegisteredConsoleType = type
+                RegisteredConsoleType = type, ContextData = context
             };
 
             if (selected == null && this.TypeToFocusOnOpened != null && type.RegisteredId == this.TypeToFocusOnOpened)
@@ -144,7 +146,7 @@ public partial class OpenConnectionView : UserControl {
 
         this.currCts = null;
 
-        foreach (ConsoleTypeListBoxItem itm in this.PART_ListBox.Items)
+        foreach (ConsoleTypeListBoxItem? itm in this.PART_ListBox.Items)
             itm!.RegisteredConsoleType = null;
         this.PART_ListBox.Items.Clear();
     }

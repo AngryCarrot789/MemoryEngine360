@@ -18,7 +18,6 @@
 // 
 
 using MemEngine360.Connections;
-using MemEngine360.Engine;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Utils.Accessing;
 
@@ -34,7 +33,7 @@ public class OpenDebuggingFileInfo : UserConnectionInfo {
         set => DataParameter.SetValueHelper(this, FilePathParameter, ref this.filePath, value);
     }
 
-    public OpenDebuggingFileInfo(MemoryEngine360 engine) : base(engine) {
+    public OpenDebuggingFileInfo() {
         this.filePath = FilePathParameter.GetDefaultValue(this);
     }
 

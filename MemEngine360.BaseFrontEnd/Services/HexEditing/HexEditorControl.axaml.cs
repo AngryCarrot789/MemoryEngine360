@@ -910,6 +910,9 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
                 catch (OperationCanceledException) {
                     throw;
                 }
+                catch (IOException) {
+                    return;
+                }
                 catch {
                     Debugger.Break();
                     return;

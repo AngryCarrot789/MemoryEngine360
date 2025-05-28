@@ -118,7 +118,7 @@ random delay times, etc.
 
 ![](MemEngine360-DesktopUI_2025-05-17_20.04.01.png)
 
-In this example, we set 0x8303A988 to an int value of 22, wait 2 seconds, set the value to 44, and wait 1 second.
+In this example, we set 0x8303A988 to an int value of 22, wait 500 millis, set the value to 44, and wait 1 second.
 
 You can add operations by clicking the buttons in the top-right corner. So far, only setting memory and delay are available.
 

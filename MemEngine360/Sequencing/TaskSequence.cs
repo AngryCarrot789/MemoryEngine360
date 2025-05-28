@@ -49,7 +49,7 @@ public sealed class TaskSequence {
     public ReadOnlyObservableList<BaseSequenceOperation> Operations { get; }
 
     /// <summary>
-    /// Gets whether this sequence is currently running
+    /// Gets whether this sequence is currently running. This only changes on the main thread
     /// </summary>
     public bool IsRunning {
         get => this.isRunning;
@@ -153,7 +153,7 @@ public sealed class TaskSequence {
                     }
                 }
             }
-        }, this.Progress, this.myCts, TaskCreationOptions.LongRunning);
+        }, this.Progress, this.myCts);
 
         this.Progress.Text = "Sequence finished";
         this.myCts = null;

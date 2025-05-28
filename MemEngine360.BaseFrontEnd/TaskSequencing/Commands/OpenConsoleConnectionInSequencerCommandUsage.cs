@@ -17,9 +17,24 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Connections;
+using MemEngine360.Engine;
+
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Commands;
 
-public class OpenConsoleConnectionInSequencerCommandUsage : BaseSequenceCommandUsage {
+public class OpenConsoleConnectionInSequencerCommandUsage : BaseSequenceManagerCommandUsage {
     public OpenConsoleConnectionInSequencerCommandUsage() : base("commands.memengine.OpenConsoleConnectionInSequencerCommand") {
+    }
+
+    protected override void OnEngineChanged(MemoryEngine360? oldEngine, MemoryEngine360? newEngine) {
+        base.OnEngineChanged(oldEngine, newEngine);
+        if (oldEngine != null)
+            oldEngine.ConnectionChanged -= this.OnConnectionChanged;
+        if (newEngine != null)
+            newEngine.ConnectionChanged += this.OnConnectionChanged;
+    }
+
+    private void OnConnectionChanged(MemoryEngine360 sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
+        this.UpdateCanExecuteLater();
     }
 }

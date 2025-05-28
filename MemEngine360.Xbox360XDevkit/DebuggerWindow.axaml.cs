@@ -28,7 +28,7 @@ public partial class DebuggerWindow : DesktopWindow {
     public MemoryEngine360 Engine { get; }
     
     public DebuggerWindow(MemoryEngine360 engine) {
-        InitializeComponent();
+        this.InitializeComponent();
         this.Engine = engine;
 
         // Devkit360Connection connection = null!;

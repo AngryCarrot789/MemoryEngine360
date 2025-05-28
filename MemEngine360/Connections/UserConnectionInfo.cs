@@ -27,12 +27,9 @@ namespace MemEngine360.Connections;
 /// properties that can be used during <see cref="RegisteredConnectionType.OpenConnection"/>
 /// </summary>
 public abstract class UserConnectionInfo : ITransferableData {
-    public MemoryEngine360 Engine { get; }
-    
     public TransferableData TransferableData { get; }
 
-    protected UserConnectionInfo(MemoryEngine360 engine) {
-        this.Engine = engine ?? throw new ArgumentNullException(nameof(engine));
+    protected UserConnectionInfo() {
         this.TransferableData = new TransferableData(this);
     }
 

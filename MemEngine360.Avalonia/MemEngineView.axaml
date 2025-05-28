@@ -14,6 +14,7 @@
              xmlns:ac="clr-namespace:MemEngine360.BaseFrontEnd.Commands;assembly=MemEngine360.BaseFrontEnd"
              xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd;assembly=MemEngine360.BaseFrontEnd"
              xmlns:sa="clr-namespace:MemEngine360.BaseFrontEnd.SavedAddressing;assembly=MemEngine360.BaseFrontEnd"
+             xmlns:notifications="clr-namespace:PFXToolKitUI.Avalonia.Notifications;assembly=PFXToolKitUI.Avalonia"
              mc:Ignorable="d"
              x:Class="MemEngine360.Avalonia.MemEngineView">
     <DockPanel>
@@ -360,42 +361,47 @@
                 <GridSplitter Grid.Column="2" Grid.Row="1" Background="Transparent"/>
                 <GridSplitter Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="2" Background="Transparent"/>
             </Grid>
-            <Border x:Name="PART_ActivityListPanel"
-                    Margin="0,0,5,5"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Bottom"
-                    Width="300"
-                    Height="180"
-                    BorderThickness="1"
-                    Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                    Focusable="True"
-                    IsVisible="False">
-                <Border.Styles>
-                    <Style Selector="Border">
-                        <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone7.Border.Static}"/>
-                    </Style>
-                    <Style Selector="Border[IsKeyboardFocusWithin=True]">
-                        <Setter Property="BorderBrush" Value="{DynamicResource ABrush.AccentTone2.Background.Static}"/>
-                    </Style>
-                </Border.Styles>
-                <Border.Effect>
-                    <DropShadowEffect OffsetX="0" OffsetY="0" Opacity="0.6"/>
-                </Border.Effect>
-                <DockPanel>
-                    <Border DockPanel.Dock="Top" Height="24"
-                            BorderBrush="{DynamicResource ABrush.Tone7.Border.Static}"
-                            BorderThickness="0,0,0,1">
-                        <DockPanel>
-                            <Button Content="X" Click="CloseActivityListButtonClicked"
-                                    Padding="0" DockPanel.Dock="Right"
-                                    Background="Transparent" BorderThickness="0"
-                                    Width="23"/>
-                            <TextBlock Text="Background Activities" Padding="4,2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                        </DockPanel>
-                    </Border>
-                    <aa:ActivityListControl x:Name="PART_ActivityList" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
-                </DockPanel>
-            </Border>
+            <StackPanel HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,5,5"
+                        Width="300"
+                        Spacing="5">
+                <Border>
+                    <notifications:NotificationListBox x:Name="PART_NotificationListBox"/>
+                </Border>
+                <Border x:Name="PART_ActivityListPanel"
+                        Height="180"
+                        BorderThickness="1"
+                        Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                        Focusable="True"
+                        IsVisible="False">
+                    <Border.Styles>
+                        <Style Selector="Border">
+                            <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone7.Border.Static}"/>
+                        </Style>
+                        <Style Selector="Border[IsKeyboardFocusWithin=True]">
+                            <Setter Property="BorderBrush" Value="{DynamicResource ABrush.AccentTone2.Background.Static}"/>
+                        </Style>
+                    </Border.Styles>
+                    <Border.Effect>
+                        <DropShadowEffect OffsetX="0" OffsetY="0" Opacity="0.6"/>
+                    </Border.Effect>
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top" Height="24"
+                                BorderBrush="{DynamicResource ABrush.Tone7.Border.Static}"
+                                BorderThickness="0,0,0,1">
+                            <DockPanel>
+                                <Button Content="X" Click="CloseActivityListButtonClicked"
+                                        Padding="0" DockPanel.Dock="Right"
+                                        Background="Transparent" BorderThickness="0"
+                                        Width="23"/>
+                                <TextBlock Text="Background Activities" Padding="4,2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </DockPanel>
+                        </Border>
+                        <aa:ActivityListControl x:Name="PART_ActivityList" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
+                    </DockPanel>
+                </Border>
+            </StackPanel>
         </Grid>
     </DockPanel>
 </UserControl>

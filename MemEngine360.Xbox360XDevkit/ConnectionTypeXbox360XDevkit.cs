@@ -21,11 +21,11 @@ using System.Runtime.InteropServices;
 using MemEngine360.BaseFrontEnd;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
-using MemEngine360.Engine;
 using MemEngine360.Xbox360XDevkit.Views;
 using XDevkit;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Icons;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 
@@ -56,11 +56,11 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
         yield return new CommandContextEntry("commands.memengine.remote.DebugUnfreezeCommand", "Debug Un-freeze");
     }
 
-    public override UserConnectionInfo? CreateConnectionInfo(MemoryEngine360 engine) {
-        return new ConnectToXboxInfo(engine);
+    public override UserConnectionInfo? CreateConnectionInfo(IContextData context) {
+        return new ConnectToXboxInfo();
     }
 
-    public override async Task<IConsoleConnection?> OpenConnection(MemoryEngine360 engine, UserConnectionInfo? _info, CancellationTokenSource cancellation) {
+    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, CancellationTokenSource cancellation) {
         ConnectToXboxInfo info = (ConnectToXboxInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.IpAddress)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid address", "Address cannot be an empty string");

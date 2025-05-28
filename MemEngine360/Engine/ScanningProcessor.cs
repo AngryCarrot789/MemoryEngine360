@@ -364,7 +364,6 @@ public class ScanningProcessor {
             ApplicationPFX.Instance.Dispatcher.VerifyAccess();
         };
 
-        // Adds up to 100 items per second
         this.rldaMoveBufferIntoResultList = RateLimitedDispatchActionBase.ForDispatcherSync(() => {
             for (int i = 0; i < 10 && this.resultBuffer.TryDequeue(out ScanResultViewModel? result); i++) {
                 this.ScanResults.Add(result);
@@ -610,7 +609,7 @@ public class ScanningProcessor {
                     this.MemoryEngine360.CheckConnection();
             });
         }, progress, cts);
-
+        
         try {
             await this.ScanningActivity;
         }

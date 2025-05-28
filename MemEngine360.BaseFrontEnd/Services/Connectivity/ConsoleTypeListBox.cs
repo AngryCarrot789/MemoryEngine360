@@ -23,8 +23,4 @@ namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public class ConsoleTypeListBox : ListBox {
     protected override Type StyleKeyOverride => typeof(ListBox);
-
-    protected override Control CreateContainerForItemOverride(object? item, int index, object? recycleKey) {
-        return new ConsoleTypeListBoxItem();
-    }
 }
