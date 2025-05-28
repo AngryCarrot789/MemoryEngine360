@@ -30,7 +30,7 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent;
 /// additional details that wouldn't otherwise fit into a <see cref="MemEngine360.BaseFrontEnd.TaskSequencing.ListContent.BaseOperationListContent"/>
 /// </summary>
 public class BaseOperationEditorContent : UserControl {
-    public static readonly ModelTypeControlRegistry<BaseOperationEditorContent> Registry = new ModelTypeControlRegistry<BaseOperationEditorContent>();
+    public static readonly ModelTypeMultiControlRegistry<BaseOperationEditorContent> Registry = new ModelTypeMultiControlRegistry<BaseOperationEditorContent>();
     public static readonly StyledProperty<BaseSequenceOperation?> OperationProperty = AvaloniaProperty.Register<BaseOperationEditorContent, BaseSequenceOperation?>(nameof(Operation));
 
     /// <summary>
@@ -41,6 +41,11 @@ public class BaseOperationEditorContent : UserControl {
         set => this.SetValue(OperationProperty, value);
     }
 
+    /// <summary>
+    /// Gets the caption to display in the header of the editor control
+    /// </summary>
+    public virtual string Caption => "Operation";
+
     public BaseOperationEditorContent() {
     }
     
@@ -48,6 +53,7 @@ public class BaseOperationEditorContent : UserControl {
         OperationProperty.Changed.AddClassHandler<BaseOperationEditorContent, BaseSequenceOperation?>((o, e) => o.OnOperationChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
         Registry.RegisterType(typeof(DelayOperation), () => new DelayOperationEditorContent());
         Registry.RegisterType(typeof(SetMemoryOperation), () => new SetMemoryOperationEditorContent());
+        Registry.RegisterType(typeof(BaseSequenceOperation), () => new RandomTriggerEditorContent());
     }
     
     protected virtual void OnOperationChanged(BaseSequenceOperation? oldOperation, BaseSequenceOperation? newOperation) {

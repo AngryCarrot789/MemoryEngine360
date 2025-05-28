@@ -23,39 +23,135 @@ using MemEngine360.Engine.Modes;
 
 namespace MemEngine360.ValueAbstraction;
 
+public abstract class BaseNumericDataValue : IDataValue {
+    public DataType DataType { get; }
+    public abstract object BoxedValue { get; }
+    public abstract uint ByteCount { get; }
+
+    protected BaseNumericDataValue(DataType dataType) {
+        this.DataType = dataType;
+    }
+
+    public abstract bool TryConvertTo(DataType dataType, out BaseNumericDataValue? value);
+    
+    public abstract byte ToByte();
+    public abstract short ToShort();
+    public abstract int ToInt();
+    public abstract long ToLong();
+    public abstract float ToFloat();
+    public abstract double ToDouble();
+    
+
+    public abstract void GetBytes(Span<byte> buffer);
+
+    public abstract bool Equals(IDataValue? other);
+}
+
 /// <summary>
 /// The base class for a numeric <see cref="IDataValue"/>
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public abstract class BaseNumericDataValue<T> : IDataValue where T : unmanaged, INumber<T>, IEquatable<T>, IComparable<T> {
+public abstract class BaseNumericDataValue<T> : BaseNumericDataValue where T : unmanaged, INumber<T>, IEquatable<T>, IComparable<T> {
     private static readonly int TypeSize = Unsafe.SizeOf<T>();
-    
-    public DataType DataType { get; }
-
     public T Value { get; }
 
-    public object BoxedValue => this.Value;
-    
-    public uint ByteCount => (uint) TypeSize;
-    
-    public void GetBytes(Span<byte> buffer) {
+    public override object BoxedValue => this.Value;
+
+    public override uint ByteCount => (uint) TypeSize;
+
+    protected BaseNumericDataValue(T myValue, DataType dataType) : base(dataType) {
+        this.Value = myValue;
+    }
+
+    public override bool TryConvertTo(DataType dataType, out BaseNumericDataValue? value) => (value = this.ConvertTo(dataType)) != null;
+
+    public BaseNumericDataValue? ConvertTo(DataType dataType) {
+        switch (dataType) {
+            case DataType.Byte:   return new DataValueByte(this.ToByte());
+            case DataType.Int16:  return new DataValueInt16(this.ToShort());
+            case DataType.Int32:  return new DataValueInt32(this.ToInt());
+            case DataType.Int64:  return new DataValueInt64(this.ToLong());
+            case DataType.Float:  return new DataValueFloat(this.ToFloat());
+            case DataType.Double: return new DataValueDouble(this.ToDouble());
+            default:              return null;
+        }
+    }
+
+    public override byte ToByte() {
+        T value = this.Value;
+        if (typeof(T) == typeof(byte))
+            return Unsafe.As<T, byte>(ref value);
+        if (typeof(T) == typeof(float))
+            return (byte) Math.Clamp(Unsafe.As<T, float>(ref value), byte.MinValue, byte.MaxValue);
+        if (typeof(T) == typeof(double))
+            return (byte) Math.Clamp(Unsafe.As<T, double>(ref value), byte.MinValue, byte.MaxValue);
+        return (byte) Math.Clamp(Convert.ToInt64(value), byte.MinValue, byte.MaxValue);
+    }
+
+    public override short ToShort() {
+        T value = this.Value;
+        if (typeof(T) == typeof(short))
+            return Unsafe.As<T, short>(ref value);
+        if (typeof(T) == typeof(float))
+            return (short) Math.Clamp(Unsafe.As<T, float>(ref value), short.MinValue, short.MaxValue);
+        if (typeof(T) == typeof(double))
+            return (short) Math.Clamp(Unsafe.As<T, double>(ref value), short.MinValue, short.MaxValue);
+        return (short) Math.Clamp(Convert.ToInt64(value), short.MinValue, short.MaxValue);
+    }
+
+    public override int ToInt() {
+        T value = this.Value;
+        if (typeof(T) == typeof(int))
+            return Unsafe.As<T, int>(ref value);
+        if (typeof(T) == typeof(float))
+            return (int) Math.Clamp(Unsafe.As<T, float>(ref value), int.MinValue, int.MaxValue);
+        if (typeof(T) == typeof(double))
+            return (int) Math.Clamp(Unsafe.As<T, double>(ref value), int.MinValue, int.MaxValue);
+        return (int) Math.Clamp(Convert.ToInt64(value), int.MinValue, int.MaxValue);
+    }
+
+    public override long ToLong() {
+        T value = this.Value;
+        if (typeof(T) == typeof(long))
+            return Unsafe.As<T, long>(ref value);
+        if (typeof(T) == typeof(float))
+            return (long) Math.Clamp(Unsafe.As<T, float>(ref value), long.MinValue, long.MaxValue);
+        if (typeof(T) == typeof(double))
+            return (long) Math.Clamp(Unsafe.As<T, double>(ref value), long.MinValue, long.MaxValue);
+        return Math.Clamp(Convert.ToInt64(value), long.MinValue, long.MaxValue);
+    }
+
+    public override float ToFloat() {
+        T value = this.Value;
+        if (typeof(T) == typeof(float))
+            return Unsafe.As<T, float>(ref value);
+        if (typeof(T) == typeof(double))
+            return (float) Math.Clamp(Unsafe.As<T, double>(ref value), float.MinValue, float.MaxValue);
+        return Math.Clamp(Convert.ToSingle(value), float.MinValue, float.MaxValue);
+    }
+
+    public override double ToDouble() {
+        T value = this.Value;
+        if (typeof(T) == typeof(float))
+            return Unsafe.As<T, float>(ref value);
+        if (typeof(T) == typeof(double))
+            return Unsafe.As<T, double>(ref value);
+        return Math.Clamp(Convert.ToDouble(value), double.MinValue, double.MaxValue);
+    }
+
+    public override void GetBytes(Span<byte> buffer) {
         if (buffer.Length < TypeSize) {
             throw new ArgumentException($"Buffer is too small ({buffer.Length} < {TypeSize})");
         }
-        
-        Unsafe.As<byte, T>(ref buffer.GetPinnableReference()) = this.Value;
-    }
 
-    protected BaseNumericDataValue(T myValue, DataType dataType) {
-        this.Value = myValue;
-        this.DataType = dataType;
+        Unsafe.As<byte, T>(ref buffer.GetPinnableReference()) = this.Value;
     }
 
     protected bool Equals(BaseNumericDataValue<T> other) {
         return this.DataType == other.DataType && this.Value == other.Value;
     }
 
-    public bool Equals(IDataValue? other) {
+    public override bool Equals(IDataValue? other) {
         if (ReferenceEquals(other, this))
             return true;
         return other != null && other.DataType == this.DataType && other is BaseNumericDataValue<T> numeric && this.Equals(numeric);
@@ -70,7 +166,7 @@ public abstract class BaseNumericDataValue<T> : IDataValue where T : unmanaged, 
             return false;
         return value is BaseNumericDataValue<T> ? this.Equals((BaseNumericDataValue<T>) obj) : this.Equals(value);
     }
-    
+
     public override int GetHashCode() {
         return HashCode.Combine((int) this.DataType, this.Value);
     }
@@ -98,21 +194,22 @@ public class DataValueString : IDataValue {
     public string Value { get; }
 
     public StringType StringType { get; }
-    
+
     public object BoxedValue => this.Value;
-    
+
     public uint ByteCount => this.StringType.GetByteCount(this.Value);
 
     public DataValueString(string value, StringType stringType) {
         this.Value = value;
         this.StringType = stringType;
-        
+
         switch (this.StringType) {
             case StringType.ASCII:
-            case StringType.UTF8: 
+            case StringType.UTF8:
             case StringType.UTF16:
-            case StringType.UTF32: break;
-            default:               throw new ArgumentOutOfRangeException();
+            case StringType.UTF32:
+                break;
+            default: throw new ArgumentOutOfRangeException();
         }
     }
 
@@ -133,7 +230,7 @@ public class DataValueString : IDataValue {
             return true;
         return obj is DataValueString str && this.Equals(str);
     }
-    
+
     public override int GetHashCode() {
         return HashCode.Combine((int) this.DataType, this.Value);
     }
@@ -169,7 +266,7 @@ public class DataValueByteArray : IDataValue {
             return true;
         return obj is DataValueByteArray str && this.Equals(str);
     }
-    
+
     public override int GetHashCode() {
         return HashCode.Combine((int) this.DataType, this.Value);
     }

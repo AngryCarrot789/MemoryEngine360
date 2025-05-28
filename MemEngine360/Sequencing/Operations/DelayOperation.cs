@@ -22,19 +22,23 @@ namespace MemEngine360.Sequencing.Operations;
 public delegate void DelayOperationEventHandler(DelayOperation sender);
 
 public class DelayOperation : BaseSequenceOperation {
-    private uint delay;
+    private TimeSpan delay = TimeSpan.Zero;
 
     /// <summary>
     /// Gets or sets this operation's delay time. Setting to null results in <see cref="RunOperation"/> returning a completed task
     /// </summary>
-    public uint Delay {
+    public TimeSpan Delay {
         get => this.delay;
         set {
-            if (this.delay == value)
-                return;
-
-            this.delay = value;
-            this.DelayChanged?.Invoke(this);
+            if (this.delay != value) {
+                if (value.TotalMilliseconds < 0)
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "Delay must be positive");
+                if (value.TotalMilliseconds >= int.MaxValue)
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "Delay is too large");
+                
+                this.delay = value;
+                this.DelayChanged?.Invoke(this);
+            }
         }
     }
 
@@ -45,12 +49,12 @@ public class DelayOperation : BaseSequenceOperation {
     public DelayOperation() {
     }
 
-    public DelayOperation(uint delay) {
-        this.delay = delay;
+    public DelayOperation(uint delayMillis) {
+        this.delay = TimeSpan.FromMilliseconds(delayMillis);
     }
 
     protected override Task RunOperation(SequenceExecutionContext ctx, CancellationToken token) {
         ctx.Progress.Text = "Waiting " + this.delay + " ms";
-        return Task.Delay((int) this.Delay, token);
+        return Task.Delay(this.Delay, token);
     }
 }

@@ -21,19 +21,24 @@ using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Operations;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
 
 public partial class DelayOperationListContent : BaseOperationListContent {
-    private readonly IBinder<DelayOperation> delayBinder = new TextBoxToEventPropertyBinder<DelayOperation>(nameof(DelayOperation.DelayChanged), (b) => b.Model.Delay.ToString(), async (b, text) => {
-        if (uint.TryParse(text, out uint value)) {
-            b.Model.Delay = value;
-            return true;
-        }
-        else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Delay is an invalid (unsigned) integer.", defaultButton: MessageBoxResult.OK);
+    private readonly IBinder<DelayOperation> delayBinder = new TextBoxToEventPropertyBinder<DelayOperation>(nameof(DelayOperation.DelayChanged), (b) => TimeSpanUtils.ConvertToString(b.Model.Delay), async (b, text) => {
+        if (!TimeSpanUtils.TryParseTime(text, out TimeSpan value, out string? errorMessage)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid time", errorMessage, defaultButton: MessageBoxResult.OK);
             return false;
         }
+        
+        if (TimeSpanUtils.IsOutOfRangeForDelay(value, out errorMessage)) {
+            await IMessageDialogService.Instance.ShowMessage("Delay out of range", errorMessage, defaultButton: MessageBoxResult.OK);
+            return false;
+        }
+
+        b.Model.Delay = value;
+        return true;
     });
     
     public DelayOperationListContent() {

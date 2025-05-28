@@ -20,7 +20,6 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using MemEngine360.Connections;
-using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.AvControls;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Interactivity.Contexts;

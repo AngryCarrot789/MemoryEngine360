@@ -27,7 +27,7 @@ public delegate void RandomTriggerHelperEventHandler(RandomTriggerHelper sender)
 public class RandomTriggerHelper {
     private readonly Random random = new Random();
     private TimeSpan? waitForTriggerInterval;
-    private int chance;
+    private uint chance = 1;
 
     /// <summary>
     /// Gets or sets how long to sleep in a loop waiting until we trigger. When non-null,
@@ -37,6 +37,10 @@ public class RandomTriggerHelper {
         get => this.waitForTriggerInterval;
         set {
             if (this.waitForTriggerInterval != value) {
+                if (value is TimeSpan ts && (ts.TotalMilliseconds < 0 || ts.TotalMilliseconds >= uint.MaxValue)) {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "TimeSpan is out of range. Cannot be negative or millis cannot exceed uint.MaxValue");
+                }
+                
                 this.waitForTriggerInterval = value;
                 this.WaitForTriggerIntervalChanged?.Invoke(this);
             }
@@ -44,13 +48,13 @@ public class RandomTriggerHelper {
     }
 
     /// <summary>
-    /// Gets or sets the chance that we can trigger successfully.
+    /// Gets or sets the chance that we can trigger successfully. Minimum value is 1
     /// For example. if set to 10, there's a 1/10 chance of triggering. If set to a value equal or below 1, we can always trigger
     /// </summary>
-    public int Chance {
+    public uint Chance {
         get => this.chance;
         set {
-            if (this.chance != value) {
+            if (this.chance != (value = Math.Max(value, 1))) {
                 this.chance = value;
                 this.ChanceChanged?.Invoke(this);
             }
@@ -69,20 +73,21 @@ public class RandomTriggerHelper {
     /// <param name="token">A cancellation token to cancel the trigger countdowns</param>
     public async Task<bool> TryTrigger(CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        int theChance = this.Chance;
+        uint theChance = this.Chance;
         if (theChance <= 1) {
             return true;
         }
 
-        int rnd = this.random.Next(0, theChance);
+        int rnd = this.random.Next(0, (int) theChance);
         if (rnd == 0) {
             return true;
         }
 
+        // When WaitForTriggerInterval is null, we skip the loop and just return false
         TimeSpan? delay;
         while ((delay = this.WaitForTriggerInterval).HasValue) {
             await Task.Delay(delay.Value, token);
-            if ((theChance = this.Chance) <= 1 || (rnd = this.random.Next(0, theChance)) == 0) {
+            if ((theChance = this.Chance) <= 1 || (rnd = this.random.Next(0, (int) theChance)) == 0) {
                 return true;
             }
         }

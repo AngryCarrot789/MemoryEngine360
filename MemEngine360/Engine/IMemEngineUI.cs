@@ -28,19 +28,24 @@ namespace MemEngine360.Engine;
 /// <summary>
 /// An abstraction around the MemEngine360 main window
 /// </summary>
-public interface IMemEngineUI : ILatestActivityView {
+public interface IMemEngineUI {
     public static readonly DataKey<IMemEngineUI> MemUIDataKey = DataKey<IMemEngineUI>.Create("IMemEngineUI");
-    
+
+    /// <summary>
+    /// A data key used by the connection change notification to tell whether a disconnection originated from the notification's "Disconnect" command
+    /// </summary>
+    public static readonly DataKey<bool> IsDisconnectFromNotification = DataKey<bool>.Create("IsDisconnectFromNotification");
+
     /// <summary>
     /// Gets the memory engine
     /// </summary>
     MemoryEngine360 MemoryEngine360 { get; }
-    
+
     /// <summary>
     /// Gets the memory engine window's notification manager
     /// </summary>
     NotificationManager NotificationManager { get; }
-    
+
     /// <summary>
     /// Gets our top-level menu
     /// </summary>
@@ -55,7 +60,7 @@ public interface IMemEngineUI : ILatestActivityView {
     /// Gets the scan result list selection manager
     /// </summary>
     IListSelectionManager<ScanResultViewModel> ScanResultSelectionManager { get; }
-    
+
     /// <summary>
     /// Gets the saved address list selection manager
     /// </summary>

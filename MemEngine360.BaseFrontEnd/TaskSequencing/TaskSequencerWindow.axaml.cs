@@ -17,7 +17,6 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -29,6 +28,7 @@ using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Tasks;
 
@@ -52,12 +52,10 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
 
     public IOperationItemUI? PrimarySelectedOperation { get; private set; }
 
-    private readonly Dictionary<Type, BaseOperationEditorContent> itemEditorCacheMap;
+    private ModelTypeMultiControlList<BaseOperationEditorContent>? currentSelectionList;
     
     public TaskSequencerWindow() {
         this.InitializeComponent();
-        this.itemEditorCacheMap = new Dictionary<Type, BaseOperationEditorContent>();
-        
         this.PART_OperationListBox.TaskSequencerUI = this;
         
         this.SequenceSelectionManager.LightSelectionChanged += this.OnSelectionChanged;
@@ -93,36 +91,18 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
         this.PART_PrimarySelectedOperationText.Text = newPrimary?.Operation.DisplayName ?? (sender.Count == 0 ? "(No operation Selected)" : "(Too many operations selected)");
 
         if (this.PrimarySelectedOperation != null) {
-            BaseOperationEditorContent content = (BaseOperationEditorContent) this.PART_SelectedOperationEditorControl.Content!;
-            BaseSequenceOperation operation = content.Operation!;
-            Debug.Assert(ReferenceEquals(this.PrimarySelectedOperation.Operation, operation));
-            
-            content.Operation = null;
-            this.PART_SelectedOperationEditorControl.Content = null;
-            this.ReleaseOperationEditorObject(operation, content);
+            this.PART_OperationEditorControlsListBox.SetOperation(null);
+            this.PrimarySelectedOperation = null;
         }
 
         if (newPrimary != null) {
-            BaseOperationEditorContent content = this.GetOperationEditorObject(newPrimary.Operation);
-            this.PART_SelectedOperationEditorControl.Content = content;
-            content.Operation = newPrimary.Operation;
+            this.PrimarySelectedOperation = newPrimary;
+            this.PART_OperationEditorControlsListBox.SetOperation(newPrimary.Operation);
         }
-
-        this.PrimarySelectedOperation = newPrimary;
     }
 
     static TaskSequencerWindow() {
         TaskSequencerManagerProperty.Changed.AddClassHandler<TaskSequencerWindow, TaskSequencerManager?>((s, e) => s.OnTaskSequencerManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
-    }
-    
-    public BaseOperationEditorContent GetOperationEditorObject(BaseSequenceOperation operation) {
-        return this.itemEditorCacheMap.Remove(operation.GetType(), out BaseOperationEditorContent? cachedEditor) 
-            ? cachedEditor 
-            : BaseOperationEditorContent.Registry.NewInstance(operation.GetType());
-    }
-
-    public bool ReleaseOperationEditorObject(BaseSequenceOperation operation, BaseOperationEditorContent editor) {
-        return this.itemEditorCacheMap.TryAdd(operation.GetType(), editor);
     }
     
     private void OnTaskSequencerManagerChanged(TaskSequencerManager? oldManager, TaskSequencerManager? newManager) {

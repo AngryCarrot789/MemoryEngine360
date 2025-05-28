@@ -24,25 +24,10 @@ namespace MemEngine360.Sequencing.DataProviders;
 public delegate void ConstantDataProviderEventHandler(ConstantDataProvider sender);
 
 public sealed class ConstantDataProvider : DataValueProvider {
-    private IDataValue? dataValue;
+    public IDataValue DataValue { get; }
 
-    public IDataValue? DataValue {
-        get => this.dataValue;
-        set {
-            if (!Equals(this.dataValue, value)) {
-                this.dataValue = value;
-                this.DataValueChanged?.Invoke(this);
-            }
-        }
-    }
-
-    public event ConstantDataProviderEventHandler? DataValueChanged;
-
-    public ConstantDataProvider() {
-    }
-
-    public ConstantDataProvider(IDataValue? dataValue) {
-        this.dataValue = dataValue;
+    public ConstantDataProvider(IDataValue dataValue) {
+        this.DataValue = dataValue;
     }
 
     public override IDataValue? Provide() {

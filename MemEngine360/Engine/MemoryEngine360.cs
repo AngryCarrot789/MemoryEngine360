@@ -112,9 +112,9 @@ public class MemoryEngine360 {
     }
 
     /// <summary>
-    /// An event fired when a connection is most likely about to change. This can be used by custom activities
+    /// An async event fired when a connection is most likely about to change. This can be used by custom activities
     /// to cancel operations that are using the connection. There is no guarantee that the connection will actually
-    /// change, and this event may get fired multiple times before the connection really changes 
+    /// change, and this event may get fired multiple times before the connection really changes
     /// <para>
     /// Beware, handlers are invoked in a background task (via <see cref="Task.Run(Func{Task})"/>), not on the
     /// main thread, so you must jump back to the main thread if required. <see cref="OperationCanceledException"/> exceptions are swallowed
@@ -123,7 +123,7 @@ public class MemoryEngine360 {
     /// <para>
     /// Note! This may not be called at all; maybe the connection is changing in a non-async context and the nature of the
     /// context makes it unable to wait for handlers to stop using the connection. So this event is just a hint to prevent
-    /// potential timeout/IO exceptions from inconveniencing the user
+    /// potential timeout/IO exceptions from popping up in the UI and inconveniencing the user
     /// </para>
     /// <para>
     /// Also note, this event is fired while the busy token is acquired, so handlers cannot obtain it. However, if you absolutely
@@ -136,8 +136,7 @@ public class MemoryEngine360 {
 
     /// <summary>
     /// Fired when <see cref="Connection"/> changes. It is crucial that no 'busy' operations
-    /// are performed in the event handlers, otherwise, a deadlock could occur. It's also
-    /// crucial handlers do not throw exceptions at all for the same reasons <see cref="IsBusyChanged"/> mentions
+    /// are performed in the event handlers, otherwise, a deadlock could occur.
     /// </summary>
     public event MemoryEngine360ConnectionChangedEventHandler? ConnectionChanged;
 

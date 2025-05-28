@@ -1,8 +1,54 @@
-﻿<editorContent:BaseOperationEditorContent xmlns="https://github.com/avaloniaui"
-                            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                            xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                            xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                            xmlns:editorContent="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent"
-                            mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="48"
-                            x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent.SetMemoryOperationEditorContent">
-</editorContent:BaseOperationEditorContent>
+﻿<ec:BaseOperationEditorContent xmlns="https://github.com/avaloniaui"
+                               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                               xmlns:ec="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent"
+                               mc:Ignorable="d" d:DesignHeight="200"
+                               x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent.SetMemoryOperationEditorContent"
+                               Width="175">
+    <StackPanel Spacing="4" Margin="2">
+        <ComboBox x:Name="PART_DataTypeCombo"
+                  FontFamily="Consolas"
+                  Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                  Padding="4,1" VerticalContentAlignment="Center"/>
+        <TabControl x:Name="PART_ModeTabControl">
+            <TabItem Header="Constant">
+                <StackPanel Margin="2">
+                    <TextBlock Padding="1,2" Text="Set the constant value"/>
+                    <DockPanel>
+                        <TextBox x:Name="PART_ConstantValueTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" VerticalContentAlignment="Center"/>
+                    </DockPanel>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Random">
+                <StackPanel Margin="2">
+                    <TextBlock Padding="1,2" Text="Set the minimum"/>
+                    <DockPanel>
+                        <TextBox x:Name="PART_RangedValueATextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" VerticalContentAlignment="Center"/>
+                    </DockPanel>
+                    <TextBlock Padding="1,2" Text="Set the maximum"/>
+                    <DockPanel>
+                        <TextBox x:Name="PART_RangedValueBTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" VerticalContentAlignment="Center"/>
+                    </DockPanel>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+        <TabControl>
+            <TabItem Header="Numbers">
+                <StackPanel Margin="1">
+                    <CheckBox Content="Parse Int as Hexadecimal" x:Name="PART_ParseIntAsHexCheckBox"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Strings">
+                <StackPanel Margin="1">
+                    <Grid RowDefinitions="Auto,3,Auto" ColumnDefinitions="Auto,5,Auto">
+                        <RadioButton Grid.Row="0" Grid.Column="0" x:Name="PART_DTString_ASCII" Content="ASCII" ToolTip.Tip="Search for text using ASCII encoding (default)"/>
+                        <RadioButton Grid.Row="0" Grid.Column="2" x:Name="PART_DTString_UTF8" Content="UTF8" ToolTip.Tip="Search for text using UTF8 encoding"/>
+                        <RadioButton Grid.Row="2" Grid.Column="0" x:Name="PART_DTString_UTF16" Content="UTF16" ToolTip.Tip="Search for text using UTF16 aka Unicode encoding"/>
+                        <RadioButton Grid.Row="2" Grid.Column="2" x:Name="PART_DTString_UTF32" Content="UTF32" ToolTip.Tip="Search for text using UTF32 encoding"/>
+                    </Grid>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </StackPanel>
+</ec:BaseOperationEditorContent>

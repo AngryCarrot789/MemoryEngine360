@@ -100,7 +100,7 @@ public static class DataTypeExtensions {
     /// <summary>
     /// The data type is float or double
     /// </summary>
-    public static bool IsFloat(this DataType dataType) {
+    public static bool IsFloatingPoint(this DataType dataType) {
         switch (dataType) {
             case DataType.Float:
             case DataType.Double:

@@ -22,8 +22,6 @@ using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Contexts;
-using PFXToolKitUI.Notifications;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 
@@ -73,27 +71,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
                     // do anything else with the connection since the user cancelled the operation
                     if ((token = await SetEngineConnectionAndHandleProblemsAsync(memUi.MemoryEngine360, connection, frame)) == null) {
                         await connection.Close();
-                        connection = null;
                     }
-                }
-
-                if (connection != null) {
-                    new TextNotification() {
-                        Caption = "Connected", Text = $"Connect to '{connection.ConnectionType.DisplayName}'",
-                        ContextData = new ContextData().Set(IMemEngineUI.MemUIDataKey, memUi),
-                        Commands = {
-                            new LambdaNotificationCommand("Disconnect", static async (c) => {
-                                if (c.ContextData != null) {
-                                    IMemEngineUI mem = IMemEngineUI.MemUIDataKey.GetContext(c.ContextData)!;
-                                    if (mem.MemoryEngine360.Connection != null)
-                                        await DisconnectInActivity(mem, 0);
-                                }
-
-                                c.Notification?.Close();
-                            })
-                        },
-                        AutoHideDelay = TimeSpan.FromSeconds(3)
-                    }.Open(memUi.NotificationManager);
                 }
             }
             finally {
@@ -110,7 +88,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
     /// <param name="memUi"></param>
     /// <param name="frame"></param>
     /// <returns>False when token could not be acquired</returns>
-    private static async Task<bool> DisconnectInActivity(IMemEngineUI memUi, ulong frame) {
+    public static async Task<bool> DisconnectInActivity(IMemEngineUI memUi, ulong frame) {
         using CancellationTokenSource cts = new CancellationTokenSource();
         bool isOperationCancelled = await ActivityManager.Instance.RunTask(async () => {
             ActivityTask task = ActivityManager.Instance.CurrentTask;
@@ -140,8 +118,6 @@ public class OpenConsoleConnectionDialogCommand : Command {
                 catch (Exception) {
                     // ignored
                 }
-
-                memUi.Activity = "Disconnected from console";
             }
 
             return true;

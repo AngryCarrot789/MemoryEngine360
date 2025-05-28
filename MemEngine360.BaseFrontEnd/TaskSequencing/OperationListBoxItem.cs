@@ -40,7 +40,7 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
     public BaseSequenceOperation Operation => this.Model ?? throw new Exception("Not connected to a model");
 
     private readonly IBinder<BaseSequenceOperation> isRunningBinder = new EventPropertyBinder<BaseSequenceOperation>(nameof(BaseSequenceOperation.IsRunningChanged), (b) => ((OperationListBoxItem) b.Control).IsRunning = b.Model.IsRunning);
-    
+
     public OperationListBoxItem() {
         DataManager.GetContextData(this).Set(IOperationItemUI.DataKey, this);
     }

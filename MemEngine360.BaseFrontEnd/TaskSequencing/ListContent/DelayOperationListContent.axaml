@@ -10,13 +10,10 @@
         <TextBox x:Name="PART_DelayTextBox" 
                  VerticalContentAlignment="Center" VerticalAlignment="Center"
                  Padding="2,2"
-                 HorizontalAlignment="Left" TextAlignment="Right"
+                 HorizontalAlignment="Left"
                  Background="{DynamicResource ABrush.Tone1.Background.Static}"
                  BorderThickness="1" 
-                 Watermark="delay" MinWidth="56">
-            <TextBox.InnerRightContent>
-                <TextBlock Text="ms" Opacity="0.6" Padding="2,0"/>
-            </TextBox.InnerRightContent>
+                 Watermark="delay" MinWidth="100">
         </TextBox>
     </StackPanel>
 </lc:BaseOperationListContent>

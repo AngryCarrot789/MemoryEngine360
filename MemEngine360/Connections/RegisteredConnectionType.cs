@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Net;
 using System.Runtime.CompilerServices;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Icons;
@@ -76,6 +77,9 @@ public abstract class RegisteredConnectionType {
     // /// </summary>
     // public virtual bool HasConnectionLimit => false;
 
+    protected RegisteredConnectionType() {
+    }
+
     /// <summary>
     /// The main procedure for connecting to the console. How this is done is completely up to the implementation; it may
     /// show a dialog requesting an IP address, it might show a dialog with list of local devices the user can select,
@@ -113,18 +117,38 @@ public abstract class RegisteredConnectionType {
         return null;
     }
 
-    // ConsoleConnectionManager uses the console type instance as a key to map
-    // back to id, therefore, we have to ensure equality comparison is reference.
-    // 
-    // And besides there's no real reason to implement actual comparison or even
-    // have multiple instances of the same console type
+    /// <summary>
+    /// Gets text to display on the bottom-right side of the status bar. For XBDM, this returns the IP address we're connected to.
+    /// The given connection's <see cref="IConsoleConnection.ConnectionType"/> must equal the current connection type instance
+    /// </summary>
+    /// <param name="connection">The connection</param>
+    /// <returns>The text</returns>
+    public string GetStatusBarText(IConsoleConnection connection) {
+        ArgumentNullException.ThrowIfNull(connection);
+        if (!ReferenceEquals(connection.ConnectionType, this)) {
+            throw new InvalidOperationException("Invalid connection type");
+        }
 
-    public sealed override bool Equals(object? obj) {
-        return ReferenceEquals(this, obj);
+        return this.GetStatusBarTextCore(connection);
     }
 
-    public sealed override int GetHashCode() {
-        return RuntimeHelpers.GetHashCode(this);
+    /// <summary>
+    /// Invoked by <see cref="GetStatusBarText"/>. The connection is guaranteed to have been created by this connection type.
+    /// </summary>
+    /// <param name="connection">The connection</param>
+    /// <returns>The text</returns>
+    protected virtual string GetStatusBarTextCore(IConsoleConnection connection) {
+        if (connection is INetworkConsoleConnection networked) {
+            EndPoint? endPoint = networked.EndPoint;
+            switch (endPoint) {
+                case null:          return "No end point";
+                case IPEndPoint ip: return ip.Address.MapToIPv4().ToString();
+                default:            return endPoint.ToString()!;
+            }
+        }
+        else {
+            return "Connected";
+        }
     }
 
     /// <summary>
@@ -135,4 +159,14 @@ public abstract class RegisteredConnectionType {
     public virtual IEnumerable<IContextObject> GetRemoteContextOptions() {
         yield break;
     }
+
+    // ConsoleConnectionManager uses the console type instance as a key to map
+    // back to id, therefore, we have to ensure equality comparison is reference.
+    // 
+    // And besides there's no real reason to implement actual comparison or even
+    // have multiple instances of the same console type
+
+    public sealed override bool Equals(object? obj) => ReferenceEquals(this, obj);
+
+    public sealed override int GetHashCode() => RuntimeHelpers.GetHashCode(this);
 }

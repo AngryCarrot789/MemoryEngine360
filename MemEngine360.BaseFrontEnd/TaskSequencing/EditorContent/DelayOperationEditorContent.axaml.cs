@@ -17,10 +17,39 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.Operations;
+using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
+
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent;
 
 public partial class DelayOperationEditorContent : BaseOperationEditorContent {
+    private readonly IBinder<DelayOperation> delayBinder = new TextBoxToEventPropertyBinder<DelayOperation>(nameof(DelayOperation.DelayChanged), (b) => TimeSpanUtils.ConvertToString(b.Model.Delay), async (b, text) => {
+        if (!TimeSpanUtils.TryParseTime(text, out TimeSpan value, out string? errorMessage)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid time", errorMessage, defaultButton: MessageBoxResult.OK);
+            return false;
+        }
+
+        if (TimeSpanUtils.IsOutOfRangeForDelay(value, out errorMessage)) {
+            await IMessageDialogService.Instance.ShowMessage("Delay out of range", errorMessage, defaultButton: MessageBoxResult.OK);
+            return false;
+        }
+        
+        b.Model.Delay = value;
+        return true;
+    });
+    
+    public override string Caption => "Delay";
+    
     public DelayOperationEditorContent() {
         this.InitializeComponent();
+        this.delayBinder.AttachControl(this.PART_DelayTextBox);
+    }
+
+    protected override void OnOperationChanged(BaseSequenceOperation? oldOperation, BaseSequenceOperation? newOperation) {
+        base.OnOperationChanged(oldOperation, newOperation);
+        this.delayBinder.SwitchModel((DelayOperation?) newOperation);
     }
 }

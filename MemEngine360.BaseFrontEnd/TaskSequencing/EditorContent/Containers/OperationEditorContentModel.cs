@@ -17,18 +17,16 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Interactivity.Contexts;
+using MemEngine360.Sequencing;
 
-namespace MemEngine360;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent.Containers;
 
-/// <summary>
-/// An interface for a view that presents "activity" text, typically in a status bar in the bottom left
-/// </summary>
-public interface ILatestActivityView {
-    public static readonly DataKey<ILatestActivityView> LatestActivityDataKey = DataKey<ILatestActivityView>.Create("LatestActivityView");
-    
-    /// <summary>
-    /// Gets or sets the latest activity
-    /// </summary>
-    string Activity { get; set; }
+public class OperationEditorContentModel {
+    public BaseOperationEditorContent Content { get; }
+    public BaseSequenceOperation Operation { get; }
+
+    public OperationEditorContentModel(BaseOperationEditorContent content, BaseSequenceOperation operation) {
+        this.Content = content;
+        this.Operation = operation;
+    }
 }

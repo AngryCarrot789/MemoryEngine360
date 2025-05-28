@@ -167,7 +167,7 @@ public partial class ScanOptionsControl : UserControl {
     }
 
     private void OnScanningProcessorOnDataTypeChanged(ScanningProcessor p) {
-        if (p.DataType.IsFloat()) {
+        if (p.DataType.IsFloatingPoint()) {
             this.lastFloatDataType = p.DataType;
         }
         else if (p.DataType.IsInteger()) {

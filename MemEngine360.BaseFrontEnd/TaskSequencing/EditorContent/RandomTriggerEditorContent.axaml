@@ -1,0 +1,30 @@
+﻿<ec:BaseOperationEditorContent xmlns="https://github.com/avaloniaui"
+                               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                               xmlns:ec="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent"
+                               mc:Ignorable="d" d:DesignWidth="100" d:DesignHeight="450"
+                               x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent.RandomTriggerEditorContent"
+                               MinWidth="100">
+    <StackPanel Margin="2">
+        <TextBlock Padding="1,2" Text="Chance to run"/>
+        <DockPanel>
+            <TextBox x:Name="PART_ChanceTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" VerticalContentAlignment="Center"
+                     ToolTip.Tip="The chance of the operation running. When set to 1, it has a 100% chance of running. Cannot be 0">
+                <TextBox.InnerLeftContent>
+                    <TextBlock Padding="1,0,3,0" Text="1 in" Opacity="0.5" VerticalAlignment="Center"/>
+                </TextBox.InnerLeftContent>
+            </TextBox>
+        </DockPanel>
+        <TextBlock Padding="1,2" Text="Wait per chance"/>
+        <TextBox x:Name="PART_WaitTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" Watermark="No waiting">
+            <ToolTip.Tip>
+                <TextBlock>
+                    <Run Text="The amount of time to wait between tries to run. Default is nothing, meaning we do not run."/>
+                    <LineBreak/>
+                    <Run Text="If we don't get lucky. When set to a time however, we will keep trying until we get lucky"/>
+                </TextBlock>
+            </ToolTip.Tip>
+        </TextBox>
+    </StackPanel>
+</ec:BaseOperationEditorContent>
