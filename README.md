@@ -1,7 +1,7 @@
 # MemEngine360 v1.1.5
 This is a remake of Cheat Engine, but for consoles (so far only Xbox 360). This project was inspired by https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
 
-![](MemEngine360-DesktopUI_2025-05-10_15.03.51.png)
+![](MemEngine360-DesktopUI_2025-05-31_18.56.19.png)
 
 > Hopefully this is obvious, but please take care when changing ('poking') values on your console. 
 > You may break things, maybe even permanently if you change the wrong things.
@@ -112,11 +112,7 @@ There's a few remote control commands you can find in the `Remote Controls` menu
 - `Shutdown` - Tells the console to shut down
 
 ## Task Sequencer
- `File > Open Sequencer` The task sequencer system allows you to run small operations as a large task. The system is still WIP,
-and in the future, will support many more customisations, e.g. randomly allow or disallow operations to run,
-random delay times, etc.
-
-You can also freeze values with this: 
+ `File > Open Sequencer` The task sequencer system allows you to run small operations as a large task, such as setting the values at specific addresses, waiting X amount of time, and hopefully more in the future. 
 
 ![](MemEngine360-DesktopUI_2025-05-31_18.17.34.png)
 

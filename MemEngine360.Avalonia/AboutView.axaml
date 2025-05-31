@@ -7,7 +7,7 @@
              x:Class="MemEngine360.Avalonia.AboutView">
     <Grid Margin="20">
         <StackPanel Spacing="4">
-            <TextBlock Text="Memory Engine 360 v1.1.5-dev" HorizontalAlignment="Center" FontSize="32" FontWeight="Bold"/>
+            <TextBlock Text="Memory Engine 360 v1.1.5" HorizontalAlignment="Center" FontSize="32" FontWeight="Bold"/>
             <TextBlock Text="Cheat Engine, but for xbox 360s (and more soon)" HorizontalAlignment="Center" FontSize="18" FontWeight="Medium"/>
             <WrapPanel Orientation="Horizontal">
                 <TextBlock Text="Source code can be found at " FontSize="12" TextWrapping="Wrap"/>

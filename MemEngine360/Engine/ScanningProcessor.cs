@@ -639,7 +639,7 @@ public class ScanningProcessor {
     public Task RefreshSavedAddressesAsync() => this.RefreshSavedAddressesAsync(false);
 
     public async Task RefreshSavedAddressesAsync(bool bypassLimits) {
-        if (this.IsScanning || this.IsRefreshingAddresses || this.MemoryEngine360.IsConnectionBusy || this.MemoryEngine360.Connection == null) {
+        if (this.IsRefreshingAddresses || this.MemoryEngine360.IsConnectionBusy || this.MemoryEngine360.Connection == null) {
             return; // concurrent operations are dangerous and can corrupt the communication pipe until restarting connection
         }
 

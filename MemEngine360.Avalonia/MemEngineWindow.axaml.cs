@@ -67,6 +67,9 @@ public partial class MemEngineWindow : DesktopWindow {
 
         MemoryEngine360 engine = this.PART_MemEngineView.MemoryEngine360;
         engine.IsShuttingDown = true;
+        ulong frame = engine.GetNextConnectionChangeFrame();
+        await engine.BroadcastConnectionAboutToChange(frame);
+
         List<ActivityTask> tasks = ActivityManager.Instance.ActiveTasks.ToList();
         foreach (ActivityTask task in tasks) {
             task.TryCancel();
@@ -122,9 +125,7 @@ public partial class MemEngineWindow : DesktopWindow {
         IConsoleConnection? connection = engine.Connection;
         try {
             if (connection != null) {
-                ulong frame = engine.GetNextConnectionChangeFrame();
                 
-                await engine.BroadcastConnectionAboutToChange(frame);
                 engine.SetConnection(token, frame, null, ConnectionChangeCause.User);
                 await connection.Close();
             }

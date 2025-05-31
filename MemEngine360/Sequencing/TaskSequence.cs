@@ -193,6 +193,7 @@ public sealed class TaskSequence {
         this.IsRunning = true;
         this.Progress.Caption = this.DisplayName;
         this.Progress.Text = "Running sequence";
+        this.Progress.IsIndeterminate = true;
 
         CancellationToken token = this.myCts.Token;
         await ActivityManager.Instance.RunTask(async () => {

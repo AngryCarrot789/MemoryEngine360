@@ -13,6 +13,6 @@
                  avalonia1:UIInputManager.FocusPath="MemEngineWindow"
                  MinWidth="600" MinHeight="520"
                  Width="680" Height="630"
-                 Title="MemEngine360 (Cheat Engine for Xbox 360) v1.1.5-dev">
+                 Title="MemEngine360 (Cheat Engine for Xbox 360) v1.1.5">
     <avalonia:MemEngineView x:Name="PART_MemEngineView"/>
 </w:DesktopWindow>

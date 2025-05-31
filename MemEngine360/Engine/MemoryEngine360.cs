@@ -199,8 +199,8 @@ public class MemoryEngine360 {
 
     /// <summary>
     /// Fires our <see cref="ConnectionAboutToChange"/> event and waits for all handlers to complete.
-    /// This method will not throw any exceptions encountered during the event handlers, not
-    /// even <see cref="OperationCanceledException"/>, instead they are dispatched back to the main thread
+    /// This method will not throw any exceptions encountered during the event handlers, instead,
+    /// they're dispatched back to the main thread (excluding <see cref="OperationCanceledException"/>)
     /// </summary>
     /// <param name="frame">The connection changing frame. See docs for <see cref="GetNextConnectionChangeFrame"/> for more info</param>
     /// <exception cref="Exception"></exception>
