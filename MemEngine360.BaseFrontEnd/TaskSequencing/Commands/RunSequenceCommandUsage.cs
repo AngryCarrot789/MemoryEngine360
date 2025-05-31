@@ -46,6 +46,19 @@ public class RunSequenceCommandUsage : BaseSequenceIsRunningDependentCommandUsag
     public RunSequenceCommandUsage() : base("commands.sequencer.RunSequenceCommand") {
     }
 
+    protected override void OnTaskSequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {
+        base.OnTaskSequenceChanged(oldSeq, newSeq);
+        if (oldSeq != null) {
+            oldSeq.UseEngineConnectionChanged -= this.OnUseEngineConnectionChanged;
+            oldSeq.DedicatedConnectionChanged -= this.OnDedicatedConnectionChanged;
+        }
+
+        if (newSeq != null) {
+            newSeq.UseEngineConnectionChanged += this.OnUseEngineConnectionChanged;
+            newSeq.DedicatedConnectionChanged += this.OnDedicatedConnectionChanged;
+        }
+    }
+
     protected override void OnEngineChanged(MemoryEngine360? oldEngine, MemoryEngine360? newEngine) {
         base.OnEngineChanged(oldEngine, newEngine);
         if (oldEngine != null)
@@ -55,6 +68,14 @@ public class RunSequenceCommandUsage : BaseSequenceIsRunningDependentCommandUsag
     }
 
     private void OnConnectionChanged(MemoryEngine360 sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
+        this.UpdateCanExecuteLater();
+    }
+    
+    private void OnUseEngineConnectionChanged(TaskSequence sender) {
+        this.UpdateCanExecuteLater();
+    }
+
+    private void OnDedicatedConnectionChanged(TaskSequence sender, IConsoleConnection? olddedicatedconnection, IConsoleConnection? newdedicatedconnection) {
         this.UpdateCanExecuteLater();
     }
 }

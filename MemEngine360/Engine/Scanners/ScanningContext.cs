@@ -134,7 +134,7 @@ public sealed class ScanningContext {
                 break;
             }
             case DataType.ByteArray: {
-                if (!MemoryPattern.TryCompile(this.inputA, out this.memoryPattern, false, out string? errorMessage)) {
+                if (!MemoryPattern.TryCompile(this.inputA, out this.memoryPattern, true, out string? errorMessage)) {
                     await IMessageDialogService.Instance.ShowMessage("Invalid memory pattern", errorMessage, "Example pattern: '11 88 FC ? EF ? FF'");
                     return false;
                 }

@@ -126,8 +126,7 @@ public class AutoRefreshLayer : Layer {
         if (this.HexView == null || !this.theRange.OverlapsWith(this.HexView.VisibleRange))
             return null;
 
-        return new BitRange(this.theRange.Start.Max(this.HexView.VisibleRange.Start), this.theRange.End.Min(this.HexView.VisibleRange.End)
-        );
+        return new BitRange(this.theRange.Start.Max(this.HexView.VisibleRange.Start), this.theRange.End.Min(this.HexView.VisibleRange.End));
     }
 
     private void DrawSelection(DrawingContext context, CellBasedColumn column, BitRange range) {

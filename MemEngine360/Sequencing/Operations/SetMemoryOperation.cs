@@ -94,9 +94,9 @@ public class SetMemoryOperation : BaseSequenceOperation {
         IDataValue? value;
         if (provider != null && (value = provider.Provide()) != null) {
             IDisposable? busyToken = ctx.BusyToken;
-            if (busyToken == null) {
+            if (busyToken == null && !ctx.IsConnectionDedicated) {
                 ctx.Progress.Text = "Waiting for busy operations...";
-                if ((busyToken = await ctx.Sequence.Manager!.Engine.BeginBusyOperationAsync(token)) == null) {
+                if ((busyToken = await ctx.Sequence.Manager!.MemoryEngine.BeginBusyOperationAsync(token)) == null) {
                     return;
                 }
             }
@@ -108,7 +108,8 @@ public class SetMemoryOperation : BaseSequenceOperation {
                     await ctx.Connection.WriteBytes(this.address, buffer);
             }
             finally {
-                if (!busyToken.Equals(ctx.BusyToken)) {
+                // Do not dispose of ctx.BusyToken. That's the priority token!!
+                if (!ctx.IsConnectionDedicated && !busyToken!.Equals(ctx.BusyToken)) {
                     busyToken.Dispose();
                 }
             }

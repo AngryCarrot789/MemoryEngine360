@@ -97,7 +97,7 @@ public class MemoryEngine360 {
     public TaskSequencerManager TaskSequencerManager { get; }
 
     public AddressTableManager AddressTableManager { get; }
-
+    
     /// <summary>
     /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working
     /// </summary>
@@ -802,7 +802,7 @@ public class MemoryEngine360 {
             }
             case DataType.String: return new DataValueString(args.Input, stringType);
             case DataType.ByteArray: {
-                if (!MemoryPattern.TryCompile(args.Input, out var pattern, true, out string? errorMessage)) {
+                if (!MemoryPattern.TryCompile(args.Input, out var pattern, false, out string? errorMessage)) {
                     args.Errors.Add(errorMessage);
                     break;
                 }

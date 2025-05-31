@@ -11,7 +11,7 @@
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
                  xmlns:hexEditing="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexEditing"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
-                 x:Class="MemEngine360.BaseFrontEnd.Services.HexEditing.HexEditorControl"
+                 x:Class="MemEngine360.BaseFrontEnd.Services.HexEditing.HexEditorWindow"
                  BorderBrush="DodgerBlue"
                  TitleBarBrush="{DynamicResource ABrush.Tone4.Background.Static}"
                  MinWidth="800" MinHeight="480"
@@ -22,9 +22,10 @@
             <ColumnDefinition Width="5"/>
             <ColumnDefinition Width="250" MinWidth="200"/>
         </Grid.ColumnDefinitions>
-        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" BorderThickness="0,1,0,0"
+        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" 
                 Background="{DynamicResource ABrush.Tone4.Background.Static}"
-                BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}">
+                BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}"
+                BorderThickness="0,1,0,0">
             <DockPanel Margin="10,0">
                 <Button x:Name="PART_CancelButton" Content="Close"
                         MinWidth="72" Height="24" Padding="5,1"
@@ -53,7 +54,7 @@
             </DockPanel>
         </Border>
         <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
-                Background="{Binding RelativeSource={RelativeSource AncestorType=hexEditing:HexEditorControl}, Path=WindowTitleBarBrush}"
+                Background="{Binding RelativeSource={RelativeSource AncestorType=hexEditing:HexEditorWindow}, Path=WindowTitleBarBrush}"
                 BorderThickness="0,0,0,1"
                 BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}">
             <StackPanel Margin="0,3" Spacing="4">
@@ -183,10 +184,8 @@
             </ScrollViewer>
         </Border>
         <GridSplitter Grid.Column="1" Grid.Row="1" Background="{DynamicResource ABrush.Tone4.Background.Static}" Focusable="False"/>
-        <ScrollViewer Grid.Column="2" Grid.Row="1" DockPanel.Dock="Right" Background="{DynamicResource PanelBackground4}"
-                      MinWidth="200">
-            <Grid RowDefinitions="Auto,20,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,*"
-                  ColumnDefinitions="0,75,1,*,5">
+        <ScrollViewer Grid.Column="2" Grid.Row="1" DockPanel.Dock="Right" Background="{DynamicResource PanelBackground4}" MinWidth="200">
+            <Grid RowDefinitions="Auto,20,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,*" ColumnDefinitions="0,75,1,*,5">
                 <TextBlock Text="Data Inspector" Padding="5"
                            VerticalAlignment="Center" HorizontalAlignment="Left"
                            FontFamily="{StaticResource FontOxanium}" Grid.ColumnSpan="5"

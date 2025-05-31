@@ -203,7 +203,7 @@
                                                   Content="Scan Memory Pages">
                                             <ToolTip.Tip>
                                                 <TextBlock TextWrapping="Wrap">
-                                                    <Run Text="Fetches the memory pages from the console and scans those instead of a set memory range"/>
+                                                    <Run Text="Fetches the memory pages from the console and scans those that intersect your start/length values"/>
                                                 </TextBlock>
                                             </ToolTip.Tip>
                                         </CheckBox>

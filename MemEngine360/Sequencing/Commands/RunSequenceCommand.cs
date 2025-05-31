@@ -26,6 +26,9 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Sequencing.Commands;
 
 public class RunSequenceCommand : Command {
+    public RunSequenceCommand() : base(allowMultipleExecutions: true) {
+    }
+
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         if (!ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? sequence)) {
             return Executability.Invalid;
@@ -35,7 +38,7 @@ public class RunSequenceCommand : Command {
             return Executability.ValidButCannotExecute;
         }
 
-        if (sequence.Manager.Engine.Connection == null) {
+        if ((sequence.UseEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection) == null) {
             return Executability.ValidButCannotExecute;
         }
 
@@ -50,21 +53,23 @@ public class RunSequenceCommand : Command {
         if (sequence.IsRunning || sequence.Manager == null /* shouldn't be null... */) {
             return;
         }
-        
-        IConsoleConnection? connection = sequence.Manager.Engine.Connection;
+
+        bool useEngineConnection = sequence.UseEngineConnection;
+
+        IConsoleConnection? connection = useEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection;
         if (connection == null || !connection.IsConnected) {
-            await IMessageDialogService.Instance.ShowMessage("Not connected", "Not connected to a console");
+            await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine is not connected to a console" : "Not connected to a console");
             return;
         }
 
         IDisposable? token = null;
-        if (sequence.HasBusyLockPriority && (token = sequence.Manager.Engine.BeginBusyOperation()) == null) {
+        if (sequence.HasBusyLockPriority && (token = sequence.Manager.MemoryEngine.BeginBusyOperation()) == null) {
             using CancellationTokenSource cts = new CancellationTokenSource();
             token = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = $"Start '{sequence.DisplayName}'";
                 task.Progress.Text = "Waiting for busy operations...";
-                return sequence.Manager.Engine.BeginBusyOperationAsync(task.CancellationToken);
+                return sequence.Manager.MemoryEngine.BeginBusyOperationAsync(task.CancellationToken);
             }, sequence.Progress, cts);
 
             // User cancelled operation so don't run the sequence, since it wants busy lock priority
@@ -74,21 +79,22 @@ public class RunSequenceCommand : Command {
         }
 
         try {
-            if ((connection = sequence.Manager.Engine.Connection) == null || !connection.IsConnected) {
+            connection = useEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection;
+            if (connection == null || !connection.IsConnected) {
                 await IMessageDialogService.Instance.ShowMessage("Not connected", "Not connected to a console");
             }
             else {
-                await sequence.Run(connection, token);
+                await sequence.Run(connection, token, !useEngineConnection);
                 if (sequence.LastException != null) {
                     await IMessageDialogService.Instance.ShowMessage("Error encountered", "An exception occured while running sequence", sequence.LastException.GetToString());
                 }
-            }
-            
-            if (token != null) {
-                sequence.Manager.Engine.CheckConnection(token);
-            }
-            else {
-                sequence.Manager.Engine.CheckConnection();
+
+                if (token != null) {
+                    sequence.Manager.MemoryEngine.CheckConnection(token);
+                }
+                else if (useEngineConnection) {
+                    sequence.Manager.MemoryEngine.CheckConnection();
+                }
             }
         }
         finally {

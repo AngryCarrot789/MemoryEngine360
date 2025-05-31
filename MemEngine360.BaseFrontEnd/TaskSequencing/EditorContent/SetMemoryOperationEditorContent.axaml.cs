@@ -182,8 +182,15 @@ public partial class SetMemoryOperationEditorContent : BaseOperationEditorConten
 
     private void OnDataValueProviderChanged(SetMemoryOperation sender) {
         if (sender.DataValueProvider == null) {
+            if (this.dataType != DataType.Int32) {
+                this.dataType = DataType.Int32;
+                this.DataTypeChanged?.Invoke(this);
+            }
+
+            this.ConstantDataValue = null;
+            this.RangedDataValueA = null;
+            this.RangedDataValueB = null;
             this.IsRandomMode = false;
-            this.DataType = DataType.Int32;
         }
         else if (sender.DataValueProvider is ConstantDataProvider constProvider) {
             if (constProvider.DataValue.DataType != this.dataType) {

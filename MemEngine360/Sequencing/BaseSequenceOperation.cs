@@ -29,7 +29,8 @@ public delegate void BaseSequenceOperationEventHandler(BaseSequenceOperation sen
 /// </summary>
 public abstract class BaseSequenceOperation : ITransferableData {
     private bool isRunning;
-    
+    private bool isEnabled = true;
+
     public TransferableData TransferableData { get; }
 
     /// <summary>
@@ -43,11 +44,23 @@ public abstract class BaseSequenceOperation : ITransferableData {
     public bool IsRunning {
         get => this.isRunning;
         private set {
-            if (this.isRunning == value)
-                return;
+            if (this.isRunning != value) {
+                this.isRunning = value;
+                this.IsRunningChanged?.Invoke(this);
+            }
+        }
+    }
 
-            this.isRunning = value;
-            this.IsRunningChanged?.Invoke(this);
+    /// <summary>
+    /// Gets or sets whether this operation is enabled, meaning can it actually run when the sequence is running
+    /// </summary>
+    public bool IsEnabled {
+        get => this.isEnabled;
+        set {
+            if (this.isEnabled != value) {
+                this.isEnabled = value;
+                this.IsEnabledChanged?.Invoke(this);
+            }
         }
     }
 
@@ -65,6 +78,8 @@ public abstract class BaseSequenceOperation : ITransferableData {
     /// Fired when <see cref="IsRunning"/> changes. This may be fired on any thread
     /// </summary>
     public event BaseSequenceOperationEventHandler? IsRunningChanged;
+
+    public event BaseSequenceOperationEventHandler? IsEnabledChanged;
 
     protected BaseSequenceOperation() {
         this.TransferableData = new TransferableData(this);
@@ -85,12 +100,12 @@ public abstract class BaseSequenceOperation : ITransferableData {
             throw new InvalidOperationException("Already running");
         }
 
-        if (!await this.RandomTriggerHelper.TryTrigger(token)) {
+        if (!this.IsEnabled || !await this.RandomTriggerHelper.TryTrigger(token)) {
             return;
         }
 
         this.IsRunning = true;
-        
+
         OperationCanceledException? cancellation = null;
         using (ErrorList list = new ErrorList("One or more errors occurred", true, true)) {
             try {
@@ -102,7 +117,7 @@ public abstract class BaseSequenceOperation : ITransferableData {
             catch (Exception e) {
                 list.Add(e);
             }
-            
+
             try {
                 this.IsRunning = false;
             }

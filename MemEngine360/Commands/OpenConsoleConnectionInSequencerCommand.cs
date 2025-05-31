@@ -33,7 +33,7 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
             return Executability.Invalid;
         }
 
-        return ui.Manager.Engine.Connection != null ? Executability.ValidButCannotExecute : Executability.Valid;
+        return ui.Manager.MemoryEngine.Connection != null ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -46,7 +46,7 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
             return;
         }
 
-        MemoryEngine360 engine = ui.Manager.Engine;
+        MemoryEngine360 engine = ui.Manager.MemoryEngine;
         ulong frame = engine.GetNextConnectionChangeFrame();
 
         if (engine.Connection != null) {

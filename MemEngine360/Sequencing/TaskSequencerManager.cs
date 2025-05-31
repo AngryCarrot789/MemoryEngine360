@@ -46,26 +46,24 @@ public class TaskSequencerManager {
     /// <summary>
     /// Gets the memory engine that owns this sequencer
     /// </summary>
-    public MemoryEngine360 Engine { get; }
+    public MemoryEngine360 MemoryEngine { get; }
 
     public TaskSequencerManager(MemoryEngine360 engine) {
-        this.Engine = engine ?? throw new ArgumentNullException(nameof(engine));
+        this.MemoryEngine = engine ?? throw new ArgumentNullException(nameof(engine));
         this.sequences = new ObservableList<TaskSequence>();
         this.Sequences = new ReadOnlyObservableList<TaskSequence>(this.sequences);
         this.activeSequences = new ObservableList<TaskSequence>();
         this.ActiveSequences = new ReadOnlyObservableList<TaskSequence>(this.activeSequences);
         
-        this.Engine.ConnectionAboutToChange += this.OnEngineConnectionAboutToChange;
+        this.MemoryEngine.ConnectionAboutToChange += this.OnMemoryEngineConnectionAboutToChange;
 
         {
             TaskSequence sequence = new TaskSequence() {
-                DisplayName = "Demo | Set BO1 secondary reserve ammo"
+                DisplayName = "Freeze BO1 Primary Ammo",
+                RunCount = -1
             };
 
-            sequence.AddOperation(new SetMemoryOperation() { Address = 0x8303A988, DataValueProvider = new ConstantDataProvider(IDataValue.CreateNumeric((int) 22)) });
-            sequence.AddOperation(new DelayOperation(500));
-            sequence.AddOperation(new SetMemoryOperation() { Address = 0x8303A988, DataValueProvider = new ConstantDataProvider(IDataValue.CreateNumeric((int) 44)) });
-            sequence.AddOperation(new DelayOperation(500));
+            sequence.AddOperation(new SetMemoryOperation() { Address = 0x8303AA08, DataValueProvider = new ConstantDataProvider(IDataValue.CreateNumeric((int) 25)) });
             this.AddSequence(sequence);
         }
 
@@ -79,11 +77,12 @@ public class TaskSequencerManager {
         }
     }
 
-    private async Task OnEngineConnectionAboutToChange(MemoryEngine360 sender, ulong frame) {
+    private async Task OnMemoryEngineConnectionAboutToChange(MemoryEngine360 sender, ulong frame) {
         List<TaskSequence> items = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.ActiveSequences.ToList());
         if (items.Count > 0) {
             foreach (TaskSequence sequence in items) {
-                sequence.RequestCancellation();
+                if (sequence.UseEngineConnection)
+                    sequence.RequestCancellation();
             }
 
             await Task.WhenAll(items.Select(x => x.WaitForCompletion()));

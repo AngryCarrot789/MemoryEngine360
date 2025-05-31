@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using MemEngine360.Connections;
+using PFXToolKitUI;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
@@ -26,6 +27,8 @@ using PFXToolKitUI.Utils.Collections.Observable;
 namespace MemEngine360.Sequencing;
 
 public delegate void TaskSequenceEventHandler(TaskSequence sender);
+
+public delegate void TaskSequenceDedicatedConnectionChangedEventHandler(TaskSequence sender, IConsoleConnection? oldDedicatedConnection, IConsoleConnection? newDedicatedConnection);
 
 /// <summary>
 /// A sequence that contains a list of operations
@@ -35,8 +38,10 @@ public sealed class TaskSequence {
     private readonly LinkedList<TaskCompletionSource> completionNotifications = [];
     internal TaskSequencerManager? myManager;
     private string displayName = "Empty Sequence";
-    private uint runCount = 1;
+    private int runCount = 1;
     private bool hasBusyLockPriority;
+    private bool useEngineConnection = true;
+    private IConsoleConnection? dedicatedConnection;
 
     // Running info
     private bool isRunning;
@@ -83,9 +88,16 @@ public sealed class TaskSequence {
         }
     }
 
-    public uint RunCount {
+    /// <summary>
+    /// Gets or sets the run count. Setting to a negative value (ideally -1) means infinite runtime until cancelled
+    /// </summary>
+    public int RunCount {
         get => this.runCount;
         set {
+            ApplicationPFX.Instance.Dispatcher.VerifyAccess();
+            if (this.isRunning)
+                throw new InvalidOperationException($"Cannot change {nameof(this.RunCount)} while running");
+
             if (this.runCount == value)
                 return;
 
@@ -97,6 +109,10 @@ public sealed class TaskSequence {
     public bool HasBusyLockPriority {
         get => this.hasBusyLockPriority;
         set {
+            ApplicationPFX.Instance.Dispatcher.VerifyAccess();
+            if (this.isRunning)
+                throw new InvalidOperationException($"Cannot change {nameof(this.HasBusyLockPriority)} while running");
+
             if (this.hasBusyLockPriority == value)
                 return;
 
@@ -104,6 +120,44 @@ public sealed class TaskSequence {
             this.HasBusyLockPriorityChanged?.Invoke(this);
         }
     }
+
+    /// <summary>
+    /// Gets or sets if we should use the engine connection or our own dedicated connection
+    /// </summary>
+    public bool UseEngineConnection {
+        get => this.useEngineConnection;
+        set {
+            ApplicationPFX.Instance.Dispatcher.VerifyAccess();
+            if (this.isRunning)
+                throw new InvalidOperationException($"Cannot change {nameof(this.UseEngineConnection)} while running");
+
+            if (this.useEngineConnection != value) {
+                this.useEngineConnection = value;
+                this.UseEngineConnectionChanged?.Invoke(this);
+            }
+        }
+    }
+
+    public IConsoleConnection? DedicatedConnection {
+        get => this.dedicatedConnection;
+        set {
+            ApplicationPFX.Instance.Dispatcher.VerifyAccess();
+            if (this.isRunning)
+                throw new InvalidOperationException("Cannot change dedicated connection while running");
+
+            IConsoleConnection? oldDedicatedConnection = this.dedicatedConnection;
+            if (oldDedicatedConnection != value) {
+                this.dedicatedConnection = value;
+                this.DedicatedConnectionChanged?.Invoke(this, oldDedicatedConnection, value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Raised when <see cref="DedicatedConnection"/> changes. When <see cref="UseEngineConnection"/> is being set to true,
+    /// the dedicated connection is closed and set to null, in which case, this event fires BEFORE <see cref="UseEngineConnection"/> is set to true
+    /// </summary>
+    public event TaskSequenceDedicatedConnectionChangedEventHandler? DedicatedConnectionChanged;
 
     public IActivityProgress Progress { get; }
 
@@ -115,6 +169,7 @@ public sealed class TaskSequence {
     public event TaskSequenceEventHandler? DisplayNameChanged;
     public event TaskSequenceEventHandler? RunCountChanged;
     public event TaskSequenceEventHandler? HasBusyLockPriorityChanged;
+    public event TaskSequenceEventHandler? UseEngineConnectionChanged;
 
     public TaskSequence() {
         this.operations = new ObservableList<BaseSequenceOperation>();
@@ -123,33 +178,37 @@ public sealed class TaskSequence {
         this.Progress.Text = "Sequence not running";
     }
 
-    public async Task Run(IConsoleConnection connection, IDisposable? busyToken) {
+    public async Task Run(IConsoleConnection connection, IDisposable? busyToken, bool isConnectionDedicated) {
         this.CheckNotRunning("Cannot run while already running");
         if (this.myManager == null)
             throw new InvalidOperationException("Cannot run standalone without a " + nameof(TaskSequencerManager));
 
         Debug.Assert(this.myCts == null);
         Debug.Assert(this.myContext == null);
+        Debug.Assert(isConnectionDedicated == !this.UseEngineConnection);
         using CancellationTokenSource cts = this.myCts = new CancellationTokenSource();
-        this.myContext = new SequenceExecutionContext(this, this.Progress, connection, busyToken);
+        this.myContext = new SequenceExecutionContext(this, this.Progress, connection, busyToken, isConnectionDedicated);
         this.LastException = null;
         TaskSequencerManager.InternalSetIsRunning(this.myManager!, this, true);
         this.IsRunning = true;
+        this.Progress.Caption = this.DisplayName;
         this.Progress.Text = "Running sequence";
 
         CancellationToken token = this.myCts.Token;
         await ActivityManager.Instance.RunTask(async () => {
-            for (uint count = this.runCount; count != 0 && !token.IsCancellationRequested; count--) {
+            for (int count = this.runCount; (count < 0 || count != 0) && !token.IsCancellationRequested; --count) {
                 foreach (BaseSequenceOperation operation in this.operations) {
-                    try {
-                        await operation.Run(this.myContext, token);
-                    }
-                    catch (OperationCanceledException) {
-                        break;
-                    }
-                    catch (Exception e) {
-                        this.LastException = e;
-                        break;
+                    if (operation.IsEnabled) {
+                        try {
+                            await operation.Run(this.myContext, token);
+                        }
+                        catch (OperationCanceledException) {
+                            break;
+                        }
+                        catch (Exception e) {
+                            this.LastException = e;
+                            break;
+                        }
                     }
                 }
             }
@@ -176,8 +235,8 @@ public sealed class TaskSequence {
         lock (this.completionNotifications) {
             if (!this.isRunning) {
                 return;
-            }   
-            
+            }
+
             node = this.completionNotifications.AddLast(new TaskCompletionSource());
         }
 

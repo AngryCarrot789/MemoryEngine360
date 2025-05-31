@@ -31,7 +31,7 @@ public partial class OpenConnectionWindow : DesktopWindow, IOpenConnectionView {
     private TaskCompletionSource<IConsoleConnection?>? tcs;
     private IConsoleConnection? closedConnection;
 
-    public MemoryEngine360 MemoryEngine360 {
+    public MemoryEngine360? MemoryEngine360 {
         get => this.PART_ConnectToConsoleView.MemoryEngine360;
         internal set => this.PART_ConnectToConsoleView.MemoryEngine360 = value;
     }

@@ -53,8 +53,8 @@ using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
-public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
-    public static readonly StyledProperty<HexEditorInfo?> HexDisplayInfoProperty = AvaloniaProperty.Register<HexEditorControl, HexEditorInfo?>("HexDisplayInfo");
+public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
+    public static readonly StyledProperty<HexEditorInfo?> HexDisplayInfoProperty = AvaloniaProperty.Register<HexEditorWindow, HexEditorInfo?>("HexDisplayInfo");
 
     public HexEditorInfo? HexDisplayInfo {
         get => this.GetValue(HexDisplayInfoProperty);
@@ -83,7 +83,7 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
 
     private readonly OffsetColumn myOffsetColumn;
 
-    public delegate void HexDisplayControlTheEndiannessChangedEventHandler(HexEditorControl sender);
+    public delegate void HexDisplayControlTheEndiannessChangedEventHandler(HexEditorWindow sender);
 
     private readonly AvaloniaPropertyToDataParameterBinder<HexEditorInfo> captionBinder = new AvaloniaPropertyToDataParameterBinder<HexEditorInfo>(TitleProperty, HexEditorInfo.CaptionParameter);
 
@@ -156,7 +156,7 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
     private readonly HexEditorChangeManager changeManager;
     private readonly AsyncRelayCommand runAutoRefreshCommand;
 
-    public HexEditorControl() {
+    public HexEditorWindow() {
         this.InitializeComponent();
         this.captionBinder.AttachControl(this);
         this.addrBinder.AttachControl(this.PART_AddressTextBox);
@@ -652,8 +652,8 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
         this.UpdateAutoRefreshSelectionDependentShit();
     }
 
-    static HexEditorControl() {
-        HexDisplayInfoProperty.Changed.AddClassHandler<HexEditorControl, HexEditorInfo?>((o, e) => o.OnInfoChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+    static HexEditorWindow() {
+        HexDisplayInfoProperty.Changed.AddClassHandler<HexEditorWindow, HexEditorInfo?>((o, e) => o.OnInfoChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     protected override void OnOpenedCore() {
@@ -782,7 +782,7 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
     }
 
     private sealed class AutoRefreshTask : AdvancedPausableTask {
-        private readonly HexEditorControl control;
+        private readonly HexEditorWindow control;
         private readonly HexEditorInfo? info;
         private IDisposable? busyToken;
         private readonly uint startAddress, startAddressInDoc, cbRange;
@@ -790,7 +790,7 @@ public partial class HexEditorControl : DesktopWindow, IHexEditorUI {
         private readonly byte[] myBuffer;
         private bool isInvalidOnFirstRun;
 
-        public AutoRefreshTask(HexEditorControl control, uint startAddressInDoc, uint cbRange) : base(true) {
+        public AutoRefreshTask(HexEditorWindow control, uint startAddressInDoc, uint cbRange) : base(true) {
             this.control = control;
             this.info = control.HexDisplayInfo;
             this.startAddressInDoc = startAddressInDoc;

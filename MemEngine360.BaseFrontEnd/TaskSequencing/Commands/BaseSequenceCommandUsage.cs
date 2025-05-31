@@ -47,7 +47,7 @@ public abstract class BaseSequenceCommandUsage : SimpleButtonCommandUsage {
 
         if (oldSeq != newSeq) {
             MemoryEngine360? oldEngine = this.Engine;
-            MemoryEngine360? newEngine = newSeq?.Manager?.Engine;
+            MemoryEngine360? newEngine = newSeq?.Manager?.MemoryEngine;
             
             this.TaskSequence = newSeq;
             this.OnTaskSequenceChanged(oldSeq, newSeq);

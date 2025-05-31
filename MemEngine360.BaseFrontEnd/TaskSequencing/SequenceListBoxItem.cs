@@ -33,16 +33,32 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSequenceEntryUI {
     private readonly IBinder<TaskSequence> nameBinder = new EventPropertyBinder<TaskSequence>(nameof(TaskSequence.DisplayNameChanged), (b) => ((SequenceListBoxItem) b.Control).Content = b.Model.DisplayName);
-    private readonly IBinder<TaskSequence> busyLockPriorityBinder = new AvaloniaPropertyToEventPropertyBinder<TaskSequence>(CheckBox.IsCheckedProperty, nameof(TaskSequence.HasBusyLockPriorityChanged), (b) => ((CheckBox) b.Control).IsChecked = b.Model.HasBusyLockPriority, (b) => b.Model.HasBusyLockPriority = ((CheckBox) b.Control).IsChecked == true);
 
-    private readonly IBinder<TaskSequence> runCountBinder = new TextBoxToEventPropertyBinder<TaskSequence>(nameof(TaskSequence.RunCountChanged), (b) => b.Model.RunCount.ToString(), async (b, text) => {
-        if (uint.TryParse(text, out uint value)) {
+    private readonly IBinder<TaskSequence> busyLockPriorityBinder = new AvaloniaPropertyToEventPropertyBinder<TaskSequence>(CheckBox.IsCheckedProperty, nameof(TaskSequence.HasBusyLockPriorityChanged), (b) => {
+        ((CheckBox) b.Control).IsChecked = b.Model.HasBusyLockPriority;
+    }, (b) => {
+        if (!b.Model.IsRunning)
+            b.Model.HasBusyLockPriority = ((CheckBox) b.Control).IsChecked == true;
+    });
+
+    private readonly IBinder<TaskSequence> runCountBinder = new TextBoxToEventPropertyBinder<TaskSequence>(nameof(TaskSequence.RunCountChanged), (b) => {
+        int count = b.Model.RunCount;
+        return count < 0 ? "Infinity" : count.ToString();
+    }, async (b, text) => {
+        string txt = text.Trim().ToLowerInvariant();
+        if (int.TryParse(txt, out int value)) {
             b.Model.RunCount = value;
             return true;
         }
         else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", $"Run count is invalid. Is must be between 0 and {uint.MaxValue}", defaultButton: MessageBoxResult.OK);
-            return false;
+            if (txt.Equals("forever") || txt.StartsWith("inf") || txt.StartsWith("endless")) {
+                b.Model.RunCount = -1;
+                return true;
+            }
+            else {
+                await IMessageDialogService.Instance.ShowMessage("Invalid value", $"Run count is invalid. Is must be between 0 and {uint.MaxValue}, or \"infinity\" or just \"inf\"", defaultButton: MessageBoxResult.OK);
+                return false;
+            }
         }
     });
 
@@ -71,13 +87,16 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
 
         this.PART_ToggleBusyExclusive = e.NameScope.GetTemplateChild<CheckBox>(nameof(this.PART_ToggleBusyExclusive));
         this.busyLockPriorityBinder.AttachControl(this.PART_ToggleBusyExclusive);
+
+        this.UpdateControlsForIsRunning();
     }
 
     protected override void OnAddingToList() {
     }
 
     protected override void OnAddedToList() {
-        this.myEngine = this.Model!.Manager!.Engine;
+        this.myEngine = this.Model!.Manager!.MemoryEngine;
+        this.Model.IsRunningChanged += this.OnIsRunningChanged;
 
         using MultiChangeToken batch = DataManager.GetContextData(this).BeginChange();
         batch.Context.Set(ITaskSequencerUI.TaskSequenceDataKey, this.Model!).Set(ITaskSequenceEntryUI.DataKey, this);
@@ -85,11 +104,28 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
 
     protected override void OnRemovingFromList() {
         this.myEngine = null;
+        this.Model!.IsRunningChanged -= this.OnIsRunningChanged;
 
         using MultiChangeToken batch = DataManager.GetContextData(this).BeginChange();
         batch.Context.Set(ITaskSequencerUI.TaskSequenceDataKey, null).Set(ITaskSequenceEntryUI.DataKey, null);
     }
 
     protected override void OnRemovedFromList() {
+    }
+
+    private void OnIsRunningChanged(TaskSequence sender) => this.UpdateControlsForIsRunning();
+
+    private void UpdateControlsForIsRunning() {
+        if (this.PART_ToggleBusyExclusive == null) {
+            return;
+        }
+        
+        TaskSequence? model = this.Model;
+        if (model == null) {
+            return;
+        }
+
+        this.PART_ToggleBusyExclusive!.IsEnabled = !model.IsRunning;
+        this.PART_RunCountTextBox!.IsEnabled = !model.IsRunning;
     }
 }

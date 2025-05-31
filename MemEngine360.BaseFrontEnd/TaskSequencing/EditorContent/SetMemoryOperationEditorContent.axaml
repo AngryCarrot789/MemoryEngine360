@@ -20,7 +20,7 @@
                     </DockPanel>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="Random">
+            <TabItem Header="Random" IsEnabled="False">
                 <StackPanel Margin="2">
                     <TextBlock Padding="1,2" Text="Set the minimum"/>
                     <DockPanel>

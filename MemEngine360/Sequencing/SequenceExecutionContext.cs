@@ -46,10 +46,16 @@ public sealed class SequenceExecutionContext {
     /// </summary>
     public IDisposable? BusyToken { get; }
 
-    public SequenceExecutionContext(TaskSequence sequence, IActivityProgress progress, IConsoleConnection connection, IDisposable? busyToken) {
+    /// <summary>
+    /// Returns true when <see cref="Connection"/> is dedicated and has nothing to do with the memory engine, meaning <see cref="BusyToken"/> will be null
+    /// </summary>
+    public bool IsConnectionDedicated { get; }
+
+    public SequenceExecutionContext(TaskSequence sequence, IActivityProgress progress, IConsoleConnection connection, IDisposable? busyToken, bool isConnectionDedicated) {
         this.Sequence = sequence;
         this.Progress = progress;
         this.Connection = connection;
         this.BusyToken = busyToken;
+        this.IsConnectionDedicated = isConnectionDedicated;
     }
 }

@@ -1,4 +1,4 @@
-# MemEngine360 v1.1.4
+# MemEngine360 v1.1.5
 This is a remake of Cheat Engine, but for consoles (so far only Xbox 360). This project was inspired by https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
 
 ![](MemEngine360-DesktopUI_2025-05-10_15.03.51.png)
@@ -116,15 +116,17 @@ There's a few remote control commands you can find in the `Remote Controls` menu
 and in the future, will support many more customisations, e.g. randomly allow or disallow operations to run,
 random delay times, etc.
 
-![](MemEngine360-DesktopUI_2025-05-17_20.04.01.png)
+You can also freeze values with this: 
 
-In this example, we set 0x8303A988 to an int value of 22, wait 500 millis, set the value to 44, and wait 1 second.
+![](MemEngine360-DesktopUI_2025-05-31_18.17.34.png)
+
+> You probably want to enable "Use Dedicated Connection", so that you can do other things in the meantime, because otherwise you won't be able to scan, change values, etc. anywhere else, since it clogs up the engine's main connection
 
 You can add operations by clicking the buttons in the top-right corner. So far, only setting memory and delay are available.
 
 `Busy Priority` is an option that lets a sequence run without interruptions from other parts of the application, e.g. scanning or the memory viewer. But by doing this, is stops those from working until the sequence stops. Enable this option if you really need the task to run pretty accurately with real time
 
-> Note, all sequences will be stopped when you change the connection type (CTRL+O)
+> Note, all sequences not using dedicated connections will be stopped when you change connections (CTRL+O)
 
 ## Module Viewer
 `File > Show Modules`. It presents all the modules and specific details, such as base address, entry point, sections, etc.

@@ -54,7 +54,7 @@ public class DelayOperation : BaseSequenceOperation {
     }
 
     protected override Task RunOperation(SequenceExecutionContext ctx, CancellationToken token) {
-        ctx.Progress.Text = "Waiting " + this.delay + " ms";
+        ctx.Progress.Text = $"Waiting {Math.Round(this.delay.TotalMilliseconds, 2)} ms";
         return Task.Delay(this.Delay, token);
     }
 }

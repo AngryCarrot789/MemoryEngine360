@@ -158,7 +158,8 @@
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
-                        avalonia:UIInputManager.FocusPath="SequencerWindow/OperationList">
+                        avalonia:UIInputManager.FocusPath="SequencerWindow/OperationList"
+                        x:Name="PART_CurrentSequenceGroupBox">
                 <c:GroupBox.Header>
                     <DockPanel HorizontalSpacing="3">
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="3">
@@ -182,7 +183,8 @@
                         </StackPanel>
                         <TextBlock x:Name="PART_SelectedSequenceTextBlock" Text="Current Operation"
                                    FontFamily="{StaticResource FontOxanium}"
-                                   VerticalAlignment="Center"/>
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"/>
                     </DockPanel>
                 </c:GroupBox.Header>
                 <Grid>
@@ -190,6 +192,7 @@
                         <RowDefinition Height="10*" MinHeight="100"/>
                         <RowDefinition Height="0"/>
                         <RowDefinition Height="4*" MinHeight="100"/>
+                        <RowDefinition Height="24"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <local:OperationListBox x:Name="PART_OperationListBox"
@@ -295,9 +298,9 @@
                                                     BorderBrush="{TemplateBinding BorderBrush}"
                                                     BorderThickness="{TemplateBinding BorderThickness}">
                                                 <DockPanel VerticalSpacing="2">
-                                                    <Border Background="{DynamicResource ABrush.Tone6.Background.Static}" 
-                                                            BorderBrush="{TemplateBinding BorderBrush}" 
-                                                            BorderThickness="0,0,0,1" 
+                                                    <Border Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="0,0,0,1"
                                                             DockPanel.Dock="Top" Height="21">
                                                         <DockPanel>
                                                             <TextBlock x:Name="PART_CaptionTextBlock" VerticalAlignment="Center" Padding="4,2"/>
@@ -332,9 +335,39 @@
                             </ListBox.ItemContainerTheme>
                         </ecc:OperationEditorContentContainerListBox>
                     </c:GroupBox>
-                    <Border Grid.Row="3" BorderThickness="0,1,0,0">
-                        <TextBlock x:Name="PART_ActivityStatusText" Text="Caption here" Padding="4,2"/>
-                    </Border>
+                    <DockPanel Grid.Row="3" DockPanel.Dock="Left" HorizontalSpacing="3" LastChildFill="False">
+                        <av:IconButton Padding="2" Width="24" Height="24"
+                                       IconMaxWidth="16" IconMaxHeight="16"
+                                       Background="Transparent" BorderThickness="0"
+                                       ToolTip.Tip="Connect to a console"
+                                       Icon="{x:Static cb:SimpleIcons.ConnectToConsoleIcon}"
+                                       cu:CommandUsageManager.UsageClassType="{x:Type commands:ConnectToDedicatedConsoleCommandUsage}"/>
+                        <Border Background="{DynamicResource ABrush.Tone4.Background.Static}"
+                                BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                BorderThickness="1"
+                                VerticalAlignment="Center"
+                                Width="128">
+                            <TextBlock x:Name="PART_ActiveConnectionTextBoxRO"
+                                       Text="Error... hm"
+                                       ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                       Padding="2,1"/>
+                        </Border>
+                        <CheckBox x:Name="PART_UseDedicatedConnection" Content="Use Dedicated Connection">
+                            <ToolTip.Tip>
+                                <TextBlock>
+                                    <Run Text="Toggle whether to use the memory engine's connection, instead of a dedicated freezer connection"/>
+                                    <LineBreak/>
+                                    <Run Text="Note: if you use the engine connection, the engine cannot do anything (scanning, refreshing, editing values, etc.)"/>
+                                </TextBlock>
+                            </ToolTip.Tip>
+                        </CheckBox>
+                        <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="1,3"/>
+                        <TextBlock x:Name="PART_ActivityStatusText" 
+                                   Text="Caption here" 
+                                   Padding="4,2" DockPanel.Dock="Right" 
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </DockPanel>
                     <GridSplitter Grid.Row="1" Background="Transparent" Margin="0,-2,0,-10" Cursor="SizeNorthSouth"/>
                 </Grid>
             </c:GroupBox>

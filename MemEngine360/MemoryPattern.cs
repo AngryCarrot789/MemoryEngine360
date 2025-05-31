@@ -18,6 +18,7 @@
 // 
 
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360;
@@ -70,33 +71,33 @@ public readonly struct MemoryPattern {
             throw new ArgumentException($"Invalid char '{ch}' at idx {idx} in pattern: " + pattern);
     }
 
-    public static MemoryPattern Compile(string input, bool disallowWildcards = false) {
+    public static MemoryPattern Compile(string input, bool allowWildcards = true) {
         string? error = null;
-        if (!InternalTryCompile(input, out MemoryPattern pattern, disallowWildcards, ref error))
+        if (!InternalTryCompile(input, out MemoryPattern pattern, allowWildcards, ref error))
             throw new ArgumentException(error!);
 
         return pattern;
     }
 
-    public static bool TryCompile(string input, out MemoryPattern pattern, bool disallowWildcards = false) {
+    public static bool TryCompile(string input, out MemoryPattern pattern, bool allowWildcards = true) {
         string? msg = ""; // set to empty so we don't waste time creating unused error message
-        return InternalTryCompile(input, out pattern, disallowWildcards, ref msg);
+        return InternalTryCompile(input, out pattern, allowWildcards, ref msg);
     }
 
-    public static bool TryCompile(string input, out MemoryPattern pattern, bool disallowWildcards, [NotNullWhen(false)] out string? errorMessage) {
-        string? msg = ""; // set to empty so we don't waste time creating unused error message
-        bool result = InternalTryCompile(input, out pattern, disallowWildcards, ref msg);
-        errorMessage = result ? null : msg;
+    public static bool TryCompile(string input, out MemoryPattern pattern, bool allowWildcards, [NotNullWhen(false)] out string? userErrorMessage) {
+        string? msg = null;
+        bool result = InternalTryCompile(input, out pattern, allowWildcards, ref msg);
+        userErrorMessage = result ? null : msg;
         return result;
     }
 
-    private static bool InternalTryCompile(string input, out MemoryPattern pattern, bool disallowWildcards, ref string? errMsg) {
+    private static bool InternalTryCompile(string input, out MemoryPattern pattern, bool allowWildcards, ref string? userErrMsg) {
         string[] tokens = input.Split(' ', int.MaxValue, StringSplitOptions.RemoveEmptyEntries);
         byte?[] data = new byte?[tokens.Length];
         for (int i = 0; i < tokens.Length; i++) {
             if (tokens[i].StartsWith('?')) {
-                if (disallowWildcards) {
-                    errMsg ??= "Wildcards are not allowed";
+                if (!allowWildcards) {
+                    userErrMsg ??= "Wildcards are not allowed";
                     pattern = default;
                     return false;
                 }
@@ -105,14 +106,23 @@ public readonly struct MemoryPattern {
             }
             else {
                 if (tokens[i].Length != 2) {
-                    errMsg ??= "Byte token does not contain two characters: " + tokens[i];
+                    if (userErrMsg == null) {
+                        StringBuilder sb = new StringBuilder();
+                        sb.Append("Byte does not contain two hex characters: ").Append(tokens[i]);
+                        if (byte.TryParse(tokens[i], out byte value)) {
+                            sb.Append(". Did you mean ").Append(value.ToString("X2")).Append(" (hex)?");
+                        }
+
+                        userErrMsg = sb.ToString();
+                    }
+                    
                     pattern = default;
                     return false;
                 }
 
                 char ch1 = tokens[i][0], ch2 = tokens[i][1], chCheck;
                 if (!NumberUtils.IsCharValidHex(chCheck = ch1) || !NumberUtils.IsCharValidHex(chCheck = ch2)) {
-                    errMsg ??= $"Invalid hex character '{chCheck}' in token {i + 1}";
+                    userErrMsg ??= $"Invalid hex character '{chCheck}' in token {i + 1}";
                     pattern = default;
                     return false;
                 }

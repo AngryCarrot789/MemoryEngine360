@@ -47,7 +47,7 @@ public abstract class BaseSequenceManagerCommandUsage : SimpleButtonCommandUsage
 
         if (oldManager != newManager) {
             MemoryEngine360? oldEngine = this.Engine;
-            MemoryEngine360? newEngine = newManager?.Engine;
+            MemoryEngine360? newEngine = newManager?.MemoryEngine;
             
             this.TaskSequencerManager = newManager;
             this.OnTaskSequencerManagerChanged(oldManager, newManager);

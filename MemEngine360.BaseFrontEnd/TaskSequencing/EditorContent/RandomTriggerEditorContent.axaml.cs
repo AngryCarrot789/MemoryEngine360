@@ -27,7 +27,7 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent;
 public partial class RandomTriggerEditorContent : BaseOperationEditorContent {
     private readonly TextBoxToEventPropertyBinder<RandomTriggerHelper> chanceBinder = new TextBoxToEventPropertyBinder<RandomTriggerHelper>(nameof(RandomTriggerHelper.ChanceChanged), (b) => b.Model.Chance.ToString(), async (b, str) => {
         if (!NumberUtils.TryParseHexOrRegular(str, out uint value)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", $"The chance must be an integer. {Environment.NewLine}E.g. a 5% chance means this value would be 20 (because 1/20 is 0.05, and 100*(1/5) is 20). Ain't math fucking obnoxious", defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", $"The chance must be an integer. {Environment.NewLine}E.g. a 5% chance means this value would be 20 (because 1/20 is 0.05, and 100*(1/5) is 20)", defaultButton: MessageBoxResult.OK);
             return false;
         }
 

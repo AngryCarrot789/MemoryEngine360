@@ -64,6 +64,7 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
 
                 switch (command.ResponseType) {
                     case ResponseType.SingleResponse:
+                        // Sketchy way of detecting multi-line responses. It works for a few things
                         if (command.Message.EndsWith("Follows", StringComparison.OrdinalIgnoreCase)) {
                             await IMessageDialogService.Instance.ShowMessage("Single response with lines", command.Message, string.Join(Environment.NewLine, await xbdm.ReadMultiLineResponse()));
                         }
@@ -72,41 +73,61 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
                         }
 
                         break;
-                    case ResponseType.Connected:                     await IMessageDialogService.Instance.ShowMessage($"Connected ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.MultiResponse:                 await IMessageDialogService.Instance.ShowMessage("Multi-Response", string.Join(Environment.NewLine, await xbdm.ReadMultiLineResponse()), defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.BinaryResponse:                await IMessageDialogService.Instance.ShowMessage($"Binary Response ({crt})", "(Cannot received data! Command line may now be broken)", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.ReadyForBinary:                await IMessageDialogService.Instance.ShowMessage($"Ready For Binary ({crt})", "(Cannot received data! Command line may now be broken)", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.DedicatedConnection:           await IMessageDialogService.Instance.ShowMessage($"Dedicated Connection ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.NoError:                       await IMessageDialogService.Instance.ShowMessage($"No Error ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.MaxConnectionsExceeded:        await IMessageDialogService.Instance.ShowMessage($"Max Connections Exceeded ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.FileNotFound:                  await IMessageDialogService.Instance.ShowMessage($"File Not Found ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.NoSuchModule:                  await IMessageDialogService.Instance.ShowMessage($"No Such Module ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.MemoryNotMapped:               await IMessageDialogService.Instance.ShowMessage($"Memory Not Mapped ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.NoSuchThread:                  await IMessageDialogService.Instance.ShowMessage($"No Such Thread ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.ClockNotSet:                   await IMessageDialogService.Instance.ShowMessage($"Clock Not Set ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.UnknownCommand:                await IMessageDialogService.Instance.ShowMessage($"Unknown Command ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.NotStopped:                    await IMessageDialogService.Instance.ShowMessage($"Not Stopped ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.FileMustBeCopied:              await IMessageDialogService.Instance.ShowMessage($"File Must Be Copied ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.FileAlreadyExists:             await IMessageDialogService.Instance.ShowMessage($"File Already Exists ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.DirectoryNotEmpty:             await IMessageDialogService.Instance.ShowMessage($"Directory Not Empty ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.BadFileName:                   await IMessageDialogService.Instance.ShowMessage($"Bad File Name ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.FileCannotBeCreated:           await IMessageDialogService.Instance.ShowMessage($"File Cannot Be Created ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.AccessDenied:                  await IMessageDialogService.Instance.ShowMessage($"Access Denied ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.DeviceIsFull:                  await IMessageDialogService.Instance.ShowMessage($"Device Is Full ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.NotDebuggable:                 await IMessageDialogService.Instance.ShowMessage($"Not Debuggable ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.CountTypeInvalid:              await IMessageDialogService.Instance.ShowMessage($"Count Type Invalid ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.CountNotAvailable:             await IMessageDialogService.Instance.ShowMessage($"Count Not Available ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.BoxIsNotLocked:                await IMessageDialogService.Instance.ShowMessage($"Box Is Not Locked ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.KeyExchangeRequired:           await IMessageDialogService.Instance.ShowMessage($"Key Exchange Required ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.DedicatedConnectionRequired:   await IMessageDialogService.Instance.ShowMessage($"Dedicated Connection Required ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.InvalidArgument:               await IMessageDialogService.Instance.ShowMessage($"Invalid Argument ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.ProfileNotStarted:             await IMessageDialogService.Instance.ShowMessage($"Profile NotStarted ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.ProfileAlreadyStarted:         await IMessageDialogService.Instance.ShowMessage($"Profile Already Started ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.D3DDebugCommandNotImplemented: await IMessageDialogService.Instance.ShowMessage($"D3D Debug Command Not Implemented ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.D3DInvalidSurface:             await IMessageDialogService.Instance.ShowMessage($"D3D Invalid Surface ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.VxTaskPending:                 await IMessageDialogService.Instance.ShowMessage($"Vx Task Pending ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    case ResponseType.VxTooManySessions:             await IMessageDialogService.Instance.ShowMessage($"Vx Too Many Sessions ({crt})", command.Message, defaultButton:MessageBoxResult.OK); break;
-                    default:                                         throw new ArgumentOutOfRangeException();
+                    case ResponseType.Connected:                         await IMessageDialogService.Instance.ShowMessage($"Connected ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.MultiResponse:                     await IMessageDialogService.Instance.ShowMessage("Multi-Response", string.Join(Environment.NewLine, await xbdm.ReadMultiLineResponse()), defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.BinaryResponse:                    await IMessageDialogService.Instance.ShowMessage($"Binary Response ({crt})", "(Cannot received data! Command line may now be broken)", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.ReadyForBinary:                    await IMessageDialogService.Instance.ShowMessage($"Ready For Binary ({crt})", "(Cannot received data! Command line may now be broken)", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.DedicatedConnection:               await IMessageDialogService.Instance.ShowMessage($"Dedicated Connection ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.NoError:                           await IMessageDialogService.Instance.ShowMessage($"No Error ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.MaxConnectionsExceeded:            await IMessageDialogService.Instance.ShowMessage($"Max Connections Exceeded ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.FileNotFound:                      await IMessageDialogService.Instance.ShowMessage($"File Not Found ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.NoSuchModule:                      await IMessageDialogService.Instance.ShowMessage($"No Such Module ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.MemoryNotMapped:                   await IMessageDialogService.Instance.ShowMessage($"Memory Not Mapped ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.NoSuchThread:                      await IMessageDialogService.Instance.ShowMessage($"No Such Thread ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.ClockNotSet:                       await IMessageDialogService.Instance.ShowMessage($"Clock Not Set ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.UnknownCommand:                    await IMessageDialogService.Instance.ShowMessage($"Unknown Command ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.NotStopped:                        await IMessageDialogService.Instance.ShowMessage($"Not Stopped ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.FileMustBeCopied:                  await IMessageDialogService.Instance.ShowMessage($"File Must Be Copied ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.FileAlreadyExists:                 await IMessageDialogService.Instance.ShowMessage($"File Already Exists ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.DirectoryNotEmpty:                 await IMessageDialogService.Instance.ShowMessage($"Directory Not Empty ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.BadFileName:                       await IMessageDialogService.Instance.ShowMessage($"Bad File Name ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.FileCannotBeCreated:               await IMessageDialogService.Instance.ShowMessage($"File Cannot Be Created ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.AccessDenied:                      await IMessageDialogService.Instance.ShowMessage($"Access Denied ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.DeviceIsFull:                      await IMessageDialogService.Instance.ShowMessage($"Device Is Full ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.NotDebuggable:                     await IMessageDialogService.Instance.ShowMessage($"Not Debuggable ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.CountTypeInvalid:                  await IMessageDialogService.Instance.ShowMessage($"Count Type Invalid ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.CountNotAvailable:                 await IMessageDialogService.Instance.ShowMessage($"Count Not Available ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.BoxIsNotLocked:                    await IMessageDialogService.Instance.ShowMessage($"Box Is Not Locked ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.KeyExchangeRequired:               await IMessageDialogService.Instance.ShowMessage($"Key Exchange Required ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.DedicatedConnectionRequired:       await IMessageDialogService.Instance.ShowMessage($"Dedicated Connection Required ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.InvalidArgument:                   await IMessageDialogService.Instance.ShowMessage($"Invalid Argument ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.ProfileNotStarted:                 await IMessageDialogService.Instance.ShowMessage($"Profile NotStarted ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.ProfileAlreadyStarted:             await IMessageDialogService.Instance.ShowMessage($"Profile Already Started ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_ALREADYSTOPPED:               await IMessageDialogService.Instance.ShowMessage($"Already Stopped ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_FASTCAPNOTENABLED:            await IMessageDialogService.Instance.ShowMessage($"Fast CAP Not Enabled ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_NOMEMORY:                     await IMessageDialogService.Instance.ShowMessage($"Out of memory ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_TIMEOUT:                      await IMessageDialogService.Instance.ShowMessage($"Timed out ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_NOSUCHPATH:                   await IMessageDialogService.Instance.ShowMessage($"No such path ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_INVALID_SCREEN_INPUT_FORMAT:  await IMessageDialogService.Instance.ShowMessage($"Invalid Screen Input Format ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_INVALID_SCREEN_OUTPUT_FORMAT: await IMessageDialogService.Instance.ShowMessage($"Invalid Screen Output Format ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_CALLCAPNOTENABLED:            await IMessageDialogService.Instance.ShowMessage($"Call CAP Not enabled ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_INVALIDCAPCFG:                await IMessageDialogService.Instance.ShowMessage($"Invalid CAP Config ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_CAPNOTENABLED:                await IMessageDialogService.Instance.ShowMessage($"CAP not enabled ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_TOOBIGJUMP:                   await IMessageDialogService.Instance.ShowMessage($"Jump too big ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XexFieldNotFound:                  await IMessageDialogService.Instance.ShowMessage($"XeX (ELD) field not found ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_OUTPUTBUFFERTOOSMALL:         await IMessageDialogService.Instance.ShowMessage($"Output buffer is too small ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_PROFILEREBOOT:                await IMessageDialogService.Instance.ShowMessage($"PROFILEREBOOT ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_MAXDURATIONEXCEEDED:          await IMessageDialogService.Instance.ShowMessage($"MAXDURATIONEXCEEDED ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_INVALIDSTATE:                 await IMessageDialogService.Instance.ShowMessage($"INVALIDSTATE ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_MAXEXTENSIONS:                await IMessageDialogService.Instance.ShowMessage($"MAXEXTENSIONS ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_PMCSESSIONALREADYACTIVE:      await IMessageDialogService.Instance.ShowMessage($"PMCSESSIONALREADYACTIVE ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_PMCSESSIONNOTACTIVE:          await IMessageDialogService.Instance.ShowMessage($"PMCSESSIONNOTACTIVE ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.XBDM_LINE_TOO_LONG:                await IMessageDialogService.Instance.ShowMessage($"Line too long ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.D3DDebugCommandNotImplemented:     await IMessageDialogService.Instance.ShowMessage($"D3D Debug Command Not Implemented ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.D3DInvalidSurface:                 await IMessageDialogService.Instance.ShowMessage($"D3D Invalid Surface ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.VxTaskPending:                     await IMessageDialogService.Instance.ShowMessage($"Vx Task Pending ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.VxTooManySessions:                 await IMessageDialogService.Instance.ShowMessage($"Vx Too Many Sessions ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    default:                                             throw new ArgumentOutOfRangeException();
                 }
             }
         }

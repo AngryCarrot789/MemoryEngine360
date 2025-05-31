@@ -449,8 +449,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     protected override async Task<uint> WriteBytesCore(uint address, byte[] srcBuffer, int offset, uint count) {
         while (count > 0) {
             uint cbWrite = Math.Min(count, 64 /* Fixed Chunk Size */);
-            this.FillSetMemCommandBuffer(address, srcBuffer, offset, count);
-            await this.InternalWriteBytes(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, (int) (30 + (count << 1)))).ConfigureAwait(false);
+            this.FillSetMemCommandBuffer(address, srcBuffer, offset, cbWrite);
+            await this.InternalWriteBytes(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, (int) (30 + (cbWrite << 1)))).ConfigureAwait(false);
             ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
             if (response.ResponseType != ResponseType.SingleResponse && response.ResponseType != ResponseType.MemoryNotMapped) {
                 VerifyResponse("setmem", response.ResponseType, ResponseType.SingleResponse);
@@ -515,7 +515,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         ref byte hexChars = ref MemoryMarshal.GetArrayDataReference(NumberUtils.HEX_CHARS_ASCII);
         for (int j = 0; j < cbData; j++, i += 2) {
             byte b = srcData[srcOffset + j];
-            Unsafe.AddByteOffset(ref dstAscii, i + 0) = Unsafe.ReadUnaligned<byte>(ref Unsafe.AddByteOffset(ref hexChars, b >> 4));
+            Unsafe.AddByteOffset(ref dstAscii, i + 0) = Unsafe.ReadUnaligned<byte>(ref Unsafe.AddByteOffset(ref hexChars, (b >> 4) & 0xF));
             Unsafe.AddByteOffset(ref dstAscii, i + 1) = Unsafe.ReadUnaligned<byte>(ref Unsafe.AddByteOffset(ref hexChars, b & 0xF));
         }
 

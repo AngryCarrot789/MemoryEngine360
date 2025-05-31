@@ -43,7 +43,10 @@ public partial class OpenConnectionView : UserControl {
     /// </summary>
     public static readonly ModelControlRegistry<UserConnectionInfo, Control> Registry;
 
-    public MemoryEngine360 MemoryEngine360 { get; internal set; }
+    /// <summary>
+    /// Gets or sets the memory engine reference, if necessary
+    /// </summary>
+    public MemoryEngine360? MemoryEngine360 { get; internal set; }
 
     public string? TypeToFocusOnOpened { get; internal set; }
 
@@ -83,22 +86,19 @@ public partial class OpenConnectionView : UserControl {
             ConsoleTypeListBoxItem? selection = ((ConsoleTypeListBoxItem?) this.PART_ListBox.SelectedItem);
             if (selection != null && selection.RegisteredConsoleType != null) {
                 this.currCts = new CancellationTokenSource();
-                using IDisposable? token = await this.MemoryEngine360!.BeginBusyOperationActivityAsync("Connect to console", cancellationTokenSource: this.currCts);
-                if (token != null) {
-                    IConsoleConnection? connection;
-                    try {
-                        connection = await selection.RegisteredConsoleType.OpenConnection(selection.UserConnectionInfo, this.currCts);
-                    }
-                    catch (Exception e) {
-                        await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
-                        connection = null;
-                    }
+                IConsoleConnection? connection;
+                try {
+                    connection = await selection.RegisteredConsoleType.OpenConnection(selection.UserConnectionInfo, this.currCts);
+                }
+                catch (Exception e) {
+                    await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
+                    connection = null;
+                }
 
-                    if (connection != null) {
-                        this.CurrentConnection = connection;
-                        if (TopLevel.GetTopLevel(this) is DesktopWindow window) {
-                            window.Close();
-                        }
+                if (connection != null) {
+                    this.CurrentConnection = connection;
+                    if (TopLevel.GetTopLevel(this) is DesktopWindow window) {
+                        window.Close();
                     }
                 }
 
@@ -118,7 +118,7 @@ public partial class OpenConnectionView : UserControl {
 
     internal void OnWindowOpened() {
         IContextData context = new ContextData().Set(MemoryEngine360.DataKey, this.MemoryEngine360);
-        
+
         ConsoleTypeListBoxItem? selected = null;
         ConsoleConnectionManager service = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
         foreach (RegisteredConnectionType type in service.RegisteredConsoleTypes) {

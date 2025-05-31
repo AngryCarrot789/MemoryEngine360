@@ -24,7 +24,7 @@ using PFXToolKitUI.Avalonia.Services.Windowing;
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
-    public override async Task<IOpenConnectionView?> ShowOpenConnectionView(MemoryEngine360 engine, string? focusedTypeId = "console.xbox360.xbdm-coreimpl") {
+    public override async Task<IOpenConnectionView?> ShowOpenConnectionView(MemoryEngine360? engine, string? focusedTypeId = "console.xbox360.xbdm-coreimpl") {
         if (!WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
             return null;
         }

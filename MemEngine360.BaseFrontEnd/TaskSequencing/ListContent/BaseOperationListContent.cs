@@ -48,8 +48,21 @@ public class BaseOperationListContent : UserControl {
         Registry.RegisterType(typeof(DelayOperation), () => new DelayOperationListContent());
         Registry.RegisterType(typeof(SetMemoryOperation), () => new SetMemoryOperationListContent());
     }
-    
+
     protected virtual void OnOperationChanged(BaseSequenceOperation? oldOperation, BaseSequenceOperation? newOperation) {
-        
+        if (oldOperation != null)
+            oldOperation.IsEnabledChanged -= this.OnIsEnabledChanged;
+        if (newOperation != null)
+            newOperation.IsEnabledChanged += this.OnIsEnabledChanged;
+        this.UpdateOpacity();
+    }
+
+    private void OnIsEnabledChanged(BaseSequenceOperation sender) {
+        this.UpdateOpacity();
+    }
+
+    private void UpdateOpacity() {
+        BaseSequenceOperation? operation = this.Operation;
+        this.Opacity = operation == null || operation.IsEnabled ? 1.0 : 0.5;
     }
 }

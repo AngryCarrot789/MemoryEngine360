@@ -20,6 +20,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
@@ -43,6 +44,13 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
 
     public OperationListBoxItem() {
         DataManager.GetContextData(this).Set(IOperationItemUI.DataKey, this);
+    }
+    
+    protected override void OnKeyDown(KeyEventArgs e) {
+        base.OnKeyDown(e);
+        if (!e.Handled && e.Key == Key.Space && this.IsFocused && this.Model != null) {
+            this.Model.IsEnabled = !this.Model.IsEnabled;
+        }
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {

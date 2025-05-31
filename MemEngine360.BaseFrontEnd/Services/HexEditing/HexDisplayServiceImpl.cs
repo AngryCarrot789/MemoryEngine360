@@ -27,7 +27,7 @@ public class HexDisplayServiceImpl : IHexDisplayService {
     public Task ShowHexEditor(HexEditorInfo info) {
         Validate.NotNull(info);
         if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-            HexEditorControl control = new HexEditorControl() {
+            HexEditorWindow control = new HexEditorWindow() {
                 HexDisplayInfo = info
             };
             
