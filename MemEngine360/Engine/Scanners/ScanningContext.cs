@@ -38,6 +38,7 @@ public delegate void ScanningContextResultEventHandler(ScanningContext sender, S
 /// </summary>
 public sealed class ScanningContext {
     internal const uint ChunkSize = 0x10000; // 65536
+    internal readonly double floatEpsilon = BasicApplicationConfiguration.Instance.FloatingPointEpsilon;
     internal readonly ScanningProcessor theProcessor;
     internal readonly string inputA, inputB;
     internal readonly uint startAddress, scanLength, scanEndAddress;
@@ -58,7 +59,9 @@ public sealed class ScanningContext {
 
     // number of bytes the data type takes up. for strings, calculates based on StringType and char count
     internal int cbDataType;
-    private readonly double epsilon = BasicApplicationConfiguration.Instance.FloatingPointEpsilon;
+    
+    // a char buffer for decoding chars from bytes
+    private char[]? charBuffer;
 
     // engine's forced LE state is not automatic, and it forces an endianness different from the connection.
     // internal bool reverseEndianness;
@@ -93,7 +96,7 @@ public sealed class ScanningContext {
         this.dataType = processor.DataType;
         this.numericScanType = processor.NumericScanType;
         this.stringComparison = processor.StringComparison;
-        this.isSecondInputRequired = this.numericScanType == NumericScanType.Between
+        this.isSecondInputRequired = this.numericScanType.IsBetween()
                                      && this.dataType.IsNumeric()
                                      && !this.nextScanUsesFirstValue
                                      && !this.nextScanUsesPreviousValue;
@@ -131,6 +134,7 @@ public sealed class ScanningContext {
                 }
 
                 this.cbDataType = cbInputA;
+                this.charBuffer = new char[this.stringType.ToEncoding().GetMaxCharCount(cbInputA)];
                 break;
             }
             case DataType.ByteArray: {
@@ -195,7 +199,7 @@ public sealed class ScanningContext {
                 }
 
                 if (isBackward) {
-                    await IMessageDialogService.Instance.ShowMessage("Invalid input", $"You put them in the wrong way around!", $"FROM is greater than TO ({this.inputA} > {this.inputB})");
+                    await IMessageDialogService.Instance.ShowMessage("Invalid input", "You put them in the wrong way around!", $"FROM is greater than TO ({this.inputA} > {this.inputB})");
                     return false;
                 }
             }
@@ -212,22 +216,24 @@ public sealed class ScanningContext {
     internal void ProcessMemoryBlockForFirstScan(uint address, ReadOnlySpan<byte> buffer) {
         // by default, align is set to cbDataType except for string where it's 1. So in most cases, only check bounds for strings
         // There's also another issue with values between chunks, which we don't process because I can't get it to work...
-        bool checkBounds = this.alignment < this.cbDataType;
+        bool checkBounds = this.alignment < this.cbDataType, isString;
+        ReadOnlySpan<byte> memory;
         if (this.dataType.IsNumeric()) {
             for (uint i = 0; i < buffer.Length; i += this.alignment) {
                 if (checkBounds && (buffer.Length - i) < this.cbDataType) {
                     break;
                 }
 
+                memory = buffer.Slice((int) i, this.cbDataType);
+
                 IDataValue? matchBoxed;
-                ReadOnlySpan<byte> span = buffer.Slice((int) i, this.cbDataType);
                 switch (this.dataType) {
-                    case DataType.Byte:   matchBoxed = this.CompareInt<byte>(span); break;
-                    case DataType.Int16:  matchBoxed = this.CompareInt<short>(span); break;
-                    case DataType.Int32:  matchBoxed = this.CompareInt<int>(span); break;
-                    case DataType.Int64:  matchBoxed = this.CompareInt<long>(span); break;
-                    case DataType.Float:  matchBoxed = this.CompareFloat<float>(span); break;
-                    case DataType.Double: matchBoxed = this.CompareFloat<double>(span); break;
+                    case DataType.Byte:   matchBoxed = this.CompareInt<byte>(memory); break;
+                    case DataType.Int16:  matchBoxed = this.CompareInt<short>(memory); break;
+                    case DataType.Int32:  matchBoxed = this.CompareInt<int>(memory); break;
+                    case DataType.Int64:  matchBoxed = this.CompareInt<long>(memory); break;
+                    case DataType.Float:  matchBoxed = this.CompareFloat<float>(memory); break;
+                    case DataType.Double: matchBoxed = this.CompareFloat<double>(memory); break;
                     default:
                         Debug.Fail("Invalid data type");
                         return;
@@ -239,24 +245,24 @@ public sealed class ScanningContext {
                 }
             }
         }
-        else if (this.dataType == DataType.String || this.dataType == DataType.ByteArray) {
-            bool isString = this.dataType == DataType.String;
+        else if ((isString = this.dataType == DataType.String) || this.dataType == DataType.ByteArray) {
             for (uint i = 0; i < buffer.Length; i += this.alignment) {
                 if (checkBounds && (buffer.Length - i) < this.cbDataType) {
                     break;
                 }
 
-                ReadOnlySpan<byte> data = buffer.Slice((int) i, this.cbDataType);
+                memory = buffer.Slice((int) i, this.cbDataType);
                 if (isString) {
-                    string readText = this.stringType.ToEncoding().GetString(data);
-                    if (readText.Equals(this.inputA, this.stringComparison)) {
-                        this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, address + i, this.dataType, NumericDisplayType.Normal, this.stringType, new DataValueString(readText, this.stringType)));
+                    int cchBuffer = this.stringType.ToEncoding().GetChars(memory, this.charBuffer.AsSpan());
+                    ReadOnlySpan<char> chars = new ReadOnlySpan<char>(this.charBuffer, 0, cchBuffer);
+                    if (chars.Equals(this.inputA.AsSpan(), this.stringComparison)) {
+                        this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, address + i, this.dataType, NumericDisplayType.Normal, this.stringType, new DataValueString(new string(chars), this.stringType)));
                     }
                 }
                 else {
                     Debug.Assert(this.memoryPattern.IsValid);
-                    if (this.memoryPattern.Matches(data)) {
-                        this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, address + i, this.dataType, NumericDisplayType.Normal, this.stringType, new DataValueByteArray(data.ToArray())));
+                    if (this.memoryPattern.Matches(memory)) {
+                        this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, address + i, this.dataType, NumericDisplayType.Normal, this.stringType, new DataValueByteArray(memory.ToArray())));
                     }
                 }
             }
@@ -354,7 +360,7 @@ public sealed class ScanningContext {
 
                     ScanResultViewModel res = srcList[i];
                     MemoryPattern search;
-                    if (this.nextScanUsesFirstValue) // first/prev use pattern even though they contain no wildcards. Makes code cleaner ;)
+                    if (this.nextScanUsesFirstValue)
                         search = MemoryPattern.Create(((DataValueByteArray) res.FirstValue).Value);
                     else if (this.nextScanUsesPreviousValue)
                         search = MemoryPattern.Create(((DataValueByteArray) res.PreviousValue).Value);
@@ -376,14 +382,14 @@ public sealed class ScanningContext {
             Debug.Fail("Missing data type");
         }
     }
-
+    
     private BaseNumericDataValue<T>? CompareInt<T>(ReadOnlySpan<byte> searchValueBytes) where T : unmanaged, IBinaryInteger<T> {
         return this.CompareInt<T>(searchValueBytes, this.numericInputA, this.numericInputB);
     }
 
     private BaseNumericDataValue<T>? CompareInt<T>(ReadOnlySpan<byte> searchValueBytes, ulong theInputA, ulong theInputB) where T : unmanaged, IBinaryInteger<T> {
         T value = ValueScannerUtils.CreateNumberFromBytes<T>(searchValueBytes);
-        T valA = Unsafe.As<ulong, T>(ref theInputA);
+        T valA = Unsafe.As<ulong, T>(ref theInputA), valB;
         switch (this.numericScanType) {
             case NumericScanType.Equals:              return value == valA ? IDataValue.CreateNumeric(value) : null;
             case NumericScanType.NotEquals:           return value != valA ? IDataValue.CreateNumeric(value) : null;
@@ -392,8 +398,12 @@ public sealed class ScanningContext {
             case NumericScanType.GreaterThan:         return value > valA ? IDataValue.CreateNumeric(value) : null;
             case NumericScanType.GreaterThanOrEquals: return value >= valA ? IDataValue.CreateNumeric(value) : null;
             case NumericScanType.Between: {
-                T valB = Unsafe.As<ulong, T>(ref theInputB);
+                valB = Unsafe.As<ulong, T>(ref theInputB);
                 return value >= valA && value <= valB ? IDataValue.CreateNumeric(value) : null;
+            }
+            case NumericScanType.NotBetween: {
+                valB = Unsafe.As<ulong, T>(ref theInputB);
+                return value < valA || value > valB ? IDataValue.CreateNumeric(value) : null;
             }
             default: throw new ArgumentOutOfRangeException();
         }
@@ -406,19 +416,23 @@ public sealed class ScanningContext {
     private BaseFloatDataValue<T>? CompareFloat<T>(ReadOnlySpan<byte> searchValueBytes, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T> {
         bool isFloat = typeof(T) == typeof(float);
         T value = ValueScannerUtils.CreateFloat<T>(searchValueBytes);
-        
+
         // We convert everything to doubles when comparing, for higher accuracy
         double dblVal = this.GetDoubleFromReadValue(value, this.inputA);
-        double valA = isFloat ? Unsafe.As<ulong, float>(ref theInputA) : Unsafe.As<ulong, double>(ref theInputA);
+        double valA = isFloat ? Unsafe.As<ulong, float>(ref theInputA) : Unsafe.As<ulong, double>(ref theInputA), valB;
         switch (this.numericScanType) {
-            case NumericScanType.Equals:              return Math.Abs(dblVal - valA) < this.epsilon ? IDataValue.CreateFloat(value) : null;
-            case NumericScanType.NotEquals:           return Math.Abs(dblVal - valA) >= this.epsilon ? IDataValue.CreateFloat(value) : null;
+            case NumericScanType.Equals:              return Math.Abs(dblVal - valA) < this.floatEpsilon ? IDataValue.CreateFloat(value) : null;
+            case NumericScanType.NotEquals:           return Math.Abs(dblVal - valA) >= this.floatEpsilon ? IDataValue.CreateFloat(value) : null;
             case NumericScanType.LessThan:            return dblVal < valA ? IDataValue.CreateFloat(value) : null;
             case NumericScanType.LessThanOrEquals:    return dblVal <= valA ? IDataValue.CreateFloat(value) : null;
             case NumericScanType.GreaterThan:         return dblVal > valA ? IDataValue.CreateFloat(value) : null;
             case NumericScanType.GreaterThanOrEquals: return dblVal >= valA ? IDataValue.CreateFloat(value) : null;
             case NumericScanType.Between: {
-                double valB = isFloat ? Unsafe.As<ulong, float>(ref theInputB) : Unsafe.As<ulong, double>(ref theInputB);
+                valB = isFloat ? Unsafe.As<ulong, float>(ref theInputB) : Unsafe.As<ulong, double>(ref theInputB);
+                return dblVal < valA || dblVal > valB ? IDataValue.CreateFloat(value) : null;
+            }
+            case NumericScanType.NotBetween: {
+                valB = isFloat ? Unsafe.As<ulong, float>(ref theInputB) : Unsafe.As<ulong, double>(ref theInputB);
                 return dblVal >= valA && dblVal <= valB ? IDataValue.CreateFloat(value) : null;
             }
         }
@@ -429,10 +443,10 @@ public sealed class ScanningContext {
 
     private double GetDoubleFromReadValue<T>(T readValue /* value from console */, string inputText /* user input value */) where T : unmanaged, IFloatingPoint<T> {
         double value = typeof(T) == typeof(float) ? Unsafe.As<T, float>(ref readValue) : Unsafe.As<T, double>(ref readValue);
-        
+
         int idx = inputText.IndexOf('.');
         if (idx == -1 || idx == (inputText.Length - 1) /* last char, assume trimmed start+end */) {
-            // can't truncate or round to decimal places, so just clip the decimals off
+            // just clip the decimals off
             return this.floatScanOption == FloatScanOption.TruncateToQuery ? Math.Truncate(value) : Math.Round(value);
         }
         else {
@@ -465,7 +479,7 @@ public sealed class ScanningContext {
     [SuppressMessage("ReSharper", "AssignmentInConditionalExpression")]
     private static bool TryParseNumeric(string text, DataType dataType, NumericDisplayType ndt, out ulong value /*, bool reverseEndianness*/) {
         const NumberStyles floatNs = NumberStyles.Integer | NumberStyles.AllowDecimalPoint;
-        
+
         bool result;
         value = 0;
         NumberStyles intNumStyle = ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
@@ -497,8 +511,7 @@ public sealed class ScanningContext {
                     }
                 }
                 else if (result = float.TryParse(text, floatNs, null, out float val)) {
-                    uint val2 = Unsafe.As<float, uint>(ref val);
-                    value = val2;
+                    value = Unsafe.As<float, uint>(ref val);;
                 }
 
                 break;
@@ -510,8 +523,7 @@ public sealed class ScanningContext {
                     }
                 }
                 else if (result = double.TryParse(text, floatNs, null, out double val)) {
-                    ulong val2 = Unsafe.As<double, ulong>(ref val);
-                    value = val2;
+                    value = Unsafe.As<double, ulong>(ref val);
                 }
 
                 break;

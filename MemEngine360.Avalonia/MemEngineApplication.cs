@@ -154,6 +154,7 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     }
 
     protected override void RegisterConfigurations() {
+        base.RegisterConfigurations();
         this.PersistentStorageManager.Register<ThemeConfigurationOptions>(new ThemeConfigurationOptionsImpl(), "themes", "themes");
         this.PersistentStorageManager.Register(new BasicApplicationConfiguration(), null, "basic");
     }

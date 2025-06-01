@@ -202,7 +202,7 @@ public partial class ScanOptionsControl : UserControl {
 
         ScanningProcessor sp = engine.ScanningProcessor;
         bool isNumeric = sp.DataType.IsNumeric();
-        bool isBetween = sp.NumericScanType == NumericScanType.Between;
+        bool isBetween = sp.NumericScanType.IsBetween();
 
         if (isBetween && isNumeric) {
             this.PART_Input_Value1.IsVisible = false;

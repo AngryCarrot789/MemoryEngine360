@@ -31,11 +31,7 @@ namespace MemEngine360.Connections;
 /// </summary>
 public abstract class RegisteredConnectionType {
     internal string? internalRegisteredId;
-
-    // TODO: allow custom controls to be presented in the MemEngine connection dialog.
-    // Maybe we can use a similar system to the UserInputInfo, where you register a
-    // control type with a model class, and we add a method in here called "CreateConsoleUserInputInfo()"
-
+    
     /// <summary>
     /// Gets a readable string which is the name of this console type, e.g. "Xbox 360 (XBDM)".
     /// This is typically shown in the list box of possible consoles to connect to.
@@ -91,7 +87,7 @@ public abstract class RegisteredConnectionType {
     /// </para> 
     /// </summary>
     /// <param name="_info">
-    ///     Information that the user specified in the connection dialog. Value is null when <see cref="CreateConnectionInfo"/> is null
+    ///     Information that the user specified in the connection dialog. Value is null when <see cref="CreateConnectionInfo"/> returns null
     /// </param>
     /// <param name="cancellation">
     /// A reference to the CTS created by the Connect to console dialog. It is cancelled when either the user clicks the cancel

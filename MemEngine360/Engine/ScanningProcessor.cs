@@ -69,7 +69,7 @@ public class ScanningProcessor {
     }
 
     /// <summary>
-    /// Gets the secondary input, used when <see cref="NumericScanType"/> is <see cref="Modes.NumericScanType.Between"/>
+    /// Gets the secondary input, used when <see cref="NumericScanType"/> is <see cref="Modes.NumericScanType.Between"/> or <see cref="Modes.NumericScanType.NotBetween"/>
     /// </summary>
     public string InputB {
         get => this.inputB;

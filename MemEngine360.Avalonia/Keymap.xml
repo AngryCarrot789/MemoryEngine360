@@ -104,4 +104,13 @@
             <KeyStroke Mods="CTRL+ALT" Key="S"/>
         </Shortcut>
     </Group>
+    <Group Name="Configuration" DisplayName="Configuration window" Description="The configuration window">
+        <Group Name="Page" DisplayName="Page Panel">
+            <Group Name="DialogResults">
+                <Shortcut Name="DeleteSelectedDialogResultEntries" CommandId="commands.config.dialogs.DeleteSelectedDialogResultEntriesCommand">
+                    <KeyStroke Key="Delete"/>
+                </Shortcut>
+            </Group>
+        </Group>
+    </Group>
 </KeyMap>

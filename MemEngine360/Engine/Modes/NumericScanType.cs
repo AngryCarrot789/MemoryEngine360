@@ -48,5 +48,15 @@ public enum NumericScanType {
     /// Match when memory is greater than or equal to query1 ("from") and
     /// less than or equal to query2 ("to"), therefore, making both query values inclusive
     /// </summary>
-    Between
+    Between,
+    /// <summary>
+    /// Match when memory is less than query1 ("from") or greater than query2 ("to")
+    /// </summary>
+    NotBetween
+}
+
+public static class NumericScanTypeExtensions {
+    public static bool IsBetween(this NumericScanType type) {
+        return type == NumericScanType.Between || type == NumericScanType.NotBetween;
+    }
 }
