@@ -119,7 +119,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
         private uint dlCurrAddress, dlCbRemaining;
         private uint cbDownloaded, cbWritten;
         private volatile bool isDoneDownloading;
-        private readonly ConcurrentQueue<byte[]> buffers;
+        private readonly ConcurrentQueue<(byte[], uint)> buffers;
         private volatile IOException? connIoException;
         private volatile Exception? fileException;
 
@@ -146,7 +146,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             this.busyToken = busyToken;
             this.dlCurrAddress = this.startAddress;
             this.dlCbRemaining = this.countBytes;
-            this.buffers = new ConcurrentQueue<byte[]>();
+            this.buffers = new ConcurrentQueue<(byte[], uint)>();
 
             this.downloadCompletion = new SimpleCompletionState();
             this.downloadCompletion.CompletionValueChanged += state => {
@@ -221,14 +221,11 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                         byte[] downloadBuffer = new byte[0x10000];
                         uint cbRead = Math.Min((uint) downloadBuffer.Length, this.dlCbRemaining);
                         uint cbActualRead = await connection.ReadBytes(this.dlCurrAddress, downloadBuffer, 0, cbRead);
-                        for (uint j = cbActualRead; j < cbRead; j++) {
-                            downloadBuffer[j] = 0;
-                        }
 
                         this.dlCbRemaining -= cbRead;
                         this.dlCurrAddress += cbRead;
 
-                        this.buffers.Enqueue(downloadBuffer);
+                        this.buffers.Enqueue((downloadBuffer, cbRead));
                         this.downloadCompletion?.OnProgress(cbRead);
                     }
                 }
@@ -259,9 +256,10 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
 
             Task taskFileIO = Task.Run(async () => {
                 while (!this.isDoneDownloading || !this.buffers.IsEmpty) {
-                    while (!pauseOrCancelToken.IsCancellationRequested && this.buffers.TryDequeue(out byte[]? buffer)) {
+                    while (!pauseOrCancelToken.IsCancellationRequested && this.buffers.TryDequeue(out (byte[] buffer, uint cbBuffer) data)) {
                         try {
-                            await this.fileOutput.WriteAsync(buffer, CancellationToken.None);
+                            ReadOnlyMemory<byte> rom = new ReadOnlyMemory<byte>(data.buffer, 0, (int) data.cbBuffer);
+                            await this.fileOutput.WriteAsync(rom, CancellationToken.None);
                         }
                         catch (Exception ex) {
                             this.fileException = ex;

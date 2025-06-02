@@ -28,9 +28,7 @@ using PFXToolKitUI.Avalonia.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
-using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Utils.Collections.Observable;
-using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.SavedAddressing;
 
@@ -46,13 +44,21 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         private set => this.SetAndRaise(IsFolderItemProperty, ref this.isFolderItem, value);
     }
 
-    private ObservableItemProcessorIndexing<BaseAddressTableEntry>? compositeListener;
+    private readonly IBinder<BaseAddressTableEntry> descriptionBinder = new EventPropertyBinder<BaseAddressTableEntry>(nameof(BaseAddressTableEntry.DescriptionChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.Description));
 
-    private readonly IBinder<BaseAddressTableEntry> descriptionBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<BaseAddressTableEntry>(TextBlock.TextProperty, nameof(BaseAddressTableEntry.DescriptionChanged), b => b.Model.Description, null);
-    private readonly IBinder<AddressTableGroupEntry> groupAddressBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableGroupEntry>(HeaderProperty, nameof(AddressTableGroupEntry.GroupAddressChanged), GroupAddressToHeader, null);
-    private readonly IBinder<AddressTableEntry> entryAddressBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableEntry>(HeaderProperty, nameof(AddressTableEntry.AddressChanged), EntryAddressToHeader, null);
-    private readonly IBinder<AddressTableEntry> dataTypeTextBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableEntry>(TextBlock.TextProperty, nameof(AddressTableEntry.DataTypeChanged), b => b.Model.DataType.ToString(), null);
-    private readonly IBinder<AddressTableEntry> valueTextBinder = new AvaloniaPropertyToEventPropertyGetSetBinder<AddressTableEntry>(TextBlock.TextProperty, nameof(AddressTableEntry.ValueChanged), b => b.Model.Value != null ? MemoryEngine360.GetStringFromDataValue(b.Model, b.Model.Value, putStringInQuotes:true) : "", null);
+    private readonly IBinder<AddressTableGroupEntry> groupAddressBinder = new EventPropertyBinder<AddressTableGroupEntry>(nameof(AddressTableGroupEntry.GroupAddressChanged), b => {
+        uint addr = b.Model.GroupAddress;
+        bool abs = b.Model.IsAddressAbsolute;
+        b.Control.SetValue(HeaderProperty, addr == 0 ? "Group" : $"Group ({(abs ? "" : "+") + addr.ToString(abs ? "X8" : "X")})");
+    });
+
+    private readonly IBinder<AddressTableEntry> entryAddressBinder = new EventPropertyBinder<AddressTableEntry>(nameof(AddressTableEntry.AddressChanged), b => {
+        b.Control.SetValue(HeaderProperty, (b.Model.IsAddressAbsolute ? "" : "+") + b.Model.Address.ToString(b.Model.IsAddressAbsolute ? "X8" : "X"));
+    });
+
+    private readonly IBinder<AddressTableEntry> dataTypeTextBinder = new EventPropertyBinder<AddressTableEntry>(nameof(AddressTableEntry.DataTypeChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.DataType.ToString()));
+    private readonly IBinder<AddressTableEntry> valueTextBinder = new EventPropertyBinder<AddressTableEntry>(nameof(AddressTableEntry.ValueChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.Value != null ? MemoryEngine360.GetStringFromDataValue(b.Model, b.Model.Value, putStringInQuotes: true) : ""));
+    private ObservableItemProcessorIndexing<BaseAddressTableEntry>? compositeListener;
     private Border? PART_DragDropMoveBorder;
     private bool isFolderItem;
 
@@ -61,42 +67,18 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     private TextBlock? PART_DataTypeText;
     private TextBlock? PART_ValueText;
 
-    private readonly AsyncRelayCommand EditAddressCommand, EditDescriptionCommand, EditDataTypeCommand;
+    private readonly DataManagerCommandWrapper EditAddressCommand, EditDescriptionCommand, EditDataTypeCommand;
 
     BaseAddressTableEntry IAddressTableEntryUI.Entry => this.EntryObject ?? throw new Exception("Not connected to an entry");
 
     public AddressTableTreeViewItem() {
         DataManager.GetContextData(this).Set(IAddressTableEntryUI.DataKey, this);
-
-        this.EditAddressCommand = new AsyncRelayCommand(async () => {
-            await CommandManager.Instance.Execute("commands.memengine.EditSavedAddressAddressCommand", DataManager.GetFullContextData(this));
-        });
-        
-        this.EditDescriptionCommand = new AsyncRelayCommand(async () => {
-            await CommandManager.Instance.Execute("commands.memengine.EditSavedAddressDescriptionCommand", DataManager.GetFullContextData(this));
-        });
-
-        this.EditDataTypeCommand = new AsyncRelayCommand(async () => {
-            await CommandManager.Instance.Execute("commands.memengine.EditSavedAddressDataTypeCommand", DataManager.GetFullContextData(this));
-        });
+        this.EditAddressCommand = new DataManagerCommandWrapper(this, "commands.memengine.EditSavedAddressAddressCommand", false);
+        this.EditDescriptionCommand = new DataManagerCommandWrapper(this, "commands.memengine.EditSavedAddressDescriptionCommand", false);
+        this.EditDataTypeCommand = new DataManagerCommandWrapper(this, "commands.memengine.EditSavedAddressDataTypeCommand", false);
     }
 
     static AddressTableTreeViewItem() {
-    }
-    
-    private static string GroupAddressToHeader(IBinder<AddressTableGroupEntry> b) {
-        uint address = b.Model.GroupAddress;
-        if (address == 0) {
-            return "Group";
-        }
-        
-        bool abs = b.Model.IsAddressAbsolute;
-        return $"Group ({(abs ? "" : "+") + address.ToString(abs ? "X8" : "X")})"; 
-    }
-    
-    private static string EntryAddressToHeader(IBinder<AddressTableEntry> b) {
-        bool abs = b.Model.IsAddressAbsolute;
-        return (abs ? "" : "+") + b.Model.Address.ToString(abs ? "X8" : "X"); 
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
@@ -175,7 +157,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         this.descriptionBinder.DetachModel();
         if (this.groupAddressBinder.IsFullyAttached)
             this.groupAddressBinder.DetachModel();
-        
+
         if (this.entryAddressBinder.IsFullyAttached) {
             this.entryAddressBinder.DetachModel();
             this.dataTypeTextBinder.DetachModel();
@@ -281,17 +263,17 @@ public class AddressTableContextRegistry {
     static AddressTableContextRegistry() {
         FixedContextGroup modEdit = Registry.GetFixedGroup("modify.edit");
         modEdit.AddHeader("Edit");
-        modEdit.AddCommand("commands.memengine.EditSavedAddressAddressCommand",       "Edit Address");
-        modEdit.AddCommand("commands.memengine.EditSavedAddressValueCommand",         "Edit Value");
-        modEdit.AddCommand("commands.memengine.EditSavedAddressDataTypeCommand",      "Edit Data Type");
-        modEdit.AddCommand("commands.memengine.EditSavedAddressDescriptionCommand",   "Edit Description");
-        
+        modEdit.AddCommand("commands.memengine.EditSavedAddressAddressCommand", "Edit Address");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressValueCommand", "Edit Value");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressDataTypeCommand", "Edit Data Type");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressDescriptionCommand", "Edit Description");
+
         FixedContextGroup modGeneric = Registry.GetFixedGroup("modify.general");
         modGeneric.AddHeader("General");
-        modGeneric.AddCommand("commands.memengine.CopyAddressTableEntryToClipboard",     "Copy (as dialog)");
-        modGeneric.AddCommand("commands.memengine.RefreshSavedAddressesCommand",         "Refresh");
-        modGeneric.AddCommand("commands.memengine.DeleteSelectedSavedAddressesCommand",  "Delete");
-        modGeneric.AddCommand("commands.memengine.GroupEntriesCommand",                  "Group");
+        modGeneric.AddCommand("commands.memengine.CopyAddressTableEntryToClipboard", "Copy (as dialog)");
+        modGeneric.AddCommand("commands.memengine.RefreshSavedAddressesCommand", "Refresh");
+        modGeneric.AddCommand("commands.memengine.DeleteSelectedSavedAddressesCommand", "Delete");
+        modGeneric.AddCommand("commands.memengine.GroupEntriesCommand", "Group");
         modGeneric.AddCommand("commands.memengine.ToggleSavedAddressAutoRefreshCommand", "Toggle Enabled");
     }
 }

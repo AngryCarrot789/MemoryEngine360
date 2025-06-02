@@ -87,6 +87,15 @@ public class MemoryEngine360 {
     public IConsoleConnection? Connection => this.connection;
 
     /// <summary>
+    /// Gets the <see cref="Connections.UserConnectionInfo"/> that was used to connect to a console. It is set
+    /// by calling <see cref="SetConnection"/> with a non-null connection and non-null UCInfo, before <see cref="ConnectionChanged"/> is fired.
+    /// <para>
+    /// This is used to support reconnecting to the console when the connection was lost, without having to reconfigure all the options
+    /// </para>
+    /// </summary>
+    public UserConnectionInfo? LastUserConnectionInfo { get; private set; }
+
+    /// <summary>
     /// Gets or sets if the memory engine is currently busy, e.g. reading or writing data.
     /// This will never be true when <see cref="Connection"/> is null
     /// </summary>
@@ -97,7 +106,7 @@ public class MemoryEngine360 {
     public TaskSequencerManager TaskSequencerManager { get; }
 
     public AddressTableManager AddressTableManager { get; }
-    
+
     /// <summary>
     /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working
     /// </summary>
@@ -218,7 +227,7 @@ public class MemoryEngine360 {
                         // ignored
                     }
                     catch (Exception ex) {
-                        ApplicationPFX.Instance.Dispatcher.Post(() => throw ex);
+                        ApplicationPFX.Instance.Dispatcher.Post(() => throw ex, DispatchPriority.Send);
                     }
                 });
             }
@@ -236,12 +245,14 @@ public class MemoryEngine360 {
     /// <param name="cause">The cause for connection change</param>
     /// <exception cref="InvalidOperationException">Token is invalid</exception>
     /// <exception cref="ArgumentException">New connection is non-null when cause is <see cref="ConnectionChangeCause.LostConnection"/></exception>
-    public void SetConnection(IDisposable busyToken, ulong frame, IConsoleConnection? newConnection, ConnectionChangeCause cause) {
+    public void SetConnection(IDisposable busyToken, ulong frame, IConsoleConnection? newConnection, ConnectionChangeCause cause, UserConnectionInfo? userConnectionInfo = null) {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
         this.ValidateToken(busyToken);
-        if (cause == ConnectionChangeCause.LostConnection && newConnection != null) {
+        if (cause == ConnectionChangeCause.LostConnection && newConnection != null)
             throw new ArgumentException("Cause cannot be " + nameof(ConnectionChangeCause.LostConnection) + " when setting connection to a non-null value");
-        }
+        
+        if (newConnection == null && userConnectionInfo != null)
+            throw new ArgumentException(nameof(userConnectionInfo) + " is non-null when " + nameof(newConnection) + " is null");
 
         // ConnectionChanged is invoked under the lock to enforce busy operation rules
         lock (this.connectionLock) {
@@ -253,35 +264,9 @@ public class MemoryEngine360 {
             }
 
             this.connection = newConnection;
+            if (newConnection != null)
+                this.LastUserConnectionInfo = userConnectionInfo;
             this.ConnectionChanged?.Invoke(this, frame, oldConnection, newConnection, cause);
-        }
-    }
-
-    /// <summary>
-    /// Convenience method to wait for all busy operations to finish, then
-    /// sets <see cref="Connection"/> to null with the cause. Must be called on main thread
-    /// </summary>
-    /// <exception cref="TaskCanceledException">
-    /// Operation cancelled. Only thrown before any modification occurs; once token is gotten, this will not be thrown
-    /// </exception>
-    public async Task WaitAndDisconnectAsync(ConnectionChangeCause cause, CancellationToken token) {
-        ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-
-        token.ThrowIfCancellationRequested();
-
-        ulong frame = this.GetNextConnectionChangeFrame();
-        // post connection changing before obtaining busy token, because background
-        // activites may be running and may have the token
-        await this.BroadcastConnectionAboutToChange(frame);
-
-        // we take the token so that we can win the race in the cleanest way possible
-        using IDisposable? busyToken = await this.BeginBusyOperationAsync(token);
-        if (busyToken == null) {
-            return; // cancelled or disconnected
-        }
-
-        lock (this.connectionLock) {
-            this.SetConnection(busyToken, frame, null, cause);
         }
     }
 
@@ -493,12 +478,12 @@ public class MemoryEngine360 {
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public static async Task WriteAsDataValue(IConsoleConnection connection, uint address, IDataValue value) {
         switch (value.DataType) {
-            case DataType.Byte:      await connection.WriteByte(address, ((DataValueByte) value).Value).ConfigureAwait(false); break;
-            case DataType.Int16:     await connection.WriteValue(address, ((DataValueInt16) value).Value).ConfigureAwait(false); break;
-            case DataType.Int32:     await connection.WriteValue(address, ((DataValueInt32) value).Value).ConfigureAwait(false); break;
-            case DataType.Int64:     await connection.WriteValue(address, ((DataValueInt64) value).Value).ConfigureAwait(false); break;
-            case DataType.Float:     await connection.WriteValue(address, ((DataValueFloat) value).Value).ConfigureAwait(false); break;
-            case DataType.Double:    await connection.WriteValue(address, ((DataValueDouble) value).Value).ConfigureAwait(false); break;
+            case DataType.Byte:   await connection.WriteByte(address, ((DataValueByte) value).Value).ConfigureAwait(false); break;
+            case DataType.Int16:  await connection.WriteValue(address, ((DataValueInt16) value).Value).ConfigureAwait(false); break;
+            case DataType.Int32:  await connection.WriteValue(address, ((DataValueInt32) value).Value).ConfigureAwait(false); break;
+            case DataType.Int64:  await connection.WriteValue(address, ((DataValueInt64) value).Value).ConfigureAwait(false); break;
+            case DataType.Float:  await connection.WriteValue(address, ((DataValueFloat) value).Value).ConfigureAwait(false); break;
+            case DataType.Double: await connection.WriteValue(address, ((DataValueDouble) value).Value).ConfigureAwait(false); break;
             case DataType.String: {
                 byte[] array = new byte[value.ByteCount + 1]; // append null char for safety
                 value.GetBytes(array);
@@ -589,7 +574,7 @@ public class MemoryEngine360 {
 
         public void Dispose() {
             Debug.Assert(this.Task.IsCompleted, "Expected task to be completed at this point");
-            
+
             this.registration.Dispose();
         }
     }

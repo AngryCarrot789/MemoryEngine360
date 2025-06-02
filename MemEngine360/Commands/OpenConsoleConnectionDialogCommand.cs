@@ -53,7 +53,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
         ulong frame = memUi.MemoryEngine360.GetNextConnectionChangeFrame();
 
         if (memUi.MemoryEngine360.Connection != null) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName:AlreadyOpenDialogName);
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName: AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 return;
             }
@@ -71,7 +71,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
                 if (connection != null) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
-                    if ((token = await SetEngineConnectionAndHandleProblemsAsync(memUi.MemoryEngine360, connection, frame)) == null) {
+                    if ((token = await SetEngineConnectionAndHandleProblemsAsync(memUi.MemoryEngine360, connection, frame, this.myDialog.UserConnectionInfoForConnection)) == null) {
                         await connection.Close();
                     }
                 }
@@ -139,7 +139,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
     /// <param name="newConnection">The new connection</param>
     /// <param name="frame">The connection changing frame</param>
     /// <returns>The token</returns>
-    public static async Task<IDisposable?> SetEngineConnectionAndHandleProblemsAsync(MemoryEngine360 engine, IConsoleConnection newConnection, ulong frame) {
+    public static async Task<IDisposable?> SetEngineConnectionAndHandleProblemsAsync(MemoryEngine360 engine, IConsoleConnection newConnection, ulong frame, UserConnectionInfo? userConnectionInfo = null) {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(newConnection);
 
@@ -168,7 +168,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
             }
         }
 
-        engine.SetConnection(token, frame, newConnection, ConnectionChangeCause.User);
+        engine.SetConnection(token, frame, newConnection, ConnectionChangeCause.User, userConnectionInfo);
         if (oldConnection != null) {
             // Always close AFTER changing, just in case a listener wants to send data or whatever
             try {

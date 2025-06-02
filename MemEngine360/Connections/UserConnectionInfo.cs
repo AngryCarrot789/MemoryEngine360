@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using PFXToolKitUI.DataTransfer;
 
 namespace MemEngine360.Connections;
@@ -26,19 +27,44 @@ namespace MemEngine360.Connections;
 /// properties that can be used during <see cref="RegisteredConnectionType.OpenConnection"/>
 /// </summary>
 public abstract class UserConnectionInfo : ITransferableData {
-    public TransferableData TransferableData { get; }
+    private bool isBeingViewed;
 
-    protected UserConnectionInfo() {
+    public TransferableData TransferableData { get; }
+    
+    public RegisteredConnectionType ConnectionType { get; }
+
+    protected UserConnectionInfo(RegisteredConnectionType connectionType) {
+        this.ConnectionType = connectionType ?? throw new ArgumentNullException(nameof(connectionType));
         this.TransferableData = new TransferableData(this);
     }
 
     /// <summary>
-    /// Invoked when this object is associated with a control. This is only called when the connection dialog opens
+    /// Invoked when this info is now being viewed in the UI, as in, the user can see any UI controls associated with this info
     /// </summary>
-    public abstract void OnCreated();
+    protected abstract void OnShown();
 
     /// <summary>
-    /// Invoked when this info is destroyed. This is only called when the connection dialog closes
+    /// Invoked when this info is no longer being viewed in the UI. This is only called when the connection dialog closes
     /// </summary>
-    public abstract void OnDestroyed();
+    protected abstract void OnHidden();
+
+    public static void InternalOnShown(UserConnectionInfo info) {
+        if (info.isBeingViewed)
+            throw new InvalidOperationException("Already shown");
+        info.isBeingViewed = true;
+        info.OnShown();
+        
+        Debug.WriteLine("Shown: " + info.GetType());
+    }
+    
+    public static void InternalOnHidden(UserConnectionInfo info) {
+        if (!info.isBeingViewed)
+            throw new InvalidOperationException("Not shown");
+        info.isBeingViewed = false;
+        info.OnHidden();
+        
+        Debug.WriteLine("Hidden: " + info.GetType());
+    }
+
+    public static bool InternalIsShown(UserConnectionInfo info) => info.isBeingViewed;
 }

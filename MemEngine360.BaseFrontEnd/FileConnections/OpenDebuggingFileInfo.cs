@@ -33,13 +33,13 @@ public class OpenDebuggingFileInfo : UserConnectionInfo {
         set => DataParameter.SetValueHelper(this, FilePathParameter, ref this.filePath, value);
     }
 
-    public OpenDebuggingFileInfo() {
+    public OpenDebuggingFileInfo() : base(DebuggingFileConnectionType.Instance) {
         this.filePath = FilePathParameter.GetDefaultValue(this);
     }
 
-    public override void OnCreated() {
+    protected override void OnShown() {
     }
 
-    public override void OnDestroyed() {
+    protected override void OnHidden() {
     }
 }

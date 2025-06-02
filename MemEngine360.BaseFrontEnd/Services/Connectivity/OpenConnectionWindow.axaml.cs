@@ -41,6 +41,8 @@ public partial class OpenConnectionWindow : DesktopWindow, IOpenConnectionView {
         internal set => this.PART_ConnectToConsoleView.TypeToFocusOnOpened = value;
     }
 
+    public UserConnectionInfo? UserConnectionInfoForConnection => this.PART_ConnectToConsoleView.CurrentConnection == null ? null : this.PART_ConnectToConsoleView.UserConnectionInfoForCurrentConnection;
+
     public OpenConnectionWindow() {
         this.InitializeComponent();
     }

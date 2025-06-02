@@ -19,6 +19,7 @@
 
 using System.Net;
 using System.Runtime.CompilerServices;
+using MemEngine360.Engine;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -107,7 +108,9 @@ public abstract class RegisteredConnectionType {
     /// sakes, then return null, and no control will be created
     /// </para>
     /// </summary>
-    /// <param name="context">The context available when the open connection window was opened</param>
+    /// <param name="context">
+    /// The context available when the open connection window was opened. Usually contains the memory engine via its <see cref="MemoryEngine360.DataKey"/>
+    /// </param>
     /// <returns>The info to pass to <see cref="OpenConnection"/>, or null if a custom control is not wanted</returns>
     public virtual UserConnectionInfo? CreateConnectionInfo(IContextData context) {
         return null;

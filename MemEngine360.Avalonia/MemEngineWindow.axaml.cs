@@ -125,7 +125,6 @@ public partial class MemEngineWindow : DesktopWindow {
         IConsoleConnection? connection = engine.Connection;
         try {
             if (connection != null) {
-                
                 engine.SetConnection(token, frame, null, ConnectionChangeCause.User);
                 await connection.Close();
             }

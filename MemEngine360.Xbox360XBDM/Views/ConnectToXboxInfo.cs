@@ -19,6 +19,7 @@
 
 using MemEngine360.Configs;
 using MemEngine360.Connections;
+using MemEngine360.Xbox360XBDM.Consoles;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Utils.Accessing;
 
@@ -34,10 +35,7 @@ public class ConnectToXboxInfo : UserConnectionInfo {
         set => DataParameter.SetValueHelper(this, IpAddressParameter, ref this.ipAddress, value);
     }
 
-    public ConnectToXboxInfo() {
-    }
-
-    public override void OnCreated() {
+    public ConnectToXboxInfo() : base(ConnectionTypeXbox360Xbdm.Instance) {
         // Try get last entered IP address. Helps with debugging and user experience ;)
         string lastIp = BasicApplicationConfiguration.Instance.LastHostName;
         if (string.IsNullOrWhiteSpace(lastIp)) {
@@ -47,7 +45,11 @@ public class ConnectToXboxInfo : UserConnectionInfo {
         this.IpAddress = lastIp;
     }
 
-    public override void OnDestroyed() {
+    protected override void OnShown() {
+
+    }
+
+    protected override void OnHidden() {
         
     }
 }

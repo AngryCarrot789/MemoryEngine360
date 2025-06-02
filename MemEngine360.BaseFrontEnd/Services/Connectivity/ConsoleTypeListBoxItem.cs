@@ -17,46 +17,51 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Metadata;
 using MemEngine360.Connections;
 using PFXToolKitUI.Avalonia.AvControls;
+using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public class ConsoleTypeListBoxItem : ListBoxItem {
+    private readonly ManualBinder<RegisteredConnectionType> iconBinder = new ManualBinder<RegisteredConnectionType>(b => {
+        ((IconControl) b.Control).IsVisible = (((IconControl) b.Control).Icon = b.Model.Icon) != null;
+    }, (b) => {
+        ((IconControl) b.Control).Icon = null;
+    });
+
+    private readonly ManualBinder<RegisteredConnectionType> displayNameBinder = new ManualBinder<RegisteredConnectionType>(b => ((TextBlock) b.Control).Text = b.Model.DisplayName);
+    private readonly ManualBinder<RegisteredConnectionType> footerBinder = new ManualBinder<RegisteredConnectionType>(b => ((TextBlock) b.Control).IsVisible = !string.IsNullOrEmpty(((TextBlock) b.Control).Text = b.Model.FooterText));
     private IconControl? PART_IconControl;
     private TextBlock? PART_DisplayName, PART_FooterText;
-    private RegisteredConnectionType? myConsoleType;
 
-    public RegisteredConnectionType? RegisteredConsoleType {
-        get => this.myConsoleType;
-        set {
-            if (ReferenceEquals(value, this.myConsoleType)) {
-                return;
-            }
+    public RegisteredConnectionType RegisteredConsoleType { get; }
 
-            if (this.myConsoleType != null) {
-                if (this.PART_IconControl != null)
-                    this.PART_IconControl.Icon = null; // cleans up event handlers
-                this.UserConnectionInfo?.OnDestroyed();
-            }
-
-            this.myConsoleType = value;
-            this.UserConnectionInfo = value?.CreateConnectionInfo(this.ContextData ?? EmptyContext.Instance);
-            this.UserConnectionInfo?.OnCreated();
-            
-            ToolTip.SetTip(this, value?.RegisteredId);
-        }
-    }
-
-    public IContextData? ContextData { get; set; }
+    internal IContextData? ContextData { get; set; }
 
     public UserConnectionInfo? UserConnectionInfo { get; private set; }
 
+    [Unstable("Throws. Use the other CTOR")]
     public ConsoleTypeListBoxItem() {
+        if (!Design.IsDesignMode)
+            throw new InvalidOperationException("Use the other constructor");
+    }
+
+    public ConsoleTypeListBoxItem(RegisteredConnectionType type, IContextData context) {
+        this.ContextData = context;
+        this.RegisteredConsoleType = type;
+        this.UserConnectionInfo = type.CreateConnectionInfo(this.ContextData ?? EmptyContext.Instance);
+
+        this.iconBinder.AttachModel(type);
+        this.displayNameBinder.AttachModel(type);
+        this.footerBinder.AttachModel(type);
+        ToolTip.SetTip(this, type.RegisteredId);
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
@@ -64,12 +69,14 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
         this.PART_IconControl = e.NameScope.GetTemplateChild<IconControl>(nameof(this.PART_IconControl));
         this.PART_DisplayName = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_DisplayName));
         this.PART_FooterText = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_FooterText));
-        this.PART_IconControl!.Icon = this.RegisteredConsoleType?.Icon;
-        this.PART_DisplayName!.Text = this.RegisteredConsoleType?.DisplayName ?? "";
-        this.PART_FooterText!.Text = this.RegisteredConsoleType?.FooterText ?? "";
-        this.PART_FooterText.IsVisible = !string.IsNullOrEmpty(this.PART_FooterText!.Text);
-        if (this.PART_IconControl.Icon == null) {
-            this.PART_IconControl.IsVisible = false;
-        }
+        this.iconBinder.AttachControl(this.PART_IconControl);
+        this.displayNameBinder.AttachControl(this.PART_DisplayName);
+        this.footerBinder.AttachControl(this.PART_FooterText);
+    }
+
+    public void OnRemoving() {
+        this.iconBinder.DetachModel();
+        this.displayNameBinder.DetachModel();
+        this.footerBinder.DetachModel();
     }
 }

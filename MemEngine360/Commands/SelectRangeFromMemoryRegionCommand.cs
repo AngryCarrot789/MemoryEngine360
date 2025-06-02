@@ -55,13 +55,29 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
                 return;
             }
 
-            list = await ActivityManager.Instance.RunTask(() => {
+            ActivityTask<List<MemoryRegion>> activity = ActivityManager.Instance.RunTask(() => {
                 IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
                 prog.Caption = "Memory Regions";
                 prog.Text = "Reading memory regions...";
                 prog.IsIndeterminate = true;
                 return regions.GetMemoryRegions(false, false);
             });
+
+            list = await activity;
+            if (list == null) {
+                if (activity.Exception != null) {
+                    if (activity.Exception is TimeoutException || activity.Exception is IOException) {
+                        await IMessageDialogService.Instance.ShowMessage("Timed out", activity.Exception.Message, "Please reconnect and try again");
+                    }
+                    else {
+                        await IMessageDialogService.Instance.ShowMessage("Error getting memory regions", activity.Exception.Message);
+                    }
+
+                    engine.CheckConnection(token);
+                }
+
+                return;
+            }
         }
 
         MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(list!) {

@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using Avalonia.Controls;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
@@ -63,10 +64,16 @@ public partial class OpenConnectionView : UserControl {
         }
     }
 
+    /// <summary>
+    /// Gets the <see cref="UserConnectionInfo"/> that was used to open the <see cref="CurrentConnection"/> connection
+    /// </summary>
+    public UserConnectionInfo? UserConnectionInfoForCurrentConnection { get; private set; }
+
     public event OpenConnectionViewCurrentConnectionChangedEventHandler? CurrentConnectionChanged;
 
     private CancellationTokenSource? currCts;
-    private bool isConnecting;
+    private bool isConnecting, isClosingWindow;
+    private ConsoleTypeListBoxItem? myCurrentSelection;
 
     public OpenConnectionView() {
         this.InitializeComponent();
@@ -74,17 +81,21 @@ public partial class OpenConnectionView : UserControl {
         this.PART_ListBox.SelectionChanged += this.PART_ListBoxOnSelectionChanged;
 
         this.PART_CancelButton.Click += (sender, args) => {
+            this.UserConnectionInfoForCurrentConnection = null;
             if (TopLevel.GetTopLevel(this) is DesktopWindow window) {
+                this.isClosingWindow = true;
                 window.Close();
+                this.isClosingWindow = false;
             }
         };
 
         this.PART_ConfirmButton.Command = new AsyncRelayCommand(async () => {
             this.isConnecting = true;
+            this.PART_ListBox.IsEnabled = false;
             this.UpdateConnectButton();
 
             ConsoleTypeListBoxItem? selection = ((ConsoleTypeListBoxItem?) this.PART_ListBox.SelectedItem);
-            if (selection != null && selection.RegisteredConsoleType != null) {
+            if (selection != null) {
                 this.currCts = new CancellationTokenSource();
                 IConsoleConnection? connection;
                 try {
@@ -96,9 +107,12 @@ public partial class OpenConnectionView : UserControl {
                 }
 
                 if (connection != null) {
+                    this.UserConnectionInfoForCurrentConnection = selection.UserConnectionInfo;
                     this.CurrentConnection = connection;
                     if (TopLevel.GetTopLevel(this) is DesktopWindow window) {
+                        this.isClosingWindow = true;
                         window.Close();
+                        this.isClosingWindow = false;
                     }
                 }
 
@@ -108,6 +122,7 @@ public partial class OpenConnectionView : UserControl {
             }
 
             this.isConnecting = false;
+            this.PART_ListBox.IsEnabled = true;
             this.UpdateConnectButton();
         });
     }
@@ -122,10 +137,7 @@ public partial class OpenConnectionView : UserControl {
         ConsoleTypeListBoxItem? selected = null;
         ConsoleConnectionManager service = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
         foreach (RegisteredConnectionType type in service.RegisteredConsoleTypes) {
-            ConsoleTypeListBoxItem item = new ConsoleTypeListBoxItem() {
-                RegisteredConsoleType = type, ContextData = context
-            };
-
+            ConsoleTypeListBoxItem item = new ConsoleTypeListBoxItem(type, context);
             if (selected == null && this.TypeToFocusOnOpened != null && type.RegisteredId == this.TypeToFocusOnOpened)
                 selected = item;
             this.PART_ListBox.Items.Add(item);
@@ -145,26 +157,40 @@ public partial class OpenConnectionView : UserControl {
         }
 
         this.currCts = null;
-
+        this.PART_ListBox.SelectedItem = null;
         foreach (ConsoleTypeListBoxItem? itm in this.PART_ListBox.Items)
-            itm!.RegisteredConsoleType = null;
+            itm!.OnRemoving();
         this.PART_ListBox.Items.Clear();
     }
 
     private void PART_ListBoxOnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
-        ConsoleTypeListBoxItem? selected = this.PART_ListBox.SelectedItem as ConsoleTypeListBoxItem;
+        Debug.Assert(!this.isConnecting || this.isClosingWindow);
+        
+        ConsoleTypeListBoxItem? newSelection = this.PART_ListBox.SelectedItem as ConsoleTypeListBoxItem;
+        if (ReferenceEquals(this.myCurrentSelection, newSelection)) {
+            return;
+        }
 
-        this.PART_DisplayName.Text = selected?.RegisteredConsoleType!.DisplayName;
-        this.PART_Description.Text = selected?.RegisteredConsoleType!.LongDescription;
+        if (this.myCurrentSelection?.UserConnectionInfo != null) {
+            UserConnectionInfo.InternalOnHidden(this.myCurrentSelection.UserConnectionInfo);
+        }
 
-        if (this.PART_UserConnectionContent.Content is IConsoleConnectivityControl c1)
-            c1.OnDisconnected();
+        this.myCurrentSelection = newSelection;
+        if (newSelection?.UserConnectionInfo != null) {
+            UserConnectionInfo.InternalOnShown(newSelection.UserConnectionInfo);
+        }
 
-        UserConnectionInfo? newInfo = selected?.UserConnectionInfo;
+        this.PART_DisplayName.Text = newSelection != null ? newSelection.RegisteredConsoleType.DisplayName : "No console selected";
+        this.PART_Description.Text = newSelection != null ? newSelection.RegisteredConsoleType.LongDescription : "No console selected";
+
+        (this.PART_UserConnectionContent.Content as IConsoleConnectivityControl)?.OnDisconnected();
+
+        UserConnectionInfo? newInfo = newSelection?.UserConnectionInfo;
         Control? control = newInfo != null ? Registry.NewInstance(newInfo) : null;
         this.PART_UserConnectionContent.Content = control;
-        if (control is IConsoleConnectivityControl c2)
-            c2.OnConnected(this, newInfo!);
+
+        // newInfo cannot be null since it must be non-null to create the control
+        (control as IConsoleConnectivityControl)?.OnConnected(this, newInfo!);
     }
 
     private void UpdateConnectButton() {

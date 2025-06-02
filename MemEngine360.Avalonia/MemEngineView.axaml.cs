@@ -21,6 +21,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -37,6 +38,7 @@ using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity.Selecting;
+using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -167,7 +169,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
 
     private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
     private readonly AsyncRelayCommand editAlignmentCommand;
-    
+
     #endregion
 
     public MemoryEngine360 MemoryEngine360 { get; }
@@ -199,6 +201,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
     private TextNotification? connectionNotification;
     private LambdaNotificationCommand? connectionNotificationCommandGetStarted;
     private LambdaNotificationCommand? connectionNotificationCommandDisconnect;
+    private LambdaNotificationCommand? connectionNotificationCommandReconnect;
 
     private class TestThing : CustomContextEntry {
         private IMemEngineUI? ctxMemUI;
@@ -462,7 +465,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
 
         if (newConn != null) {
             notification.Caption = "Connected";
-            notification.Text = $"Connect to '{newConn.ConnectionType.DisplayName}'";
+            notification.Text = $"Connected to '{newConn.ConnectionType.DisplayName}'";
             notification.Commands.Clear();
             notification.Commands.Add(this.connectionNotificationCommandGetStarted ??= new LambdaNotificationCommand("Get Started", static async (c) => {
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
@@ -484,15 +487,62 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
                 c.Notification?.Close();
             }) { ToolTip = "Disconnect from the connection" });
 
+            notification.CanAutoHide = true;
             notification.Open(this.NotificationManager);
-            this.PART_LatestActivity.Text= notification.Text;
+            this.PART_LatestActivity.Text = notification.Text;
         }
         else {
             notification.Text = $"Disconnected from '{oldConn!.ConnectionType.DisplayName}'";
-            this.PART_LatestActivity.Text= notification.Text;
+            this.PART_LatestActivity.Text = notification.Text;
             if (cause != ConnectionChangeCause.ClosingWindow && (!IMemEngineUI.IsDisconnectFromNotification.TryGetContext(notification.ContextData!, out bool b) || !b)) {
                 notification.Caption = cause == ConnectionChangeCause.LostConnection ? "Lost Connection" : "Disconnected";
                 notification.Commands.Clear();
+                if (cause == ConnectionChangeCause.LostConnection) {
+                    notification.CanAutoHide = false;
+                    notification.Commands.Add(this.connectionNotificationCommandReconnect ??= new LambdaNotificationCommand("Reconnect", static async (c) => {
+                        // ContextData ensured non-null by LambdaNotificationCommand.requireContext
+                        IMemEngineUI mem = IMemEngineUI.MemUIDataKey.GetContext(c.ContextData!)!;
+                        MemoryEngine360 eng = mem.MemoryEngine360;
+                        if (eng.Connection != null) {
+                            c.Notification?.Close();
+                            return;
+                        }
+
+                        // oh...
+                        using IDisposable? busyToken = await eng.BeginBusyOperationActivityAsync("Reconnect to console");
+                        if (busyToken == null) {
+                            return;
+                        }
+
+                        if (eng.LastUserConnectionInfo != null) {
+                            RegisteredConnectionType type = eng.LastUserConnectionInfo.ConnectionType;
+
+                            using CancellationTokenSource cts = new CancellationTokenSource();
+                            IConsoleConnection? connection;
+                            try {
+                                connection = await type.OpenConnection(eng.LastUserConnectionInfo, cts);
+                            }
+                            catch (Exception e) {
+                                await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
+                                connection = null;
+                            }
+
+                            if (connection != null) {
+                                c.Notification?.Close();
+                                eng.SetConnection(busyToken, 0, connection, ConnectionChangeCause.User, eng.LastUserConnectionInfo);
+                            }
+                        }
+                        else {
+                            c.Notification?.Close();
+                            await CommandManager.Instance.Execute("commands.memengine.OpenConsoleConnectionDialogCommand", c.ContextData!, true);
+                        }
+                    }) { ToolTip = "Attempt to reconnect to the console, using the same options (e.g. IP address) specified when it was opened initially." + Environment.NewLine +
+                                   "If it wasn't opened by you like that, this just shows the Open Connection dialog." });
+                }
+                else {
+                    notification.CanAutoHide = true;
+                }
+
                 notification.Open(this.NotificationManager);
             }
         }

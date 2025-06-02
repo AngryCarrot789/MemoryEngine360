@@ -27,7 +27,12 @@ public interface IOpenConnectionView {
     /// Returns true when this window was closed by the user clicking the close button, cancel, or it closed mysteriously (e.g. app or OS shutdown)
     /// </summary>
     bool IsClosed { get; }
-    
+
+    /// <summary>
+    /// Gets the <see cref="UserConnectionInfo"/> that was used to configure the UI to open the <see cref="IConsoleConnection"/>
+    /// </summary>
+    UserConnectionInfo? UserConnectionInfoForConnection { get; }
+
     /// <summary>
     /// Closes the view
     /// </summary>
