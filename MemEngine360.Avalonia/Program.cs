@@ -47,7 +47,7 @@ class Program {
             string? dirPath = System.IO.Path.GetDirectoryName(filePath);
             if (!string.IsNullOrEmpty(dirPath) && System.IO.Directory.Exists(dirPath)) {
                 try {
-                    System.IO.File.WriteAllText(System.IO.Path.Combine(dirPath, "MemEngine360_LastCrashError.txt"), e.GetToString());
+                    System.IO.File.WriteAllText(System.IO.Path.Combine(dirPath, "MemEngine360_LastCrashError.txt"), PFXToolKitUI.Utils.ExceptionUtils.GetToString(e));
                 }
                 catch { /* ignored */ }
             }
