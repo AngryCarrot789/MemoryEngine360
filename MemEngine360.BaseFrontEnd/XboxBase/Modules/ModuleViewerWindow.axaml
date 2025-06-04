@@ -130,9 +130,9 @@
                                 <TextBlock Grid.Column="0" Grid.Row="2" Text="Full Name" Padding="4,0" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="0" Grid.Row="4" Text="PE Name" Padding="4,0" VerticalAlignment="Center"/>
 
-                                <TextBox x:Name="PART_TB_ShortName" Grid.Column="2" Grid.Row="0" Text="Name" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
-                                <TextBox x:Name="PART_TB_FullName" Grid.Column="2" Grid.Row="2" Text="Full Name" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
-                                <TextBox x:Name="PART_TB_PEModuleName" Grid.Column="2" Grid.Row="4" Text="PE Name" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
+                                <TextBox IsReadOnly="true" x:Name="PART_TB_ShortName" Grid.Column="2" Grid.Row="0" Text="Name" Watermark="(Unavailable)" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
+                                <TextBox IsReadOnly="true" x:Name="PART_TB_FullName" Grid.Column="2" Grid.Row="2" Text="Full Name" Watermark="(Unavailable)" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
+                                <TextBox IsReadOnly="true" x:Name="PART_TB_PEModuleName" Grid.Column="2" Grid.Row="4" Text="PE Name" Watermark="(Unavailable)" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
                             </Grid>
                         </c:GroupBox>
                         <c:GroupBox Header="Addressing and sizes">
@@ -142,22 +142,22 @@
                                 <TextBlock Grid.Column="0" Grid.Row="4" Text="Module Size" Padding="4,0" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="0" Grid.Row="6" Text="Original Size" Padding="4,0" VerticalAlignment="Center"/>
 
-                                <TextBox x:Name="PART_TB_BaseAddress" Grid.Column="2" Grid.Row="0" Text="Name" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}">
+                                <TextBox IsReadOnly="true" x:Name="PART_TB_BaseAddress" Grid.Column="2" Grid.Row="0" Text="Name" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}">
                                     <TextBox.InnerLeftContent>
                                         <TextBlock Text="0x" Opacity="0.7"/>
                                     </TextBox.InnerLeftContent>
                                 </TextBox>
-                                <TextBox x:Name="PART_TB_EntryPoint" Grid.Column="2" Grid.Row="2" Text="Full Name" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}">
+                                <TextBox IsReadOnly="true" x:Name="PART_TB_EntryPoint" Grid.Column="2" Grid.Row="2" Text="Full Name" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}">
                                     <TextBox.InnerLeftContent>
                                         <TextBlock Text="0x" Opacity="0.7"/>
                                     </TextBox.InnerLeftContent>
                                 </TextBox>
-                                <TextBox x:Name="PART_TB_ModuleSize" Grid.Column="2" Grid.Row="4" Text="PE Name" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}">
+                                <TextBox IsReadOnly="true" x:Name="PART_TB_ModuleSize" Grid.Column="2" Grid.Row="4" Text="PE Name" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}">
                                     <TextBox.InnerLeftContent>
                                         <TextBlock Text="0x" Opacity="0.7"/>
                                     </TextBox.InnerLeftContent>
                                 </TextBox>
-                                <TextBox x:Name="PART_TB_OriginalSize" Grid.Column="2" Grid.Row="6" Text="Original Size" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}">
+                                <TextBox IsReadOnly="true" x:Name="PART_TB_OriginalSize" Grid.Column="2" Grid.Row="6" Text="Original Size" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}">
                                     <TextBox.InnerLeftContent>
                                         <TextBlock Text="0x" Opacity="0.7"/>
                                     </TextBox.InnerLeftContent>
@@ -173,7 +173,7 @@
 
                                     <cb:DataGridTextColumnEx x:DataType="{x:Type models:XboxModuleSection}" Width="125"
                                                              Header="Name" CanUserResize="True" IsReadOnly="True"
-                                                             Binding="{Binding Name, Mode=OneWay}"
+                                                             Binding="{Binding Name, Mode=OneWay, Converter={x:Static modules:EmptyStringToTextConverter.Instance}, ConverterParameter='Unavailable'}"
                                                              CellDataKeyForDC="{x:Static models:XboxModuleSection.DataKey}"
                                                              DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
 

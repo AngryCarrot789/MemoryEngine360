@@ -80,7 +80,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
                 w.UpdateScanResultCounterText();
             });
 
-    private readonly IBinder<ScanningProcessor> scanAddressBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.StartAddressChanged), (b) => $"{b.Model.StartAddress:X8}", async (b, x) => {
+    private readonly IBinder<ScanningProcessor> scanAddressBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanRangeChanged), (b) => $"{b.Model.StartAddress:X8}", async (b, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
             if (value == b.Model.StartAddress) {
                 return true;
@@ -90,7 +90,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
                 return await OnAddressOrLengthOutOfRange(b.Model, value, b.Model.ScanLength);
             }
             else {
-                b.Model.StartAddress = value;
+                b.Model.SetScanRange(value, b.Model.ScanLength);
                 return true;
             }
         }
@@ -104,7 +104,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
         return false;
     });
 
-    private readonly IBinder<ScanningProcessor> scanLengthBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanLengthChanged), (b) => $"{b.Model.ScanLength:X8}", async (b, x) => {
+    private readonly IBinder<ScanningProcessor> scanLengthBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanRangeChanged), (b) => $"{b.Model.ScanLength:X8}", async (b, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
             if (value == b.Model.ScanLength) {
                 return true;
@@ -114,7 +114,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
                 return await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
             }
             else {
-                b.Model.ScanLength = value;
+                b.Model.SetScanRange(b.Model.StartAddress, value);
                 return true;
             }
         }

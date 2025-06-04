@@ -72,9 +72,11 @@ public class PluginXbox360XDevkit : Plugin {
             task.Progress.Text = "Processing " + info.Name;
 
             uint entryPoint = module.GetEntryPointAddress();
+
+            string? fullName = info.FullName;
             XboxModule xboxModule = new XboxModule() {
                 Name = info.Name,
-                FullName = info.FullName,
+                FullName = Equals(info.Name, fullName) ? null : fullName,
                 BaseAddress = info.BaseAddress,
                 ModuleSize = info.Size,
                 OriginalModuleSize = module.OriginalSize,
@@ -93,7 +95,7 @@ public class PluginXbox360XDevkit : Plugin {
             
                 XBOX_SECTION_INFO secInf = section.SectionInfo;
                 xboxModule.Sections.Add(new XboxModuleSection() {
-                    Name = secInf.Name,
+                    Name = string.IsNullOrWhiteSpace(secInf.Name) ? null : secInf.Name,
                     BaseAddress = secInf.BaseAddress,
                     Size = secInf.Size,
                     Index = secInf.Index,

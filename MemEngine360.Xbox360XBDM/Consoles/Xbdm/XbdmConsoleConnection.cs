@@ -249,7 +249,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     public async Task<string?> GetXbeInfo(string? executable) {
-        List<string> result = await this.SendCommandAndReceiveLines($"xbeinfo {(executable != null ? ("name=" + executable) : "running")}").ConfigureAwait(false);
+        List<string> result = await this.SendCommandAndReceiveLines($"xbeinfo {(executable != null ? ("name=\"" + executable + "\"") : "running")}").ConfigureAwait(false);
         foreach (string line in result) {
             if (ParamUtils.GetStrParam(line, "name", true, out string? name)) {
                 return name;

@@ -26,7 +26,7 @@ namespace MemEngine360.XboxBase;
 public class ShowModuleSectionInfoInDialogCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         if (XboxModuleSection.DataKey.TryGetContext(e.ContextData, out XboxModuleSection? section)) {
-            await IMessageDialogService.Instance.ShowMessage("Module size", $"Name: {section.Name}{Environment.NewLine}" +
+            await IMessageDialogService.Instance.ShowMessage("Module size", $"Name: {section.Name ?? "(unavailable)"}{Environment.NewLine}" +
                                                                             $"Base Address: {section.BaseAddress:X8} (hex){Environment.NewLine}" +
                                                                             $"Section Size: {section.Size:X} (hex){Environment.NewLine}" +
                                                                             $"Flags: {(uint) section.Flags} ({section.Flags.ToString()})");

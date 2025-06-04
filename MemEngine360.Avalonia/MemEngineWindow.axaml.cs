@@ -56,8 +56,7 @@ public partial class MemEngineWindow : DesktopWindow {
         
         ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineClosed(this.PART_MemEngineView);
 
-        using MultiChangeToken change = DataManager.GetContextData(this).BeginChange();
-        change.Context.Remove(MemoryEngine360.DataKey, IMemEngineUI.MemUIDataKey);
+        DataManager.GetContextData(this).Remove(MemoryEngine360.DataKey, IMemEngineUI.MemUIDataKey);
     }
 
     protected override async Task<bool> OnClosingAsync(WindowCloseReason reason) {

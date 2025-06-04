@@ -45,10 +45,7 @@ public class EditScanResultValueCommand : Command {
             processor = result.ScanningProcessor;
         }
 
-        if (processor.IsScanning)
-            return Executability.ValidButCannotExecute;
-
-        if (processor.MemoryEngine360.Connection == null || processor.MemoryEngine360.IsConnectionBusy) {
+        if (processor.MemoryEngine360.Connection == null) {
             return Executability.ValidButCannotExecute;
         }
 

@@ -73,15 +73,15 @@ public class PluginXbox360Xbdm : Plugin {
                 continue;
             }
 
-            ParamUtils.GetDwParam(moduleLine, "timestamp", true, out uint modTimestamp);
-            ParamUtils.GetDwParam(moduleLine, "checksum", true, out uint modChecksum);
+            // ParamUtils.GetDwParam(moduleLine, "timestamp", true, out uint modTimestamp);
+            // ParamUtils.GetDwParam(moduleLine, "check", true, out uint modChecksum);
             ParamUtils.GetDwParam(moduleLine, "osize", true, out uint modOriginalSize);
 
             task.Progress.Text = "Processing " + name;
 
             XboxModule xboxModule = new XboxModule() {
                 Name = name,
-                FullName = name,
+                FullName = null, // unavailable until I can figure out how to get xbeinfo to work
                 BaseAddress = modBase,
                 ModuleSize = modSize,
                 OriginalModuleSize = modOriginalSize,
@@ -114,7 +114,7 @@ public class PluginXbox360Xbdm : Plugin {
                     ParamUtils.GetDwParam(sectionLine, "flags", true, out uint sec_flags);
 
                     xboxModule.Sections.Add(new XboxModuleSection() {
-                        Name = sec_name ?? "",
+                        Name = string.IsNullOrWhiteSpace(sec_name) ? null : sec_name,
                         BaseAddress = sec_base,
                         Size = sec_size,
                         Index = sec_index,

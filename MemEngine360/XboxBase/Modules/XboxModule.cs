@@ -24,8 +24,8 @@ namespace MemEngine360.XboxBase.Modules;
 public delegate void XboxModuleEventHandler(XboxModule sender);
 
 public class XboxModule {
-    private string name = "";
-    private string fullName = "";
+    private string? name = null;
+    private string? fullName = null;
     private uint baseAddress;
     private uint moduleSize;
     private uint originalModuleSize;
@@ -33,11 +33,15 @@ public class XboxModule {
     private string peModuleName;
 
     /// <summary>
-    /// Gets or sets the shorthand name, typically the file name (e.g. default.xex)
+    /// Gets or sets the shorthand name, typically the file name (e.g. default.xex). When set to an empty value
+    /// or a value consisting of only whitespaces, the value will become null.
     /// </summary>
-    public string Name {
+    public string? Name {
         get => this.name;
         set {
+            if (string.IsNullOrWhiteSpace(value))
+                value = null;
+            
             if (this.name == value)
                 return;
 
@@ -47,11 +51,14 @@ public class XboxModule {
     }
 
     /// <summary>
-    /// Gets or sets the long name
+    /// Gets or sets the long name. When set to an empty value or a value consisting of only whitespaces, the value will become null.
     /// </summary>
-    public string FullName {
+    public string? FullName {
         get => this.fullName;
         set {
+            if (string.IsNullOrWhiteSpace(value))
+                value = null;
+            
             if (this.fullName == value)
                 return;
 

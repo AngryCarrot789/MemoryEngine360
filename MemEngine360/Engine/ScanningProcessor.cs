@@ -36,12 +36,11 @@ namespace MemEngine360.Engine;
 
 public delegate void ScanningProcessorEventHandler(ScanningProcessor sender);
 
-public delegate void ScanningProcessorAddressChangedEventHandler(ScanningProcessor sender, uint oldValue, uint newValue);
+public delegate void ScanningProcessorScanRangeChangedEventHandler(ScanningProcessor sender, uint oldAddress, uint oldLength);
 
 public class ScanningProcessor {
     private string inputA, inputB;
     private bool hasDoneFirstScan, isScanning;
-    private uint startAddress, scanLength;
     private uint alignment;
     private bool pauseConsoleDuringScan, scanMemoryPages, isIntInputHexadecimal;
     private bool nextScanUsesFirstValue, nextScanUsesPreviousValue;
@@ -82,6 +81,9 @@ public class ScanningProcessor {
         }
     }
 
+    /// <summary>
+    /// Gets whether the first scan has been performed
+    /// </summary>
     public bool HasDoneFirstScan {
         get => this.hasDoneFirstScan;
         private set {
@@ -92,6 +94,9 @@ public class ScanningProcessor {
         }
     }
 
+    /// <summary>
+    /// Gets whether we're currently scanning.
+    /// </summary>
     public bool IsScanning {
         get => this.isScanning;
         private set {
@@ -102,35 +107,15 @@ public class ScanningProcessor {
         }
     }
 
-    public uint StartAddress {
-        get => this.startAddress;
-        set {
-            uint oldValue = this.startAddress;
-            if (oldValue != value) {
-                if ((value + this.scanLength) < value) // check end index is less than start address, meaning we overflowed
-                    throw new ArgumentOutOfRangeException(nameof(value), "Start address causes scan range to exceed size of UInt32");
+    /// <summary>
+    /// Gets the address we start scanning at (inclusive)
+    /// </summary>
+    public uint StartAddress { get; private set; }
 
-                this.startAddress = value;
-                this.StartAddressChanged?.Invoke(this, oldValue, value);
-                BasicApplicationConfiguration.Instance.StartAddress = value;
-            }
-        }
-    }
-
-    public uint ScanLength {
-        get => this.scanLength;
-        set {
-            uint oldValue = this.scanLength;
-            if (oldValue != value) {
-                if ((this.startAddress + value) < this.startAddress) // check end index is less than start address, meaning we overflowed
-                    throw new ArgumentOutOfRangeException(nameof(value), "Start address causes scan range to exceed size of UInt32");
-
-                this.scanLength = value;
-                this.ScanLengthChanged?.Invoke(this, oldValue, value);
-                BasicApplicationConfiguration.Instance.ScanLength = value;
-            }
-        }
-    }
+    /// <summary>
+    /// Gets the amount of bytes we scan
+    /// </summary>
+    public uint ScanLength { get; private set; }
 
     /// <summary>
     /// Gets or sets the alignment value. This is continually added to the address when scanning.
@@ -314,12 +299,9 @@ public class ScanningProcessor {
 
     public MemoryEngine360 MemoryEngine360 { get; }
 
-    public event ScanningProcessorEventHandler? InputAChanged;
-    public event ScanningProcessorEventHandler? InputBChanged;
+    public event ScanningProcessorEventHandler? InputAChanged, InputBChanged;
     public event ScanningProcessorEventHandler? HasFirstScanChanged;
     public event ScanningProcessorEventHandler? IsScanningChanged;
-    public event ScanningProcessorAddressChangedEventHandler? StartAddressChanged;
-    public event ScanningProcessorAddressChangedEventHandler? ScanLengthChanged;
     public event ScanningProcessorEventHandler? PauseConsoleDuringScanChanged;
     public event ScanningProcessorEventHandler? IsIntInputHexadecimalChanged;
     public event ScanningProcessorEventHandler? UseFirstValueForNextScanChanged;
@@ -333,6 +315,11 @@ public class ScanningProcessor {
     public event ScanningProcessorEventHandler? ScanMemoryPagesChanged;
     public event ScanningProcessorEventHandler? IsRefreshingAddressesChanged;
 
+    /// <summary>
+    /// An event fired when <see cref="SetScanRange"/> is invoked. This provides the old values for <see cref="StartAddress"/> and <see cref="ScanLength"/>
+    /// </summary>
+    public event ScanningProcessorScanRangeChangedEventHandler? ScanRangeChanged;
+
     private readonly ConcurrentQueue<ScanResultViewModel> resultBuffer;
     private readonly RateLimitedDispatchAction rldaMoveBufferIntoResultList;
     private readonly RateLimitedDispatchAction rldaRefreshSavedAddressList;
@@ -344,10 +331,10 @@ public class ScanningProcessor {
         this.inputA = this.inputB = "";
         this.dataType = DataType.Int32;
         this.numericScanType = NumericScanType.Equals;
-        this.startAddress = cfg.StartAddress;
-        this.scanLength = cfg.ScanLength;
-        if (((ulong) this.startAddress + this.scanLength) > uint.MaxValue) {
-            this.scanLength = uint.MaxValue - this.startAddress;
+        this.StartAddress = cfg.StartAddress;
+        this.ScanLength = cfg.ScanLength;
+        if (((ulong) this.StartAddress + this.ScanLength) > uint.MaxValue) {
+            this.ScanLength = uint.MaxValue - this.StartAddress;
         }
 
         this.alignment = this.dataType.GetAlignmentFromDataType();
@@ -384,39 +371,34 @@ public class ScanningProcessor {
     }
 
     /// <summary>
-    /// Sets the scan range, without risking <see cref="ArgumentOutOfRangeException"/> when setting
-    /// them individually due to integer overflow. This method may still throw though
+    /// Sets the <see cref="StartAddress"/> and <see cref="ScanLength"/> values. This is necessary to prevent risking
+    /// <see cref="ArgumentOutOfRangeException"/> when setting them individually due to integer overflow.
     /// </summary>
     /// <param name="newStartAddress">The new start address</param>
     /// <param name="newScanLength">The new scan length</param>
-    public void SetScanRange(uint newStartAddress, uint newScanLength) {
+    /// <param name="updateConfiguration">Updates the values in <see cref="BasicApplicationConfiguration"/></param>
+    public void SetScanRange(uint newStartAddress, uint newScanLength, bool updateConfiguration = true) {
         if ((newStartAddress + newScanLength) < newStartAddress) {
             // should we just support 64 bit addresses?
             // I don't even think there's anything useful beyond 0xFFFFFFFF...
+            // and the xbox can't even physically address that far, apart from that one model with 4 gigs of ram
             throw new ArgumentException("New scan range exceed size of UInt32; it requires a 64 bit address range, which is unsupported");
         }
-
+        
         // Just to ensure there isn't weird glitches by changing both before events,
         // we first set length to 0 so that we can change StartAddress without
         // risking observers doing newValue + processor.ScanLength and overflowing
 
-        uint oldLength = this.scanLength;
-        this.scanLength = 0;
-        this.ScanLengthChanged?.Invoke(this, oldLength, 0);
+        uint oldStart = this.StartAddress, oldLength = this.ScanLength;
+        this.StartAddress = newStartAddress;
+        this.ScanLength = newScanLength;
+        
+        this.ScanRangeChanged?.Invoke(this, oldStart, oldLength);
 
-        // Now we update start address for real
-        uint oldStart = this.startAddress;
-        this.startAddress = newStartAddress;
-        this.StartAddressChanged?.Invoke(this, oldStart, newStartAddress);
-
-        // Set scan length to the true value now. We read the prev value again in case some
-        // ass bag changes the value during StartAddressChanged, probably me by accident
-        oldLength = this.scanLength;
-        this.scanLength = newScanLength;
-        this.ScanLengthChanged?.Invoke(this, oldLength, newScanLength);
-
-        BasicApplicationConfiguration.Instance.StartAddress = this.startAddress;
-        BasicApplicationConfiguration.Instance.ScanLength = this.scanLength;
+        if (updateConfiguration) {
+            BasicApplicationConfiguration.Instance.StartAddress = this.StartAddress;
+            BasicApplicationConfiguration.Instance.ScanLength = this.ScanLength;
+        }
     }
 
     public async Task ScanFirstOrNext() {

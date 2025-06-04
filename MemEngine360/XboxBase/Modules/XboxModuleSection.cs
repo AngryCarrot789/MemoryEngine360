@@ -27,15 +27,18 @@ public delegate void XboxModuleSectionEventHandler(XboxModuleSection sender);
 public class XboxModuleSection : INotifyPropertyChanged {
     public static readonly DataKey<XboxModuleSection> DataKey = DataKey<XboxModuleSection>.Create("XboxModuleSection");
 
-    private string name;
+    private string? name;
     private uint baseAddress;
     private uint size;
     private uint index;
     private XboxSectionInfoFlags flags;
 
-    public string Name {
+    public string? Name {
         get => this.name;
         set {
+            if (string.IsNullOrWhiteSpace(value))
+                value = null;
+            
             if (this.name == value)
                 return;
 

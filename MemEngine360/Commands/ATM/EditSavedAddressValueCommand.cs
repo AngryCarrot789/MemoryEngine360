@@ -34,7 +34,7 @@ namespace MemEngine360.Commands.ATM;
 
 public class EditSavedAddressValueCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        ScanningProcessor processor = null;
+        ScanningProcessor? processor = null;
         if (IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? theResult)) {
             if (!(theResult.Entry is AddressTableEntry)) {
                 return Executability.Invalid;
@@ -49,14 +49,10 @@ public class EditSavedAddressValueCommand : Command {
 
         if (processor == null)
             return Executability.Invalid;
-
-        if (processor.IsScanning)
+        
+        if (processor.MemoryEngine360.Connection == null)
             return Executability.ValidButCannotExecute;
-
-        IConsoleConnection? connection = processor.MemoryEngine360.Connection;
-        if (connection == null || processor.MemoryEngine360.IsConnectionBusy)
-            return Executability.ValidButCannotExecute;
-
+        
         return Executability.Valid;
     }
 
