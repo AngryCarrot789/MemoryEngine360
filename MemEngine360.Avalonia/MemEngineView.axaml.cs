@@ -473,11 +473,11 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
             notification.Commands.Clear();
             notification.Commands.Add(this.connectionNotificationCommandGetStarted ??= new LambdaNotificationCommand("Get Started", static async (c) => {
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                    const string url = "https://github.com/AngryCarrot789/MemEngine360/blob/master/README.md#how-to-use";
+                    const string url = "https://github.com/AngryCarrot789/MemoryEngine360/wiki#quick-start";
                     IMemEngineUI mem = IMemEngineUI.MemUIDataKey.GetContext(c.ContextData!)!;
                     return TopLevel.GetTopLevel((MemEngineView) mem)?.Launcher.LaunchUriAsync(new Uri(url)) ?? Task.FromResult(false);
                 });
-            }) { ToolTip = "Opens a link to the " });
+            }) { ToolTip = "Opens a link to MemoryEngine360's quick start guide on the wiki" });
 
             notification.Commands.Add(this.connectionNotificationCommandDisconnect ??= new LambdaNotificationCommand("Disconnect", static async (c) => {
                 // ContextData ensured non-null by LambdaNotificationCommand.requireContext
