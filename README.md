@@ -13,81 +13,13 @@ Open `MemEngine360.sln` and then run/debug.
 
 If you wish to publish as a single .exe with a few (native) DLLs alongside, run `MemEngine360/MemEngine360.Avalonia/publish.bat`. This is how I create releases for this project
 
-# How to use
-First, connect to a console by clicking `CTRL + O` in the main window (or go to `File > Connect to console...`). 
-A dialog pops up allowing you to connect to different consoles. So far, only the Xbox 360 is implemented, however, plugins are supported to add more.
 
-In the case you want to connect to an xbox 360, just supply its IP address in the text field and click `Connect`
-
-![](MemEngine360-DesktopUI_2025-05-18_00.19.41.png)
-
-You'll see in the bottom right corner a progress bar will sometimes appear. They represent 'Activities', such as read/write operation status, scan status, and more.
-You can click that area to open a window which shows all activities.
-
-![](rider64_2025-04-27_22.07.31.png)
-
-## Scanning
-- Enter a value in the `Value` field (or both fields if scan type is `Between`)
-- Select the data type you wish to scan for (e.g. Byte, Int32, String)
-- Specify search options such as the `Scan Type` (match equal values, less than, between and more), and string type (ASCII, UTF32, etc.)
-
-Then, specify a start address in the `Memory Scanning Options` panel and also how many bytes you want to read (default is `0x1000000` or 16MB). 
-
-On supported consoles, you can click the little green table button to open a dialog, which lets you select a memory region to scan.
-Click any of the column headers to sort them (e.g. sort by region size and look for the bigger ones; that's where the games usually are, usually after base address 0x80000000)
-
-![](MemEngine360-DesktopUI_2025-04-27_22.02.37.png)
-
-- DEBUG PAUSE will freeze the console during scan (speeds up scan and useful if you don't want values to change during scan). Only works on consoles supporting freezing (including Xbox 360) 
-- Scan Memory Pages will scan the console's memory regions rather than blindly scan the entire search range. Only works on consoles supporting memory region querying (including Xbox 360). You should keep this enabled for faster scanning
-- Align... code explains it better: `for (addr = start; addr < end; addr += align) /* scan addr */`
 
 > Note, if the console is already frozen when DEBUG PAUSE is enabled, it will become unfrozen after the scan finishes. Disable DEBUG PAUSE to stop this
 
-### First Scan
+# How to use
+Visit the wiki at https://github.com/AngryCarrot789/MemoryEngine360/wiki to see the quick start guide.
 
-Click `First Scan`. The activity status (bottom right) shows the scan progress. You can pause or cancel at any time. 
-
-The activity bar will show something like `Region a/b (c/d)`. This means it's processing memory region A out of B, and has read C out of D bytes from the console. It may also say `Chunk` when Scan Memory Pages is off, since we read in chunks of 64K 
-
-Then, once the scan is complete, it may show `Updating result list...`. This is where it adds the results into the UI at a steady pace to prevent the UI freezing (rate of about 2000/s (system performance dependent)). It shows how many results are pending at the top.
-
-> You can cancel the activity once it shows `Updating results list`, and the rows become 'Hidden', but they will still be processed next scan along with the rows in the UI.
-
-
-
-### Next Scan
-
-This removes scan results whose current value does not match the search query. 
-
-For example, in COD you run First and Next scan for "25" (that being an ammo count), but after first scan, you shot rounds, so the value became 24, and therefore won't show up in the next scan as you're searching for 25. 
-
-There are 2 buttons `First` and `Prev` next to the value field. These toggle whether to use the scan results' First Value or Previous Value as a search value, instead of using the search query. 
-
-For example, say you want to find results whose values changed relative to the previous scan (includes first and all subsequent next scans), Select `Prev` and set the `Scan Type` to `NotEqual` 
-
-## Saved addresses
-![](MemEngine360-DesktopUI_2025-05-18_00.23.00.png)
-
-If you wish to keep an eye on specific addresses, you can add entries in here.
-
-- Select results in the scan results panel, then click `Add Scan Result(s)` to automatically add them. 
-- Add them manually by clicking the green `+` button. It will open two dialogs to configure the row.
-- You can open/save an XML file containing saved addresses (or CSV if you wish).
-
-The refresh button manually refreshes the values. This is done automatically every second by default (changeable in preferences; CTRL+ALT+S)
-
-## Changing values
-You can double click the cell in the `Value` column(s) to modify that cell. 
-You can also select multiple rows and click `CTRL + E` to modify the value of all of them.
-
-![](MemEngine360.Avalonia_2025-04-23_01.04.01.png)
-
-## Copying scan results
-Select any number of scan results and press `CTRL + C`. A dialog will show the results formatted in CSV
-
-## Deleting rows
-Select any scan result or saved address rows and press the Delete key to remove them.
 
 ## Memory Viewer
 Once connected to a console, in the "Saved Addresses" panel will be a green chip. Click it, and it will show a new window.

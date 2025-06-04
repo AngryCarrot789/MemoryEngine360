@@ -304,20 +304,19 @@ public sealed class ScanningContext {
 
                     await connection.ReadBytes(res.Address, buffer, 0, buffer.Length);
 
-                    IDataValue? matchBoxed;
+                    IDataValue? match;
                     switch (this.dataType) {
-                        case DataType.Byte:   matchBoxed = this.CompareInt<byte>(buffer, searchA, searchB); break;
-                        case DataType.Int16:  matchBoxed = this.CompareInt<short>(buffer, searchA, searchB); break;
-                        case DataType.Int32:  matchBoxed = this.CompareInt<int>(buffer, searchA, searchB); break;
-                        case DataType.Int64:  matchBoxed = this.CompareInt<long>(buffer, searchA, searchB); break;
-                        case DataType.Float:  matchBoxed = this.CompareFloat<float>(buffer, searchA, searchB); break;
-                        case DataType.Double: matchBoxed = this.CompareFloat<double>(buffer, searchA, searchB); break;
+                        case DataType.Byte:   match = this.CompareInt<byte>(buffer, searchA, searchB); break;
+                        case DataType.Int16:  match = this.CompareInt<short>(buffer, searchA, searchB); break;
+                        case DataType.Int32:  match = this.CompareInt<int>(buffer, searchA, searchB); break;
+                        case DataType.Int64:  match = this.CompareInt<long>(buffer, searchA, searchB); break;
+                        case DataType.Float:  match = this.CompareFloat<float>(buffer, searchA, searchB); break;
+                        case DataType.Double: match = this.CompareFloat<double>(buffer, searchA, searchB); break;
                         default:              throw new ArgumentOutOfRangeException();
                     }
 
-                    if (matchBoxed != null) {
-                        res.PreviousValue = res.CurrentValue;
-                        res.CurrentValue = matchBoxed;
+                    if (match != null) {
+                        res.CurrentValue = res.PreviousValue = match;
                         this.ResultFound?.Invoke(this, res);
                     }
                 }
@@ -341,8 +340,7 @@ public sealed class ScanningContext {
 
                     string readText = await connection.ReadString(res.Address, search.Length);
                     if (readText.Equals(search, this.stringComparison)) {
-                        res.PreviousValue = res.CurrentValue;
-                        res.CurrentValue = new DataValueString(readText, this.stringType);
+                        res.CurrentValue = res.PreviousValue = new DataValueString(readText, this.stringType);
                         this.ResultFound?.Invoke(this, res);
                     }
                 }
@@ -368,8 +366,7 @@ public sealed class ScanningContext {
 
                     byte[] bytes = await connection.ReadBytes(res.Address, search.Length);
                     if (search.Matches(bytes)) {
-                        res.PreviousValue = res.CurrentValue;
-                        res.CurrentValue = new DataValueByteArray(bytes);
+                        res.CurrentValue = res.PreviousValue = new DataValueByteArray(bytes);
                         this.ResultFound?.Invoke(this, res);
                     }
                 }

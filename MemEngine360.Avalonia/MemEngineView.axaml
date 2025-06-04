@@ -117,7 +117,7 @@
                                                 </TextBlock>
                                             </ToolTip.Tip>
                                         </av:IconButton>
-                                        <TextBlock Text="Memory Scanning Options" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Additional Options" VerticalAlignment="Center"/>
                                     </DockPanel>
                                 </c:GroupBox.Header>
                                 <StackPanel IsVisible="{Binding ElementName=PART_MemScanExpander, Path=IsChecked}">

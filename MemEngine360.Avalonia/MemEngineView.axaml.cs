@@ -308,12 +308,6 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
             entry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
             entry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.DownloadMemoryIcon));
             entry.Items.Add(new SeparatorEntry());
-            entry.Items.Add(new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Open debugger"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Open Sequencer"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.ShowModulesCommand", "Show Modules"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Show Memory Regions"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scan [DEBUG ONLY]"));
-            entry.Items.Add(new SeparatorEntry());
             entry.Items.Add(new CommandContextEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command...", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
             entry.Items.Add(new TestThing("Test Notification (XBDM)", null, null));
             entry.Items.Add(new SeparatorEntry());
@@ -324,6 +318,16 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
         {
             this.RemoteCommandsContextEntry = new ContextEntryGroup("Remote Controls");
             this.TopLevelMenuRegistry.Items.Add(this.RemoteCommandsContextEntry);
+        }
+
+        {
+            ContextEntryGroup entry = new ContextEntryGroup("Tools");
+            entry.Items.Add(new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Open debugger"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Open Sequencer"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.ShowModulesCommand", "Show Modules"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Show Memory Regions"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scan [DEBUG ONLY]"));
+            this.TopLevelMenuRegistry.Items.Add(entry);
         }
 
         this.themesSubList = new ContextEntryGroup("Themes");
@@ -496,11 +500,11 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
             this.PART_LatestActivity.Text = notification.Text;
             if (cause != ConnectionChangeCause.ClosingWindow && (!IMemEngineUI.IsDisconnectFromNotification.TryGetContext(notification.ContextData!, out bool b) || !b)) {
                 notification.Caption = cause switch {
-                    ConnectionChangeCause.LostConnection => "Lost Connection", 
-                    ConnectionChangeCause.ConnectionError => "Connection error", 
+                    ConnectionChangeCause.LostConnection => "Lost Connection",
+                    ConnectionChangeCause.ConnectionError => "Connection error",
                     _ => "Disconnected"
                 };
-                
+
                 notification.Commands.Clear();
                 if (cause == ConnectionChangeCause.LostConnection || cause == ConnectionChangeCause.ConnectionError) {
                     notification.CanAutoHide = false;
@@ -541,8 +545,10 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
                             c.Notification?.Close();
                             await CommandManager.Instance.Execute("commands.memengine.OpenConsoleConnectionDialogCommand", c.ContextData!, true);
                         }
-                    }) { ToolTip = "Attempt to reconnect to the console, using the same options (e.g. IP address) specified when it was opened initially." + Environment.NewLine +
-                                   "If it wasn't opened by you like that, this just shows the Open Connection dialog." });
+                    }) {
+                        ToolTip = "Attempt to reconnect to the console, using the same options (e.g. IP address) specified when it was opened initially." + Environment.NewLine +
+                                  "If it wasn't opened by you like that, this just shows the Open Connection dialog."
+                    });
                 }
                 else {
                     notification.CanAutoHide = true;
