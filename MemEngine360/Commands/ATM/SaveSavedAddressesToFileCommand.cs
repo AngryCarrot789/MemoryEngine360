@@ -64,10 +64,14 @@ public class SaveSavedAddressesToFileCommand : Command {
                 task.Progress.Text = "Serializing...";
                 task.Progress.IsIndeterminate = true;
                 try {
-                    await using BufferedStream stream = new BufferedStream(File.OpenWrite(path));
+                    using MemoryStream stream = new MemoryStream();
+                    stream.Capacity = 4096;
+                    
                     XmlAddressEntryGroup rootGroup = new XmlAddressEntryGroup();
                     AddToGroup(engine.AddressTableManager.RootEntry, rootGroup);
                     OpenXMLFileCommand.XmlGroupSerializer.Serialize(stream, rootGroup);
+                    
+                    await File.WriteAllBytesAsync(path, stream.ToArray());
                 }
                 catch (Exception ex) {
                     await IMessageDialogService.Instance.ShowMessage("Error", "Error serializing", ex.GetToString());

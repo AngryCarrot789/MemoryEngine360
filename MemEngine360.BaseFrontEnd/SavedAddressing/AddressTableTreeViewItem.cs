@@ -49,7 +49,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     private readonly IBinder<AddressTableGroupEntry> groupAddressBinder = new EventPropertyBinder<AddressTableGroupEntry>(nameof(AddressTableGroupEntry.GroupAddressChanged), b => {
         uint addr = b.Model.GroupAddress;
         bool abs = b.Model.IsAddressAbsolute;
-        b.Control.SetValue(HeaderProperty, addr == 0 ? "Group" : $"Group ({(abs ? "" : "+") + addr.ToString(abs ? "X8" : "X")})");
+        b.Control.SetValue(HeaderProperty, addr == 0 ? "Group" : $"{(abs ? "" : "+") + addr.ToString(abs ? "X8" : "X")}");
     });
 
     private readonly IBinder<AddressTableEntry> entryAddressBinder = new EventPropertyBinder<AddressTableEntry>(nameof(AddressTableEntry.AddressChanged), b => {
