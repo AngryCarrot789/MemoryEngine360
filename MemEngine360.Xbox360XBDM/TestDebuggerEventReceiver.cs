@@ -63,7 +63,7 @@ public class TestDebuggerEventReceiver {
                     try {
                         line = connection.ReadLineFromStream().AsTask().GetAwaiter().GetResult();
                     }
-                    catch (EndOfStreamException) {
+                    catch (Exception) {
                         continue;
                     }
 

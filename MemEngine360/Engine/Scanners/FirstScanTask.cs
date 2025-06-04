@@ -87,7 +87,7 @@ public sealed class FirstScanTask : AdvancedPausableTask {
     }
 
     private async Task<bool> SetFrozenState(bool isFrozen) {
-        if (this.ctx.HasIOError) {
+        if (this.ctx.HasConnectionError) {
             return false;
         }
         
@@ -97,8 +97,8 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                 await (isFrozen ? ice.DebugFreeze() : ice.DebugUnFreeze());
             }
         }
-        catch (IOException e) {
-            this.ctx.IOException = e;
+        catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+            this.ctx.ConnectionException = ex;
             return false;
         }
 
@@ -123,8 +123,8 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                 try {
                     allRegions = await iHaveRegions.GetMemoryRegions(true, false);
                 }
-                catch (IOException e) {
-                    this.ctx.IOException = e;
+                catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                    this.ctx.ConnectionException = ex;
                     pauseOrCancelToken.ThrowIfCancellationRequested();
                     return;
                 }
@@ -180,8 +180,8 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                     try {
                         cbActualRead = await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, targetReadCount).ConfigureAwait(false);
                     }
-                    catch (IOException e) {
-                        this.ctx.IOException = e;
+                    catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                        this.ctx.ConnectionException = ex;
                         pauseOrCancelToken.ThrowIfCancellationRequested();
                         return;
                     }
@@ -222,8 +222,8 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                 try {
                     cbActualRead = await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, cbTargetRead).ConfigureAwait(false);
                 }
-                catch (IOException e) {
-                    this.ctx.IOException = e;
+                catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                    this.ctx.ConnectionException = ex;
                     pauseOrCancelToken.ThrowIfCancellationRequested();
                     return;
                 }

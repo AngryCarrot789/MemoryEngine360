@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Connections;
+using MemEngine360.Engine;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
@@ -89,11 +90,12 @@ public class RunSequenceCommand : Command {
                     await IMessageDialogService.Instance.ShowMessage("Error encountered", "An exception occured while running sequence", sequence.LastException.GetToString());
                 }
 
+                ConnectionChangeCause cause = sequence.LastException is IOException ? ConnectionChangeCause.ConnectionError : ConnectionChangeCause.LostConnection;
                 if (token != null) {
-                    sequence.Manager.MemoryEngine.CheckConnection(token);
+                    sequence.Manager.MemoryEngine.CheckConnection(token, cause);
                 }
                 else if (useEngineConnection) {
-                    sequence.Manager.MemoryEngine.CheckConnection();
+                    sequence.Manager.MemoryEngine.CheckConnection(cause);
                 }
             }
         }

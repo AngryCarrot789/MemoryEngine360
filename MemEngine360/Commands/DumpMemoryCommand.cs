@@ -88,10 +88,10 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
 
             DumpMemoryTask task = new DumpMemoryTask(engine, filePath, start, length, freezeResult == MessageBoxResult.Yes, token);
             await task.Run();
-            if (task.FileException != null || task.ConnectionIOException != null) {
+            if (task.FileException != null || task.ConnectionException != null) {
                 StringBuilder sb = new StringBuilder();
-                if (task.ConnectionIOException != null) {
-                    sb.Append("Download IO error: ").Append(task.ConnectionIOException.Message);
+                if (task.ConnectionException != null) {
+                    sb.Append("Download IO error: ").Append(task.ConnectionException.Message);
                 }
                 
                 if (task.FileException != null) {
@@ -120,7 +120,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
         private uint cbDownloaded, cbWritten;
         private volatile bool isDoneDownloading;
         private readonly ConcurrentQueue<(byte[], uint)> buffers;
-        private volatile IOException? connIoException;
+        private volatile Exception? connectionException;
         private volatile Exception? fileException;
 
         // live handles
@@ -130,7 +130,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
         /// <summary>
         /// Gets the IO exception encountered while downloading data from the console.
         /// </summary>
-        public IOException? ConnectionIOException => this.connIoException;
+        public Exception? ConnectionException => this.connectionException;
 
         /// <summary>
         /// Gets the IO exception encountered while writing to the file
@@ -207,8 +207,8 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                     try {
                         await ((IHaveIceCubes) connection).DebugFreeze();
                     }
-                    catch (IOException ex) {
-                        this.connIoException = ex;
+                    catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                        this.connectionException = ex;
                         this.FailNow(pauseOrCancelToken);
                     }
                 }
@@ -229,26 +229,26 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                         this.downloadCompletion?.OnProgress(cbRead);
                     }
                 }
-                catch (IOException ex) {
-                    this.connIoException = ex;
-                }
                 catch (OperationCanceledException ex) {
                     e = ex;
+                }
+                catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                    this.connectionException = ex;
                 }
 
                 if (this.freezeConsole && connection is IHaveIceCubes) {
                     try {
                         await ((IHaveIceCubes) connection).DebugUnFreeze();
                     }
-                    catch (IOException) {
-                        // ignored -- maybe connIoException is already non-null
+                    catch {
+                        // ignored -- maybe connectionException is already non-null
                     }
                 }
 
                 if (e != null)
                     throw e;
 
-                if (this.connIoException != null)
+                if (this.connectionException != null)
                     this.FailNow(pauseOrCancelToken);
 
                 this.isDoneDownloading = true;

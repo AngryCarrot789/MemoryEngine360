@@ -45,6 +45,7 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
             return;
         }
 
+        ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection;
         IConsoleConnection? connection = engine.Connection;
         if (connection == null || !connection.IsConnected) {
             IEnumerable<ShortcutEntry> scList = ShortcutManager.Instance.GetShortcutsByCommandId("commands.memengine.OpenConsoleConnectionDialogCommand") ?? ReadOnlyCollection<ShortcutEntry>.Empty;
@@ -66,16 +67,20 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
                 try {
                     await this.ExecuteRemoteCommandInActivity(engine, connection, e);
                 }
-                catch (IOException exception) {
-                    await IMessageDialogService.Instance.ShowMessage("Error", "Connection timed out", exception.Message);
+                catch (IOException ex) {
+                    likelyCause = ConnectionChangeCause.ConnectionError;
+                    await IMessageDialogService.Instance.ShowMessage("IO Error", "An IO error occurred", ex.Message);
                 }
-                catch (Exception exception) {
-                    await IMessageDialogService.Instance.ShowMessage("Error", "Error while executing remote command", exception.GetToString());
+                catch (TimeoutException ex) {
+                    await IMessageDialogService.Instance.ShowMessage("Timed out", "Connection timed out", ex.Message);
+                }
+                catch (Exception ex) {
+                    await IMessageDialogService.Instance.ShowMessage("Unexpected Error", "Error while executing remote command", ex.GetToString());
                 }
             });
         }
         
-        engine.CheckConnection(token);
+        engine.CheckConnection(token, likelyCause);
     }
 
     protected abstract Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e);

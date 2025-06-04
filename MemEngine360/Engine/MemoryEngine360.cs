@@ -248,8 +248,8 @@ public class MemoryEngine360 {
     public void SetConnection(IDisposable busyToken, ulong frame, IConsoleConnection? newConnection, ConnectionChangeCause cause, UserConnectionInfo? userConnectionInfo = null) {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
         this.ValidateToken(busyToken);
-        if (cause == ConnectionChangeCause.LostConnection && newConnection != null)
-            throw new ArgumentException("Cause cannot be " + nameof(ConnectionChangeCause.LostConnection) + " when setting connection to a non-null value");
+        if (newConnection != null && (cause == ConnectionChangeCause.LostConnection || cause == ConnectionChangeCause.ConnectionError))
+            throw new ArgumentException($"Cause cannot be {cause} when setting connection to a non-null value");
         
         if (newConnection == null && userConnectionInfo != null)
             throw new ArgumentException(nameof(userConnectionInfo) + " is non-null when " + nameof(newConnection) + " is null");
@@ -612,7 +612,7 @@ public class MemoryEngine360 {
         this.busyLockAsyncWaiters.Clear();
     }
 
-    public void CheckConnection() {
+    public void CheckConnection(ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection) {
         // CheckConnection is just a helpful method to clear connection if it's 
         // disconnected internally, therefore, we don't need over the top synchronization,
         // because any code that actually tries to read/write will be async and can handle
@@ -623,7 +623,7 @@ public class MemoryEngine360 {
         }
 
         using (IDisposable? token1 = this.BeginBusyOperation()) {
-            if (token1 != null && this.TryDisconnectForLostConnection(token1)) {
+            if (token1 != null && this.TryDisconnectForLostConnection(token1, likelyCause)) {
                 return;
             }
         }
@@ -631,7 +631,7 @@ public class MemoryEngine360 {
         ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
             using IDisposable? token2 = this.BeginBusyOperation();
             if (token2 != null)
-                this.TryDisconnectForLostConnection(token2);
+                this.TryDisconnectForLostConnection(token2, likelyCause);
         }, DispatchPriority.Background);
     }
 
@@ -639,19 +639,19 @@ public class MemoryEngine360 {
     /// Attempts to auto-disconnect the connection immediately if it is no longer actually connected (<see cref="IConsoleConnection.IsConnected"/> is false)
     /// </summary>
     /// <param name="token"></param>
-    public void CheckConnection(IDisposable token) {
+    public void CheckConnection(IDisposable token, ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection) {
         this.ValidateToken(token);
-        this.TryDisconnectForLostConnection(token);
+        this.TryDisconnectForLostConnection(token, likelyCause);
     }
 
-    private bool TryDisconnectForLostConnection(IDisposable token) {
+    private bool TryDisconnectForLostConnection(IDisposable token, ConnectionChangeCause cause) {
         IConsoleConnection? conn = this.connection;
         if (conn == null)
             return true;
         if (conn.IsConnected)
             return false;
 
-        this.SetConnection(token, 0, null, ConnectionChangeCause.LostConnection);
+        this.SetConnection(token, 0, null, cause);
         return true;
     }
 

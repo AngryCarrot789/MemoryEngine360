@@ -910,7 +910,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 catch (OperationCanceledException) {
                     throw;
                 }
-                catch (IOException) {
+                catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
                     return;
                 }
                 catch {

@@ -66,12 +66,12 @@ public sealed class ScanningContext {
     // engine's forced LE state is not automatic, and it forces an endianness different from the connection.
     // internal bool reverseEndianness;
 
-    public IOException? IOException { get; set; }
+    public Exception? ConnectionException { get; set; }
 
     /// <summary>
     /// Gets or sets if the scan encountered an IO error while reading data from the console
     /// </summary>
-    public bool HasIOError => this.IOException != null;
+    public bool HasConnectionError => this.ConnectionException != null;
 
     /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result

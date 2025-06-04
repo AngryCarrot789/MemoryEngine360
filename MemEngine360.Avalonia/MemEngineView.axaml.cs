@@ -495,9 +495,14 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
             notification.Text = $"Disconnected from '{oldConn!.ConnectionType.DisplayName}'";
             this.PART_LatestActivity.Text = notification.Text;
             if (cause != ConnectionChangeCause.ClosingWindow && (!IMemEngineUI.IsDisconnectFromNotification.TryGetContext(notification.ContextData!, out bool b) || !b)) {
-                notification.Caption = cause == ConnectionChangeCause.LostConnection ? "Lost Connection" : "Disconnected";
+                notification.Caption = cause switch {
+                    ConnectionChangeCause.LostConnection => "Lost Connection", 
+                    ConnectionChangeCause.ConnectionError => "Connection error", 
+                    _ => "Disconnected"
+                };
+                
                 notification.Commands.Clear();
-                if (cause == ConnectionChangeCause.LostConnection) {
+                if (cause == ConnectionChangeCause.LostConnection || cause == ConnectionChangeCause.ConnectionError) {
                     notification.CanAutoHide = false;
                     notification.Commands.Add(this.connectionNotificationCommandReconnect ??= new LambdaNotificationCommand("Reconnect", static async (c) => {
                         // ContextData ensured non-null by LambdaNotificationCommand.requireContext

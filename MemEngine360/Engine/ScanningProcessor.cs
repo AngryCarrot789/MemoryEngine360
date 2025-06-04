@@ -595,8 +595,8 @@ public class ScanningProcessor {
                     });
                 }
 
-                if (context.HasIOError) {
-                    await IMessageDialogService.Instance.ShowMessage("Network error", context.IOException!.Message, "Please reconnect to the console", defaultButton: MessageBoxResult.OK);
+                if (context.HasConnectionError) {
+                    await IMessageDialogService.Instance.ShowMessage("Network error", context.ConnectionException!.Message, "Please reconnect to the console", defaultButton: MessageBoxResult.OK);
                 }
 
                 await updateListTask;
@@ -606,7 +606,7 @@ public class ScanningProcessor {
                 this.HasDoneFirstScan = result;
                 this.IsScanning = false;
                 if (!this.MemoryEngine360.IsShuttingDown) // another race condition i suppose
-                    this.MemoryEngine360.CheckConnection();
+                    this.MemoryEngine360.CheckConnection(token);
             });
         }, progress, cts);
         
@@ -691,7 +691,7 @@ public class ScanningProcessor {
             return;
         }
 
-        bool hasIOError = false;
+        bool hasNetworkError = false;
         this.IsRefreshingAddresses = true;
         try {
             using CancellationTokenSource cts = new CancellationTokenSource();
@@ -756,14 +756,14 @@ public class ScanningProcessor {
             try {
                 await Task.WhenAny(task, Task.Delay(500, token));
             }
-            catch (IOException) {
-                hasIOError = true;
+            catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                hasNetworkError = true;
             }
             catch (OperationCanceledException) {
                 return;
             }
 
-            if (!hasIOError && !task.IsCompleted) {
+            if (!hasNetworkError && !task.IsCompleted) {
                 await ActivityManager.Instance.RunTask(async () => {
                     IActivityProgress p = ActivityManager.Instance.GetCurrentProgressOrEmpty();
                     p.Caption = "Long refresh";
@@ -772,8 +772,8 @@ public class ScanningProcessor {
                     try {
                         await task;
                     }
-                    catch (IOException) {
-                        hasIOError = true;
+                    catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                        hasNetworkError = true;
                     }
                 }, cts);
             }
@@ -782,8 +782,8 @@ public class ScanningProcessor {
             this.IsRefreshingAddresses = false;
         }
 
-        if (hasIOError) {
-            this.MemoryEngine360.CheckConnection();
+        if (hasNetworkError) {
+            this.MemoryEngine360.CheckConnection(busyOperationToken, ConnectionChangeCause.ConnectionError);
         }
     }
 }

@@ -30,6 +30,11 @@ public enum ConnectionChangeCause {
     /// </summary>
     LostConnection,
     /// <summary>
+    /// An unexpected error occurred while reading data, which ultimately meant the connection
+    /// was no longer in a stable state and had to be shut down
+    /// </summary>
+    ConnectionError,
+    /// <summary>
     /// The user closed the window which automatically disconnects the connection
     /// </summary>
     ClosingWindow,
