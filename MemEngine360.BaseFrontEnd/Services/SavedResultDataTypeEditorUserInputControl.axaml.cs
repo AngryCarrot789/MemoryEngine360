@@ -31,7 +31,7 @@ using PFXToolKitUI.Services.UserInputs;
 namespace MemEngine360.BaseFrontEnd.Services;
 
 public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IUserInputContent {
-    public static readonly StyledProperty<uint> StringLengthProperty = AvaloniaProperty.Register<SavedResultDataTypeEditorUserInputControl, uint>(nameof(StringLength));
+    public static readonly StyledProperty<int> StringLengthProperty = AvaloniaProperty.Register<SavedResultDataTypeEditorUserInputControl, int>(nameof(StringLength));
 
     private UserInputDialogView? myDialog;
     private SavedResultDataTypeUserInputInfo? myData;
@@ -43,7 +43,7 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
     private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(SavedResultDataTypeUserInputInfo), nameof(SavedResultDataTypeUserInputInfo.StringScanOptionChanged), (x) => ((SavedResultDataTypeUserInputInfo) x).StringScanOption, (x, v) => ((SavedResultDataTypeUserInputInfo) x).StringScanOption = v);
     private readonly AvaloniaPropertyToEventPropertyBinder<SavedResultDataTypeUserInputInfo> selectedTabIndexBinder;
 
-    public uint StringLength {
+    public int StringLength {
         get => this.GetValue(StringLengthProperty);
         set => this.SetValue(StringLengthProperty, value);
     }
@@ -81,7 +81,7 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) {
         base.OnPropertyChanged(change);
         if (change.Property == StringLengthProperty && this.myData != null) {
-            this.myData.StringLength = ((AvaloniaPropertyChangedEventArgs<uint>) change).NewValue.GetValueOrDefault();
+            this.myData.StringLength = ((AvaloniaPropertyChangedEventArgs<int>) change).NewValue.GetValueOrDefault();
         }
     }
 

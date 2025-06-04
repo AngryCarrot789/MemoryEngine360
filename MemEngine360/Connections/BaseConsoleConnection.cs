@@ -47,6 +47,11 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     protected BaseConsoleConnection() {
     }
 
+    ~BaseConsoleConnection() {
+        if (!this.isClosed)
+            Debug.WriteLine("Destructor called on " + nameof(BaseConsoleConnection) + " when still open");
+    }
+    
     public abstract Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);
 
     public async Task Close() {
@@ -63,21 +68,35 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
 
     protected abstract Task CloseCore();
 
-    public async Task<uint> ReadBytes(uint address, byte[] buffer, int offset, uint count) {
+    public async Task ReadBytes(uint address, byte[] buffer, int offset, int count) {
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
+        if (count == 0)
+            return;
+        
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
 
-        return await this.ReadBytesCore(address, buffer, offset, count).ConfigureAwait(false);
+        await this.ReadBytesCore(address, buffer, offset, count).ConfigureAwait(false);
     }
 
-    public async Task ReadBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
+    public async Task ReadBytes(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
+        if (count == 0)
+            return;
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
+        
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
 
         await this.ReadBytesInChunksUnderBusyLock(address, buffer, offset, count, chunkSize, completion, cancellationToken);
     }
 
-    public async Task<byte[]> ReadBytes(uint address, uint count) {
+    public async Task<byte[]> ReadBytes(uint address, int count) {
         byte[] buffer = new byte[count];
         await this.ReadBytes(address, buffer, 0, count).ConfigureAwait(false);
         return buffer;
@@ -100,7 +119,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         using BusyToken x = this.CreateBusyToken();
 
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
-        await this.ReadBytesCore(address, buffer, 0, (uint) buffer.Length).ConfigureAwait(false);
+        await this.ReadBytesCore(address, buffer, 0, buffer.Length).ConfigureAwait(false);
         if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
             Array.Reverse(buffer);
         }
@@ -115,9 +134,12 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         int offset = 0;
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
-            await this.ReadBytesCore((uint) (address + offset), buffer, offset, (uint) cbField).ConfigureAwait(false);
+            Debug.Assert(cbField >= 0, "Field was negative");
+            
+            await this.ReadBytesCore((uint) (address + offset), buffer, offset, cbField).ConfigureAwait(false);
             if (BitConverter.IsLittleEndian != this.IsLittleEndian)
                 Array.Reverse(buffer, offset, cbField);
+            
             offset += cbField;
 
             Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadString));
@@ -130,7 +152,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetArrayDataReference(buffer));
     }
 
-    public async Task<string> ReadString(uint address, uint count, bool removeNull = true) {
+    public async Task<string> ReadString(uint address, int count, bool removeNull = true) {
         byte[] buffer = await this.ReadBytes(address, count).ConfigureAwait(false);
 
         if (removeNull) {
@@ -141,16 +163,16 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
                 }
             }
 
-            count = (uint) j;
+            count = j;
         }
 
-        return Encoding.ASCII.GetString(buffer, 0, (int) count);
+        return Encoding.ASCII.GetString(buffer, 0, count);
     }
 
-    public async Task<string> ReadString(uint address, uint count, Encoding encoding) {
-        int bytes = encoding.GetMaxByteCount((int) count);
+    public async Task<string> ReadString(uint address, int count, Encoding encoding) {
+        int bytes = encoding.GetMaxByteCount(count);
         byte[] buffer = new byte[bytes];
-        await this.ReadBytes(address, buffer, 0, (uint) buffer.Length).ConfigureAwait(false);
+        await this.ReadBytes(address, buffer, 0, buffer.Length).ConfigureAwait(false);
         return encoding.GetString(buffer);
     }
 
@@ -158,10 +180,17 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
 
-        await this.WriteBytesCore(address, buffer, 0, (uint) buffer.Length).ConfigureAwait(false);
+        await this.WriteBytesCore(address, buffer, 0, buffer.Length).ConfigureAwait(false);
     }
 
-    public async Task WriteBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
+    public async Task WriteBytes(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
+        if (count == 0)
+            return;
+        
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
 
@@ -173,22 +202,19 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         using BusyToken x = this.CreateBusyToken();
 
         this.sharedOneByteArray[0] = value;
-        await this.WriteBytesCore(address, this.sharedOneByteArray, 0, 1U).ConfigureAwait(false);
+        await this.WriteBytesCore(address, this.sharedOneByteArray, 0, 1).ConfigureAwait(false);
     }
 
-    public Task WriteBool(uint address, bool value) {
-        return this.WriteByte(address, (byte) (value ? 0x01 : 0x00));
-    }
+    public Task WriteBool(uint address, bool value) => this.WriteByte(address, (byte) (value ? 0x01 : 0x00));
 
-    public Task WriteChar(uint address, char value) {
-        return this.WriteByte(address, (byte) value);
-    }
+    public Task WriteChar(uint address, char value) => this.WriteByte(address, (byte) value);
 
     public Task WriteValue<T>(uint address, T value) where T : unmanaged {
         byte[] bytes = new byte[Unsafe.SizeOf<T>()];
         Unsafe.As<byte, T>(ref MemoryMarshal.GetArrayDataReference(bytes)) = value;
-        if (BitConverter.IsLittleEndian != this.IsLittleEndian)
+        if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
             Array.Reverse(bytes);
+        }
 
         return this.WriteBytes(address, bytes);
     }
@@ -197,11 +223,13 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         int offset = 0;
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
+            Debug.Assert(cbField >= 0, "Field was negative");
+            
             Unsafe.As<byte, T>(ref buffer[offset]) = value;
             if (BitConverter.IsLittleEndian != this.IsLittleEndian)
                 Array.Reverse(buffer, offset, cbField);
+            
             offset += cbField;
-
             Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadString));
         }
 
@@ -274,40 +302,34 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return this.WriteStruct(Offset, vec3, 4, 4, 4);
     }
 
-    protected async Task ReadBytesInChunksUnderBusyLock(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion, CancellationToken cancellationToken) {
+    protected async Task ReadBytesInChunksUnderBusyLock(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion, CancellationToken cancellationToken) {
+        Debug.Assert(count >= 0);
         cancellationToken.ThrowIfCancellationRequested();
-        if (count == 0) {
-            return;
-        }
-
         using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
         do {
             cancellationToken.ThrowIfCancellationRequested();
-            uint cbRead = Math.Min(chunkSize, count);
+            int cbRead = (int) Math.Min((uint) count, chunkSize);
             await this.ReadBytesCore(address, buffer, offset, cbRead).ConfigureAwait(false);
 
+            address += (uint) cbRead;
+            offset += cbRead;
             count -= cbRead;
-            offset += (int) cbRead;
-            address += cbRead;
 
             completion?.OnProgress(cbRead);
         } while (count > 0);
     }
 
-    protected async Task WriteBytesInChunksUnderBusyLock(uint address, byte[] bytes, int offset, uint count, uint chunkSize, CompletionState? completion, CancellationToken cancellationToken) {
+    protected async Task WriteBytesInChunksUnderBusyLock(uint address, byte[] bytes, int offset, int count, uint chunkSize, CompletionState? completion, CancellationToken cancellationToken) {
+        Debug.Assert(count >= 0);
         cancellationToken.ThrowIfCancellationRequested();
-        if (count == 0) {
-            return;
-        }
-
         using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
         do {
             cancellationToken.ThrowIfCancellationRequested();
-            uint cbWrite = Math.Min(count, chunkSize);
+            int cbWrite = (int) Math.Min((uint) count, chunkSize);
             await this.WriteBytesCore(address, bytes, offset, cbWrite).ConfigureAwait(false);
 
-            address += cbWrite;
-            offset += (int) cbWrite;
+            address += (uint) cbWrite;
+            offset += cbWrite;
             count -= cbWrite;
 
             completion?.OnProgress(cbWrite);
@@ -315,24 +337,22 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     /// <summary>
-    /// Reads bytes from the connection. This is invoked under busy token
+    /// Reads an exact amount of bytes from the connection. This is invoked under busy token
     /// </summary>
     /// <param name="address">The address to read from</param>
     /// <param name="dstBuffer">The array to write the bytes into</param>
-    /// <param name="offset">The offset within <see cref="dstBuffer"/> to begin writing into</param>
-    /// <param name="count">The amount of bytes to read</param>
-    /// <returns>The amount of bytes actually read. Ignored by certain operations such as <see cref="ReadStruct{T}"/></returns>
-    protected abstract Task<uint> ReadBytesCore(uint address, byte[] dstBuffer, int offset, uint count);
+    /// <param name="offset">The offset within <see cref="dstBuffer"/> to begin writing into. Should always be greather than or equal to 0</param>
+    /// <param name="count">The amount of bytes to read. This should always be greater than 0</param>
+    protected abstract Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count);
 
     /// <summary>
-    /// Writes bytes to the connection. This is invoked under busy token
+    /// Writes an exact amount of bytes to the connection. This is invoked under busy token
     /// </summary>
     /// <param name="address">The address to write to</param>
     /// <param name="srcBuffer">The array to read the bytes from</param>
-    /// <param name="offset">The offset within <see cref="srcBuffer"/> to begin reading from</param>
-    /// <param name="count">The amount of bytes to write to the console.</param>
-    /// <returns>The amount of bytes actually written</returns>
-    protected abstract Task<uint> WriteBytesCore(uint address, byte[] srcBuffer, int offset, uint count);
+    /// <param name="offset">The offset within <see cref="srcBuffer"/> to begin reading from. Should always be greather than or equal to 0</param>
+    /// <param name="count">The amount of bytes to write to the console. This should always be greater than 0</param>
+    protected abstract Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count);
 
     /// <summary>
     /// A token used to safeguard against concurrent read/write operations

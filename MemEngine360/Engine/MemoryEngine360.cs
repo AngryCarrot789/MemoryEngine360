@@ -426,11 +426,12 @@ public class MemoryEngine360 {
     /// <param name="connection">The connection to read the value from</param>
     /// <param name="address">The address to read at</param>
     /// <param name="dataType">The type of value we want to read</param>
+    /// <param name="stringType"></param>
     /// <param name="strlen">The length of the string. Only used when the data type is <see cref="DataType.String"/></param>
     /// <param name="arrlen">The amount of array elements. Only used when the data type is <see cref="DataType.ByteArray"/> (or any array type, if we support that in the future)</param>
     /// <returns>The data value</returns>
     /// <exception cref="ArgumentOutOfRangeException">Invalid data type</exception>
-    public static async Task<IDataValue> ReadAsDataValue(IConsoleConnection connection, uint address, DataType dataType, StringType stringType, uint strlen, uint arrlen) {
+    public static async Task<IDataValue> ReadAsDataValue(IConsoleConnection connection, uint address, DataType dataType, StringType stringType, int strlen, int arrlen) {
         switch (dataType) {
             case DataType.Byte:      return new DataValueByte(await connection.ReadByte(address).ConfigureAwait(false));
             case DataType.Int16:     return new DataValueInt16(await connection.ReadValue<short>(address).ConfigureAwait(false));
@@ -462,8 +463,8 @@ public class MemoryEngine360 {
             case DataType.Int64:     return new DataValueInt64(await connection.ReadValue<long>(address).ConfigureAwait(false));
             case DataType.Float:     return new DataValueFloat(await connection.ReadValue<float>(address).ConfigureAwait(false));
             case DataType.Double:    return new DataValueDouble(await connection.ReadValue<double>(address).ConfigureAwait(false));
-            case DataType.String:    return new DataValueString(await connection.ReadString(address, (uint) ((DataValueString) value).Value.Length, ((DataValueString) value).StringType.ToEncoding()).ConfigureAwait(false), ((DataValueString) value).StringType);
-            case DataType.ByteArray: return new DataValueByteArray(await connection.ReadBytes(address, (uint) ((DataValueByteArray) value).Value.Length).ConfigureAwait(false));
+            case DataType.String:    return new DataValueString(await connection.ReadString(address, ((DataValueString) value).Value.Length, ((DataValueString) value).StringType.ToEncoding()).ConfigureAwait(false), ((DataValueString) value).StringType);
+            case DataType.ByteArray: return new DataValueByteArray(await connection.ReadBytes(address, ((DataValueByteArray) value).Value.Length).ConfigureAwait(false));
             default:                 throw new Exception("Value contains an invalid data type");
         }
     }

@@ -220,7 +220,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                         pauseOrCancelToken.ThrowIfCancellationRequested();
                         byte[] downloadBuffer = new byte[0x10000];
                         uint cbRead = Math.Min((uint) downloadBuffer.Length, this.dlCbRemaining);
-                        uint cbActualRead = await connection.ReadBytes(this.dlCurrAddress, downloadBuffer, 0, cbRead);
+                        await connection.ReadBytes(this.dlCurrAddress, downloadBuffer, 0, (int) cbRead);
 
                         this.dlCbRemaining -= cbRead;
                         this.dlCurrAddress += cbRead;

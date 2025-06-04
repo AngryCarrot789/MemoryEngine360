@@ -175,10 +175,9 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                     progress.CompletionState.OnProgress(ScanningContext.ChunkSize);
 
                     uint baseAddress = region.BaseAddress + this.rgBaseOffset;
-                    uint targetReadCount = Math.Min(ScanningContext.ChunkSize, this.rgScanEnd - this.rgBaseOffset /* remaining */);
-                    uint cbActualRead;
+                    int cbRead = (int) Math.Min(ScanningContext.ChunkSize, Math.Max(this.rgScanEnd - this.rgBaseOffset, 0) /* remaining */);
                     try {
-                        cbActualRead = await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, targetReadCount).ConfigureAwait(false);
+                        await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, cbRead).ConfigureAwait(false);
                     }
                     catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
                         this.ctx.ConnectionException = ex;
@@ -186,7 +185,7 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                         return;
                     }
 
-                    this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, new ReadOnlySpan<byte>(tmpBuffer, 0, (int) cbActualRead));
+                    this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, new ReadOnlySpan<byte>(tmpBuffer, 0, cbRead));
                     this.rgBaseOffset += ScanningContext.ChunkSize;
                 }
 
@@ -217,10 +216,9 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                 // }
 
                 uint baseAddress = this.ctx.startAddress + this.rgBaseOffset;
-                uint cbTargetRead = Math.Min(ScanningContext.ChunkSize, Math.Max(this.ctx.scanLength - this.rgBaseOffset, 0));
-                uint cbActualRead;
+                int cbRead = (int) Math.Min(ScanningContext.ChunkSize, Math.Max(this.ctx.scanLength - this.rgBaseOffset, 0));
                 try {
-                    cbActualRead = await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, cbTargetRead).ConfigureAwait(false);
+                    await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, cbRead).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
                     this.ctx.ConnectionException = ex;
@@ -228,7 +226,7 @@ public sealed class FirstScanTask : AdvancedPausableTask {
                     return;
                 }
 
-                this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, new ReadOnlySpan<byte>(tmpBuffer, 0, (int) cbActualRead));
+                this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, new ReadOnlySpan<byte>(tmpBuffer, 0, (int) cbRead));
 
                 this.rgBaseOffset += ScanningContext.ChunkSize; // + (uint) (overlap - currentOverlap);
                 this.chunkIdx++;

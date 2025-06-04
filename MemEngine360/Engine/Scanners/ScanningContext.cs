@@ -37,7 +37,7 @@ public delegate void ScanningContextResultEventHandler(ScanningContext sender, S
 /// A class used to perform scanning operations. This class takes a snapshot of the options in <see cref="ScanningProcessor"/>
 /// </summary>
 public sealed class ScanningContext {
-    internal const uint ChunkSize = 0x10000; // 65536
+    internal const int ChunkSize = 0x10000; // 65536
     internal readonly double floatEpsilon = BasicApplicationConfiguration.Instance.FloatingPointEpsilon;
     internal readonly ScanningProcessor theProcessor;
     internal readonly string inputA, inputB;
@@ -302,10 +302,7 @@ public sealed class ScanningContext {
                         searchB = this.numericInputB;
                     }
 
-                    uint cbRead = await connection.ReadBytes(res.Address, buffer, 0, (uint) buffer.Length);
-                    for (uint j = cbRead; j < this.cbDataType; j++) {
-                        buffer[j] = 0;
-                    }
+                    await connection.ReadBytes(res.Address, buffer, 0, buffer.Length);
 
                     IDataValue? matchBoxed;
                     switch (this.dataType) {
@@ -342,7 +339,7 @@ public sealed class ScanningContext {
                     else
                         search = this.inputA;
 
-                    string readText = await connection.ReadString(res.Address, (uint) search.Length);
+                    string readText = await connection.ReadString(res.Address, search.Length);
                     if (readText.Equals(search, this.stringComparison)) {
                         res.PreviousValue = res.CurrentValue;
                         res.CurrentValue = new DataValueString(readText, this.stringType);
@@ -369,7 +366,7 @@ public sealed class ScanningContext {
                         Debug.Assert(search.IsValid);
                     }
 
-                    byte[] bytes = await connection.ReadBytes(res.Address, (uint) search.Length);
+                    byte[] bytes = await connection.ReadBytes(res.Address, search.Length);
                     if (search.Matches(bytes)) {
                         res.PreviousValue = res.CurrentValue;
                         res.CurrentValue = new DataValueByteArray(bytes);

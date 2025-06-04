@@ -26,13 +26,11 @@ public delegate void AddressTableEntryEventHandler(AddressTableEntry sender);
 
 public class AddressTableEntry : BaseAddressTableEntry {
     private bool isAutoRefreshEnabled = true;
-    private uint address;
     private IDataValue? value;
     private DataType dataType = DataType.Byte;
     private StringType stringType = StringType.UTF8;
-    private uint stringLength = 0, arrayLength = 0;
+    private int stringLength = 0, arrayLength = 0;
     private NumericDisplayType numericDisplayType;
-    private bool isAddressAbsolute = true;
 
     /// <summary>
     /// Gets or sets if this saved address is active, as in, being refreshed every so often. False disables auto-refresh
@@ -50,20 +48,12 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// <summary>
     /// Gets or sets this entry's address. May be relative to parent, so use <see cref="AbsoluteAddress"/>
     /// </summary>
-    public uint Address {
-        get => this.address;
-        set {
-            if (this.address != value) {
-                this.address = value;
-                this.AddressChanged?.Invoke(this);
-            }
-        }
-    }
+    public uint Address { get; private set; }
 
     /// <summary>
     /// A helper property to resolve the absolute address based on <see cref="IsAddressAbsolute"/> and our parent's address
     /// </summary>
-    public uint AbsoluteAddress => this.isAddressAbsolute ? this.Address : ((this.Parent?.AbsoluteAddress ?? 0) + this.address);
+    public uint AbsoluteAddress => this.IsAddressAbsolute ? this.Address : ((this.Parent?.AbsoluteAddress ?? 0) + this.Address);
 
     /// <summary>
     /// Gets or sets the current presented value
@@ -111,9 +101,12 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// <summary>
     /// Gets or sets the number of characters in the string
     /// </summary>
-    public uint StringLength {
+    public int StringLength {
         get => this.stringLength;
         set {
+            if (value < 0)
+                throw new ArgumentOutOfRangeException(nameof(value), value, nameof(value) + " cannot be negative");
+            
             if (this.stringLength != value) {
                 this.stringLength = value;
                 this.StringLengthChanged?.Invoke(this);
@@ -121,9 +114,12 @@ public class AddressTableEntry : BaseAddressTableEntry {
         }
     }
 
-    public uint ArrayLength {
+    public int ArrayLength {
         get => this.arrayLength;
         set {
+            if (value < 0)
+                throw new ArgumentOutOfRangeException(nameof(value), value, nameof(value) + " cannot be negative");
+            
             if (this.arrayLength != value) {
                 this.arrayLength = value;
                 this.ArrayLengthChanged?.Invoke(this);
@@ -148,16 +144,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// Gets or sets if <see cref="AbsoluteAddress"/> should return <see cref="Address"/> or add our
     /// parent's <see cref="AddressTableGroupEntry.AbsoluteAddress"/> to it
     /// </summary>
-    public bool IsAddressAbsolute {
-        get => this.isAddressAbsolute;
-        set {
-            if (this.isAddressAbsolute == value)
-                return;
-
-            this.isAddressAbsolute = value;
-            this.IsAddressAbsoluteChanged?.Invoke(this);
-        }
-    }
+    public bool IsAddressAbsolute { get; private set; } = true;
 
     /// <summary>
     /// Gets or sets the <see cref="Engine.NumericDisplayType"/> that was specified when <see cref="Value"/> changed
@@ -183,25 +170,38 @@ public class AddressTableEntry : BaseAddressTableEntry {
     public event AddressTableEntryEventHandler? StringLengthChanged;
     public event AddressTableEntryEventHandler? ArrayLengthChanged;
     public event AddressTableEntryEventHandler? NumericDisplayTypeChanged;
-    public event AddressTableEntryEventHandler? IsAddressAbsoluteChanged;
 
-    public AddressTableEntry(ScanningProcessor scanningProcessor, uint address) {
+    public AddressTableEntry(ScanningProcessor scanningProcessor, uint address, bool isAddressAbsolute = true) {
         this.ScanningProcessor = scanningProcessor;
-        this.address = address;
+        this.Address = address;
+        this.IsAddressAbsolute = isAddressAbsolute;
     }
 
     public AddressTableEntry(ScanResultViewModel result) {
         this.ScanningProcessor = result.ScanningProcessor;
-        this.address = result.Address;
+        this.Address = result.Address;
         this.dataType = result.DataType;
         this.value = result.CurrentValue;
         this.numericDisplayType = result.NumericDisplayType;
         if (this.dataType == DataType.String) {
             this.stringType = this.ScanningProcessor.StringScanOption;
-            this.stringLength = (uint) ((DataValueString) this.value).Value.Length;
+            this.stringLength = ((DataValueString) this.value).Value.Length;
         }
         else if (this.dataType == DataType.ByteArray) {
-            this.ArrayLength = (uint) ((DataValueByteArray) this.value).Value.Length;
+            this.ArrayLength = ((DataValueByteArray) this.value).Value.Length;
+        }
+    }
+
+    /// <summary>
+    /// Sets the address of this entry
+    /// </summary>
+    /// <param name="newAddress">The new address</param>
+    /// <param name="isAbsolute">Whether the address is absolute or relative to the parent entry</param>
+    public void SetAddress(uint newAddress, bool isAbsolute) {
+        if (this.Address != newAddress || this.IsAddressAbsolute != isAbsolute) {
+            this.Address = newAddress;
+            this.IsAddressAbsolute = isAbsolute;
+            this.AddressChanged?.Invoke(this);
         }
     }
 }

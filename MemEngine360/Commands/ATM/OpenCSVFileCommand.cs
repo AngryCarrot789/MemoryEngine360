@@ -30,14 +30,14 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Commands.ATM;
 
 public class OpenCSVFileCommand : Command {
-    public readonly struct SavedAddress(bool IsRefreshActive, uint Address, string Desc, NumericDisplayType NDT, DataType DataType, StringType StringType, uint StringLength) {
+    public readonly struct SavedAddress(bool IsRefreshActive, uint Address, string Desc, NumericDisplayType NDT, DataType DataType, StringType StringType, int StringLength) {
         public bool IsRefreshActive { get; } = IsRefreshActive;
         public uint Address { get; } = Address;
         public string Desc { get; } = Desc;
         public NumericDisplayType NDT { get; } = NDT;
         public DataType DataType { get; } = DataType;
         public StringType StringType { get; } = StringType;
-        public uint StringLength { get; } = StringLength;
+        public int StringLength { get; } = StringLength;
     }
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
@@ -112,7 +112,9 @@ public class OpenCSVFileCommand : Command {
                 NumericDisplayType NDT = (NumericDisplayType) uint.Parse(split[3]);
                 DataType DataType = (DataType) uint.Parse(split[4]);
                 StringType StringType = (StringType) uint.Parse(split[5]);
-                uint StringLength = uint.Parse(split[6]);
+                int StringLength = int.Parse(split[6]);
+                if (StringLength < 0)
+                    throw new InvalidDataException("Data contains a negative string length");
 
                 list.Add(new SavedAddress(IsRefreshActive, Address, Desc, NDT, DataType, StringType, StringLength));
             }
@@ -153,7 +155,6 @@ public class OpenCSVFileCommand : Command {
         foreach (SavedAddress address in list) {
             saved.AddEntry(new AddressTableEntry(engine.ScanningProcessor, address.Address) {
                 DataType = address.DataType,
-                Address = address.Address,
                 Description = address.Desc,
                 NumericDisplayType = address.NDT,
                 StringType = address.StringType,

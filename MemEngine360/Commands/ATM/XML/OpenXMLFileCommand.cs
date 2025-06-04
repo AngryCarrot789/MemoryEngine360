@@ -88,10 +88,8 @@ public class OpenXMLFileCommand : Command {
     private static void AddToEntry(ScanningProcessor processor, XmlAddressEntryGroup group, AddressTableGroupEntry entry) {
         foreach (XmlBaseAddressEntry item in group.Items) {
             if (item is XmlAddressEntryGroup subGroup) {
-                AddressTableGroupEntry subEntry = new AddressTableGroupEntry() {
-                    Description = subGroup.Description,
-                    GroupAddress = subGroup.GroupAddress,
-                    IsAddressAbsolute = subGroup.IsAddressAbsolute,
+                AddressTableGroupEntry subEntry = new AddressTableGroupEntry(subGroup.GroupAddress, subGroup.IsAddressAbsolute) {
+                    Description = subGroup.Description
                 };
                 
                 entry.AddEntry(subEntry);
@@ -99,10 +97,8 @@ public class OpenXMLFileCommand : Command {
             }
             else {
                 XmlAddressEntry theEntry = (XmlAddressEntry) item;
-                entry.AddEntry(new AddressTableEntry(processor, theEntry.Address) {
+                entry.AddEntry(new AddressTableEntry(processor, theEntry.Address, theEntry.IsAddressAbsolute) {
                     DataType = theEntry.DataType,
-                    Address = theEntry.Address,
-                    IsAddressAbsolute = theEntry.IsAddressAbsolute,
                     Description = theEntry.Description,
                     NumericDisplayType = theEntry.NumericDisplayType,
                     StringType = theEntry.StringType,

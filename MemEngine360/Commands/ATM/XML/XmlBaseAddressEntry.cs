@@ -44,7 +44,7 @@ public class XmlAddressEntry : XmlBaseAddressEntry {
     [XmlAttribute] public NumericDisplayType NumericDisplayType { get; set; }
     [XmlAttribute] public DataType DataType { get; set; }
     [XmlAttribute] public StringType StringType { get; set; }
-    [XmlAttribute] public uint StringLength { get; set; }
+    [XmlAttribute] public int StringLength { get; set; }
 }
 
 public class XmlAddressEntryGroup : XmlBaseAddressEntry {

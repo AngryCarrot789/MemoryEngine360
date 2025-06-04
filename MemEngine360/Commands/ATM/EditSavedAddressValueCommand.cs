@@ -116,7 +116,7 @@ public class EditSavedAddressValueCommand : Command {
         ValidationArgs args = new ValidationArgs(input.Text, new List<string>(), false);
         bool parsed = MemoryEngine360.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out IDataValue? value);
         Debug.Assert(parsed && value != null);
-        
+
         using CancellationTokenSource cts = new CancellationTokenSource();
         await ActivityManager.Instance.RunTask(async () => {
             ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Edit value", "Editing values");
@@ -127,15 +127,15 @@ public class EditSavedAddressValueCommand : Command {
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     if (actualValue is DataValueString str) {
                         lastResult.StringType = str.StringType;
-                        lastResult.StringLength = (uint) str.Value.Length;
+                        lastResult.StringLength = str.Value.Length;
                     }
                     else if (actualValue is DataValueByteArray arr) {
-                        lastResult.ArrayLength = (uint) arr.Value.Length;
+                        lastResult.ArrayLength = arr.Value.Length;
                     }
 
                     scanResult.DataType = actualValue.DataType;
                     scanResult.Value = actualValue;
-                });
+                }, token: CancellationToken.None);
             }
         }, cts);
     }

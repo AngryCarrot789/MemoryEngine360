@@ -385,7 +385,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             if (token != null && (connection = engine.Connection) != null && connection.IsConnected) {
                 await MemoryEngine360.WriteAsDataValue(connection, (uint) caretIndex + this.actualStartAddress, value);
                 if (this.PART_ToggleShowChanges.IsChecked == true && this.myDocument != null && !this.myDocument.IsReadOnly) {
-                    uint dataLength = 0;
+                    int dataLength = 0;
                     switch (info.DataType) {
                         case DataType.Byte:   dataLength = 1; break;
                         case DataType.Int16:  dataLength = 2; break;
@@ -491,7 +491,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 // Update initial text
                 completion.OnCompletionValueChanged();
                 byte[] buffer = new byte[info.Length];
-                await c.ReadBytes(info.StartAddress, buffer, 0, (uint) buffer.Length, 0x10000, completion, task.CancellationToken);
+                await c.ReadBytes(info.StartAddress, buffer, 0, buffer.Length, 0x10000, completion, task.CancellationToken);
 
                 task.Progress.Text = "Unfreezing console...";
                 if (c is IHaveIceCubes)
@@ -527,12 +527,12 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
     public Task ReloadSelectionFromConsole() {
         BitRange selection = this.SelectionRange;
-        uint count = (uint) selection.ByteLength;
-        uint start = (uint) selection.Start.ByteIndex;
+        int count = (int) Math.Min(selection.ByteLength, int.MaxValue);
+        uint start = (uint) Math.Min(selection.Start.ByteIndex, uint.MaxValue);
         return this.ReloadSelectionFromConsole(start, count);
     }
 
-    public async Task ReloadSelectionFromConsole(uint startRel2Doc, uint length) {
+    public async Task ReloadSelectionFromConsole(uint startRel2Doc, int length) {
         HexEditorInfo? info = this.HexDisplayInfo;
         if (info == null || this.autoRefreshTask != null) {
             return;
@@ -540,6 +540,10 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
         if (length < 1 || this.myDocument == null || this.myDocument!.IsReadOnly) {
             return;
+        }
+
+        if (this.actualStartAddress + startRel2Doc < this.actualStartAddress) {
+            return; // integer overflow
         }
 
         this.PART_ControlsGrid.IsEnabled = false;
@@ -589,7 +593,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         }
 
         BitRange selection = this.SelectionRange;
-        uint count = (uint) selection.ByteLength;
+        int count = (int) Math.Min(selection.ByteLength, int.MaxValue);
         if (count < 1) {
             await IMessageDialogService.Instance.ShowMessage("No selection", "Please make a selection to upload. Click CTRL+A to select all.", defaultButton: MessageBoxResult.OK);
             return;
@@ -892,7 +896,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 DateTime startTime = DateTime.Now;
                 try {
                     // aprox. 50ms to fully read 1.5k bytes, based on simple benchmark with DateTime.Now
-                    await connection.ReadBytes(this.startAddress, this.myBuffer, 0, this.cbRange, 0x10000, null, pauseOrCancelToken);
+                    await connection.ReadBytes(this.startAddress, this.myBuffer, 0, (int) Math.Min(this.cbRange, int.MaxValue), 0x10000, null, pauseOrCancelToken);
 
                     await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         if (this.control.PART_ToggleShowChanges.IsChecked == true)

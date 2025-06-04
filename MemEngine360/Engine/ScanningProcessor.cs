@@ -740,7 +740,7 @@ public class ScanningProcessor {
                         for (int i = 0; i < values.Length; i++) {
                             token.ThrowIfCancellationRequested();
                             ScanResultViewModel item = list[i];
-                            values[i] = await MemoryEngine360.ReadAsDataValue(connection, item.Address, item.DataType, item.StringType, (uint) item.CurrentStringLength, (uint) item.CurrentArrayLength);
+                            values[i] = await MemoryEngine360.ReadAsDataValue(connection, item.Address, item.DataType, item.StringType, item.CurrentStringLength, item.CurrentArrayLength);
                         }
                     }, token);
 

@@ -39,33 +39,21 @@ public class EditSavedAddressAddressCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        MemoryEngine360? memoryEngine360 = null;
-        List<BaseAddressTableEntry> savedList = new List<BaseAddressTableEntry>();
-        if (IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
-            savedList.AddRange(ui.AddressTableSelectionManager.SelectedItems.Select(x => x.Entry));
-            memoryEngine360 = ui.MemoryEngine360;
-        }
-
-        if (IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? theResult)) {
-            memoryEngine360 ??= theResult.Entry.AddressTableManager!.MemoryEngine360;
-            if (!savedList.Contains(theResult.Entry)) {
-                savedList.Add(theResult.Entry);
-            }
-        }
-
-        if (memoryEngine360 == null || savedList.Count < 1) {
+        if (!BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out BaseAddressTableEntry? entry)) {
             return;
         }
 
-        uint initialAddress = savedList.Count == 1 ? (savedList[0] is AddressTableEntry ? ((AddressTableEntry) savedList[0]).Address : ((AddressTableGroupEntry) savedList[0]).GroupAddress) : 0;
-        SingleUserInputInfo input = new SingleUserInputInfo(initialAddress.ToString("X8")) {
+        uint initialAddress = (entry as AddressTableEntry)?.Address ?? ((AddressTableGroupEntry) entry).GroupAddress;
+        bool isAbsolute = (entry as AddressTableEntry)?.IsAddressAbsolute ?? ((AddressTableGroupEntry) entry).IsAddressAbsolute;
+        SingleUserInputInfo input = new SingleUserInputInfo((isAbsolute ? "" : "+") + initialAddress.ToString(isAbsolute ? "X8" : "X")) {
             Caption = "Dump memory region",
             Message = "Change the address of this saved address table entry",
             DefaultButton = true,
             Label = "Address (hex)",
             Validate = (a) => {
-                if (!uint.TryParse(a.Input, NumberStyles.HexNumber, null, out _)) {
-                    if (ulong.TryParse(a.Input, NumberStyles.HexNumber, null, out _)) {
+                string text = a.Input.StartsWith('+') ? a.Input.Substring(1) : a.Input;
+                if (!uint.TryParse(text, NumberStyles.HexNumber, null, out _)) {
+                    if (ulong.TryParse(text, NumberStyles.HexNumber, null, out _)) {
                         a.Errors.Add("Value is too big. Maximum is 0xFFFFFFFF");
                     }
                     else {
@@ -76,17 +64,16 @@ public class EditSavedAddressAddressCommand : Command {
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) == true) {
-            uint newAddr = uint.Parse(input.Text, NumberStyles.HexNumber);
-            foreach (BaseAddressTableEntry entry in savedList) {
-                if (entry is AddressTableEntry) {
-                    ((AddressTableEntry) entry).Address = newAddr;
-                }
-                else {
-                    ((AddressTableGroupEntry) entry).GroupAddress = newAddr;
-                }
-                
-                memoryEngine360.ScanningProcessor.RefreshSavedAddressesLater();   
+            bool isUsingOffset = input.Text.StartsWith('+');
+            uint newAddr = uint.Parse(isUsingOffset ? input.Text.Substring(1) : input.Text, NumberStyles.HexNumber);
+            if (entry is AddressTableEntry) {
+                ((AddressTableEntry) entry).SetAddress(newAddr, !isUsingOffset);
             }
+            else {
+                ((AddressTableGroupEntry) entry).SetAddress(newAddr, !isUsingOffset);
+            }
+
+            entry.AddressTableManager?.MemoryEngine360.ScanningProcessor.RefreshSavedAddressesLater();
         }
     }
 }

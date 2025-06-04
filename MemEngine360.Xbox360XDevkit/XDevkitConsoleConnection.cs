@@ -17,8 +17,6 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Buffers.Binary;
-using System.Net;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MemEngine360.Connections;
@@ -82,6 +80,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
             // this.console.remove_OnStdNotify(this.OnStdNotify);
             // this.console.remove_OnTextNotify(this.OnTextNotify);
             this.console.DebugTarget.DisconnectAsDebugger();
+            
         }
 
         return Task.CompletedTask;
@@ -104,7 +103,14 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         using BusyToken x = this.CreateBusyToken();
 
         List<MemoryRegion> regionList = new List<MemoryRegion>();
-        IXboxMemoryRegions regions = this.console.DebugTarget.MemoryRegions;
+        IXboxMemoryRegions regions = await Task.Run(() => {
+            try {
+                return this.console.DebugTarget.MemoryRegions;
+            }
+            catch (COMException) {
+                throw new TimeoutException("Timeout reading memory regions");
+            }
+        });
         for (int i = 0, count = regions.Count; i < count; i++) {
             IXboxMemoryRegion region = regions[i];
             regionList.Add(new MemoryRegion((uint) region.BaseAddress, (uint) region.RegionSize, (uint) region.Flags, 0));
@@ -113,33 +119,17 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         return regionList;
     }
 
-    public async Task<uint> GetProcessID() {
-        this.EnsureNotDisposed();
-        using BusyToken x = this.CreateBusyToken();
-
-        uint value = this.console.RunningProcessInfo.ProcessId;
-        return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value;
-    }
-
-    public async Task<IPAddress> GetTitleIPAddress() {
-        this.EnsureNotDisposed();
-        using BusyToken x = this.CreateBusyToken();
-
-        uint value = this.console.IPAddressTitle;
-        return new IPAddress(BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value);
-    }
-
-    protected override Task<uint> ReadBytesCore(uint address, byte[] dstBuffer, int offset, uint count) {
+    protected override Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
         return Task.Run(() => {
             IXboxDebugTarget target = this.console.DebugTarget;
-            target.GetMemory_cpp(address, count, ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dstBuffer), offset), out uint cbRead);
-            return cbRead;
+            target.GetMemory_cpp(address, (uint) count, ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dstBuffer), offset), out uint cbRead);
+            return (int) cbRead;
         });
     }
 
-    protected override Task<uint> WriteBytesCore(uint address, byte[] srcBuffer, int offset, uint count) {
+    protected override Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
         return Task.Run(() => {
-            this.console.DebugTarget.SetMemory_cpp(address, count, ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(srcBuffer), offset), out uint cbWritten);
+            this.console.DebugTarget.SetMemory_cpp(address, (uint) count, ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(srcBuffer), offset), out uint cbWritten);
             return cbWritten;
         });
     }

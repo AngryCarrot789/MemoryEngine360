@@ -180,8 +180,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
         for (int i = 0; i < threads.Count; i++) {
             ConsoleThread tdInfo = threads[i];
-            if (tdInfo.nameAddress != 0 && tdInfo.nameLength != 0) {
-                tdInfo.readableName = await this.ReadString(tdInfo.nameAddress, tdInfo.nameLength);
+            if (tdInfo.nameAddress != 0 && tdInfo.nameLength != 0 && tdInfo.nameLength < int.MaxValue) {
+                tdInfo.readableName = await this.ReadString(tdInfo.nameAddress, (int) tdInfo.nameLength);
                 threads[i] = tdInfo;
             }
         }
@@ -407,43 +407,37 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         await this.SendCommand($"break {strType}=0x{address:X8} size=0x{size:X8}{(clear ? " clear" : "")}");
     }
 
-    protected override async Task<uint> ReadBytesCore(uint address, byte[] dstBuffer, int offset, uint count) {
-        if (count == 0) {
-            return 0;
-        }
-    
-        this.FillGetMemCommandBuffer(address, count);
+    protected override async Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
+        this.FillGetMemCommandBuffer(address, (uint) count);
         await this.InternalWriteBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
         ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
         VerifyResponse("getmem", response.ResponseType, ResponseType.MultiResponse);
-    
-        uint cbRead = 0;
-        byte[]? lineBytes = null;
+
+        int cbRead = 0;
         string line;
         while ((line = await this.InternalReadLineFromStream().ConfigureAwait(false)) != ".") {
-            uint cbLine = (uint) (line.Length / 2); // typically 128 when reading big chunks
-            // byte[] bytes = Convert.FromHexString(line);
-            // Debug.Assert(cbLine == bytes.Length);
-    
-            if (lineBytes == null || lineBytes.Length != cbLine) {
-                lineBytes = new byte[cbLine];
-            }
-    
-            for (int i = 0, j = 0; i < cbLine; i++, j += 2) {
-                if (line[j] == '?') {
-                    lineBytes[i] = 0; // protected memory maybe?
-                }
-                else {
-                    lineBytes[i] = (byte) ((NumberUtils.HexCharToInt(line[j]) << 4) | NumberUtils.HexCharToInt(line[j + 1]));
-                }
-            }
-    
-            Array.Copy(lineBytes, 0, dstBuffer, offset + cbRead, cbLine);
-            // Array.Copy(bytes, 0, dstBuffer, offset + cbRead, cbLine);
-            cbRead += cbLine;
+            cbRead += DecodeLine(line, dstBuffer, offset, cbRead);
         }
-    
-        return cbRead;
+
+        if (cbRead != count) {
+            throw new IOException("Incorrect number of bytes read");
+        }
+    }
+
+    private static int DecodeLine(string line, byte[] dstBuffer, int offset, int cbTotalRead) {
+        int cbLine = line.Length / 2; // typically 128 when reading big chunks
+        Span<byte> buffer = stackalloc byte[cbLine];
+        for (int i = 0, j = 0; i < cbLine; i++, j += 2) {
+            if (line[j] == '?') {
+                buffer[i] = 0; // protected memory maybe?
+            }
+            else {
+                buffer[i] = (byte) ((NumberUtils.HexCharToInt(line[j]) << 4) | NumberUtils.HexCharToInt(line[j + 1]));
+            }
+        }
+
+        buffer.CopyTo(dstBuffer.AsSpan(offset + cbTotalRead, cbLine));
+        return cbLine;
     }
 
     // Sometimes it works, sometimes it doesn't. And it also doesn't read from the correct address which is odd
@@ -490,22 +484,20 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     //     return totalRead;
     // }
 
-    protected override async Task<uint> WriteBytesCore(uint address, byte[] srcBuffer, int offset, uint count) {
+    protected override async Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
         while (count > 0) {
-            uint cbWrite = Math.Min(count, 64 /* Fixed Chunk Size */);
+            int cbWrite = Math.Min(count, 64 /* Fixed Chunk Size */);
             this.FillSetMemCommandBuffer(address, srcBuffer, offset, cbWrite);
-            await this.InternalWriteBytes(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, (int) (30 + (cbWrite << 1)))).ConfigureAwait(false);
+            await this.InternalWriteBytes(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, 30 + (cbWrite << 1))).ConfigureAwait(false);
             ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
             if (response.ResponseType != ResponseType.SingleResponse && response.ResponseType != ResponseType.MemoryNotMapped) {
                 VerifyResponse("setmem", response.ResponseType, ResponseType.SingleResponse);
             }
 
-            address += cbWrite;
-            offset += (int) cbWrite;
+            address += (uint) cbWrite;
+            offset += cbWrite;
             count -= cbWrite;
         }
-
-        return count;
     }
 
     private async Task<ConsoleResponse> InternalReadResponse() {
@@ -513,7 +505,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         return ConsoleResponse.FromFirstLine(responseText);
     }
 
-    private Task InternalWriteCommand(string command) {
+    private ValueTask InternalWriteCommand(string command) {
         // Sending duplicate CRLF results in effectively two commands being sent.
         if (!command.EndsWith("\r\n", StringComparison.Ordinal))
             command += "\r\n";
@@ -521,7 +513,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         return this.InternalWriteBytes(Encoding.ASCII.GetBytes(command));
     }
 
-    private async Task InternalWriteBytes(ReadOnlyMemory<byte> buffer) {
+    private async ValueTask InternalWriteBytes(ReadOnlyMemory<byte> buffer) {
         try {
             await this.client.GetStream().WriteAsync(buffer).ConfigureAwait(false);
         }
@@ -551,7 +543,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     // That's maybe a 10% improvement over string concat? Not too bad...
     // Who TF's gonna write an entire megabyte though???
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private void FillSetMemCommandBuffer(uint address, byte[] srcData, int srcOffset, uint cbData) {
+    private void FillSetMemCommandBuffer(uint address, byte[] srcData, int srcOffset, int cbData) {
         ref byte dstAscii = ref MemoryMarshal.GetArrayDataReference(this.sharedSetMemCommandBuffer);
         NumberUtils.UInt32ToHexAscii(address, ref dstAscii, 14);
 

@@ -54,27 +54,28 @@ public class DebugFileConnection : BaseConsoleConnection {
         return Task.CompletedTask;
     }
 
-    protected override async Task<uint> ReadBytesCore(uint address, byte[] dstBuffer, int offset, uint count) {
+    protected override async Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
         Debug.Assert(this.myFileStream != null);
         try {
             this.myFileStream.Seek(address, SeekOrigin.Begin);
-            return (uint) await this.myFileStream.ReadAsync(dstBuffer.AsMemory(offset, (int) count));
+            int read = await this.myFileStream.ReadAsync(dstBuffer.AsMemory(offset, count));
+            for (int i = read; i < count; i++)
+                dstBuffer[i] = 0;
         }
         catch {
-            return 0U;
+            // ignored
         }
     }
 
-    protected override async Task<uint> WriteBytesCore(uint address, byte[] srcBuffer, int offset, uint count) {
+    protected override async Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
         Debug.Assert(this.myFileStream != null);
         try {
             this.myFileStream.Seek(address, SeekOrigin.Begin);
-            await this.myFileStream.WriteAsync(new ReadOnlyMemory<byte>(srcBuffer, offset, (int) count));
+            await this.myFileStream.WriteAsync(new ReadOnlyMemory<byte>(srcBuffer, offset, count));
             await this.myFileStream.FlushAsync();
-            return count;
         }
         catch {
-            return 0U;
+            // ignored
         }
     }
 }

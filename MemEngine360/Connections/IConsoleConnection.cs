@@ -50,15 +50,17 @@ public interface IConsoleConnection {
     bool IsLittleEndian { get; }
 
     /// <summary>
-    /// Reads an exact amount of bytes from the console. If the address space
-    /// contains protected memory, the buffer will have 0s written into it
+    /// Reads an exact amount of bytes from the console. If the address space contains protected memory, the buffer will
+    /// have 0s written into it. If for some reason the amount of bytes count not be read, an <see cref="IOException"/> is thrown
     /// </summary>
     /// <param name="address">The address to read from</param>
     /// <param name="buffer">The destination buffer</param>
     /// <param name="offset">The offset to start writing into the buffer</param>
     /// <param name="count">The amount of bytes to read from the console</param>
     /// <returns>A task representing the read operation. It contains the amount of bytes actually read</returns>
-    Task<uint> ReadBytes(uint address, byte[] buffer, int offset, uint count);
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
+    Task ReadBytes(uint address, byte[] buffer, int offset, int count);
 
     /// <summary>
     /// Reads an exact amount of bytes from the console, in chunks. By reading in
@@ -73,7 +75,9 @@ public interface IConsoleConnection {
     /// <param name="completion">Optional feedback for how much progress has been done</param>
     /// <param name="cancellationToken">A token which can request cancellation for this operation</param>
     /// <returns>A task representing the read operation</returns>
-    Task ReadBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default);
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
+    Task ReadBytes(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Convenience method for reading an array of bytes. Calls <see cref="ReadBytes(uint,byte[],int,uint)"/>
@@ -81,24 +85,32 @@ public interface IConsoleConnection {
     /// <param name="address">The address to read from</param>
     /// <param name="count">The amount of bytes to read from the console</param>
     /// <returns>A task representing the read operation</returns>
-    Task<byte[]> ReadBytes(uint address, uint count);
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
+    Task<byte[]> ReadBytes(uint address, int count);
     
     /// <summary>
     /// Reads a single byte from the console
     /// </summary>
     /// <param name="address">The address to read from</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read byte or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading byte</exception>
     Task<byte> ReadByte(uint address);
     
     /// <summary>
     /// Reads a boolean from the console. Same as reading a single byte and checking it's not equal to 0
     /// </summary>
     /// <param name="address">The address to read from</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read byte or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading byte</exception>
     Task<bool> ReadBool(uint address);
     
     /// <summary>
     /// Reads a single byte as a character from the console (ASCII char)
     /// </summary>
     /// <param name="address">The address to read from</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read char or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading char</exception>
     Task<char> ReadChar(uint address);
     
     /// <summary>
@@ -108,6 +120,8 @@ public interface IConsoleConnection {
     /// <param name="address">The address to read from</param>
     /// <typeparam name="T">The type of value to read, e.g. <see cref="int"/></typeparam>
     /// <returns>A Task that produces the value</returns>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
     Task<T> ReadValue<T>(uint address) where T : unmanaged;
     
     /// <summary>
@@ -118,32 +132,40 @@ public interface IConsoleConnection {
     /// <param name="fields">
     /// The field sizes. Alignment must be done manually, therefore, the layout of the struct
     /// being read must be known, and therefore, the summation of all integers in this array
-    /// should equal or almost equal <c>sizeof(T) (might be less due to alignment)</c>
+    /// should equal or almost equal <c>sizeof(T)</c> (might be less due to alignment)
     /// </param>
     /// <typeparam name="T">The type of value to read, e.g. <see cref="Vector3"/></typeparam>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
     Task<T> ReadStruct<T>(uint address, params int[] fields) where T : unmanaged;
-    
+
     /// <summary>
     /// Reads the given number of single byte characters from the console (ASCII chars)
     /// </summary>
     /// <param name="address">The address to read from</param>
     /// <param name="count">The number of chars to read</param>
     /// <param name="removeNull">Removes null characters</param>
-    Task<string> ReadString(uint address, uint count, bool removeNull = true);
-    
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
+    Task<string> ReadString(uint address, int count, bool removeNull = true);
+
     /// <summary>
     /// Reads the given number of single byte characters from the console (ASCII chars)
     /// </summary>
     /// <param name="address">The address to read from</param>
     /// <param name="count">The number of chars to read</param>
     /// <param name="encoding">The encoding to use to read chars</param>
-    Task<string> ReadString(uint address, uint count, Encoding encoding);
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
+    Task<string> ReadString(uint address, int count, Encoding encoding);
 
     /// <summary>
-    /// Writes the exact number of bytes to the console
+    /// Writes the exact number of bytes to the console. If for some reason the amount of bytes count not be written, an <see cref="IOException"/> is thrown
     /// </summary>
     /// <param name="address">The address to write to</param>
     /// <param name="buffer">The buffer to write</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
     Task WriteBytes(uint address, byte[] buffer);
 
     /// <summary>
@@ -157,13 +179,17 @@ public interface IConsoleConnection {
     /// <param name="chunkSize">The amount of bytes to write per chunk</param>
     /// <param name="completion">Optional feedback for the completion progress</param>
     /// <param name="cancellationToken">Used to cancel the write operation</param>
-    Task WriteBytes(uint address, byte[] buffer, int offset, uint count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default);    
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
+    Task WriteBytes(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default);    
 
     /// <summary>
     /// Writes a single value to the console
     /// </summary>
     /// <param name="address">The address to write to</param>
     /// <param name="value">The value</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not write byte or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while writing byte</exception>
     Task WriteByte(uint address, byte value);
     
     /// <summary>
@@ -171,6 +197,8 @@ public interface IConsoleConnection {
     /// </summary>
     /// <param name="address">The address to write to</param>
     /// <param name="value">The boolean value</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not write byte or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while writing byte</exception>
     Task WriteBool(uint address, bool value);
     
     /// <summary>
@@ -178,6 +206,8 @@ public interface IConsoleConnection {
     /// </summary>
     /// <param name="address">The address to write to</param>
     /// <param name="value">The char value</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not write char or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while writing char</exception>
     Task WriteChar(uint address, char value);
     
     /// <summary>
@@ -186,6 +216,8 @@ public interface IConsoleConnection {
     /// <param name="address">The address to write to</param>
     /// <param name="value">The value to write</param>
     /// <typeparam name="T">The type of value to write, e.g. <see cref="int"/></typeparam>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
     Task WriteValue<T>(uint address, T value) where T : unmanaged;
 
     /// <summary>
@@ -197,9 +229,11 @@ public interface IConsoleConnection {
     /// <param name="fields">
     /// The field sizes. Alignment must be done manually, therefore, the layout of the struct
     /// being read must be known, and therefore, the summation of all integers in this array
-    /// should equal or almost equal <c>sizeof(T) (might be less due to alignment)</c>
+    /// should equal or almost equal <c>sizeof(T)</c> (might be less due to alignment)
     /// </param>
     /// <typeparam name="T">The type of value to write, e.g. <see cref="Vector3"/></typeparam>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
     Task WriteStruct<T>(uint address, T value, params int[] fields) where T : unmanaged;
     
     /// <summary>
@@ -207,6 +241,8 @@ public interface IConsoleConnection {
     /// </summary>
     /// <param name="address">The address to write to</param>
     /// <param name="value">The string value to write</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
     Task WriteString(uint address, string value);
     
     /// <summary>
@@ -215,6 +251,8 @@ public interface IConsoleConnection {
     /// <param name="address">The address to write to</param>
     /// <param name="value">The string value to write</param>
     /// <param name="encoding">The encoding to use to write the string</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
     Task WriteString(uint address, string value, Encoding encoding);
 
     /// <summary>

@@ -22,8 +22,6 @@ using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Engine.SavedAddressing;
 
-public delegate void AddressTableGroupEntryGroupAddressChangedEventHandler(AddressTableGroupEntry sender, uint? oldGroupAddress, uint? newGroupAddress);
-
 public delegate void AddressTableGroupEntryEventHandler(AddressTableGroupEntry sender);
 
 /// <summary>
@@ -31,8 +29,6 @@ public delegate void AddressTableGroupEntryEventHandler(AddressTableGroupEntry s
 /// </summary>
 public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
     private readonly SuspendableObservableList<BaseAddressTableEntry> items;
-    private uint groupAddress;
-    private bool isAddressAbsolute = true;
 
     public ReadOnlyObservableList<BaseAddressTableEntry> Items { get; }
 
@@ -42,48 +38,46 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
     /// Gets or sets this group's base address, used for relative addressing. May be relative
     /// to parent, so use <see cref="AbsoluteAddress"/> for absolute address
     /// </summary>
-    public uint GroupAddress {
-        get => this.groupAddress;
-        set {
-            uint? oldGroupAddress = this.groupAddress;
-            if (oldGroupAddress == value)
-                return;
-
-            this.groupAddress = value;
-            this.GroupAddressChanged?.Invoke(this, oldGroupAddress, value);
-        }
-    }
+    public uint GroupAddress { get; private set; }
 
     /// <summary>
     /// Gets or sets if <see cref="GroupAddress"/> is absolute and not relative to <see cref="BaseAddressTableEntry.Parent"/>
     /// </summary>
-    public bool IsAddressAbsolute {
-        get => this.isAddressAbsolute;
-        set {
-            if (this.isAddressAbsolute == value)
-                return;
-
-            this.isAddressAbsolute = value;
-            this.IsAddressAbsoluteChanged?.Invoke(this);
-        }
-    }
+    public bool IsAddressAbsolute { get; private set; } = true;
 
     /// <summary>
     /// Gets the absolute resolved address for this group
     /// </summary>
-    public uint AbsoluteAddress => this.isAddressAbsolute ? this.groupAddress : ((this.Parent?.AbsoluteAddress ?? 0) + this.groupAddress);
+    public uint AbsoluteAddress => this.IsAddressAbsolute ? this.GroupAddress : ((this.Parent?.AbsoluteAddress ?? 0) + this.GroupAddress);
 
-    public event AddressTableGroupEntryGroupAddressChangedEventHandler? GroupAddressChanged;
-    public event AddressTableGroupEntryEventHandler? IsAddressAbsoluteChanged;
+    public event AddressTableGroupEntryEventHandler? GroupAddressChanged;
 
     public AddressTableGroupEntry() {
         this.items = new SuspendableObservableList<BaseAddressTableEntry>();
         this.Items = new ReadOnlyObservableList<BaseAddressTableEntry>(this.items);
     }
+    
+    public AddressTableGroupEntry(uint groupAddress, bool isAddressAbsolute = true) : this() {
+        this.GroupAddress = groupAddress;
+        this.IsAddressAbsolute = isAddressAbsolute;
+    }
 
     static AddressTableGroupEntry() {
     }
 
+    /// <summary>
+    /// Sets the address of this entry
+    /// </summary>
+    /// <param name="newAddress">The new address</param>
+    /// <param name="isAbsolute">Whether the address is absolute or relative to the parent entry</param>
+    public void SetAddress(uint newAddress, bool isAbsolute) {
+        if (this.GroupAddress != newAddress || this.IsAddressAbsolute != isAbsolute) {
+            this.GroupAddress = newAddress;
+            this.IsAddressAbsolute = isAbsolute;
+            this.GroupAddressChanged?.Invoke(this);
+        }
+    }
+    
     public void AddEntry(BaseAddressTableEntry entry) => this.InsertEntry(this.items.Count, entry);
 
     public void InsertEntry(int index, BaseAddressTableEntry entry) {

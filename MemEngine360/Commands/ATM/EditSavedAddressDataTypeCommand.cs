@@ -72,7 +72,7 @@ public delegate void SavedResultDataTypeUserInputInfoEventHandler(SavedResultDat
 public class SavedResultDataTypeUserInputInfo : UserInputInfo {
     private DataType dataType;
     private StringType stringScanOption;
-    private uint stringLength;
+    private int stringLength;
     private bool displayAsHex, displayAsSigned;
 
     public DataType DataType {
@@ -97,7 +97,7 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
         }
     }
 
-    public uint StringLength {
+    public int StringLength {
         get => this.stringLength;
         set {
             if (this.stringLength == value)
