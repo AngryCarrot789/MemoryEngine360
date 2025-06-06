@@ -147,7 +147,7 @@ public interface IConsoleConnection {
     /// <param name="removeNull">Removes null characters</param>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
-    Task<string> ReadString(uint address, int count, bool removeNull = true);
+    Task<string> ReadStringASCII(uint address, int count, bool removeNull = true);
 
     /// <summary>
     /// Reads the given number of single byte characters from the console (ASCII chars)

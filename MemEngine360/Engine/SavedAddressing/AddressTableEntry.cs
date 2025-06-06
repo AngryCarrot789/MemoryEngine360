@@ -28,7 +28,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
     private bool isAutoRefreshEnabled = true;
     private IDataValue? value;
     private DataType dataType = DataType.Byte;
-    private StringType stringType = StringType.UTF8;
+    private StringType stringType = StringType.ASCII;
     private int stringLength = 0, arrayLength = 0;
     private NumericDisplayType numericDisplayType;
 

@@ -22,6 +22,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
@@ -250,7 +251,7 @@ public class MemoryEngine360 {
         this.ValidateToken(busyToken);
         if (newConnection != null && (cause == ConnectionChangeCause.LostConnection || cause == ConnectionChangeCause.ConnectionError))
             throw new ArgumentException($"Cause cannot be {cause} when setting connection to a non-null value");
-        
+
         if (newConnection == null && userConnectionInfo != null)
             throw new ArgumentException(nameof(userConnectionInfo) + " is non-null when " + nameof(newConnection) + " is null");
 
@@ -439,7 +440,7 @@ public class MemoryEngine360 {
             case DataType.Int64:     return new DataValueInt64(await connection.ReadValue<long>(address).ConfigureAwait(false));
             case DataType.Float:     return new DataValueFloat(await connection.ReadValue<float>(address).ConfigureAwait(false));
             case DataType.Double:    return new DataValueDouble(await connection.ReadValue<double>(address).ConfigureAwait(false));
-            case DataType.String:    return new DataValueString(await connection.ReadString(address, strlen).ConfigureAwait(false), stringType);
+            case DataType.String:    return new DataValueString(await connection.ReadString(address, strlen, stringType.ToEncoding()).ConfigureAwait(false), stringType);
             case DataType.ByteArray: return new DataValueByteArray(await connection.ReadBytes(address, arrlen).ConfigureAwait(false));
             default:                 throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
         }

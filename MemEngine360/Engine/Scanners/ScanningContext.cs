@@ -17,11 +17,13 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
@@ -56,10 +58,11 @@ public sealed class ScanningContext {
     // enough bytes to store all data types except string and byte array
     internal ulong numericInputA, numericInputB;
     internal MemoryPattern memoryPattern;
+    internal Decoder stringDecoder;
 
     // number of bytes the data type takes up. for strings, calculates based on StringType and char count
     internal int cbDataType;
-    
+
     // a char buffer for decoding chars from bytes
     private char[]? charBuffer;
 
@@ -116,25 +119,16 @@ public sealed class ScanningContext {
             case DataType.Float:  this.cbDataType = sizeof(float); break;
             case DataType.Double: this.cbDataType = sizeof(double); break;
             case DataType.String: {
-                int cbInputA;
-                switch (this.stringType) {
-                    case StringType.ASCII:
-                    case StringType.UTF8: {
-                        cbInputA = this.inputA.Length;
-                        break;
-                    }
-                    case StringType.UTF16: cbInputA = this.inputA.Length * 2; break;
-                    case StringType.UTF32: cbInputA = this.inputA.Length * 4; break;
-                    default:               throw new ArgumentOutOfRangeException();
-                }
-
+                Encoding encoding = this.stringType.ToEncoding();
+                int cbInputA = encoding.GetMaxByteCount(this.inputA.Length);
                 if (cbInputA > ChunkSize) {
                     await IMessageDialogService.Instance.ShowMessage("Invalid input", $"Input is too long. We read data in chunks of {ChunkSize / 1024}K, therefore, the string cannot contain more than that many bytes.");
                     return false;
                 }
 
                 this.cbDataType = cbInputA;
-                this.charBuffer = new char[this.stringType.ToEncoding().GetMaxCharCount(cbInputA)];
+                this.charBuffer = new char[this.inputA.Length];
+                this.stringDecoder = encoding.GetDecoder();
                 break;
             }
             case DataType.ByteArray: {
@@ -253,8 +247,16 @@ public sealed class ScanningContext {
 
                 memory = buffer.Slice((int) i, this.cbDataType);
                 if (isString) {
-                    int cchBuffer = this.stringType.ToEncoding().GetChars(memory, this.charBuffer.AsSpan());
-                    ReadOnlySpan<char> chars = new ReadOnlySpan<char>(this.charBuffer, 0, cchBuffer);
+                    int cchUsed;
+                    try {
+                        this.stringDecoder.Convert(memory, this.charBuffer.AsSpan(), true, out _, out cchUsed, out _);
+                    }
+                    catch {
+                        // failed to decode chars so skip
+                        continue;
+                    }
+
+                    ReadOnlySpan<char> chars = new ReadOnlySpan<char>(this.charBuffer, 0, cchUsed);
                     if (chars.Equals(this.inputA.AsSpan(), this.stringComparison)) {
                         this.ResultFound?.Invoke(this, new ScanResultViewModel(this.theProcessor, address + i, this.dataType, NumericDisplayType.Normal, this.stringType, new DataValueString(new string(chars), this.stringType)));
                     }
@@ -324,6 +326,11 @@ public sealed class ScanningContext {
         }
         else if (this.dataType == DataType.String) {
             using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
+                Encoding encoding = this.stringType.ToEncoding();
+                bool useInputValue = !this.nextScanUsesFirstValue && !this.nextScanUsesPreviousValue;
+                int cbInputValue = useInputValue ? encoding.GetMaxByteCount(this.inputA.Length) : 0;
+                byte[]? inputByteBuffer = useInputValue ? new byte[cbInputValue] : null;
+                char[]? inputCharBuffer = useInputValue ? new char[encoding.GetMaxCharCount(cbInputValue)] : null;
                 for (int i = 0; i < srcList.Count; i++) {
                     task.CheckCancelled();
                     task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
@@ -331,17 +338,38 @@ public sealed class ScanningContext {
 
                     ScanResultViewModel res = srcList[i];
                     string search;
-                    if (this.nextScanUsesFirstValue)
-                        search = ((DataValueString) res.FirstValue).Value;
-                    else if (this.nextScanUsesPreviousValue)
-                        search = ((DataValueString) res.PreviousValue).Value;
-                    else
+                    int cbSearchTerm;
+                    byte[] dstByteBuffer;
+                    char[] dstCharBuffer;
+                    if (useInputValue) {
                         search = this.inputA;
+                        cbSearchTerm = cbInputValue;
+                        dstByteBuffer = inputByteBuffer!;
+                        dstCharBuffer = inputCharBuffer!;
+                    }
+                    else {
+                        if (this.nextScanUsesFirstValue) {
+                            search = ((DataValueString) res.FirstValue).Value;
+                        }
+                        else {
+                            Debug.Assert(this.nextScanUsesPreviousValue);
+                            search = ((DataValueString) res.PreviousValue).Value;
+                        }
+                        
+                        cbSearchTerm = encoding.GetMaxByteCount(search.Length);
+                        dstByteBuffer = new byte[cbSearchTerm];
+                        dstCharBuffer = new char[encoding.GetMaxCharCount(cbSearchTerm)];
+                    }
+                    
+                    // int cchBuffer = this.stringType.ToEncoding().GetChars(memory, this.charBuffer.AsSpan());
 
-                    string readText = await connection.ReadString(res.Address, search.Length);
-                    if (readText.Equals(search, this.stringComparison)) {
-                        res.CurrentValue = res.PreviousValue = new DataValueString(readText, this.stringType);
-                        this.ResultFound?.Invoke(this, res);
+                    await connection.ReadBytes(res.Address, dstByteBuffer, 0, cbSearchTerm);
+                    if (encoding.TryGetChars(dstByteBuffer, dstCharBuffer, out int cchRead)) {
+                        if (new ReadOnlySpan<char>(dstCharBuffer, 0, cchRead).Equals(search.AsSpan(), this.stringComparison)) {
+                            string text = new string(dstCharBuffer, 0, cchRead);
+                            res.CurrentValue = res.PreviousValue = new DataValueString(text, this.stringType);
+                            this.ResultFound?.Invoke(this, res);
+                        }
                     }
                 }
             }
@@ -376,7 +404,7 @@ public sealed class ScanningContext {
             Debug.Fail("Missing data type");
         }
     }
-    
+
     private BaseNumericDataValue<T>? CompareInt<T>(ReadOnlySpan<byte> searchValueBytes) where T : unmanaged, IBinaryInteger<T> {
         return this.CompareInt<T>(searchValueBytes, this.numericInputA, this.numericInputB);
     }
@@ -505,7 +533,8 @@ public sealed class ScanningContext {
                     }
                 }
                 else if (result = float.TryParse(text, floatNs, null, out float val)) {
-                    value = Unsafe.As<float, uint>(ref val);;
+                    value = Unsafe.As<float, uint>(ref val);
+                    ;
                 }
 
                 break;

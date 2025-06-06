@@ -40,10 +40,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="TaskSequencing\OperationControls\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Compile Update="TaskSequencing\EditorContent\DelayOperationEditorContent.axaml.cs">
         <DependentUpon>DelayOperationEditorContent.axaml</DependentUpon>
         <SubType>Code</SubType>

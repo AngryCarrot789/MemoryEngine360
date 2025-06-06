@@ -142,7 +142,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             
             offset += cbField;
 
-            Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadString));
+            Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadStruct));
         }
 
         if (offset > buffer.Length) {
@@ -152,7 +152,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetArrayDataReference(buffer));
     }
 
-    public async Task<string> ReadString(uint address, int count, bool removeNull = true) {
+    public async Task<string> ReadStringASCII(uint address, int count, bool removeNull = true) {
         byte[] buffer = await this.ReadBytes(address, count).ConfigureAwait(false);
 
         if (removeNull) {
@@ -170,10 +170,20 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public async Task<string> ReadString(uint address, int count, Encoding encoding) {
-        int bytes = encoding.GetMaxByteCount(count);
-        byte[] buffer = new byte[bytes];
-        await this.ReadBytes(address, buffer, 0, buffer.Length).ConfigureAwait(false);
-        return encoding.GetString(buffer);
+        int cbMaxLength = encoding.GetMaxByteCount(count);
+        byte[] buffer = new byte[cbMaxLength];
+        await this.ReadBytes(address, buffer, 0, cbMaxLength).ConfigureAwait(false);
+
+        Decoder decoder = encoding.GetDecoder();
+        char[] charBuffer = new char[count];
+
+        try {
+            decoder.Convert(buffer, 0, cbMaxLength, charBuffer, 0, count, true, out _, out int charsUsed, out _);
+            return new string(charBuffer, 0, charsUsed);
+        }
+        catch {
+            return "";
+        }
     }
 
     public async Task WriteBytes(uint address, byte[] buffer) {
@@ -230,7 +240,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
                 Array.Reverse(buffer, offset, cbField);
             
             offset += cbField;
-            Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadString));
+            Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.WriteStruct));
         }
 
         if (offset > buffer.Length) {

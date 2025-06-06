@@ -19,13 +19,12 @@
 
 using MemEngine360.Engine.HexEditing;
 using PFXToolKitUI.Avalonia.Services.Windowing;
-using PFXToolKitUI.Utils;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
 public class HexDisplayServiceImpl : IHexDisplayService {
     public Task ShowHexEditor(HexEditorInfo info) {
-        Validate.NotNull(info);
+        ArgumentNullException.ThrowIfNull(info);
         if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
             HexEditorWindow control = new HexEditorWindow() {
                 HexDisplayInfo = info

@@ -59,7 +59,7 @@ public partial class SetMemoryOperationListContent : BaseOperationListContent {
         ValidationArgs args = new ValidationArgs(hexPrefix ? text.Substring(2) : text, [], false);
         if (b.Model.myDataType is DataType dt) {
             NumericDisplayType intNdt = dt.IsInteger() && hexPrefix ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
-            if (MemoryEngine360.TryParseTextAsDataValue(args, dt, intNdt, StringType.UTF8, out IDataValue? value)) {
+            if (MemoryEngine360.TryParseTextAsDataValue(args, dt, intNdt, StringType.ASCII, out IDataValue? value)) {
                 b.Model.Operation!.DataValueProvider = new ConstantDataProvider(value);
                 b.Model.TextValue = (hexPrefix ? "0x" : "") + intNdt.AsString(dt, value.BoxedValue);
                 return true;

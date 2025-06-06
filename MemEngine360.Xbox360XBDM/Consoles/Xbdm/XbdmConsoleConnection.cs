@@ -181,7 +181,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         for (int i = 0; i < threads.Count; i++) {
             ConsoleThread tdInfo = threads[i];
             if (tdInfo.nameAddress != 0 && tdInfo.nameLength != 0 && tdInfo.nameLength < int.MaxValue) {
-                tdInfo.readableName = await this.ReadString(tdInfo.nameAddress, (int) tdInfo.nameLength);
+                tdInfo.readableName = await this.ReadStringASCII(tdInfo.nameAddress, (int) tdInfo.nameLength);
                 threads[i] = tdInfo;
             }
         }

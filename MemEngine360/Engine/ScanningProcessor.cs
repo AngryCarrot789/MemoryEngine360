@@ -639,7 +639,7 @@ public class ScanningProcessor {
     /// <param name="busyOperationToken">The busy operation token. Does not dispose once finished</param>
     /// <exception cref="InvalidOperationException">No connection is present</exception>
     public async Task RefreshSavedAddressesAsync(IDisposable busyOperationToken, bool bypassLimits = false) {
-        Validate.NotNull(busyOperationToken);
+        ArgumentNullException.ThrowIfNull(busyOperationToken);
         if (this.IsRefreshingAddresses) {
             throw new InvalidOperationException("Already refreshing");
         }
