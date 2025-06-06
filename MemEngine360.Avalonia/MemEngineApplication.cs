@@ -30,6 +30,7 @@ using MemEngine360.BaseFrontEnd.Services;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.BaseFrontEnd.Services.HexEditing;
 using MemEngine360.BaseFrontEnd.TaskSequencing;
+using MemEngine360.BaseFrontEnd.Themes;
 using MemEngine360.BaseFrontEnd.XboxBase;
 using MemEngine360.Commands;
 using MemEngine360.Commands.ATM;
@@ -151,6 +152,8 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         manager.RegisterConstant<ConsoleConnectionManager>(new ConsoleConnectionManagerImpl());
         manager.RegisterConstant<ITaskSequencerService>(new TaskSequencerServiceImpl());
         manager.RegisterConstant<MemoryEngineManager>(new MemoryEngineManagerImpl());
+        
+        MemEngineBrushLoader.Init();
     }
 
     protected override void RegisterConfigurations() {

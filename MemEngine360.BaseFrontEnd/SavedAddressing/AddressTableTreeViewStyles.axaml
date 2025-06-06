@@ -225,6 +225,7 @@
         <Setter Property="Background" Value="{DynamicResource ABrush.Tone2.Background.Static}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone2.Border.Static}"/>
         <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
+        <Setter Property="ColumnSeparatorBrush" Value="{DynamicResource ABrush.Tone6.Border.Static}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="0"/>
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
@@ -290,10 +291,10 @@
                                     <ColumnDefinition Width="0"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <Rectangle Grid.Column="1" Width="1" Fill="{DynamicResource ABrush.Tone6.Border.Static}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
-                                <Rectangle Grid.Column="3" Width="1" Fill="{DynamicResource ABrush.Tone6.Border.Static}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
-                                <Rectangle Grid.Column="5" Width="1" Fill="{DynamicResource ABrush.Tone6.Border.Static}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
-                                <Rectangle Grid.Column="7" Width="1" Fill="{DynamicResource ABrush.Tone6.Border.Static}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+                                <Rectangle Grid.Column="1" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+                                <Rectangle Grid.Column="3" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+                                <Rectangle Grid.Column="5" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+                                <Rectangle Grid.Column="7" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
                             </Grid>
                         </Panel>
                     </ScrollViewer>

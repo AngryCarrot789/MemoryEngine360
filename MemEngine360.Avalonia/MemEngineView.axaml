@@ -16,7 +16,8 @@
              xmlns:sa="clr-namespace:MemEngine360.BaseFrontEnd.SavedAddressing;assembly=MemEngine360.BaseFrontEnd"
              xmlns:notifications="clr-namespace:PFXToolKitUI.Avalonia.Notifications;assembly=PFXToolKitUI.Avalonia"
              mc:Ignorable="d"
-             x:Class="MemEngine360.Avalonia.MemEngineView">
+             x:Class="MemEngine360.Avalonia.MemEngineView"
+             Background="{DynamicResource ABrush.MemEngine.MainView.Background}">
     <DockPanel>
         <ams:AdvancedTopLevelMenu x:Name="PART_TopLevelMenu"
                                   DockPanel.Dock="Top"
@@ -24,7 +25,7 @@
                                   BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,0,0,1"/>
         <Border x:Name="PART_StatusBar"
                 DockPanel.Dock="Bottom"
-                Background="{DynamicResource ABrush.PFX.Editor.StatusBar.Background}"
+                Background="{DynamicResource ABrush.PFX.StatusBar.Background}"
                 BorderBrush="{DynamicResource PanelBorderBrush}"
                 BorderThickness="0,1,0,0"
                 Height="21">
@@ -75,26 +76,20 @@
                             <av2:ScanOptionsControl x:Name="PART_ScanOptionsControl"/>
                         </Grid>
                         <ScrollViewer Grid.Row="5" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                            <c:GroupBox Background="{DynamicResource PanelBackground3}"
-                                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                            <c:GroupBox Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Background}"
+                                        BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Border}"
+                                        HeaderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Header}"
                                         BorderThickness="1"
                                         HorizontalHeaderAlignment="Stretch"
                                         VerticalHeaderAlignment="Stretch">
                                 <c:GroupBox.Header>
                                     <DockPanel HorizontalSpacing="4">
-                                        <ToggleButton x:Name="PART_MemScanExpander" DockPanel.Dock="Right" Width="20" Height="20" Padding="0" VerticalAlignment="Center"
-                                                      Background="{DynamicResource ABrush.Tone7.Background.Static}"
-                                                      IsChecked="True">
-                                            <ToggleButton.Resources>
-                                                <converters:BoolConverter x:Key="IsCheckedToTextConverter" TrueValue="-" FalseValue="+"/>
-                                            </ToggleButton.Resources>
-                                            <TextBlock Text="{Binding ElementName=PART_MemScanExpander, Path=IsChecked, Converter={StaticResource IsCheckedToTextConverter}}" Margin="0,-2,0,0"/>
-                                        </ToggleButton>
                                         <av:IconButton DockPanel.Dock="Right"
                                                        Icon="{x:Static cb:SimpleIcons.MemoryIconTable}"
                                                        Width="20" Height="20" IconMaxWidth="12" IconMaxHeight="12"
                                                        Padding="2"
-                                                       Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                                       Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
+                                                       BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Border}"
                                                        cmdu:CommandUsageManager.UsageClassType="{x:Type ac:SelectRangeFromMemoryRegionCommandUsage}">
                                             <ToolTip.Tip>
                                                 <TextBlock TextWrapping="Wrap">
@@ -109,7 +104,8 @@
                                                        Width="20" Height="20"
                                                        IconMaxWidth="12" IconMaxHeight="12"
                                                        Padding="2"
-                                                       Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                                       Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
+                                                       BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Border}"
                                                        cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ResetScanOptionsCommandUsage}">
                                             <ToolTip.Tip>
                                                 <TextBlock TextWrapping="Wrap">
@@ -120,13 +116,15 @@
                                         <TextBlock Text="Additional Options" VerticalAlignment="Center"/>
                                     </DockPanel>
                                 </c:GroupBox.Header>
-                                <StackPanel IsVisible="{Binding ElementName=PART_MemScanExpander, Path=IsChecked}">
+                                <StackPanel>
                                     <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,22,3,20,3,20" Margin="3">
                                         <TextBlock Grid.Column="0" Grid.Row="0" Text="Start" VerticalAlignment="Center" Padding="4,0"/>
                                         <TextBlock Grid.Column="0" Grid.Row="2" Text="Length" VerticalAlignment="Center" Padding="4,0"/>
                                         <TextBlock Grid.Column="0" Grid.Row="4" Text="Align" VerticalAlignment="Center" Padding="4,0"/>
 
-                                        <TextBox Grid.Column="2" Grid.Row="0" FontFamily="Consolas" Background="Transparent"
+                                        <TextBox Grid.Column="2" Grid.Row="0" FontFamily="Consolas"
+                                                 Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Background}"
+                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Border}"
                                                  x:Name="PART_ScanOption_StartAddress" Padding="4,1"
                                                  VerticalAlignment="Stretch" VerticalContentAlignment="Center"
                                                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
@@ -143,7 +141,9 @@
                                                 </TextBlock>
                                             </ToolTip.Tip>
                                         </TextBox>
-                                        <TextBox Grid.Column="2" Grid.Row="2" FontFamily="Consolas" Background="Transparent"
+                                        <TextBox Grid.Column="2" Grid.Row="2" FontFamily="Consolas"
+                                                 Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Background}"
+                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Border}"
                                                  x:Name="PART_ScanOption_Length" Padding="4,1"
                                                  VerticalAlignment="Stretch" VerticalContentAlignment="Center"
                                                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
@@ -226,9 +226,10 @@
                         <Border Background="Transparent" Grid.Row="4"/>
                     </Grid>
                 </Border>
-                <c:GroupBox Background="{DynamicResource PanelBackground2}"
+                <c:GroupBox Background="{DynamicResource ABrush.MemEngine.MainView.ScanResults.Background}"
+                            BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanResults.Border}"
+                            HeaderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanResults.Header}"
                             HorizontalHeaderAlignment="Stretch"
-                            BorderBrush="{DynamicResource PanelBorderBrush}"
                             BorderThickness="1"
                             Grid.Column="1" Grid.Row="1"
                             av1:UIInputManager.FocusPath="MemEngineWindow/ScanResultList">
@@ -285,8 +286,9 @@
                         </DataGrid.Columns>
                     </DataGrid>
                 </c:GroupBox>
-                <c:GroupBox Background="{DynamicResource PanelBackground2}"
-                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                <c:GroupBox Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Background}"
+                            BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Border}"
+                            HeaderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Header}"
                             BorderThickness="1"
                             HorizontalHeaderAlignment="Stretch"
                             Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="3"
@@ -297,36 +299,36 @@
                             <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="5" Height="20">
                                 <av:IconButton Icon="{x:Static cb:SimpleIcons.OpenFileCSVIcon}" Width="20"
-                                               Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                               BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                               Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
+                                               BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenCSVFileCommand"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                ToolTip.Tip="(Depreciated) Open a CSV file containing saved addresses. This feature will be removed soon in favour for XML, so that groups can be supported" Padding="3,3,2,2"/>
 
                                 <av:IconButton Icon="{x:Static cb:SimpleIcons.OpenFileXMLIcon}" Width="20"
-                                               Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                               BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                               Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
+                                               BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenXMLFileCommand"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                ToolTip.Tip="Open an XML file containing saved addresses" Padding="3,3,2,2"/>
 
                                 <av:IconButton Icon="{x:Static cb:SimpleIcons.SaveFileIcon}" Width="20"
-                                               Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                               BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                               Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
+                                               BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.SaveSavedAddressesToFileCommand"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                ToolTip.Tip="Save these addresses to a file (including data type, display options, etc.)" Padding="3"/>
 
                                 <av:IconButton Padding="2" Width="20"
-                                               Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                               BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                               Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
+                                               BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.AddSavedAddressCommand"
                                                ToolTip.Tip="Adds a row manually"
                                                Icon="{x:Static cb:SimpleIcons.GreenPlusIcon}"/>
 
                                 <av:IconButton Padding="2" Width="20"
-                                               Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                               BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                               Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
+                                               BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.ClearSavedAddressesCommand"
                                                ToolTip.Tip="Clears all rows"
                                                Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"/>
@@ -334,29 +336,30 @@
                                 <Separator Theme="{StaticResource VerticalSeparatorTheme}"/>
 
                                 <av:IconButton Icon="{x:Static cb:SimpleIcons.MemoryIcon}" Width="20"
-                                               Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                               BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                               Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
+                                               BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ShowMemoryCommandUsage}"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                ToolTip.Tip="Opens a view of the console's memory" Padding="2,1,2,2"/>
 
                                 <av:IconButton Content="Add Scan Result(s)" Padding="4,1" Height="20" IconMaxWidth="12"
                                                Icon="{x:Static cb:SimpleIcons.RedArrowCopyToSavedResultsIcon}"
-                                               Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                               BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                               Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
+                                               BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                cmdu:CommandUsageManager.UsageClassType="{x:Type ac:AddSelectedScanResultsToSavedAddressListCommandUsage}"
                                                ToolTip.Tip="Adds the selected results into the saved address list. Does not add addresses that are already present"/>
 
                                 <Button Content="Refresh" Padding="4,1"
-                                        Background="{DynamicResource ABrush.Tone6.Background.Static}"
-                                        BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                        Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
+                                        BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                         cmdu:CommandUsageManager.UsageClassType="{x:Type ac:RefreshSavedAddressesCommandUsage}"
                                         ToolTip.Tip="Refresh the values. This is done automatically every 2 seconds"/>
                             </StackPanel>
                             <Border/>
                         </DockPanel>
                     </c:GroupBox.Header>
-                    <sa:AddressTableTreeView x:Name="PART_SavedAddressTree" Background="Transparent" BorderThickness="0"/>
+                    <sa:AddressTableTreeView x:Name="PART_SavedAddressTree" Background="Transparent" BorderThickness="0"
+                                             ColumnSeparatorBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.ColumnSeparator}"/>
                 </c:GroupBox>
                 <GridSplitter Grid.Column="2" Grid.Row="1" Background="Transparent"/>
                 <GridSplitter Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="2" Background="Transparent"/>

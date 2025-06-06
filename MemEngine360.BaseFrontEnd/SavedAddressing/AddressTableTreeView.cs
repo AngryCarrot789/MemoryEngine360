@@ -22,6 +22,7 @@ using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Media;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
@@ -30,6 +31,7 @@ namespace MemEngine360.BaseFrontEnd.SavedAddressing;
 
 public sealed class AddressTableTreeView : TreeView {
     public static readonly StyledProperty<AddressTableManager?> AddressTableManagerProperty = AvaloniaProperty.Register<AddressTableTreeView, AddressTableManager?>("AddressTableManager");
+    public static readonly StyledProperty<IBrush?> ColumnSeparatorBrushProperty = AvaloniaProperty.Register<AddressTableTreeView, IBrush?>(nameof(ColumnSeparatorBrush));
     // public static readonly StyledProperty<GridLength> ColumnWidth0Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth0", new GridLength(125));
     // public static readonly StyledProperty<GridLength> ColumnWidth1Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth1", new GridLength(250));
     // public static readonly StyledProperty<GridLength> ColumnWidth2Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth2", new GridLength(75));
@@ -49,6 +51,11 @@ public sealed class AddressTableTreeView : TreeView {
     public AddressTableManager? AddressTableManager {
         get => this.GetValue(AddressTableManagerProperty);
         set => this.SetValue(AddressTableManagerProperty, value);
+    }
+    
+    public IBrush? ColumnSeparatorBrush {
+        get => this.GetValue(ColumnSeparatorBrushProperty);
+        set => this.SetValue(ColumnSeparatorBrushProperty, value);
     }
 
     public AddressTableTreeView() {

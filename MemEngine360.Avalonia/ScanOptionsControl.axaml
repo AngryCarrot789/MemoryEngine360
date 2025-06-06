@@ -24,21 +24,21 @@
         </Grid>
         <TextBox x:Name="PART_Input_Value1" FontFamily="Consolas"
                  Grid.Column="2" Grid.Row="0" 
-                 BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                 Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                 Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Background}"
+                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Border}"
                  ScrollViewer.VerticalScrollBarVisibility="Disabled"
                  ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
 
         <Grid x:Name="PART_Grid_Input_Between" Grid.Column="2" Grid.Row="0" ColumnDefinitions="*,3,*" IsVisible="False">
             <TextBox x:Name="PART_Input_BetweenA" FontFamily="Consolas" Grid.Column="0"
-                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                     Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                     Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Background}"
+                     BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Border}"
                      ScrollViewer.VerticalScrollBarVisibility="Disabled"
                      ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
             
             <TextBox x:Name="PART_Input_BetweenB" FontFamily="Consolas" Grid.Column="2"
-                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                     Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                     Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Background}"
+                     BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Border}"
                      ScrollViewer.VerticalScrollBarVisibility="Disabled"
                      ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
         </Grid>
@@ -46,7 +46,8 @@
         <ComboBox x:Name="PART_DataTypeCombo"
                   Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="2"
                   FontFamily="Consolas"
-                  Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                  Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.ScanTypeComboBox.Background}"
+                  BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.ScanTypeComboBox.Border}"
                   Padding="4,1" VerticalContentAlignment="Center"/>
         <TabControl Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="4"
                     x:Name="PART_ScanSettingsTabControl"
@@ -70,7 +71,8 @@
                     <DockPanel>
                         <TextBlock Text="Compare Mode" DockPanel.Dock="Left" Margin="2,0,5,0" VerticalAlignment="Center"/>
                         <ComboBox x:Name="PART_ScanTypeCombo1" FontFamily="{StaticResource FontOxanium}"
-                                  Background="{DynamicResource ABrush.Tone5.Background.Static}"
+                                  Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.CompareModeComboBox.Background}"
+                                  BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.CompareModeComboBox.Border}"
                                   Padding="4,1" VerticalContentAlignment="Center"/>
                     </DockPanel>
                 </StackPanel>
@@ -98,7 +100,8 @@
                     <DockPanel>
                         <TextBlock Text="Compare Mode" DockPanel.Dock="Left" Margin="2,0,5,0" VerticalAlignment="Center"/>
                         <ComboBox x:Name="PART_ScanTypeCombo2" FontFamily="{StaticResource FontOxanium}"
-                                  Background="{DynamicResource ABrush.Tone5.Background.Static}"
+                                  Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.CompareModeComboBox.Background}"
+                                  BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.CompareModeComboBox.Border}"
                                   Padding="4,1" VerticalContentAlignment="Center"/>
                     </DockPanel>
                 </StackPanel>
