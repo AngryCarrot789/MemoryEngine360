@@ -5,6 +5,7 @@ using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.DataHandlers;
 
@@ -38,22 +39,12 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
 
     public string ParsingMinimum {
         get => this.parsingMinimum;
-        set {
-            if (this.parsingMinimum != value) {
-                this.parsingMinimum = value;
-                this.ParsingMinimumChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.parsingMinimum, value, this, static t => t.ParsingMinimumChanged?.Invoke(t));
     }
 
     public string ParsingMaximum {
         get => this.parsingMaximum;
-        set {
-            if (this.parsingMaximum != value) {
-                this.parsingMaximum = value;
-                this.ParsingMaximumChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.parsingMaximum, value, this, static t => t.ParsingMaximumChanged?.Invoke(t));
     }
 
     public event RandomDataValueHandlerEventHandler? ParsingMinimumChanged, ParsingMaximumChanged;

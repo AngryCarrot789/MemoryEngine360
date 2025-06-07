@@ -19,6 +19,7 @@
 
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.DataProviders;
 
@@ -37,10 +38,7 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
                 throw new ArgumentOutOfRangeException(nameof(value), value, "Only floats or integers are allowed");
             }
             
-            if (this.dataType != value) {
-                this.dataType = value;
-                this.DataTypeChanged?.Invoke(this);
-            }
+            PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, static t => t.DataTypeChanged?.Invoke(t));
         }
     }
 
@@ -50,10 +48,7 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
             if (value != null && value.DataType != this.DataType)
                 throw new ArgumentException("New value's data type does not match our data type: " + value.DataType + " != " + this.DataType);
 
-            if (this.minimum != value) {
-                this.minimum = value;
-                this.MinimumChanged?.Invoke(this);
-            }
+            PropertyHelper.SetAndRaiseINE(ref this.minimum, value, this, static t => t.MinimumChanged?.Invoke(t));
         }
     }
 
@@ -63,10 +58,7 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
             if (value != null && value.DataType != this.DataType)
                 throw new ArgumentException("New value's data type does not match our data type: " + value.DataType + " != " + this.DataType);
 
-            if (this.maximum != value) {
-                this.maximum = value;
-                this.MaximumChanged?.Invoke(this);
-            }
+            PropertyHelper.SetAndRaiseINE(ref this.maximum, value, this, static t => t.MaximumChanged?.Invoke(t));
         }
     }
 

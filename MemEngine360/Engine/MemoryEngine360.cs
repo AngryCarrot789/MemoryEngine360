@@ -22,7 +22,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Text;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
@@ -113,12 +112,7 @@ public class MemoryEngine360 {
     /// </summary>
     public bool IsShuttingDown {
         get => this.isShuttingDown;
-        set {
-            if (this.isShuttingDown != value) {
-                this.isShuttingDown = value;
-                this.IsShuttingDownChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.isShuttingDown, value, this, static t => t.IsShuttingDownChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -516,7 +510,7 @@ public class MemoryEngine360 {
     private class BusyToken : IDisposable {
         public volatile MemoryEngine360? myEngine;
 #if DEBUG
-        public readonly string? stackTrace; // debugging stack trace, just in case the app locks up then the cause is likely in here 
+        public readonly string? stackTrace; // debugging stack trace, just in case the app locks up then the source is likely in here 
 #endif
 
         public BusyToken(MemoryEngine360 engine) {

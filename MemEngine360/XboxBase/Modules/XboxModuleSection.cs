@@ -38,66 +38,61 @@ public class XboxModuleSection : INotifyPropertyChanged {
         set {
             if (string.IsNullOrWhiteSpace(value))
                 value = null;
-            
-            if (this.name == value)
-                return;
 
-            this.name = value;
-            this.NameChanged?.Invoke(this);
-            this.OnPropertyChanged(nameof(this.Name));
+            if (this.name != value) {
+                this.name = value;
+                this.NameChanged?.Invoke(this);
+                this.OnPropertyChanged(nameof(this.Name));
+            }
         }
     }
 
     public uint BaseAddress {
         get => this.baseAddress;
         set {
-            if (this.baseAddress == value)
-                return;
-
-            this.baseAddress = value;
-            this.BaseAddressChanged?.Invoke(this);
-            this.OnPropertyChanged(nameof(this.BaseAddress));
+            if (this.baseAddress != value) {
+                this.baseAddress = value;
+                this.BaseAddressChanged?.Invoke(this);
+                this.OnPropertyChanged(nameof(this.BaseAddress));
+            }
         }
     }
 
     public uint Size {
         get => this.size;
         set {
-            if (this.size == value)
-                return;
-
-            this.size = value;
-            this.SizeChanged?.Invoke(this);
-            this.OnPropertyChanged(nameof(this.Size));
+            if (this.size != value) {
+                this.size = value;
+                this.SizeChanged?.Invoke(this);
+                this.OnPropertyChanged(nameof(this.Size));
+            }
         }
     }
 
     public uint Index {
         get => this.index;
         set {
-            if (this.index == value)
-                return;
-
-            this.index = value;
-            this.IndexChanged?.Invoke(this);
-            this.OnPropertyChanged(nameof(this.Index));
+            if (this.index != value) {
+                this.index = value;
+                this.IndexChanged?.Invoke(this);
+                this.OnPropertyChanged(nameof(this.Index));
+            }
         }
     }
 
     public XboxSectionInfoFlags Flags {
         get => this.flags;
         set {
-            if (this.flags == value)
-                return;
-
-            this.flags = value;
-            this.FlagsChanged?.Invoke(this);
-            this.OnPropertyChanged(nameof(this.Flags));
-            this.OnPropertyChanged(nameof(this.IsLoaded));
-            this.OnPropertyChanged(nameof(this.IsReadable));
-            this.OnPropertyChanged(nameof(this.IsWriteable));
-            this.OnPropertyChanged(nameof(this.IsExecutable));
-            this.OnPropertyChanged(nameof(this.IsUninitialized));
+            if (this.flags != value) {
+                this.flags = value;
+                this.FlagsChanged?.Invoke(this);
+                this.OnPropertyChanged(nameof(this.Flags));
+                this.OnPropertyChanged(nameof(this.IsLoaded));
+                this.OnPropertyChanged(nameof(this.IsReadable));
+                this.OnPropertyChanged(nameof(this.IsWriteable));
+                this.OnPropertyChanged(nameof(this.IsExecutable));
+                this.OnPropertyChanged(nameof(this.IsUninitialized));
+            }
         }
     }
 

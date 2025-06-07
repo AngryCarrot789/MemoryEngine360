@@ -43,12 +43,7 @@ public abstract class BaseSequenceOperation : ITransferableData {
     /// </summary>
     public bool IsRunning {
         get => this.isRunning;
-        private set {
-            if (this.isRunning != value) {
-                this.isRunning = value;
-                this.IsRunningChanged?.Invoke(this);
-            }
-        }
+        private set => PropertyHelper.SetAndRaiseINE(ref this.isRunning, value, this, static t => t.IsRunningChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -56,12 +51,7 @@ public abstract class BaseSequenceOperation : ITransferableData {
     /// </summary>
     public bool IsEnabled {
         get => this.isEnabled;
-        set {
-            if (this.isEnabled != value) {
-                this.isEnabled = value;
-                this.IsEnabledChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.isEnabled, value, this, static t => t.IsEnabledChanged?.Invoke(t));
     }
 
     /// <summary>

@@ -23,6 +23,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using PFXToolKitUI;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.PointerScanning;
 
@@ -69,12 +70,7 @@ public class PointerScanner {
     /// </summary>
     public byte MaxDepth {
         get => this.maxDepth;
-        set {
-            if (this.maxDepth != value) {
-                this.maxDepth = value;
-                this.MaxDepthChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.maxDepth, value, this, static t => t.MaxDepthChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -93,10 +89,7 @@ public class PointerScanner {
         set {
             // Align to 4 bytes
             value += value % 4;
-            if (this.maximumOffset != value) {
-                this.maximumOffset = value;
-                this.MaximumOffsetChanged?.Invoke(this);
-            }
+            PropertyHelper.SetAndRaiseINE(ref this.maximumOffset, value, this, static t => t.MaximumOffsetChanged?.Invoke(t));
         }
     }
 
@@ -105,12 +98,7 @@ public class PointerScanner {
     /// </summary>
     public uint SearchAddress {
         get => this.searchAddress;
-        set {
-            if (this.searchAddress != value) {
-                this.searchAddress = value;
-                this.SearchAddressChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.searchAddress, value, this, static t => t.SearchAddressChanged?.Invoke(t));
     }
 
     public event PointerScannerEventHandler? AddressableBaseChanged;

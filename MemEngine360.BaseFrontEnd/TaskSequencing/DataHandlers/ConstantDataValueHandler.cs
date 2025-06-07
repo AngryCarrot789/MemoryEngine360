@@ -8,6 +8,7 @@ using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.DataHandlers;
 
@@ -32,12 +33,7 @@ public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider
 
     public string ParsingText {
         get => this.parsingText;
-        set {
-            if (this.parsingText != value) {
-                this.parsingText = value;
-                this.ParsingTextChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.parsingText, value, this, static t => t.ParsingTextChanged?.Invoke(t));
     }
 
     public event ConstantDataValueHandlerParsingTextChangedEventHandler? ParsingTextChanged;

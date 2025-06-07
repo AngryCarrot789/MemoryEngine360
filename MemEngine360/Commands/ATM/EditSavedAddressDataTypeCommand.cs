@@ -22,6 +22,7 @@ using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands.ATM;
 
@@ -77,64 +78,44 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
 
     public DataType DataType {
         get => this.dataType;
-        set {
-            if (this.dataType == value)
-                return;
-
-            this.dataType = value;
-            this.DataTypeChanged?.Invoke(this);
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, static t => t.DataTypeChanged?.Invoke(t));
     }
 
     public StringType StringScanOption {
         get => this.stringScanOption;
-        set {
-            if (this.stringScanOption == value)
-                return;
-
-            this.stringScanOption = value;
-            this.StringScanOptionChanged?.Invoke(this);
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.stringScanOption, value, this, static t => t.StringScanOptionChanged?.Invoke(t));
     }
 
     public int StringLength {
         get => this.stringLength;
-        set {
-            if (this.stringLength == value)
-                return;
-
-            this.stringLength = value;
-            this.StringLengthChanged?.Invoke(this);
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.stringLength, value, this, static t => t.StringLengthChanged?.Invoke(t));
     }
 
     public bool DisplayAsHex {
         get => this.displayAsHex;
         set {
-            if (this.displayAsHex == value)
-                return;
+            if (this.displayAsHex != value) {
+                if (value && this.DisplayAsUnsigned) {
+                    this.DisplayAsUnsigned = false;
+                }
 
-            if (value && this.DisplayAsUnsigned) {
-                this.DisplayAsUnsigned = false;
+                this.displayAsHex = value;
+                this.DisplayAsHexChanged?.Invoke(this);
             }
-            
-            this.displayAsHex = value;
-            this.DisplayAsHexChanged?.Invoke(this);
         }
     }
 
     public bool DisplayAsUnsigned {
         get => this.displayAsSigned;
         set {
-            if (this.displayAsSigned == value)
-                return;
+            if (this.displayAsSigned != value) {
+                if (value && this.DisplayAsHex) {
+                    this.DisplayAsHex = false;
+                }
 
-            if (value && this.DisplayAsHex) {
-                this.DisplayAsHex = false;
+                this.displayAsSigned = value;
+                this.DisplayAsUnsignedChanged?.Invoke(this);
             }
-            
-            this.displayAsSigned = value;
-            this.DisplayAsUnsignedChanged?.Invoke(this);
         }
     }
 

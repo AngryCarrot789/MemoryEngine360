@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.ValueAbstraction;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.DataProviders;
 
@@ -33,12 +34,7 @@ public abstract class DataValueProvider {
     /// </summary>
     public bool AppendNullCharToString {
         get => this.appendNullCharToString;
-        set {
-            if (this.appendNullCharToString != value) {
-                this.appendNullCharToString = value;
-                this.AppendNullCharToStringChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.appendNullCharToString, value, this, static t => t.AppendNullCharToStringChanged?.Invoke(t));
     }
     
     public event DataValueProviderEventHandler? AppendNullCharToStringChanged;

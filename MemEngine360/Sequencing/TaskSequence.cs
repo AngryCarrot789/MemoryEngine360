@@ -58,13 +58,7 @@ public sealed class TaskSequence {
     /// </summary>
     public bool IsRunning {
         get => this.isRunning;
-        private set {
-            if (this.isRunning == value)
-                return;
-
-            this.isRunning = value;
-            this.IsRunningChanged?.Invoke(this);
-        }
+        private set => PropertyHelper.SetAndRaiseINE(ref this.isRunning, value, this, static t => t.IsRunningChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -79,13 +73,7 @@ public sealed class TaskSequence {
 
     public string DisplayName {
         get => this.displayName;
-        set {
-            if (this.displayName == value)
-                return;
-
-            this.displayName = value;
-            this.DisplayNameChanged?.Invoke(this);
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.displayName, value, this, static t => t.DisplayNameChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -98,11 +86,7 @@ public sealed class TaskSequence {
             if (this.isRunning)
                 throw new InvalidOperationException($"Cannot change {nameof(this.RunCount)} while running");
 
-            if (this.runCount == value)
-                return;
-
-            this.runCount = value;
-            this.RunCountChanged?.Invoke(this);
+            PropertyHelper.SetAndRaiseINE(ref this.runCount, value, this, static t => t.RunCountChanged?.Invoke(t));
         }
     }
 
@@ -113,11 +97,7 @@ public sealed class TaskSequence {
             if (this.isRunning)
                 throw new InvalidOperationException($"Cannot change {nameof(this.HasBusyLockPriority)} while running");
 
-            if (this.hasBusyLockPriority == value)
-                return;
-
-            this.hasBusyLockPriority = value;
-            this.HasBusyLockPriorityChanged?.Invoke(this);
+            PropertyHelper.SetAndRaiseINE(ref this.hasBusyLockPriority, value, this, static t => t.HasBusyLockPriorityChanged?.Invoke(t));
         }
     }
 
@@ -131,10 +111,7 @@ public sealed class TaskSequence {
             if (this.isRunning)
                 throw new InvalidOperationException($"Cannot change {nameof(this.UseEngineConnection)} while running");
 
-            if (this.useEngineConnection != value) {
-                this.useEngineConnection = value;
-                this.UseEngineConnectionChanged?.Invoke(this);
-            }
+            PropertyHelper.SetAndRaiseINE(ref this.useEngineConnection, value, this, static t => t.UseEngineConnectionChanged?.Invoke(t));
         }
     }
 

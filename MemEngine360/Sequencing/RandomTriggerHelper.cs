@@ -17,6 +17,8 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI.Utils;
+
 namespace MemEngine360.Sequencing;
 
 public delegate void RandomTriggerHelperEventHandler(RandomTriggerHelper sender);
@@ -36,14 +38,11 @@ public class RandomTriggerHelper {
     public TimeSpan? WaitForTriggerInterval {
         get => this.waitForTriggerInterval;
         set {
-            if (this.waitForTriggerInterval != value) {
-                if (value is TimeSpan ts && (ts.TotalMilliseconds < 0 || ts.TotalMilliseconds >= uint.MaxValue)) {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "TimeSpan is out of range. Cannot be negative or millis cannot exceed uint.MaxValue");
-                }
-                
-                this.waitForTriggerInterval = value;
-                this.WaitForTriggerIntervalChanged?.Invoke(this);
+            if (value is TimeSpan ts && (ts.TotalMilliseconds < 0 || ts.TotalMilliseconds >= uint.MaxValue)) {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "TimeSpan is out of range. Cannot be negative or millis cannot exceed uint.MaxValue");
             }
+
+            PropertyHelper.SetAndRaiseINE(ref this.waitForTriggerInterval, value, this, static t => t.WaitForTriggerIntervalChanged?.Invoke(t));
         }
     }
 
@@ -54,10 +53,8 @@ public class RandomTriggerHelper {
     public uint Chance {
         get => this.chance;
         set {
-            if (this.chance != (value = Math.Max(value, 1))) {
-                this.chance = value;
-                this.ChanceChanged?.Invoke(this);
-            }
+            value = Math.Max(value, 1);
+            PropertyHelper.SetAndRaiseINE(ref this.chance, value, this, static t => t.ChanceChanged?.Invoke(t));
         }
     }
 

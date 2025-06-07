@@ -7,21 +7,30 @@
              x:Class="MemEngine360.Avalonia.AboutView">
     <Grid Margin="20">
         <StackPanel Spacing="4">
-            <TextBlock Text="Memory Engine 360 v1.1.5" HorizontalAlignment="Center" FontSize="32" FontWeight="Bold"/>
-            <TextBlock Text="Cheat Engine, but for xbox 360s (and more soon)" HorizontalAlignment="Center" FontSize="18" FontWeight="Medium"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                <Image Source="memengine360.bmp" Width="64" Height="64" RenderOptions.BitmapInterpolationMode="None"/>
+                <StackPanel>
+                    <TextBlock Text="Memory Engine 360 v1.1.6-dev" HorizontalAlignment="Center" FontSize="32" FontWeight="Bold"/>
+                    <TextBlock Text="Cheat Engine, but for xbox 360 (and more!)" HorizontalAlignment="Center" FontSize="20" FontWeight="Medium"/>
+                </StackPanel>
+            </StackPanel>
             <WrapPanel Orientation="Horizontal">
-                <TextBlock Text="Source code can be found at " FontSize="12" TextWrapping="Wrap"/>
-                <HyperlinkButton Content="https://github.com/AngryCarrot789/MemEngine360"
-                                 NavigateUri="https://github.com/AngryCarrot789/MemEngine360"
-                                 Padding="0" Margin="0,-1,0,0"
-                                 VerticalAlignment="Center"/>
+                <TextBlock>
+                    <Run Text="Source code can be found at:"/>
+                    <HyperlinkButton Content="https://github.com/AngryCarrot789/MemEngine360"
+                                     NavigateUri="https://github.com/AngryCarrot789/MemEngine360"
+                                     Padding="0" Margin="0,-1,0,0"
+                                     VerticalAlignment="Center"/>
+                </TextBlock>
             </WrapPanel>
             <WrapPanel Orientation="Horizontal">
-                <TextBlock Text="This is an Avalonia remake of XeClutch's program, with performance improvements, new features, and utilises asynchronous programming. XeClutch's version can be found at " FontSize="12" TextWrapping="Wrap"/>
-                <HyperlinkButton Content="https://github.com/XeClutch/Cheat-Engine-For-Xbox-360"
-                                 NavigateUri="https://github.com/XeClutch/Cheat-Engine-For-Xbox-360"
-                                 Padding="0" Margin="0,-1,0,0"
-                                 VerticalAlignment="Center"/>
+                <TextBlock FontSize="12" TextWrapping="Wrap">
+                    <Run Text="This is a remake and extension of XeClutch's 'Cheat Engine For Xbox 360' with performance and features improvements, and utilises asynchronous programming."/>
+                    <HyperlinkButton Content="https://github.com/XeClutch/Cheat-Engine-For-Xbox-360"
+                                     NavigateUri="https://github.com/XeClutch/Cheat-Engine-For-Xbox-360"
+                                     Padding="0" Margin="0,-1,0,0"
+                                     VerticalAlignment="Center"/>
+                </TextBlock>
             </WrapPanel>
         </StackPanel>
         <Button HorizontalAlignment="Right" VerticalAlignment="Bottom" Content="OK" Width="75" Height="24" Click="Button_OnClick"/>

@@ -22,6 +22,7 @@ using System.Diagnostics.CodeAnalysis;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.SavedAddressing;
 
@@ -58,13 +59,7 @@ public abstract class BaseAddressTableEntry : ITransferableData {
 
     public string? Description {
         get => this.description;
-        set {
-            if (this.description == value)
-                return;
-
-            this.description = value;
-            this.DescriptionChanged?.Invoke(this);
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.description, value, this, static t => t.DescriptionChanged?.Invoke(t));
     }
 
     /// <summary>

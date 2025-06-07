@@ -22,6 +22,7 @@ using System.Runtime.InteropServices;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.ValueAbstraction;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.Operations;
 
@@ -41,12 +42,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
     /// </summary>
     public uint Address {
         get => this.address;
-        set {
-            if (this.address != value) {
-                this.address = value;
-                this.AddressChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.address, value, this, static t => t.AddressChanged?.Invoke(t));
     }
 
     /// <summary>

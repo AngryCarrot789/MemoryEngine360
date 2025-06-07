@@ -44,17 +44,23 @@
         </Grid>
 
         <ComboBox x:Name="PART_DataTypeCombo"
-                  Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="2"
+                  Grid.Column="2" Grid.Row="2"
                   FontFamily="Consolas"
                   Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.ScanTypeComboBox.Background}"
                   BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.ScanTypeComboBox.Border}"
-                  Padding="4,1" VerticalContentAlignment="Center"/>
+                  Padding="4,1" VerticalContentAlignment="Center"
+                  ToolTip.Tip="Toggles scanning for any data type (aka 'unknown' data type). For example, if searching for 24, it might find an integer, float or string with a value of 24"/>
+        <ToggleButton x:Name="PART_ToggleUnknownDataType" 
+                Grid.Column="3" Grid.Row="2" 
+                Margin="3,0,0,0" 
+                Content="Any"
+                ToolTip.Tip="Toggles the unknown data type scan. When enabled, we attempt to find integers, floats and strings that are effectively equal to the search query"/>
         <TabControl Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="4"
                     x:Name="PART_ScanSettingsTabControl"
                     Background="{DynamicResource PanelBackground3}"
                     BorderThickness="1"
                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}">
-            <TabItem Header="Integer" ToolTip.Tip="Search options for integer data types (byte, short, int, long)">
+            <TabItem x:Name="PART_TabItemInteger" Header="Integer" ToolTip.Tip="Search options for integer data types (byte, short, int, long)">
                 <StackPanel Margin="3" Spacing="3">
                     <CheckBox x:Name="PART_DTInt_IsHex" Content="Parse value(s) as hexadecimal">
                         <ToolTip.Tip>
@@ -77,7 +83,7 @@
                     </DockPanel>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="Float" ToolTip.Tip="Search options for floating point numbers (float/single, double)">
+            <TabItem x:Name="PART_TabItemFloat" Header="Float" ToolTip.Tip="Search options for floating point numbers (float/single, double)">
                 <StackPanel Margin="3" Spacing="3">
                     <RadioButton x:Name="PART_DTFloat_Truncate" Content="Truncated to query">
                         <ToolTip.Tip>
@@ -106,7 +112,7 @@
                     </DockPanel>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="String" ToolTip.Tip="Search options for strings">
+            <TabItem x:Name="PART_TabItemString" Header="String" ToolTip.Tip="Search options for strings">
                 <StackPanel Margin="3" Spacing="3">
                     <Grid RowDefinitions="Auto,3,Auto" ColumnDefinitions="Auto,5,Auto">
                         <RadioButton Grid.Row="0" Grid.Column="0" x:Name="PART_DTString_ASCII" Content="ASCII" ToolTip.Tip="Search for text using ASCII encoding (default)"/>
@@ -117,7 +123,55 @@
                     <CheckBox Content="Ignore Cases" x:Name="PART_IgnoreCases"/>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="Pattern" ToolTip.Tip="Search options for sequences of bytes">
+            <TabItem x:Name="PART_TabItemUnknown" Header="Unknown" ToolTip.Tip="Search options for unknown data types">
+                <StackPanel>
+                    <TextBlock Text="Floating point to integer" Padding="3,2"/>
+                    <StackPanel Margin="10,0,0,0">
+                        <RadioButton x:Name="PART_Toggle_Truncate">
+                            <RadioButton.Content>
+                                <TextBlock VerticalAlignment="Center">
+                                    <Run Text="Truncate"  BaselineAlignment="Center"/>
+                                    <Run Text="(2.3 -> 2) (-3.7 -> -3)" FontFamily="{StaticResource FontOxanium}" BaselineAlignment="Center" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
+                                </TextBlock>
+                            </RadioButton.Content>
+                        </RadioButton>
+                        <RadioButton x:Name="PART_Toggle_Floor">
+                            <RadioButton.Content>
+                                <TextBlock VerticalAlignment="Center">
+                                    <Run Text="Floor"  BaselineAlignment="Center"/>
+                                    <Run Text="(2.3 -> 2) (-3.7 -> -4)" FontFamily="{StaticResource FontOxanium}" BaselineAlignment="Center" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
+                                </TextBlock>
+                            </RadioButton.Content>
+                        </RadioButton>
+                        <RadioButton x:Name="PART_Toggle_Ceil">
+                            <RadioButton.Content>
+                                <TextBlock VerticalAlignment="Center">
+                                    <Run Text="Ceil"  BaselineAlignment="Center"/>
+                                    <Run Text="(2.3 -> 3) (-3.7 -> -3)" FontFamily="{StaticResource FontOxanium}" BaselineAlignment="Center" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
+                                </TextBlock>
+                            </RadioButton.Content>
+                        </RadioButton>
+                        <RadioButton x:Name="PART_Toggle_Round">
+                            <RadioButton.Content>
+                                <TextBlock VerticalAlignment="Center">
+                                    <Run Text="Round"  BaselineAlignment="Center"/>
+                                    <Run Text="(2.3 -> 2) (-3.7 -> -4)" FontFamily="{StaticResource FontOxanium}" BaselineAlignment="Center" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>
+                                </TextBlock>
+                            </RadioButton.Content>
+                        </RadioButton>
+                    </StackPanel>
+                    <Border Background="{DynamicResource ABrush.Tone6.Border.Static}">
+                        <Grid ColumnDefinitions="2*,1,3*,1,3*,1,3*,1,3*,1,3*,1,3*" Margin="0,1,0,1">
+                            <ToggleButton x:Name="PART_Toggle_Byte" Grid.Column="0" Content="B8" BorderThickness="0" ToolTip.Tip="Toggle scanning for byte"/>
+                            <ToggleButton x:Name="PART_Toggle_Int16" Grid.Column="2" Content="S16" BorderThickness="0" ToolTip.Tip="Toggle scanning for int16"/>
+                            <ToggleButton x:Name="PART_Toggle_Int32" Grid.Column="4" Content="I32" BorderThickness="0" ToolTip.Tip="Toggle scanning for int32"/>
+                            <ToggleButton x:Name="PART_Toggle_Int64" Grid.Column="6" Content="L64" BorderThickness="0" ToolTip.Tip="Toggle scanning for int64"/>
+                            <ToggleButton x:Name="PART_Toggle_Float" Grid.Column="8" Content="F32" BorderThickness="0" ToolTip.Tip="Toggle scanning for float (32)"/>
+                            <ToggleButton x:Name="PART_Toggle_Double" Grid.Column="10" Content="D64" BorderThickness="0" ToolTip.Tip="Toggle scanning for double (64)"/>
+                            <ToggleButton x:Name="PART_Toggle_String" Grid.Column="12" Content="abc" BorderThickness="0" ToolTip.Tip="Toggle scanning for strings"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
             </TabItem>
         </TabControl>
     </Grid>

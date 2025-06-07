@@ -17,6 +17,8 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI.Utils;
+
 namespace MemEngine360.Sequencing.Operations;
 
 public delegate void DelayOperationEventHandler(DelayOperation sender);
@@ -30,15 +32,12 @@ public class DelayOperation : BaseSequenceOperation {
     public TimeSpan Delay {
         get => this.delay;
         set {
-            if (this.delay != value) {
-                if (value.TotalMilliseconds < 0)
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "Delay must be positive");
-                if (value.TotalMilliseconds >= int.MaxValue)
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "Delay is too large");
-                
-                this.delay = value;
-                this.DelayChanged?.Invoke(this);
-            }
+            if (value.TotalMilliseconds < 0)
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Delay must be positive");
+            if (value.TotalMilliseconds >= int.MaxValue)
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Delay is too large");
+            
+            PropertyHelper.SetAndRaiseINE(ref this.delay, value, this, static t => t.DelayChanged?.Invoke(t));
         }
     }
 

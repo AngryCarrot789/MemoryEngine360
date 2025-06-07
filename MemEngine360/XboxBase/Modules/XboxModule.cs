@@ -17,6 +17,7 @@
 // along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.XboxBase.Modules;
@@ -41,12 +42,8 @@ public class XboxModule {
         set {
             if (string.IsNullOrWhiteSpace(value))
                 value = null;
-            
-            if (this.name == value)
-                return;
 
-            this.name = value;
-            this.NameChanged?.Invoke(this);
+            PropertyHelper.SetAndRaiseINE(ref this.name, value, this, static t => t.NameChanged?.Invoke(t));
         }
     }
 
@@ -58,12 +55,8 @@ public class XboxModule {
         set {
             if (string.IsNullOrWhiteSpace(value))
                 value = null;
-            
-            if (this.fullName == value)
-                return;
 
-            this.fullName = value;
-            this.FullNameChanged?.Invoke(this);
+            PropertyHelper.SetAndRaiseINE(ref this.fullName, value, this, static t => t.FullNameChanged?.Invoke(t));
         }
     }
 
@@ -72,13 +65,7 @@ public class XboxModule {
     /// </summary>
     public uint BaseAddress {
         get => this.baseAddress;
-        set {
-            if (this.baseAddress == value)
-                return;
-
-            this.baseAddress = value;
-            this.BaseAddressChanged?.Invoke(this);
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.baseAddress, value, this, static t => t.BaseAddressChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -86,13 +73,7 @@ public class XboxModule {
     /// </summary>
     public uint ModuleSize {
         get => this.moduleSize;
-        set {
-            if (this.moduleSize == value)
-                return;
-
-            this.moduleSize = value;
-            this.ModuleSizeChanged?.Invoke(this);
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.moduleSize, value, this, static t => t.ModuleSizeChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -101,13 +82,7 @@ public class XboxModule {
     /// </summary>
     public uint OriginalModuleSize {
         get => this.originalModuleSize;
-        set {
-            if (this.originalModuleSize == value)
-                return;
-
-            this.originalModuleSize = value;
-            this.OriginalModuleSizeChanged?.Invoke(this);
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.originalModuleSize, value, this, static t => t.OriginalModuleSizeChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -115,13 +90,7 @@ public class XboxModule {
     /// </summary>
     public uint EntryPoint {
         get => this.entryPoint;
-        set {
-            if (this.entryPoint == value)
-                return;
-
-            this.entryPoint = value;
-            this.EntryPointChanged?.Invoke(this);
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.entryPoint, value, this, static t => t.EntryPointChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -129,13 +98,7 @@ public class XboxModule {
     /// </summary>
     public string PEModuleName {
         get => this.peModuleName;
-        set {
-            if (this.peModuleName == value)
-                return;
-
-            this.peModuleName = value;
-            this.PEModuleNameChanged?.Invoke(this);
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.peModuleName, value, this, static t => t.PEModuleNameChanged?.Invoke(t));
     }
 
     public ObservableList<XboxModuleSection> Sections { get; }

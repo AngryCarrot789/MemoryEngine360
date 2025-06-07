@@ -19,6 +19,7 @@
 
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.SavedAddressing;
 
@@ -37,12 +38,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// </summary>
     public bool IsAutoRefreshEnabled {
         get => this.isAutoRefreshEnabled;
-        set {
-            if (this.isAutoRefreshEnabled != value) {
-                this.isAutoRefreshEnabled = value;
-                this.IsAutoRefreshEnabledChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.isAutoRefreshEnabled, value, this, static t => t.IsAutoRefreshEnabledChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -77,12 +73,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// </summary>
     public DataType DataType {
         get => this.dataType;
-        set {
-            if (this.dataType != value) {
-                this.dataType = value;
-                this.DataTypeChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, static t => t.DataTypeChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -90,12 +81,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// </summary>
     public StringType StringType {
         get => this.stringType;
-        set {
-            if (this.stringType != value) {
-                this.stringType = value;
-                this.StringTypeChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.stringType, value, this, static t => t.StringTypeChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -107,10 +93,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
             if (value < 0)
                 throw new ArgumentOutOfRangeException(nameof(value), value, nameof(value) + " cannot be negative");
             
-            if (this.stringLength != value) {
-                this.stringLength = value;
-                this.StringLengthChanged?.Invoke(this);
-            }
+            PropertyHelper.SetAndRaiseINE(ref this.stringLength, value, this, static t => t.StringLengthChanged?.Invoke(t));
         }
     }
 
@@ -120,10 +103,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
             if (value < 0)
                 throw new ArgumentOutOfRangeException(nameof(value), value, nameof(value) + " cannot be negative");
             
-            if (this.arrayLength != value) {
-                this.arrayLength = value;
-                this.ArrayLengthChanged?.Invoke(this);
-            }
+            PropertyHelper.SetAndRaiseINE(ref this.arrayLength, value, this, static t => t.ArrayLengthChanged?.Invoke(t));
         }
     }
 
@@ -132,12 +112,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// </summary>
     public NumericDisplayType NumericDisplayType {
         get => this.numericDisplayType;
-        set {
-            if (this.numericDisplayType != value) {
-                this.numericDisplayType = value;
-                this.NumericDisplayTypeChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.numericDisplayType, value, this, static t => t.NumericDisplayTypeChanged?.Invoke(t));
     }
 
     /// <summary>

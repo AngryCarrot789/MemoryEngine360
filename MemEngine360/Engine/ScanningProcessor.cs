@@ -38,15 +38,83 @@ public delegate void ScanningProcessorEventHandler(ScanningProcessor sender);
 
 public delegate void ScanningProcessorScanRangeChangedEventHandler(ScanningProcessor sender, uint oldAddress, uint oldLength);
 
+public delegate void UnknownDataTypeOptionsEventHandler(UnknownDataTypeOptions sender);
+
+// Separate class because the ScanningProcessor is already stuffed full enough of properties
+public sealed class UnknownDataTypeOptions {
+    private RoundingMode floatToIntRounding = RoundingMode.Floor;
+    private bool canSearchForByte = true;
+    private bool canSearchForShort = true;
+    private bool canSearchForInt = true;
+    private bool canSearchForLong = true;
+    private bool canSearchForFloat = true;
+    private bool canSearchForDouble = true;
+    private bool canSearchForString = true;
+
+    public RoundingMode FloatToIntRounding {
+        get => this.floatToIntRounding;
+        set => PropertyHelper.SetAndRaiseINE(ref this.floatToIntRounding, value, this, static t => t.FloatToIntRoundingChanged?.Invoke(t));
+    }
+    
+    public bool CanSearchForByte {
+        get => this.canSearchForByte;
+        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForByte, value, this, static t => t.CanSearchForByteChanged?.Invoke(t));
+    }
+
+    public bool CanSearchForShort {
+        get => this.canSearchForShort;
+        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForShort, value, this, static t => t.CanSearchForShortChanged?.Invoke(t));
+    }
+
+    public bool CanSearchForInt {
+        get => this.canSearchForInt;
+        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForInt, value, this, static t => t.CanSearchForIntChanged?.Invoke(t));
+    }
+
+    public bool CanSearchForLong {
+        get => this.canSearchForLong;
+        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForLong, value, this, static t => t.CanSearchForLongChanged?.Invoke(t));
+    }
+    
+    public bool CanSearchForFloat {
+        get => this.canSearchForFloat;
+        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForFloat, value, this, static t => t.CanSearchForFloatChanged?.Invoke(t));
+    }
+    
+    public bool CanSearchForDouble {
+        get => this.canSearchForDouble;
+        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForDouble, value, this, static t => t.CanSearchForDoubleChanged?.Invoke(t));
+    }
+    
+    public bool CanSearchForString {
+        get => this.canSearchForString;
+        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForString, value, this, static t => t.CanSearchForStringChanged?.Invoke(t));
+    }
+    
+    public event UnknownDataTypeOptionsEventHandler? FloatToIntRoundingChanged;
+    public event UnknownDataTypeOptionsEventHandler? CanSearchForByteChanged;
+    public event UnknownDataTypeOptionsEventHandler? CanSearchForShortChanged;
+    public event UnknownDataTypeOptionsEventHandler? CanSearchForIntChanged;
+    public event UnknownDataTypeOptionsEventHandler? CanSearchForLongChanged;
+    public event UnknownDataTypeOptionsEventHandler? CanSearchForFloatChanged;
+    public event UnknownDataTypeOptionsEventHandler? CanSearchForDoubleChanged;
+    public event UnknownDataTypeOptionsEventHandler? CanSearchForStringChanged;
+
+    public UnknownDataTypeOptions() {
+    }
+}
+
 public class ScanningProcessor {
     private string inputA, inputB;
-    private bool hasDoneFirstScan, isScanning;
+    private bool hasDoneFirstScan;
+    private bool isScanning;
     private uint alignment;
     private bool pauseConsoleDuringScan, scanMemoryPages, isIntInputHexadecimal;
     private bool nextScanUsesFirstValue, nextScanUsesPreviousValue;
     private FloatScanOption floatScanOption;
     private StringType stringScanOption;
     private DataType dataType;
+    private bool scanForAnyDataType;
     private NumericScanType numericScanType;
     private bool stringIgnoreCase;
     private bool isRefreshingAddresses;
@@ -58,13 +126,7 @@ public class ScanningProcessor {
     /// </summary>
     public string InputA {
         get => this.inputA;
-        set {
-            value ??= "";
-            if (this.inputA != value) {
-                this.inputA = value;
-                this.InputAChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.inputA, value ?? "", this, static t => t.InputAChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -72,39 +134,28 @@ public class ScanningProcessor {
     /// </summary>
     public string InputB {
         get => this.inputB;
-        set {
-            value ??= "";
-            if (this.inputB != value) {
-                this.inputB = value;
-                this.InputBChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.inputB, value ?? "", this, static t => t.InputBChanged?.Invoke(t));
     }
 
     /// <summary>
-    /// Gets whether the first scan has been performed
+    /// Gets whether the first scan has been performed. <see cref=""/>
     /// </summary>
     public bool HasDoneFirstScan {
         get => this.hasDoneFirstScan;
-        private set {
-            if (this.hasDoneFirstScan != value) {
-                this.hasDoneFirstScan = value;
-                this.HasFirstScanChanged?.Invoke(this);
-            }
-        }
+        private set => PropertyHelper.SetAndRaiseINE(ref this.hasDoneFirstScan, value, this, static t => t.HasFirstScanChanged?.Invoke(t));
     }
+
+    /// <summary>
+    /// Gets whether the first scan was run when <see cref="ScanForAnyDataType"/> was true. This changes when <see cref="HasDoneFirstScan"/> changes
+    /// </summary>
+    public bool FirstScanWasUnknownDataType { get; private set; }
 
     /// <summary>
     /// Gets whether we're currently scanning.
     /// </summary>
     public bool IsScanning {
         get => this.isScanning;
-        private set {
-            if (this.isScanning != value) {
-                this.isScanning = value;
-                this.IsScanningChanged?.Invoke(this);
-            }
-        }
+        private set => PropertyHelper.SetAndRaiseINE(ref this.isScanning, value, this, static t => t.IsScanningChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -126,13 +177,10 @@ public class ScanningProcessor {
     public uint Alignment {
         get => this.alignment;
         set {
-            if (this.alignment != value) {
-                if (value == 0)
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "Alignment cannot be zero");
-
-                this.alignment = value;
-                this.AlignmentChanged?.Invoke(this);
-            }
+            if (value == 0)
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Alignment cannot be zero");
+            
+            PropertyHelper.SetAndRaiseINE(ref this.alignment, value, this, static t => t.AlignmentChanged?.Invoke(t));
         }
     }
 
@@ -158,12 +206,11 @@ public class ScanningProcessor {
     public bool ScanMemoryPages {
         get => this.scanMemoryPages;
         set {
-            if (this.scanMemoryPages == value)
-                return;
-
-            this.scanMemoryPages = value;
-            this.ScanMemoryPagesChanged?.Invoke(this);
-            BasicApplicationConfiguration.Instance.ScanMemoryPages = value;
+            if (this.scanMemoryPages != value) {
+                this.scanMemoryPages = value;
+                this.ScanMemoryPagesChanged?.Invoke(this);
+                BasicApplicationConfiguration.Instance.ScanMemoryPages = value;
+            }
         }
     }
 
@@ -235,15 +282,14 @@ public class ScanningProcessor {
         }
     }
 
+    public bool ScanForAnyDataType {
+        get => this.scanForAnyDataType;
+        set => PropertyHelper.SetAndRaiseINE(ref this.scanForAnyDataType, value, this, static t => t.ScanForAnyDataTypeChanged?.Invoke(t));
+    }
+
     public NumericScanType NumericScanType {
         get => this.numericScanType;
-        set {
-            if (this.numericScanType == value)
-                return;
-
-            this.numericScanType = value;
-            this.NumericScanTypeChanged?.Invoke(this);
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.numericScanType, value, this, static t => t.NumericScanTypeChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -252,12 +298,11 @@ public class ScanningProcessor {
     public bool StringIgnoreCase {
         get => this.stringIgnoreCase;
         set {
-            if (this.stringIgnoreCase == value)
-                return;
-
-            this.stringIgnoreCase = value;
-            this.StringIgnoreCaseChanged?.Invoke(this);
-            BasicApplicationConfiguration.Instance.DTString_IgnoreCase = value;
+            if (this.stringIgnoreCase != value) {
+                this.stringIgnoreCase = value;
+                this.StringIgnoreCaseChanged?.Invoke(this);
+                BasicApplicationConfiguration.Instance.DTString_IgnoreCase = value;
+            }
         }
     }
 
@@ -266,13 +311,7 @@ public class ScanningProcessor {
     /// </summary>
     public bool IsRefreshingAddresses {
         get => this.isRefreshingAddresses;
-        private set {
-            if (this.isRefreshingAddresses == value)
-                return;
-
-            this.isRefreshingAddresses = value;
-            this.IsRefreshingAddressesChanged?.Invoke(this);
-        }
+        private set => PropertyHelper.SetAndRaiseINE(ref this.isRefreshingAddresses, value, this, static t => t.IsRefreshingAddressesChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -284,6 +323,8 @@ public class ScanningProcessor {
     public bool CanPerformFirstScan => !this.IsScanning && !this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
     public bool CanPerformNextScan => !this.IsScanning && this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
     public bool CanPerformReset => !this.IsScanning && this.HasDoneFirstScan;
+
+    public UnknownDataTypeOptions UnknownDataTypeOptions { get; } = new UnknownDataTypeOptions();
 
     /// <summary>
     /// Gets the visible scan results in the UI
@@ -309,6 +350,7 @@ public class ScanningProcessor {
     public event ScanningProcessorEventHandler? FloatScanModeChanged;
     public event ScanningProcessorEventHandler? StringScanModeChanged;
     public event ScanningProcessorEventHandler? DataTypeChanged;
+    public event ScanningProcessorEventHandler? ScanForAnyDataTypeChanged;
     public event ScanningProcessorEventHandler? NumericScanTypeChanged;
     public event ScanningProcessorEventHandler? StringIgnoreCaseChanged;
     public event ScanningProcessorEventHandler? AlignmentChanged;
@@ -384,7 +426,7 @@ public class ScanningProcessor {
             // and the xbox can't even physically address that far, apart from that one model with 4 gigs of ram
             throw new ArgumentException("New scan range exceed size of UInt32; it requires a 64 bit address range, which is unsupported");
         }
-        
+
         // Just to ensure there isn't weird glitches by changing both before events,
         // we first set length to 0 so that we can change StartAddress without
         // risking observers doing newValue + processor.ScanLength and overflowing
@@ -392,7 +434,7 @@ public class ScanningProcessor {
         uint oldStart = this.StartAddress, oldLength = this.ScanLength;
         this.StartAddress = newStartAddress;
         this.ScanLength = newScanLength;
-        
+
         this.ScanRangeChanged?.Invoke(this, oldStart, oldLength);
 
         if (updateConfiguration) {
@@ -411,192 +453,208 @@ public class ScanningProcessor {
         if (connection == null)
             throw new InvalidOperationException("No console connection");
 
-        using IDisposable? token = await this.MemoryEngine360.BeginBusyOperationActivityAsync("Pre-Scan Setup");
+        IDisposable? token = await this.MemoryEngine360.BeginBusyOperationActivityAsync("Pre-Scan Setup");
         if (token == null)
             return; // user cancelled token fetch
 
-        if ((connection = this.MemoryEngine360.Connection) == null)
-            return; // rare disconnection before token acquired
+        try {
+            if ((connection = this.MemoryEngine360.Connection) == null)
+                return; // rare disconnection before token acquired
 
-        if (this.MemoryEngine360.IsShuttingDown)
-            return; // program shutting down before token acquired
+            if (this.MemoryEngine360.IsShuttingDown)
+                return; // program shutting down before token acquired
 
-        DataType scanningDataType = this.DataType;
-        ScanningContext context = new ScanningContext(this);
-        if (!await context.Setup()) {
-            return;
-        }
-
-        // should be impossible since we obtain the busy token which is required before scanning
-
-        Debug.Assert(this.isScanning == false, "WTF");
-
-        DefaultProgressTracker progress = new DefaultProgressTracker {
-            Caption = "Memory Scan", Text = "Beginning scan..."
-        };
-
-        using CancellationTokenSource cts = new CancellationTokenSource();
-        this.ScanningActivity = ActivityManager.Instance.RunTask(async () => {
-            ActivityTask thisTask = ActivityManager.Instance.CurrentTask;
-            await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-                // If for some reason it gets force disconnected in an already scheduled
-                // dispatcher operation, we should just safely stop scanning
-                if (!connection.IsConnected || this.MemoryEngine360.IsShuttingDown) {
-                    return;
-                }
-
-                this.IsScanning = true;
-            });
-
-            bool result = false;
-            if (this.isScanning && connection.IsConnected) {
-                thisTask.CancellationToken.ThrowIfCancellationRequested();
-                try {
-                    context.ResultFound += (sender, model) => {
-                        this.resultBuffer.Enqueue(model);
-                        this.rldaMoveBufferIntoResultList.InvokeAsync();
-                    };
-
-                    if (this.hasDoneFirstScan) {
-                        progress.Text = "Accumulating scan results...";
-                        List<ScanResultViewModel> srcList = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                            List<ScanResultViewModel> items = this.ScanResults.ToList();
-                            this.ScanResults.Clear();
-                            return items;
-                        });
-
-                        srcList.AddRange(this.resultBuffer);
-                        this.resultBuffer.Clear();
-
-                        bool hasDifferentDataTypes = false;
-                        DataType firstDataType = this.dataType;
-                        if (srcList.Count > 0) {
-                            firstDataType = srcList[0].DataType;
-                            for (int i = 1; i < srcList.Count; i++) {
-                                if (srcList[i].DataType != firstDataType) {
-                                    hasDifferentDataTypes = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (hasDifferentDataTypes) {
-                            await IMessageDialogService.Instance.ShowMessage("Error", "Result list contains results with different data types. This is a weird bug. Cannot continue search");
-                            result = false;
-                        }
-                        else if (firstDataType != scanningDataType) {
-                            await IMessageDialogService.Instance.ShowMessage("Error", $"Search data type is different to the search results. You're searching for {scanningDataType}, but the results contain {firstDataType}");
-                            result = false;
-                        }
-                        else {
-                            bool canContinue = false;
-                            progress.Text = "Scanning...";
-                            IHaveIceCubes? cubes = context.pauseConsoleDuringScan ? connection as IHaveIceCubes : null;
-                            try {
-                                if (cubes != null && connection.IsConnected) {
-                                    await cubes.DebugFreeze();
-                                }
-
-                                canContinue = true;
-                            }
-                            catch (Exception e) {
-                                await IMessageDialogService.Instance.ShowMessage("Error", "Error while freezing console", e.ToString());
-                                result = false;
-                            }
-
-                            if (canContinue) {
-                                try {
-                                    result = true;
-                                    await context.PerformNextScan(connection, srcList);
-                                }
-                                catch (OperationCanceledException) {
-                                    // ignored
-                                }
-                                catch (Exception e) {
-                                    await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing next scan", e.ToString());
-                                    result = false;
-                                }
-
-                                try {
-                                    if (cubes != null && connection.IsConnected) {
-                                        await cubes.DebugUnFreeze();
-                                    }
-                                }
-                                catch (Exception e) {
-                                    await IMessageDialogService.Instance.ShowMessage("Error", "Error while unfreezing console", e.ToString());
-                                    result = false;
-                                }
-                            }
-                        }
-                    }
-                    else {
-                        progress.Text = "Scanning...";
-
-                        try {
-                            result = true;
-                            FirstScanTask task = new FirstScanTask(context, connection, token);
-                            await task.RunWithCurrentActivity();
-                        }
-                        catch (OperationCanceledException) {
-                            // ignored
-                        }
-                        catch (Exception e) {
-                            await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing first scan", e.ToString());
-                            result = false;
-                        }
-                    }
-
-                    this.rldaMoveBufferIntoResultList.InvokeAsync();
-                }
-                catch {
-                    Debugger.Break();
-                    result = false;
-                }
-
-                Task updateListTask = Task.CompletedTask;
-                if (result && !this.MemoryEngine360.IsShuttingDown && !thisTask.IsCancellationRequested) {
-                    progress.Text = "Updating result list...";
-                    int count = this.resultBuffer.Count;
-                    const int chunkSize = 500;
-                    int range = count / chunkSize;
-                    using PopCompletionStateRangeToken x = progress.CompletionState.PushCompletionRange(0.0, 1.0 / range);
-                    updateListTask = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-                        while (!this.resultBuffer.IsEmpty) {
-                            for (int i = 0; i < chunkSize && this.resultBuffer.TryDequeue(out ScanResultViewModel? scanResult); i++) {
-                                this.ScanResults.Add(scanResult);
-                            }
-
-                            progress.CompletionState.OnProgress(1.0);
-                            try {
-                                await Task.Delay(50, thisTask.CancellationToken);
-                            }
-                            catch (OperationCanceledException) {
-                                return;
-                            }
-                        }
-                    });
-                }
-
-                if (context.HasConnectionError) {
-                    await IMessageDialogService.Instance.ShowMessage("Network error", context.ConnectionException!.Message, "Please reconnect to the console", defaultButton: MessageBoxResult.OK);
-                }
-
-                await updateListTask;
+            DataType scanningDataType = this.DataType;
+            bool pauseDuringScan = this.pauseConsoleDuringScan;
+            bool scanForAnything = this.ScanForAnyDataType;
+            ScanningContext context =
+                scanForAnything
+                    ? new AnyTypeScanningContext(this)
+                    : new DataTypedScanningContext(this);
+            if (!await context.Setup()) {
+                return;
             }
 
-            await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-                this.HasDoneFirstScan = result;
-                this.IsScanning = false;
-                if (!this.MemoryEngine360.IsShuttingDown) // another race condition i suppose
-                    this.MemoryEngine360.CheckConnection(token);
-            });
-        }, progress, cts);
-        
-        try {
-            await this.ScanningActivity;
+            // should be impossible since we obtain the busy token which is required before scanning
+
+            Debug.Assert(this.isScanning == false, "WTF");
+
+            DefaultProgressTracker progress = new DefaultProgressTracker {
+                Caption = "Memory Scan", Text = "Beginning scan..."
+            };
+
+            using CancellationTokenSource cts = new CancellationTokenSource();
+            this.ScanningActivity = ActivityManager.Instance.RunTask(async () => {
+                ActivityTask thisTask = ActivityManager.Instance.CurrentTask;
+                await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+                    // If for some reason it gets force disconnected in an already scheduled
+                    // dispatcher operation, we should just safely stop scanning
+                    if (!connection.IsConnected || this.MemoryEngine360.IsShuttingDown) {
+                        return;
+                    }
+
+                    this.IsScanning = true;
+                });
+
+                bool result = false;
+                if (this.isScanning && connection.IsConnected) {
+                    thisTask.CancellationToken.ThrowIfCancellationRequested();
+                    try {
+                        context.ResultFound += (sender, model) => {
+                            this.resultBuffer.Enqueue(model);
+                            this.rldaMoveBufferIntoResultList.InvokeAsync();
+                        };
+
+                        if (this.hasDoneFirstScan) {
+                            progress.Text = "Accumulating scan results...";
+                            List<ScanResultViewModel> srcList = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                                List<ScanResultViewModel> items = this.ScanResults.ToList();
+                                this.ScanResults.Clear();
+                                return items;
+                            });
+
+                            srcList.AddRange(this.resultBuffer);
+                            this.resultBuffer.Clear();
+
+                            bool hasDifferentDataTypes = false;
+                            DataType firstDataType = this.dataType;
+                            if (srcList.Count > 0) {
+                                firstDataType = srcList[0].DataType;
+                                for (int i = 1; i < srcList.Count; i++) {
+                                    if (srcList[i].DataType != firstDataType) {
+                                        hasDifferentDataTypes = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (hasDifferentDataTypes) {
+                                await IMessageDialogService.Instance.ShowMessage("Error", "Result list contains results with different data types. Toggle the \"Any\" (unknown data type) button to search using these results");
+                                result = false;
+                            }
+                            else if (firstDataType != scanningDataType) {
+                                await IMessageDialogService.Instance.ShowMessage("Error", $"Search data type is different to the search results. You're searching for {scanningDataType}, but the results contain {firstDataType}");
+                                result = false;
+                            }
+                            else {
+                                bool canContinue = false;
+                                progress.Text = "Scanning...";
+                                IHaveIceCubes? cubes = pauseDuringScan ? connection as IHaveIceCubes : null;
+                                try {
+                                    if (cubes != null && connection.IsConnected) {
+                                        await cubes.DebugFreeze();
+                                    }
+
+                                    canContinue = true;
+                                }
+                                catch (Exception e) {
+                                    await IMessageDialogService.Instance.ShowMessage("Error", "Error while freezing console", e.ToString());
+                                    result = false;
+                                }
+
+                                if (canContinue) {
+                                    try {
+                                        result = true;
+                                        token = await context.PerformNextScan(connection, srcList, token);
+                                    }
+                                    catch (OperationCanceledException) {
+                                        // ignored
+                                    }
+                                    catch (Exception e) {
+                                        await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing next scan", e.ToString());
+                                        result = false;
+                                    }
+
+                                    try {
+                                        if (cubes != null && connection.IsConnected) {
+                                            await cubes.DebugUnFreeze();
+                                        }
+                                    }
+                                    catch (Exception e) {
+                                        await IMessageDialogService.Instance.ShowMessage("Error", "Error while unfreezing console", e.ToString());
+                                        result = false;
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            progress.Text = "Scanning...";
+
+                            try {
+                                result = true;
+                                token = await context.PerformFirstScan(connection, token);
+                            }
+                            catch (OperationCanceledException) {
+                                // ignored
+                            }
+                            catch (Exception e) {
+                                await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing first scan", e.ToString());
+                                result = false;
+                            }
+                        }
+
+                        this.rldaMoveBufferIntoResultList.InvokeAsync();
+                    }
+                    catch {
+                        Debugger.Break();
+                        result = false;
+                    }
+
+                    Task updateListTask = Task.CompletedTask;
+                    if (result && !this.MemoryEngine360.IsShuttingDown && !thisTask.IsCancellationRequested) {
+                        progress.Text = "Updating result list...";
+                        int count = this.resultBuffer.Count;
+                        const int chunkSize = 500;
+                        int range = count / chunkSize;
+                        using PopCompletionStateRangeToken x = progress.CompletionState.PushCompletionRange(0.0, 1.0 / range);
+                        updateListTask = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+                            while (!this.resultBuffer.IsEmpty) {
+                                for (int i = 0; i < chunkSize && this.resultBuffer.TryDequeue(out ScanResultViewModel? scanResult); i++) {
+                                    this.ScanResults.Add(scanResult);
+                                }
+
+                                progress.CompletionState.OnProgress(1.0);
+                                try {
+                                    await Task.Delay(50, thisTask.CancellationToken);
+                                }
+                                catch (OperationCanceledException) {
+                                    return;
+                                }
+                            }
+                        });
+                    }
+
+                    if (context.HasConnectionError) {
+                        await IMessageDialogService.Instance.ShowMessage("Network error", context.ConnectionException!.Message, "Please reconnect to the console", defaultButton: MessageBoxResult.OK);
+                    }
+
+                    await updateListTask;
+                }
+
+                await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+                    this.FirstScanWasUnknownDataType = scanForAnything;
+                    this.HasDoneFirstScan = result;
+                    this.IsScanning = false;
+                    if (!this.MemoryEngine360.IsShuttingDown) { // another race condition i suppose
+                        if (token != null) {
+                            this.MemoryEngine360.CheckConnection(token);
+                        }
+                        else {
+                            this.MemoryEngine360.CheckConnection();
+                        }
+                    }
+                });
+            }, progress, cts);
+
+            try {
+                await this.ScanningActivity;
+            }
+            finally {
+                this.ScanningActivity = null;
+            }
         }
         finally {
-            this.ScanningActivity = null;
+            token?.Dispose();
         }
     }
 
@@ -606,6 +664,7 @@ public class ScanningProcessor {
 
         this.resultBuffer.Clear();
         this.ScanResults.Clear();
+        this.FirstScanWasUnknownDataType = false;
         this.HasDoneFirstScan = false;
         this.UseFirstValueForNextScan = false;
         this.UsePreviousValueForNextScan = false;
