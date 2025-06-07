@@ -26,6 +26,7 @@ using MemEngine360.ValueAbstraction;
 namespace MemEngine360.Sequencing.Operations;
 
 public delegate void SetVariableOperationEventHandler(SetMemoryOperation sender);
+public delegate void SetVariableOperationDataValueProviderChangedEventHandler(SetMemoryOperation sender, DataValueProvider? oldProvider, DataValueProvider? newProvider);
 
 /// <summary>
 /// An operation that sets a value on the console
@@ -54,9 +55,10 @@ public class SetMemoryOperation : BaseSequenceOperation {
     public DataValueProvider? DataValueProvider {
         get => this.dataValueProvider;
         set {
-            if (!Equals(this.dataValueProvider, value)) {
+            DataValueProvider? oldProvider = this.dataValueProvider;
+            if (!Equals(oldProvider, value)) {
                 this.dataValueProvider = value;
-                this.DataValueProviderChanged?.Invoke(this);
+                this.DataValueProviderChanged?.Invoke(this, oldProvider, value);
             }
         }
     }
@@ -79,7 +81,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
     public override string DisplayName => "Set Memory";
 
     public event SetVariableOperationEventHandler? AddressChanged;
-    public event SetVariableOperationEventHandler? DataValueProviderChanged;
+    public event SetVariableOperationDataValueProviderChangedEventHandler? DataValueProviderChanged;
     public event SetVariableOperationEventHandler? IterateCountChanged;
 
     public SetMemoryOperation() {

@@ -91,6 +91,32 @@ public interface IDataValue : IEquatable<IDataValue> {
         }
     }
 
+    static IDataValue CreateDefault(DataType dataType, StringType stringType) {
+        switch (dataType) {
+            case DataType.Byte:      
+            case DataType.Int16:     
+            case DataType.Int32:     
+            case DataType.Int64:     
+            case DataType.Float:     
+            case DataType.Double:    return CreateDefaultNumeric(dataType);
+            case DataType.String:    return new DataValueString("", stringType);
+            case DataType.ByteArray: return new DataValueByteArray([]);
+            default:                 throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
+        }
+    }
+    
+    static BaseNumericDataValue CreateDefaultNumeric(DataType dataType) {
+        switch (dataType) {
+            case DataType.Byte:      return new DataValueByte(0);
+            case DataType.Int16:     return new DataValueInt16(0);
+            case DataType.Int32:     return new DataValueInt32(0);
+            case DataType.Int64:     return new DataValueInt64(0);
+            case DataType.Float:     return new DataValueFloat(0);
+            case DataType.Double:    return new DataValueDouble(0);
+            default:                 throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
+        }
+    }
+
     /// <summary>
     /// Creates a numeric data value from the number. <see cref="T"/> can be byte, short, int, long, float or double.
     /// </summary>
@@ -136,4 +162,41 @@ public interface IDataValue : IEquatable<IDataValue> {
     /// <param name="type">The string type (ascii, unicode, etc.)</param>
     /// <returns></returns>
     static DataValueString CreateString(string? value, StringType type = StringType.ASCII) => new DataValueString(value ?? "", type);
+
+    /// <summary>
+    /// Attempts to convert a data value into a new instance typed by <see cref="newDataType"/>
+    /// </summary>
+    /// <param name="value">The value to be converted</param>
+    /// <param name="newDataType">The data type to convert into</param>
+    /// <param name="newStringType">The string type</param>
+    /// <returns></returns>
+    static IDataValue? TryConvertDataValue(IDataValue? value, DataType newDataType, StringType newStringType) {
+        if (value == null) {
+            return null;
+        }
+
+        // Same types?
+        if (value.DataType == newDataType) {
+            // String type differs? Convert to new string type
+            if (value.DataType == DataType.String && ((DataValueString) value).StringType != newStringType) {
+                return new DataValueString(((DataValueString) value).Value, newStringType);
+            }
+
+            return value;
+        }
+
+        // Old value is numeric?
+        if (value.DataType.IsNumeric()) {
+            // Try convert into string
+            if (newDataType == DataType.String) {
+                return new DataValueString(value.BoxedValue.ToString() ?? "", newStringType);
+            }
+
+            // Try convert into another numeric type
+            return ((BaseNumericDataValue) value).TryConvertTo(newDataType, out BaseNumericDataValue? newValue) ? newValue : null;
+        }
+
+        // Old value is string or pattern... or another if more were added since this comment.
+        return null;
+    }
 }
