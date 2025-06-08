@@ -24,6 +24,7 @@ using PFXToolKitUI.Persistence;
 namespace MemEngine360.Configs;
 
 public class BasicApplicationConfiguration : PersistentConfiguration {
+    public static readonly PersistentProperty<string> DefaultThemeProperty = PersistentProperty.RegisterString<BasicApplicationConfiguration>("DefaultTheme", defaultValue: "Dark", owner => owner.defaultTheme, (x, y) => x.defaultTheme = y, true);
     public static readonly PersistentProperty<string> LastHostNameProperty = PersistentProperty.RegisterString<BasicApplicationConfiguration>("LastHostName", defaultValue: "", owner => owner.lastHostName, (x, y) => x.lastHostName = y, false);
     public static readonly PersistentProperty<uint> StartAddressProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("StartAddress", defaultValue: 0x82600000, owner => owner.startAddr, (x, y) => x.startAddr = y, false);
     public static readonly PersistentProperty<uint> ScanLengthProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("ScanLength", defaultValue: 0x1000000, owner => owner.scanLength, (x, y) => x.scanLength = y, false);
@@ -41,6 +42,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
 
     public static BasicApplicationConfiguration Instance => ApplicationPFX.Instance.PersistentStorageManager.GetConfiguration<BasicApplicationConfiguration>();
 
+    private string defaultTheme = DefaultThemeProperty.DefaultValue;
     private string lastHostName = LastHostNameProperty.DefaultValue;
     private uint startAddr = StartAddressProperty.DefaultValue;
     private uint scanLength = ScanLengthProperty.DefaultValue;
@@ -62,6 +64,14 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public string LastHostName {
         get => LastHostNameProperty.GetValue(this);
         set => LastHostNameProperty.SetValue(this, value);
+    }
+    
+    /// <summary>
+    /// Gets or sets the default theme loaded at app startup
+    /// </summary>
+    public string DefaultTheme {
+        get => DefaultThemeProperty.GetValue(this);
+        set => DefaultThemeProperty.SetValue(this, value);
     }
 
     public uint StartAddress {

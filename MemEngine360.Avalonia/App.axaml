@@ -14,14 +14,14 @@
             <FontFamily x:Key="FontOxanium">avares://PFXToolKitUI.Avalonia/Resources/Fonts/Oxanium/#Oxanium</FontFamily>
             
             <ResourceDictionary.ThemeDictionaries>
-                <ResourceDictionary x:Key='Dark'>
+                <ResourceDictionary x:Key="Dark">
                     <ResourceDictionary.MergedDictionaries>
                         <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/Colours/SoftDark.axaml"/>
                         <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/ControlColours.axaml"/>
                         <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/Themes/MemoryEngineThemes.axaml"/>
                     </ResourceDictionary.MergedDictionaries>
                 </ResourceDictionary>
-                <ResourceDictionary x:Key='Light'>
+                <ResourceDictionary x:Key="Light">
                     <ResourceDictionary.MergedDictionaries>
                         <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/Colours/CrappyLight.axaml"/>
                         <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/ControlColours.axaml"/>

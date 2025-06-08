@@ -128,15 +128,6 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.RunSequenceCommand", new RunSequenceCommand());
     }
 
-    protected override async Task OnSetupApplication(IApplicationStartupProgress progress) {
-        await base.OnSetupApplication(progress);
-        this.PluginLoader.AddCorePlugin(typeof(PluginXbox360Xbdm));
-
-        if (OperatingSystem.IsWindows()) {
-            this.PluginLoader.AddCorePlugin(typeof(PluginXbox360XDevkit));
-        }
-    }
-
     protected override void RegisterServices(ServiceManager manager) {
         if (this.Application.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime) {
             manager.RegisterConstant<IDesktopService>(new DesktopServiceImpl(this.Application));
@@ -152,6 +143,21 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.RegisterConstant<ConsoleConnectionManager>(new ConsoleConnectionManagerImpl());
         manager.RegisterConstant<ITaskSequencerService>(new TaskSequencerServiceImpl());
         manager.RegisterConstant<MemoryEngineManager>(new MemoryEngineManagerImpl());
+        
+        ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
+    }
+
+    private static void OnActiveThemeChanged(ThemeManager manager, Theme oldTheme, Theme newTheme) {
+        BasicApplicationConfiguration.Instance.DefaultTheme = newTheme.Name;
+    }
+
+    protected override async Task OnSetupApplication(IApplicationStartupProgress progress) {
+        await base.OnSetupApplication(progress);
+        this.PluginLoader.AddCorePlugin(typeof(PluginXbox360Xbdm));
+
+        if (OperatingSystem.IsWindows()) {
+            this.PluginLoader.AddCorePlugin(typeof(PluginXbox360XDevkit));
+        }
         
         MemoryEngineBrushLoader.Init();
     }
@@ -179,7 +185,14 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 #endif
 
         OpenConnectionView.Registry.RegisterType<OpenDebuggingFileInfo>(() => new OpenDebuggingFileView());
-        
+
+        Theme? theme;
+        ThemeManager themeManager = this.ServiceManager.GetService<ThemeManager>();
+        string defaultThemeName = BasicApplicationConfiguration.Instance.DefaultTheme;
+        if (!string.IsNullOrWhiteSpace(defaultThemeName) && (theme = themeManager.GetTheme(defaultThemeName)) != null) {
+            themeManager.SetTheme(theme);
+        }
+
         return base.OnApplicationFullyLoaded();
     }
 
