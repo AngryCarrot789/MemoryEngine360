@@ -134,6 +134,7 @@ public partial class ScanOptionsControl : UserControl {
                 int idx = ((TabControl) b.Control).SelectedIndex;
                 if (idx == 3) {
                     b.Model.ScanForAnyDataType = true;
+                    b.Model.Alignment = 1;
                 }
                 else {
                     b.Model.ScanForAnyDataType = false;
@@ -142,6 +143,9 @@ public partial class ScanOptionsControl : UserControl {
                         case 1:  b.Model.DataType = this.lastFloatDataType; break;
                         case 2:  b.Model.DataType = DataType.String; break;
                     }
+                    
+                    // update anyway just in case old DT equals new DT
+                    b.Model.Alignment = b.Model.DataType.GetAlignmentFromDataType();
                 }
             }
         });

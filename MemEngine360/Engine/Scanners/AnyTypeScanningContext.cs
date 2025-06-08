@@ -55,6 +55,7 @@ public class AnyTypeScanningContext : ScanningContext {
     private int cbString;
     private char[]? charBuffer;
     private Decoder? stringDecoder;
+    private DataType[] intOrdering;
 
     /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result
@@ -104,6 +105,12 @@ public class AnyTypeScanningContext : ScanningContext {
             if (udto.CanSearchForDouble && double.TryParse(this.inputA, out double d))
                 this.in_double = d;
 
+            this.intOrdering = udto.IntDataTypeOrdering.CloneArrayUnsafe()!;
+            Debug.Assert(this.intOrdering.Length == 4);
+            foreach (DataType dt in this.intOrdering) {
+                Debug.Assert(dt.IsInteger());
+            }
+
             // ReSharper disable once AssignmentInConditionalExpression
             if (this.canSearchForString = udto.CanSearchForString) {
                 Encoding encoding = this.stringType.ToEncoding();
@@ -131,37 +138,51 @@ public class AnyTypeScanningContext : ScanningContext {
         IDataValue? value;
         NumericDisplayType intNdt = this.isIntInputHexadecimal ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
         for (uint i = 0; i < buffer.Length; i += this.alignment) {
-            if (this.in_byte.HasValue && (buffer.Length - i) >= sizeof(byte)) {
-                byte val = this.in_byte.Value;
-                if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<byte>(buffer.Slice((int) i, sizeof(byte))), Unsafe.As<byte, ulong>(ref val), 0)) != null) {
-                    this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Byte, intNdt, this.stringType, value));
-                }
-            }
+            for (int j = 0; j < 4; j++) {
+                switch (this.intOrdering[j]) {
+                    case DataType.Byte when this.in_byte.HasValue && (buffer.Length - i) >= sizeof(byte): {
+                        byte val = this.in_byte.Value;
+                        if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<byte>(buffer.Slice((int) i, sizeof(byte))), Unsafe.As<byte, ulong>(ref val), 0)) != null) {
+                            this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Byte, intNdt, this.stringType, value));
+                            goto LoopEnd;
+                        }
 
-            if (this.in_short.HasValue && (buffer.Length - i) >= sizeof(short)) {
-                short val = this.in_short.Value;
-                if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<short>(buffer.Slice((int) i, sizeof(short))), Unsafe.As<short, ulong>(ref val), 0)) != null) {
-                    this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int16, intNdt, this.stringType, value));
-                }
-            }
+                        break;
+                    }
+                    case DataType.Int16 when this.in_short.HasValue && (buffer.Length - i) >= sizeof(short): {
+                        short val = this.in_short.Value;
+                        if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<short>(buffer.Slice((int) i, sizeof(short))), Unsafe.As<short, ulong>(ref val), 0)) != null) {
+                            this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int16, intNdt, this.stringType, value));
+                            goto LoopEnd;
+                        }
 
-            if (this.in_int.HasValue && (buffer.Length - i) >= sizeof(int)) {
-                int val = this.in_int.Value;
-                if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<int>(buffer.Slice((int) i, sizeof(int))), Unsafe.As<int, ulong>(ref val), 0)) != null) {
-                    this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int32, intNdt, this.stringType, value));
-                }
-                // else if ((buffer.Length - sizeof(float)) >= sizeof(float) && (value = this.CompareIntFromFloat<int>(BinaryPrimitives.ReadSingleBigEndian(buffer.Slice((int) i, sizeof(float))), Unsafe.As<int, ulong>(ref val), 0)) != null) {
-                //     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int32, intNdt, this.stringType, value));
-                // }
-                // else if ((buffer.Length - sizeof(double)) >= sizeof(double) && (value = this.CompareIntFromDouble<int>(BinaryPrimitives.ReadDoubleBigEndian(buffer.Slice((int) i, sizeof(double))), Unsafe.As<int, ulong>(ref val), 0)) != null) {
-                //     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int32, intNdt, this.stringType, value));
-                // }
-            }
+                        break;
+                    }
+                    case DataType.Int32 when this.in_int.HasValue && (buffer.Length - i) >= sizeof(int): {
+                        int val = this.in_int.Value;
+                        if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<int>(buffer.Slice((int) i, sizeof(int))), Unsafe.As<int, ulong>(ref val), 0)) != null) {
+                            this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int32, intNdt, this.stringType, value));
+                            goto LoopEnd;
+                        }
+                        // else if ((buffer.Length - sizeof(float)) >= sizeof(float) && (value = this.CompareIntFromFloat<int>(BinaryPrimitives.ReadSingleBigEndian(buffer.Slice((int) i, sizeof(float))), Unsafe.As<int, ulong>(ref val), 0)) != null) {
+                        //     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int32, intNdt, this.stringType, value));
+                        // }
+                        // else if ((buffer.Length - sizeof(double)) >= sizeof(double) && (value = this.CompareIntFromDouble<int>(BinaryPrimitives.ReadDoubleBigEndian(buffer.Slice((int) i, sizeof(double))), Unsafe.As<int, ulong>(ref val), 0)) != null) {
+                        //     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int32, intNdt, this.stringType, value));
+                        // }
 
-            if (this.in_long.HasValue && (buffer.Length - i) >= sizeof(long)) {
-                long val = this.in_long.Value;
-                if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<long>(buffer.Slice((int) i, sizeof(long))), Unsafe.As<long, ulong>(ref val), 0)) != null) {
-                    this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int64, intNdt, this.stringType, value));
+                        break;
+                    }
+                    case DataType.Int64 when this.in_long.HasValue && (buffer.Length - i) >= sizeof(long): {
+                        long val = this.in_long.Value;
+                        if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<long>(buffer.Slice((int) i, sizeof(long))), Unsafe.As<long, ulong>(ref val), 0)) != null) {
+                            this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int64, intNdt, this.stringType, value));
+                            goto LoopEnd;
+                        }
+
+                        break;
+                    }
+                    default: Debug.Fail("Memory Corruption of int ordering array"); break;
                 }
             }
 
@@ -170,6 +191,7 @@ public class AnyTypeScanningContext : ScanningContext {
                 float readVal = ValueScannerUtils.CreateFloat<float>(buffer.Slice((int) i, sizeof(float)));
                 if ((value = this.CompareFloat(readVal, Unsafe.As<float, ulong>(ref val), 0)) != null) {
                     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Float, NumericDisplayType.Normal, this.stringType, value));
+                    continue;
                 }
             }
 
@@ -178,6 +200,7 @@ public class AnyTypeScanningContext : ScanningContext {
                 double readVal = ValueScannerUtils.CreateFloat<double>(buffer.Slice((int) i, sizeof(double)));
                 if ((value = this.CompareFloat(readVal, Unsafe.As<double, ulong>(ref val), 0)) != null) {
                     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Double, NumericDisplayType.Normal, this.stringType, value));
+                    continue;
                 }
             }
 
@@ -195,8 +218,11 @@ public class AnyTypeScanningContext : ScanningContext {
                 ReadOnlySpan<char> chars = new ReadOnlySpan<char>(this.charBuffer, 0, cchUsed);
                 if (chars.Equals(this.inputA.AsSpan(), this.stringComparison)) {
                     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.String, NumericDisplayType.Normal, this.stringType, new DataValueString(new string(chars), this.stringType)));
+                    continue;
                 }
             }
+
+            LoopEnd: ;
         }
     }
 
@@ -220,7 +246,7 @@ public class AnyTypeScanningContext : ScanningContext {
             default: throw new ArgumentOutOfRangeException();
         }
     }
-    
+
     // private BaseNumericDataValue<T>? CompareIntFromFloat<T>(float floatValue, ulong theInputA, ulong theInputB) where T : unmanaged, IBinaryInteger<T> {
     //     T valA = Unsafe.As<ulong, T>(ref theInputA), valB;
     //     switch (this.numericScanType) {
@@ -241,7 +267,7 @@ public class AnyTypeScanningContext : ScanningContext {
     //         default: throw new ArgumentOutOfRangeException();
     //     }
     // }
-    
+
     private BaseFloatDataValue<T>? CompareFloat<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T> {
         bool isFloat = typeof(T) == typeof(float);
         // We convert everything to doubles when comparing, for higher accuracy
@@ -302,6 +328,8 @@ public class AnyTypeScanningContext : ScanningContext {
     /// <param name="srcList">The source list of items</param>
     /// <param name="busyToken"></param>
     internal override async Task<IDisposable?> PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, IDisposable busyToken) {
+        await IMessageDialogService.Instance.ShowMessage("Unsupported", "Next Scan not supported for any data type mode yet");
+        
         // ActivityTask task = ActivityManager.Instance.CurrentTask;
         // if (this.dataType.IsNumeric()) {
         //     using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {

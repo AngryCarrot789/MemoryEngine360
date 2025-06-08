@@ -90,6 +90,14 @@ public sealed class UnknownDataTypeOptions {
         get => this.canSearchForString;
         set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForString, value, this, static t => t.CanSearchForStringChanged?.Invoke(t));
     }
+
+    /// <summary>
+    /// The order in which we scan integer types. Default order is int32, int16 , byte and finally int64.
+    /// This order is used because int32 is the most common data type, next to int16 and then byte. int64 is uncommon hence it's last. 
+    /// </summary>
+    public DataType[] IntDataTypeOrdering { get; } = [
+        DataType.Int32, DataType.Int16, DataType.Byte, DataType.Int64
+    ];
     
     public event UnknownDataTypeOptionsEventHandler? FloatToIntRoundingChanged;
     public event UnknownDataTypeOptionsEventHandler? CanSearchForByteChanged;
@@ -99,9 +107,16 @@ public sealed class UnknownDataTypeOptions {
     public event UnknownDataTypeOptionsEventHandler? CanSearchForFloatChanged;
     public event UnknownDataTypeOptionsEventHandler? CanSearchForDoubleChanged;
     public event UnknownDataTypeOptionsEventHandler? CanSearchForStringChanged;
+    
+    /// <summary>
+    /// Fired when the contents of <see cref="IntDataTypeOrdering"/> have changed
+    /// </summary>
+    public event UnknownDataTypeOptionsEventHandler? IntDataTypeOrderingChanged;
 
     public UnknownDataTypeOptions() {
     }
+
+    public void RaiseIntDataTypeOrderingChanged() => this.IntDataTypeOrderingChanged?.Invoke(this);
 }
 
 public class ScanningProcessor {
@@ -179,7 +194,6 @@ public class ScanningProcessor {
         set {
             if (value == 0)
                 throw new ArgumentOutOfRangeException(nameof(value), value, "Alignment cannot be zero");
-            
             PropertyHelper.SetAndRaiseINE(ref this.alignment, value, this, static t => t.AlignmentChanged?.Invoke(t));
         }
     }
