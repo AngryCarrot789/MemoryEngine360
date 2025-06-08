@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System.Globalization;
@@ -57,7 +57,7 @@ public class PluginXbox360Xbdm : Plugin {
         return Task.CompletedTask;
     }
 
-    private static async Task FillModuleManager(MemoryEngine360 engine, XbdmConsoleConnection connection, XboxModuleManager manager) {
+    private static async Task FillModuleManager(MemoryEngine engine, XbdmConsoleConnection connection, XboxModuleManager manager) {
         ActivityTask task = ActivityManager.Instance.CurrentTask;
         task.Progress.Caption = "Reading Modules";
         task.Progress.Text = "Reading modules...";
@@ -67,8 +67,8 @@ public class PluginXbox360Xbdm : Plugin {
         foreach (string moduleLine in modules) {
             task.CheckCancelled();
 
-            if (!ParamUtils.GetStrParam(moduleLine, "name", true, out string? name) || 
-                !ParamUtils.GetDwParam(moduleLine, "base", true, out uint modBase) || 
+            if (!ParamUtils.GetStrParam(moduleLine, "name", true, out string? name) ||
+                !ParamUtils.GetDwParam(moduleLine, "base", true, out uint modBase) ||
                 !ParamUtils.GetDwParam(moduleLine, "size", true, out uint modSize)) {
                 continue;
             }
@@ -87,7 +87,7 @@ public class PluginXbox360Xbdm : Plugin {
                 OriginalModuleSize = modOriginalSize,
                 // EntryPoint = module.GetEntryPointAddress()
             };
-            
+
             // 0x10100 = entry point for most things, apart from xboxkrnl.exe
             // format: 
             //   fieldsize=0x<size in uint32 hex>

@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using PFXToolKitUI.Configurations;
@@ -23,12 +23,12 @@ using PFXToolKitUI.Utils.Accessing;
 
 namespace MemEngine360.Configs;
 
-public class MemEngineConfigurationPage : ConfigurationPage, ITransferableData {
-    public static readonly DataParameterNumber<uint> ValueRefreshRateParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemEngineConfigurationPage), nameof(ValueRefreshRate), BasicApplicationConfiguration.RefreshRateMillisProperty.DefaultValue, 250, uint.MaxValue, ValueAccessors.Reflective<uint>(typeof(MemEngineConfigurationPage), nameof(valueRefreshRate))));
-    public static readonly DataParameterNumber<uint> AutoRefreshUpdatesPerSecondParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemEngineConfigurationPage), nameof(AutoRefreshUpdatesPerSecond), BasicApplicationConfiguration.AutoRefreshUpdatesPerSecondProperty.DefaultValue, 1, 20, ValueAccessors.Reflective<uint>(typeof(MemEngineConfigurationPage), nameof(autoRefreshUpdatesPerSecond))));
-    public static readonly DataParameterNumber<uint> MaxRowsBeforeDisableAutoRefreshParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemEngineConfigurationPage), nameof(MaxRowsBeforeDisableAutoRefresh), BasicApplicationConfiguration.MaxRowsBeforeDisableAutoRefreshProperty.DefaultValue, ValueAccessors.Reflective<uint>(typeof(MemEngineConfigurationPage), nameof(maxRowsBeforeDisableAutoRefresh))));
-    public static readonly DataParameterNumber<double> FloatingPointEpsilonParameter = DataParameter.Register(new DataParameterNumber<double>(typeof(MemEngineConfigurationPage), nameof(FloatingPointEpsilon), BasicApplicationConfiguration.FloatingPointEpsilonProperty.DefaultValue, 0, 0.9999D, ValueAccessors.Reflective<double>(typeof(MemEngineConfigurationPage), nameof(floatingPointEpsilon))));
-    public static readonly DataParameterBool IsAutoRefreshResultsEnabledParameter = DataParameter.Register(new DataParameterBool(typeof(MemEngineConfigurationPage), nameof(IsAutoRefreshResultsEnabled), BasicApplicationConfiguration.IsAutoRefreshResultsEnabledProperty.DefaultValue, ValueAccessors.Reflective<bool>(typeof(MemEngineConfigurationPage), nameof(isValueRefreshEnabled))));
+public class MemoryEngineConfigurationPage : ConfigurationPage, ITransferableData {
+    public static readonly DataParameterNumber<uint> ValueRefreshRateParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemoryEngineConfigurationPage), nameof(ValueRefreshRate), BasicApplicationConfiguration.RefreshRateMillisProperty.DefaultValue, 250, uint.MaxValue, ValueAccessors.Reflective<uint>(typeof(MemoryEngineConfigurationPage), nameof(valueRefreshRate))));
+    public static readonly DataParameterNumber<uint> AutoRefreshUpdatesPerSecondParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemoryEngineConfigurationPage), nameof(AutoRefreshUpdatesPerSecond), BasicApplicationConfiguration.AutoRefreshUpdatesPerSecondProperty.DefaultValue, 1, 20, ValueAccessors.Reflective<uint>(typeof(MemoryEngineConfigurationPage), nameof(autoRefreshUpdatesPerSecond))));
+    public static readonly DataParameterNumber<uint> MaxRowsBeforeDisableAutoRefreshParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemoryEngineConfigurationPage), nameof(MaxRowsBeforeDisableAutoRefresh), BasicApplicationConfiguration.MaxRowsBeforeDisableAutoRefreshProperty.DefaultValue, ValueAccessors.Reflective<uint>(typeof(MemoryEngineConfigurationPage), nameof(maxRowsBeforeDisableAutoRefresh))));
+    public static readonly DataParameterNumber<double> FloatingPointEpsilonParameter = DataParameter.Register(new DataParameterNumber<double>(typeof(MemoryEngineConfigurationPage), nameof(FloatingPointEpsilon), BasicApplicationConfiguration.FloatingPointEpsilonProperty.DefaultValue, 0, 0.9999D, ValueAccessors.Reflective<double>(typeof(MemoryEngineConfigurationPage), nameof(floatingPointEpsilon))));
+    public static readonly DataParameterBool IsAutoRefreshResultsEnabledParameter = DataParameter.Register(new DataParameterBool(typeof(MemoryEngineConfigurationPage), nameof(IsAutoRefreshResultsEnabled), BasicApplicationConfiguration.IsAutoRefreshResultsEnabledProperty.DefaultValue, ValueAccessors.Reflective<bool>(typeof(MemoryEngineConfigurationPage), nameof(isValueRefreshEnabled))));
 
     private bool ignoreDpChange;
     private uint valueRefreshRate;
@@ -64,7 +64,7 @@ public class MemEngineConfigurationPage : ConfigurationPage, ITransferableData {
     
     public TransferableData TransferableData { get; }
 
-    public MemEngineConfigurationPage() {
+    public MemoryEngineConfigurationPage() {
         this.TransferableData = new TransferableData(this);
         this.valueRefreshRate = ValueRefreshRateParameter.GetDefaultValue(this);
         this.autoRefreshUpdatesPerSecond = AutoRefreshUpdatesPerSecondParameter.GetDefaultValue(this);
@@ -72,15 +72,15 @@ public class MemEngineConfigurationPage : ConfigurationPage, ITransferableData {
         this.isValueRefreshEnabled = IsAutoRefreshResultsEnabledParameter.GetDefaultValue(this);
     }
 
-    static MemEngineConfigurationPage() {
+    static MemoryEngineConfigurationPage() {
         DataParameter.AddMultipleHandlers(MarkModifiedForDPChanged, 
             ValueRefreshRateParameter, AutoRefreshUpdatesPerSecondParameter, 
             MaxRowsBeforeDisableAutoRefreshParameter, IsAutoRefreshResultsEnabledParameter);
     }
 
     private static void MarkModifiedForDPChanged(DataParameter parameter, ITransferableData owner) {
-        if (!((MemEngineConfigurationPage) owner).ignoreDpChange)
-            ((MemEngineConfigurationPage) owner).IsModified = true;
+        if (!((MemoryEngineConfigurationPage) owner).ignoreDpChange)
+            ((MemoryEngineConfigurationPage) owner).IsModified = true;
     }
 
     protected override ValueTask OnContextCreated(ConfigurationContext context) {

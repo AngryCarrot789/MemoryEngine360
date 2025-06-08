@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System.Collections.Concurrent;
@@ -334,8 +334,8 @@ public class ScanningProcessor {
     /// </summary>
     public StringComparison StringComparison => this.stringIgnoreCase ? StringComparison.CurrentCultureIgnoreCase : StringComparison.CurrentCulture;
 
-    public bool CanPerformFirstScan => !this.IsScanning && !this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
-    public bool CanPerformNextScan => !this.IsScanning && this.HasDoneFirstScan && this.MemoryEngine360.Connection != null;
+    public bool CanPerformFirstScan => !this.IsScanning && !this.HasDoneFirstScan && this.MemoryEngine.Connection != null;
+    public bool CanPerformNextScan => !this.IsScanning && this.HasDoneFirstScan && this.MemoryEngine.Connection != null;
     public bool CanPerformReset => !this.IsScanning && this.HasDoneFirstScan;
 
     public UnknownDataTypeOptions UnknownDataTypeOptions { get; } = new UnknownDataTypeOptions();
@@ -352,7 +352,7 @@ public class ScanningProcessor {
     /// </summary>
     public int ActualScanResultCount => this.ScanResults.Count + this.resultBuffer.Count;
 
-    public MemoryEngine360 MemoryEngine360 { get; }
+    public MemoryEngine MemoryEngine { get; }
 
     public event ScanningProcessorEventHandler? InputAChanged, InputBChanged;
     public event ScanningProcessorEventHandler? HasFirstScanChanged;
@@ -380,8 +380,8 @@ public class ScanningProcessor {
     private readonly RateLimitedDispatchAction rldaMoveBufferIntoResultList;
     private readonly RateLimitedDispatchAction rldaRefreshSavedAddressList;
 
-    public ScanningProcessor(MemoryEngine360 memoryEngine360) {
-        this.MemoryEngine360 = memoryEngine360 ?? throw new ArgumentNullException(nameof(memoryEngine360));
+    public ScanningProcessor(MemoryEngine memoryEngine) {
+        this.MemoryEngine = memoryEngine ?? throw new ArgumentNullException(nameof(memoryEngine));
         BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
 
         this.inputA = this.inputB = "";
@@ -415,10 +415,10 @@ public class ScanningProcessor {
 
         this.rldaRefreshSavedAddressList = RateLimitedDispatchActionBase.ForDispatcherAsync(this.RefreshSavedAddressesAsync, TimeSpan.FromMilliseconds(100));
 
-        this.MemoryEngine360.ConnectionAboutToChange += this.OnEngineConnectionAboutToChange;
+        this.MemoryEngine.ConnectionAboutToChange += this.OnEngineConnectionAboutToChange;
     }
 
-    private async Task OnEngineConnectionAboutToChange(MemoryEngine360 sender, ulong frame) {
+    private async Task OnEngineConnectionAboutToChange(MemoryEngine sender, ulong frame) {
         if (this.ScanningActivity != null && this.ScanningActivity.IsRunning) {
             if (this.ScanningActivity.TryCancel()) { // should always return true
                 await this.ScanningActivity;
@@ -463,19 +463,19 @@ public class ScanningProcessor {
         if (this.isScanning)
             throw new InvalidOperationException("Currently scanning");
 
-        IConsoleConnection? connection = this.MemoryEngine360.Connection;
+        IConsoleConnection? connection = this.MemoryEngine.Connection;
         if (connection == null)
             throw new InvalidOperationException("No console connection");
 
-        IDisposable? token = await this.MemoryEngine360.BeginBusyOperationActivityAsync("Pre-Scan Setup");
+        IDisposable? token = await this.MemoryEngine.BeginBusyOperationActivityAsync("Pre-Scan Setup");
         if (token == null)
             return; // user cancelled token fetch
 
         try {
-            if ((connection = this.MemoryEngine360.Connection) == null)
+            if ((connection = this.MemoryEngine.Connection) == null)
                 return; // rare disconnection before token acquired
 
-            if (this.MemoryEngine360.IsShuttingDown)
+            if (this.MemoryEngine.IsShuttingDown)
                 return; // program shutting down before token acquired
 
             DataType scanningDataType = this.DataType;
@@ -503,7 +503,7 @@ public class ScanningProcessor {
                 await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
                     // If for some reason it gets force disconnected in an already scheduled
                     // dispatcher operation, we should just safely stop scanning
-                    if (!connection.IsConnected || this.MemoryEngine360.IsShuttingDown) {
+                    if (!connection.IsConnected || this.MemoryEngine.IsShuttingDown) {
                         return;
                     }
 
@@ -615,7 +615,7 @@ public class ScanningProcessor {
                     }
 
                     Task updateListTask = Task.CompletedTask;
-                    if (result && !this.MemoryEngine360.IsShuttingDown && !thisTask.IsCancellationRequested) {
+                    if (result && !this.MemoryEngine.IsShuttingDown && !thisTask.IsCancellationRequested) {
                         progress.Text = "Updating result list...";
                         int count = this.resultBuffer.Count;
                         const int chunkSize = 500;
@@ -649,12 +649,12 @@ public class ScanningProcessor {
                     this.FirstScanWasUnknownDataType = scanForAnything;
                     this.HasDoneFirstScan = result;
                     this.IsScanning = false;
-                    if (!this.MemoryEngine360.IsShuttingDown) { // another race condition i suppose
+                    if (!this.MemoryEngine.IsShuttingDown) { // another race condition i suppose
                         if (token != null) {
-                            this.MemoryEngine360.CheckConnection(token);
+                            this.MemoryEngine.CheckConnection(token);
                         }
                         else {
-                            this.MemoryEngine360.CheckConnection();
+                            this.MemoryEngine.CheckConnection();
                         }
                     }
                 });
@@ -694,11 +694,11 @@ public class ScanningProcessor {
     public Task RefreshSavedAddressesAsync() => this.RefreshSavedAddressesAsync(false);
 
     public async Task RefreshSavedAddressesAsync(bool bypassLimits) {
-        if (this.IsRefreshingAddresses || this.MemoryEngine360.IsConnectionBusy || this.MemoryEngine360.Connection == null) {
+        if (this.IsRefreshingAddresses || this.MemoryEngine.IsConnectionBusy || this.MemoryEngine.Connection == null) {
             return; // concurrent operations are dangerous and can corrupt the communication pipe until restarting connection
         }
 
-        using IDisposable? token = this.MemoryEngine360.BeginBusyOperation();
+        using IDisposable? token = this.MemoryEngine.BeginBusyOperation();
         if (token == null) {
             return; // do not read while connection busy
         }
@@ -717,14 +717,14 @@ public class ScanningProcessor {
             throw new InvalidOperationException("Already refreshing");
         }
 
-        IConsoleConnection connection = this.MemoryEngine360.Connection ?? throw new InvalidOperationException("No connection present");
+        IConsoleConnection connection = this.MemoryEngine.Connection ?? throw new InvalidOperationException("No connection present");
 
         uint max = BasicApplicationConfiguration.Instance.MaxRowsBeforeDisableAutoRefresh;
 
         // TODO: maybe batch together results whose addresses are close by, and read a single chunk?
         // May be faster if the console is not debug frozen and we have to update 100s of results...
         List<AddressTableEntry>? savedList = new List<AddressTableEntry>(100);
-        foreach (AddressTableEntry saved in this.MemoryEngine360.AddressTableManager.GetAllAddressEntries()) {
+        foreach (AddressTableEntry saved in this.MemoryEngine.AddressTableManager.GetAllAddressEntries()) {
             if (saved.IsAutoRefreshEnabled) {
                 if (!bypassLimits && savedList.Count > max) {
                     savedList = null;
@@ -773,7 +773,7 @@ public class ScanningProcessor {
                             token.ThrowIfCancellationRequested();
                             AddressTableEntry item = savedList[i];
                             if (item.IsAutoRefreshEnabled) // may change between dispatcher callbacks
-                                values[i] = await MemoryEngine360.ReadAsDataValue(connection, item.AbsoluteAddress, item.DataType, item.StringType, item.StringLength, item.ArrayLength);
+                                values[i] = await MemoryEngine.ReadDataValue(connection, item.AbsoluteAddress, item.DataType, item.StringType, item.StringLength, item.ArrayLength);
                         }
                     }, token);
 
@@ -795,7 +795,7 @@ public class ScanningProcessor {
                         for (int i = 0; i < values.Length; i++) {
                             token.ThrowIfCancellationRequested();
                             ScanResultViewModel item = list[i];
-                            values[i] = await MemoryEngine360.ReadAsDataValue(connection, item.Address, item.DataType, item.StringType, item.CurrentStringLength, item.CurrentArrayLength);
+                            values[i] = await MemoryEngine.ReadDataValue(connection, item.Address, item.DataType, item.StringType, item.CurrentStringLength, item.CurrentArrayLength);
                         }
                     }, token);
 
@@ -838,7 +838,7 @@ public class ScanningProcessor {
         }
 
         if (hasNetworkError) {
-            this.MemoryEngine360.CheckConnection(busyOperationToken, ConnectionChangeCause.ConnectionError);
+            this.MemoryEngine.CheckConnection(busyOperationToken, ConnectionChangeCause.ConnectionError);
         }
     }
 }

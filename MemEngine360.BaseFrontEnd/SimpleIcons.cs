@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using PFXToolKitUI.Icons;
@@ -25,11 +25,8 @@ using SkiaSharp;
 namespace MemEngine360.BaseFrontEnd;
 
 public static class SimpleIcons {
-    // public static readonly Icon MemoryIcon = IconManager.Instance.RegisterIconByUri(nameof(SimpleIcons) + "#" + nameof(MemoryIcon), new Uri("avares://MemEngine360-DesktopUI/Resources/Icons/icons8-memory-48.png"));
-
     // 5 pins per side:
     // M 3.5 0 L 4.5 0 L 4.5 2 L 3.5 2 Z M 5.5 0 L 6.5 0 L 6.5 2 L 5.5 2 Z M 7.5 0 L 8.5 0 L 8.5 2 L 7.5 2 Z M 9.5 0 L 10.5 0 L 10.5 2 L 9.5 2 Z M 11.5 0 L 12.5 0 L 12.5 2 L 11.5 2 Z M 0 3.5 L 2 3.5 L 2 4.5 L 0 4.5 Z M 0 5.5 L 2 5.5 L 2 6.5 L 0 6.5 Z M 0 7.5 L 2 7.5 L 2 8.5 L 0 8.5 Z M 0 9.5 L 2 9.5 L 2 10.5 L 0 10.5 Z M 0 11.5 L 2 11.5 L 2 12.5 L 0 12.5 Z M 3.5 14 L 4.5 14 L 4.5 16 L 3.5 16 Z M 5.5 14 L 6.5 14 L 6.5 16 L 5.5 16 Z M 7.5 14 L 8.5 14 L 8.5 16 L 7.5 16 Z M 9.5 14 L 10.5 14 L 10.5 16 L 9.5 16 Z M 11.5 14 L 12.5 14 L 12.5 16 L 11.5 16 Z M 14 3.5 L 16 3.5 L 16 4.5 L 14 4.5 Z M 14 5.5 L 16 5.5 L 16 6.5 L 14 6.5 Z M 14 7.5 L 16 7.5 L 16 8.5 L 14 8.5 Z M 14 9.5 L 16 9.5 L 16 10.5 L 14 10.5 Z M 14 11.5 L 16 11.5 L 16 12.5 L 14 12.5 Z M 2 2 L 14 2 L 14 14 L 2 14 Z
-
     public static readonly Icon MemoryIcon =
         IconManager.Instance.RegisterGeometryIcon(
             nameof(MemoryIcon),

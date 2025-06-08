@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System.Buffers.Binary;
@@ -352,7 +352,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     private async Task ParseTextBoxAndUpload(UploadTextBoxInfo info) {
         Debug.Assert(info.DataType.IsNumeric(), "Cannot upload non-numeric data as of yet");
 
-        MemoryEngine360 engine = this.HexDisplayInfo!.MemoryEngine360;
+        MemoryEngine engine = this.HexDisplayInfo!.MemoryEngine;
         if (engine.Connection == null) {
             await IMessageDialogService.Instance.ShowMessage("No connection", "Not connected to any console", defaultButton: MessageBoxResult.OK);
             return;
@@ -373,7 +373,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         }
 
         ValidationArgs args = new ValidationArgs(input, new List<string>(), false);
-        if (!MemoryEngine360.TryParseTextAsDataValue(args, info.DataType, intNdt, StringType.ASCII, out IDataValue? value)) {
+        if (!DataValueUtils.TryParseTextAsDataValue(args, info.DataType, intNdt, StringType.ASCII, out IDataValue? value)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid text", args.Errors.Count > 0 ? args.Errors[0] : "Could not parse value as " + info.DataType, defaultButton: MessageBoxResult.OK);
             return;
         }
@@ -383,7 +383,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             IConsoleConnection connection;
             using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Upload DI value");
             if (token != null && (connection = engine.Connection) != null && connection.IsConnected) {
-                await MemoryEngine360.WriteAsDataValue(connection, (uint) caretIndex + this.actualStartAddress, value);
+                await MemoryEngine.WriteDataValue(connection, (uint) caretIndex + this.actualStartAddress, value);
                 if (this.PART_ToggleShowChanges.IsChecked == true && this.myDocument != null && !this.myDocument.IsReadOnly) {
                     int dataLength = 0;
                     switch (info.DataType) {
@@ -473,7 +473,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
         this.PART_ControlsGrid.IsEnabled = false;
         BitRange selection = this.SelectionRange;
-        byte[]? bytes = await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
+        byte[]? bytes = await info.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             return await ActivityManager.Instance.RunTask(async () => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
@@ -547,7 +547,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         }
 
         this.PART_ControlsGrid.IsEnabled = false;
-        byte[]? readBuffer = await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
+        byte[]? readBuffer = await info.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             return await ActivityManager.Instance.RunTask(async () => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
@@ -601,7 +601,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
         this.PART_ControlsGrid.IsEnabled = false;
         uint start = (uint) selection.Start.ByteIndex;
-        await info.MemoryEngine360.BeginBusyOperationActivityAsync(async (t, c) => {
+        await info.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
             await ActivityManager.Instance.RunTask(async () => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
@@ -683,18 +683,18 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         this.autoRefreshAddrBinder.SwitchModel(newData);
         this.autoRefreshLenBinder.SwitchModel(newData);
         if (oldData != null) {
-            oldData.MemoryEngine360.ConnectionAboutToChange -= this.OnConnectionAboutToChange;
+            oldData.MemoryEngine.ConnectionAboutToChange -= this.OnConnectionAboutToChange;
             this.endiannessBinder.Detach();
         }
 
         if (newData != null) {
-            newData.MemoryEngine360.ConnectionAboutToChange += this.OnConnectionAboutToChange;
+            newData.MemoryEngine.ConnectionAboutToChange += this.OnConnectionAboutToChange;
             this.endiannessBinder.Attach(newData);
             this.PART_CancelButton.Focus();
         }
     }
 
-    private async Task OnConnectionAboutToChange(MemoryEngine360 sender, ulong frame) {
+    private async Task OnConnectionAboutToChange(MemoryEngine sender, ulong frame) {
         if (this.autoRefreshTask != null) {
             await this.autoRefreshTask.CancelAsync();
         }
@@ -826,7 +826,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             });
 
             task.Progress.Text = "Waiting for busy operations...";
-            this.busyToken = await this.info.MemoryEngine360.BeginBusyOperationAsync(this.CancellationToken);
+            this.busyToken = await this.info.MemoryEngine.BeginBusyOperationAsync(this.CancellationToken);
             if (this.busyToken == null) {
                 return;
             }
@@ -839,7 +839,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         protected override async Task Continue(CancellationToken pauseOrCancelToken) {
             ActivityTask task = this.Activity;
             task.Progress.Text = "Waiting for busy operations...";
-            this.busyToken = await this.info!.MemoryEngine360.BeginBusyOperationAsync(this.CancellationToken);
+            this.busyToken = await this.info!.MemoryEngine.BeginBusyOperationAsync(this.CancellationToken);
             if (this.busyToken == null) {
                 return;
             }
@@ -883,8 +883,8 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             BasicApplicationConfiguration settings = BasicApplicationConfiguration.Instance;
             while (true) {
                 pauseOrCancelToken.ThrowIfCancellationRequested();
-                IConsoleConnection? connection = this.info!.MemoryEngine360.Connection;
-                if (this.info.MemoryEngine360.IsShuttingDown || connection?.IsConnected != true) {
+                IConsoleConnection? connection = this.info!.MemoryEngine.Connection;
+                if (this.info.MemoryEngine.IsShuttingDown || connection?.IsConnected != true) {
                     return;
                 }
 

@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System.Diagnostics;
@@ -36,18 +36,18 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine;
 
-public delegate void MemoryEngine360EventHandler(MemoryEngine360 sender);
+public delegate void MemoryEngineEventHandler(MemoryEngine sender);
 
-public delegate Task MemoryEngine360ConnectionChangingEventHandler(MemoryEngine360 sender, ulong frame);
+public delegate Task MemoryEngineConnectionChangingEventHandler(MemoryEngine sender, ulong frame);
 
-public delegate void MemoryEngine360ConnectionChangedEventHandler(MemoryEngine360 sender, ulong frame, IConsoleConnection? oldConnection, IConsoleConnection? newConnection, ConnectionChangeCause cause);
+public delegate void MemoryEngineConnectionChangedEventHandler(MemoryEngine sender, ulong frame, IConsoleConnection? oldConnection, IConsoleConnection? newConnection, ConnectionChangeCause cause);
 
 /// <summary>
-/// The main manager class for a MemEngine360 window. Also provides utilities for data values and reading/writing them
+/// The main manager class for a the memory engine window. Also provides utilities for reading/writing data values
 /// </summary>
 [DebuggerDisplay("ActiveToken = {activeToken}, Connection = {Connection}")]
-public class MemoryEngine360 {
-    public static readonly DataKey<MemoryEngine360> DataKey = DataKey<MemoryEngine360>.Create("MemoryEngine360");
+public class MemoryEngine {
+    public static readonly DataKey<MemoryEngine> EngineDataKey = DataKey<MemoryEngine>.Create("MemoryEngine");
 
     private volatile IConsoleConnection? connection; // our connection object -- volatile in case JIT plays dirty tricks, i ain't no expert in wtf volatile does though
     private readonly object connectionLock = new object(); // used to synchronize busy token creation and also connection change
@@ -136,18 +136,18 @@ public class MemoryEngine360 {
     /// main thread then you risk another handler's code being invoked between your await usage
     /// </para>
     /// </summary>
-    public event MemoryEngine360ConnectionChangingEventHandler? ConnectionAboutToChange;
+    public event MemoryEngineConnectionChangingEventHandler? ConnectionAboutToChange;
 
     /// <summary>
     /// Fired when <see cref="Connection"/> changes. It is crucial that no 'busy' operations
     /// are performed in the event handlers, otherwise, a deadlock could occur.
     /// </summary>
-    public event MemoryEngine360ConnectionChangedEventHandler? ConnectionChanged;
+    public event MemoryEngineConnectionChangedEventHandler? ConnectionChanged;
 
     /// <summary>
-    /// An event fired when <see cref="IsShuttingDown"/> changes. Ideally this should only be fired once per instance of <see cref="MemoryEngine360"/>
+    /// An event fired when <see cref="IsShuttingDown"/> changes. Ideally this should only be fired once per instance of <see cref="MemoryEngine"/>
     /// </summary>
-    public event MemoryEngine360EventHandler? IsShuttingDownChanged;
+    public event MemoryEngineEventHandler? IsShuttingDownChanged;
 
     /// <summary>
     /// Fired when the <see cref="IsConnectionBusy"/> state changes. It is crucial that no 'busy' operations are performed
@@ -157,9 +157,9 @@ public class MemoryEngine360 {
     /// the light of day, and the next handlers in the list will not be invoked, potentially leading to application wide corruption
     /// </para>
     /// </summary>
-    public event MemoryEngine360EventHandler? IsBusyChanged;
+    public event MemoryEngineEventHandler? IsBusyChanged;
 
-    public MemoryEngine360() {
+    public MemoryEngine() {
         this.ScanningProcessor = new ScanningProcessor(this);
         this.AddressTableManager = new AddressTableManager(this);
         this.TaskSequencerManager = new TaskSequencerManager(this);
@@ -213,7 +213,7 @@ public class MemoryEngine360 {
         if (list != null) {
             Task[] tasks = new Task[list.Length];
             for (int i = 0; i < list.Length; i++) {
-                MemoryEngine360ConnectionChangingEventHandler handler = (MemoryEngine360ConnectionChangingEventHandler) list[i];
+                MemoryEngineConnectionChangingEventHandler handler = (MemoryEngineConnectionChangingEventHandler) list[i];
                 tasks[i] = Task.Run(async () => {
                     try {
                         await handler(this, frame);
@@ -273,9 +273,6 @@ public class MemoryEngine360 {
     /// To use this system, you would handle <see cref="ConnectionAboutToChange"/> and stop your operation(s) and store the frame
     /// in a field. Then handle <see cref="ConnectionChanged"/>, and check if the frame given equals your stored frame.
     /// If they're equal, you can resume your operation
-    /// </para>
-    /// <para>
-    /// We don't use this system in the MemEngine360 source, but it's here just in case we do at some point
     /// </para>
     /// </summary>
     /// <returns>The next frame. Will never return 0</returns>
@@ -415,199 +412,6 @@ public class MemoryEngine360 {
         return default;
     }
 
-    /// <summary>
-    /// Reads a data value from the console
-    /// </summary>
-    /// <param name="connection">The connection to read the value from</param>
-    /// <param name="address">The address to read at</param>
-    /// <param name="dataType">The type of value we want to read</param>
-    /// <param name="stringType"></param>
-    /// <param name="strlen">The length of the string. Only used when the data type is <see cref="DataType.String"/></param>
-    /// <param name="arrlen">The amount of array elements. Only used when the data type is <see cref="DataType.ByteArray"/> (or any array type, if we support that in the future)</param>
-    /// <returns>The data value</returns>
-    /// <exception cref="ArgumentOutOfRangeException">Invalid data type</exception>
-    public static async Task<IDataValue> ReadAsDataValue(IConsoleConnection connection, uint address, DataType dataType, StringType stringType, int strlen, int arrlen) {
-        switch (dataType) {
-            case DataType.Byte:      return new DataValueByte(await connection.ReadByte(address).ConfigureAwait(false));
-            case DataType.Int16:     return new DataValueInt16(await connection.ReadValue<short>(address).ConfigureAwait(false));
-            case DataType.Int32:     return new DataValueInt32(await connection.ReadValue<int>(address).ConfigureAwait(false));
-            case DataType.Int64:     return new DataValueInt64(await connection.ReadValue<long>(address).ConfigureAwait(false));
-            case DataType.Float:     return new DataValueFloat(await connection.ReadValue<float>(address).ConfigureAwait(false));
-            case DataType.Double:    return new DataValueDouble(await connection.ReadValue<double>(address).ConfigureAwait(false));
-            case DataType.String:    return new DataValueString(await connection.ReadString(address, strlen, stringType.ToEncoding()).ConfigureAwait(false), stringType);
-            case DataType.ByteArray: return new DataValueByteArray(await connection.ReadBytes(address, arrlen).ConfigureAwait(false));
-            default:                 throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
-        }
-    }
-
-    /// <summary>
-    /// Same as <see cref="ReadAsDataValue(IConsoleConnection,uint,MemEngine360.Engine.Modes.DataType,StringType,uint,uint)"/>
-    /// except this method uses the information from the given <see cref="IDataValue"/> to read the value in the exact same format.
-    /// This basically just reads the latest version of the given data value
-    /// </summary>
-    /// <param name="connection">The connection to read the value from</param>
-    /// <param name="address">The address to read at</param>
-    /// <param name="value">The value we use things from like string type, and strlen/arrlen length</param>
-    /// <returns>The latest version of <see cref="value"/></returns>
-    /// <exception cref="Exception">Invalid data type</exception>
-    public static async Task<IDataValue> ReadAsDataValue(IConsoleConnection connection, uint address, IDataValue value) {
-        switch (value.DataType) {
-            case DataType.Byte:      return new DataValueByte(await connection.ReadByte(address).ConfigureAwait(false));
-            case DataType.Int16:     return new DataValueInt16(await connection.ReadValue<short>(address).ConfigureAwait(false));
-            case DataType.Int32:     return new DataValueInt32(await connection.ReadValue<int>(address).ConfigureAwait(false));
-            case DataType.Int64:     return new DataValueInt64(await connection.ReadValue<long>(address).ConfigureAwait(false));
-            case DataType.Float:     return new DataValueFloat(await connection.ReadValue<float>(address).ConfigureAwait(false));
-            case DataType.Double:    return new DataValueDouble(await connection.ReadValue<double>(address).ConfigureAwait(false));
-            case DataType.String:    return new DataValueString(await connection.ReadString(address, ((DataValueString) value).Value.Length, ((DataValueString) value).StringType.ToEncoding()).ConfigureAwait(false), ((DataValueString) value).StringType);
-            case DataType.ByteArray: return new DataValueByteArray(await connection.ReadBytes(address, ((DataValueByteArray) value).Value.Length).ConfigureAwait(false));
-            default:                 throw new Exception("Value contains an invalid data type");
-        }
-    }
-
-    /// <summary>
-    /// Writes 
-    /// </summary>
-    /// <param name="connection"></param>
-    /// <param name="address"></param>
-    /// <param name="dt"></param>
-    /// <param name="value"></param>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public static async Task WriteAsDataValue(IConsoleConnection connection, uint address, IDataValue value) {
-        switch (value.DataType) {
-            case DataType.Byte:   await connection.WriteByte(address, ((DataValueByte) value).Value).ConfigureAwait(false); break;
-            case DataType.Int16:  await connection.WriteValue(address, ((DataValueInt16) value).Value).ConfigureAwait(false); break;
-            case DataType.Int32:  await connection.WriteValue(address, ((DataValueInt32) value).Value).ConfigureAwait(false); break;
-            case DataType.Int64:  await connection.WriteValue(address, ((DataValueInt64) value).Value).ConfigureAwait(false); break;
-            case DataType.Float:  await connection.WriteValue(address, ((DataValueFloat) value).Value).ConfigureAwait(false); break;
-            case DataType.Double: await connection.WriteValue(address, ((DataValueDouble) value).Value).ConfigureAwait(false); break;
-            case DataType.String: {
-                byte[] array = new byte[value.ByteCount + 1]; // append null char for safety
-                value.GetBytes(array);
-                await connection.WriteBytes(address, array).ConfigureAwait(false);
-                break;
-            }
-            case DataType.ByteArray: await connection.WriteBytes(address, ((DataValueByteArray) value).Value).ConfigureAwait(false); break;
-            default:                 throw new InvalidOperationException("Data value's data type is invalid: " + value.DataType);
-        }
-    }
-
-    private void ValidateToken(IDisposable token) {
-        if (token == null)
-            throw new ArgumentNullException(nameof(token), "Token is null");
-        if (!(token is BusyToken busy))
-            throw new ArgumentException("Argument is not a busy token object");
-
-        // myEngine can be atomically exchanged
-        MemoryEngine360? engine = busy.myEngine;
-        if (engine == null)
-            throw new ArgumentException("Token has already been disposed");
-        if (engine != this)
-            throw new ArgumentException("Token is not associated with this engine");
-        if (this.activeToken != busy)
-            throw new ArgumentException(this.busyCount == 0 ? "No tokens are currently in use" : "Token is not the current token");
-    }
-
-    private class BusyToken : IDisposable {
-        public volatile MemoryEngine360? myEngine;
-#if DEBUG
-        public readonly string? stackTrace; // debugging stack trace, just in case the app locks up then the source is likely in here 
-#endif
-
-        public BusyToken(MemoryEngine360 engine) {
-            this.myEngine = engine;
-            if (Interlocked.Increment(ref engine.busyCount) == 1) {
-                try {
-                    engine.IsBusyChanged?.Invoke(engine);
-                }
-                catch {
-                    Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
-                }
-            }
-
-#if DEBUG
-            this.stackTrace = new StackTrace(true).ToString();
-#endif
-        }
-
-        public void Dispose() {
-            // we're being omega thread safe here
-            MemoryEngine360? engine = Interlocked.Exchange(ref this.myEngine, null);
-            if (engine == null) {
-                return;
-            }
-
-            lock (engine.connectionLock) {
-                Debug.Assert(engine.activeToken == this, "Different active token references");
-
-                engine.activeToken = null;
-                if (Interlocked.Decrement(ref engine.busyCount) == 0) {
-                    try {
-                        engine.IsBusyChanged?.Invoke(engine);
-                    }
-                    catch {
-                        Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
-                    }
-                }
-
-                engine.OnTokenDisposedUnderLock();
-            }
-        }
-    }
-
-    private class CancellableTaskCompletionSource : TaskCompletionSource, IDisposable {
-        private readonly CancellationToken token;
-        private readonly CancellationTokenRegistration registration;
-
-        public CancellableTaskCompletionSource(CancellationToken token) : base(TaskCreationOptions.RunContinuationsAsynchronously) {
-            this.token = token;
-            if (token.CanBeCanceled)
-                this.registration = token.Register(this.SetCanceledCore);
-        }
-
-        private void SetCanceledCore() {
-            this.TrySetCanceled(this.token);
-        }
-
-        public void Dispose() {
-            Debug.Assert(this.Task.IsCompleted, "Expected task to be completed at this point");
-
-            this.registration.Dispose();
-        }
-    }
-
-    private LinkedListNode<CancellableTaskCompletionSource>? EnqueueAsyncWaiter(CancellationToken token) {
-        bool lockTaken = false;
-        try {
-            Monitor.TryEnter(this.connectionLock, 0, ref lockTaken);
-            if (!lockTaken || this.busyCount == 0) {
-                // When busyCount is 0 at this point, it means we probably lost the lock race.
-                // The caller will notice null and check busyCount anyway so it's fine.
-                // The last thing we want is to return a valid TCS and busyCount is 0, because
-                // it will never become completed until another token is acquired and disposed
-                return null;
-            }
-
-            return this.busyLockAsyncWaiters.AddLast(new CancellableTaskCompletionSource(token));
-        }
-        finally {
-            if (lockTaken)
-                Monitor.Exit(this.connectionLock);
-        }
-    }
-
-    private void OnTokenDisposedUnderLock() {
-        foreach (CancellableTaskCompletionSource tcs in this.busyLockAsyncWaiters) {
-            try {
-                tcs.TrySetResult();
-            }
-            finally {
-                tcs.Dispose();
-            }
-        }
-
-        this.busyLockAsyncWaiters.Clear();
-    }
-
     public void CheckConnection(ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection) {
         // CheckConnection is just a helpful method to clear connection if it's 
         // disconnected internally, therefore, we don't need over the top synchronization,
@@ -650,178 +454,203 @@ public class MemoryEngine360 {
         this.SetConnection(token, 0, null, cause);
         return true;
     }
+    
+    private void ValidateToken(IDisposable token) {
+        if (token == null)
+            throw new ArgumentNullException(nameof(token), "Token is null");
+        if (!(token is BusyToken busy))
+            throw new ArgumentException("Argument is not a busy token object");
 
-    private static void AddErrorForInteger<T>(ValidationArgs args, DataType dataType, NumericDisplayType ndt) where T : IBinaryInteger<T>, IMinMaxValue<T> {
-        Debug.Assert(dataType.IsInteger(), "Expected data type to be numeric");
-        NumberStyles nsInt = ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
-        if ((dataType == DataType.Byte || ndt != NumericDisplayType.Normal) && args.Input.TrimStart().StartsWith('-')) {
-            args.Errors.Add($"{dataType} cannot be negative. Range is {T.MinValue}-{T.MaxValue}");
+        // myEngine can be atomically exchanged
+        MemoryEngine? engine = busy.myEngine;
+        if (engine == null)
+            throw new ArgumentException("Token has already been disposed");
+        if (engine != this)
+            throw new ArgumentException("Token is not associated with this engine");
+        if (this.activeToken != busy)
+            throw new ArgumentException(this.busyCount == 0 ? "No tokens are currently in use" : "Token is not the current token");
+    }
+    
+    private LinkedListNode<CancellableTaskCompletionSource>? EnqueueAsyncWaiter(CancellationToken token) {
+        bool lockTaken = false;
+        try {
+            Monitor.TryEnter(this.connectionLock, 0, ref lockTaken);
+            if (!lockTaken || this.busyCount == 0) {
+                // When busyCount is 0 at this point, it means we probably lost the lock race.
+                // The caller will notice null and check busyCount anyway so it's fine.
+                // The last thing we want is to return a valid TCS and busyCount is 0, because
+                // it will never become completed until another token is acquired and disposed
+                return null;
+            }
+
+            return this.busyLockAsyncWaiters.AddLast(new CancellableTaskCompletionSource(token));
         }
-        else if (typeof(T) != typeof(ulong) && ulong.TryParse(args.Input, nsInt, null, out _)) {
-            args.Errors.Add($"Value is out of range for {dataType}. Range is {T.MinValue}-{T.MaxValue}");
-        }
-        else {
-            args.Errors.Add("Text is not numeric");
+        finally {
+            if (lockTaken)
+                Monitor.Exit(this.connectionLock);
         }
     }
+    
+    private void OnTokenCreatedUnderLock() {
+        if (Interlocked.Increment(ref this.busyCount) == 1) {
+            try {
+                this.IsBusyChanged?.Invoke(this);
+            }
+            catch {
+                Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
+            }
+        }
+    }
+    
+    private void OnTokenDisposedUnderLock() {
+        this.activeToken = null;
+        if (Interlocked.Decrement(ref this.busyCount) == 0) {
+            try {
+                this.IsBusyChanged?.Invoke(this);
+            }
+            catch {
+                Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
+            }
+        }
+        
+        foreach (CancellableTaskCompletionSource tcs in this.busyLockAsyncWaiters) {
+            try {
+                tcs.TrySetResult();
+            }
+            finally {
+                tcs.Dispose();
+            }
+        }
 
+        this.busyLockAsyncWaiters.Clear();
+    }
+    
     /// <summary>
-    /// Attempts to parse a string input as a <see cref="IDataValue"/> using the given information (the type of data expected, numeric display type and string type)
+    /// Reads a data value from the console
     /// </summary>
-    /// <param name="args">Validation args containing the input and a list which, when an error is encountered, the error is added to the list</param>
-    /// <param name="dataType">The type of data we want to parse the text from</param>
-    /// <param name="ndt">
-    /// The way integers and floats are parsed.
-    /// <br/>
-    /// When this is <see cref="NumericDisplayType.Hexadecimal"/>, we attempt to parse integer as hex and floats as their raw float bits.
-    /// <br/>
-    /// When this is <see cref="NumericDisplayType.Unsigned"/>, we attempt to parse integers as unsigned so no negative signs (except byte which is always unsigned)
-    /// <br/>
-    /// When this is <see cref="NumericDisplayType.Normal"/>, all integers except byte are parsed as signed, and floats are parsed as regular floats
-    /// </param>
-    /// <param name="stringType">The string type, e.g. ASCII and unicode</param>
-    /// <param name="value">The parsed value</param>
-    /// <returns>True when parsed successfully, false when the input couldn't be parsed</returns>
-    public static bool TryParseTextAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, StringType stringType, [NotNullWhen(true)] out IDataValue? value) {
-        return (value = TryParseTextAsDataValue(args, dataType, ndt, stringType)) != null;
-    }
-
-    private static IDataValue? TryParseTextAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, StringType stringType) {
-        NumberStyles nsInt = ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
-        switch (dataType) {
-            case DataType.Byte: {
-                if (byte.TryParse(args.Input, nsInt, null, out byte val))
-                    return new DataValueByte(val);
-                AddErrorForInteger<byte>(args, dataType, ndt);
-                break;
-            }
-            case DataType.Int16:
-            case DataType.Int32:
-            case DataType.Int64: {
-                if (ndt == NumericDisplayType.Unsigned) {
-                    switch (dataType) {
-                        case DataType.Int16: {
-                            if (ushort.TryParse(args.Input, nsInt, null, out ushort val))
-                                return new DataValueInt16((short) val);
-                            AddErrorForInteger<ushort>(args, dataType, ndt);
-                            break;
-                        }
-                        case DataType.Int32: {
-                            if (uint.TryParse(args.Input, nsInt, null, out uint val))
-                                return new DataValueInt32((int) val);
-                            AddErrorForInteger<uint>(args, dataType, ndt);
-                            break;
-                        }
-                        case DataType.Int64: {
-                            if (ulong.TryParse(args.Input, nsInt, null, out ulong val))
-                                return new DataValueInt64((long) val);
-                            AddErrorForInteger<ulong>(args, dataType, ndt);
-                            break;
-                        }
-                        default: throw new Exception("Memory corruption");
-                    }
-                }
-                else {
-                    switch (dataType) {
-                        case DataType.Int16: {
-                            if (short.TryParse(args.Input, nsInt, null, out short val))
-                                return new DataValueInt16(val);
-                            AddErrorForInteger<short>(args, dataType, ndt);
-                            break;
-                        }
-                        case DataType.Int32: {
-                            if (int.TryParse(args.Input, nsInt, null, out int val))
-                                return new DataValueInt32(val);
-                            AddErrorForInteger<int>(args, dataType, ndt);
-                            break;
-                        }
-                        case DataType.Int64: {
-                            if (long.TryParse(args.Input, nsInt, null, out long val))
-                                return new DataValueInt64(val);
-                            AddErrorForInteger<long>(args, dataType, ndt);
-                            break;
-                        }
-                        default: throw new Exception("Memory corruption");
-                    }
-                }
-
-                break;
-            }
-            case DataType.Float: {
-                if (ndt == NumericDisplayType.Hexadecimal) {
-                    if (uint.TryParse(args.Input, NumberStyles.HexNumber, null, out uint val)) {
-                        return new DataValueFloat(Unsafe.As<uint, float>(ref val));
-                    }
-
-                    args.Errors.Add("Invalid unsigned integer (as the float bits)");
-                }
-                else if (float.TryParse(args.Input, out float val)) {
-                    return new DataValueFloat(val);
-                }
-                else {
-                    args.Errors.Add("Invalid float/single");
-                }
-
-                break;
-            }
-            case DataType.Double: {
-                if (ndt == NumericDisplayType.Hexadecimal) {
-                    if (ulong.TryParse(args.Input, NumberStyles.HexNumber, null, out ulong val)) {
-                        return new DataValueDouble(Unsafe.As<ulong, double>(ref val));
-                    }
-
-                    args.Errors.Add("Invalid unsigned long (as the double bits)");
-                }
-                else if (double.TryParse(args.Input, out double val)) {
-                    return new DataValueDouble(val);
-                }
-                else {
-                    args.Errors.Add("Invalid double");
-                }
-
-                break;
-            }
-            case DataType.String: return new DataValueString(args.Input, stringType);
-            case DataType.ByteArray: {
-                if (!MemoryPattern.TryCompile(args.Input, out var pattern, false, out string? errorMessage)) {
-                    args.Errors.Add(errorMessage);
-                    break;
-                }
-
-                return new DataValueByteArray(pattern.pattern.Select(x => x ?? 0).ToArray());
-            }
-            default: throw new ArgumentOutOfRangeException();
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Converts a data value into a general string representation, typically used when editing a
-    /// saved address entry to put the current value into the text box
-    /// </summary>
-    /// <param name="value">The data value</param>
-    /// <param name="ndt">The method of formatting numbers. See <see cref="NumericDisplayTypeExtensions.AsString"/> for more info</param>
-    /// <param name="arrayJoinChar">An optional character inserted between each byte of a <see cref="DataValueByteArray"/></param>
-    /// <param name="putStringInQuotes">When true, encapsulates the value of <see cref="DataValueString"/> in quotes (convenience parameter)</param>
-    /// <returns>The string representation of the data value</returns>
+    /// <param name="connection">The connection to read the value from</param>
+    /// <param name="address">The address to read at</param>
+    /// <param name="dataType">The type of value we want to read</param>
+    /// <param name="stringType"></param>
+    /// <param name="strlen">The length of the string. Only used when the data type is <see cref="DataType.String"/></param>
+    /// <param name="arrlen">The amount of array elements. Only used when the data type is <see cref="DataType.ByteArray"/> (or any array type, if we support that in the future)</param>
+    /// <returns>The data value</returns>
     /// <exception cref="ArgumentOutOfRangeException">Invalid data type</exception>
-    public static string GetStringFromDataValue(IDataValue value, NumericDisplayType ndt, char? arrayJoinChar = ' ', bool putStringInQuotes = false) {
-        switch (value.DataType) {
-            case DataType.Byte:      return ndt.AsString(value.DataType, ((DataValueByte) value).Value);
-            case DataType.Int16:     return ndt.AsString(value.DataType, ((DataValueInt16) value).Value);
-            case DataType.Int32:     return ndt.AsString(value.DataType, ((DataValueInt32) value).Value);
-            case DataType.Int64:     return ndt.AsString(value.DataType, ((DataValueInt64) value).Value);
-            case DataType.Float:     return ndt.AsString(value.DataType, ((DataValueFloat) value).Value);
-            case DataType.Double:    return ndt.AsString(value.DataType, ((DataValueDouble) value).Value);
-            case DataType.String:    return putStringInQuotes ? $"\"{value.BoxedValue}\"" : value.BoxedValue.ToString()!;
-            case DataType.ByteArray: return NumberUtils.BytesToHexAscii(((DataValueByteArray) value).Value, arrayJoinChar);
-            default:                 throw new ArgumentOutOfRangeException();
+    public static async Task<IDataValue> ReadDataValue(IConsoleConnection connection, uint address, DataType dataType, StringType stringType, int strlen, int arrlen) {
+        switch (dataType) {
+            case DataType.Byte:      return new DataValueByte(await connection.ReadByte(address).ConfigureAwait(false));
+            case DataType.Int16:     return new DataValueInt16(await connection.ReadValue<short>(address).ConfigureAwait(false));
+            case DataType.Int32:     return new DataValueInt32(await connection.ReadValue<int>(address).ConfigureAwait(false));
+            case DataType.Int64:     return new DataValueInt64(await connection.ReadValue<long>(address).ConfigureAwait(false));
+            case DataType.Float:     return new DataValueFloat(await connection.ReadValue<float>(address).ConfigureAwait(false));
+            case DataType.Double:    return new DataValueDouble(await connection.ReadValue<double>(address).ConfigureAwait(false));
+            case DataType.String:    return new DataValueString(await connection.ReadString(address, strlen, stringType.ToEncoding()).ConfigureAwait(false), stringType);
+            case DataType.ByteArray: return new DataValueByteArray(await connection.ReadBytes(address, arrlen).ConfigureAwait(false));
+            default:                 throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
         }
     }
 
-    public static string GetStringFromDataValue(ScanResultViewModel entry, IDataValue value, char? arrayJoinChar = ' ', bool putStringInQuotes = false) => GetStringFromDataValue(value, entry.NumericDisplayType, arrayJoinChar, putStringInQuotes);
-    public static string GetStringFromDataValue(AddressTableEntry entry, IDataValue value, char? arrayJoinChar = ' ', bool putStringInQuotes = false) => GetStringFromDataValue(value, entry.NumericDisplayType, arrayJoinChar, putStringInQuotes);
+    /// <summary>
+    /// Same as <see cref="ReadAsDataValue(IConsoleConnection,uint,MemEngine360.Engine.Modes.DataType,StringType,uint,uint)"/>
+    /// except this method uses the information from the given <see cref="IDataValue"/> to read the value in the exact same format.
+    /// This basically just reads the latest version of the given data value
+    /// </summary>
+    /// <param name="connection">The connection to read the value from</param>
+    /// <param name="address">The address to read at</param>
+    /// <param name="value">The value we use things from like string type, and strlen/arrlen length</param>
+    /// <returns>The latest version of <see cref="value"/></returns>
+    /// <exception cref="Exception">Invalid data type</exception>
+    public static async Task<IDataValue> ReadDataValue(IConsoleConnection connection, uint address, IDataValue value) {
+        switch (value.DataType) {
+            case DataType.Byte:      return new DataValueByte(await connection.ReadByte(address).ConfigureAwait(false));
+            case DataType.Int16:     return new DataValueInt16(await connection.ReadValue<short>(address).ConfigureAwait(false));
+            case DataType.Int32:     return new DataValueInt32(await connection.ReadValue<int>(address).ConfigureAwait(false));
+            case DataType.Int64:     return new DataValueInt64(await connection.ReadValue<long>(address).ConfigureAwait(false));
+            case DataType.Float:     return new DataValueFloat(await connection.ReadValue<float>(address).ConfigureAwait(false));
+            case DataType.Double:    return new DataValueDouble(await connection.ReadValue<double>(address).ConfigureAwait(false));
+            case DataType.String:    return new DataValueString(await connection.ReadString(address, ((DataValueString) value).Value.Length, ((DataValueString) value).StringType.ToEncoding()).ConfigureAwait(false), ((DataValueString) value).StringType);
+            case DataType.ByteArray: return new DataValueByteArray(await connection.ReadBytes(address, ((DataValueByteArray) value).Value.Length).ConfigureAwait(false));
+            default:                 throw new Exception("Value contains an invalid data type");
+        }
+    }
+
+    /// <summary>
+    /// Writes a data value to the given address
+    /// </summary>
+    /// <param name="connection">The connection</param>
+    /// <param name="address">The address to write the value at</param>
+    /// <param name="dt"></param>
+    /// <param name="value"></param>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    public static async Task WriteDataValue(IConsoleConnection connection, uint address, IDataValue value, bool appendNullCharForString = true) {
+        switch (value.DataType) {
+            case DataType.Byte:   await connection.WriteByte(address, ((DataValueByte) value).Value).ConfigureAwait(false); break;
+            case DataType.Int16:  await connection.WriteValue(address, ((DataValueInt16) value).Value).ConfigureAwait(false); break;
+            case DataType.Int32:  await connection.WriteValue(address, ((DataValueInt32) value).Value).ConfigureAwait(false); break;
+            case DataType.Int64:  await connection.WriteValue(address, ((DataValueInt64) value).Value).ConfigureAwait(false); break;
+            case DataType.Float:  await connection.WriteValue(address, ((DataValueFloat) value).Value).ConfigureAwait(false); break;
+            case DataType.Double: await connection.WriteValue(address, ((DataValueDouble) value).Value).ConfigureAwait(false); break;
+            case DataType.String: {
+                byte[] array = new byte[value.ByteCount + (appendNullCharForString ? 1 : 0)];
+                value.GetBytes(array);
+                await connection.WriteBytes(address, array).ConfigureAwait(false);
+                break;
+            }
+            case DataType.ByteArray: await connection.WriteBytes(address, ((DataValueByteArray) value).Value).ConfigureAwait(false); break;
+            default:                 throw new InvalidOperationException("Data value's data type is invalid: " + value.DataType);
+        }
+    }
+
+    // A helper class deriving TCS that allows an external cancellation signal to mark it as completed
+    private class CancellableTaskCompletionSource : TaskCompletionSource, IDisposable {
+        private readonly CancellationToken token;
+        private readonly CancellationTokenRegistration registration;
+
+        public CancellableTaskCompletionSource(CancellationToken token) : base(TaskCreationOptions.RunContinuationsAsynchronously) {
+            this.token = token;
+            if (token.CanBeCanceled)
+                this.registration = token.Register(this.SetCanceledCore);
+        }
+
+        private void SetCanceledCore() {
+            this.TrySetCanceled(this.token);
+        }
+
+        public void Dispose() {
+            Debug.Assert(this.Task.IsCompleted, "Expected task to be completed at this point");
+
+            this.registration.Dispose();
+        }
+    }
+
+    private class BusyToken : IDisposable {
+        public volatile MemoryEngine? myEngine;
+#if DEBUG
+        public readonly string? stackTrace; // debugging stack trace, just in case the app locks up then the source is likely in here 
+#endif
+
+        public BusyToken(MemoryEngine engine) {
+            Debug.Assert(engine.activeToken == null, "Active token already non-null");
+            this.myEngine = engine;
+            engine.OnTokenCreatedUnderLock();
+#if DEBUG
+            this.stackTrace = new StackTrace(true).ToString();
+#endif
+        }
+
+        public void Dispose() {
+            // we're being omega thread safe here
+            MemoryEngine? engine = Interlocked.Exchange(ref this.myEngine, null);
+            if (engine == null) {
+                return;
+            }
+
+            lock (engine.connectionLock) {
+                Debug.Assert(engine.activeToken == this, "Different active token references");
+                engine.OnTokenDisposedUnderLock();
+            }
+        }
+    }
 }
 
 public enum NumericDisplayType {

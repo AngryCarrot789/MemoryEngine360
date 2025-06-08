@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using AvaloniaHex.Core.Document;
@@ -98,10 +98,10 @@ public class HexEditorInfo : ITransferableData {
 
     public TransferableData TransferableData { get; }
     
-    public MemoryEngine360 MemoryEngine360 { get; }
+    public MemoryEngine MemoryEngine { get; }
 
-    public HexEditorInfo(MemoryEngine360 memoryEngine360) {
-        this.MemoryEngine360 = memoryEngine360;
+    public HexEditorInfo(MemoryEngine memoryEngine) {
+        this.MemoryEngine = memoryEngine;
         this.TransferableData = new TransferableData(this);
         this.caption = CaptionParameter.GetDefaultValue(this);
         this.startAddress = StartAddressParameter.GetDefaultValue(this);
@@ -109,7 +109,7 @@ public class HexEditorInfo : ITransferableData {
         this.autoRefreshStartAddress = AutoRefreshStartAddressParameter.GetDefaultValue(this);
         this.autoRefreshLength = AutoRefreshLengthParameter.GetDefaultValue(this);
         this.bytesPerRow = BytesPerRowParameter.GetDefaultValue(this);
-        if (memoryEngine360.Connection is IConsoleConnection connection) {
+        if (memoryEngine.Connection is IConsoleConnection connection) {
             this.inspectorEndianness = connection.IsLittleEndian ? Endianness.LittleEndian : Endianness.BigEndian;
         }
         else {

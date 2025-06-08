@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System;
@@ -61,8 +61,8 @@ using PFXToolKitUI.Themes;
 
 namespace MemEngine360.Avalonia;
 
-public class MemEngineApplication : AvaloniaApplicationPFX {
-    public MemEngineApplication(Application application) : base(application) {
+public class MemoryEngineApplication : AvaloniaApplicationPFX {
+    public MemoryEngineApplication(Application application) : base(application) {
     }
 
     protected override void RegisterCommands(CommandManager manager) {
@@ -140,20 +140,20 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     protected override void RegisterServices(ServiceManager manager) {
         if (this.Application.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime) {
             manager.RegisterConstant<IDesktopService>(new DesktopServiceImpl(this.Application));
-            manager.RegisterConstant<WindowingSystem>(new WindowingSystemImpl());
+            manager.RegisterConstant<WindowingSystem>(new WindowingSystemImpl(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)));
         }
 
         base.RegisterServices(manager);
 
         manager.RegisterConstant<IIconPreferences>(new IconPreferencesImpl());
-        manager.RegisterConstant<IStartupManager>(new StartupManagerMemEngine360());
+        manager.RegisterConstant<IStartupManager>(new StartupManagerMemoryEngine360());
         manager.RegisterConstant<IAboutService>(new AboutServiceImpl());
         manager.RegisterConstant<IHexDisplayService>(new HexDisplayServiceImpl());
         manager.RegisterConstant<ConsoleConnectionManager>(new ConsoleConnectionManagerImpl());
         manager.RegisterConstant<ITaskSequencerService>(new TaskSequencerServiceImpl());
         manager.RegisterConstant<MemoryEngineManager>(new MemoryEngineManagerImpl());
         
-        MemEngineBrushLoader.Init();
+        MemoryEngineBrushLoader.Init();
     }
 
     protected override void RegisterConfigurations() {
@@ -165,10 +165,10 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
     protected override Task OnApplicationFullyLoaded() {
         UserInputDialogView.Registry.RegisterType<SavedResultDataTypeUserInputInfo>(() => new SavedResultDataTypeEditorUserInputControl());
         UserInputDialogView.Registry.RegisterType<MemoryRegionUserInputInfo>(() => new XboxMemoryRegionViewerUIControl());
-        ConfigurationPageRegistry.Registry.RegisterType<MemEngineConfigurationPage>(() => new MemEngineConfigurationPageControl());
+        ConfigurationPageRegistry.Registry.RegisterType<MemoryEngineConfigurationPage>(() => new MemoryEngineConfigurationPageControl());
 
         ApplicationConfigurationManager.Instance.RootEntry.AddEntry(new ConfigurationEntry() {
-            DisplayName = "MemEngine", Id = "config.memengine", Page = new MemEngineConfigurationPage()
+            DisplayName = "Memory Engine", Id = "config.memoryengine", Page = new MemoryEngineConfigurationPage()
         });
 
 #if DEBUG
@@ -183,19 +183,15 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
         return base.OnApplicationFullyLoaded();
     }
 
-    protected override string? GetSolutionFileName() {
-        return "MemEngine.sln";
-    }
+    protected override string? GetSolutionFileName() => "MemEngine.sln";
 
-    public override string GetApplicationName() {
-        return "MemEngine360";
-    }
+    public override string GetApplicationName() => "MemoryEngine360";
 
     private class IconPreferencesImpl : IIconPreferences {
         public bool UseAntiAliasing { get; set; } = true;
     }
 
-    private class StartupManagerMemEngine360 : IStartupManager {
+    private class StartupManagerMemoryEngine360 : IStartupManager {
         public async Task OnApplicationStartupWithArgs(string[] args) {
             // IXboxManager xboxManager = new XboxManager();
 
@@ -204,18 +200,18 @@ public class MemEngineApplication : AvaloniaApplicationPFX {
             }
 
             if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-                MemEngineWindow view = new MemEngineWindow();
+                EngineWindow view = new EngineWindow();
                 system.Register(view, true);
                 view.Show();
 
-                // using IDisposable? token = await view.MemoryEngine360.BeginBusyOperationActivityAsync();
+                // using IDisposable? token = await view.MemoryEngine.BeginBusyOperationActivityAsync();
                 // if (token != null) {
                 //     using CancellationTokenSource cts = new CancellationTokenSource();
-                //     IConsoleConnection? connection = await ConsoleTypeXbox360Xbdm.Instance.OpenConnection(view.MemoryEngine360, new ConnectToXboxInfo(view.MemoryEngine360) { IpAddress = "192.168.1.202" }, cts);
+                //     IConsoleConnection? connection = await ConsoleTypeXbox360Xbdm.Instance.OpenConnection(view.MemoryEngine, new ConnectToXboxInfo(view.MemoryEngine) { IpAddress = "192.168.1.202" }, cts);
                 //     if (connection != null) {
-                //         view.MemoryEngine360.SetConnection(token, connection, ConnectionChangeCause.Custom);
+                //         view.MemoryEngine.SetConnection(token, connection, ConnectionChangeCause.Custom);
                 //
-                //         await ApplicationPFX.Instance.ServiceManager.GetService<IHexDisplayService>().ShowHexEditor(new HexDisplayInfo(view.MemoryEngine360) {
+                //         await ApplicationPFX.Instance.ServiceManager.GetService<IHexDisplayService>().ShowHexEditor(new HexDisplayInfo(view.MemoryEngine) {
                 //             StartAddress = 0x8303A000,
                 //             Length = 0x2000,
                 //             AutoRefreshStartAddress = 0x8303A5C0,

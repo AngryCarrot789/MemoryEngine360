@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using Avalonia.Controls;
@@ -27,29 +27,29 @@ using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.BaseFrontEnd;
 
-public class MemEngineConfigurationPageControl : BaseConfigurationPageControl {
-    private readonly TextBoxToDataParameterBinder<MemEngineConfigurationPage, uint> refreshRateBinder = new TextBoxToDataParameterBinder<MemEngineConfigurationPage, uint>(MemEngineConfigurationPage.ValueRefreshRateParameter, null, async (binder, text) => {
+public class MemoryEngineConfigurationPageControl : BaseConfigurationPageControl {
+    private readonly TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint> refreshRateBinder = new TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint>(MemoryEngineConfigurationPage.ValueRefreshRateParameter, null, async (binder, text) => {
         if (uint.TryParse(text, out uint value))
             return value;
         await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is not an integer.");
         return default;
     });
 
-    private readonly TextBoxToDataParameterBinder<MemEngineConfigurationPage, uint> autoRefreshPerSecBinder = new TextBoxToDataParameterBinder<MemEngineConfigurationPage, uint>(MemEngineConfigurationPage.AutoRefreshUpdatesPerSecondParameter, null, async (binder, text) => {
+    private readonly TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint> autoRefreshPerSecBinder = new TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint>(MemoryEngineConfigurationPage.AutoRefreshUpdatesPerSecondParameter, null, async (binder, text) => {
         if (uint.TryParse(text, out uint value))
             return value;
         await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is not an integer.");
         return default;
     });
 
-    private readonly TextBoxToDataParameterBinder<MemEngineConfigurationPage, uint> updateCountLimitBinder = new TextBoxToDataParameterBinder<MemEngineConfigurationPage, uint>(MemEngineConfigurationPage.MaxRowsBeforeDisableAutoRefreshParameter, null, async (binder, text) => {
+    private readonly TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint> updateCountLimitBinder = new TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint>(MemoryEngineConfigurationPage.MaxRowsBeforeDisableAutoRefreshParameter, null, async (binder, text) => {
         if (uint.TryParse(text, out uint value))
             return value;
         await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is not an integer.");
         return default;
     });
 
-    private readonly TextBoxToDataParameterBinder<MemEngineConfigurationPage, double> floatingEpsilonBinder = new TextBoxToDataParameterBinder<MemEngineConfigurationPage, double>(MemEngineConfigurationPage.FloatingPointEpsilonParameter, null, async (binder, text) => {
+    private readonly TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, double> floatingEpsilonBinder = new TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, double>(MemoryEngineConfigurationPage.FloatingPointEpsilonParameter, null, async (binder, text) => {
         if (!double.TryParse(text, out double value)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is not a floating point number.");
         }
@@ -66,7 +66,7 @@ public class MemEngineConfigurationPageControl : BaseConfigurationPageControl {
         return default;
     });
 
-    private readonly IBinder<MemEngineConfigurationPage> isRefreshEnabledBinder = new AvaloniaPropertyToDataParameterBinder<MemEngineConfigurationPage>(CheckBox.IsCheckedProperty, MemEngineConfigurationPage.IsAutoRefreshResultsEnabledParameter, null, (o) => (bool?) o == true);
+    private readonly IBinder<MemoryEngineConfigurationPage> isRefreshEnabledBinder = new AvaloniaPropertyToDataParameterBinder<MemoryEngineConfigurationPage>(CheckBox.IsCheckedProperty, MemoryEngineConfigurationPage.IsAutoRefreshResultsEnabledParameter, null, (o) => (bool?) o == true);
 
     private TextBox? PART_RefreshRateTextBox;
     private TextBox? PART_AutoRefreshPerSecTextBox;
@@ -86,11 +86,11 @@ public class MemEngineConfigurationPageControl : BaseConfigurationPageControl {
     public override void OnConnected() {
         base.OnConnected();
 
-        this.refreshRateBinder.Attach(this.PART_RefreshRateTextBox!, (MemEngineConfigurationPage) this.Page!);
-        this.autoRefreshPerSecBinder.Attach(this.PART_AutoRefreshPerSecTextBox!, (MemEngineConfigurationPage) this.Page!);
-        this.updateCountLimitBinder.Attach(this.PART_UpdateCountLimit!, (MemEngineConfigurationPage) this.Page!);
-        this.floatingEpsilonBinder.Attach(this.PART_FloatingEpsilonTextBox!, (MemEngineConfigurationPage) this.Page!);
-        this.isRefreshEnabledBinder.Attach(this.PART_ToggleRefreshEnabled!, (MemEngineConfigurationPage) this.Page!);
+        this.refreshRateBinder.Attach(this.PART_RefreshRateTextBox!, (MemoryEngineConfigurationPage) this.Page!);
+        this.autoRefreshPerSecBinder.Attach(this.PART_AutoRefreshPerSecTextBox!, (MemoryEngineConfigurationPage) this.Page!);
+        this.updateCountLimitBinder.Attach(this.PART_UpdateCountLimit!, (MemoryEngineConfigurationPage) this.Page!);
+        this.floatingEpsilonBinder.Attach(this.PART_FloatingEpsilonTextBox!, (MemoryEngineConfigurationPage) this.Page!);
+        this.isRefreshEnabledBinder.Attach(this.PART_ToggleRefreshEnabled!, (MemoryEngineConfigurationPage) this.Page!);
     }
 
     public override void OnDisconnected() {

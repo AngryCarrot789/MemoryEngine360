@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System.Net.Sockets;
@@ -82,7 +82,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
                 progress.Text = "Connecting to console...";
                 progress.IsIndeterminate = true;
                 TcpClient client = new TcpClient();
-                
+
                 try {
                     await client.ConnectAsync(info.IpAddress, 730, cancellation.Token);
                 }
@@ -105,7 +105,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
                 }
 
                 progress.Text = "Connected. Waiting for acknowledgement...";
-                StreamReader reader = new StreamReader(client.GetStream(), leaveOpen:true);
+                StreamReader reader = new StreamReader(client.GetStream(), leaveOpen: true);
                 string? response = (await Task.Run(() => reader.ReadLine(), cancellation.Token))?.ToLower();
                 if (response == "201- connected") {
                     return new XbdmConsoleConnection(client, reader);

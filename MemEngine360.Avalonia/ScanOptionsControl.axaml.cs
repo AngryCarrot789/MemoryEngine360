@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System;
@@ -32,11 +32,11 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Avalonia;
 
 public partial class ScanOptionsControl : UserControl {
-    public static readonly StyledProperty<MemoryEngine360?> MemoryEngine360Property = AvaloniaProperty.Register<ScanOptionsControl, MemoryEngine360?>(nameof(MemoryEngine360));
+    public static readonly StyledProperty<MemoryEngine?> MemoryEngineProperty = AvaloniaProperty.Register<ScanOptionsControl, MemoryEngine?>(nameof(MemoryEngine));
 
-    public MemoryEngine360? MemoryEngine360 {
-        get => this.GetValue(MemoryEngine360Property);
-        set => this.SetValue(MemoryEngine360Property, value);
+    public MemoryEngine? MemoryEngine {
+        get => this.GetValue(MemoryEngineProperty);
+        set => this.SetValue(MemoryEngineProperty, value);
     }
 
     private readonly EventPropertyEnumBinder<FloatScanOption> floatScanModeBinder = new EventPropertyEnumBinder<FloatScanOption>(typeof(ScanningProcessor), nameof(ScanningProcessor.FloatScanModeChanged), (x) => ((ScanningProcessor) x).FloatScanOption, (x, v) => ((ScanningProcessor) x).FloatScanOption = v);
@@ -78,7 +78,7 @@ public partial class ScanOptionsControl : UserControl {
     static ScanOptionsControl() {
         // AVPToEventPropertyBinder.Bind<ScanOptionsControl, TextBox, ScanningProcessor, string?>(nameof(PART_Input_Value1), TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (c, m) => c.Text = m.InputA, (c, m) => m.InputA = c.Text ?? "");
 
-        MemoryEngine360Property.Changed.AddClassHandler<ScanOptionsControl, MemoryEngine360?>(OnMemEngineChanged);
+        MemoryEngineProperty.Changed.AddClassHandler<ScanOptionsControl, MemoryEngine?>(OnMemEngineChanged);
     }
 
     private DataType lastIntegerDataType = DataType.Int32, lastFloatDataType = DataType.Float;
@@ -152,8 +152,8 @@ public partial class ScanOptionsControl : UserControl {
     }
 
 
-    private static void OnMemEngineChanged(ScanOptionsControl c, AvaloniaPropertyChangedEventArgs<MemoryEngine360?> e) {
-        if (e.OldValue.GetValueOrDefault() is MemoryEngine360 oldEngine) {
+    private static void OnMemEngineChanged(ScanOptionsControl c, AvaloniaPropertyChangedEventArgs<MemoryEngine?> e) {
+        if (e.OldValue.GetValueOrDefault() is MemoryEngine oldEngine) {
             c.stringIgnoreCaseBinder.Detach();
             c.floatScanModeBinder.Detach();
             c.stringScanModeBinder.Detach();
@@ -183,7 +183,7 @@ public partial class ScanOptionsControl : UserControl {
             oldEngine.ScanningProcessor.ScanForAnyDataTypeChanged -= c.UpdateNonBetweenInput;
         }
 
-        if (e.NewValue.GetValueOrDefault() is MemoryEngine360 newEngine) {
+        if (e.NewValue.GetValueOrDefault() is MemoryEngine newEngine) {
             c.stringIgnoreCaseBinder.AttachModel(newEngine.ScanningProcessor);
             c.floatScanModeBinder.Attach(newEngine.ScanningProcessor);
             c.stringScanModeBinder.Attach(newEngine.ScanningProcessor);
@@ -249,7 +249,7 @@ public partial class ScanOptionsControl : UserControl {
     }
 
     private void UpdateUIForScanTypeAndDataType() {
-        MemoryEngine360? engine = this.MemoryEngine360;
+        MemoryEngine? engine = this.MemoryEngine;
         if (engine == null) {
             return;
         }

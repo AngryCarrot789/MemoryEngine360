@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using MemEngine360.BaseFrontEnd.XboxBase.Modules;
@@ -30,15 +30,15 @@ namespace MemEngine360.BaseFrontEnd.XboxBase;
 
 public class ShowModulesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             return Executability.Invalid;
         }
 
-        return ui.MemoryEngine360.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
+        return ui.MemoryEngine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             return;
         }
 
@@ -46,7 +46,7 @@ public class ShowModulesCommand : Command {
             return;
         }
 
-        MemoryEngine360 engine = ui.MemoryEngine360;
+        MemoryEngine engine = ui.MemoryEngine;
         IConsoleConnection? connection;
         using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Begin reading modules");
         if (token == null || (connection = engine.Connection) == null || !connection.IsConnected) {

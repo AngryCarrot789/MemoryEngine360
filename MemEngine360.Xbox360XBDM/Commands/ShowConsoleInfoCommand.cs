@@ -31,11 +31,11 @@ namespace MemEngine360.Xbox360XBDM.Commands;
 public class ShowConsoleInfoCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Reading Console Info";
 
-    protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
         return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
-    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         if (connection is IXbdmConnection xbox) {
             string debugName = await xbox.GetDebugName();
             ExecutionState execState = await xbox.GetExecutionState();

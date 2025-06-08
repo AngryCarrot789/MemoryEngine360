@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System.Diagnostics;
@@ -35,17 +35,17 @@ public class EditScanResultValueCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         ScanningProcessor processor;
         if (!ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? result)) {
-            if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+            if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
                 return Executability.Invalid;
             }
 
-            processor = ui.MemoryEngine360.ScanningProcessor;
+            processor = ui.MemoryEngine.ScanningProcessor;
         }
         else {
             processor = result.ScanningProcessor;
         }
 
-        if (processor.MemoryEngine360.Connection == null) {
+        if (processor.MemoryEngine.Connection == null) {
             return Executability.ValidButCannotExecute;
         }
 
@@ -53,15 +53,15 @@ public class EditScanResultValueCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        MemoryEngine360? engine = null;
+        MemoryEngine? engine = null;
         List<ScanResultViewModel> scanResults = new List<ScanResultViewModel>();
-        if (IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+        if (IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             scanResults.AddRange(ui.ScanResultSelectionManager.SelectedItems);
-            engine = ui.MemoryEngine360;
+            engine = ui.MemoryEngine;
         }
 
         if (ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? theResult)) {
-            engine ??= theResult.ScanningProcessor.MemoryEngine360;
+            engine ??= theResult.ScanningProcessor.MemoryEngine;
             if (!scanResults.Contains(theResult)) {
                 scanResults.Add(theResult);
             }
@@ -89,9 +89,9 @@ public class EditScanResultValueCommand : Command {
         SingleUserInputInfo input = new SingleUserInputInfo(
             $"Change {c} value{Lang.S(c)}",
             $"Immediately change the value at {Lang.ThisThese(c)} address{Lang.Es(c)}", "Value",
-            MemoryEngine360.GetStringFromDataValue(lastResult, lastResult.CurrentValue)) {
+            DataValueUtils.GetStringFromDataValue(lastResult, lastResult.CurrentValue)) {
             Validate = (args) => {
-                MemoryEngine360.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out _);
+                DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out _);
             }
         };
 
@@ -106,7 +106,7 @@ public class EditScanResultValueCommand : Command {
         }
 
         ValidationArgs args = new ValidationArgs(input.Text, new List<string>(), false);
-        bool parsed = MemoryEngine360.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out IDataValue? value);
+        bool parsed = DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out IDataValue? value);
         Debug.Assert(parsed && value != null);
         Debug.Assert(dataType == value.DataType);
         
@@ -115,7 +115,7 @@ public class EditScanResultValueCommand : Command {
             ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Edit value", "Editing values");
             foreach (ScanResultViewModel scanResult in scanResults) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
-                await MemoryEngine360.WriteAsDataValue(conn, scanResult.Address, value!);
+                await MemoryEngine.WriteDataValue(conn, scanResult.Address, value!);
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     scanResult.CurrentValue = value;
                 });

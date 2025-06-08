@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System.Diagnostics;
@@ -31,7 +31,8 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Scanners;
 
-public class AnyTypeScanningContext : ScanningContext {
+public class AnyTypeScanningContext : ScanningContext
+{
     internal const int ChunkSize = 0x10000; // 65536
     internal readonly double floatEpsilon = BasicApplicationConfiguration.Instance.FloatingPointEpsilon;
     internal readonly string inputA, inputB;
@@ -62,7 +63,8 @@ public class AnyTypeScanningContext : ScanningContext {
     /// </summary>
     public override event ScanningContextResultEventHandler? ResultFound;
 
-    public AnyTypeScanningContext(ScanningProcessor processor) : base(processor) {
+    public AnyTypeScanningContext(ScanningProcessor processor) : base(processor)
+    {
         Debug.Assert(processor.ScanForAnyDataType);
 
         this.inputA = processor.InputA.Trim();
@@ -79,8 +81,9 @@ public class AnyTypeScanningContext : ScanningContext {
     /// Returns true when scanning and proceed.
     /// False when there's errors (e.g. non-integer when scanning for an integer, or min is greater than max when scanning in 'between' mode)
     /// </summary>
-    internal override async Task<bool> Setup() {
-        IConsoleConnection connection = this.Processor.MemoryEngine360.Connection!;
+    internal override async Task<bool> Setup()
+    {
+        IConsoleConnection connection = this.Processor.MemoryEngine.Connection!;
         Debug.Assert(connection != null);
 
         if (string.IsNullOrEmpty(this.inputA)) {
@@ -105,7 +108,7 @@ public class AnyTypeScanningContext : ScanningContext {
             if (udto.CanSearchForDouble && double.TryParse(this.inputA, out double d))
                 this.in_double = d;
 
-            this.intOrdering = udto.IntDataTypeOrdering.CloneArrayUnsafe()!;
+            this.intOrdering = udto.IntDataTypeOrdering.CloneArrayUnsafe();
             Debug.Assert(this.intOrdering.Length == 4);
             foreach (DataType dt in this.intOrdering) {
                 Debug.Assert(dt.IsInteger());
@@ -134,7 +137,8 @@ public class AnyTypeScanningContext : ScanningContext {
     /// </summary>
     /// <param name="address">The address that is relative to the 0th element in the buffer</param>
     /// <param name="buffer">The buffer containing data to scan</param>
-    internal override void ProcessMemoryBlockForFirstScan(uint address, ReadOnlySpan<byte> buffer) {
+    internal override void ProcessMemoryBlockForFirstScan(uint address, ReadOnlySpan<byte> buffer)
+    {
         IDataValue? value;
         NumericDisplayType intNdt = this.isIntInputHexadecimal ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
         for (uint i = 0; i < buffer.Length; i += this.alignment) {
@@ -226,7 +230,8 @@ public class AnyTypeScanningContext : ScanningContext {
         }
     }
 
-    private BaseNumericDataValue<T>? CompareInt<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IBinaryInteger<T> {
+    private BaseNumericDataValue<T>? CompareInt<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IBinaryInteger<T>
+    {
         T valA = Unsafe.As<ulong, T>(ref theInputA), valB;
         switch (this.numericScanType) {
             case NumericScanType.Equals:              return value == valA ? IDataValue.CreateNumeric(value) : null;
@@ -268,7 +273,8 @@ public class AnyTypeScanningContext : ScanningContext {
     //     }
     // }
 
-    private BaseFloatDataValue<T>? CompareFloat<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T> {
+    private BaseFloatDataValue<T>? CompareFloat<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T>
+    {
         bool isFloat = typeof(T) == typeof(float);
         // We convert everything to doubles when comparing, for higher accuracy
         double dblVal = this.GetDoubleFromReadValue(value, this.inputA);
@@ -294,7 +300,8 @@ public class AnyTypeScanningContext : ScanningContext {
         return null;
     }
 
-    private double GetDoubleFromReadValue<T>(T readValue /* value from console */, string inputText /* user input value */) where T : unmanaged, IFloatingPoint<T> {
+    private double GetDoubleFromReadValue<T>(T readValue /* value from console */, string inputText /* user input value */) where T : unmanaged, IFloatingPoint<T>
+    {
         double value = typeof(T) == typeof(float) ? Unsafe.As<T, float>(ref readValue) : Unsafe.As<T, double>(ref readValue);
 
         int idx = inputText.IndexOf('.');
@@ -314,7 +321,8 @@ public class AnyTypeScanningContext : ScanningContext {
         }
     }
 
-    internal override async Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken) {
+    internal override async Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken)
+    {
         FirstTypedScanTask task = new FirstTypedScanTask(this, connection, busyToken);
         await task.RunWithCurrentActivity();
         return task.BusyToken;
@@ -327,9 +335,10 @@ public class AnyTypeScanningContext : ScanningContext {
     /// <param name="connection">The connection to read values from</param>
     /// <param name="srcList">The source list of items</param>
     /// <param name="busyToken"></param>
-    internal override async Task<IDisposable?> PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, IDisposable busyToken) {
+    internal override async Task<IDisposable?> PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, IDisposable busyToken)
+    {
         await IMessageDialogService.Instance.ShowMessage("Unsupported", "Next Scan not supported for any data type mode yet");
-        
+
         // ActivityTask task = ActivityManager.Instance.CurrentTask;
         // if (this.dataType.IsNumeric()) {
         //     using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {

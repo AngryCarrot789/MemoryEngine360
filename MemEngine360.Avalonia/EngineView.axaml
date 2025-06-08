@@ -7,7 +7,6 @@
              xmlns:av1="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
              xmlns:engine="clr-namespace:MemEngine360.Engine;assembly=MemEngine360"
              xmlns:ams="clr-namespace:PFXToolKitUI.Avalonia.AdvancedMenuService;assembly=PFXToolKitUI.Avalonia"
-             xmlns:converters="clr-namespace:PFXToolKitUI.Avalonia.Converters;assembly=PFXToolKitUI.Avalonia"
              xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
              xmlns:aa="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
              xmlns:av2="clr-namespace:MemEngine360.Avalonia"
@@ -16,7 +15,7 @@
              xmlns:sa="clr-namespace:MemEngine360.BaseFrontEnd.SavedAddressing;assembly=MemEngine360.BaseFrontEnd"
              xmlns:notifications="clr-namespace:PFXToolKitUI.Avalonia.Notifications;assembly=PFXToolKitUI.Avalonia"
              mc:Ignorable="d"
-             x:Class="MemEngine360.Avalonia.MemEngineView"
+             x:Class="MemEngine360.Avalonia.EngineView"
              Background="{DynamicResource ABrush.MemEngine.MainView.Background}">
     <DockPanel>
         <ams:AdvancedTopLevelMenu x:Name="PART_TopLevelMenu"
@@ -90,7 +89,8 @@
                                                        Padding="2"
                                                        Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
                                                        BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Border}"
-                                                       cmdu:CommandUsageManager.UsageClassType="{x:Type ac:SelectRangeFromMemoryRegionCommandUsage}">
+                                                       Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Foreground}"
+                                                       cmdu:CommandUsageManager.UsageClassType="{x:Type ac:SelectRangeFromRegionCommandUsage}">
                                             <ToolTip.Tip>
                                                 <TextBlock TextWrapping="Wrap">
                                                     <Run Text="Open a dialog with all available memory regions on the console"/>
@@ -106,6 +106,7 @@
                                                        Padding="2"
                                                        Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
                                                        BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Border}"
+                                                       Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Foreground}"
                                                        cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ResetScanOptionsCommandUsage}">
                                             <ToolTip.Tip>
                                                 <TextBlock TextWrapping="Wrap">
@@ -125,6 +126,7 @@
                                         <TextBox Grid.Column="2" Grid.Row="0" FontFamily="Consolas"
                                                  Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Background}"
                                                  BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Border}"
+                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Foreground}"
                                                  x:Name="PART_ScanOption_StartAddress" Padding="4,1"
                                                  VerticalAlignment="Stretch" VerticalContentAlignment="Center"
                                                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
@@ -144,6 +146,7 @@
                                         <TextBox Grid.Column="2" Grid.Row="2" FontFamily="Consolas"
                                                  Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Background}"
                                                  BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Border}"
+                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Foreground}"
                                                  x:Name="PART_ScanOption_Length" Padding="4,1"
                                                  VerticalAlignment="Stretch" VerticalContentAlignment="Center"
                                                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
@@ -232,7 +235,7 @@
                             HorizontalHeaderAlignment="Stretch"
                             BorderThickness="1"
                             Grid.Column="1" Grid.Row="1"
-                            av1:UIInputManager.FocusPath="MemEngineWindow/ScanResultList">
+                            av1:UIInputManager.FocusPath="EngineWindow/ScanResultList">
                     <c:GroupBox.Header>
                         <DockPanel>
                             <TextBlock Text="Scan Results" DockPanel.Dock="Left"/>
@@ -293,7 +296,7 @@
                             HorizontalHeaderAlignment="Stretch"
                             Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="3"
                             x:Name="PART_SavedAddressGroupBox"
-                            av1:UIInputManager.FocusPath="MemEngineWindow/SavedAddressList" MinHeight="100">
+                            av1:UIInputManager.FocusPath="EngineWindow/SavedAddressList" MinHeight="100">
                     <c:GroupBox.Header>
                         <DockPanel>
                             <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
@@ -301,6 +304,7 @@
                                 <av:IconButton Icon="{x:Static cb:SimpleIcons.OpenFileCSVIcon}" Width="20"
                                                Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
+                                               Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenCSVFileCommand"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                ToolTip.Tip="(Depreciated) Open a CSV file containing saved addresses. This feature will be removed soon in favour for XML, so that groups can be supported" Padding="3,3,2,2"/>
@@ -308,6 +312,7 @@
                                 <av:IconButton Icon="{x:Static cb:SimpleIcons.OpenFileXMLIcon}" Width="20"
                                                Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
+                                               Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenXMLFileCommand"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                ToolTip.Tip="Open an XML file containing saved addresses" Padding="3,3,2,2"/>
@@ -315,6 +320,7 @@
                                 <av:IconButton Icon="{x:Static cb:SimpleIcons.SaveFileIcon}" Width="20"
                                                Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
+                                               Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.SaveSavedAddressesToFileCommand"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                ToolTip.Tip="Save these addresses to a file (including data type, display options, etc.)" Padding="3"/>
@@ -322,6 +328,7 @@
                                 <av:IconButton Padding="2" Width="20"
                                                Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
+                                               Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.AddSavedAddressCommand"
                                                ToolTip.Tip="Adds a row manually"
                                                Icon="{x:Static cb:SimpleIcons.GreenPlusIcon}"/>
@@ -329,6 +336,7 @@
                                 <av:IconButton Padding="2" Width="20"
                                                Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
+                                               Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.ClearSavedAddressesCommand"
                                                ToolTip.Tip="Clears all rows"
                                                Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"/>
@@ -338,7 +346,8 @@
                                 <av:IconButton Icon="{x:Static cb:SimpleIcons.MemoryIcon}" Width="20"
                                                Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
-                                               cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ShowMemoryCommandUsage}"
+                                               Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
+                                               cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ShowCommandUsage}"
                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                ToolTip.Tip="Opens a view of the console's memory" Padding="2,1,2,2"/>
 
@@ -346,12 +355,14 @@
                                                Icon="{x:Static cb:SimpleIcons.RedArrowCopyToSavedResultsIcon}"
                                                Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
+                                               Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                cmdu:CommandUsageManager.UsageClassType="{x:Type ac:AddSelectedScanResultsToSavedAddressListCommandUsage}"
                                                ToolTip.Tip="Adds the selected results into the saved address list. Does not add addresses that are already present"/>
 
                                 <Button Content="Refresh" Padding="4,1"
                                         Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                         BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
+                                        Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                         cmdu:CommandUsageManager.UsageClassType="{x:Type ac:RefreshSavedAddressesCommandUsage}"
                                         ToolTip.Tip="Refresh the values. This is done automatically every 2 seconds"/>
                             </StackPanel>

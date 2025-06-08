@@ -93,7 +93,7 @@
                                                             <Run Text="Makes this sequence take the busy lock before starting. By doing this, it means the sequence can run without interruption"/>
                                                             <LineBreak/>
                                                             <LineBreak/>
-                                                            <Run Text="However, most MemEngine360 functions (scan, hex editor, changing values, etc.) will be unavailable until you stop the sequence."/>
+                                                            <Run Text="However, most engine functions (scan, hex editor, changing values, etc.) will be unavailable until you stop the sequence."/>
                                                             <LineBreak/>
                                                             <Run Text="You also won't be able to run other busy priority sequences at the same time; they'll just sit there waiting for the first one to finish"/>
                                                         </TextBlock>

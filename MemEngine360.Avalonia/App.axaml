@@ -18,14 +18,14 @@
                     <ResourceDictionary.MergedDictionaries>
                         <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/Colours/SoftDark.axaml"/>
                         <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/ControlColours.axaml"/>
-                        <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/Themes/MemEngineThemes.axaml"/>
+                        <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/Themes/MemoryEngineThemes.axaml"/>
                     </ResourceDictionary.MergedDictionaries>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key='Light'>
                     <ResourceDictionary.MergedDictionaries>
                         <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/Colours/CrappyLight.axaml"/>
                         <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/ControlColours.axaml"/>
-                        <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/Themes/MemEngineThemes.axaml"/>
+                        <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/Themes/MemoryEngineThemes.axaml"/>
                     </ResourceDictionary.MergedDictionaries>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>

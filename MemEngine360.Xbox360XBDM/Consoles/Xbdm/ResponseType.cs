@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
@@ -106,45 +106,64 @@ public enum ResponseType : int {
 
     /// <summary>The profile is already started.</summary>
     ProfileAlreadyStarted = 425, // XBDM_PROFILEALREADYSTARTED
-    
+
     /// <summary>The console is already in DMN_EXEC_STOP.</summary>
-    XBDM_ALREADYSTOPPED = 400 + 0x1A, 
+    XBDM_ALREADYSTOPPED = 400 + 0x1A,
+
     /// <summary>FastCAP is not enabled.</summary>
-    XBDM_FASTCAPNOTENABLED = 400 + 0x1B, 
+    XBDM_FASTCAPNOTENABLED = 400 + 0x1B,
+
     /// <summary>The Debug Monitor could not allocate memory.</summary>
-    XBDM_NOMEMORY = 400 + 0x1C, 
+    XBDM_NOMEMORY = 400 + 0x1C,
+
     /// <summary>Initialization through DmStartProfiling has taken longer than allowed.</summary>
-    XBDM_TIMEOUT = 400 + 0x1D,  
+    XBDM_TIMEOUT = 400 + 0x1D,
+
     /// <summary>The path was not found.</summary>
-    XBDM_NOSUCHPATH = 400 + 0x1E, 
+    XBDM_NOSUCHPATH = 400 + 0x1E,
+
     /// <summary>The screen input format is invalid.</summary>
-    XBDM_INVALID_SCREEN_INPUT_FORMAT = 400 + 0x1F, 
+    XBDM_INVALID_SCREEN_INPUT_FORMAT = 400 + 0x1F,
+
     /// <summary>The screen output format is invalid.</summary>
-    XBDM_INVALID_SCREEN_OUTPUT_FORMAT = 400 + 0x20, 
+    XBDM_INVALID_SCREEN_OUTPUT_FORMAT = 400 + 0x20,
+
     /// <summary>CallCAP is not enabled.</summary>
-    XBDM_CALLCAPNOTENABLED = 400 + 0x21, 
+    XBDM_CALLCAPNOTENABLED = 400 + 0x21,
+
     /// <summary>Both FastCAP and CallCAP are enabled in different modules.</summary>
-    XBDM_INVALIDCAPCFG = 400 + 0x22, 
+    XBDM_INVALIDCAPCFG = 400 + 0x22,
+
     /// <summary>Neither FastCAP nor CallCAP are enabled.</summary>
-    XBDM_CAPNOTENABLED = 400 + 0x23, 
+    XBDM_CAPNOTENABLED = 400 + 0x23,
+
     /// <summary>A branched to a section the instrumentation code failed.</summary>
-    XBDM_TOOBIGJUMP = 400 + 0x24, 
+    XBDM_TOOBIGJUMP = 400 + 0x24,
+
     /// <summary>A necessary field is not present in the header of Xbox 360 title.</summary>
     XexFieldNotFound = 400 + 0x25, // XBDM_FIELDNOTPRESENT  
+
     /// <summary>Provided data buffer for profiling is too small.</summary>
-    XBDM_OUTPUTBUFFERTOOSMALL = 400 + 0x26, 
+    XBDM_OUTPUTBUFFERTOOSMALL = 400 + 0x26,
+
     /// <summary>The Xbox 360 console is currently rebooting.</summary>
-    XBDM_PROFILEREBOOT = 400 + 0x27,  
+    XBDM_PROFILEREBOOT = 400 + 0x27,
+
     /// <summary>The maximum duration was exceeded.</summary>
-    XBDM_MAXDURATIONEXCEEDED = 400 + 0x29, 
+    XBDM_MAXDURATIONEXCEEDED = 400 + 0x29,
+
     /// <summary>The current state of game controller automation is incompatible with the requested action.</summary>
-    XBDM_INVALIDSTATE = 400 + 0x2A, 
+    XBDM_INVALIDSTATE = 400 + 0x2A,
+
     /// <summary>The maximum number of extensions are already used.</summary>
-    XBDM_MAXEXTENSIONS = 400 + 0x2B, 
+    XBDM_MAXEXTENSIONS = 400 + 0x2B,
+
     /// <summary>The Performance Monitor Counters (PMC) session is already active.</summary>
-    XBDM_PMCSESSIONALREADYACTIVE = 400 + 0x2C, 
+    XBDM_PMCSESSIONALREADYACTIVE = 400 + 0x2C,
+
     /// <summary>The Performance Monitor Counters (PMC) session is not active.</summary>
-    XBDM_PMCSESSIONNOTACTIVE = 400 + 0x2D, 
+    XBDM_PMCSESSIONNOTACTIVE = 400 + 0x2D,
+
     /// <summary> </summary>
     XBDM_LINE_TOO_LONG = 400 + 0x2E,
 

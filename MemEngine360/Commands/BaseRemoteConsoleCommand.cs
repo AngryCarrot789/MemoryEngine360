@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System.Collections.ObjectModel;
@@ -31,15 +31,15 @@ namespace MemEngine360.Commands;
 public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
     protected abstract string ActivityText { get; }
 
-    protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
         return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
-    protected virtual Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected virtual Task<bool> TryBeginExecuteAsync(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         return Task.FromResult(true);
     }
 
-    protected sealed override async Task ExecuteCommandAsync(MemoryEngine360 engine, CommandEventArgs e) {
+    protected sealed override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
         using IDisposable? token = await engine.BeginBusyOperationActivityAsync(this.ActivityText);
         if (token == null) {
             return;
@@ -83,24 +83,24 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
         engine.CheckConnection(token, likelyCause);
     }
 
-    protected abstract Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e);
+    protected abstract Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e);
 }
 
 public class ShutdownCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Shutting down console...";
 
-    protected override Executability CanExecuteCore(MemoryEngine360 engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
         return base.CanExecuteCore(engine, e).MergeValid(engine.Connection is IHavePowerFunctions ? Executability.Valid : Executability.ValidButCannotExecute);
     }
 
-    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         if (connection is IHavePowerFunctions)
             return true;
         await IMessageDialogService.Instance.ShowMessage("No power functions", "This connection cannot trigger power functions");
         return false;
     }
 
-    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         await ((IHavePowerFunctions) connection).ShutdownConsole();
     }
 }
@@ -108,14 +108,14 @@ public class ShutdownCommand : BaseRemoteConsoleCommand {
 public class SoftRebootCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Rebooting title...";
 
-    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         if (connection is IHavePowerFunctions)
             return true;
         await IMessageDialogService.Instance.ShowMessage("No power functions", "This connection cannot trigger power functions");
         return false;
     }
     
-    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         await ((IHavePowerFunctions) connection).RebootConsole(false);
     }
 }
@@ -123,14 +123,14 @@ public class SoftRebootCommand : BaseRemoteConsoleCommand {
 public class ColdRebootCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Rebooting console...";
 
-    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         if (connection is IHavePowerFunctions)
             return true;
         await IMessageDialogService.Instance.ShowMessage("No power functions", "This connection cannot trigger power functions");
         return false;
     }
     
-    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         await ((IHavePowerFunctions) connection).RebootConsole(true);
     }
 }
@@ -138,7 +138,7 @@ public class ColdRebootCommand : BaseRemoteConsoleCommand {
 public class DebugFreezeCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Freezing console...";
 
-    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         if (!(connection is IHaveIceCubes)) {
             await IMessageDialogService.Instance.ShowMessage("Not freezable", "This console does not support freezing");
             return false;
@@ -147,7 +147,7 @@ public class DebugFreezeCommand : BaseRemoteConsoleCommand {
         return true;
     }
 
-    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         await ((IHaveIceCubes) connection).DebugFreeze();
     }
 }
@@ -155,7 +155,7 @@ public class DebugFreezeCommand : BaseRemoteConsoleCommand {
 public class DebugUnfreezeCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Unfreezing console...";
 
-    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         if (!(connection is IHaveIceCubes)) {
             await IMessageDialogService.Instance.ShowMessage("Not freezable", "This console does not support freezing");
             return false;
@@ -164,7 +164,7 @@ public class DebugUnfreezeCommand : BaseRemoteConsoleCommand {
         return true;
     }
     
-    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine360 engine, IConsoleConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         await ((IHaveIceCubes) connection).DebugUnFreeze();
     }
 }

@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using Avalonia;
@@ -57,7 +57,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     });
 
     private readonly IBinder<AddressTableEntry> dataTypeTextBinder = new EventPropertyBinder<AddressTableEntry>(nameof(AddressTableEntry.DataTypeChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.DataType.ToString()));
-    private readonly IBinder<AddressTableEntry> valueTextBinder = new EventPropertyBinder<AddressTableEntry>(nameof(AddressTableEntry.ValueChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.Value != null ? MemoryEngine360.GetStringFromDataValue(b.Model, b.Model.Value, putStringInQuotes: true) : ""));
+    private readonly IBinder<AddressTableEntry> valueTextBinder = new EventPropertyBinder<AddressTableEntry>(nameof(AddressTableEntry.ValueChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.Value != null ? DataValueUtils.GetStringFromDataValue(b.Model, b.Model.Value, putStringInQuotes: true) : ""));
     private ObservableItemProcessorIndexing<BaseAddressTableEntry>? compositeListener;
     private Border? PART_DragDropMoveBorder;
     private bool isFolderItem;

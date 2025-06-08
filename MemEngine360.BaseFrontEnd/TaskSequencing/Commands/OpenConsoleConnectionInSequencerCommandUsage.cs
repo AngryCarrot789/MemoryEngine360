@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using MemEngine360.Connections;
@@ -26,7 +26,7 @@ public class OpenConsoleConnectionInSequencerCommandUsage : BaseSequenceManagerC
     public OpenConsoleConnectionInSequencerCommandUsage() : base("commands.memengine.OpenConsoleConnectionInSequencerCommand") {
     }
 
-    protected override void OnEngineChanged(MemoryEngine360? oldEngine, MemoryEngine360? newEngine) {
+    protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine) {
         base.OnEngineChanged(oldEngine, newEngine);
         if (oldEngine != null)
             oldEngine.ConnectionChanged -= this.OnConnectionChanged;
@@ -34,7 +34,7 @@ public class OpenConsoleConnectionInSequencerCommandUsage : BaseSequenceManagerC
             newEngine.ConnectionChanged += this.OnConnectionChanged;
     }
 
-    private void OnConnectionChanged(MemoryEngine360 sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
+    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
         this.UpdateCanExecuteLater();
     }
 }

@@ -7,8 +7,8 @@
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <PublishSingleFile>true</PublishSingleFile>
-        <AssemblyName>MemEngine360-DesktopUI</AssemblyName>
-        <ApplicationIcon>memengine360-48.ico</ApplicationIcon>
+        <AssemblyName>MemoryEngine360</AssemblyName>
+        <ApplicationIcon>Icons\icon.ico</ApplicationIcon>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
       <PlatformTarget>x64</PlatformTarget>
@@ -47,18 +47,18 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </Content>
-        <None Remove="memengine360.png" />
     </ItemGroup>
 
     <ItemGroup>
+      <None Remove="Icons\icon-16.bmp" />
+      <None Remove="Icons\icon-32.bmp" />
       <None Remove="Keymap.xml" />
+      <AvaloniaResource Include="Icons\icon-16.bmp" />
+      <AvaloniaResource Include="Icons\icon-32.bmp" />
+      <Content Include="Icons\icon.ico" />
       <Content Include="Keymap.xml">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Remove="Resources\Icons\icons8-memory-48.png" />
     </ItemGroup>
 
     <ItemGroup>
@@ -72,9 +72,5 @@
       <Reference Include="XDevkit">
         <HintPath>..\libs\XDevkit.dll</HintPath>
       </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
-      <AvaloniaResource Include="memengine360.bmp" />
     </ItemGroup>
 </Project>

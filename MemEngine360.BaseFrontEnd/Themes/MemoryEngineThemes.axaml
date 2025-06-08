@@ -4,6 +4,7 @@
     
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.ScanOptions.TextBox.Background" Color="{StaticResource ABrush.Tone2.Background.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.ScanOptions.TextBox.Border" Color="{StaticResource ABrush.Tone6.Border.Static.Color}"/>
+    <SolidColorBrush x:Key="ABrush.MemEngine.MainView.ScanOptions.TextBox.Foreground" Color="{StaticResource ABrush.Foreground.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.ScanOptions.ScanTypeComboBox.Background" Color="{StaticResource ABrush.Tone2.Background.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.ScanOptions.ScanTypeComboBox.Border" Color="{StaticResource ABrush.Tone6.Border.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.ScanOptions.CompareModeComboBox.Background" Color="{StaticResource ABrush.Tone2.Background.Static.Color}"/>
@@ -19,12 +20,15 @@
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.SavedAddresses.ColumnSeparator" Color="{StaticResource ABrush.Tone6.Border.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.SavedAddresses.Button.Background" Color="{StaticResource ABrush.Tone6.Background.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.SavedAddresses.Button.Border" Color="{StaticResource ABrush.Tone6.Border.Static.Color}"/>
+    <SolidColorBrush x:Key="ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground" Color="{StaticResource ABrush.Foreground.Static.Color}"/>
     
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.AdditionOptions.Background" Color="{StaticResource ABrush.Tone3.Background.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.AdditionOptions.Header" Color="{StaticResource ABrush.Tone5.Background.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.AdditionOptions.Border" Color="{StaticResource ABrush.Tone1.Border.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.AdditionOptions.TextBox.Background" Color="{StaticResource ABrush.Tone2.Background.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.AdditionOptions.TextBox.Border" Color="{StaticResource ABrush.Tone3.Border.Static.Color}"/>
+    <SolidColorBrush x:Key="ABrush.MemEngine.MainView.AdditionOptions.TextBox.Foreground" Color="{StaticResource ABrush.Foreground.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.AdditionOptions.Button.Background" Color="{StaticResource ABrush.Tone7.Background.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.MainView.AdditionOptions.Button.Border" Color="{StaticResource ABrush.Tone7.Border.Static.Color}"/>
+    <SolidColorBrush x:Key="ABrush.MemEngine.MainView.AdditionOptions.Button.Foreground" Color="{StaticResource ABrush.Foreground.Static.Color}"/>
 </ResourceDictionary>

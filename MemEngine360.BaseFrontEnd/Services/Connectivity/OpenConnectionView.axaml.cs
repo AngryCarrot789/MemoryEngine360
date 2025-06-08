@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System.Diagnostics;
@@ -47,7 +47,7 @@ public partial class OpenConnectionView : UserControl {
     /// <summary>
     /// Gets or sets the memory engine reference, if necessary
     /// </summary>
-    public MemoryEngine360? MemoryEngine360 { get; internal set; }
+    public MemoryEngine? MemoryEngine { get; internal set; }
 
     public string? TypeToFocusOnOpened { get; internal set; }
 
@@ -132,7 +132,7 @@ public partial class OpenConnectionView : UserControl {
     }
 
     internal void OnWindowOpened() {
-        IContextData context = new ContextData().Set(MemoryEngine360.DataKey, this.MemoryEngine360);
+        IContextData context = new ContextData().Set(MemoryEngine.EngineDataKey, this.MemoryEngine);
 
         ConsoleTypeListBoxItem? selected = null;
         ConsoleConnectionManager service = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();

@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System.Runtime.InteropServices;
@@ -50,16 +50,16 @@ public class PluginXbox360XDevkit : Plugin {
 
     public override Task OnApplicationFullyLoaded() {
         OpenConnectionView.Registry.RegisterType<ConnectToXboxInfo>(() => new OpenXDevkitConnectionView());
-        
+
         ConsoleConnectionManager manager = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
         manager.Register(ConnectionTypeXbox360XDevkit.TheID, ConnectionTypeXbox360XDevkit.Instance);
-        
+
         XboxModuleManager.RegisterHandlerForConnectionType<XDevkitConsoleConnection>(FillModuleManager);
-        
+
         return Task.CompletedTask;
     }
 
-    private static async Task FillModuleManager(MemoryEngine360 arg1, XDevkitConsoleConnection connection, XboxModuleManager manager) {
+    private static async Task FillModuleManager(MemoryEngine arg1, XDevkitConsoleConnection connection, XboxModuleManager manager) {
         ActivityTask task = ActivityManager.Instance.CurrentTask;
         task.Progress.Caption = "Reading Modules";
         task.Progress.Text = "Reading modules...";
@@ -67,7 +67,7 @@ public class PluginXbox360XDevkit : Plugin {
 
         foreach (IXboxModule module in connection.Console.DebugTarget.Modules) {
             task.CheckCancelled();
-            
+
             XBOX_MODULE_INFO info = module.ModuleInfo;
             task.Progress.Text = "Processing " + info.Name;
 
@@ -82,17 +82,17 @@ public class PluginXbox360XDevkit : Plugin {
                 OriginalModuleSize = module.OriginalSize,
                 EntryPoint = entryPoint
             };
-            
+
             try {
                 xboxModule.PEModuleName = module.Executable.GetPEModuleName();
             }
             catch (COMException ex) {
                 xboxModule.PEModuleName = $"<COMException: {ex.Message}>";
             }
-            
+
             foreach (IXboxSection section in module.Sections) {
                 task.CheckCancelled();
-            
+
                 XBOX_SECTION_INFO secInf = section.SectionInfo;
                 xboxModule.Sections.Add(new XboxModuleSection() {
                     Name = string.IsNullOrWhiteSpace(secInf.Name) ? null : secInf.Name,
@@ -102,7 +102,7 @@ public class PluginXbox360XDevkit : Plugin {
                     Flags = (MemEngine360.XboxBase.XboxSectionInfoFlags) secInf.Flags,
                 });
             }
-            
+
             manager.Modules.Add(xboxModule);
         }
     }

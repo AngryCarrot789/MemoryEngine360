@@ -8,7 +8,7 @@
                  x:Class="MemEngine360.Avalonia.AboutWindow"
                  MinWidth="500" MinHeight="200"
                  Width="600" Height="250"
-                 Title="About MemEngine360"
+                 Title="About MemoryEngine360"
                  BorderBrush="DodgerBlue"
                  TitleBarBrush="{DynamicResource ABrush.Tone7.Background.Static}"
                  Background="{DynamicResource PanelBackground2}"

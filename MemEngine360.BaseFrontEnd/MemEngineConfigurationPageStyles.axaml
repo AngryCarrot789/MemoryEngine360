@@ -2,11 +2,11 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:e="clr-namespace:MemEngine360.BaseFrontEnd">
     <Design.PreviewWith>
-        <e:MemEngineConfigurationPageControl/>
+        <e:MemoryEngineConfigurationPageControl/>
     </Design.PreviewWith>
-    <ControlTheme x:Key="{x:Type e:MemEngineConfigurationPageControl}" TargetType="{x:Type e:MemEngineConfigurationPageControl}">
+    <ControlTheme x:Key="{x:Type e:MemoryEngineConfigurationPageControl}" TargetType="{x:Type e:MemoryEngineConfigurationPageControl}">
         <Setter Property="Template">
-            <ControlTemplate TargetType="{x:Type e:MemEngineConfigurationPageControl}">
+            <ControlTemplate TargetType="{x:Type e:MemoryEngineConfigurationPageControl}">
                 <StackPanel Margin="5">
                     <TextBlock Padding="2,2" Text="Saved/Scan Results Refresh interval (in milliseconds)"/>
                     <TextBlock Padding="2,0,2,2" Text="Default is the minimum of 250ms (updates twice a second), no upper limit" FontSize="10" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>

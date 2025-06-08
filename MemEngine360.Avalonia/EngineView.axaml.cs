@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System;
@@ -54,15 +54,15 @@ using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.Avalonia;
 
-public partial class MemEngineView : UserControl, IMemEngineUI {
+public partial class EngineView : UserControl, IEngineUI {
     #region BINDERS
 
     // PFX framework uses binders to simplify "binding" model values to controls
     // and vice versa. There's a bunch of different binders that exist for us to use.
 
-    private readonly EventPropertyBinder<MemoryEngine360> connectedHostNameBinder =
-        new EventPropertyBinder<MemoryEngine360>(
-            nameof(MemoryEngine360.ConnectionChanged),
+    private readonly EventPropertyBinder<MemoryEngine> connectedHostNameBinder =
+        new EventPropertyBinder<MemoryEngine>(
+            nameof(MemoryEngine.ConnectionChanged),
             (b) => {
                 // TODO: Maybe implement a custom control that represents the connection state?
                 // I don't see any point in doing it though, since what would it present except text?
@@ -74,7 +74,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
         new EventPropertyBinder<ScanningProcessor>(
             nameof(ScanningProcessor.IsScanningChanged),
             (b) => {
-                MemEngineView w = (MemEngineView) b.Control;
+                EngineView w = (EngineView) b.Control;
                 w.PART_ScanOptionsControl.IsEnabled = !b.Model.IsScanning;
                 w.PART_Grid_ScanOptions.IsEnabled = !b.Model.IsScanning;
                 w.UpdateScanResultCounterText();
@@ -155,11 +155,11 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
         return true;
     }
 
-    private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((MemEngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
+    private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((EngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
 
     // Will reimplement at some point
-    // private readonly IBinder<MemoryEngine360> forceLEBinder = new AvaloniaPropertyToEventPropertyBinder<MemoryEngine360>(ToggleButton.IsCheckedProperty, nameof(MemoryEngine360.IsForcedLittleEndianChanged), (b) => {
+    // private readonly IBinder<MemoryEngine> forceLEBinder = new AvaloniaPropertyToEventPropertyBinder<MemoryEngine>(ToggleButton.IsCheckedProperty, nameof(MemoryEngine.IsForcedLittleEndianChanged), (b) => {
     //     ((ToggleButton) b.Control).IsChecked = b.Model.IsForcedLittleEndian;
     //     ((ToggleButton) b.Control).Content = b.Model.IsForcedLittleEndian is bool state ? ((state ? "Endianness: Little" : "Endianness: Big") + " (mostly works)") : "Endianness: Automatic";
     // }, (b) => {
@@ -172,7 +172,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
 
     #endregion
 
-    public MemoryEngine360 MemoryEngine360 { get; }
+    public MemoryEngine MemoryEngine { get; }
 
     public NotificationManager NotificationManager => this.PART_NotificationListBox.NotificationManager!;
 
@@ -204,7 +204,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
     private LambdaNotificationCommand? connectionNotificationCommandReconnect;
 
     private class TestThing : CustomContextEntry {
-        private IMemEngineUI? ctxMemUI;
+        private IEngineUI? ctxMemUI;
 
         public TestThing(string displayName, string? description, Icon? icon = null) : base(displayName, description, icon) {
         }
@@ -215,26 +215,26 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
         protected override void OnContextChanged() {
             base.OnContextChanged();
             if (this.CapturedContext != null) {
-                if (IMemEngineUI.MemUIDataKey.TryGetContext(this.CapturedContext, out this.ctxMemUI)) {
-                    this.ctxMemUI.MemoryEngine360.ConnectionChanged += this.OnContextMemUIConnectionChanged;
+                if (IEngineUI.EngineUIDataKey.TryGetContext(this.CapturedContext, out this.ctxMemUI)) {
+                    this.ctxMemUI.MemoryEngine.ConnectionChanged += this.OnContextMemUIConnectionChanged;
                 }
             }
             else if (this.ctxMemUI != null) {
-                this.ctxMemUI.MemoryEngine360.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
+                this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
                 this.ctxMemUI = null;
             }
         }
 
-        private void OnContextMemUIConnectionChanged(MemoryEngine360 sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
+        private void OnContextMemUIConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
             this.RaiseCanExecuteChanged();
         }
 
         public override bool CanExecute(IContextData context) {
-            if (!IMemEngineUI.MemUIDataKey.TryGetContext(context, out IMemEngineUI? ui)) {
+            if (!IEngineUI.EngineUIDataKey.TryGetContext(context, out IEngineUI? ui)) {
                 return false;
             }
 
-            return ui.MemoryEngine360.Connection is XbdmConsoleConnection;
+            return ui.MemoryEngine.Connection is XbdmConsoleConnection;
         }
 
         public static string ConvertStringToHex(string input, Encoding encoding) {
@@ -248,12 +248,12 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
         }
 
         public override async Task OnExecute(IContextData context) {
-            if (!IMemEngineUI.MemUIDataKey.TryGetContext(context, out IMemEngineUI? ui)) {
+            if (!IEngineUI.EngineUIDataKey.TryGetContext(context, out IEngineUI? ui)) {
                 return;
             }
 
-            using IDisposable? token = await ui.MemoryEngine360.BeginBusyOperationActivityAsync();
-            if (token == null || !(ui.MemoryEngine360.Connection is XbdmConsoleConnection xbdm)) {
+            using IDisposable? token = await ui.MemoryEngine.BeginBusyOperationActivityAsync();
+            if (token == null || !(ui.MemoryEngine.Connection is XbdmConsoleConnection xbdm)) {
                 return;
             }
 
@@ -290,16 +290,16 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
     //
     //     public CommandContextEntryEx(IMemEngineUI ui, string commandId, string displayName, string? description = null, Icon? icon = null, StretchMode stretchMode = StretchMode.None) : base(commandId, displayName, description, icon, stretchMode) {
     //         this.ui = ui;
-    //         this.ui.MemoryEngine360.IsBusyChanged += this.MemoryEngine360OnIsBusyChanged;
+    //         this.ui.MemoryEngine.IsBusyChanged += this.MemoryEngineOnIsBusyChanged;
     //         this.rda = new RapidDispatchAction(this.RaiseCanExecuteChanged, DispatchPriority.Loaded, nameof(CommandContextEntryEx));
     //     }
     //
-    //     private void MemoryEngine360OnIsBusyChanged(MemoryEngine360 sender) {
+    //     private void MemoryEngineOnIsBusyChanged(MemoryEngine sender) {
     //         this.rda.InvokeAsync();
     //     }
     // }
 
-    public MemEngineView() {
+    public EngineView() {
         this.InitializeComponent();
 
         this.TopLevelMenuRegistry = new TopLevelMenuRegistry();
@@ -335,27 +335,27 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
 
         {
             ContextEntryGroup entry = new ContextEntryGroup("About");
-            entry.Items.Add(new CommandContextEntry("commands.application.AboutApplicationCommand", "About MemEngine360"));
+            entry.Items.Add(new CommandContextEntry("commands.application.AboutApplicationCommand", "About MemoryEngine360"));
             this.TopLevelMenuRegistry.Items.Add(entry);
         }
 
         this.PART_TopLevelMenu.TopLevelMenuRegistry = this.TopLevelMenuRegistry;
 
-        this.MemoryEngine360 = new MemoryEngine360();
+        this.MemoryEngine = new MemoryEngine();
         this.ScanResultSelectionManager = new DataGridSelectionManager<ScanResultViewModel>(this.PART_ScanListResults);
         // this.SavedAddressesSelectionManager = new DataGridSelectionManager<AddressTableEntry>(this.PART_SavedAddressList);
         this.AddressTableSelectionManager = new TreeViewSelectionManager<IAddressTableEntryUI>(this.PART_SavedAddressTree);
 
-        this.PART_LatestActivity.Text = "Welcome to MemEngine360.";
-        this.PART_ScanListResults.ItemsSource = this.MemoryEngine360.ScanningProcessor.ScanResults;
-        this.PART_SavedAddressTree.AddressTableManager = this.MemoryEngine360.AddressTableManager;
+        this.PART_LatestActivity.Text = "Welcome to MemoryEngine360.";
+        this.PART_ScanListResults.ItemsSource = this.MemoryEngine.ScanningProcessor.ScanResults;
+        this.PART_SavedAddressTree.AddressTableManager = this.MemoryEngine.AddressTableManager;
 
-        this.MemoryEngine360.ScanningProcessor.ScanResults.CollectionChanged += (sender, args) => {
+        this.MemoryEngine.ScanningProcessor.ScanResults.CollectionChanged += (sender, args) => {
             this.UpdateScanResultCounterText();
         };
 
         this.editAlignmentCommand = new AsyncRelayCommand(async () => {
-            ScanningProcessor p = this.MemoryEngine360.ScanningProcessor;
+            ScanningProcessor p = this.MemoryEngine.ScanningProcessor;
             SingleUserInputInfo info = new SingleUserInputInfo(p.Alignment.ToString("X")) {
                 Caption = "Edit alignment",
                 Message = "Alignment is the offset added to each memory address",
@@ -389,7 +389,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
             }
         });
 
-        this.PART_ScanOptionsControl.MemoryEngine360 = this.MemoryEngine360;
+        this.PART_ScanOptionsControl.MemoryEngine = this.MemoryEngine;
         this.PART_ActivityListPanel.KeyDown += this.PART_ActivityListPanelOnKeyDown;
 
         this.PART_NotificationListBox.NotificationManager = new NotificationManager();
@@ -402,7 +402,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
     }
 
     private void UpdateScanResultCounterText() {
-        ScanningProcessor processor = this.MemoryEngine360.ScanningProcessor;
+        ScanningProcessor processor = this.MemoryEngine.ScanningProcessor;
 
         int pending = processor.ActualScanResultCount;
         int count = processor.ScanResults.Count;
@@ -412,15 +412,15 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
 
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
-        this.connectedHostNameBinder.Attach(this.PART_ConnectedHostName, this.MemoryEngine360);
-        this.isScanningBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
-        this.scanAddressBinder.Attach(this.PART_ScanOption_StartAddress, this.MemoryEngine360.ScanningProcessor);
-        this.scanLengthBinder.Attach(this.PART_ScanOption_Length, this.MemoryEngine360.ScanningProcessor);
-        this.alignmentBinder.Attach(this, this.MemoryEngine360.ScanningProcessor);
-        this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, this.MemoryEngine360.ScanningProcessor);
-        // this.forceLEBinder.Attach(this.PART_ForcedEndianness, this.MemoryEngine360);
-        this.scanMemoryPagesBinder.Attach(this.PART_ScanOption_ScanMemoryPages, this.MemoryEngine360.ScanningProcessor);
-        this.MemoryEngine360.ConnectionChanged += this.OnConnectionChanged;
+        this.connectedHostNameBinder.Attach(this.PART_ConnectedHostName, this.MemoryEngine);
+        this.isScanningBinder.Attach(this, this.MemoryEngine.ScanningProcessor);
+        this.scanAddressBinder.Attach(this.PART_ScanOption_StartAddress, this.MemoryEngine.ScanningProcessor);
+        this.scanLengthBinder.Attach(this.PART_ScanOption_Length, this.MemoryEngine.ScanningProcessor);
+        this.alignmentBinder.Attach(this, this.MemoryEngine.ScanningProcessor);
+        this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, this.MemoryEngine.ScanningProcessor);
+        // this.forceLEBinder.Attach(this.PART_ForcedEndianness, this.MemoryEngine);
+        this.scanMemoryPagesBinder.Attach(this.PART_ScanOption_ScanMemoryPages, this.MemoryEngine.ScanningProcessor);
+        this.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;
 
         this.themeListHandler = ObservableItemProcessor.MakeIndexable(ThemeManager.Instance.Themes, (sender, index, item) => {
             this.themesSubList.Items.Insert(index, new SetThemeContextEntry(item));
@@ -434,7 +434,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
     protected override void OnUnloaded(RoutedEventArgs e) {
         base.OnUnloaded(e);
 
-        this.MemoryEngine360.ConnectionChanged -= this.OnConnectionChanged;
+        this.MemoryEngine.ConnectionChanged -= this.OnConnectionChanged;
         this.themeListHandler?.RemoveExistingItems();
         this.themeListHandler?.Dispose();
         this.themeListHandler = null;
@@ -462,9 +462,9 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
         }
     }
 
-    private void OnConnectionChanged(MemoryEngine360 sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
+    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
         TextNotification notification = this.connectionNotification ??= new TextNotification() {
-            ContextData = new ContextData().Set(IMemEngineUI.MemUIDataKey, this)
+            ContextData = new ContextData().Set(IEngineUI.EngineUIDataKey, this)
         };
 
         if (newConn != null) {
@@ -474,18 +474,18 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
             notification.Commands.Add(this.connectionNotificationCommandGetStarted ??= new LambdaNotificationCommand("Get Started", static async (c) => {
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     const string url = "https://github.com/AngryCarrot789/MemoryEngine360/wiki#quick-start";
-                    IMemEngineUI mem = IMemEngineUI.MemUIDataKey.GetContext(c.ContextData!)!;
-                    return TopLevel.GetTopLevel((MemEngineView) mem)?.Launcher.LaunchUriAsync(new Uri(url)) ?? Task.FromResult(false);
+                    IEngineUI mem = IEngineUI.EngineUIDataKey.GetContext(c.ContextData!)!;
+                    return TopLevel.GetTopLevel((EngineView) mem)?.Launcher.LaunchUriAsync(new Uri(url)) ?? Task.FromResult(false);
                 });
             }) { ToolTip = "Opens a link to MemoryEngine360's quick start guide on the wiki" });
 
             notification.Commands.Add(this.connectionNotificationCommandDisconnect ??= new LambdaNotificationCommand("Disconnect", static async (c) => {
                 // ContextData ensured non-null by LambdaNotificationCommand.requireContext
-                IMemEngineUI mem = IMemEngineUI.MemUIDataKey.GetContext(c.ContextData!)!;
-                if (mem.MemoryEngine360.Connection != null) {
-                    ((ContextData) c.ContextData!).Set(IMemEngineUI.IsDisconnectFromNotification, true);
+                IEngineUI mem = IEngineUI.EngineUIDataKey.GetContext(c.ContextData!)!;
+                if (mem.MemoryEngine.Connection != null) {
+                    ((ContextData) c.ContextData!).Set(IEngineUI.IsDisconnectFromNotification, true);
                     await OpenConsoleConnectionDialogCommand.DisconnectInActivity(mem, 0);
-                    ((ContextData) c.ContextData!).Set(IMemEngineUI.IsDisconnectFromNotification, null);
+                    ((ContextData) c.ContextData!).Set(IEngineUI.IsDisconnectFromNotification, null);
                 }
 
                 c.Notification?.Close();
@@ -498,7 +498,7 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
         else {
             notification.Text = $"Disconnected from '{oldConn!.ConnectionType.DisplayName}'";
             this.PART_LatestActivity.Text = notification.Text;
-            if (cause != ConnectionChangeCause.ClosingWindow && (!IMemEngineUI.IsDisconnectFromNotification.TryGetContext(notification.ContextData!, out bool b) || !b)) {
+            if (cause != ConnectionChangeCause.ClosingWindow && (!IEngineUI.IsDisconnectFromNotification.TryGetContext(notification.ContextData!, out bool b) || !b)) {
                 notification.Caption = cause switch {
                     ConnectionChangeCause.LostConnection => "Lost Connection",
                     ConnectionChangeCause.ConnectionError => "Connection error",
@@ -510,8 +510,8 @@ public partial class MemEngineView : UserControl, IMemEngineUI {
                     notification.CanAutoHide = false;
                     notification.Commands.Add(this.connectionNotificationCommandReconnect ??= new LambdaNotificationCommand("Reconnect", static async (c) => {
                         // ContextData ensured non-null by LambdaNotificationCommand.requireContext
-                        IMemEngineUI mem = IMemEngineUI.MemUIDataKey.GetContext(c.ContextData!)!;
-                        MemoryEngine360 eng = mem.MemoryEngine360;
+                        IEngineUI mem = IEngineUI.EngineUIDataKey.GetContext(c.ContextData!)!;
+                        MemoryEngine eng = mem.MemoryEngine;
                         if (eng.Connection != null) {
                             c.Notification?.Close();
                             return;

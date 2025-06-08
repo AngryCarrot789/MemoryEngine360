@@ -42,7 +42,7 @@
     <!--     <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/> -->
     <!--     <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/> -->
     <!--     <Setter Property="ScrollViewer.IsScrollChainingEnabled" Value="True"/> -->
-    <!--     <Setter Property="sc:UIInputManager.FocusPath" Value="MemEngineWindow/SavedAddressList"/> -->
+    <!--     <Setter Property="sc:UIInputManager.FocusPath" Value="EngineWindow/SavedAddressList"/> -->
     <!--     <Setter Property="Template"> -->
     <!--         <ControlTemplate> -->
     <!--             <Border BorderBrush="{TemplateBinding BorderBrush}" -->
@@ -113,7 +113,7 @@
     <!--     <Setter Property="BorderThickness" Value="0,0,0,1"/> -->
     <!--     <Setter Property="Margin" Value="0"/> -->
     <!--     <Setter Property="Padding" Value="0"/> -->
-    <!--     <Setter Property="sc:UIInputManager.FocusPath" Value="MemEngineWindow/SavedAddressList/RowItem"/> -->
+    <!--     <Setter Property="sc:UIInputManager.FocusPath" Value="EngineWindow/SavedAddressList/RowItem"/> -->
     <!--     <Setter Property="Template"> -->
     <!--         <ControlTemplate> -->
     <!--             <Panel> -->
@@ -231,7 +231,7 @@
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
         <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
         <Setter Property="ScrollViewer.IsScrollChainingEnabled" Value="True"/>
-        <Setter Property="sc:UIInputManager.FocusPath" Value="MemEngineWindow/SavedAddressList"/>
+        <Setter Property="sc:UIInputManager.FocusPath" Value="EngineWindow/SavedAddressList"/>
         <Setter Property="Grid.IsSharedSizeScope" Value="True"/>
         <Setter Property="Template">
             <ControlTemplate>
@@ -310,7 +310,7 @@
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
         <Setter Property="Margin" Value="0"/>
         <Setter Property="Padding" Value="0"/>
-        <Setter Property="sc:UIInputManager.FocusPath" Value="MemEngineWindow/SavedAddressList/RowItem"/>
+        <Setter Property="sc:UIInputManager.FocusPath" Value="EngineWindow/SavedAddressList/RowItem"/>
         <Setter Property="Template">
             <ControlTemplate>
                 <Panel>

@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using MemEngine360.Engine;
@@ -28,7 +28,7 @@ namespace MemEngine360.Commands;
 public class CopyScanResultsToClipboardCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         if (!ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? _)) {
-            if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+            if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
                 return Executability.Invalid;
             }
             else if (ui.ScanResultSelectionManager.Count < 1) {
@@ -40,28 +40,28 @@ public class CopyScanResultsToClipboardCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        MemoryEngine360? memoryEngine360 = null;
+        MemoryEngine? engine = null;
         List<ScanResultViewModel> scanResults = new List<ScanResultViewModel>();
-        if (IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? ui)) {
+        if (IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             scanResults.AddRange(ui.ScanResultSelectionManager.SelectedItems);
-            memoryEngine360 = ui.MemoryEngine360;
+            engine = ui.MemoryEngine;
         }
 
         if (ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? theResult)) {
-            memoryEngine360 ??= theResult.ScanningProcessor.MemoryEngine360;
+            engine ??= theResult.ScanningProcessor.MemoryEngine;
             if (!scanResults.Contains(theResult))
                 scanResults.Add(theResult);
         }
 
-        if (memoryEngine360 == null || scanResults.Count < 1) {
+        if (engine == null || scanResults.Count < 1) {
             return;
         }
 
         MessageBoxInfo info = new MessageBoxInfo("Copy Rows", "Below is the selected rows") {
             Message = string.Join(Environment.NewLine, scanResults.Select(x => x.Address.ToString("X8") + "," + 
-                                                                               MemoryEngine360.GetStringFromDataValue(x, x.CurrentValue) + "," + 
-                                                                               MemoryEngine360.GetStringFromDataValue(x, x.PreviousValue) + "," + 
-                                                                               MemoryEngine360.GetStringFromDataValue(x, x.FirstValue))),
+                                                                               DataValueUtils.GetStringFromDataValue(x, x.CurrentValue) + "," + 
+                                                                               DataValueUtils.GetStringFromDataValue(x, x.PreviousValue) + "," + 
+                                                                               DataValueUtils.GetStringFromDataValue(x, x.FirstValue))),
             Buttons = MessageBoxButton.OKCancel, DefaultButton = MessageBoxResult.OK,
             YesOkText = "Copy to Clipboard",
             CancelText = "Close"

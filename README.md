@@ -1,4 +1,4 @@
-# MemEngine360 v1.1.5
+# ![](MemEngine360.Avalonia/icon-32.bmp) Memory Engine 360 v1.1.6-dev
 This is a remake of Cheat Engine, but for consoles (so far only Xbox 360). This project was inspired by https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
 
 ![](MemEngine360-DesktopUI_2025-05-31_18.56.19.png)

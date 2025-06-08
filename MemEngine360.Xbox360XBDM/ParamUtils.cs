@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System.Diagnostics.CodeAnalysis;
@@ -27,20 +27,20 @@ public static class ParamUtils {
     public static bool GetStrParam(string text, string key, bool hasNoCommandPrefix, [NotNullWhen(true)] out string? value, int initialCapacity = 64) {
         return GetStrParam(text.AsSpan(), key, hasNoCommandPrefix, out value, initialCapacity);
     }
-    
+
     public static bool GetDwParam(string text, string key, bool hasNoCommandPrefix, out uint value) {
         return GetDwParam(text.AsSpan(), key, hasNoCommandPrefix, out value);
     }
-    
+
     public static bool GetQwParam(string text, string key, bool hasNoCommandPrefix, out ulong value) {
         return GetQwParam(text.AsSpan(), key, hasNoCommandPrefix, out value);
     }
-    
+
     public static bool GetStrParam(ReadOnlySpan<char> text, string key, bool hasNoCommandPrefix, [NotNullWhen(true)] out string? value, int initialCapacity = 64) {
         int offset = GetOffsetToValue(text, key, true, hasNoCommandPrefix);
         return (value = offset >= 0 ? GetValueAt(text, offset, initialCapacity) : null) != null;
     }
-    
+
     public static bool GetDwParam(ReadOnlySpan<char> text, string key, bool hasNoCommandPrefix, out uint value) {
         int offset = GetOffsetToValue(text, key, true, hasNoCommandPrefix);
         if (offset >= 0) {
@@ -52,7 +52,7 @@ public static class ParamUtils {
         value = 0;
         return false;
     }
-    
+
     public static bool GetQwParam(ReadOnlySpan<char> text, string key, bool hasNoCommandPrefix, out ulong value) {
         int offset = GetOffsetToValue(text, key, true, hasNoCommandPrefix);
         if (offset >= 0) {
@@ -64,7 +64,7 @@ public static class ParamUtils {
         value = 0;
         return false;
     }
-    
+
     /// <summary>
     /// Returns the index to either the first char of the value (when <see cref="isValueRequired"/> is true) including the quote,
     /// or the index of where the equal sign would be. Returns -1 when the key is not found
@@ -130,7 +130,7 @@ public static class ParamUtils {
                 if (isInQuote && offset != (text.Length - 1 /* check not last char */) && text[offset + 1] == '"') {
                     if (maxChars >= 0 && sb.Length == maxChars)
                         return null;
-                    
+
                     sb.Append('"');
                     offset += 2;
                 }
@@ -142,7 +142,7 @@ public static class ParamUtils {
             else {
                 if (maxChars >= 0 && sb.Length == maxChars)
                     return null;
-                
+
                 sb.Append(text[offset++]);
             }
         }

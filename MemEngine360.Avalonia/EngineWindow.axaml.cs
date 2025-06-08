@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System;
@@ -34,8 +34,8 @@ using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Avalonia;
 
-public partial class MemEngineWindow : DesktopWindow {
-    public MemEngineWindow() {
+public partial class EngineWindow : DesktopWindow {
+    public EngineWindow() {
         this.InitializeComponent();
     }
 
@@ -45,8 +45,8 @@ public partial class MemEngineWindow : DesktopWindow {
         this.PART_MemEngineView.IsActivtyListVisible = false;
         using MultiChangeToken change = DataManager.GetContextData(this).BeginChange();
         change.Context.
-               Set(MemoryEngine360.DataKey, this.PART_MemEngineView.MemoryEngine360).
-               Set(IMemEngineUI.MemUIDataKey, this.PART_MemEngineView);
+               Set(MemoryEngine.EngineDataKey, this.PART_MemEngineView.MemoryEngine).
+               Set(IEngineUI.EngineUIDataKey, this.PART_MemEngineView);
 
         ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineOpened(this.PART_MemEngineView);
     }
@@ -56,7 +56,7 @@ public partial class MemEngineWindow : DesktopWindow {
         
         ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineClosed(this.PART_MemEngineView);
 
-        DataManager.GetContextData(this).Remove(MemoryEngine360.DataKey, IMemEngineUI.MemUIDataKey);
+        DataManager.GetContextData(this).Remove(MemoryEngine.EngineDataKey, IEngineUI.EngineUIDataKey);
     }
 
     protected override async Task<bool> OnClosingAsync(WindowCloseReason reason) {
@@ -64,7 +64,7 @@ public partial class MemEngineWindow : DesktopWindow {
             return true;
         }
 
-        MemoryEngine360 engine = this.PART_MemEngineView.MemoryEngine360;
+        MemoryEngine engine = this.PART_MemEngineView.MemoryEngine;
         engine.IsShuttingDown = true;
         ulong frame = engine.GetNextConnectionChangeFrame();
         await engine.BroadcastConnectionAboutToChange(frame);

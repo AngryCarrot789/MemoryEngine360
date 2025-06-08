@@ -1,20 +1,20 @@
 ﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
-// This file is part of MemEngine360.
+// This file is part of MemoryEngine360.
 // 
-// MemEngine360 is free software; you can redistribute it and/or
+// MemoryEngine360 is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either
 // version 3.0 of the License, or (at your option) any later version.
 // 
-// MemEngine360 is distributed in the hope that it will be useful,
+// MemoryEngine360 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with MemEngine360. If not, see <https://www.gnu.org/licenses/>.
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
 using System.Diagnostics;
@@ -33,7 +33,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
     private IOpenConnectionView? myDialog;
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? memUi)) {
+        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? memUi)) {
             return Executability.Invalid;
         }
 
@@ -46,13 +46,13 @@ public class OpenConsoleConnectionDialogCommand : Command {
             return;
         }
 
-        if (!IMemEngineUI.MemUIDataKey.TryGetContext(e.ContextData, out IMemEngineUI? memUi)) {
+        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? memUi)) {
             return;
         }
 
-        ulong frame = memUi.MemoryEngine360.GetNextConnectionChangeFrame();
+        ulong frame = memUi.MemoryEngine.GetNextConnectionChangeFrame();
 
-        if (memUi.MemoryEngine360.Connection != null) {
+        if (memUi.MemoryEngine.Connection != null) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName: AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 return;
@@ -63,7 +63,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
             }
         }
 
-        this.myDialog = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(memUi.MemoryEngine360);
+        this.myDialog = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(memUi.MemoryEngine);
         if (this.myDialog != null) {
             IDisposable? token = null;
             try {
@@ -71,7 +71,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
                 if (connection != null) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
-                    if ((token = await SetEngineConnectionAndHandleProblemsAsync(memUi.MemoryEngine360, connection, frame, this.myDialog.UserConnectionInfoForConnection)) == null) {
+                    if ((token = await SetEngineConnectionAndHandleProblemsAsync(memUi.MemoryEngine, connection, frame, this.myDialog.UserConnectionInfoForConnection)) == null) {
                         await connection.Close();
                     }
                 }
@@ -87,10 +87,10 @@ public class OpenConsoleConnectionDialogCommand : Command {
     /// 
     /// </summary>
     /// <param name="e"></param>
-    /// <param name="memUi"></param>
+    /// <param name="ui"></param>
     /// <param name="frame"></param>
     /// <returns>False when token could not be acquired</returns>
-    public static async Task<bool> DisconnectInActivity(IMemEngineUI memUi, ulong frame) {
+    public static async Task<bool> DisconnectInActivity(IEngineUI ui, ulong frame) {
         using CancellationTokenSource cts = new CancellationTokenSource();
         bool isOperationCancelled = await ActivityManager.Instance.RunTask(async () => {
             ActivityTask task = ActivityManager.Instance.CurrentTask;
@@ -99,19 +99,19 @@ public class OpenConsoleConnectionDialogCommand : Command {
 
             // ConnectionAboutToChange can be called at any time even if the connection isn't
             // about to change. It's purely just to signal tasks to stop
-            await memUi.MemoryEngine360.BroadcastConnectionAboutToChange(frame);
+            await ui.MemoryEngine.BroadcastConnectionAboutToChange(frame);
 
             task.Progress.Text = "Waiting for busy operations...";
-            using IDisposable? token = await memUi.MemoryEngine360.BeginBusyOperationAsync(task.CancellationToken);
+            using IDisposable? token = await ui.MemoryEngine.BeginBusyOperationAsync(task.CancellationToken);
             if (token == null) {
                 return false;
             }
 
             // Doesn't matter if the connection became null in the meantime
-            IConsoleConnection? existingConnection = memUi.MemoryEngine360.GetConnection(token);
+            IConsoleConnection? existingConnection = ui.MemoryEngine.GetConnection(token);
             if (existingConnection != null) {
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                    memUi.MemoryEngine360.SetConnection(token, frame, null, ConnectionChangeCause.User);
+                    ui.MemoryEngine.SetConnection(token, frame, null, ConnectionChangeCause.User);
                 });
 
                 try {
@@ -139,7 +139,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
     /// <param name="newConnection">The new connection</param>
     /// <param name="frame">The connection changing frame</param>
     /// <returns>The token</returns>
-    public static async Task<IDisposable?> SetEngineConnectionAndHandleProblemsAsync(MemoryEngine360 engine, IConsoleConnection newConnection, ulong frame, UserConnectionInfo? userConnectionInfo = null) {
+    public static async Task<IDisposable?> SetEngineConnectionAndHandleProblemsAsync(MemoryEngine engine, IConsoleConnection newConnection, ulong frame, UserConnectionInfo? userConnectionInfo = null) {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(newConnection);
 
