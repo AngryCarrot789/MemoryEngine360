@@ -105,7 +105,21 @@
         </Shortcut>
     </Group>
     <Group Name="Configuration" DisplayName="Configuration window" Description="The configuration window">
-        <Group Name="Page" DisplayName="Page Panel">
+        <Group Name="Tree" DisplayName="The tree of pages">
+            <Group Name="TreeItem" DisplayName="A tree item that opens a page">
+
+            </Group>    
+        </Group>
+        <Group Name="Page" DisplayName="The page panel">
+            <Group Name="ShortcutsTree">
+            </Group>
+            <Group Name="ThemesTree">
+                <Group Name="TreeItem">
+                    <Shortcut Name="ShowKeysInheritingFromTheme" CommandId="commands.themes.ShowKeysInheritingFromThemeCommand">
+                        <KeyStroke Mods="CTRL" Key="I"/>
+                    </Shortcut>
+                </Group>
+            </Group>
             <Group Name="DialogResults">
                 <Shortcut Name="DeleteSelectedDialogResultEntries" CommandId="commands.config.dialogs.DeleteSelectedDialogResultEntriesCommand">
                     <KeyStroke Key="Delete"/>
