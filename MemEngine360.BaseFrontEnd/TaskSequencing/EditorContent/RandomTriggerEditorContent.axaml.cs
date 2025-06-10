@@ -54,6 +54,16 @@ public partial class RandomTriggerEditorContent : BaseOperationEditorContent {
         b.Model.WaitForTriggerInterval = span;
         return true;
     });
+    
+    private readonly TextBoxToEventPropertyBinder<RandomTriggerHelper> minTriesBinder = new TextBoxToEventPropertyBinder<RandomTriggerHelper>(nameof(RandomTriggerHelper.MinimumTriesToTriggerChanged), (b) => b.Model.MinimumTriesToTrigger.ToString(), async (b, str) => {
+        if (!uint.TryParse(str, out uint value)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", $"The value must be an integer between {uint.MinValue} and {uint.MaxValue}.", defaultButton: MessageBoxResult.OK);
+            return false;
+        }
+
+        b.Model.MinimumTriesToTrigger = value;
+        return true;
+    });
 
     public override string Caption => "Random Trigger";
 
@@ -62,6 +72,7 @@ public partial class RandomTriggerEditorContent : BaseOperationEditorContent {
         
         this.chanceBinder.AttachControl(this.PART_ChanceTextBox);
         this.wait4trigBinder.AttachControl(this.PART_WaitTextBox);
+        this.minTriesBinder.AttachControl(this.PART_MinimumTriesTextBox);
     }
 
     protected override void OnOperationChanged(BaseSequenceOperation? oldOperation, BaseSequenceOperation? newOperation) {
@@ -69,5 +80,6 @@ public partial class RandomTriggerEditorContent : BaseOperationEditorContent {
         
         this.chanceBinder.SwitchModel(newOperation?.RandomTriggerHelper);
         this.wait4trigBinder.SwitchModel(newOperation?.RandomTriggerHelper);
+        this.minTriesBinder.SwitchModel(newOperation?.RandomTriggerHelper);
     }
 }

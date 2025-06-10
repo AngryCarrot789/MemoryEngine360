@@ -23,6 +23,7 @@ using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
+using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
@@ -31,7 +32,7 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent;
 
 public partial class SetMemoryOperationEditorContent : BaseOperationEditorContent {
     private readonly AvaloniaPropertyToEventPropertyBinder<DataProviderHandler> parseIntAsHexBinder = new AvaloniaPropertyToEventPropertyBinder<DataProviderHandler>(CheckBox.IsCheckedProperty, nameof(DataProviderHandler.ParseIntAsHexChanged), (b) => ((CheckBox) b.Control).IsChecked = b.Model.ParseIntAsHex, (b) => b.Model.ParseIntAsHex = ((CheckBox) b.Control).IsChecked == true);
-    private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(DataProviderHandler), nameof(DataProviderHandler.StringTypeChanged), (x) => ((DataProviderHandler) x).StringType, (x, v) => ((DataProviderHandler) x).StringType = v);
+    private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(ConstantDataValueHandler), nameof(ConstantDataValueHandler.StringTypeChanged), (x) => ((ConstantDataValueHandler) x).StringType, (x, v) => ((ConstantDataValueHandler) x).StringType = v);
     private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(DataProviderHandler), nameof(DataProviderHandler.DataTypeChanged), (x) => ((DataProviderHandler) x).DataType, (x, y) => ((DataProviderHandler) x).DataType = y);
 
     private readonly AvaloniaPropertyToEventPropertyBinder<SetMemoryOperation> selectedTabIndexBinder = new AvaloniaPropertyToEventPropertyBinder<SetMemoryOperation>(TabControl.SelectedIndexProperty, nameof(SetMemoryOperation.DataValueProviderChanged), (b) => {
@@ -42,8 +43,8 @@ public partial class SetMemoryOperationEditorContent : BaseOperationEditorConten
         }
     }, (b) => {
         switch (((TabControl) b.Control).SelectedIndex) {
-            case 0:  b.Model.DataValueProvider = new ConstantDataProvider(); break;
-            case 1:  b.Model.DataValueProvider = new RandomNumberDataProvider(); break;
+            case 0:  b.Model.DataValueProvider = b.Model.InitialConstantDataProvider ??= new ConstantDataProvider(new DataValueInt32(0)); break;
+            case 1:  b.Model.DataValueProvider = b.Model.InitialRandomNumberDataProvider ??= new RandomNumberDataProvider(DataType.Int32, new DataValueInt32(0), new DataValueInt32(10)); break;
             default: b.Model.DataValueProvider = null; break;
         }
     });
@@ -55,7 +56,7 @@ public partial class SetMemoryOperationEditorContent : BaseOperationEditorConten
     public SetMemoryOperationEditorContent() {
         this.InitializeComponent();
 
-        this.parseIntAsHexBinder.AttachControl(this.PART_ParseIntAsHexCheckBox);
+        this.parseIntAsHexBinder.AttachControl(this.PART_DisplayAndParseIntAsHex);
         this.stringScanModeBinder.Assign(this.PART_DTString_ASCII, StringType.ASCII);
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF8, StringType.UTF8);
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF16, StringType.UTF16);
@@ -83,11 +84,13 @@ public partial class SetMemoryOperationEditorContent : BaseOperationEditorConten
 
     private void OnDataValueProviderChanged(SetMemoryOperation sender, DataValueProvider? oldProvider, DataValueProvider? newProvider) {
         if (this.myDataProviderEditorHandler != null) {
+            this.dataTypeBinder.Detach();
+            this.parseIntAsHexBinder.DetachModel();
+            if (this.myDataProviderEditorHandler is ConstantDataValueHandler)
+                this.stringScanModeBinder.Detach();
+            
             this.myDataProviderEditorHandler.Disconnect();
             this.myDataProviderEditorHandler = null;
-            this.dataTypeBinder.Detach();
-            this.stringScanModeBinder.Detach();
-            this.parseIntAsHexBinder.DetachModel();
         }
 
         if (newProvider != null) {
@@ -97,10 +100,12 @@ public partial class SetMemoryOperationEditorContent : BaseOperationEditorConten
             }
 
             if (this.myDataProviderEditorHandler != null) {
-                this.dataTypeBinder.Attach(this.PART_DataTypeCombo, this.myDataProviderEditorHandler);
-                this.stringScanModeBinder.Attach(this.myDataProviderEditorHandler);
-                this.parseIntAsHexBinder.AttachModel(this.myDataProviderEditorHandler);
                 this.myDataProviderEditorHandler.Connect(newProvider);
+                
+                this.dataTypeBinder.Attach(this.PART_DataTypeCombo, this.myDataProviderEditorHandler);
+                this.parseIntAsHexBinder.AttachModel(this.myDataProviderEditorHandler);
+                if (this.myDataProviderEditorHandler is ConstantDataValueHandler)
+                    this.stringScanModeBinder.Attach(this.myDataProviderEditorHandler);
             }
         }
     }

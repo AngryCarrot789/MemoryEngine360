@@ -20,6 +20,8 @@
 using System;
 using System.IO;
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
@@ -27,23 +29,36 @@ using PFXToolKitUI.Avalonia;
 namespace MemEngine360.Avalonia;
 
 public partial class App : Application {
+    private IApplicationStartupProgress progress;
+
     public override void Initialize() {
         AvaloniaXamlLoader.Load(this);
+        
         AvUtils.OnApplicationInitialised();
 
         ApplicationPFX.InitializeInstance(new MemoryEngineApplication(this));
+        
+        if (this.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop1) {
+            desktop1.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            SplashScreenWindow splashScreen = new SplashScreenWindow();
+            this.progress = splashScreen;
+            desktop1.MainWindow = splashScreen;
+            splashScreen.Show();
+        }
+        else {
+            this.progress = new EmptyApplicationStartupProgress();
+        }
     }
 
     public override async void OnFrameworkInitializationCompleted() {
         base.OnFrameworkInitializationCompleted();
         AvUtils.OnFrameworkInitialised();
 
-        EmptyApplicationStartupProgress progress = new EmptyApplicationStartupProgress();
         string[] envArgs = Environment.GetCommandLineArgs();
         if (envArgs.Length > 0 && Path.GetDirectoryName(envArgs[0]) is string dir && dir.Length > 0) {
             Directory.SetCurrentDirectory(dir);
         }
-        
-        await ApplicationPFX.InitializeApplication(progress, envArgs);
+
+        await ApplicationPFX.InitializeApplication(this.progress, envArgs);
     }
 }

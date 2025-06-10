@@ -85,7 +85,7 @@ public abstract class BaseSequenceOperation : ITransferableData {
     /// <exception cref="InvalidOperationException">Already running</exception>
     /// <exception cref="OperationCanceledException">Operation cancelled</exception>
     /// <returns>A task that represents the operation</returns>
-    public async Task Run(SequenceExecutionContext ctx, CancellationToken token) {
+    internal async Task Run(SequenceExecutionContext ctx, CancellationToken token) {
         if (this.IsRunning) {
             throw new InvalidOperationException("Already running");
         }
@@ -121,6 +121,21 @@ public abstract class BaseSequenceOperation : ITransferableData {
         }
     }
 
+    /// <summary>
+    /// Invoked on all operations in the sequence before <see cref="Run"/> is called.
+    /// </summary>
+    protected internal virtual void OnAboutToRun() {
+        
+    }
+    
+    /// <summary>
+    /// Invoked on all operations after the sequence has finished. <see cref="Run"/> may not have
+    /// actually been called (maybe sequence was stopped mid-way)
+    /// </summary>
+    protected internal virtual void OnRunFinished() {
+        
+    }
+    
     /// <summary>
     /// Runs this operation
     /// </summary>

@@ -144,15 +144,15 @@
                                 </ControlTemplate>
                             </Setter>
                             <Style Selector="^:pointerover /template/ Border#PART_Border">
-                                <Setter Property="Background" Value="{DynamicResource Item.MouseOver.Background}"/>
+                                <Setter Property="Background" Value="{DynamicResource ListBoxItem.MouseOver.Background}"/>
                             </Style>
 
                             <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_Border">
-                                <Setter Property="Background" Value="{DynamicResource Item.SelectedInactive.Background}"/>
+                                <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedInactive.Background}"/>
                             </Style>
 
                             <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_Border">
-                                <Setter Property="Background" Value="{DynamicResource Item.SelectedActive.Background}"/>
+                                <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedActive.Background}"/>
                             </Style>
                         </ControlTheme>
                     </ListBox.ItemContainerTheme>

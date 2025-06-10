@@ -47,7 +47,7 @@ public static class BinderParsingUtils {
         return false;
     }
 
-    public static async Task<(IDataValue, string)?> TryParseTextAsDataValueAndModify(DataProviderHandler h, DataType dataType, string text) {
+    public static async Task<IDataValue?> TryParseTextAsDataValueAndModify(DataProviderHandler h, DataType dataType, string text) {
         bool hasHexPrefix = text.StartsWith("0x");
         if (hasHexPrefix && !h.ParseIntAsHex && dataType.IsInteger()) {
             h.ParseIntAsHex = true;
@@ -56,7 +56,7 @@ public static class BinderParsingUtils {
         ValidationArgs args = new ValidationArgs(h.ParseIntAsHex && hasHexPrefix ? text.Substring(2) : text, [], false);
         NumericDisplayType intNdt = h.ParseIntAsHex ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
         if (DataValueUtils.TryParseTextAsDataValue(args, dataType, intNdt, StringType.ASCII, out IDataValue? value)) {
-            return (value, intNdt.AsString(dataType, value.BoxedValue));
+            return value;
         }
         else {
             await IMessageDialogService.Instance.ShowMessage("Invalid text", args.Errors.Count > 0 ? args.Errors[0] : "Could not parse value as " + dataType, defaultButton: MessageBoxResult.OK);

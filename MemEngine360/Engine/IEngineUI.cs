@@ -28,7 +28,7 @@ namespace MemEngine360.Engine;
 /// <summary>
 /// An abstraction around the engine window
 /// </summary>
-public interface IEngineUI {
+public interface IEngineUI : ITopLevel {
     public static readonly DataKey<IEngineUI> EngineUIDataKey = DataKey<IEngineUI>.Create("IEngineUI");
 
     /// <summary>

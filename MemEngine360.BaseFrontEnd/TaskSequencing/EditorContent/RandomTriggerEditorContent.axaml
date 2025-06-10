@@ -8,14 +8,12 @@
                                MinWidth="100">
     <StackPanel Margin="2">
         <TextBlock Padding="1,2" Text="Chance to run"/>
-        <DockPanel>
-            <TextBox x:Name="PART_ChanceTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" VerticalContentAlignment="Center"
-                     ToolTip.Tip="The chance of the operation running. When set to 1, it has a 100% chance of running. Cannot be 0">
-                <TextBox.InnerLeftContent>
-                    <TextBlock Padding="1,0,3,0" Text="1 in" Opacity="0.5" VerticalAlignment="Center"/>
-                </TextBox.InnerLeftContent>
-            </TextBox>
-        </DockPanel>
+        <TextBox x:Name="PART_ChanceTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" VerticalContentAlignment="Center"
+                 ToolTip.Tip="The chance of the operation running. When set to 1, it has a 100% chance of running. Cannot be 0">
+            <TextBox.InnerLeftContent>
+                <TextBlock Padding="1,0,3,0" Text="1 in" Opacity="0.5" VerticalAlignment="Center"/>
+            </TextBox.InnerLeftContent>
+        </TextBox>
         <TextBlock Padding="1,2" Text="Wait per chance"/>
         <TextBox x:Name="PART_WaitTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" Watermark="No waiting">
             <ToolTip.Tip>
@@ -23,6 +21,19 @@
                     <Run Text="The amount of time to wait between tries to run. Default is nothing, meaning we do not run."/>
                     <LineBreak/>
                     <Run Text="If we don't get lucky. When set to a time however, we will keep trying until we get lucky"/>
+                </TextBlock>
+            </ToolTip.Tip>
+        </TextBox>
+        <TextBlock Padding="1,2" Text="Minimum tries"/>
+        <TextBox x:Name="PART_MinimumTriesTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" VerticalContentAlignment="Center">
+            <ToolTip.Tip>
+                <TextBlock>
+                    <Run Text="The minimum number of tries that must be attempted after a successful trigger before we can try to trigger again"/>
+                    <LineBreak/>
+                    <LineBreak/>
+                    <Run Text="Due to the inherent randomness of random number generators, we may not trigger for a while, then suddenly, we trigger many times in a row."/>
+                    <LineBreak/>
+                    <Run Text="This value tries to keep a handle on that by saying 'You must try to trigger X number of times since the last trigger before trying to trigger again'"/>
                 </TextBlock>
             </ToolTip.Tip>
         </TextBox>

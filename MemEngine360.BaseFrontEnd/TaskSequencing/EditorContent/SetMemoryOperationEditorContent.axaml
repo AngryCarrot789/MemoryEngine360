@@ -20,15 +20,19 @@
                     </DockPanel>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="Random" IsEnabled="False">
+            <TabItem Header="Random">
                 <StackPanel Margin="2">
                     <TextBlock Padding="1,2" Text="Set the minimum"/>
                     <DockPanel>
-                        <TextBox x:Name="PART_RangedValueATextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" VerticalContentAlignment="Center"/>
+                        <TextBox x:Name="PART_RangedValueATextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" 
+                                 Padding="2,2" VerticalContentAlignment="Center"
+                                 ToolTip.Tip="Sets the minimum value that can be generated"/>
                     </DockPanel>
                     <TextBlock Padding="1,2" Text="Set the maximum"/>
                     <DockPanel>
-                        <TextBox x:Name="PART_RangedValueBTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" VerticalContentAlignment="Center"/>
+                        <TextBox x:Name="PART_RangedValueBTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" 
+                                 Padding="2,2" VerticalContentAlignment="Center"
+                                 ToolTip.Tip="Sets the maximum value that can be generated. (meaning this value is inclusive, as is the minimum value)"/>
                     </DockPanel>
                 </StackPanel>
             </TabItem>
@@ -36,7 +40,7 @@
         <TabControl>
             <TabItem Header="Numbers">
                 <StackPanel Margin="1">
-                    <CheckBox Content="Parse Int as Hexadecimal" x:Name="PART_ParseIntAsHexCheckBox"/>
+                    <CheckBox Content="Parse Ints as Hexadecimal" x:Name="PART_DisplayAndParseIntAsHex"/>
                 </StackPanel>
             </TabItem>
             <TabItem Header="Strings">

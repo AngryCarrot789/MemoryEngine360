@@ -25,16 +25,39 @@ public delegate void MemoryEngineUIEventHandler(MemoryEngineManager manager, IEn
 /// Manages memory engine instances
 /// </summary>
 public abstract class MemoryEngineManager {
+    private readonly List<IEngineUI> engines;
+
+    /// <summary>
+    /// Gets all opened engine views. This list is read-only
+    /// </summary>
+    public IList<IEngineUI> Engines { get; }
+    
     /// <summary>
     /// A global event fired when any mem engine view opens
     /// </summary>
     public event MemoryEngineUIEventHandler? EngineOpened;
-    
+
     /// <summary>
     /// A global event fired when any mem engine view closes
     /// </summary>
     public event MemoryEngineUIEventHandler? EngineClosed;
     
-    protected void OnEngineOpened(IEngineUI engineUI) => this.EngineOpened?.Invoke(this, engineUI);
-    protected void OnEngineClosed(IEngineUI engineUI) => this.EngineClosed?.Invoke(this, engineUI);
+    public MemoryEngineManager() {
+        this.Engines = (this.engines = new List<IEngineUI>(1)).AsReadOnly();
+    }
+
+    protected void OnEngineOpened(IEngineUI engineUI) {
+        if (this.engines.Contains(engineUI))
+            throw new InvalidOperationException("Engine already opened");
+
+        this.engines.Add(engineUI);
+        this.EngineOpened?.Invoke(this, engineUI);
+    }
+
+    protected void OnEngineClosed(IEngineUI engineUI) {
+        if (!this.engines.Remove(engineUI))
+            throw new InvalidOperationException("Engine not opened");
+        
+        this.EngineClosed?.Invoke(this, engineUI);
+    }
 }

@@ -29,7 +29,8 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
     private readonly Random random;
     private BaseNumericDataValue? minimum, maximum;
 
-    private DataType dataType;
+    private DataType dataType = DataType.Int32;
+    private bool parseIntAsHex;
 
     public DataType DataType {
         get => this.dataType;
@@ -37,9 +38,14 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
             if (!value.IsFloatingPoint() && !value.IsInteger()) {
                 throw new ArgumentOutOfRangeException(nameof(value), value, "Only floats or integers are allowed");
             }
-            
+
             PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, static t => t.DataTypeChanged?.Invoke(t));
         }
+    }
+
+    public bool ParseIntAsHex {
+        get => this.parseIntAsHex;
+        set => PropertyHelper.SetAndRaiseINE(ref this.parseIntAsHex, value, this, static t => t.ParseIntAsHexChanged?.Invoke(t));
     }
 
     public BaseNumericDataValue? Minimum {
@@ -63,6 +69,7 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
     }
 
     public event RandomNumberDataProviderEventHandler? DataTypeChanged;
+    public event RandomNumberDataProviderEventHandler? ParseIntAsHexChanged;
     public event RandomNumberDataProviderEventHandler? MinimumChanged, MaximumChanged;
 
     public RandomNumberDataProvider() {
@@ -76,19 +83,23 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
     }
 
     public override IDataValue? Provide() {
-        if (this.minimum == null || this.maximum == null) {
-            return null;
+        BaseNumericDataValue? theMin, theMax;
+
+        lock (this.Lock) {
+            if ((theMin = this.minimum) == null || (theMax = this.maximum) == null) {
+                return null;
+            }   
         }
-        
+
         long maxLong;
         switch (this.DataType) {
-            case DataType.Byte:  return new DataValueByte((byte) this.random.NextInt64(this.minimum.ToByte(), (long) this.maximum.ToByte() + 1));
-            case DataType.Int16: return new DataValueInt16((short) this.random.NextInt64(this.minimum.ToShort(), (long) this.maximum.ToShort() + 1));
-            case DataType.Int32: return new DataValueInt32((int) this.random.NextInt64(this.minimum.ToInt(), (long) this.maximum.ToInt() + 1));
-            case DataType.Int64: return new DataValueInt64(this.random.NextInt64(this.minimum.ToLong(), (maxLong = this.maximum.ToLong()) != long.MaxValue ? (maxLong + 1) : long.MaxValue));
+            case DataType.Byte:  return new DataValueByte((byte) this.random.NextInt64(theMin.ToByte(), (long) theMax.ToByte() + 1));
+            case DataType.Int16: return new DataValueInt16((short) this.random.NextInt64(theMin.ToShort(), (long) theMax.ToShort() + 1));
+            case DataType.Int32: return new DataValueInt32((int) this.random.NextInt64(theMin.ToInt(), (long) theMax.ToInt() + 1));
+            case DataType.Int64: return new DataValueInt64(this.random.NextInt64(theMin.ToLong(), (maxLong = theMax.ToLong()) != long.MaxValue ? (maxLong + 1) : long.MaxValue));
             case DataType.Float:
             case DataType.Double: {
-                double min = this.minimum!.ToDouble(), max = this.maximum!.ToDouble();
+                double min = theMin!.ToDouble(), max = theMax!.ToDouble();
                 double rnd = this.random.NextDouble() * (max - min) + min;
                 return this.DataType == DataType.Float ? new DataValueFloat((float) rnd) : new DataValueDouble(rnd);
             }

@@ -196,6 +196,8 @@ public partial class EngineView : UserControl, IEngineUI {
         }
     }
 
+    IClipboardService? ITopLevel.ClipboardService => (TopLevel.GetTopLevel(this) as EngineWindow)?.ClipboardService;
+    
     private readonly ContextEntryGroup themesSubList;
     private ObservableItemProcessorIndexing<Theme>? themeListHandler;
     private TextNotification? connectionNotification;

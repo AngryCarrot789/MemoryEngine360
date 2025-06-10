@@ -29,7 +29,6 @@ public delegate void DataProviderHandlerEventHandler(DataProviderHandler sender)
 public abstract class DataProviderHandler {
     protected DataValueProvider? internalProvider;
     private DataType myDataType;
-    private StringType stringType;
     private bool parseIntAsHex;
 
     /// <summary>
@@ -41,19 +40,6 @@ public abstract class DataProviderHandler {
             if (this.myDataType != value) {
                 this.myDataType = value;
                 this.OnDataTypeChanged();
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets or sets the encoding used to encode/decode strings/bytes
-    /// </summary>
-    public StringType StringType {
-        get => this.stringType;
-        set {
-            if (this.stringType != value) {
-                this.stringType = value;
-                this.OnStringTypeChanged();
             }
         }
     }
@@ -74,7 +60,6 @@ public abstract class DataProviderHandler {
     public bool IsConnected => this.internalProvider != null;
 
     public event DataProviderHandlerEventHandler? DataTypeChanged;
-    public event DataProviderHandlerEventHandler? StringTypeChanged;
     public event DataProviderHandlerEventHandler? ParseIntAsHexChanged;
 
     protected DataProviderHandler() {
@@ -108,10 +93,6 @@ public abstract class DataProviderHandler {
 
     protected virtual void OnDataTypeChanged() {
         this.DataTypeChanged?.Invoke(this);
-    }
-
-    protected virtual void OnStringTypeChanged() {
-        this.StringTypeChanged?.Invoke(this);
     }
 
     protected virtual void OnParseIntAsHexChanged() {

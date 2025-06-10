@@ -36,6 +36,11 @@ public class SetMemoryOperation : BaseSequenceOperation {
     private uint address;
     private DataValueProvider? dataValueProvider;
     private uint iterateCount = 1;
+    
+    // Used to save the values when the user switches provider type in the UI.
+    // Yeah I know UI stuff in models yucky etc etc, may fix later
+    public ConstantDataProvider? InitialConstantDataProvider;
+    public RandomNumberDataProvider? InitialRandomNumberDataProvider;
 
     /// <summary>
     /// Gets or sets the address we write at
@@ -51,6 +56,11 @@ public class SetMemoryOperation : BaseSequenceOperation {
     public DataValueProvider? DataValueProvider {
         get => this.dataValueProvider;
         set {
+            if (this.InitialConstantDataProvider == null && value is ConstantDataProvider)
+                this.InitialConstantDataProvider = (ConstantDataProvider?) value;
+            else if (this.InitialRandomNumberDataProvider == null && value is RandomNumberDataProvider)
+                this.InitialRandomNumberDataProvider = (RandomNumberDataProvider?) value;
+            
             DataValueProvider? oldProvider = this.dataValueProvider;
             if (!Equals(oldProvider, value)) {
                 this.dataValueProvider = value;
@@ -64,14 +74,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
     /// </summary>
     public uint IterateCount {
         get => this.iterateCount;
-        set {
-            if (this.iterateCount == value) {
-                return;
-            }
-
-            this.iterateCount = value;
-            this.IterateCountChanged?.Invoke(this);
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.iterateCount, value, this, static t => t.IterateCountChanged?.Invoke(t));
     }
 
     public override string DisplayName => "Set Memory";
@@ -87,34 +90,42 @@ public class SetMemoryOperation : BaseSequenceOperation {
         if (this.iterateCount < 1) {
             return; // no point in doing anything when we won't write anything
         }
-        
+
         DataValueProvider? provider = this.dataValueProvider;
         IDataValue? value;
-        if (provider != null && (value = provider.Provide()) != null) {
-            IDisposable? busyToken = ctx.BusyToken;
-            if (busyToken == null && !ctx.IsConnectionDedicated) {
-                ctx.Progress.Text = "Waiting for busy operations...";
-                if ((busyToken = await ctx.Sequence.Manager!.MemoryEngine.BeginBusyOperationAsync(token)) == null) {
-                    return;
-                }
-            }
+        if (provider == null) {
+            return;
+        }
 
-            try {
-                ctx.Progress.Text = "Setting memory";
-                byte[]? buffer = GetDataBuffer(ctx, value, provider, this.iterateCount);
-                if (buffer != null)
-                    await ctx.Connection.WriteBytes(this.address, buffer);
+        lock (provider.Lock) {
+            if ((value = provider.Provide()) == null) {
+                return;
             }
-            finally {
-                // Do not dispose of ctx.BusyToken. That's the priority token!!
-                if (!ctx.IsConnectionDedicated && !busyToken!.Equals(ctx.BusyToken)) {
-                    busyToken.Dispose();
-                }
+        }
+
+        IDisposable? busyToken = ctx.BusyToken;
+        if (busyToken == null && !ctx.IsConnectionDedicated) {
+            ctx.Progress.Text = "Waiting for busy operations...";
+            if ((busyToken = await ctx.Sequence.Manager!.MemoryEngine.BeginBusyOperationAsync(token)) == null) {
+                return;
+            }
+        }
+
+        try {
+            ctx.Progress.Text = "Setting memory";
+            byte[]? buffer = GetDataBuffer(ctx.Connection.IsLittleEndian, value, provider.AppendNullCharToString, this.iterateCount);
+            if (buffer != null)
+                await ctx.Connection.WriteBytes(this.address, buffer);
+        }
+        finally {
+            // Do not dispose of ctx.BusyToken. That's the priority token!!
+            if (!ctx.IsConnectionDedicated && !busyToken!.Equals(ctx.BusyToken)) {
+                busyToken.Dispose();
             }
         }
     }
 
-    private static byte[]? GetDataBuffer(SequenceExecutionContext ctx, IDataValue value, DataValueProvider provider, uint iterate) {
+    private static byte[]? GetDataBuffer(bool littleEndian, IDataValue value, bool shouldAppendNullChar, uint iterate) {
         uint byteCount = value.ByteCount;
         if (byteCount == 0 || (iterate > (int.MaxValue / byteCount)) /* overflow check */) {
             return null;
@@ -122,11 +133,11 @@ public class SetMemoryOperation : BaseSequenceOperation {
         
         Span<byte> bytes = stackalloc byte[(int) byteCount];
         value.GetBytes(bytes);
-        if (value.DataType.IsEndiannessSensitive() && BitConverter.IsLittleEndian != ctx.Connection.IsLittleEndian) {
+        if (value.DataType.IsEndiannessSensitive() && BitConverter.IsLittleEndian != littleEndian) {
             bytes.Reverse();
         }
                 
-        bool appendNullChar = value.DataType == DataType.String && provider.AppendNullCharToString;
+        bool appendNullChar = value.DataType == DataType.String && shouldAppendNullChar;
         byte[] buffer = new byte[bytes.Length * iterate + (appendNullChar ? 1 : 0)];
         ref byte bufferAddress = ref MemoryMarshal.GetArrayDataReference(buffer);
         for (int i = 0, j = 0; i < iterate; i++, j += bytes.Length) {

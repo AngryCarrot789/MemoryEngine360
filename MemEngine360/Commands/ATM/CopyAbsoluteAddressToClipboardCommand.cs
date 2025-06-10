@@ -20,14 +20,23 @@
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity;
+using PFXToolKitUI.Notifications;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Commands.ATM;
 
-public class CopyAddressTableEntryToClipboard : Command {
+public class CopyAbsoluteAddressToClipboardCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return e.ContextData.ContainsKey(IEngineUI.EngineUIDataKey) ? Executability.Valid : Executability.Invalid;
+        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui) || ui.ClipboardService == null) {
+            return Executability.Invalid;
+        }
+
+        if (ui.AddressTableSelectionManager.Count != 1) {
+            return Executability.ValidButCannotExecute;
+        }
+
+        return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -35,14 +44,23 @@ public class CopyAddressTableEntryToClipboard : Command {
             return;
         }
 
-        List<IAddressTableEntryUI> selection = ui.AddressTableSelectionManager.SelectedItems.Where(x => x.Entry is AddressTableEntry).ToList();
-        if (selection.Count < 1) {
-            await IMessageDialogService.Instance.ShowMessage("No selection", "No selected items!", defaultButton: MessageBoxResult.OK);
+        if (ui.AddressTableSelectionManager.Count != 1) {
+            return;
         }
-        else {
-            List<AddressTableEntry> items = selection.Select(x => (AddressTableEntry) x.Entry).ToList();
-            List<string> text = items.Select(x => x.Address + "," + x.Description + "," + x.DataType + "," + (x.Value != null ? DataValueUtils.GetStringFromDataValue(x, x.Value) : "")).ToList();
-            await IMessageDialogService.Instance.ShowMessage("Address table entries", string.Join(Environment.NewLine, text), defaultButton: MessageBoxResult.OK);
+
+        IClipboardService? clipboard = ui.ClipboardService;
+        if (clipboard == null) {
+            return;
+        }
+
+        IAddressTableEntryUI first = ui.AddressTableSelectionManager.SelectedItemList[0];
+        uint address = (first.Entry as AddressTableEntry)?.AbsoluteAddress ?? ((AddressTableGroupEntry) first.Entry).AbsoluteAddress;
+        string addrText = address.ToString("X8");
+        try {
+            await clipboard.SetTextAsync(addrText);
+        }
+        catch (Exception ex) {
+            await IMessageDialogService.Instance.ShowMessage("Clipboard unavailable", "Clipboard is in use. Address = " + addrText);
         }
     }
 }

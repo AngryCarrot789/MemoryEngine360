@@ -39,7 +39,7 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
     
     public IListSelectionManager<IOperationItemUI> ControlSelectionManager { get; }
 
-    protected override bool CanDragItemPositionCore => this.TaskSequence != null;
+    protected override bool CanDragItemPositionCore => this.TaskSequence != null && !this.TaskSequence.IsRunning;
 
     public OperationListBox() : base(32) {
         this.itemContentCacheMap = new Dictionary<Type, Stack<BaseOperationListContent>>();

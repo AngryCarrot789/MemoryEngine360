@@ -64,7 +64,7 @@ public static class DataValueUtils {
         if (value != null) {
             return value;
         }
-        
+
         throw new Exception("Invalid input. " + (args.Errors.Count > 0 ? args.Errors[0] : ""));
     }
 
@@ -190,12 +190,13 @@ public static class DataValueUtils {
     /// <exception cref="ArgumentOutOfRangeException">Invalid data type</exception>
     public static string GetStringFromDataValue(IDataValue value, NumericDisplayType ndt, char? arrayJoinChar = ' ', bool putStringInQuotes = false) {
         switch (value.DataType) {
-            case DataType.Byte:      return ndt.AsString(value.DataType, ((DataValueByte) value).Value);
-            case DataType.Int16:     return ndt.AsString(value.DataType, ((DataValueInt16) value).Value);
-            case DataType.Int32:     return ndt.AsString(value.DataType, ((DataValueInt32) value).Value);
-            case DataType.Int64:     return ndt.AsString(value.DataType, ((DataValueInt64) value).Value);
-            case DataType.Float:     return ndt.AsString(value.DataType, ((DataValueFloat) value).Value);
-            case DataType.Double:    return ndt.AsString(value.DataType, ((DataValueDouble) value).Value);
+            case DataType.Byte:
+            case DataType.Int16:
+            case DataType.Int32:
+            case DataType.Int64:
+            case DataType.Float:
+            case DataType.Double:
+                return ndt.AsString(value.DataType, value.BoxedValue);
             case DataType.String:    return putStringInQuotes ? $"\"{value.BoxedValue}\"" : value.BoxedValue.ToString()!;
             case DataType.ByteArray: return NumberUtils.BytesToHexAscii(((DataValueByteArray) value).Value, arrayJoinChar);
             default:                 throw new ArgumentOutOfRangeException();
@@ -208,7 +209,7 @@ public static class DataValueUtils {
     /// <param name="result">The result</param>
     /// <param name="value">The value</param>
     public static string GetStringFromDataValue(ScanResultViewModel result, IDataValue value, char? arrayJoinChar = ' ', bool putStringInQuotes = false) => GetStringFromDataValue(value, result.NumericDisplayType, arrayJoinChar, putStringInQuotes);
-    
+
     /// <summary>
     /// Helper method for getting string from data value from an <see cref="AddressTableEntry"/>
     /// </summary>

@@ -143,11 +143,11 @@
                             </Style>
 
                             <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_Border">
-                                <Setter Property="Background" Value="{DynamicResource Item.SelectedInactive.Background}"/>
+                                <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedInactive.Background}"/>
                             </Style>
 
                             <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_Border">
-                                <Setter Property="Background" Value="{DynamicResource Item.SelectedActive.Background}"/>
+                                <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedActive.Background}"/>
                             </Style>
                         </ControlTheme>
                     </ListBox.ItemContainerTheme>
@@ -247,11 +247,11 @@
                                 </Style>
 
                                 <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_RootOLBI">
-                                    <Setter Property="Background" Value="{DynamicResource Item.SelectedInactive.Background}"/>
+                                    <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedInactive.Background}"/>
                                 </Style>
 
                                 <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_RootOLBI">
-                                    <Setter Property="Background" Value="{DynamicResource Item.SelectedActive.Background}"/>
+                                    <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedActive.Background}"/>
                                 </Style>
 
                                 <Style Selector="^[IsRunning=true] /template/ Border#PART_RootOLBI">
@@ -325,11 +325,11 @@
                                     </Style>
 
                                     <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_Border">
-                                        <Setter Property="BorderBrush" Value="{DynamicResource Item.SelectedInactive.Border}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource ListBoxItem.SelectedInactive.Border}"/>
                                     </Style>
 
                                     <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_Border">
-                                        <Setter Property="BorderBrush" Value="{DynamicResource Item.SelectedActive.Border}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource ListBoxItem.SelectedActive.Border}"/>
                                     </Style>
                                 </ControlTheme>
                             </ListBox.ItemContainerTheme>

@@ -17,13 +17,14 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using MemEngine360.Engine.Modes;
 
 namespace MemEngine360.ValueAbstraction;
 
-public abstract class BaseNumericDataValue : IDataValue {
+public abstract class BaseNumericDataValue : IDataValue, IComparable<BaseNumericDataValue> {
     public DataType DataType { get; }
     public abstract object BoxedValue { get; }
     public abstract uint ByteCount { get; }
@@ -33,18 +34,39 @@ public abstract class BaseNumericDataValue : IDataValue {
     }
 
     public abstract bool TryConvertTo(DataType dataType, out BaseNumericDataValue? value);
-    
+
     public abstract byte ToByte();
     public abstract short ToShort();
     public abstract int ToInt();
     public abstract long ToLong();
     public abstract float ToFloat();
     public abstract double ToDouble();
-    
+
 
     public abstract void GetBytes(Span<byte> buffer);
 
     public abstract bool Equals(IDataValue? other);
+
+    /// <summary>
+    /// Compares the underlying numeric value to another <see cref="BaseNumericDataValue"/>'s value.
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns>0 when equal, 1 when the other is null, or the comparison result between the numeric values</returns>
+    public int CompareTo(BaseNumericDataValue? other) {
+        if (ReferenceEquals(this, other))
+            return 0;
+        if (ReferenceEquals(null, other))
+            return 1;
+        
+        if (this.DataType.IsInteger() && other.DataType.IsInteger())
+            return this.ToLong().CompareTo(other.ToLong());
+        
+        Debug.Assert(this.DataType.IsFloatingPoint() || other.DataType.IsFloatingPoint());
+        if (this.DataType == DataType.Float && other.DataType == DataType.Float)
+            return this.ToFloat().CompareTo(other.ToFloat());
+        
+        return this.ToDouble().CompareTo(other.ToDouble());
+    }
 }
 
 /// <summary>

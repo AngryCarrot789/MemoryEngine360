@@ -17,35 +17,52 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.DataProviders;
 
 public delegate void ConstantDataProviderEventHandler(ConstantDataProvider sender);
 
 public sealed class ConstantDataProvider : DataValueProvider {
+    private DataType dataType = DataType.Int32;
     private IDataValue? dataValue;
+    private StringType stringType;
+    private bool parseIntAsHex;
+
+    public DataType DataType {
+        get => this.dataType;
+        set => PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, static t => t.DataTypeChanged?.Invoke(t));
+    }
 
     public IDataValue? DataValue {
         get => this.dataValue;
-        set {
-            if (!Equals(this.dataValue, value)) {
-                this.dataValue = value;
-                this.DataValueChanged?.Invoke(this);
-            }
-        }
+        set => PropertyHelper.SetAndRaiseINE(ref this.dataValue, value, this, static t => t.DataValueChanged?.Invoke(t));
     }
 
+    public StringType StringType {
+        get => this.stringType;
+        set => PropertyHelper.SetAndRaiseINE(ref this.stringType, value, this, static t => t.StringTypeChanged?.Invoke(t));
+    }
+
+    public bool ParseIntAsHex {
+        get => this.parseIntAsHex;
+        set => PropertyHelper.SetAndRaiseINE(ref this.parseIntAsHex, value, this, static t => t.ParseIntAsHexChanged?.Invoke(t));
+    }
+
+    public event ConstantDataProviderEventHandler? DataTypeChanged;
     public event ConstantDataProviderEventHandler? DataValueChanged;
+    public event ConstantDataProviderEventHandler? StringTypeChanged;
+    public event ConstantDataProviderEventHandler? ParseIntAsHexChanged;
 
     public ConstantDataProvider() {
     }
 
     public ConstantDataProvider(IDataValue dataValue) {
-        this.DataValue = dataValue;
+        this.dataType = dataValue.DataType;
+        this.dataValue = dataValue;
     }
 
-    public override IDataValue? Provide() {
-        return this.DataValue;
-    }
+    public override IDataValue? Provide() => this.dataValue;
 }

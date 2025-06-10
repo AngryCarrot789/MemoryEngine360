@@ -172,10 +172,15 @@ public sealed class TaskSequence {
         this.Progress.Text = "Running sequence";
         this.Progress.IsIndeterminate = true;
 
+        List<BaseSequenceOperation> ops = this.operations.ToList();
+        foreach (BaseSequenceOperation operation in ops) {
+            operation.OnAboutToRun();
+        }
+        
         CancellationToken token = this.myCts.Token;
         await ActivityManager.Instance.RunTask(async () => {
             for (int count = this.runCount; (count < 0 || count != 0) && !token.IsCancellationRequested; --count) {
-                foreach (BaseSequenceOperation operation in this.operations) {
+                foreach (BaseSequenceOperation operation in ops) {
                     if (operation.IsEnabled) {
                         try {
                             await operation.Run(this.myContext, token);
@@ -191,6 +196,10 @@ public sealed class TaskSequence {
                 }
             }
         }, this.Progress, this.myCts);
+        
+        foreach (BaseSequenceOperation operation in ops) {
+            operation.OnRunFinished();
+        }
 
         this.Progress.Text = "Sequence finished";
         this.myCts = null;

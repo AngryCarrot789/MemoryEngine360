@@ -270,6 +270,7 @@ public class AddressTableContextRegistry {
 
         FixedContextGroup modGeneric = Registry.GetFixedGroup("modify.general");
         modGeneric.AddHeader("General");
+        modGeneric.AddCommand("commands.memengine.CopyAbsoluteAddressToClipboardCommand", "Copy Absolute Address");
         modGeneric.AddCommand("commands.memengine.CopyAddressTableEntryToClipboard", "Copy (as dialog)");
         modGeneric.AddCommand("commands.memengine.RefreshSavedAddressesCommand", "Refresh");
         modGeneric.AddCommand("commands.memengine.DeleteSelectedSavedAddressesCommand", "Delete");

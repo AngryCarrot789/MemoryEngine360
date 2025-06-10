@@ -18,15 +18,12 @@
 // 
 
 using Avalonia.Controls;
-using Avalonia.Data;
 using MemEngine360.BaseFrontEnd.Utils;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Bindings;
-using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.DataHandlers;
@@ -35,18 +32,20 @@ public delegate void ConstantDataValueHandlerParsingTextChangedEventHandler(Cons
 
 public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider> {
     private readonly TextBoxToEventPropertyBinder<ConstantDataValueHandler> valueBinder = new TextBoxToEventPropertyBinder<ConstantDataValueHandler>(nameof(ParsingTextChanged), (b) => b.Model.ParsingText, async (b, text) => {
-        (IDataValue, string)? result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(b.Model, b.Model.DataType, text);
-        if (!result.HasValue) {
-            return false;
+        b.Model.isUpdatingProviderDataValue = true;
+        IDataValue? result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(b.Model, b.Model.DataType, text);
+        if (result != null) {
+            b.Model.Provider.DataValue = result;
         }
 
-        b.Model.Provider.DataValue = result.Value.Item1;
-        b.Model.ParsingText = result.Value.Item2;
-        return true;
+        b.Model.isUpdatingProviderDataValue = false;
+        b.Model.UpdateTextFromProviderValue();
+        return result != null;
     });
 
     private string parsingText;
     private bool isUpdatingProviderDataValue;
+    private StringType stringType;
 
     public TextBox PART_Value { get; }
 
@@ -54,13 +53,27 @@ public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider
         get => this.parsingText;
         set => PropertyHelper.SetAndRaiseINE(ref this.parsingText, value, this, static t => t.ParsingTextChanged?.Invoke(t));
     }
+    
+    /// <summary>
+    /// Gets or sets the encoding used to encode/decode strings/bytes
+    /// </summary>
+    public StringType StringType {
+        get => this.stringType;
+        set {
+            if (this.stringType != value) {
+                this.stringType = value;
+                this.OnStringTypeChanged();
+            }
+        }
+    }
 
     public event ConstantDataValueHandlerParsingTextChangedEventHandler? ParsingTextChanged;
+    public event ConstantDataValueHandlerParsingTextChangedEventHandler? StringTypeChanged;
 
     public ConstantDataValueHandler(TextBox partValue) {
         this.PART_Value = partValue;
     }
-
+    
     public void UpdateTextFromProviderValue() {
         this.ParsingText = this.Provider.DataValue != null
             ? DataValueUtils.GetStringFromDataValue(this.Provider.DataValue,
@@ -72,40 +85,75 @@ public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider
 
 
     protected override void OnConnected() {
+        this.ParseIntAsHex = this.Provider.ParseIntAsHex;
+        this.StringType = this.Provider.StringType;
+        this.DataType = this.Provider.DataValue?.DataType ?? DataType.Int32;
         this.UpdateTextFromProviderValue();
         this.valueBinder.Attach(this.PART_Value, this);
-        this.Provider.DataValueChanged += this.OnDataValueChanged;
-        this.DataType = this.Provider.DataValue?.DataType ?? DataType.Int32;
+        this.Provider.DataValueChanged += this.OnProviderDataValueChanged;
+        this.Provider.DataTypeChanged += this.OnProviderDataTypeChanged;
+        this.Provider.ParseIntAsHexChanged += this.OnProviderParseIntAsHexChanged;
+        this.Provider.StringTypeChanged += this.OnProviderStringTypeChanged;
     }
 
     protected override void OnDisconnect() {
         this.valueBinder.Detach();
-        this.Provider.DataValueChanged -= this.OnDataValueChanged;
+        this.Provider.DataValueChanged -= this.OnProviderDataValueChanged;
+        this.Provider.DataTypeChanged -= this.OnProviderDataTypeChanged;
+        this.Provider.ParseIntAsHexChanged -= this.OnProviderParseIntAsHexChanged;
+        this.Provider.StringTypeChanged -= this.OnProviderStringTypeChanged;
     }
 
-    private void OnDataValueChanged(ConstantDataProvider sender) {
+    private void OnProviderDataValueChanged(ConstantDataProvider sender) {
         if (!this.isUpdatingProviderDataValue) {
             this.DataType = sender.DataValue?.DataType ?? DataType.Int32;
+            this.UpdateTextFromProviderValue();
         }
-        
-        this.UpdateTextFromProviderValue();
+    }
+
+    private void OnProviderParseIntAsHexChanged(ConstantDataProvider sender) {
+        this.ParseIntAsHex = sender.ParseIntAsHex;
+        if (!this.isUpdatingProviderDataValue)
+            this.UpdateTextFromProviderValue();
+    }
+
+    private void OnProviderStringTypeChanged(ConstantDataProvider sender) {
+        this.StringType = sender.StringType;
+        if (!this.isUpdatingProviderDataValue)
+            this.UpdateTextFromProviderValue();
+    }
+    
+    private void OnProviderDataTypeChanged(ConstantDataProvider sender) {
+        this.DataType = this.Provider.DataType;
+        this.TryUpdateProviderValueWithConvertedValue();
     }
 
     protected override void OnDataTypeChanged() {
         base.OnDataTypeChanged();
-        this.TryUpdateProviderValueWithConvertedValue();
+        this.Provider.DataType = this.DataType;
     }
 
-    protected override void OnStringTypeChanged() {
-        base.OnStringTypeChanged();
+    protected void OnStringTypeChanged() {
+        this.StringTypeChanged?.Invoke(this);
         this.TryUpdateProviderValueWithConvertedValue();
+    }
+    
+    protected override void OnParseIntAsHexChanged() {
+        base.OnParseIntAsHexChanged();
+        if (this.IsConnected) {
+            this.Provider.ParseIntAsHex = this.ParseIntAsHex;
+        }
     }
 
     public void TryUpdateProviderValueWithConvertedValue() {
         if (this.IsConnected) {
-            this.isUpdatingProviderDataValue = true;
-            this.Provider.DataValue = IDataValue.TryConvertDataValue(this.Provider.DataValue, this.DataType, this.StringType) ?? IDataValue.CreateDefault(this.DataType, this.StringType);
-            this.isUpdatingProviderDataValue = false;
+            lock (this.Provider.Lock) {
+                this.isUpdatingProviderDataValue = true;
+                this.Provider.DataValue = IDataValue.TryConvertDataValue(this.Provider.DataValue, this.DataType, this.StringType) ?? IDataValue.CreateDefault(this.DataType, this.StringType);
+                this.isUpdatingProviderDataValue = false;
+
+                this.UpdateTextFromProviderValue();
+            }
         }
     }
 }

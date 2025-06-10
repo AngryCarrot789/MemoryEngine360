@@ -30,6 +30,9 @@ public class RandomTriggerHelper {
     private readonly Random random = new Random();
     private TimeSpan? waitForTriggerInterval;
     private uint chance = 1;
+    private uint minimumTriesToTrigger;
+    private uint triggerAttemptsRemaining; // this is set to minimumTriesToTrigger on successful trigger 
+    private readonly object triggerDataLock = new object();
 
     /// <summary>
     /// Gets or sets how long to sleep in a loop waiting until we trigger. When non-null,
@@ -58,8 +61,31 @@ public class RandomTriggerHelper {
         }
     }
 
+    /// <summary>
+    /// Gets or sets the minimum amount of tries since the last successful trigger that must be attempted before
+    /// we can actually try to trigger. Default value is 0, meaning trigger as much as you want
+    /// </summary>
+    public uint MinimumTriesToTrigger {
+        get => this.minimumTriesToTrigger;
+        set {
+            if (this.minimumTriesToTrigger != value) {
+                lock (this.triggerDataLock) {
+                    // Value was set to a smaller value, and we haven't triggered that much since it was initially set
+                    if (this.triggerAttemptsRemaining > value) {
+                        this.triggerAttemptsRemaining = value;
+                    }
+                
+                    this.minimumTriesToTrigger = value;   
+                }
+                
+                this.MinimumTriesToTriggerChanged?.Invoke(this);
+            }
+        }
+    }
+
     public event RandomTriggerHelperEventHandler? ChanceChanged;
     public event RandomTriggerHelperEventHandler? WaitForTriggerIntervalChanged;
+    public event RandomTriggerHelperEventHandler? MinimumTriesToTriggerChanged;
 
     public RandomTriggerHelper() {
     }
@@ -70,13 +96,26 @@ public class RandomTriggerHelper {
     /// <param name="token">A cancellation token to cancel the trigger countdowns</param>
     public async Task<bool> TryTrigger(CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        uint theChance = this.Chance;
-        if (theChance <= 1) {
+        if (this.triggerAttemptsRemaining != 0) {
+            lock (this.triggerDataLock) {
+                if (this.triggerAttemptsRemaining != 0) {
+                    this.triggerAttemptsRemaining--;
+                    return false;
+                }
+            }
+        }
+        
+        uint chanceToTrigger = this.Chance;
+        if (chanceToTrigger <= 1) {
+            lock (this.triggerDataLock)
+                this.triggerAttemptsRemaining = this.minimumTriesToTrigger;
             return true;
         }
 
-        int rnd = this.random.Next(0, (int) theChance);
+        int rnd = this.random.Next(0, (int) chanceToTrigger);
         if (rnd == 0) {
+            lock (this.triggerDataLock)
+                this.triggerAttemptsRemaining = this.minimumTriesToTrigger;
             return true;
         }
 
@@ -84,7 +123,9 @@ public class RandomTriggerHelper {
         TimeSpan? delay;
         while ((delay = this.WaitForTriggerInterval).HasValue) {
             await Task.Delay(delay.Value, token);
-            if ((theChance = this.Chance) <= 1 || (rnd = this.random.Next(0, (int) theChance)) == 0) {
+            if ((chanceToTrigger = this.Chance) <= 1 || (rnd = this.random.Next(0, (int) chanceToTrigger)) == 0) {
+                lock (this.triggerDataLock)
+                    this.triggerAttemptsRemaining = this.minimumTriesToTrigger;
                 return true;
             }
         }

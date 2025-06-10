@@ -36,6 +36,12 @@ public abstract class DataValueProvider {
         get => this.appendNullCharToString;
         set => PropertyHelper.SetAndRaiseINE(ref this.appendNullCharToString, value, this, static t => t.AppendNullCharToStringChanged?.Invoke(t));
     }
+
+    /// <summary>
+    /// Gets a lock that should be acquired when reading/writing properties that may be accessed by multiple threads.
+    /// For maximum safety, wrap <see cref="Provide"/> in a lock expression
+    /// </summary>
+    public object Lock { get; } = new object();
     
     public event DataValueProviderEventHandler? AppendNullCharToStringChanged;
     

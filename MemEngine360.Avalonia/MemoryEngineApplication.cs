@@ -78,7 +78,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.AddSavedAddressCommand", new AddSavedAddressCommand());
         manager.Register("commands.memengine.EditScanResultValueCommand", new EditScanResultValueCommand());
         manager.Register("commands.memengine.CopyScanResultsToClipboardCommand", new CopyScanResultsToClipboardCommand());
-        manager.Register("commands.memengine.CopyAddressTableEntryToClipboard", new CopyAddressTableEntryToClipboard());
+        manager.Register("commands.memengine.CopyAddressTableEntryToClipboard", new CopyAddressTableEntryToClipboardCommand());
+        manager.Register("commands.memengine.CopyAbsoluteAddressToClipboardCommand", new CopyAbsoluteAddressToClipboardCommand());
         manager.Register("commands.memengine.EditSavedAddressValueCommand", new EditSavedAddressValueCommand());
         manager.Register("commands.memengine.EditSavedAddressDataTypeCommand", new EditSavedAddressDataTypeCommand());
         manager.Register("commands.memengine.EditSavedAddressDescriptionCommand", new EditSavedAddressDescriptionCommand());
@@ -116,7 +117,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.hexeditor.SetAutoScanRangeAsSelectionCommand", new SetAutoScanRangeAsSelectionCommand());
         manager.Register("commands.hexeditor.ClearAutoScanRangeCommand", new ClearAutoScanRangeCommand());
         manager.Register("commands.hexeditor.SaveSelectionAsFileCommand", new SaveSelectionAsFileCommand());
-        
+
         manager.Register("commands.memengine.OpenTaskSequencerCommand", new OpenTaskSequencerCommand());
         manager.Register("commands.sequencer.DeleteSequenceSelectionCommand", new DeleteSequenceSelectionCommand());
         manager.Register("commands.sequencer.DeleteOperationSelectionCommand", new DeleteOperationSelectionCommand());
@@ -143,7 +144,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.RegisterConstant<ConsoleConnectionManager>(new ConsoleConnectionManagerImpl());
         manager.RegisterConstant<ITaskSequencerService>(new TaskSequencerServiceImpl());
         manager.RegisterConstant<MemoryEngineManager>(new MemoryEngineManagerImpl());
-        
+
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }
 
@@ -158,7 +159,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         if (OperatingSystem.IsWindows()) {
             this.PluginLoader.AddCorePlugin(typeof(PluginXbox360XDevkit));
         }
-        
+
         MemoryEngineBrushLoader.Init();
     }
 
@@ -181,7 +182,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         if (Debugger.IsAttached) {
             ConsoleConnectionManager manager = Instance.ServiceManager.GetService<ConsoleConnectionManager>();
             manager.Register(DebuggingFileConnectionType.TheID, DebuggingFileConnectionType.Instance);
-        }  
+        }
 #endif
 
         OpenConnectionView.Registry.RegisterType<OpenDebuggingFileInfo>(() => new OpenDebuggingFileView());
@@ -205,15 +206,23 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
     }
 
     private class StartupManagerMemoryEngine360 : IStartupManager {
-        public async Task OnApplicationStartupWithArgs(string[] args) {
+        public async Task OnApplicationStartupWithArgs(IApplicationStartupProgress progress, string[] args) {
             // IXboxManager xboxManager = new XboxManager();
 
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
-                desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
+            if (Design.IsDesignMode) {
+                // Designer runtime does not have IClassicDesktopStyleApplicationLifetime, so
+                // we don't have access to a windowing system, so the app would shut down.
+                return;
             }
-
+            
+            await progress.ProgressAndSynchroniseAsync("Startup completed. Loading engine window...", 1.0);
             if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
                 EngineWindow view = new EngineWindow();
+                if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
+                    (progress as SplashScreenWindow)?.Close();
+                    desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
+                }
+                
                 system.Register(view, true);
                 view.Show();
 
@@ -232,6 +241,9 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 //         });
                 //     }
                 // }
+            }
+            else {
+                Instance.Dispatcher.InvokeShutdown();
             }
         }
     }
