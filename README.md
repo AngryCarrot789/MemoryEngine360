@@ -20,7 +20,6 @@ are most welcome! Even just general tips and advice on how the UI can be improve
 
 The API section of the wiki contains a lot of docs on the code base of MemoryEngine360. https://github.com/AngryCarrot789/MemoryEngine360/wiki/API
 
-
 # Licence
 The project is licenced under GPLv3. See COPYING.GPLv3 for more information. All files should contain the licence header
 

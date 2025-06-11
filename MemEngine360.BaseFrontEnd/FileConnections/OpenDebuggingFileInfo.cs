@@ -33,7 +33,7 @@ public class OpenDebuggingFileInfo : UserConnectionInfo {
         set => DataParameter.SetValueHelper(this, FilePathParameter, ref this.filePath, value);
     }
 
-    public OpenDebuggingFileInfo() : base(DebuggingFileConnectionType.Instance) {
+    public OpenDebuggingFileInfo() : base(ConnectionTypeDebugFile.Instance) {
         this.filePath = FilePathParameter.GetDefaultValue(this);
     }
 

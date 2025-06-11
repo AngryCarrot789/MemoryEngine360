@@ -37,6 +37,7 @@ using MemEngine360.Commands.ATM;
 using MemEngine360.Commands.ATM.XML;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Testing;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.HexEditing.Commands;
@@ -181,7 +182,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 #if DEBUG
         if (Debugger.IsAttached) {
             ConsoleConnectionManager manager = Instance.ServiceManager.GetService<ConsoleConnectionManager>();
-            manager.Register(DebuggingFileConnectionType.TheID, DebuggingFileConnectionType.Instance);
+            manager.Register(ConnectionTypeDebugFile.TheID, ConnectionTypeDebugFile.Instance);
+            manager.Register(ConnectionTypeTest.TheID, ConnectionTypeTest.Instance);
         }
 #endif
 

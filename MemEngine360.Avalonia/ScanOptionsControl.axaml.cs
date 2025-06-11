@@ -27,7 +27,6 @@ using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
-using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Avalonia;
 
@@ -41,7 +40,6 @@ public partial class ScanOptionsControl : UserControl {
 
     private readonly EventPropertyEnumBinder<FloatScanOption> floatScanModeBinder = new EventPropertyEnumBinder<FloatScanOption>(typeof(ScanningProcessor), nameof(ScanningProcessor.FloatScanModeChanged), (x) => ((ScanningProcessor) x).FloatScanOption, (x, v) => ((ScanningProcessor) x).FloatScanOption = v);
     private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(ScanningProcessor), nameof(ScanningProcessor.StringScanModeChanged), (x) => ((ScanningProcessor) x).StringScanOption, (x, v) => ((ScanningProcessor) x).StringScanOption = v);
-    private readonly EventPropertyEnumBinder<RoundingMode> floatToIntRoundModeBinder = new EventPropertyEnumBinder<RoundingMode>(typeof(UnknownDataTypeOptions), nameof(UnknownDataTypeOptions.FloatToIntRoundingChanged), (x) => ((UnknownDataTypeOptions) x).FloatToIntRounding, (x, v) => ((UnknownDataTypeOptions) x).FloatToIntRounding = v);
     private readonly IBinder<ScanningProcessor> int_isHexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.IsIntInputHexadecimalChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.IsIntInputHexadecimal, (b) => b.Model.IsIntInputHexadecimal = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> useFirstValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.UseFirstValueForNextScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.UseFirstValueForNextScan, (b) => b.Model.UseFirstValueForNextScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> usePrevValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.UsePreviousValueForNextScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.UsePreviousValueForNextScan, (b) => b.Model.UsePreviousValueForNextScan = ((ToggleButton) b.Control).IsChecked == true);
@@ -55,10 +53,6 @@ public partial class ScanOptionsControl : UserControl {
     private readonly IBinder<ScanningProcessor> inputBetweenBBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputBChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputB, (b) => b.Model.InputB = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> stringIgnoreCaseBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.StringIgnoreCaseChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.StringIgnoreCase, (b) => b.Model.StringIgnoreCase = ((ToggleButton) b.Control).IsChecked == true);
     
-    private readonly IBinder<UnknownDataTypeOptions> canScanByteBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForByteChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForByte, (b) => b.Model.CanSearchForByte = ((ToggleButton) b.Control).IsChecked == true);
-    private readonly IBinder<UnknownDataTypeOptions> canScanShortBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForShortChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForShort, (b) => b.Model.CanSearchForShort = ((ToggleButton) b.Control).IsChecked == true);
-    private readonly IBinder<UnknownDataTypeOptions> canScanIntBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForIntChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForInt, (b) => b.Model.CanSearchForInt = ((ToggleButton) b.Control).IsChecked == true);
-    private readonly IBinder<UnknownDataTypeOptions> canScanLongBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForLongChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForLong, (b) => b.Model.CanSearchForLong = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<UnknownDataTypeOptions> canScanFloatBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForFloatChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForFloat, (b) => b.Model.CanSearchForFloat = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<UnknownDataTypeOptions> canScanDoubleBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForDoubleChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForDouble, (b) => b.Model.CanSearchForDouble = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<UnknownDataTypeOptions> canScanStringBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForStringChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForString, (b) => b.Model.CanSearchForString = ((ToggleButton) b.Control).IsChecked == true);
@@ -94,10 +88,6 @@ public partial class ScanOptionsControl : UserControl {
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF8, StringType.UTF8);
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF16, StringType.UTF16);
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF32, StringType.UTF32);
-        this.floatToIntRoundModeBinder.Assign(this.PART_Toggle_Truncate, RoundingMode.Truncate);
-        this.floatToIntRoundModeBinder.Assign(this.PART_Toggle_Floor, RoundingMode.Floor);
-        this.floatToIntRoundModeBinder.Assign(this.PART_Toggle_Ceil, RoundingMode.Ceil);
-        this.floatToIntRoundModeBinder.Assign(this.PART_Toggle_Round, RoundingMode.Round);
         // Bind between tab control and data type
         this.selectedTabIndexBinder = new AvaloniaPropertyToMultiEventPropertyBinder<ScanningProcessor>(TabControl.SelectedIndexProperty, [nameof(ScanningProcessor.DataTypeChanged), nameof(ScanningProcessor.ScanForAnyDataTypeChanged)], (b) => {
             if (b.Model.ScanForAnyDataType) {
@@ -157,7 +147,6 @@ public partial class ScanOptionsControl : UserControl {
             c.stringIgnoreCaseBinder.Detach();
             c.floatScanModeBinder.Detach();
             c.stringScanModeBinder.Detach();
-            c.floatToIntRoundModeBinder.Detach();
             c.int_isHexBinder.Detach();
             c.useFirstValueBinder.Detach();
             c.usePrevValueBinder.Detach();
@@ -168,10 +157,6 @@ public partial class ScanOptionsControl : UserControl {
             c.scanForAnyBinder.Detach();
             c.updatedEnabledControlsBinder.Detach();
             
-            c.canScanByteBinder.Detach();
-            c.canScanShortBinder.Detach();
-            c.canScanIntBinder.Detach();
-            c.canScanLongBinder.Detach();
             c.canScanFloatBinder.Detach();
             c.canScanDoubleBinder.Detach();
             c.canScanStringBinder.Detach();
@@ -181,13 +166,14 @@ public partial class ScanOptionsControl : UserControl {
             oldEngine.ScanningProcessor.UseFirstValueForNextScanChanged -= c.UpdateNonBetweenInput;
             oldEngine.ScanningProcessor.UsePreviousValueForNextScanChanged -= c.UpdateNonBetweenInput;
             oldEngine.ScanningProcessor.ScanForAnyDataTypeChanged -= c.UpdateNonBetweenInput;
+            
+            c.PART_OrderListBox.SetScanningProcessor(null);
         }
 
         if (e.NewValue.GetValueOrDefault() is MemoryEngine newEngine) {
             c.stringIgnoreCaseBinder.AttachModel(newEngine.ScanningProcessor);
             c.floatScanModeBinder.Attach(newEngine.ScanningProcessor);
             c.stringScanModeBinder.Attach(newEngine.ScanningProcessor);
-            c.floatToIntRoundModeBinder.Attach(newEngine.ScanningProcessor.UnknownDataTypeOptions);
             c.int_isHexBinder.Attach(c.PART_DTInt_IsHex, newEngine.ScanningProcessor);
             c.useFirstValueBinder.Attach(c.PART_UseFirstValue, newEngine.ScanningProcessor);
             c.usePrevValueBinder.Attach(c.PART_UsePreviousValue, newEngine.ScanningProcessor);
@@ -198,10 +184,6 @@ public partial class ScanOptionsControl : UserControl {
             c.scanForAnyBinder.Attach(c.PART_ToggleUnknownDataType, newEngine.ScanningProcessor);
             c.updatedEnabledControlsBinder.Attach(c, newEngine.ScanningProcessor);
             
-            c.canScanByteBinder.Attach(c.PART_Toggle_Byte, newEngine.ScanningProcessor.UnknownDataTypeOptions);
-            c.canScanShortBinder.Attach(c.PART_Toggle_Int16, newEngine.ScanningProcessor.UnknownDataTypeOptions);
-            c.canScanIntBinder.Attach(c.PART_Toggle_Int32, newEngine.ScanningProcessor.UnknownDataTypeOptions);
-            c.canScanLongBinder.Attach(c.PART_Toggle_Int64, newEngine.ScanningProcessor.UnknownDataTypeOptions);
             c.canScanFloatBinder.Attach(c.PART_Toggle_Float, newEngine.ScanningProcessor.UnknownDataTypeOptions);
             c.canScanDoubleBinder.Attach(c.PART_Toggle_Double, newEngine.ScanningProcessor.UnknownDataTypeOptions);
             c.canScanStringBinder.Attach(c.PART_Toggle_String, newEngine.ScanningProcessor.UnknownDataTypeOptions);
@@ -213,6 +195,8 @@ public partial class ScanOptionsControl : UserControl {
             newEngine.ScanningProcessor.ScanForAnyDataTypeChanged += c.UpdateNonBetweenInput;
 
             c.UpdateUIForScanTypeAndDataType();
+            
+            c.PART_OrderListBox.SetScanningProcessor(newEngine.ScanningProcessor);
         }
     }
 

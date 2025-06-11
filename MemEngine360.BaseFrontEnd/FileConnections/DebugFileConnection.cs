@@ -32,7 +32,7 @@ public class DebugFileConnection : BaseConsoleConnection {
         this.myFileStream = stream;
     }
 
-    public override RegisteredConnectionType ConnectionType => DebuggingFileConnectionType.Instance;
+    public override RegisteredConnectionType ConnectionType => ConnectionTypeDebugFile.Instance;
 
     protected override bool IsConnectedCore => this.myFileStream != null;
     

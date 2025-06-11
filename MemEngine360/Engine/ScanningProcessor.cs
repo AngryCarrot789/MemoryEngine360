@@ -30,6 +30,7 @@ using PFXToolKitUI;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.RDA;
 
 namespace MemEngine360.Engine;
@@ -42,50 +43,33 @@ public delegate void UnknownDataTypeOptionsEventHandler(UnknownDataTypeOptions s
 
 // Separate class because the ScanningProcessor is already stuffed full enough of properties
 public sealed class UnknownDataTypeOptions {
-    private RoundingMode floatToIntRounding = RoundingMode.Floor;
-    private bool canSearchForByte = true;
-    private bool canSearchForShort = true;
-    private bool canSearchForInt = true;
-    private bool canSearchForLong = true;
+    /// <summary>
+    /// Do not add/remove items!!! Only move them
+    /// </summary>
+    public ObservableList<ScanningOrderModel> Orders { get; }
+
     private bool canSearchForFloat = true;
     private bool canSearchForDouble = true;
     private bool canSearchForString = true;
 
-    public RoundingMode FloatToIntRounding {
-        get => this.floatToIntRounding;
-        set => PropertyHelper.SetAndRaiseINE(ref this.floatToIntRounding, value, this, static t => t.FloatToIntRoundingChanged?.Invoke(t));
-    }
-    
-    public bool CanSearchForByte {
-        get => this.canSearchForByte;
-        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForByte, value, this, static t => t.CanSearchForByteChanged?.Invoke(t));
-    }
+    public bool CanSearchForByte => this.Orders[0].IsEnabled;
 
-    public bool CanSearchForShort {
-        get => this.canSearchForShort;
-        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForShort, value, this, static t => t.CanSearchForShortChanged?.Invoke(t));
-    }
+    public bool CanSearchForShort => this.Orders[1].IsEnabled;
 
-    public bool CanSearchForInt {
-        get => this.canSearchForInt;
-        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForInt, value, this, static t => t.CanSearchForIntChanged?.Invoke(t));
-    }
+    public bool CanSearchForInt => this.Orders[2].IsEnabled;
 
-    public bool CanSearchForLong {
-        get => this.canSearchForLong;
-        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForLong, value, this, static t => t.CanSearchForLongChanged?.Invoke(t));
-    }
-    
+    public bool CanSearchForLong => this.Orders[3].IsEnabled;
+
     public bool CanSearchForFloat {
         get => this.canSearchForFloat;
         set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForFloat, value, this, static t => t.CanSearchForFloatChanged?.Invoke(t));
     }
-    
+
     public bool CanSearchForDouble {
         get => this.canSearchForDouble;
         set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForDouble, value, this, static t => t.CanSearchForDoubleChanged?.Invoke(t));
     }
-    
+
     public bool CanSearchForString {
         get => this.canSearchForString;
         set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForString, value, this, static t => t.CanSearchForStringChanged?.Invoke(t));
@@ -95,28 +79,20 @@ public sealed class UnknownDataTypeOptions {
     /// The order in which we scan integer types. Default order is int32, int16 , byte and finally int64.
     /// This order is used because int32 is the most common data type, next to int16 and then byte. int64 is uncommon hence it's last. 
     /// </summary>
-    public DataType[] IntDataTypeOrdering { get; } = [
-        DataType.Int32, DataType.Int16, DataType.Byte, DataType.Int64
-    ];
-    
-    public event UnknownDataTypeOptionsEventHandler? FloatToIntRoundingChanged;
-    public event UnknownDataTypeOptionsEventHandler? CanSearchForByteChanged;
-    public event UnknownDataTypeOptionsEventHandler? CanSearchForShortChanged;
-    public event UnknownDataTypeOptionsEventHandler? CanSearchForIntChanged;
-    public event UnknownDataTypeOptionsEventHandler? CanSearchForLongChanged;
+    public DataType[] IntDataTypeOrdering => this.Orders.Select(x => x.DataType).ToArray();
+
     public event UnknownDataTypeOptionsEventHandler? CanSearchForFloatChanged;
     public event UnknownDataTypeOptionsEventHandler? CanSearchForDoubleChanged;
     public event UnknownDataTypeOptionsEventHandler? CanSearchForStringChanged;
-    
-    /// <summary>
-    /// Fired when the contents of <see cref="IntDataTypeOrdering"/> have changed
-    /// </summary>
-    public event UnknownDataTypeOptionsEventHandler? IntDataTypeOrderingChanged;
 
     public UnknownDataTypeOptions() {
+        this.Orders = new ObservableList<ScanningOrderModel>() {
+            new ScanningOrderModel(DataType.Int32),
+            new ScanningOrderModel(DataType.Int16),
+            new ScanningOrderModel(DataType.Byte),
+            new ScanningOrderModel(DataType.Int64),
+        };
     }
-
-    public void RaiseIntDataTypeOrderingChanged() => this.IntDataTypeOrderingChanged?.Invoke(this);
 }
 
 public class ScanningProcessor {

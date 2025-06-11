@@ -25,7 +25,9 @@ using PFXToolKitUI.Tasks;
 namespace MemEngine360.Connections;
 
 /// <summary>
-/// Represents a connection to a console
+/// Represents a connection to a console. Reading/writing operations may
+/// throw <see cref="IOException"/> or <see cref="TimeoutException"/> at any time.
+/// However, timeouts are the most likely (e.g. maybe the user unplugged the power cord midway through a read operation)
 /// </summary>
 public interface IConsoleConnection {
     /// <summary>
@@ -264,6 +266,8 @@ public interface IConsoleConnection {
     /// <param name="completion">Completion progress</param>
     /// <param name="cancellationToken">Used to notify cancellation of the operation</param>
     /// <returns>A task containing the found memory address </returns>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read from console or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading from console</exception>
     Task<uint?> FindPattern(uint address, uint count, MemoryPattern pattern, CompletionState? completion = null, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -284,6 +288,8 @@ public interface IConsoleConnection {
     /// True when protected, false when not protected, null when cannot be determined (e.g. this method is
     /// unsupported), in which case you can just assume the memory is not protected
     /// </returns>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read from console or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading from console</exception>
     Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);
     
     /// <summary>

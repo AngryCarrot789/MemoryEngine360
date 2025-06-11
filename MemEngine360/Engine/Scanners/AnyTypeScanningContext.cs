@@ -50,7 +50,6 @@ public class AnyTypeScanningContext : ScanningContext
     private long? in_long;
     private float? in_float;
     private double? in_double;
-    private RoundingMode f2int;
 
     private bool canSearchForString;
     private int cbString;
@@ -94,7 +93,6 @@ public class AnyTypeScanningContext : ScanningContext
         NumberStyles intNs = this.isIntInputHexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
         {
             UnknownDataTypeOptions udto = this.Processor.UnknownDataTypeOptions;
-            this.f2int = udto.FloatToIntRounding;
             if (udto.CanSearchForByte && byte.TryParse(this.inputA, intNs, null, out byte b))
                 this.in_byte = b;
             if (udto.CanSearchForShort && short.TryParse(this.inputA, intNs, null, out short s))
@@ -186,7 +184,6 @@ public class AnyTypeScanningContext : ScanningContext
 
                         break;
                     }
-                    default: Debug.Fail("Memory Corruption of int ordering array"); break;
                 }
             }
 
