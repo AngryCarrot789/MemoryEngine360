@@ -479,8 +479,15 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Read data for Hex Editor";
                 task.Progress.Text = "Freezing console...";
-                if (c is IHaveIceCubes)
-                    await ((IHaveIceCubes) c).DebugFreeze();
+
+                try {
+                    if (c is IHaveIceCubes)
+                        await ((IHaveIceCubes) c).DebugFreeze();
+                }
+                catch (Exception e) when (e is TimeoutException || e is IOException) {
+                    await IMessageDialogService.Instance.ShowMessage("Network error", "Error while freezing console: " + e.Message);
+                    return null;
+                }
 
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
@@ -491,11 +498,24 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 // Update initial text
                 completion.OnCompletionValueChanged();
                 byte[] buffer = new byte[info.Length];
-                await c.ReadBytes(info.StartAddress, buffer, 0, buffer.Length, 0x10000, completion, task.CancellationToken);
+                
+                try {
+                    await c.ReadBytes(info.StartAddress, buffer, 0, buffer.Length, 0x10000, completion, task.CancellationToken);
+                }
+                catch (Exception e) when (e is TimeoutException || e is IOException) {
+                    await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + e.Message);
+                    return null;
+                }
 
                 task.Progress.Text = "Unfreezing console...";
-                if (c is IHaveIceCubes)
-                    await ((IHaveIceCubes) c).DebugUnFreeze();
+                
+                try {
+                    if (c is IHaveIceCubes)
+                        await ((IHaveIceCubes) c).DebugUnFreeze();
+                }
+                catch {
+                    // might as well ignore
+                }
 
                 return buffer;
             }, cts);

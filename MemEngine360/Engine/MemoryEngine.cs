@@ -318,15 +318,15 @@ public class MemoryEngine {
         while (token == null) {
             LinkedListNode<CancellableTaskCompletionSource>? tcs = this.EnqueueAsyncWaiter(cancellationToken);
             if (tcs == null) {
-                if (this.busyCount == 0) {
-                    goto TryTakeToken;
-                }
-
-                try {
-                    await Task.Delay(10, cancellationToken);
-                }
-                catch (OperationCanceledException) {
-                    return null;
+                if (this.busyCount != 0) {
+                    // connectionLock is acquired on another thread and the busy token is still taken,
+                    // so the only thing we can do is just wait some time.
+                    try {
+                        await Task.Delay(10, cancellationToken);
+                    }
+                    catch (OperationCanceledException) {
+                        return null;
+                    }
                 }
             }
             else {
@@ -334,18 +334,24 @@ public class MemoryEngine {
                     await tcs.Value.Task;
                 }
                 catch (OperationCanceledException) {
-                    lock (this.connectionLock) {
-                        // We only need to remove on cancelled, because when it
-                        // completes normally, the list gets cleared anyway
-                        tcs.List!.Remove(tcs);
-                        tcs.Value.Dispose();
+                    if (tcs.List != null) {
+                        lock (this.connectionLock) {
+                            // Possible race condition between OCE handled on one thread, and the busy token disposed on another thread.
+                            // It's fine if we win the race since we'd remove the node before OnTokenDisposedUnderLock() clears
+                            // the list. But if that method wins, the list gets cleared under lock and tcs.List is null below
+                            if (tcs.List != null) {
+                                // We only need to remove on cancelled, because when it
+                                // completes normally, the list gets cleared anyway
+                                tcs.List!.Remove(tcs);
+                                tcs.Value.Dispose();
+                            }
+                        }
                     }
 
                     return null;
                 }
             }
 
-            TryTakeToken:
             token = this.BeginBusyOperation();
         }
 

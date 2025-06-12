@@ -31,8 +31,7 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Scanners;
 
-public class AnyTypeScanningContext : ScanningContext
-{
+public class AnyTypeScanningContext : ScanningContext {
     internal const int ChunkSize = 0x10000; // 65536
     internal readonly double floatEpsilon = BasicApplicationConfiguration.Instance.FloatingPointEpsilon;
     internal readonly string inputA, inputB;
@@ -62,8 +61,7 @@ public class AnyTypeScanningContext : ScanningContext
     /// </summary>
     public override event ScanningContextResultEventHandler? ResultFound;
 
-    public AnyTypeScanningContext(ScanningProcessor processor) : base(processor)
-    {
+    public AnyTypeScanningContext(ScanningProcessor processor) : base(processor) {
         Debug.Assert(processor.ScanForAnyDataType);
 
         this.inputA = processor.InputA.Trim();
@@ -80,8 +78,7 @@ public class AnyTypeScanningContext : ScanningContext
     /// Returns true when scanning and proceed.
     /// False when there's errors (e.g. non-integer when scanning for an integer, or min is greater than max when scanning in 'between' mode)
     /// </summary>
-    internal override async Task<bool> Setup()
-    {
+    internal override async Task<bool> Setup() {
         IConsoleConnection connection = this.Processor.MemoryEngine.Connection!;
         Debug.Assert(connection != null);
 
@@ -91,40 +88,38 @@ public class AnyTypeScanningContext : ScanningContext
         }
 
         NumberStyles intNs = this.isIntInputHexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
-        {
-            UnknownDataTypeOptions udto = this.Processor.UnknownDataTypeOptions;
-            if (udto.CanSearchForByte && byte.TryParse(this.inputA, intNs, null, out byte b))
-                this.in_byte = b;
-            if (udto.CanSearchForShort && short.TryParse(this.inputA, intNs, null, out short s))
-                this.in_short = s;
-            if (udto.CanSearchForInt && int.TryParse(this.inputA, intNs, null, out int i))
-                this.in_int = i;
-            if (udto.CanSearchForLong && long.TryParse(this.inputA, intNs, null, out long l))
-                this.in_long = l;
-            if (udto.CanSearchForFloat && float.TryParse(this.inputA, out float f))
-                this.in_float = f;
-            if (udto.CanSearchForDouble && double.TryParse(this.inputA, out double d))
-                this.in_double = d;
+        UnknownDataTypeOptions udto = this.Processor.UnknownDataTypeOptions;
+        if (udto.CanSearchForByte && byte.TryParse(this.inputA, intNs, null, out byte b))
+            this.in_byte = b;
+        if (udto.CanSearchForShort && short.TryParse(this.inputA, intNs, null, out short s))
+            this.in_short = s;
+        if (udto.CanSearchForInt && int.TryParse(this.inputA, intNs, null, out int i))
+            this.in_int = i;
+        if (udto.CanSearchForLong && long.TryParse(this.inputA, intNs, null, out long l))
+            this.in_long = l;
+        if (udto.CanSearchForFloat && float.TryParse(this.inputA, out float f))
+            this.in_float = f;
+        if (udto.CanSearchForDouble && double.TryParse(this.inputA, out double d))
+            this.in_double = d;
 
-            this.intOrdering = udto.IntDataTypeOrdering.CloneArrayUnsafe();
-            Debug.Assert(this.intOrdering.Length == 4);
-            foreach (DataType dt in this.intOrdering) {
-                Debug.Assert(dt.IsInteger());
+        this.intOrdering = udto.IntDataTypeOrdering.CloneArrayUnsafe();
+        Debug.Assert(this.intOrdering.Length == 4);
+        foreach (DataType dt in this.intOrdering) {
+            Debug.Assert(dt.IsInteger());
+        }
+
+        // ReSharper disable once AssignmentInConditionalExpression
+        if (this.canSearchForString = udto.CanSearchForString) {
+            Encoding encoding = this.stringType.ToEncoding();
+            int cbInputA = encoding.GetMaxByteCount(this.inputA.Length);
+            if (cbInputA > ChunkSize) {
+                await IMessageDialogService.Instance.ShowMessage("Invalid input", $"Input is too long. We read data in chunks of {ChunkSize / 1024}K, therefore, the string cannot contain more than that many bytes.");
+                return false;
             }
 
-            // ReSharper disable once AssignmentInConditionalExpression
-            if (this.canSearchForString = udto.CanSearchForString) {
-                Encoding encoding = this.stringType.ToEncoding();
-                int cbInputA = encoding.GetMaxByteCount(this.inputA.Length);
-                if (cbInputA > ChunkSize) {
-                    await IMessageDialogService.Instance.ShowMessage("Invalid input", $"Input is too long. We read data in chunks of {ChunkSize / 1024}K, therefore, the string cannot contain more than that many bytes.");
-                    return false;
-                }
-
-                this.cbString = cbInputA;
-                this.charBuffer = new char[this.inputA.Length];
-                this.stringDecoder = encoding.GetDecoder();
-            }
+            this.cbString = cbInputA;
+            this.charBuffer = new char[this.inputA.Length];
+            this.stringDecoder = encoding.GetDecoder();
         }
 
         return true;
@@ -135,8 +130,7 @@ public class AnyTypeScanningContext : ScanningContext
     /// </summary>
     /// <param name="address">The address that is relative to the 0th element in the buffer</param>
     /// <param name="buffer">The buffer containing data to scan</param>
-    internal override void ProcessMemoryBlockForFirstScan(uint address, ReadOnlySpan<byte> buffer)
-    {
+    internal override void ProcessMemoryBlockForFirstScan(uint address, ReadOnlySpan<byte> buffer) {
         IDataValue? value;
         NumericDisplayType intNdt = this.isIntInputHexadecimal ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
         for (uint i = 0; i < buffer.Length; i += this.alignment) {
@@ -227,8 +221,7 @@ public class AnyTypeScanningContext : ScanningContext
         }
     }
 
-    private BaseNumericDataValue<T>? CompareInt<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IBinaryInteger<T>
-    {
+    private BaseNumericDataValue<T>? CompareInt<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IBinaryInteger<T> {
         T valA = Unsafe.As<ulong, T>(ref theInputA), valB;
         switch (this.numericScanType) {
             case NumericScanType.Equals:              return value == valA ? IDataValue.CreateNumeric(value) : null;
@@ -270,8 +263,7 @@ public class AnyTypeScanningContext : ScanningContext
     //     }
     // }
 
-    private BaseFloatDataValue<T>? CompareFloat<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T>
-    {
+    private BaseFloatDataValue<T>? CompareFloat<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T> {
         bool isFloat = typeof(T) == typeof(float);
         // We convert everything to doubles when comparing, for higher accuracy
         double dblVal = this.GetDoubleFromReadValue(value, this.inputA);
@@ -297,8 +289,7 @@ public class AnyTypeScanningContext : ScanningContext
         return null;
     }
 
-    private double GetDoubleFromReadValue<T>(T readValue /* value from console */, string inputText /* user input value */) where T : unmanaged, IFloatingPoint<T>
-    {
+    private double GetDoubleFromReadValue<T>(T readValue /* value from console */, string inputText /* user input value */) where T : unmanaged, IFloatingPoint<T> {
         double value = typeof(T) == typeof(float) ? Unsafe.As<T, float>(ref readValue) : Unsafe.As<T, double>(ref readValue);
 
         int idx = inputText.IndexOf('.');
@@ -318,8 +309,7 @@ public class AnyTypeScanningContext : ScanningContext
         }
     }
 
-    internal override async Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken)
-    {
+    internal override async Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken) {
         FirstTypedScanTask task = new FirstTypedScanTask(this, connection, busyToken);
         await task.RunWithCurrentActivity();
         return task.BusyToken;
@@ -332,8 +322,7 @@ public class AnyTypeScanningContext : ScanningContext
     /// <param name="connection">The connection to read values from</param>
     /// <param name="srcList">The source list of items</param>
     /// <param name="busyToken"></param>
-    internal override async Task<IDisposable?> PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, IDisposable busyToken)
-    {
+    internal override async Task<IDisposable?> PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, IDisposable busyToken) {
         await IMessageDialogService.Instance.ShowMessage("Unsupported", "Next Scan not supported for any data type mode yet");
 
         // ActivityTask task = ActivityManager.Instance.CurrentTask;

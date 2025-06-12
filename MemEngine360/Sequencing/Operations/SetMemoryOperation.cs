@@ -114,8 +114,12 @@ public class SetMemoryOperation : BaseSequenceOperation {
         try {
             ctx.Progress.Text = "Setting memory";
             byte[]? buffer = GetDataBuffer(ctx.Connection.IsLittleEndian, value, provider.AppendNullCharToString, this.iterateCount);
-            if (buffer != null)
+            if (buffer != null) {
+                // Note for test connection, when a sequence repeats forever and has no delay, only sets memory,
+                // this method is extremely laggy when a debugger is attached, probably because of the
+                // timeout exceptions being thrown, and the IDE tries to intercept them
                 await ctx.Connection.WriteBytes(this.address, buffer);
+            }
         }
         finally {
             // Do not dispose of ctx.BusyToken. That's the priority token!!

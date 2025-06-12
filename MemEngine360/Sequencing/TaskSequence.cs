@@ -156,6 +156,7 @@ public sealed class TaskSequence {
     }
 
     public async Task Run(IConsoleConnection connection, IDisposable? busyToken, bool isConnectionDedicated) {
+        ApplicationPFX.Instance.Dispatcher.VerifyAccess();
         this.CheckNotRunning("Cannot run while already running");
         if (this.myManager == null)
             throw new InvalidOperationException("Cannot run standalone without a " + nameof(TaskSequencerManager));
@@ -186,11 +187,11 @@ public sealed class TaskSequence {
                             await operation.Run(this.myContext, token);
                         }
                         catch (OperationCanceledException) {
-                            break;
+                            return;
                         }
                         catch (Exception e) {
                             this.LastException = e;
-                            break;
+                            return;
                         }
                     }
                 }

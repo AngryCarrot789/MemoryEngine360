@@ -260,7 +260,7 @@ public partial class EngineView : UserControl, IEngineUI {
             }
 
             DataParameterEnumInfo<XNotiyLogo> dpEnumInfo = DataParameterEnumInfo<XNotiyLogo>.All();
-            DoubleUserInputInfo info = new DoubleUserInputInfo("Thank you for using MemEngine360 <3", nameof(XNotiyLogo.FLASHING_HAPPY_FACE)) {
+            DoubleUserInputInfo info = new DoubleUserInputInfo("Thank you for using MemoryEngine360 <3", nameof(XNotiyLogo.FLASHING_HAPPY_FACE)) {
                 Caption = "Test Notification",
                 Message = "Shows a custom notification on your xbox!",
                 ValidateA = (b) => {

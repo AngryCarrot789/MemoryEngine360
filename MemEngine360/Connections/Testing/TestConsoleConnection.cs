@@ -27,7 +27,7 @@ public class TestConsoleConnection : BaseConsoleConnection {
     public override bool IsLittleEndian => BitConverter.IsLittleEndian;
     
     public override Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count) {
-        throw new TimeoutException();
+        return Task.FromException<bool?>(new TimeoutException());
     }
 
     protected override Task CloseCore() {
@@ -35,10 +35,10 @@ public class TestConsoleConnection : BaseConsoleConnection {
     }
 
     protected override Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
-        throw new TimeoutException();
+        return Task.FromException(new TimeoutException());
     }
 
     protected override Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
-        throw new TimeoutException();
+        return Task.FromException(new TimeoutException());
     }
 }
