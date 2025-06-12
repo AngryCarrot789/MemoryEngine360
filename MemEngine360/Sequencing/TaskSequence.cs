@@ -165,7 +165,9 @@ public sealed class TaskSequence {
             DisplayName = this.displayName,
             RunCount = this.runCount,
             HasBusyLockPriority = this.hasBusyLockPriority,
-            UseEngineConnection = this.useEngineConnection
+            // Use the default value of true, since it's a trip and a half connecting to a dedicated
+            // console so the user may as well be required to check the checkbox as well :)
+            // UseEngineConnection = this.useEngineConnection
         };
 
         if (cloneOperations) {

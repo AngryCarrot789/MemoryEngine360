@@ -118,8 +118,8 @@ public class EditSavedAddressValueCommand : Command {
             ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Edit value", "Editing values");
             foreach (AddressTableEntry scanResult in savedList) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
-                await MemoryEngine.WriteDataValue(conn, scanResult.Address, value!);
-                IDataValue actualValue = await MemoryEngine.ReadDataValue(conn, scanResult.Address, value);
+                await MemoryEngine.WriteDataValue(conn, scanResult.AbsoluteAddress, value!);
+                IDataValue actualValue = await MemoryEngine.ReadDataValue(conn, scanResult.AbsoluteAddress, value);
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     if (actualValue is DataValueString str) {
                         lastResult.StringType = str.StringType;
