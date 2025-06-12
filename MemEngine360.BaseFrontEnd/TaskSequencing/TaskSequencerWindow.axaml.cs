@@ -91,7 +91,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
                     seq.DedicatedConnection = null;
                     await oldConnection.Close();
                 }
-                
+
                 seq.UseEngineConnection = true;
             }
         }, () => {
@@ -108,8 +108,12 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
         }
     }
 
-    public ITaskSequenceEntryUI GetControl(TaskSequence sequence) {
+    public ITaskSequenceEntryUI GetSequenceControl(TaskSequence sequence) {
         return (ITaskSequenceEntryUI) this.PART_SequenceListBox.ItemMap.GetControl(sequence);
+    }
+
+    public IOperationItemUI GetOperationControl(BaseSequenceOperation operation) {
+        return (IOperationItemUI) this.PART_OperationListBox.ItemMap.GetControl(operation);
     }
 
     private void OnSequenceSelectionChanged(ILightSelectionManager<ITaskSequenceEntryUI> sender) {
@@ -141,7 +145,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
         this.currentConnectionTypeBinder.SwitchModel(newSeqUI?.TaskSequence);
         this.OnSequenceProgressTextChanged(newSeqUI?.TaskSequence.Progress ?? EmptyActivityProgress.Instance);
         ((AsyncRelayCommand) this.PART_UseDedicatedConnection.Command!).RaiseCanExecuteChanged();
-        
+
         using MultiChangeToken batch = DataManager.GetContextData(this.PART_CurrentSequenceGroupBox).BeginChange();
         batch.Context.Set(ITaskSequencerUI.TaskSequenceDataKey, newSeqUI?.TaskSequence).Set(ITaskSequenceEntryUI.DataKey, newSeqUI);
     }
@@ -192,14 +196,17 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
     }
 
     private void PART_ClearOperationsClick(object? sender, RoutedEventArgs e) {
-        this.PrimarySelectedSequence?.TaskSequence.ClearOperations();
+        if (this.PrimarySelectedSequence != null && !this.PrimarySelectedSequence.TaskSequence.IsRunning)
+            this.PrimarySelectedSequence.TaskSequence.ClearOperations();
     }
 
     private void Button_InsertDelay(object? sender, RoutedEventArgs e) {
-        this.PrimarySelectedSequence?.TaskSequence.AddOperation(new DelayOperation(500));
+        if (this.PrimarySelectedSequence != null && !this.PrimarySelectedSequence.TaskSequence.IsRunning)
+            this.PrimarySelectedSequence.TaskSequence.AddOperation(new DelayOperation(500));
     }
 
     private void Button_InsertSetMemory(object? sender, RoutedEventArgs e) {
-        this.PrimarySelectedSequence?.TaskSequence.AddOperation(new SetMemoryOperation() { Address = 0x82600000, DataValueProvider = new ConstantDataProvider(new DataValueInt32(125)) });
+        if (this.PrimarySelectedSequence != null && !this.PrimarySelectedSequence.TaskSequence.IsRunning)
+            this.PrimarySelectedSequence.TaskSequence.AddOperation(new SetMemoryOperation() { Address = 0x82600000, DataValueProvider = new ConstantDataProvider(new DataValueInt32(125)) });
     }
 }

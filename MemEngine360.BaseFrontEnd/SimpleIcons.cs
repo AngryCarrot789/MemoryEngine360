@@ -70,6 +70,15 @@ public static class SimpleIcons {
                 new GeometryEntry("M24 14H15.5L14 15.5 16.8358 18.3358 10.5858 24.5858 13.4142 27.4142 19.6642 21.1642 22.5 24 24 22.5 24 14Z", BrushManager.Instance.GetDynamicThemeBrush("ABrush.Glyph.Static")),
             ],
             stretch: StretchMode.Uniform);
+    
+    public static readonly Icon ConnectToConsoleDedicatedIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(ConnectToConsoleDedicatedIcon),
+            [
+                new GeometryEntry("M21.9,26.4l-1.5-5c0.1-0.5,0.2-0.9,0.2-1.4c0-2.8-2.2-5-5-5c-1.1,0-2.1,0.4-3,1h-2.2c-0.9-0.6-1.9-1-3-1c-2.8,0-5,2.2-5,5  c0,0.5,0.1,0.9,0.2,1.4l-1.5,5c-0.3,0.8-0.1,1.7,0.4,2.4C2.1,29.6,2.9,30,3.8,30c0.9,0,1.7-0.4,2.2-1.1L9.2,25h4.6l3.1,3.9  c0.5,0.7,1.4,1.1,2.2,1.1c0.9,0,1.7-0.4,2.3-1.1C22,28.1,22.1,27.2,21.9,26.4z M15.7,21.7C15.5,21.9,15.3,22,15,22  c-0.3,0-0.5-0.1-0.7-0.3C14.1,21.5,14,21.3,14,21c0-0.3,0.1-0.5,0.3-0.7c0.1-0.1,0.2-0.2,0.3-0.2c0.4-0.2,0.8-0.1,1.1,0.2  c0,0,0.1,0.1,0.1,0.1c0,0.1,0.1,0.1,0.1,0.2c0,0.1,0,0.1,0.1,0.2c0,0.1,0,0.1,0,0.2C16,21.3,15.9,21.5,15.7,21.7z M16.7,19.7  C16.5,19.9,16.3,20,16,20c-0.1,0-0.3,0-0.4-0.1c-0.1-0.1-0.2-0.1-0.3-0.2C15.1,19.5,15,19.3,15,19c0-0.3,0.1-0.5,0.3-0.7  c0.1-0.1,0.2-0.2,0.3-0.2c0.4-0.1,0.8-0.1,1.1,0.2c0.2,0.2,0.3,0.4,0.3,0.7C17,19.3,16.9,19.5,16.7,19.7z", BrushManager.Instance.CreateConstant(SKColors.MediumSeaGreen)),
+                new GeometryEntry("M24 14H15.5L14 15.5 16.8358 18.3358 10.5858 24.5858 13.4142 27.4142 19.6642 21.1642 22.5 24 24 22.5 24 14Z", BrushManager.Instance.CreateConstant(SKColors.Yellow)),
+            ],
+            stretch: StretchMode.Uniform);
 
     public static readonly Icon DeleteAllRowsIcon =
         IconManager.Instance.RegisterGeometryIcon(

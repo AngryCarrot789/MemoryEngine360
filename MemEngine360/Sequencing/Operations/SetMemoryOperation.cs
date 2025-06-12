@@ -129,6 +129,15 @@ public class SetMemoryOperation : BaseSequenceOperation {
         }
     }
 
+    public override BaseSequenceOperation CreateClone() {
+        return new SetMemoryOperation() {
+            IsEnabled = this.IsEnabled,
+            Address = this.Address,
+            DataValueProvider = this.DataValueProvider?.CreateClone(),
+            IterateCount = this.IterateCount
+        };
+    }
+
     private static byte[]? GetDataBuffer(bool littleEndian, IDataValue value, bool shouldAppendNullChar, uint iterate) {
         uint byteCount = value.ByteCount;
         if (byteCount == 0 || (iterate > (int.MaxValue / byteCount)) /* overflow check */) {
@@ -140,7 +149,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
         if (value.DataType.IsEndiannessSensitive() && BitConverter.IsLittleEndian != littleEndian) {
             bytes.Reverse();
         }
-                
+
         bool appendNullChar = value.DataType == DataType.String && shouldAppendNullChar;
         byte[] buffer = new byte[bytes.Length * iterate + (appendNullChar ? 1 : 0)];
         ref byte bufferAddress = ref MemoryMarshal.GetArrayDataReference(buffer);

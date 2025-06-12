@@ -21,6 +21,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using MemEngine360.Engine;
 using MemEngine360.Sequencing;
+using PFXToolKitUI.Avalonia.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.AvControls;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
@@ -100,11 +101,14 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
 
         using MultiChangeToken batch = DataManager.GetContextData(this).BeginChange();
         batch.Context.Set(ITaskSequencerUI.TaskSequenceDataKey, this.Model!).Set(ITaskSequenceEntryUI.DataKey, this);
+        
+        AdvancedContextMenu.SetContextRegistry(this, TaskSequenceContextRegistry.Registry);
     }
 
     protected override void OnRemovingFromList() {
         this.myEngine = null;
         this.Model!.IsRunningChanged -= this.OnIsRunningChanged;
+        AdvancedContextMenu.SetContextRegistry(this, null);
 
         using MultiChangeToken batch = DataManager.GetContextData(this).BeginChange();
         batch.Context.Set(ITaskSequencerUI.TaskSequenceDataKey, null).Set(ITaskSequenceEntryUI.DataKey, null);

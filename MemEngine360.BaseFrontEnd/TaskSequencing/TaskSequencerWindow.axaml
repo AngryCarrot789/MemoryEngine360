@@ -44,7 +44,7 @@
                                        cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.NewSequenceCommand"/>
 
                         <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
-                                       ToolTip.Tip="Connect to a console" DockPanel.Dock="Right"
+                                       ToolTip.Tip="Open connection for the memory engine" DockPanel.Dock="Right"
                                        Icon="{x:Static cb:SimpleIcons.ConnectToConsoleIcon}"
                                        cu:CommandUsageManager.UsageClassType="{x:Type commands:OpenConsoleConnectionInSequencerCommandUsage}"/>
                         <TextBlock Text="Sequences" VerticalAlignment="Center"/>
@@ -77,10 +77,11 @@
                                             BorderBrush="{TemplateBinding BorderBrush}"
                                             BorderThickness="{TemplateBinding BorderThickness}">
                                         <DockPanel>
-                                            <Border x:Name="PART_DragGrip" Background="Transparent" Width="16" DockPanel.Dock="Left">
-                                                <av:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16"/>
-                                            </Border>
                                             <DockPanel DockPanel.Dock="Bottom" Margin="2,0">
+                                                <Border x:Name="PART_DragGrip" Background="Transparent" Width="16" DockPanel.Dock="Right"
+                                                        ToolTip.Tip="Click and drag this grip to move the sequence around.">
+                                                    <av:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
+                                                </Border>
                                                 <StackPanel Orientation="Horizontal" Spacing="3" Margin="0,1,0,2">
                                                     <TextBlock Text="Run Count" VerticalAlignment="Center"/>
                                                     <TextBox x:Name="PART_RunCountTextBox" Padding="3,1" VerticalContentAlignment="Center" MinWidth="50"
@@ -113,7 +114,7 @@
                                                            IconMaxHeight="12" IconMaxWidth="12"
                                                            VerticalContentAlignment="Center"
                                                            HorizontalContentAlignment="Center"
-                                                           cu:CommandUsageManager.UsageClassType="{x:Type commands:CancelSequenceCommandUsage}"/>
+                                                           cu:CommandUsageManager.UsageClassType="{x:Type commands:StopSequenceCommandUsage}"/>
 
                                             <av:IconButton x:Name="PART_RunButton"
                                                            DockPanel.Dock="Right" VerticalAlignment="Top"
@@ -191,7 +192,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="10*" MinHeight="100"/>
                         <RowDefinition Height="0"/>
-                        <RowDefinition Height="4*" MinHeight="100"/>
+                        <RowDefinition Height="9*" MinHeight="100"/>
                         <RowDefinition Height="24"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
@@ -225,8 +226,9 @@
                                                 BorderThickness="{TemplateBinding BorderThickness}"
                                                 x:Name="PART_RootOLBI">
                                             <DockPanel>
-                                                <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right">
-                                                    <av:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16"/>
+                                                <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right"
+                                                        ToolTip.Tip="Click and drag this grip to move the operation around. This cannot be done while the sequence is running.">
+                                                    <av:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
                                                 </Border>
                                                 <ContentPresenter x:Name="PART_ContentPresenter"
                                                                   HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -339,8 +341,8 @@
                         <av:IconButton Padding="2" Width="24" Height="24"
                                        IconMaxWidth="16" IconMaxHeight="16"
                                        Background="Transparent" BorderThickness="0"
-                                       ToolTip.Tip="Connect to a console"
-                                       Icon="{x:Static cb:SimpleIcons.ConnectToConsoleIcon}"
+                                       ToolTip.Tip="Open a dedicated connection"
+                                       Icon="{x:Static cb:SimpleIcons.ConnectToConsoleDedicatedIcon}"
                                        cu:CommandUsageManager.UsageClassType="{x:Type commands:ConnectToDedicatedConsoleCommandUsage}"/>
                         <Border Background="{DynamicResource ABrush.Tone4.Background.Static}"
                                 BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
@@ -355,7 +357,7 @@
                         <CheckBox x:Name="PART_UseDedicatedConnection" Content="Use Dedicated Connection">
                             <ToolTip.Tip>
                                 <TextBlock>
-                                    <Run Text="Toggle whether to use the memory engine's connection, instead of a dedicated freezer connection"/>
+                                    <Run Text="Toggle using a dedicated connection instead of the memory engine's connection"/>
                                     <LineBreak/>
                                     <Run Text="Note: if you use the engine connection, the engine cannot do anything (scanning, refreshing, editing values, etc.)"/>
                                 </TextBlock>
@@ -368,7 +370,7 @@
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"/>
                     </DockPanel>
-                    <GridSplitter Grid.Row="1" Background="Transparent" Margin="0,-2,0,-10" Cursor="SizeNorthSouth"/>
+                    <GridSplitter Grid.Row="1" Background="Transparent" Margin="0,-3,0,-14" Cursor="SizeNorthSouth"/>
                 </Grid>
             </c:GroupBox>
 

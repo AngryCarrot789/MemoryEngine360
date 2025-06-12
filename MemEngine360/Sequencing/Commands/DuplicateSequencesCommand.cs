@@ -18,11 +18,11 @@
 // 
 
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Services.UserInputs;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.Commands;
 
-public class NewSequenceCommand : Command {
+public class DuplicateSequencesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return Executability.Invalid;
@@ -36,14 +36,19 @@ public class NewSequenceCommand : Command {
             return;
         }
 
-        SingleUserInputInfo info = new SingleUserInputInfo("New sequence", "What do you want to call it?", "Sequence " + (ui.Manager.Sequences.Count + 1));
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-            TaskSequence sequence = new TaskSequence() {
-                DisplayName = info.Text
-            };
-            
-            ui.Manager.AddSequence(sequence);
-            ui.SequenceSelectionManager.SetSelection(ui.GetSequenceControl(sequence));
+        // Create list of clones, ordered by their index in the sequence list
+        List<(TaskSequence Seq, int Idx)> clones = ui.SequenceSelectionManager.SelectedItemList.
+                                                      Select(x => (Seq: x.TaskSequence.CreateClone(true), Idx: x.TaskSequence.Manager!.IndexOf(x.TaskSequence))).
+                                                      OrderBy(x => x.Idx).ToList();
+        int offset = 0;
+        foreach ((TaskSequence Seq, int Idx) item in clones) {
+            item.Seq.DisplayName = TextIncrement.GetNextText(item.Seq.DisplayName);
+            ui.Manager.InsertSequence(offset + item.Idx + 1, item.Seq); // +1 to add after the existing item
+            offset++;
         }
+        
+        // virtualization of task sequence list box items not implemented yet, and there's no reason
+        // to do it since I doubt anyone will use enough to where it makes a difference
+        ui.SequenceSelectionManager.SetSelection(clones.Select(x => ui.GetSequenceControl(x.Seq)));
     }
 }

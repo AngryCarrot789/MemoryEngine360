@@ -20,25 +20,45 @@
 namespace MemEngine360.Connections.Testing;
 
 public class TestConsoleConnection : BaseConsoleConnection {
+    private readonly TestConnectionMode mode;
+
     public override RegisteredConnectionType ConnectionType => ConnectionTypeTest.Instance;
 
     protected override bool IsConnectedCore => !this.IsClosed;
 
     public override bool IsLittleEndian => BitConverter.IsLittleEndian;
-    
+
+    public TestConsoleConnection(TestConnectionMode mode) {
+        this.mode = mode;
+    }
+
     public override Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count) {
-        return Task.FromException<bool?>(new TimeoutException());
+        return this.mode switch {
+            TestConnectionMode.TimeoutError => Task.FromException<bool?>(new TimeoutException("Test timeout exception")), 
+            TestConnectionMode.IOError => Task.FromException<bool?>(new IOException("Test IO error")), 
+            _ => Task.FromResult<bool?>(null)
+        };
     }
 
     protected override Task CloseCore() {
         return Task.CompletedTask;
     }
 
-    protected override Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
-        return Task.FromException(new TimeoutException());
-    }
+    protected override Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) => this.GetTask();
 
-    protected override Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
-        return Task.FromException(new TimeoutException());
+    protected override Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) => this.GetTask();
+    
+    private Task GetTask() {
+        return this.mode switch {
+            TestConnectionMode.TimeoutError => Task.FromException(new TimeoutException("Test timeout exception")), 
+            TestConnectionMode.IOError => Task.FromException(new IOException("Test IO error")), 
+            _ => Task.CompletedTask
+        };
     }
+}
+
+public enum TestConnectionMode {
+    DoNothing,
+    TimeoutError,
+    IOError
 }

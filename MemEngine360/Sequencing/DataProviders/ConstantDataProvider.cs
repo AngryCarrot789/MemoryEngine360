@@ -65,4 +65,12 @@ public sealed class ConstantDataProvider : DataValueProvider {
     }
 
     public override IDataValue? Provide() => this.dataValue;
+    public override DataValueProvider CreateClone() {
+        return new ConstantDataProvider() {
+            DataType = this.DataType,
+            DataValue = this.DataValue,
+            StringType = this.StringType,
+            ParseIntAsHex = this.ParseIntAsHex,
+        };
+    }
 }

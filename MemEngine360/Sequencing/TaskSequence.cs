@@ -155,6 +155,28 @@ public sealed class TaskSequence {
         this.Progress.Text = "Sequence not running";
     }
 
+    /// <summary>
+    /// Creates a clone of this sequence as if the user had created and configured one to match the current instance
+    /// </summary>
+    /// <param name="cloneOperations"></param>
+    /// <returns></returns>
+    public TaskSequence CreateClone(bool cloneOperations) {
+        TaskSequence sequence = new TaskSequence() {
+            DisplayName = this.displayName,
+            RunCount = this.runCount,
+            HasBusyLockPriority = this.hasBusyLockPriority,
+            UseEngineConnection = this.useEngineConnection
+        };
+
+        if (cloneOperations) {
+            foreach (BaseSequenceOperation operation in this.operations) {
+                sequence.AddOperation(operation.CreateClone());
+            }
+        }
+
+        return sequence;
+    }
+
     public async Task Run(IConsoleConnection connection, IDisposable? busyToken, bool isConnectionDedicated) {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
         this.CheckNotRunning("Cannot run while already running");

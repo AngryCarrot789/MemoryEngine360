@@ -106,4 +106,13 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
             default: throw new ArgumentOutOfRangeException();
         }
     }
+
+    public override DataValueProvider CreateClone() {
+        return new RandomNumberDataProvider() {
+            DataType = this.DataType,
+            AppendNullCharToString = this.AppendNullCharToString,
+            Minimum = this.Minimum,
+            Maximum = this.Maximum,
+        };
+    }
 }

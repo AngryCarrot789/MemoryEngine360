@@ -18,11 +18,10 @@
 // 
 
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Sequencing.Commands;
 
-public class NewSequenceCommand : Command {
+public class DuplicateOperationsCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return Executability.Invalid;
@@ -36,14 +35,23 @@ public class NewSequenceCommand : Command {
             return;
         }
 
-        SingleUserInputInfo info = new SingleUserInputInfo("New sequence", "What do you want to call it?", "Sequence " + (ui.Manager.Sequences.Count + 1));
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-            TaskSequence sequence = new TaskSequence() {
-                DisplayName = info.Text
-            };
-            
-            ui.Manager.AddSequence(sequence);
-            ui.SequenceSelectionManager.SetSelection(ui.GetSequenceControl(sequence));
+        // Create list of clones, ordered by their index in the sequence list
+        ITaskSequenceEntryUI? sequence = ui.PrimarySelectedSequence;
+        if (sequence == null) {
+            return;
         }
+        
+        List<(BaseSequenceOperation Operation, int Idx)> clones = ui.OperationSelectionManager.SelectedItemList.
+                                                                     Select(x => (Seq: x.Operation.CreateClone(), Idx: x.Operation.Sequence!.IndexOf(x.Operation))).
+                                                                     OrderBy(x => x.Idx).ToList();
+        int offset = 1; // +1 to add after the existing item
+        foreach ((BaseSequenceOperation Operation, int Idx) item in clones) {
+            sequence.TaskSequence.InsertOperation(offset + item.Idx, item.Operation);
+            offset++;
+        }
+        
+        // virtualization of task sequence list box items not implemented yet, and there's no reason
+        // to do it since I doubt anyone will use enough to where it makes a difference
+        ui.OperationSelectionManager.SetSelection(clones.Select(x => ui.GetOperationControl(x.Operation)));
     }
 }

@@ -56,4 +56,11 @@ public class DelayOperation : BaseSequenceOperation {
         ctx.Progress.Text = $"Waiting {Math.Round(this.delay.TotalMilliseconds, 2)} ms";
         return Task.Delay(this.Delay, token);
     }
+
+    public override BaseSequenceOperation CreateClone() {
+        return new DelayOperation() {
+            Delay = this.Delay,
+            IsEnabled = this.IsEnabled
+        };
+    }
 }

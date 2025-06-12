@@ -17,6 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI.Interactivity.Contexts;
+
 namespace MemEngine360.Connections.Testing;
 
 public class ConnectionTypeTest : RegisteredConnectionType {
@@ -25,9 +27,13 @@ public class ConnectionTypeTest : RegisteredConnectionType {
     
     public override string DisplayName => "Test";
     
-    public override string LongDescription => "No features implemented, just throws errors, in hopes that the program can handle them.";
-    
+    public override string LongDescription => "Test connection for debugging. Can do nothing or throw timeout or IO exception,in hopes that the program can handle them.";
+
+    public override UserConnectionInfo? CreateConnectionInfo(IContextData context) {
+        return new TestConnectionInfo(this);
+    }
+
     public override Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, CancellationTokenSource cancellation) {
-        return Task.FromResult<IConsoleConnection?>(new TestConsoleConnection());
+        return Task.FromResult<IConsoleConnection?>(new TestConsoleConnection(((TestConnectionInfo) _info!).Mode));
     }
 }

@@ -51,5 +51,7 @@ public interface ITaskSequencerUI {
     /// </summary>
     IOperationItemUI? PrimarySelectedOperation { get; }
     
-    ITaskSequenceEntryUI GetControl(TaskSequence sequence);
+    ITaskSequenceEntryUI GetSequenceControl(TaskSequence sequence);
+    
+    IOperationItemUI GetOperationControl(BaseSequenceOperation operation);
 }

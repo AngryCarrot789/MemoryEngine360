@@ -125,9 +125,12 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.ConnectToDedicatedConsoleCommand", new ConnectToDedicatedConsoleCommand());
         manager.Register("commands.sequencer.ClearSequencesCommand", new ClearSequencesCommand());
         manager.Register("commands.sequencer.NewSequenceCommand", new NewSequenceCommand());
+        manager.Register("commands.sequencer.DuplicateSequenceCommand", new DuplicateSequencesCommand());
+        manager.Register("commands.sequencer.DuplicateOperationsCommand", new DuplicateOperationsCommand());
         manager.Register("commands.sequencer.RenameSequenceCommand", new RenameSequenceCommand());
-        manager.Register("commands.sequencer.CancelSequenceCommand", new CancelSequenceCommand());
+        manager.Register("commands.sequencer.StopSequenceCommand", new StopSequenceCommand());
         manager.Register("commands.sequencer.RunSequenceCommand", new RunSequenceCommand());
+        manager.Register("commands.sequencer.ToggleOperationEnabledCommand", new ToggleOperationEnabledCommand());
     }
 
     protected override void RegisterServices(ServiceManager manager) {
@@ -181,6 +184,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
 #if DEBUG
         if (Debugger.IsAttached) {
+            OpenConnectionView.Registry.RegisterType<TestConnectionInfo>(() => new OpenTestConnectionView());
+            
             ConsoleConnectionManager manager = Instance.ServiceManager.GetService<ConsoleConnectionManager>();
             manager.Register(ConnectionTypeDebugFile.TheID, ConnectionTypeDebugFile.Instance);
             manager.Register(ConnectionTypeTest.TheID, ConnectionTypeTest.Instance);

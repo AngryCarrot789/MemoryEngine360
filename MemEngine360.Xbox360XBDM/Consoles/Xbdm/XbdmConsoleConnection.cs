@@ -62,6 +62,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         " data="u8.CopyTo(new Span<byte>(this.sharedSetMemCommandBuffer, 22, 6));
         "getmem addr=0x"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 0, 14));
         " length=0x"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 22, 10));
+        "\r\n"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 40, 2));
     }
 
     protected override Task CloseCore() {
@@ -422,6 +423,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         if (cbRead != count) {
             throw new IOException("Incorrect number of bytes read");
         }
+        // await this.NewReadBytes(address, dstBuffer, offset, count);
     }
 
     private static int DecodeLine(string line, byte[] dstBuffer, int offset, int cbTotalRead) {
@@ -441,48 +443,55 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     // Sometimes it works, sometimes it doesn't. And it also doesn't read from the correct address which is odd
-    // protected override async Task<uint> ReadBytesCore(uint address, byte[] dstBuffer, int offset, uint count) {
-    //     if (count == 0) {
-    //         return 0;
-    //     }
-    //
-    //     Debug.WriteLine($"SENDING GETMEMEX. TCP AVAILABLE = {this.client.Available}");
-    //
-    //     ConsoleResponse response = await this.SendCommandAndGetResponse($"getmemex addr=0x{address:X8} length=0x{count:X8}").ConfigureAwait(false);
-    //     VerifyResponse("getmemex", response.ResponseType, ResponseType.BinaryResponse);
-    //
-    //     Debug.WriteLine($"RESPONSE: {response}. TCP AVAILABLE = {this.client.Available}");
-    //
-    //     int header, chunkSize, statusFlag = 0;
-    //     uint totalRead = 0;
-    //     byte[] buffer = new byte[0x402];
-    //     do {
-    //         if (statusFlag != 0) {
-    //             throw new IOException("Did not receive enough bytes");
-    //         }
-    //
-    //         Debug.WriteLine($"READING HEADER (2 BYTES). TCP AVAILABLE = {this.client.Available}");
-    //
-    //         await this.InternalReadBytesFromStream(buffer, 0, 2);
-    //         header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(buffer, 0, 2));
-    //         chunkSize = header & 0x7FFF;
-    //         statusFlag = header & 0x8000;
-    //
-    //         Debug.WriteLine($"READ HEADER. CBCHUNK = {chunkSize}, STATUS = {statusFlag}. TCP AVAILABLE = {this.client.Available}");
-    //         if (count < chunkSize) {
-    //             throw new IOException("Received more bytes than expected");
-    //         }
-    //
-    //         await this.InternalReadBytesFromStream(buffer, 0, chunkSize);
-    //         Debug.WriteLine($"READ DATA. TCP AVAILABLE = {this.client.Available}");
-    //         totalRead += (uint) chunkSize;
-    //         count -= (uint) chunkSize;
-    //         offset += chunkSize;
-    //     } while (count > 0);
-    //
-    //     Debug.WriteLine($"SUCCESSFULLY READ {totalRead}");
-    //     return totalRead;
-    // }
+    public async Task<uint> NewReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
+        if (count == 0) {
+            return 0;
+        }
+
+        Debug.WriteLine($"SENDING GETMEMEX. TCP AVAILABLE = {this.client.Available}");
+
+        ConsoleResponse response = await this.SendCommandAndGetResponse($"getmemex addr=0x{address:X8} length=0x{count:X8}").ConfigureAwait(false);
+        VerifyResponse("getmemex", response.ResponseType, ResponseType.BinaryResponse);
+
+        Debug.WriteLine($"RESPONSE: {response}. TCP AVAILABLE = {this.client.Available}");
+
+        int header, chunkSize, statusFlag = 0;
+        uint totalRead = 0;
+        byte[] buffer = new byte[0x402];
+        do {
+            if (statusFlag != 0) {
+                throw new IOException("Did not receive enough bytes");
+            }
+
+            Debug.WriteLine($"READING HEADER (2 BYTES). TCP AVAILABLE = {this.client.Available}");
+
+            // await this.InternalReadBytesFromStream(buffer, 0, 2);
+            int cbRead = this.client.GetStream().Read(buffer, 0, 2);
+
+            header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(buffer, 0, 2));
+            chunkSize = header & 0x7FFF;
+            statusFlag = header & 0x8000;
+
+            Debug.WriteLine($"READ HEADER. CBCHUNK = {chunkSize}, STATUS = {statusFlag}. TCP AVAILABLE = {this.client.Available}");
+            if (count < chunkSize) {
+                throw new IOException("Received more bytes than expected");
+            }
+
+            // await this.InternalReadBytesFromStream(buffer, 0, chunkSize);
+            cbRead = this.client.GetStream().Read(buffer, 0, chunkSize);
+            Debug.WriteLine($"READ DATA. TCP AVAILABLE = {this.client.Available}");
+
+            buffer.AsSpan(0, chunkSize).CopyTo(dstBuffer.AsSpan(offset, chunkSize));
+
+            address += 0x400;
+            totalRead += (uint) chunkSize;
+            count -= chunkSize;
+            offset += chunkSize;
+        } while (count > 0);
+
+        Debug.WriteLine($"SUCCESSFULLY READ {totalRead}");
+        return totalRead;
+    }
 
     protected override async Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
         while (count > 0) {
@@ -564,8 +573,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         ref byte dstAscii = ref MemoryMarshal.GetArrayDataReference(this.sharedGetMemCommandBuffer);
         NumberUtils.UInt32ToHexAscii(address, ref dstAscii, 14);
         NumberUtils.UInt32ToHexAscii(count, ref dstAscii, 32);
-        Unsafe.AddByteOffset(ref dstAscii, 40) = (byte) '\r';
-        Unsafe.AddByteOffset(ref dstAscii, 41) = (byte) '\n';
     }
 
     // returns: true when bytes processed or read from stream, false when no bytes available at all

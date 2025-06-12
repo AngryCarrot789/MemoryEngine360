@@ -53,4 +53,6 @@ public abstract class DataValueProvider {
     /// </summary>
     /// <returns>The provided value</returns>
     public abstract IDataValue? Provide();
+
+    public abstract DataValueProvider CreateClone();
 }

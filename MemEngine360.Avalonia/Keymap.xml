@@ -87,17 +87,32 @@
         </Shortcut>
     </Group>
     <Group Name="SequencerWindow" DisplayName="Task Sequencer Window">
-        <Group Name="SequenceList" DisplayName="Hex editor" Description="The actual hex editor control">
+        <Group Name="SequenceList" DisplayName="Task Sequence List box" Description="The list box of task sequences">
             <Shortcut Name="RenameSequence" CommandId="commands.sequencer.RenameSequenceCommand">
                 <KeyStroke Key="F2"/>
             </Shortcut>
             <Shortcut Name="DeleteSequence" CommandId="commands.sequencer.DeleteSequenceSelectionCommand">
                 <KeyStroke Key="Delete"/>
             </Shortcut>
+            <Shortcut Name="DuplicateSequence" CommandId="commands.sequencer.DuplicateSequenceCommand">
+                <KeyStroke Mods="CTRL" Key="D"/>
+            </Shortcut>
+            <Shortcut Name="RunSequence" CommandId="commands.sequencer.RunSequenceCommand">
+                <KeyStroke Key="F7"/>
+            </Shortcut>
+            <Shortcut Name="StopSequence" CommandId="commands.sequencer.StopSequenceCommand">
+                <KeyStroke Key="F5"/>
+            </Shortcut>
         </Group>
-        <Group Name="OperationList" DisplayName="Hex editor" Description="The actual hex editor control">
+        <Group Name="OperationList" DisplayName="Operation List Box" Description="The list box of operations within a sequence">
             <Shortcut Name="DeleteOperations" CommandId="commands.sequencer.DeleteOperationSelectionCommand">
                 <KeyStroke Key="Delete"/>
+            </Shortcut>
+            <Shortcut Name="DuplicateOperations" CommandId="commands.sequencer.DuplicateOperationsCommand">
+                <KeyStroke Mods="CTRL" Key="D"/>
+            </Shortcut>
+            <Shortcut Name="ToggleOperationEnabled" CommandId="commands.sequencer.ToggleOperationEnabledCommand">
+                <KeyStroke Key="Space"/>
             </Shortcut>
         </Group>
         <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">

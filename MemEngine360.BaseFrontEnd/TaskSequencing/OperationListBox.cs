@@ -18,6 +18,7 @@
 // 
 
 using Avalonia;
+using Avalonia.Input;
 using MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
@@ -49,7 +50,15 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
     static OperationListBox() {
         TaskSequenceProperty.Changed.AddClassHandler<OperationListBox, TaskSequence?>((s, e) => s.OnTaskSequenceChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
-    
+
+    protected override void OnKeyDown(KeyEventArgs e) {
+        // Fix toggle enabled command. For some reason pressing space deselects all
+        // but the anchored item when we have multiple selections
+        if (e.Key != Key.Space) {
+            base.OnKeyDown(e);
+        }
+    }
+
     protected override void MoveItemIndex(int oldIndex, int newIndex) {
         if (this.TaskSequence is TaskSequence seq) {
             BaseSequenceOperation entry = seq.Operations[oldIndex];

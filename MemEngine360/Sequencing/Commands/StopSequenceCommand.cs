@@ -18,32 +18,24 @@
 // 
 
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Sequencing.Commands;
 
-public class NewSequenceCommand : Command {
+public class StopSequenceCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? sequence)) {
             return Executability.Invalid;
         }
 
-        return Executability.Valid;
+        return sequence.IsRunning ? Executability.Valid : Executability.ValidButCannotExecute;
     }
-
+    
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
-            return;
-        }
-
-        SingleUserInputInfo info = new SingleUserInputInfo("New sequence", "What do you want to call it?", "Sequence " + (ui.Manager.Sequences.Count + 1));
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-            TaskSequence sequence = new TaskSequence() {
-                DisplayName = info.Text
-            };
-            
-            ui.Manager.AddSequence(sequence);
-            ui.SequenceSelectionManager.SetSelection(ui.GetSequenceControl(sequence));
+        if (ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? sequence)) {
+            if (sequence.IsRunning) {
+                sequence.RequestCancellation();
+                await sequence.WaitForCompletion();
+            }
         }
     }
 }

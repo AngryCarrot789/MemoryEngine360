@@ -99,7 +99,17 @@ public abstract class BaseSequenceOperation : ITransferableData {
         OperationCanceledException? cancellation = null;
         using (ErrorList list = new ErrorList("One or more errors occurred", true, true)) {
             try {
-                await this.RunOperation(ctx, token);
+                Task task = this.RunOperation(ctx, token);
+                bool wasCompletedSync = task.IsCompleted;
+                await task;
+
+                if (wasCompletedSync) {
+                    // Yielding here prevents this operation from running about 1 million times a second,
+                    // which may be battering the UI thread with IsRunning being switched so often.
+                    // Yielding brings it down to about 15,000 times a second.
+                    // Of course, may be different for faster/slower systems than a ryzen 5
+                    await Task.Yield();
+                }
             }
             catch (OperationCanceledException e) {
                 cancellation = e;
@@ -145,4 +155,10 @@ public abstract class BaseSequenceOperation : ITransferableData {
     protected abstract Task RunOperation(SequenceExecutionContext ctx, CancellationToken token);
 
     internal static void InternalSetSequence(BaseSequenceOperation operation, TaskSequence? sequence) => operation.Sequence = sequence;
+
+    /// <summary>
+    /// Creates a clone of this operation as if the user created it by hand.
+    /// </summary>
+    /// <returns></returns>
+    public abstract BaseSequenceOperation CreateClone();
 }

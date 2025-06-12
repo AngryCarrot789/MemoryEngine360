@@ -258,7 +258,7 @@ public partial class EngineView : UserControl, IEngineUI {
             if (token == null || !(ui.MemoryEngine.Connection is XbdmConsoleConnection xbdm)) {
                 return;
             }
-
+            
             DataParameterEnumInfo<XNotiyLogo> dpEnumInfo = DataParameterEnumInfo<XNotiyLogo>.All();
             DoubleUserInputInfo info = new DoubleUserInputInfo("Thank you for using MemoryEngine360 <3", nameof(XNotiyLogo.FLASHING_HAPPY_FACE)) {
                 Caption = "Test Notification",

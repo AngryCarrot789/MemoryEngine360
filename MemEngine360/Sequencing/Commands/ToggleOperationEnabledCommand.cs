@@ -21,23 +21,28 @@ using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Sequencing.Commands;
 
-public class CancelSequenceCommand : Command {
+public class ToggleOperationEnabledCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? sequence)) {
-            return Executability.Invalid;
-        }
-
-        return sequence.IsRunning ? Executability.Valid : Executability.ValidButCannotExecute;
+        return ITaskSequencerUI.TaskSequencerUIDataKey.GetExecutabilityForPresence(e.ContextData);
     }
-    
+
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? sequence)) {
+        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return;
         }
 
-        if (sequence.IsRunning) {
-            sequence.RequestCancellation();
-            await sequence.WaitForCompletion();
+        List<IOperationItemUI> selection = ui.OperationSelectionManager.SelectedItemList.ToList();
+        
+        int countDisabled = 0;
+        foreach (IOperationItemUI entry in selection) {
+            if (!entry.Operation.IsEnabled) {
+                countDisabled++;
+            }
+        }
+
+        bool isEnabled = selection.Count == 1 ? (countDisabled != 0) : countDisabled >= (selection.Count / 2);
+        foreach (IOperationItemUI entry in selection) {
+            entry.Operation.IsEnabled = isEnabled;
         }
     }
 }
