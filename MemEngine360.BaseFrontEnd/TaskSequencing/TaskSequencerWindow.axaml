@@ -349,7 +349,8 @@
                             <c:GroupBox Background="{DynamicResource ABrush.Tone2.Background.Static}"
                                         BorderThickness="0"
                                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
-                                        HorizontalHeaderAlignment="Stretch">
+                                        HorizontalHeaderAlignment="Stretch"
+                                        avalonia:UIInputManager.FocusPath="SequencerWindow/ConditionList">
                                 <c:GroupBox.Header>
                                     <DockPanel LastChildFill="False">
                                         <TextBlock Text="Conditions Panel" VerticalAlignment="Center"/>

@@ -122,6 +122,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.OpenTaskSequencerCommand", new OpenTaskSequencerCommand());
         manager.Register("commands.sequencer.DeleteSequenceSelectionCommand", new DeleteSequenceSelectionCommand());
         manager.Register("commands.sequencer.DeleteOperationSelectionCommand", new DeleteOperationSelectionCommand());
+        manager.Register("commands.sequencer.DeleteConditionSelectionCommand", new DeleteConditionSelectionCommand());
         manager.Register("commands.sequencer.ConnectToDedicatedConsoleCommand", new ConnectToDedicatedConsoleCommand());
         manager.Register("commands.sequencer.ClearSequencesCommand", new ClearSequencesCommand());
         manager.Register("commands.sequencer.NewSequenceCommand", new NewSequenceCommand());
@@ -131,6 +132,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.StopSequenceCommand", new StopSequenceCommand());
         manager.Register("commands.sequencer.RunSequenceCommand", new RunSequenceCommand());
         manager.Register("commands.sequencer.ToggleOperationEnabledCommand", new ToggleOperationEnabledCommand());
+        manager.Register("commands.sequencer.ToggleConditionEnabledCommand", new ToggleConditionEnabledCommand());
     }
 
     protected override void RegisterServices(ServiceManager manager) {

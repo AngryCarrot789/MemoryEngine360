@@ -115,6 +115,14 @@
                 <KeyStroke Key="Space"/>
             </Shortcut>
         </Group>
+        <Group Name="ConditionList" DisplayName="Condition List Box" Description="The list box of conditions">
+            <Shortcut Name="ToggleConditionEnabled" CommandId="commands.sequencer.ToggleConditionEnabledCommand">
+                <KeyStroke Key="Space"/>
+            </Shortcut>
+            <Shortcut Name="DeleteConditionSelection" CommandId="commands.sequencer.DeleteConditionSelectionCommand">
+                <KeyStroke Key="Delete"/>
+            </Shortcut>
+        </Group>
         <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
             <KeyStroke Mods="CTRL+ALT" Key="S"/>
         </Shortcut>

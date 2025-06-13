@@ -41,6 +41,8 @@ public interface ITaskSequencerUI {
     /// </summary>
     IListSelectionManager<IOperationItemUI> OperationSelectionManager { get; }
     
+    IListSelectionManager<IConditionItemUI> ConditionSelectionManager { get; }
+    
     /// <summary>
     /// Gets the primary selected task sequence item, or null, if there's none selected or more than 1
     /// </summary>

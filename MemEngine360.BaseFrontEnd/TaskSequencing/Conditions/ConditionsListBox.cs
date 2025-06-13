@@ -20,6 +20,7 @@
 using Avalonia;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Interactivity;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 
@@ -35,8 +36,11 @@ public class ConditionsListBox : ModelBasedListBox<BaseSequenceCondition> {
 
     protected override bool CanDragItemPositionCore => this.TaskSequence != null && !this.TaskSequence.IsRunning;
 
+    public IListSelectionManager<IConditionItemUI> ControlSelectionManager { get; }
+    
     public ConditionsListBox() : base(2) {
         this.itemContentCacheMap = new Dictionary<Type, Stack<BaseConditionListContent>>();
+        this.ControlSelectionManager = new ModelListBoxSelectionManagerForControl<BaseSequenceCondition, IConditionItemUI>(this);
         this.CanDragItemPosition = true;
     }
 

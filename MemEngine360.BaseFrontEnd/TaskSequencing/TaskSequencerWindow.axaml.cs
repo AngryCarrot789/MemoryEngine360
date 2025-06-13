@@ -64,6 +64,9 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
     public IListSelectionManager<ITaskSequenceEntryUI> SequenceSelectionManager => this.PART_SequenceListBox.ControlSelectionManager;
 
     public IListSelectionManager<IOperationItemUI> OperationSelectionManager => this.PART_OperationListBox.ControlSelectionManager;
+    
+    public IListSelectionManager<IConditionItemUI> ConditionSelectionManager => this.PART_ConditionsListBox.ControlSelectionManager;
+
 
     public ITaskSequenceEntryUI? PrimarySelectedSequence { get; private set; }
 
