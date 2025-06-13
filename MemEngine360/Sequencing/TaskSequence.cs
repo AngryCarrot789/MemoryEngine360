@@ -249,8 +249,6 @@ public sealed class TaskSequence {
                     }
                 }
             }
-
-            Debugger.Break();
         }, this.Progress, this.myCts);
 
         foreach (BaseSequenceOperation operation in ops) {

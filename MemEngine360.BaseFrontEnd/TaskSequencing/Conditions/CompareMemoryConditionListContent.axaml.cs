@@ -137,6 +137,19 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
         }
 
         this.UpdateTextFromProviderValue();
+        
+        this.PART_CMP_EQ.IsEnabled = true;
+        this.PART_CMP_NEQ.IsEnabled = true;
+        this.PART_CMP_LT.IsEnabled = true;
+        this.PART_CMP_LTEQ.IsEnabled = true;
+        this.PART_CMP_GT.IsEnabled = true;
+        this.PART_CMP_GTEQ.IsEnabled = true;
+        if (!this.DataType.IsNumeric()) {
+            this.PART_CMP_LT.IsEnabled = false;
+            this.PART_CMP_LTEQ.IsEnabled = false;
+            this.PART_CMP_GT.IsEnabled = false;
+            this.PART_CMP_GTEQ.IsEnabled = false;
+        }
     }
 
     private void OnCompareTypeChangedChanged(CompareMemoryCondition sender) {

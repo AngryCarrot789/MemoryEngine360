@@ -271,10 +271,13 @@
                             </ControlTheme>
                         </ListBox.ItemContainerTheme>
                     </operations:OperationListBox>
-                    <TabControl Grid.Row="2" TabStripPlacement="Bottom" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0">
+                    <TabControl Grid.Row="2" 
+                                TabStripPlacement="Bottom" 
+                                BorderBrush="{DynamicResource PanelBorderBrush}" 
+                                BorderThickness="0,1,0,0">
                         <TabItem Header="Operation Editors">
                             <c:GroupBox Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                                        BorderThickness="0,1"
+                                        BorderThickness="0"
                                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}">
                                 <c:GroupBox.Header>
                                     <DockPanel>
@@ -344,15 +347,18 @@
                         </TabItem>
                         <TabItem Header="Conditions">
                             <c:GroupBox Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                                        BorderThickness="0,1"
-                                        HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}">
+                                        BorderThickness="0"
+                                        HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
+                                        HorizontalHeaderAlignment="Stretch">
                                 <c:GroupBox.Header>
-                                    <DockPanel>
+                                    <DockPanel LastChildFill="False">
                                         <TextBlock Text="Conditions Panel" VerticalAlignment="Center"/>
                                         <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,0"/>
                                         <TextBlock x:Name="PART_PrimarySelectedConditionText" VerticalAlignment="Center"/>
                                         <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,0"/>
-                                        <Button Content="Memory Compare" Click="Button_OnClick" VerticalAlignment="Center" Padding="4,1"/>
+                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                            <Button Content="Memory Compare" Click="Button_OnClick" VerticalAlignment="Center" Padding="4,1" DockPanel.Dock="Right"/>
+                                        </StackPanel>
                                     </DockPanel>
                                 </c:GroupBox.Header>
                                 <conditions:ConditionsListBox x:Name="PART_ConditionsListBox" Background="Transparent" BorderThickness="0">
