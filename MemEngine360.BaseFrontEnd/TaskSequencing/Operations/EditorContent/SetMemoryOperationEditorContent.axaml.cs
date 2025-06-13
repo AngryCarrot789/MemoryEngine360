@@ -28,7 +28,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent;
 
 public partial class SetMemoryOperationEditorContent : BaseOperationEditorContent {
     private readonly AvaloniaPropertyToEventPropertyBinder<DataProviderHandler> parseIntAsHexBinder = new AvaloniaPropertyToEventPropertyBinder<DataProviderHandler>(CheckBox.IsCheckedProperty, nameof(DataProviderHandler.ParseIntAsHexChanged), (b) => ((CheckBox) b.Control).IsChecked = b.Model.ParseIntAsHex, (b) => b.Model.ParseIntAsHex = ((CheckBox) b.Control).IsChecked == true);

@@ -1,10 +1,10 @@
-﻿<ec:BaseOperationEditorContent xmlns="https://github.com/avaloniaui"
+﻿<editorContent:BaseOperationEditorContent xmlns="https://github.com/avaloniaui"
                                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                               xmlns:ec="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent"
+                               xmlns:editorContent="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent"
                                mc:Ignorable="d" d:DesignWidth="100" d:DesignHeight="450"
-                               x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent.RandomTriggerEditorContent"
+                               x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.RandomTriggerEditorContent"
                                MinWidth="100">
     <StackPanel Margin="2">
         <TextBlock Padding="1,2" Text="Chance to run"/>
@@ -38,4 +38,4 @@
             </ToolTip.Tip>
         </TextBox>
     </StackPanel>
-</ec:BaseOperationEditorContent>
+</editorContent:BaseOperationEditorContent>

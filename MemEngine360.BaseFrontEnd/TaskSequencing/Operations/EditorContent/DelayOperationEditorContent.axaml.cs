@@ -23,7 +23,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent;
 
 public partial class DelayOperationEditorContent : BaseOperationEditorContent {
     private readonly IBinder<DelayOperation> delayBinder = new TextBoxToEventPropertyBinder<DelayOperation>(nameof(DelayOperation.DelayChanged), (b) => TimeSpanUtils.ConvertToString(b.Model.Delay), async (b, text) => {

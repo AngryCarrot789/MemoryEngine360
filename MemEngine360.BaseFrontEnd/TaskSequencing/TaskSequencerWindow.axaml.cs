@@ -23,6 +23,7 @@ using Avalonia.Interactivity;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
@@ -119,7 +120,9 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
     private void OnSequenceSelectionChanged(ILightSelectionManager<ITaskSequenceEntryUI> sender) {
         ITaskSequenceEntryUI? newSequenceUI = sender.Count == 1 ? ((IListSelectionManager<ITaskSequenceEntryUI>) sender).SelectedItemList[0] : null;
         this.PART_OperationListBox.TaskSequence = newSequenceUI?.TaskSequence;
+        this.PART_ConditionsListBox.TaskSequence = newSequenceUI?.TaskSequence;
         this.PART_SelectedSequenceTextBlock.Text = newSequenceUI?.TaskSequence.DisplayName ?? (sender.Count == 0 ? "(No Sequence Selected)" : "(Too many sequences selected)");
+        this.PART_PrimarySelectedConditionText.Text = newSequenceUI?.TaskSequence.DisplayName ?? (sender.Count == 0 ? "(No Sequence Selected)" : "(Too many sequences selected)");
 
         ITaskSequenceEntryUI? oldSequenceUI = this.PrimarySelectedSequence;
         if (!ReferenceEquals(oldSequenceUI, newSequenceUI)) {
@@ -208,5 +211,14 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
     private void Button_InsertSetMemory(object? sender, RoutedEventArgs e) {
         if (this.PrimarySelectedSequence != null && !this.PrimarySelectedSequence.TaskSequence.IsRunning)
             this.PrimarySelectedSequence.TaskSequence.AddOperation(new SetMemoryOperation() { Address = 0x82600000, DataValueProvider = new ConstantDataProvider(new DataValueInt32(125)) });
+    }
+
+    private void Button_OnClick(object? sender, RoutedEventArgs e) {
+        ITaskSequenceEntryUI? sequence = this.PrimarySelectedSequence;
+        if (sequence != null && !sequence.TaskSequence.IsRunning) {
+            sequence.TaskSequence.Conditions.Add(new CompareMemoryCondition() {
+                CompareTo = new DataValueInt32(0), CompareType = CompareType.Equals
+            });
+        }
     }
 }

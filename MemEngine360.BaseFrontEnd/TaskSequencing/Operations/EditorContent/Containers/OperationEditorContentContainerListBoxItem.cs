@@ -22,7 +22,7 @@ using Avalonia.Controls.Primitives;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Utils;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent.Containers;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.Containers;
 
 public class OperationEditorContentContainerListBoxItem : ModelBasedListBoxItem<OperationEditorContentModel> {
     private TextBlock? PART_CaptionTextBlock;

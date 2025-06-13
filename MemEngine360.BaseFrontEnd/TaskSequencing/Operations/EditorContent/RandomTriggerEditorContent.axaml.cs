@@ -22,7 +22,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent;
 
 public partial class RandomTriggerEditorContent : BaseOperationEditorContent {
     private readonly TextBoxToEventPropertyBinder<RandomTriggerHelper> chanceBinder = new TextBoxToEventPropertyBinder<RandomTriggerHelper>(nameof(RandomTriggerHelper.ChanceChanged), (b) => b.Model.Chance.ToString(), async (b, str) => {

@@ -19,7 +19,7 @@
 
 using MemEngine360.Sequencing;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent.Containers;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.Containers;
 
 public class OperationEditorContentModel {
     public BaseOperationEditorContent Content { get; }

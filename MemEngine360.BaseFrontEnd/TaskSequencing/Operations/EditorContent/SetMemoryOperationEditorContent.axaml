@@ -1,10 +1,10 @@
-﻿<ec:BaseOperationEditorContent xmlns="https://github.com/avaloniaui"
+﻿<editorContent:BaseOperationEditorContent xmlns="https://github.com/avaloniaui"
                                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                               xmlns:ec="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent"
+                               xmlns:editorContent="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent"
                                mc:Ignorable="d" d:DesignHeight="200"
-                               x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent.SetMemoryOperationEditorContent"
+                               x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.SetMemoryOperationEditorContent"
                                Width="175">
     <StackPanel Spacing="4" Margin="2">
         <ComboBox x:Name="PART_DataTypeCombo"
@@ -55,4 +55,4 @@
             </TabItem>
         </TabControl>
     </StackPanel>
-</ec:BaseOperationEditorContent>
+</editorContent:BaseOperationEditorContent>

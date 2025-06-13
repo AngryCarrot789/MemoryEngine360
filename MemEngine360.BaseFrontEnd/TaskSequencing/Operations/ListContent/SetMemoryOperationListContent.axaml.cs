@@ -27,7 +27,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Services.Messaging;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 
 public partial class SetMemoryOperationListContent : BaseOperationListContent {
     private readonly ConstantDataValueHandler constDataValueHandler;

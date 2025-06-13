@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using MemEngine360.Engine;
+using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
@@ -54,13 +55,20 @@ public class TaskSequencerManager {
         this.Sequences = new ReadOnlyObservableList<TaskSequence>(this.sequences);
         this.activeSequences = new ObservableList<TaskSequence>();
         this.ActiveSequences = new ReadOnlyObservableList<TaskSequence>(this.activeSequences);
-        
+
         this.MemoryEngine.ConnectionAboutToChange += this.OnMemoryEngineConnectionAboutToChange;
 
         {
             TaskSequence sequence = new TaskSequence() {
                 DisplayName = "Freeze BO1 Primary Ammo",
-                RunCount = -1
+                RunCount = -1,
+                // Conditions = {
+                //     new CompareMemoryCondition() {
+                //         Address = 0xDEADBEEF,
+                //         CompareTo = new DataValueInt64(1234567),
+                //         CompareType = CompareType.LessThanOrEquals,
+                //     }
+                // }
             };
 
             sequence.AddOperation(new SetMemoryOperation() { Address = 0x8303AA08, DataValueProvider = new ConstantDataProvider(IDataValue.CreateNumeric((int) 25)) });
@@ -105,7 +113,7 @@ public class TaskSequencerManager {
 
         // It shouldn't be able to run without a manager set anyway
         entry.CheckNotRunning("Cannot add entry while it is running");
-        
+
         entry.myManager = this;
         this.sequences.Insert(index, entry);
     }
@@ -148,7 +156,7 @@ public class TaskSequencerManager {
         finally {
             foreach (TaskSequence t in list) {
                 t.myManager = null;
-            }   
+            }
         }
     }
 

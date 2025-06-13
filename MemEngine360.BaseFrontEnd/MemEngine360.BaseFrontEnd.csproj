@@ -37,17 +37,14 @@
     <ItemGroup>
       <AdditionalFiles Include="MemRegions\XboxMemoryRegionViewerUIControl.axaml" />
       <AdditionalFiles Include="Services\SavedResultDataTypeEditorUserInputControl.axaml" />
+      <AdditionalFiles Include="TaskSequencing\Operations\EditorContent\DelayOperationEditorContent.axaml" />
+      <AdditionalFiles Include="TaskSequencing\Operations\EditorContent\RandomTriggerEditorContent.axaml" />
+      <AdditionalFiles Include="TaskSequencing\Operations\EditorContent\SetMemoryOperationEditorContent.axaml" />
+      <AdditionalFiles Include="TaskSequencing\Operations\ListContent\DelayOperationListContent.axaml" />
+      <AdditionalFiles Include="TaskSequencing\Operations\ListContent\SetMemoryOperationListContent.axaml" />
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Update="TaskSequencing\EditorContent\DelayOperationEditorContent.axaml.cs">
-        <DependentUpon>DelayOperationEditorContent.axaml</DependentUpon>
-        <SubType>Code</SubType>
-      </Compile>
-      <Compile Update="TaskSequencing\EditorContent\SetMemoryOperationEditorContent.axaml.cs">
-        <DependentUpon>SetMemoryOperationEditorContent.axaml</DependentUpon>
-        <SubType>Code</SubType>
-      </Compile>
       <Compile Update="XboxBase\Modules\ModuleViewerWindow.axaml.cs">
         <DependentUpon>ModuleViewerWindow.axaml</DependentUpon>
         <SubType>Code</SubType>

@@ -26,6 +26,8 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.DataHandlers;
 
 public delegate void DataProviderHandlerEventHandler(DataProviderHandler sender);
 
+// The data provider handlers massively simplify creating value binding between the list content and editor content controls
+
 public abstract class DataProviderHandler {
     protected DataValueProvider? internalProvider;
     private DataType myDataType;

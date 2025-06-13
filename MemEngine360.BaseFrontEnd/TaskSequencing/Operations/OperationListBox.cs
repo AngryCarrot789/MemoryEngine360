@@ -19,12 +19,12 @@
 
 using Avalonia;
 using Avalonia.Input;
-using MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
+using MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Interactivity;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations;
 
 public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
     public static readonly StyledProperty<TaskSequence?> TaskSequenceProperty = AvaloniaProperty.Register<OperationListBox, TaskSequence?>(nameof(TaskSequence));

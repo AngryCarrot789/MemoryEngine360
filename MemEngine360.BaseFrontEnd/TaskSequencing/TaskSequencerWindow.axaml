@@ -12,7 +12,9 @@
                  xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
                  xmlns:commands="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Commands"
-                 xmlns:ecc="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent.Containers"
+                 xmlns:operations="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations"
+                 xmlns:containers="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.Containers"
+                 xmlns:conditions="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Conditions"
                  mc:Ignorable="d"
                  MinWidth="640" MinHeight="400"
                  Width="960" Height="640"
@@ -196,16 +198,16 @@
                         <RowDefinition Height="24"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <local:OperationListBox x:Name="PART_OperationListBox"
-                                            Grid.Row="0"
-                                            BorderThickness="0"
-                                            FontFamily="{StaticResource FontOxanium}"
-                                            Background="{DynamicResource ABrush.Tone1.Background.Static}"
-                                            SelectionMode="Multiple"
-                                            CanDragItemPosition="True"
-                                            ScrollViewer.VerticalScrollBarVisibility="Visible">
+                    <operations:OperationListBox x:Name="PART_OperationListBox"
+                                                 Grid.Row="0"
+                                                 BorderThickness="0"
+                                                 FontFamily="{StaticResource FontOxanium}"
+                                                 Background="{DynamicResource ABrush.Tone1.Background.Static}"
+                                                 SelectionMode="Multiple"
+                                                 CanDragItemPosition="True"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Visible">
                         <ListBox.Theme>
-                            <ControlTheme TargetType="{x:Type local:OperationListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
+                            <ControlTheme TargetType="{x:Type operations:OperationListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
                         </ListBox.Theme>
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -213,14 +215,14 @@
                             </ItemsPanelTemplate>
                         </ListBox.ItemsPanel>
                         <ListBox.ItemContainerTheme>
-                            <ControlTheme TargetType="{x:Type local:OperationListBoxItem}">
+                            <ControlTheme TargetType="{x:Type operations:OperationListBoxItem}">
                                 <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
                                 <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
                                 <Setter Property="BorderThickness" Value="0,0,0,1"/>
                                 <Setter Property="Padding" Value="2,2"/>
                                 <Setter Property="Template">
-                                    <ControlTemplate TargetType="{x:Type local:OperationListBoxItem}">
+                                    <ControlTemplate TargetType="{x:Type operations:OperationListBoxItem}">
                                         <Border Background="{TemplateBinding Background}"
                                                 BorderBrush="{TemplateBinding BorderBrush}"
                                                 BorderThickness="{TemplateBinding BorderThickness}"
@@ -268,75 +270,147 @@
                                 </Style>
                             </ControlTheme>
                         </ListBox.ItemContainerTheme>
-                    </local:OperationListBox>
-                    <c:GroupBox Grid.Row="2" Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                                BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,1"
-                                HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}">
-                        <c:GroupBox.Header>
-                            <DockPanel>
-                                <TextBlock Text="Operation Editor Panel"/>
-                                <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,0"/>
-                                <TextBlock x:Name="PART_PrimarySelectedOperationText"/>
-                            </DockPanel>
-                        </c:GroupBox.Header>
-                        <ecc:OperationEditorContentContainerListBox x:Name="PART_OperationEditorControlsListBox" Background="Transparent" BorderThickness="0">
-                            <ListBox.Theme>
-                                <ControlTheme TargetType="{x:Type ecc:OperationEditorContentContainerListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
-                            </ListBox.Theme>
-                            <ListBox.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" Spacing="5" Margin="3"/>
-                                </ItemsPanelTemplate>
-                            </ListBox.ItemsPanel>
-                            <ListBox.ItemContainerTheme>
-                                <ControlTheme TargetType="{x:Type ecc:OperationEditorContentContainerListBoxItem}">
-                                    <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
-                                    <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
-                                    <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
-                                    <Setter Property="BorderThickness" Value="1"/>
-                                    <Setter Property="Template">
-                                        <ControlTemplate TargetType="{x:Type ecc:OperationEditorContentContainerListBoxItem}">
-                                            <Border x:Name="PART_Border" Background="{TemplateBinding Background}"
-                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                    BorderThickness="{TemplateBinding BorderThickness}">
-                                                <DockPanel VerticalSpacing="2">
-                                                    <Border Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                    </operations:OperationListBox>
+                    <TabControl Grid.Row="2" TabStripPlacement="Bottom" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0">
+                        <TabItem Header="Operation Editors">
+                            <c:GroupBox Background="{DynamicResource ABrush.Tone2.Background.Static}"
+                                        BorderThickness="0,1"
+                                        HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}">
+                                <c:GroupBox.Header>
+                                    <DockPanel>
+                                        <TextBlock Text="Operation Editor Panel"/>
+                                        <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,0"/>
+                                        <TextBlock x:Name="PART_PrimarySelectedOperationText"/>
+                                    </DockPanel>
+                                </c:GroupBox.Header>
+                                <containers:OperationEditorContentContainerListBox x:Name="PART_OperationEditorControlsListBox" Background="Transparent" BorderThickness="0">
+                                    <ListBox.Theme>
+                                        <ControlTheme TargetType="{x:Type containers:OperationEditorContentContainerListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
+                                    </ListBox.Theme>
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="5" Margin="3"/>
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemContainerTheme>
+                                        <ControlTheme TargetType="{x:Type containers:OperationEditorContentContainerListBoxItem}">
+                                            <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
+                                            <Setter Property="BorderThickness" Value="1"/>
+                                            <Setter Property="Template">
+                                                <ControlTemplate TargetType="{x:Type containers:OperationEditorContentContainerListBoxItem}">
+                                                    <Border x:Name="PART_Border" Background="{TemplateBinding Background}"
                                                             BorderBrush="{TemplateBinding BorderBrush}"
-                                                            BorderThickness="0,0,0,1"
-                                                            DockPanel.Dock="Top" Height="21">
-                                                        <DockPanel>
-                                                            <TextBlock x:Name="PART_CaptionTextBlock" VerticalAlignment="Center" Padding="4,2"/>
+                                                            BorderThickness="{TemplateBinding BorderThickness}">
+                                                        <DockPanel VerticalSpacing="2">
+                                                            <Border Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                                    BorderThickness="0,0,0,1"
+                                                                    DockPanel.Dock="Top" Height="21">
+                                                                <DockPanel>
+                                                                    <TextBlock x:Name="PART_CaptionTextBlock" VerticalAlignment="Center" Padding="4,2"/>
+                                                                </DockPanel>
+                                                            </Border>
+                                                            <ContentPresenter x:Name="PART_ContentPresenter"
+                                                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                                              Background="Transparent"
+                                                                              BorderBrush="Transparent"
+                                                                              Padding="{TemplateBinding Padding}"
+                                                                              BorderThickness="0"
+                                                                              Content="{TemplateBinding Content}"
+                                                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                                              CornerRadius="{TemplateBinding CornerRadius}"/>
                                                         </DockPanel>
                                                     </Border>
-                                                    <ContentPresenter x:Name="PART_ContentPresenter"
-                                                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
-                                                                      Background="Transparent"
-                                                                      BorderBrush="Transparent"
-                                                                      Padding="{TemplateBinding Padding}"
-                                                                      BorderThickness="0"
-                                                                      Content="{TemplateBinding Content}"
-                                                                      ContentTemplate="{TemplateBinding ContentTemplate}"
-                                                                      CornerRadius="{TemplateBinding CornerRadius}"/>
-                                                </DockPanel>
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Setter>
-                                    <Style Selector="^:pointerover /template/ Border#PART_Border">
-                                        <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone6.Border.Static}"/>
-                                    </Style>
+                                                </ControlTemplate>
+                                            </Setter>
+                                            <Style Selector="^:pointerover /template/ Border#PART_Border">
+                                                <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone6.Border.Static}"/>
+                                            </Style>
 
-                                    <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_Border">
-                                        <Setter Property="BorderBrush" Value="{DynamicResource ListBoxItem.SelectedInactive.Border}"/>
-                                    </Style>
+                                            <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_Border">
+                                                <Setter Property="BorderBrush" Value="{DynamicResource ListBoxItem.SelectedInactive.Border}"/>
+                                            </Style>
 
-                                    <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_Border">
-                                        <Setter Property="BorderBrush" Value="{DynamicResource ListBoxItem.SelectedActive.Border}"/>
-                                    </Style>
-                                </ControlTheme>
-                            </ListBox.ItemContainerTheme>
-                        </ecc:OperationEditorContentContainerListBox>
-                    </c:GroupBox>
+                                            <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_Border">
+                                                <Setter Property="BorderBrush" Value="{DynamicResource ListBoxItem.SelectedActive.Border}"/>
+                                            </Style>
+                                        </ControlTheme>
+                                    </ListBox.ItemContainerTheme>
+                                </containers:OperationEditorContentContainerListBox>
+                            </c:GroupBox>
+                        </TabItem>
+                        <TabItem Header="Conditions">
+                            <c:GroupBox Background="{DynamicResource ABrush.Tone2.Background.Static}"
+                                        BorderThickness="0,1"
+                                        HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}">
+                                <c:GroupBox.Header>
+                                    <DockPanel>
+                                        <TextBlock Text="Conditions Panel" VerticalAlignment="Center"/>
+                                        <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,0"/>
+                                        <TextBlock x:Name="PART_PrimarySelectedConditionText" VerticalAlignment="Center"/>
+                                        <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,0"/>
+                                        <Button Content="Memory Compare" Click="Button_OnClick" VerticalAlignment="Center" Padding="4,1"/>
+                                    </DockPanel>
+                                </c:GroupBox.Header>
+                                <conditions:ConditionsListBox x:Name="PART_ConditionsListBox" Background="Transparent" BorderThickness="0">
+                                    <ListBox.Theme>
+                                        <ControlTheme TargetType="{x:Type conditions:ConditionsListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
+                                    </ListBox.Theme>
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemContainerTheme>
+                                        <ControlTheme TargetType="{x:Type conditions:ConditionsListBoxItem}">
+                                            <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
+                                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                            <Setter Property="Padding" Value="2,2"/>
+                                            <Setter Property="Template">
+                                                <ControlTemplate TargetType="{x:Type conditions:ConditionsListBoxItem}">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                                            x:Name="PART_RootOLBI">
+                                                        <DockPanel>
+                                                            <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right"
+                                                                    ToolTip.Tip="Click and drag this grip to move the condition around. This cannot be done while the sequence is running.">
+                                                                <av:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
+                                                            </Border>
+                                                            <ContentPresenter x:Name="PART_ContentPresenter"
+                                                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                                              Background="Transparent"
+                                                                              BorderBrush="Transparent"
+                                                                              Padding="{TemplateBinding Padding}"
+                                                                              BorderThickness="0"
+                                                                              Content="{TemplateBinding Content}"
+                                                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                                              CornerRadius="{TemplateBinding CornerRadius}"/>
+                                                        </DockPanel>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter>
+                                            <Style Selector="^:pointerover /template/ Border#PART_RootOLBI">
+                                                <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.MouseOver}"/>
+                                            </Style>
+                                            <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_RootOLBI">
+                                                <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedInactive.Background}"/>
+                                            </Style>
+                                            <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_RootOLBI">
+                                                <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedActive.Background}"/>
+                                            </Style>
+                                        </ControlTheme>
+                                    </ListBox.ItemContainerTheme>
+                                </conditions:ConditionsListBox>
+                            </c:GroupBox>
+                        </TabItem>
+                    </TabControl>
                     <DockPanel Grid.Row="3" DockPanel.Dock="Left" HorizontalSpacing="3" LastChildFill="False">
                         <av:IconButton Padding="2" Width="24" Height="24"
                                        IconMaxWidth="16" IconMaxHeight="16"
@@ -364,9 +438,9 @@
                             </ToolTip.Tip>
                         </CheckBox>
                         <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="1,3"/>
-                        <TextBlock x:Name="PART_ActivityStatusText" 
-                                   Text="Caption here" 
-                                   Padding="4,2" DockPanel.Dock="Right" 
+                        <TextBlock x:Name="PART_ActivityStatusText"
+                                   Text="Caption here"
+                                   Padding="4,2" DockPanel.Dock="Right"
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"/>
                     </DockPanel>

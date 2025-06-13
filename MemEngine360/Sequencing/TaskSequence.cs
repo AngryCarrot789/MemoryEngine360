@@ -19,6 +19,8 @@
 
 using System.Diagnostics;
 using MemEngine360.Connections;
+using MemEngine360.Engine.Modes;
+using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
@@ -52,6 +54,11 @@ public sealed class TaskSequence {
     /// Gets our operations
     /// </summary>
     public ReadOnlyObservableList<BaseSequenceOperation> Operations { get; }
+
+    /// <summary>
+    /// Gets the list of conditions that must be met for this sequence to run.
+    /// </summary>
+    public ObservableList<BaseSequenceCondition> Conditions { get; }
 
     /// <summary>
     /// Gets whether this sequence is currently running. This only changes on the main thread
@@ -151,6 +158,18 @@ public sealed class TaskSequence {
     public TaskSequence() {
         this.operations = new ObservableList<BaseSequenceOperation>();
         this.Operations = new ReadOnlyObservableList<BaseSequenceOperation>(this.operations);
+        this.Conditions = new ObservableList<BaseSequenceCondition>();
+        this.Conditions.BeforeAdd += (list, item, i) => {
+            this.CheckNotRunning("Cannot add conditions while running");
+            if (item.TaskSequence != null)
+                throw new InvalidOperationException("Condition already exists in another sequence");
+        };
+
+        this.Conditions.BeforeRemove += (list, index, count) => this.CheckNotRunning("Cannot remove conditions while running");
+        this.Conditions.BeforeMove += (list, item, i, j) => this.CheckNotRunning("Cannot move conditions while running");
+        this.Conditions.BeforeReplace += (list, a, b, index) => this.CheckNotRunning("Cannot replace conditions while running");
+        ObservableItemProcessor.MakeSimple(this.Conditions, c => BaseSequenceCondition.InternalSetSequence(c, this), c => BaseSequenceCondition.InternalSetSequence(c, null));
+
         this.Progress = new DefaultProgressTracker();
         this.Progress.Text = "Sequence not running";
     }
@@ -201,10 +220,20 @@ public sealed class TaskSequence {
         foreach (BaseSequenceOperation operation in ops) {
             operation.OnAboutToRun();
         }
-        
+
         CancellationToken token = this.myCts.Token;
         await ActivityManager.Instance.RunTask(async () => {
             for (int count = this.runCount; (count < 0 || count != 0) && !token.IsCancellationRequested; --count) {
+                try {
+                    if (!await this.CanRunForConditions(token)) {
+                        continue;
+                    }
+                }
+                catch (Exception e) {
+                    this.LastException = e;
+                    return;
+                }
+
                 foreach (BaseSequenceOperation operation in ops) {
                     if (operation.IsEnabled) {
                         try {
@@ -220,8 +249,10 @@ public sealed class TaskSequence {
                     }
                 }
             }
+
+            Debugger.Break();
         }, this.Progress, this.myCts);
-        
+
         foreach (BaseSequenceOperation operation in ops) {
             operation.OnRunFinished();
         }
@@ -236,6 +267,25 @@ public sealed class TaskSequence {
         foreach (TaskCompletionSource tcs in completions) {
             tcs.TrySetResult();
         }
+    }
+
+    // Don't use async here to squeeze some more performance out of cached completed task
+    // with true boolean, since the most likely case is no conditions are used.
+    // And anyway calling into CanRunForConditionsImpl has barely any extra overhead,
+    // or at least far less than the overhead of async return true if we didn't use an impl method
+    private Task<bool> CanRunForConditions(CancellationToken token) {
+        return this.Conditions.Count < 1 ? Task.FromResult(true) : this.CanRunForConditionsImpl(token);
+    }
+
+    private async Task<bool> CanRunForConditionsImpl(CancellationToken token) {
+        Dictionary<TypedAddress, IDataValue> cache = new Dictionary<TypedAddress, IDataValue>();
+        foreach (BaseSequenceCondition condition in this.Conditions) {
+            if (!await condition.IsConditionMet(this.myContext!, token, cache)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public async Task WaitForCompletion() {

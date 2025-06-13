@@ -19,15 +19,16 @@
 
 using Avalonia;
 using Avalonia.Controls;
+using MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Operations;
 using PFXToolKitUI.Avalonia.Utils;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent;
 
 /// <summary>
 /// The base class for the content displayed in the editor panel below the operation list, which is used to modify specific or
-/// additional details that wouldn't otherwise fit into a <see cref="MemEngine360.BaseFrontEnd.TaskSequencing.ListContent.BaseOperationListContent"/>
+/// additional details that wouldn't otherwise fit into a <see cref="BaseOperationListContent"/>
 /// </summary>
 public class BaseOperationEditorContent : UserControl {
     public static readonly ModelTypeMultiControlRegistry<BaseOperationEditorContent> Registry = new ModelTypeMultiControlRegistry<BaseOperationEditorContent>();

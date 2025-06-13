@@ -1,10 +1,10 @@
-﻿<lc:BaseOperationListContent xmlns="https://github.com/avaloniaui"
+﻿<listContent:BaseOperationListContent xmlns="https://github.com/avaloniaui"
                              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                             xmlns:lc="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.ListContent"
+                             xmlns:listContent="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent"
                              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="24"
-                             x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.ListContent.SetMemoryOperationListContent">
+                             x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent.SetMemoryOperationListContent">
     <StackPanel Orientation="Horizontal">
         <TextBlock Text="Set Memory At" FontFamily="{StaticResource FontOxanium}" FontWeight="Medium" VerticalAlignment="Center" Padding="4,0"/>
         <TextBox x:Name="PART_AddressTextBox" VerticalContentAlignment="Center" 
@@ -42,4 +42,4 @@
             </ToolTip.Tip>
         </TextBox>
     </StackPanel>
-</lc:BaseOperationListContent>
+</listContent:BaseOperationListContent>

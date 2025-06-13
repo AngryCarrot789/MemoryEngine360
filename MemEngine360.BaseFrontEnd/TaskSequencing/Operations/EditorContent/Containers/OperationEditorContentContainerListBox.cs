@@ -23,7 +23,7 @@ using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Utils;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing.EditorContent.Containers;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.Containers;
 
 public delegate void OperationEditorContentContainerListBoxCurrentOperationChangedEventHandler(OperationEditorContentContainerListBox sender);
 

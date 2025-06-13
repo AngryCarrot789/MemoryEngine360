@@ -63,4 +63,21 @@ public static class BinderParsingUtils {
             return null;
         }
     }
+    
+    public static async Task<(IDataValue?, bool parseIntAsHex)> TryParseTextAsDataValueAndModify(bool parseIntAsHex, DataType dataType, string text) {
+        bool hasHexPrefix = text.StartsWith("0x");
+        if (hasHexPrefix && !parseIntAsHex && dataType.IsInteger()) {
+            parseIntAsHex = true;
+        }
+        
+        ValidationArgs args = new ValidationArgs(parseIntAsHex && hasHexPrefix ? text.Substring(2) : text, [], false);
+        NumericDisplayType intNdt = parseIntAsHex ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
+        if (DataValueUtils.TryParseTextAsDataValue(args, dataType, intNdt, StringType.ASCII, out IDataValue? value)) {
+            return (value, parseIntAsHex);
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Invalid text", args.Errors.Count > 0 ? args.Errors[0] : "Could not parse value as " + dataType, defaultButton: MessageBoxResult.OK);
+            return (null, parseIntAsHex);
+        }
+    }
 }

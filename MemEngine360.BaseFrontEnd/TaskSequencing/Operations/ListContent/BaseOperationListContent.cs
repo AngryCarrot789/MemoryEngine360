@@ -23,7 +23,7 @@ using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Operations;
 using PFXToolKitUI.Avalonia.Utils;
 
-namespace MemEngine360.BaseFrontEnd.TaskSequencing.ListContent;
+namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 
 /// <summary>
 /// The base class for the content of a <see cref="OperationListBoxItem"/>
