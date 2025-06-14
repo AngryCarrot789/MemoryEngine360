@@ -215,6 +215,9 @@ public sealed class TaskSequence {
                         continue;
                     }
                 }
+                catch (OperationCanceledException) {
+                    return;
+                }
                 catch (Exception e) {
                     this.LastException = e;
                     return;
