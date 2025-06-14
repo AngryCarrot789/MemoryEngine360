@@ -151,6 +151,16 @@ public class CompareMemoryCondition : BaseSequenceCondition {
             default: throw new ArgumentOutOfRangeException();
         }
     }
+
+    public override BaseSequenceCondition CreateClone() {
+        return new CompareMemoryCondition() {
+            IsEnabled = this.IsEnabled,
+            Address = this.Address,
+            CompareType = this.CompareType,
+            CompareTo = this.CompareTo,
+            ParseIntAsHex = this.ParseIntAsHex
+        };
+    }
 }
 
 public enum CompareType {

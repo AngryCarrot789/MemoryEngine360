@@ -197,7 +197,7 @@ public partial class EngineView : UserControl, IEngineUI {
     }
 
     IClipboardService? ITopLevel.ClipboardService => (TopLevel.GetTopLevel(this) as EngineWindow)?.ClipboardService;
-    
+
     private readonly ContextEntryGroup themesSubList;
     private ObservableItemProcessorIndexing<Theme>? themeListHandler;
     private TextNotification? connectionNotification;
@@ -209,16 +209,18 @@ public partial class EngineView : UserControl, IEngineUI {
         private IEngineUI? ctxMemUI;
 
         public TestThing(string displayName, string? description, Icon? icon = null) : base(displayName, description, icon) {
+            this.CapturedContextChanged += this.OnCapturedContextChanged;
         }
 
         // Sort of pointless unless the user tries to connect to a console while it's booting
         // and then they open the File menu, they'll see that this entry is greyed out until we
         // connect, then once connected, it's either now invisible or clickable. This is just a POF really
-        protected override void OnContextChanged() {
-            base.OnContextChanged();
-            if (this.CapturedContext != null) {
-                if (IEngineUI.EngineUIDataKey.TryGetContext(this.CapturedContext, out this.ctxMemUI)) {
-                    this.ctxMemUI.MemoryEngine.ConnectionChanged += this.OnContextMemUIConnectionChanged;
+        private void OnCapturedContextChanged(BaseContextEntry sender, IContextData? oldCapturedContext, IContextData? newCapturedContext) {
+            if (newCapturedContext != null) {
+                if (IEngineUI.EngineUIDataKey.TryGetContext(newCapturedContext, out IEngineUI? newUI) && !ReferenceEquals(this.ctxMemUI, newUI)) {
+                    if (this.ctxMemUI != null)
+                        this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
+                    (this.ctxMemUI = newUI).MemoryEngine.ConnectionChanged += this.OnContextMemUIConnectionChanged;
                 }
             }
             else if (this.ctxMemUI != null) {
@@ -258,7 +260,7 @@ public partial class EngineView : UserControl, IEngineUI {
             if (token == null || !(ui.MemoryEngine.Connection is XbdmConsoleConnection xbdm)) {
                 return;
             }
-            
+
             DataParameterEnumInfo<XNotiyLogo> dpEnumInfo = DataParameterEnumInfo<XNotiyLogo>.All();
             DoubleUserInputInfo info = new DoubleUserInputInfo("Thank you for using MemoryEngine360 <3", nameof(XNotiyLogo.FLASHING_HAPPY_FACE)) {
                 Caption = "Test Notification",

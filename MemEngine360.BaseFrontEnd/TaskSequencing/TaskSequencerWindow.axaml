@@ -288,7 +288,9 @@
                                         <TextBlock x:Name="PART_PrimarySelectedOperationText" VerticalAlignment="Center"/>
                                     </DockPanel>
                                 </Border>
-                                <ctain:OperationEditorContentContainerListBox x:Name="PART_OperationEditorControlsListBox" Background="Transparent" BorderThickness="0">
+                                <ctain:OperationEditorContentContainerListBox x:Name="PART_OperationEditorControlsListBox" 
+                                                                              Background="Transparent" BorderThickness="0"
+                                                                              FontFamily="{StaticResource FontOxanium}">
                                     <ListBox.Theme>
                                         <ControlTheme TargetType="{x:Type ctain:OperationEditorContentContainerListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
                                     </ListBox.Theme>
@@ -372,7 +374,10 @@
                                         </Border>
                                     </DockPanel>
                                 </Border>
-                                <cond:ConditionsListBox x:Name="PART_ConditionsListBox" Background="Transparent" BorderThickness="0">
+                                <cond:ConditionsListBox x:Name="PART_ConditionsListBox" 
+                                                        Background="Transparent" 
+                                                        BorderThickness="0" SelectionMode="Multiple"
+                                                        FontFamily="{StaticResource FontOxanium}">
                                     <ListBox.Theme>
                                         <ControlTheme TargetType="{x:Type cond:ConditionsListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
                                     </ListBox.Theme>

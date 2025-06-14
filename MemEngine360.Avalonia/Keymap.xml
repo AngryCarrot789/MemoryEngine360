@@ -119,6 +119,9 @@
             <Shortcut Name="ToggleConditionEnabled" CommandId="commands.sequencer.ToggleConditionEnabledCommand">
                 <KeyStroke Key="Space"/>
             </Shortcut>
+            <Shortcut Name="DuplicateConditions" CommandId="commands.sequencer.DuplicateConditionsCommand">
+                <KeyStroke Mods="CTRL" Key="D"/>
+            </Shortcut>
             <Shortcut Name="DeleteConditionSelection" CommandId="commands.sequencer.DeleteConditionSelectionCommand">
                 <KeyStroke Key="Delete"/>
             </Shortcut>

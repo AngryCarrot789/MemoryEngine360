@@ -30,7 +30,7 @@ public class ConnectToDedicatedConsoleCommand : Command {
             return Executability.Invalid;
         }
 
-        return seq.TaskSequence.UseEngineConnection || seq.TaskSequence.IsRunning ? Executability.ValidButCannotExecute : Executability.Valid;
+        return seq.TaskSequence.IsRunning ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -39,7 +39,7 @@ public class ConnectToDedicatedConsoleCommand : Command {
         }
 
         TaskSequence seq = seqUI.TaskSequence;
-        if (seq.UseEngineConnection || seq.IsRunning) {
+        if (seq.IsRunning) {
             return;
         }
 
@@ -75,6 +75,7 @@ public class ConnectToDedicatedConsoleCommand : Command {
         }
 
         oldConnection = seq.DedicatedConnection;
+        seq.UseEngineConnection = false;
         seq.DedicatedConnection = newConnection;
         if (oldConnection != null) {
             await oldConnection.Close();

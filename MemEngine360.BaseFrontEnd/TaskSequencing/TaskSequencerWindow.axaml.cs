@@ -64,7 +64,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
     public IListSelectionManager<ITaskSequenceEntryUI> SequenceSelectionManager => this.PART_SequenceListBox.ControlSelectionManager;
 
     public IListSelectionManager<IOperationItemUI> OperationSelectionManager => this.PART_OperationListBox.ControlSelectionManager;
-    
+
     public IListSelectionManager<IConditionItemUI> ConditionSelectionManager => this.PART_ConditionsListBox.ControlSelectionManager;
 
 
@@ -118,6 +118,10 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
 
     public IOperationItemUI GetOperationControl(BaseSequenceOperation operation) {
         return (IOperationItemUI) this.PART_OperationListBox.ItemMap.GetControl(operation);
+    }
+
+    public IConditionItemUI GetConditionControl(BaseSequenceCondition condition) {
+        return (IConditionItemUI) this.PART_ConditionsListBox.ItemMap.GetControl(condition);
     }
 
     private void OnSequenceSelectionChanged(ILightSelectionManager<ITaskSequenceEntryUI> sender) {

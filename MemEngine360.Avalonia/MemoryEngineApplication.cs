@@ -128,6 +128,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.NewSequenceCommand", new NewSequenceCommand());
         manager.Register("commands.sequencer.DuplicateSequenceCommand", new DuplicateSequencesCommand());
         manager.Register("commands.sequencer.DuplicateOperationsCommand", new DuplicateOperationsCommand());
+        manager.Register("commands.sequencer.DuplicateConditionsCommand", new DuplicateConditionsCommand());
         manager.Register("commands.sequencer.RenameSequenceCommand", new RenameSequenceCommand());
         manager.Register("commands.sequencer.StopSequenceCommand", new StopSequenceCommand());
         manager.Register("commands.sequencer.RunSequenceCommand", new RunSequenceCommand());

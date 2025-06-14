@@ -19,12 +19,12 @@
         <StackPanel x:Name="PART_ToValueStackPanel" Orientation="Horizontal" VerticalAlignment="Center">
             <Border Background="{DynamicResource Button.Static.Border}" BorderBrush="{DynamicResource Button.Static.Border}" BorderThickness="1" Margin="2,0">
                 <StackPanel Orientation="Horizontal" Spacing="1">
-                    <ToggleButton x:Name="PART_CMP_EQ" IsCheckedChanged="PART_CompareModeCheckChanged" BorderThickness="0" Width="22" ToolTip.Tip="Equal To"><TextBlock FontFamily="{StaticResource FontOxanium}" Text="=="     Margin="0,-1,0,0"/></ToggleButton>
-                    <ToggleButton x:Name="PART_CMP_NEQ" IsCheckedChanged="PART_CompareModeCheckChanged" BorderThickness="0" Width="22" ToolTip.Tip="Not Equal To"><TextBlock FontFamily="{StaticResource FontOxanium}" Text="!="     Margin="0,-1,0,0"/></ToggleButton>
-                    <ToggleButton x:Name="PART_CMP_LT" IsCheckedChanged="PART_CompareModeCheckChanged" BorderThickness="0" Width="22" ToolTip.Tip="Less Than"><TextBlock FontFamily="{StaticResource FontOxanium}" Text="&lt;"   Margin="0,-1,0,0"/></ToggleButton>
-                    <ToggleButton x:Name="PART_CMP_LTEQ" IsCheckedChanged="PART_CompareModeCheckChanged" BorderThickness="0" Width="22" ToolTip.Tip="Less than or equal to"><TextBlock FontFamily="{StaticResource FontOxanium}" Text="&lt;="  Margin="0,-1,0,0"/></ToggleButton>
-                    <ToggleButton x:Name="PART_CMP_GT" IsCheckedChanged="PART_CompareModeCheckChanged" BorderThickness="0" Width="22" ToolTip.Tip="Greater than"><TextBlock FontFamily="{StaticResource FontOxanium}" Text="&gt;"   Margin="0,-1,0,0"/></ToggleButton>
-                    <ToggleButton x:Name="PART_CMP_GTEQ" IsCheckedChanged="PART_CompareModeCheckChanged" BorderThickness="0" Width="22" ToolTip.Tip="Greater than or equal to"><TextBlock FontFamily="{StaticResource FontOxanium}" Text="&gt;="  Margin="0,-1,0,0"/></ToggleButton>
+                    <ToggleButton x:Name="PART_CMP_EQ"   IsCheckedChanged="PART_CompareModeCheckChanged" BorderThickness="0" Width="22" ToolTip.Tip="Equal To"><TextBlock Text="==" Margin="0,-1,0,0"/></ToggleButton>
+                    <ToggleButton x:Name="PART_CMP_NEQ"  IsCheckedChanged="PART_CompareModeCheckChanged" BorderThickness="0" Width="22" ToolTip.Tip="Not Equal To"><TextBlock Text="!=" Margin="0,-1,0,0"/></ToggleButton>
+                    <ToggleButton x:Name="PART_CMP_LT"   IsCheckedChanged="PART_CompareModeCheckChanged" BorderThickness="0" Width="22" ToolTip.Tip="Less Than"><TextBlock Text="&lt;" Margin="0,-1,0,0"/></ToggleButton>
+                    <ToggleButton x:Name="PART_CMP_LTEQ" IsCheckedChanged="PART_CompareModeCheckChanged" BorderThickness="0" Width="22" ToolTip.Tip="Less than or equal to"><TextBlock Text="&lt;=" Margin="0,-1,0,0"/></ToggleButton>
+                    <ToggleButton x:Name="PART_CMP_GT"   IsCheckedChanged="PART_CompareModeCheckChanged" BorderThickness="0" Width="22" ToolTip.Tip="Greater than"><TextBlock Text="&gt;" Margin="0,-1,0,0"/></ToggleButton>
+                    <ToggleButton x:Name="PART_CMP_GTEQ" IsCheckedChanged="PART_CompareModeCheckChanged" BorderThickness="0" Width="22" ToolTip.Tip="Greater than or equal to"><TextBlock Text="&gt;=" Margin="0,-1,0,0"/></ToggleButton>
                 </StackPanel>
             </Border>
             <TextBox x:Name="PART_ValueTextBox" VerticalContentAlignment="Center"

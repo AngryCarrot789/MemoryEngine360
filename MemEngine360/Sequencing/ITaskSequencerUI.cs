@@ -56,4 +56,6 @@ public interface ITaskSequencerUI {
     ITaskSequenceEntryUI GetSequenceControl(TaskSequence sequence);
     
     IOperationItemUI GetOperationControl(BaseSequenceOperation operation);
+    
+    IConditionItemUI GetConditionControl(BaseSequenceCondition condition);
 }

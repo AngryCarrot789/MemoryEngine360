@@ -20,6 +20,8 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.Contexts;
+using PFXToolKitUI.Avalonia.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
@@ -54,9 +56,12 @@ public class ConditionsListBoxItem : ModelBasedListBoxItem<BaseSequenceCondition
         BaseConditionListContent content = (BaseConditionListContent) this.Content!;
         TemplateUtils.Apply(content);
         content.Condition = this.Model;
+        AdvancedContextMenu.SetContextRegistry(this, ConditionsContextRegistry.Registry);
     }
 
     protected override void OnRemovingFromList() {
+        AdvancedContextMenu.SetContextRegistry(this, null);
+        
         BaseConditionListContent content = (BaseConditionListContent) this.Content!;
         BaseSequenceCondition condition = content.Condition!;
         content.Condition = null;

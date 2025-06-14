@@ -55,4 +55,10 @@ public abstract class BaseSequenceCondition {
     public abstract Task<bool> IsConditionMet(SequenceExecutionContext ctx, Dictionary<TypedAddress, IDataValue> dataValues, CancellationToken token);
     
     internal static void InternalSetSequence(BaseSequenceCondition condition, TaskSequence? sequence) => condition.TaskSequence = sequence;
+    
+    /// <summary>
+    /// Creates a clone of this condition, as if the user created a new instance and configured it by hand
+    /// </summary>
+    /// <returns></returns>
+    public abstract BaseSequenceCondition CreateClone();
 }

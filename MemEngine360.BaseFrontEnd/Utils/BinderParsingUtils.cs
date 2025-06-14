@@ -52,6 +52,9 @@ public static class BinderParsingUtils {
         if (hasHexPrefix && !h.ParseIntAsHex && dataType.IsInteger()) {
             h.ParseIntAsHex = true;
         }
+        else {
+            h.ParseIntAsHex = false;
+        }
         
         ValidationArgs args = new ValidationArgs(h.ParseIntAsHex && hasHexPrefix ? text.Substring(2) : text, [], false);
         NumericDisplayType intNdt = h.ParseIntAsHex ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
@@ -68,6 +71,9 @@ public static class BinderParsingUtils {
         bool hasHexPrefix = text.StartsWith("0x");
         if (hasHexPrefix && !parseIntAsHex && dataType.IsInteger()) {
             parseIntAsHex = true;
+        }
+        else {
+            parseIntAsHex = false;
         }
         
         ValidationArgs args = new ValidationArgs(parseIntAsHex && hasHexPrefix ? text.Substring(2) : text, [], false);

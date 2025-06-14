@@ -18,11 +18,10 @@
 // 
 
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.Commands;
 
-public class DuplicateSequencesCommand : Command {
+public class DuplicateConditionsCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return Executability.Invalid;
@@ -37,18 +36,22 @@ public class DuplicateSequencesCommand : Command {
         }
 
         // Create list of clones, ordered by their index in the sequence list
-        List<(TaskSequence Seq, int Idx)> clones = ui.SequenceSelectionManager.SelectedItemList.
-                                                      Select(x => (Seq: x.TaskSequence.CreateClone(), Idx: x.TaskSequence.Manager!.IndexOf(x.TaskSequence))).
-                                                      OrderBy(x => x.Idx).ToList();
+        ITaskSequenceEntryUI? sequence = ui.PrimarySelectedSequence;
+        if (sequence == null) {
+            return;
+        }
+
+        List<(BaseSequenceCondition Cond, int Idx)> clones = ui.ConditionSelectionManager.SelectedItemList.
+                                                                Select(x => (Cond: x.Condition.CreateClone(), Idx: x.Condition.TaskSequence!.Conditions.IndexOf(x.Condition))).
+                                                                OrderBy(x => x.Idx).
+                                                                ToList();
+
         int offset = 0;
-        foreach ((TaskSequence Seq, int Idx) item in clones) {
-            item.Seq.DisplayName = TextIncrement.GetNextText(ui.Manager.Sequences.Select(x => x.DisplayName).ToList(), item.Seq.DisplayName, false);
-            ui.Manager.InsertSequence(offset + item.Idx + 1, item.Seq); // +1 to add after the existing item
+        foreach ((BaseSequenceCondition Cond, int Idx) in clones) {
+            sequence.TaskSequence.Conditions.Insert(offset + Idx + 1, Cond);
             offset++;
         }
-        
-        // virtualization of task sequence list box items not implemented yet, and there's no reason
-        // to do it since I doubt anyone will use enough to where it makes a difference
-        ui.SequenceSelectionManager.SetSelection(clones.Select(x => ui.GetSequenceControl(x.Seq)));
+
+        ui.ConditionSelectionManager.SetSelection(clones.Select(x => ui.GetConditionControl(x.Cond)));
     }
 }

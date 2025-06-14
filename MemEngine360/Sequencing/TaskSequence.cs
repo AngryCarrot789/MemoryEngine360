@@ -90,9 +90,7 @@ public sealed class TaskSequence {
         get => this.runCount;
         set {
             ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-            if (this.isRunning)
-                throw new InvalidOperationException($"Cannot change {nameof(this.RunCount)} while running");
-
+            this.CheckNotRunning($"Cannot change {nameof(this.RunCount)} while running");
             PropertyHelper.SetAndRaiseINE(ref this.runCount, value, this, static t => t.RunCountChanged?.Invoke(t));
         }
     }
@@ -101,9 +99,7 @@ public sealed class TaskSequence {
         get => this.hasBusyLockPriority;
         set {
             ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-            if (this.isRunning)
-                throw new InvalidOperationException($"Cannot change {nameof(this.HasBusyLockPriority)} while running");
-
+            this.CheckNotRunning($"Cannot change {nameof(this.HasBusyLockPriority)} while running");
             PropertyHelper.SetAndRaiseINE(ref this.hasBusyLockPriority, value, this, static t => t.HasBusyLockPriorityChanged?.Invoke(t));
         }
     }
@@ -115,9 +111,7 @@ public sealed class TaskSequence {
         get => this.useEngineConnection;
         set {
             ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-            if (this.isRunning)
-                throw new InvalidOperationException($"Cannot change {nameof(this.UseEngineConnection)} while running");
-
+            this.CheckNotRunning($"Cannot change {nameof(this.UseEngineConnection)} while running");
             PropertyHelper.SetAndRaiseINE(ref this.useEngineConnection, value, this, static t => t.UseEngineConnectionChanged?.Invoke(t));
         }
     }
@@ -126,14 +120,8 @@ public sealed class TaskSequence {
         get => this.dedicatedConnection;
         set {
             ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-            if (this.isRunning)
-                throw new InvalidOperationException("Cannot change dedicated connection while running");
-
-            IConsoleConnection? oldDedicatedConnection = this.dedicatedConnection;
-            if (oldDedicatedConnection != value) {
-                this.dedicatedConnection = value;
-                this.DedicatedConnectionChanged?.Invoke(this, oldDedicatedConnection, value);
-            }
+            this.CheckNotRunning("Cannot change dedicated connection while running");
+            PropertyHelper.SetAndRaiseINE(ref this.dedicatedConnection, value, this, static (t, a, b) => t.DedicatedConnectionChanged?.Invoke(t, a, b));
         }
     }
 
@@ -177,22 +165,20 @@ public sealed class TaskSequence {
     /// <summary>
     /// Creates a clone of this sequence as if the user had created and configured one to match the current instance
     /// </summary>
-    /// <param name="cloneOperations"></param>
     /// <returns></returns>
-    public TaskSequence CreateClone(bool cloneOperations) {
+    public TaskSequence CreateClone() {
         TaskSequence sequence = new TaskSequence() {
             DisplayName = this.displayName,
             RunCount = this.runCount,
-            HasBusyLockPriority = this.hasBusyLockPriority,
-            // Use the default value of true, since it's a trip and a half connecting to a dedicated
-            // console so the user may as well be required to check the checkbox as well :)
-            // UseEngineConnection = this.useEngineConnection
+            HasBusyLockPriority = this.hasBusyLockPriority
         };
 
-        if (cloneOperations) {
-            foreach (BaseSequenceOperation operation in this.operations) {
-                sequence.AddOperation(operation.CreateClone());
-            }
+        foreach (BaseSequenceOperation operation in this.operations) {
+            sequence.AddOperation(operation.CreateClone());
+        }
+
+        foreach (BaseSequenceCondition condition in this.Conditions) {
+            sequence.Conditions.Add(condition.CreateClone());
         }
 
         return sequence;

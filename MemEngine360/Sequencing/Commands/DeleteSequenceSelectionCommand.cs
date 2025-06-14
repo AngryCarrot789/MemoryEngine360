@@ -33,30 +33,45 @@ public class DeleteSequenceSelectionCommand : Command {
             return;
         }
 
-        if (await TryCancelActiveSequences(ui)) {
-            List<TaskSequence> list = ui.SequenceSelectionManager.SelectedItems.Select(x => x.TaskSequence).ToList();
+        List<TaskSequence> items = ui.SequenceSelectionManager.SelectedItems.Select(x => x.TaskSequence).ToList();
+        if (items.Count < 1) {
+            return;
+        }
+        
+        if (await TryStopSequences(items.Where(x => x.IsRunning), "Sequence(s) still running", items.Count == 1 ? "This sequence is running. Do you want to stop it and then delete?" : "Some of these sequences are still running. Do you want to stop them and then delete?")) {
             ui.SequenceSelectionManager.Clear();
-            foreach (TaskSequence seq in list) {
+            foreach (TaskSequence seq in items) {
                 ui.Manager.RemoveSequence(seq);
             }
         }
     }
 
-    public static async Task<bool> TryCancelActiveSequences(ITaskSequencerUI ui) {
+    public static async Task<bool> TryStopActiveSequences(ITaskSequencerUI ui) {
         if (ui.Manager.ActiveSequences.Count > 0) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Sequences still running", "One or more sequences are running and cannot be deleted. Do you want to stop them and then delete?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
-            if (result != MessageBoxResult.OK) {
-                return false;
-            }
-
-            foreach (TaskSequence seq in ui.Manager.ActiveSequences) {
-                seq.RequestCancellation();
-            }
-            
-            await Task.WhenAll(ui.Manager.ActiveSequences.ToList().Select(x => x.WaitForCompletion()));
-            Debug.Assert(ui.Manager.ActiveSequences.Count < 1);
+            bool result = await TryStopSequences(ui.Manager.ActiveSequences.ToList(), "Sequences still running", "One or more sequences are running and cannot be deleted. Do you want to stop them and then delete?");
+            Debug.Assert(result == ui.Manager.ActiveSequences.Count < 1);
+            return result;
         }
 
-        return ui.Manager.ActiveSequences.Count < 1;
+        return true;
+    }
+
+    public static async Task<bool> TryStopSequences(IEnumerable<TaskSequence> sequencesToStop, string caption, string message) {
+        IList<TaskSequence> theList = sequencesToStop as IList<TaskSequence> ?? sequencesToStop.ToList();
+        if (theList.Count < 1) {
+            return true;
+        }
+
+        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(caption, message, MessageBoxButton.OKCancel, MessageBoxResult.OK);
+        if (result != MessageBoxResult.OK) {
+            return false;
+        }
+
+        foreach (TaskSequence seq in theList) {
+            seq.RequestCancellation();
+        }
+
+        await Task.WhenAll(theList.Select(x => x.WaitForCompletion()));
+        return theList.All(x => !x.IsRunning);
     }
 }

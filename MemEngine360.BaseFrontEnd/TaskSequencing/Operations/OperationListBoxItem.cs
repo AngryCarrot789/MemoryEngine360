@@ -22,6 +22,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.Contexts;
+using PFXToolKitUI.Avalonia.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
@@ -68,11 +70,13 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
         content.Operation = this.Model;
         
         this.isRunningBinder.Attach(this, this.Model!);
+        AdvancedContextMenu.SetContextRegistry(this, OperationsContextRegistry.Registry);
     }
 
     protected override void OnRemovingFromList() {
         this.isRunningBinder.Detach();
         
+        AdvancedContextMenu.SetContextRegistry(this, null);
         BaseOperationListContent content = (BaseOperationListContent) this.Content!;
         BaseSequenceOperation operation = content.Operation!;
         content.Operation = null;

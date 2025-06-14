@@ -19,11 +19,11 @@
 
 using PFXToolKitUI.AdvancedMenuService;
 
-namespace MemEngine360.Sequencing;
+namespace MemEngine360.Sequencing.Contexts;
 
 public static class TaskSequenceContextRegistry {
-    public static ContextRegistry Registry = new ContextRegistry("Task Sequence");
-
+    public static readonly ContextRegistry Registry = new ContextRegistry("Task Sequence");
+    
     static TaskSequenceContextRegistry() {
         FixedContextGroup actions = Registry.GetFixedGroup("operations");
         actions.AddHeader("General");
@@ -34,7 +34,20 @@ public static class TaskSequenceContextRegistry {
         edit.AddHeader("Edit");
         edit.AddCommand("commands.sequencer.RenameSequenceCommand", "Rename");
         edit.AddCommand("commands.sequencer.DuplicateSequenceCommand", "Duplicate");
-        edit.AddCommand("commands.sequencer.DeleteSequenceSelectionCommand", "Delete Sequence(s)");
+        
+        // Hook onto context changed instead of using dynamic context entries, because they're slightly expensive and
+        // also sometimes buggy with no hope of being truly fixed because i'm not smart enough to figure it out.
+        // Check out the method AdvancedMenuService.RemoveItemNodesWithDynamicSupport for nightmare fuel
+        CommandContextEntry cmd = edit.AddCommand("commands.sequencer.DeleteSequenceSelectionCommand", "Delete Sequence(s)");
+        cmd.CapturedContextChanged += (entry, oldCtx, newCtx) => {
+            if (newCtx != null && ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(newCtx, out ITaskSequencerUI? ui) && ui.SequenceSelectionManager.Count == 1) {
+                entry.DisplayName = "Delete Sequence";
+            }
+            else {
+                entry.DisplayName = "Delete Sequences";
+            }
+        };
+        
         edit.AddCommand("commands.sequencer.ConnectToDedicatedConsoleCommand", "Connect to dedicated console...");
     }
 }

@@ -21,8 +21,14 @@ using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Sequencing;
 
+/// <summary>
+/// A UI object for a condition item
+/// </summary>
 public interface IConditionItemUI {
     public static readonly DataKey<IConditionItemUI> DataKey = DataKey<IConditionItemUI>.Create("IConditionItemUI");
     
+    /// <summary>
+    /// Gets the model object for this UI item
+    /// </summary>
     BaseSequenceCondition Condition { get; }
 }
