@@ -1,0 +1,114 @@
+﻿<w:DesktopWindow xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
+                 mc:Ignorable="d" Width="260" Height="290"
+                 x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Conditions.EditConditionOutputModeWindow"
+                 Title="Edit output mode">
+    <DockPanel x:Name="PART_DockPanelRoot" Background="{DynamicResource ABrush.Tone2.Background.Static}">
+        <StackPanel x:Name="PART_MessageContainer" DockPanel.Dock="Top" Margin="10,10,10,0">
+            <TextBlock x:Name="PART_Message" Padding="0,0,0,2" Text="Edit the condition output mode" FontSize="16" Foreground="{DynamicResource ABrush.ColourfulGlyph.Static}" FontWeight="Medium"/>
+            <Separator/>
+        </StackPanel>
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource ABrush.Tone4.Background.Static}"
+                BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}"
+                BorderThickness="0,1,0,0"
+                Height="42">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0" Spacing="10">
+                <Button x:Name="PART_ConfirmButton" Content="OK" Width="72" Height="24" CornerRadius="3" FocusAdorner="{x:Null}" Theme="{StaticResource ButtonImplicitStyleSetters}">
+                    <Button.Styles>
+                        <Style Selector="Button[IsPointerOver=True]">
+                            <Setter Property="Background" Value="{DynamicResource ABrush.AccentTone3.Background.Static}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource ABrush.AccentTone2.Background.Static}"/>
+                            <Setter Property="BorderThickness" Value="3"/>
+                        </Style>
+                        <Style Selector="Button[IsFocused=True]">
+                            <Setter Property="BorderBrush" Value="{DynamicResource ABrush.AccentTone2.Background.Static}"/>
+                            <Setter Property="BorderThickness" Value="3"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+                <Button x:Name="PART_CancelButton" Content="Cancel" Width="72" Height="24" CornerRadius="3" FocusAdorner="{x:Null}" Theme="{StaticResource ButtonImplicitStyleSetters}">
+                    <Button.Styles>
+                        <Style Selector="Button[IsPointerOver=True]">
+                            <Setter Property="Background" Value="Red"/>
+                            <Setter Property="BorderBrush" Value="Red"/>
+                            <Setter Property="BorderThickness" Value="3"/>
+                        </Style>
+                        <Style Selector="Button[IsFocused=True]">
+                            <Setter Property="BorderBrush" Value="Red"/>
+                            <Setter Property="BorderThickness" Value="3"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </StackPanel>
+        </Border>
+        <StackPanel Spacing="4" Margin="8,5">
+            <RadioButton x:Name="PART_WhileMet" Content="While Met">
+                <ToolTip.Tip>
+                    <TextBlock>
+                        <Run Text="Output true while condition is met"/>
+                    </TextBlock>
+                </ToolTip.Tip>
+            </RadioButton>
+
+            <RadioButton x:Name="PART_WhileNotMet" Content="While Not Met">
+                <ToolTip.Tip>
+                    <TextBlock>
+                        <Run Text="Output true while condition is not met"/>
+                    </TextBlock>
+                </ToolTip.Tip>
+            </RadioButton>
+
+            <RadioButton x:Name="PART_ChangeToMet" Content="On change to Met">
+                <ToolTip.Tip>
+                    <TextBlock>
+                        <Run Text="Pulses true when condition changes to met. Then outputs false until we change to Not Met and Met again"/>
+                    </TextBlock>
+                </ToolTip.Tip>
+            </RadioButton>
+
+            <RadioButton x:Name="PART_ChangeToNotMet" Content="On change to Not Met">
+                <ToolTip.Tip>
+                    <TextBlock>
+                        <Run Text="Pulses true when condition changes to not met (if condition not met first run, it pulses true). Then outputs false until we change to Met and Not Met again"/>
+                    </TextBlock>
+                </ToolTip.Tip>
+            </RadioButton>
+
+            <RadioButton x:Name="PART_WhileMetOnce" Content="While Met (Once)">
+                <ToolTip.Tip>
+                    <TextBlock>
+                        <Run Text="Same as 'While Met', except can only output true once, then cannot do it again until the sequence is restarted"/>
+                    </TextBlock>
+                </ToolTip.Tip>
+            </RadioButton>
+
+            <RadioButton x:Name="PART_WhileNotMetOnce" Content="While Not Met (Once)">
+                <ToolTip.Tip>
+                    <TextBlock>
+                        <Run Text="Same as 'While Not Met', except can only output true once, then cannot do it again until the sequence is restarted"/>
+                    </TextBlock>
+                </ToolTip.Tip>
+            </RadioButton>
+
+            <RadioButton x:Name="PART_ChangeToMetOnce" Content="On changed to Met (Once)">
+                <ToolTip.Tip>
+                    <TextBlock>
+                        <Run Text="Same as 'On change to Met', except can only output (pulse) true once, then cannot do it again until the sequence is restarted"/>
+                    </TextBlock>
+                </ToolTip.Tip>
+            </RadioButton>
+
+            <RadioButton x:Name="PART_ChangeToNotMetOnce" Content="On changed to Not Met (Once)">
+                <ToolTip.Tip>
+                    <TextBlock>
+                        <Run Text="Same as 'On change to Not Met', except can only output (pulse) true once, then cannot do it again until the sequence is restarted"/>
+                    </TextBlock>
+                </ToolTip.Tip>
+            </RadioButton>
+        </StackPanel>
+    </DockPanel>
+</w:DesktopWindow>

@@ -326,10 +326,10 @@ public partial class EngineView : UserControl, IEngineUI {
 
         {
             ContextEntryGroup entry = new ContextEntryGroup("Tools");
-            entry.Items.Add(new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Open debugger"));
             entry.Items.Add(new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Open Sequencer"));
             entry.Items.Add(new CommandContextEntry("commands.memengine.ShowModulesCommand", "Show Modules"));
             entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Show Memory Regions"));
+            entry.Items.Add(new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Open debugger"));
             entry.Items.Add(new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scan [DEBUG ONLY]"));
             this.TopLevelMenuRegistry.Items.Add(entry);
         }

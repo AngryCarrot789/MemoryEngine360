@@ -25,7 +25,11 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DeleteOperationSelectionCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return ITaskSequencerUI.TaskSequencerUIDataKey.GetExecutabilityForPresence(e.ContextData);
+        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+            return Executability.Invalid;
+        }
+
+        return ui.PrimarySelectedSequence == null ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -33,8 +37,12 @@ public class DeleteOperationSelectionCommand : Command {
             return;
         }
 
-        if (ui.PrimarySelectedSequence != null && ui.PrimarySelectedSequence.TaskSequence.IsRunning) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Sequences still running", "The sequence is still running, operations cannot be removed. Do you want to stop them and then delete?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
+        if (ui.PrimarySelectedSequence == null) {
+            return;
+        }
+
+        if (ui.PrimarySelectedSequence.TaskSequence.IsRunning) {
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Cannot delete operations", "The sequence is still running, operations cannot be removed. Do you want to stop them and then delete?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
             if (result != MessageBoxResult.OK) {
                 return;
             }
@@ -42,7 +50,7 @@ public class DeleteOperationSelectionCommand : Command {
             TaskSequence task = ui.PrimarySelectedSequence.TaskSequence;
             task.RequestCancellation();
             await task.WaitForCompletion();
-            
+
             Debug.Assert(!task.IsRunning);
         }
 
@@ -52,23 +60,5 @@ public class DeleteOperationSelectionCommand : Command {
             bool removed = item.Operation.Sequence!.RemoveOperation(item.Operation);
             Debug.Assert(removed);
         }
-    }
-
-    public static async Task<bool> TryCancelActiveSequences(ITaskSequencerUI ui) {
-        if (ui.Manager.ActiveSequences.Count > 0) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Sequences still running", "One or more sequences are running and cannot be deleted. Do you want to stop them and then delete?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
-            if (result != MessageBoxResult.OK) {
-                return false;
-            }
-
-            foreach (TaskSequence seq in ui.Manager.ActiveSequences) {
-                seq.RequestCancellation();
-            }
-            
-            await Task.WhenAll(ui.Manager.ActiveSequences.ToList().Select(x => x.WaitForCompletion()));
-            Debug.Assert(ui.Manager.ActiveSequences.Count < 1);
-        }
-
-        return ui.Manager.ActiveSequences.Count < 1;
     }
 }

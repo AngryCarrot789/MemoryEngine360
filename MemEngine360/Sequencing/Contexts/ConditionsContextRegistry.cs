@@ -26,6 +26,9 @@ public static class ConditionsContextRegistry {
     
     static ConditionsContextRegistry() {
         FixedContextGroup actions = Registry.GetFixedGroup("conditions");
+        actions.AddHeader("Edit");
+        actions.AddCommand("commands.sequencer.EditConditionOutputModeCommand", "Edit output mode");
+        actions.AddHeader("General");
         actions.AddCommand("commands.sequencer.DuplicateConditionsCommand", "Duplicate");
         actions.AddDynamicSubGroup((group, ctx, items) => {
             if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(ctx, out ITaskSequencerUI? ui)) {

@@ -30,7 +30,7 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 
 public class ConditionsListBoxItem : ModelBasedListBoxItem<BaseSequenceCondition>, IConditionItemUI {
     public BaseSequenceCondition Condition => this.Model ?? throw new Exception("Not connected to a model");
-
+    
     public ConditionsListBoxItem() {
         DataManager.GetContextData(this).Set(IConditionItemUI.DataKey, this);
     }
@@ -55,7 +55,7 @@ public class ConditionsListBoxItem : ModelBasedListBoxItem<BaseSequenceCondition
     protected override void OnAddedToList() {
         BaseConditionListContent content = (BaseConditionListContent) this.Content!;
         TemplateUtils.Apply(content);
-        content.Condition = this.Model;
+        content.Condition = this.Model!;
         AdvancedContextMenu.SetContextRegistry(this, ConditionsContextRegistry.Registry);
     }
 

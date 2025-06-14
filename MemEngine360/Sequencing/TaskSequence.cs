@@ -19,7 +19,6 @@
 
 using System.Diagnostics;
 using MemEngine360.Connections;
-using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Tasks;
@@ -203,15 +202,22 @@ public sealed class TaskSequence {
         this.Progress.IsIndeterminate = true;
 
         List<BaseSequenceOperation> ops = this.operations.ToList();
-        foreach (BaseSequenceOperation operation in ops) {
+        foreach (BaseSequenceOperation operation in ops)
             operation.OnSequenceStarted();
-        }
+        foreach (BaseSequenceCondition condition in this.Conditions)
+            condition.OnSequenceStarted();
 
         CancellationToken token = this.myCts.Token;
         await ActivityManager.Instance.RunTask(async () => {
             for (int count = this.runCount; (count < 0 || count != 0) && !token.IsCancellationRequested; --count) {
                 try {
-                    if (!await this.CanRunForConditions(token)) {
+                    Task<bool> task = this.CanRunForConditions(token);
+                    bool wasCompletedSync = task.IsCompleted;
+                    bool result = await task;
+                    if (!result) {
+                        if (wasCompletedSync)
+                            // try save some CPU between iterations
+                            await Task.Yield();
                         continue;
                     }
                 }
@@ -221,6 +227,11 @@ public sealed class TaskSequence {
                 catch (Exception e) {
                     this.LastException = e;
                     return;
+                }
+
+                // Save some CPU cycles
+                if (ops.Count < 1) {
+                    await Task.Delay(25, token);
                 }
 
                 foreach (BaseSequenceOperation operation in ops) {
@@ -240,9 +251,10 @@ public sealed class TaskSequence {
             }
         }, this.Progress, this.myCts);
 
-        foreach (BaseSequenceOperation operation in ops) {
+        foreach (BaseSequenceOperation operation in ops)
             operation.OnSequenceStopped();
-        }
+        foreach (BaseSequenceCondition condition in this.Conditions)
+            condition.OnSequenceStopped();
 
         this.Progress.Text = "Sequence finished";
         this.myCts = null;
@@ -266,13 +278,12 @@ public sealed class TaskSequence {
 
     private async Task<bool> CanRunForConditionsImpl(CancellationToken token) {
         Dictionary<TypedAddress, IDataValue> cache = new Dictionary<TypedAddress, IDataValue>();
+        bool isConditionMet = true;
         foreach (BaseSequenceCondition condition in this.Conditions) {
-            if (!await condition.IsConditionMet(this.myContext!, cache, token)) {
-                return false;
-            }
+            isConditionMet &= await condition.IsConditionMet(this.myContext!, cache, token);
         }
 
-        return true;
+        return isConditionMet;
     }
 
     public async Task WaitForCompletion() {

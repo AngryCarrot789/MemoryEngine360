@@ -78,7 +78,7 @@ public class CompareMemoryCondition : BaseSequenceCondition {
         get => this.parseIntAsHex;
         set => PropertyHelper.SetAndRaiseINE(ref this.parseIntAsHex, value, this, static t => t.ParseIntAsHexChanged?.Invoke(t));
     }
-    
+
     public event CompareMemoryConditionEventHandler? AddressChanged;
     public event CompareMemoryConditionEventHandler? CompareTypeChanged;
     public event CompareMemoryConditionEventHandler? CompareToChanged;
@@ -87,39 +87,43 @@ public class CompareMemoryCondition : BaseSequenceCondition {
     public CompareMemoryCondition() {
     }
 
-    public override async Task<bool> IsConditionMet(SequenceExecutionContext ctx, Dictionary<TypedAddress, IDataValue> dataValues, CancellationToken token) {
+    protected override async Task<bool> IsConditionMetCore(SequenceExecutionContext ctx, Dictionary<TypedAddress, IDataValue> dataValues, CancellationToken token) {
         // store in local variable since IsConditonMet runs in a BGT, not main thread
         IDataValue? cmpVal = this.CompareTo;
         if (cmpVal == null) {
             // when we have no value, just say condition met because why not
             return true;
         }
-        
-        IDisposable? busyToken = ctx.BusyToken;
-        if (busyToken == null && !ctx.IsConnectionDedicated) {
-            ctx.Progress.Text = "Waiting for busy operations...";
-            if ((busyToken = await ctx.Sequence.Manager!.MemoryEngine.BeginBusyOperationAsync(token)) == null) {
-                // only reached if token is cancelled
-                Debug.Assert(token.IsCancellationRequested);
-                token.ThrowIfCancellationRequested();
-                return false;
+
+        uint addr = this.Address;
+        if (dataValues.TryGetValue(new TypedAddress(cmpVal.DataType, addr), out IDataValue? consoleValue)) {
+            
+        }
+        else {
+            IDisposable? busyToken = ctx.BusyToken;
+            if (busyToken == null && !ctx.IsConnectionDedicated) {
+                ctx.Progress.Text = "Waiting for busy operations...";
+                if ((busyToken = await ctx.Sequence.Manager!.MemoryEngine.BeginBusyOperationAsync(token)) == null) {
+                    // only reached if token is cancelled
+                    Debug.Assert(token.IsCancellationRequested);
+                    token.ThrowIfCancellationRequested();
+                    return false;
+                }
+            }
+
+            try {
+                consoleValue = await MemoryEngine.ReadDataValue(ctx.Connection, addr, cmpVal);
+                dataValues[new TypedAddress(consoleValue.DataType, addr)] = consoleValue;
+            }
+            // Do not catch Timeout/IO exceptions, instead, let task sequence handle it
+            finally {
+                // Do not dispose of ctx.BusyToken. That's the priority token!!
+                if (!ctx.IsConnectionDedicated && !busyToken!.Equals(ctx.BusyToken)) {
+                    busyToken.Dispose();
+                }
             }
         }
 
-        IDataValue consoleValue;
-        try {
-            uint addr = this.Address;
-            consoleValue = await MemoryEngine.ReadDataValue(ctx.Connection, addr, cmpVal);
-            dataValues[new TypedAddress(consoleValue.DataType, addr)] = consoleValue;
-        }
-        // Do not catch Timeout/IO exceptions, instead, let task sequence handle it
-        finally {
-            // Do not dispose of ctx.BusyToken. That's the priority token!!
-            if (!ctx.IsConnectionDedicated && !busyToken!.Equals(ctx.BusyToken)) {
-                busyToken.Dispose();
-            }
-        }
-        
         switch (cmpVal.DataType) {
             case DataType.Byte:
             case DataType.Int16:

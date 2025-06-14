@@ -27,7 +27,9 @@ public class DuplicateOperationsCommand : Command {
             return Executability.Invalid;
         }
 
-        return Executability.Valid;
+        return ui.PrimarySelectedSequence == null || ui.PrimarySelectedSequence.TaskSequence.IsRunning 
+            ? Executability.ValidButCannotExecute 
+            : Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -37,7 +39,7 @@ public class DuplicateOperationsCommand : Command {
 
         // Create list of clones, ordered by their index in the sequence list
         ITaskSequenceEntryUI? sequence = ui.PrimarySelectedSequence;
-        if (sequence == null) {
+        if (sequence == null || sequence.TaskSequence.IsRunning) {
             return;
         }
         

@@ -46,7 +46,7 @@ public class DuplicateSequencesCommand : Command {
             ui.Manager.InsertSequence(offset + item.Idx + 1, item.Seq); // +1 to add after the existing item
             offset++;
         }
-        
+
         // virtualization of task sequence list box items not implemented yet, and there's no reason
         // to do it since I doubt anyone will use enough to where it makes a difference
         ui.SequenceSelectionManager.SetSelection(clones.Select(x => ui.GetSequenceControl(x.Seq)));

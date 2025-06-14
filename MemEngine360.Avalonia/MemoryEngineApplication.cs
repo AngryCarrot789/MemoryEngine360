@@ -30,6 +30,7 @@ using MemEngine360.BaseFrontEnd.Services;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.BaseFrontEnd.Services.HexEditing;
 using MemEngine360.BaseFrontEnd.TaskSequencing;
+using MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 using MemEngine360.BaseFrontEnd.Themes;
 using MemEngine360.BaseFrontEnd.XboxBase;
 using MemEngine360.Commands;
@@ -129,6 +130,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.DuplicateSequenceCommand", new DuplicateSequencesCommand());
         manager.Register("commands.sequencer.DuplicateOperationsCommand", new DuplicateOperationsCommand());
         manager.Register("commands.sequencer.DuplicateConditionsCommand", new DuplicateConditionsCommand());
+        manager.Register("commands.sequencer.EditConditionOutputModeCommand", new EditConditionOutputModeCommand());
         manager.Register("commands.sequencer.RenameSequenceCommand", new RenameSequenceCommand());
         manager.Register("commands.sequencer.StopSequenceCommand", new StopSequenceCommand());
         manager.Register("commands.sequencer.RunSequenceCommand", new RunSequenceCommand());
@@ -151,6 +153,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.RegisterConstant<ConsoleConnectionManager>(new ConsoleConnectionManagerImpl());
         manager.RegisterConstant<ITaskSequencerService>(new TaskSequencerServiceImpl());
         manager.RegisterConstant<MemoryEngineManager>(new MemoryEngineManagerImpl());
+        manager.RegisterConstant<IEditConditionOutputModeService>(new EditConditionOutputModeServiceImpl());
 
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }

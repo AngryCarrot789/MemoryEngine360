@@ -87,6 +87,7 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
         this.addressBinder.AttachControl(this.PART_AddressTextBox);
         this.dataTypeBinder.Attach(this.PART_DataTypeComboBox, this);
         this.valueBinder.AttachControl(this.PART_ValueTextBox);
+        this.SetConditionMetIndicator(this.PART_IsConditionMetEllipse);
     }
     
     public void UpdateTextFromProviderValue() {
@@ -177,7 +178,7 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
         this.UpdateTextFromProviderValue();
     }
 
-    private void PART_CompareModeCheckChanged(object? sender, RoutedEventArgs e) {
+    private void PART_CompareModeClicked(object? sender, RoutedEventArgs e) {
         if (this.isUpdatingToggleButtons || base.Condition == null) {
             return;
         }

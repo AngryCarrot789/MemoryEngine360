@@ -25,7 +25,11 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DeleteConditionSelectionCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return ITaskSequencerUI.TaskSequencerUIDataKey.GetExecutabilityForPresence(e.ContextData);
+        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+            return Executability.Invalid;
+        }
+
+        return ui.PrimarySelectedSequence == null ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -33,8 +37,12 @@ public class DeleteConditionSelectionCommand : Command {
             return;
         }
 
-        if (ui.PrimarySelectedSequence != null && ui.PrimarySelectedSequence.TaskSequence.IsRunning) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Sequences still running", "The sequence is still running, conditions cannot be removed. Do you want to stop them and then delete?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
+        if (ui.PrimarySelectedSequence == null) {
+            return;
+        }
+        
+        if (ui.PrimarySelectedSequence.TaskSequence.IsRunning) {
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Cannot delete conditions", "The sequence is still running, conditions cannot be removed. Do you want to stop them and then delete?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
             if (result != MessageBoxResult.OK) {
                 return;
             }
@@ -42,7 +50,7 @@ public class DeleteConditionSelectionCommand : Command {
             TaskSequence task = ui.PrimarySelectedSequence.TaskSequence;
             task.RequestCancellation();
             await task.WaitForCompletion();
-            
+
             Debug.Assert(!task.IsRunning);
         }
 
