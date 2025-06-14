@@ -132,17 +132,17 @@ public abstract class BaseSequenceOperation : ITransferableData {
     }
 
     /// <summary>
-    /// Invoked on all operations in the sequence before <see cref="Run"/> is called.
+    /// Invoked on all operations before any operation is run. 
     /// </summary>
-    protected internal virtual void OnAboutToRun() {
+    protected internal virtual void OnSequenceStarted() {
         
     }
     
     /// <summary>
-    /// Invoked on all operations after the sequence has finished. <see cref="Run"/> may not have
-    /// actually been called (maybe sequence was stopped mid-way)
+    /// Invoked on all operations after the sequence has finished. <see cref="RunOperation"/> may
+    /// not have actually been called (maybe sequence was stopped mid-way or conditions not met)
     /// </summary>
-    protected internal virtual void OnRunFinished() {
+    protected internal virtual void OnSequenceStopped() {
         
     }
     

@@ -87,7 +87,8 @@ public class CompareMemoryCondition : BaseSequenceCondition {
     public CompareMemoryCondition() {
     }
 
-    public override async Task<bool> IsConditionMet(SequenceExecutionContext ctx, CancellationToken token, Dictionary<TypedAddress, IDataValue> dataValues) {
+    public override async Task<bool> IsConditionMet(SequenceExecutionContext ctx, Dictionary<TypedAddress, IDataValue> dataValues, CancellationToken token) {
+        // store in local variable since IsConditonMet runs in a BGT, not main thread
         IDataValue? cmpVal = this.CompareTo;
         if (cmpVal == null) {
             // when we have no value, just say condition met because why not
@@ -111,6 +112,7 @@ public class CompareMemoryCondition : BaseSequenceCondition {
             consoleValue = await MemoryEngine.ReadDataValue(ctx.Connection, addr, cmpVal);
             dataValues[new TypedAddress(consoleValue.DataType, addr)] = consoleValue;
         }
+        // Do not catch Timeout/IO exceptions, instead, let task sequence handle it
         finally {
             // Do not dispose of ctx.BusyToken. That's the priority token!!
             if (!ctx.IsConnectionDedicated && !busyToken!.Equals(ctx.BusyToken)) {

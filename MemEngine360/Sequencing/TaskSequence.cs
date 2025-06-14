@@ -159,15 +159,15 @@ public sealed class TaskSequence {
         this.operations = new ObservableList<BaseSequenceOperation>();
         this.Operations = new ReadOnlyObservableList<BaseSequenceOperation>(this.operations);
         this.Conditions = new ObservableList<BaseSequenceCondition>();
-        this.Conditions.BeforeAdd += (list, item, i) => {
+        this.Conditions.BeforeItemAdded += (list, i, item) => {
             this.CheckNotRunning("Cannot add conditions while running");
             if (item.TaskSequence != null)
                 throw new InvalidOperationException("Condition already exists in another sequence");
         };
 
-        this.Conditions.BeforeRemove += (list, index, count) => this.CheckNotRunning("Cannot remove conditions while running");
-        this.Conditions.BeforeMove += (list, item, i, j) => this.CheckNotRunning("Cannot move conditions while running");
-        this.Conditions.BeforeReplace += (list, a, b, index) => this.CheckNotRunning("Cannot replace conditions while running");
+        this.Conditions.BeforeItemsRemoved += (list, index, count) => this.CheckNotRunning("Cannot remove conditions while running");
+        this.Conditions.BeforeItemMoved += (list, oldIdx, newIdx, item) => this.CheckNotRunning("Cannot move conditions while running");
+        this.Conditions.BeforeItemReplace += (list, index, a, b) => this.CheckNotRunning("Cannot replace conditions while running");
         ObservableItemProcessor.MakeSimple(this.Conditions, c => BaseSequenceCondition.InternalSetSequence(c, this), c => BaseSequenceCondition.InternalSetSequence(c, null));
 
         this.Progress = new DefaultProgressTracker();
@@ -218,7 +218,7 @@ public sealed class TaskSequence {
 
         List<BaseSequenceOperation> ops = this.operations.ToList();
         foreach (BaseSequenceOperation operation in ops) {
-            operation.OnAboutToRun();
+            operation.OnSequenceStarted();
         }
 
         CancellationToken token = this.myCts.Token;
@@ -252,7 +252,7 @@ public sealed class TaskSequence {
         }, this.Progress, this.myCts);
 
         foreach (BaseSequenceOperation operation in ops) {
-            operation.OnRunFinished();
+            operation.OnSequenceStopped();
         }
 
         this.Progress.Text = "Sequence finished";
@@ -278,7 +278,7 @@ public sealed class TaskSequence {
     private async Task<bool> CanRunForConditionsImpl(CancellationToken token) {
         Dictionary<TypedAddress, IDataValue> cache = new Dictionary<TypedAddress, IDataValue>();
         foreach (BaseSequenceCondition condition in this.Conditions) {
-            if (!await condition.IsConditionMet(this.myContext!, token, cache)) {
+            if (!await condition.IsConditionMet(this.myContext!, cache, token)) {
                 return false;
             }
         }

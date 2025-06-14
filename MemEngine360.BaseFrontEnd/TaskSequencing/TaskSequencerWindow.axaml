@@ -6,20 +6,21 @@
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
                  xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing"
                  xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:activities="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:act="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
                  xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd"
-                 xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:sav="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:commands="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Commands"
-                 xmlns:operations="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations"
-                 xmlns:containers="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.Containers"
-                 xmlns:conditions="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Conditions"
+                 xmlns:cmd="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Commands"
+                 xmlns:ops="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations"
+                 xmlns:ctain="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.Containers"
+                 xmlns:cond="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Conditions"
                  mc:Ignorable="d"
+                 d:DesignHeight="400" d:DesignWidth="800"
                  MinWidth="640" MinHeight="400"
                  Width="960" Height="640"
                  Title="Task Sequencer"
-                 avalonia:UIInputManager.FocusPath="SequencerWindow"
+                 sav:UIInputManager.FocusPath="SequencerWindow"
                  TitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
         <Grid>
@@ -32,7 +33,7 @@
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
-                        avalonia:UIInputManager.FocusPath="SequencerWindow/SequenceList">
+                        sav:UIInputManager.FocusPath="SequencerWindow/SequenceList">
                 <c:GroupBox.Header>
                     <DockPanel HorizontalSpacing="2">
                         <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
@@ -48,7 +49,7 @@
                         <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
                                        ToolTip.Tip="Open connection for the memory engine" DockPanel.Dock="Right"
                                        Icon="{x:Static cb:SimpleIcons.ConnectToConsoleIcon}"
-                                       cu:CommandUsageManager.UsageClassType="{x:Type commands:OpenConsoleConnectionInSequencerCommandUsage}"/>
+                                       cu:CommandUsageManager.UsageClassType="{x:Type cmd:OpenConsoleConnectionInSequencerCommandUsage}"/>
                         <TextBlock Text="Sequences" VerticalAlignment="Center"/>
                     </DockPanel>
                 </c:GroupBox.Header>
@@ -112,11 +113,11 @@
                                                            BorderThickness="0"
                                                            CornerRadius="2"
                                                            ToolTip.Tip="Stop the sequence"
-                                                           Icon="{x:Static activities:ActivityStatusBarControl.CancelIcon}"
+                                                           Icon="{x:Static act:ActivityStatusBarControl.CancelIcon}"
                                                            IconMaxHeight="12" IconMaxWidth="12"
                                                            VerticalContentAlignment="Center"
                                                            HorizontalContentAlignment="Center"
-                                                           cu:CommandUsageManager.UsageClassType="{x:Type commands:StopSequenceCommandUsage}"/>
+                                                           cu:CommandUsageManager.UsageClassType="{x:Type cmd:StopSequenceCommandUsage}"/>
 
                                             <av:IconButton x:Name="PART_RunButton"
                                                            DockPanel.Dock="Right" VerticalAlignment="Top"
@@ -125,11 +126,11 @@
                                                            BorderThickness="0"
                                                            CornerRadius="2"
                                                            ToolTip.Tip="Starts this sequence"
-                                                           Icon="{x:Static activities:ActivityStatusBarControl.ContinueActivityIcon}"
+                                                           Icon="{x:Static act:ActivityStatusBarControl.ContinueActivityIcon}"
                                                            IconMaxHeight="12" IconMaxWidth="12"
                                                            VerticalContentAlignment="Center"
                                                            HorizontalContentAlignment="Center"
-                                                           cu:CommandUsageManager.UsageClassType="{x:Type commands:RunSequenceCommandUsage}"/>
+                                                           cu:CommandUsageManager.UsageClassType="{x:Type cmd:RunSequenceCommandUsage}"/>
 
                                             <TextBlock x:Name="PART_HeaderText"
                                                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -161,7 +162,7 @@
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
-                        avalonia:UIInputManager.FocusPath="SequencerWindow/OperationList"
+                        sav:UIInputManager.FocusPath="SequencerWindow/OperationList"
                         x:Name="PART_CurrentSequenceGroupBox">
                 <c:GroupBox.Header>
                     <DockPanel HorizontalSpacing="3">
@@ -198,7 +199,7 @@
                         <RowDefinition Height="24"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <operations:OperationListBox x:Name="PART_OperationListBox"
+                    <ops:OperationListBox x:Name="PART_OperationListBox"
                                                  Grid.Row="0"
                                                  BorderThickness="0"
                                                  FontFamily="{StaticResource FontOxanium}"
@@ -207,7 +208,7 @@
                                                  CanDragItemPosition="True"
                                                  ScrollViewer.VerticalScrollBarVisibility="Visible">
                         <ListBox.Theme>
-                            <ControlTheme TargetType="{x:Type operations:OperationListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
+                            <ControlTheme TargetType="{x:Type ops:OperationListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
                         </ListBox.Theme>
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -215,18 +216,18 @@
                             </ItemsPanelTemplate>
                         </ListBox.ItemsPanel>
                         <ListBox.ItemContainerTheme>
-                            <ControlTheme TargetType="{x:Type operations:OperationListBoxItem}">
+                            <ControlTheme TargetType="{x:Type ops:OperationListBoxItem}">
                                 <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
                                 <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
                                 <Setter Property="BorderThickness" Value="0,0,0,1"/>
                                 <Setter Property="Padding" Value="2,2"/>
                                 <Setter Property="Template">
-                                    <ControlTemplate TargetType="{x:Type operations:OperationListBoxItem}">
+                                    <ControlTemplate TargetType="{x:Type ops:OperationListBoxItem}">
                                         <Border Background="{TemplateBinding Background}"
                                                 BorderBrush="{TemplateBinding BorderBrush}"
                                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                                x:Name="PART_RootOLBI">
+                                                x:Name="PART_RootBorder">
                                             <DockPanel>
                                                 <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right"
                                                         ToolTip.Tip="Click and drag this grip to move the operation around. This cannot be done while the sequence is running.">
@@ -246,19 +247,19 @@
                                         </Border>
                                     </ControlTemplate>
                                 </Setter>
-                                <Style Selector="^:pointerover /template/ Border#PART_RootOLBI">
+                                <Style Selector="^:pointerover /template/ Border#PART_RootBorder">
                                     <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.MouseOver}"/>
                                 </Style>
 
-                                <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_RootOLBI">
+                                <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_RootBorder">
                                     <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedInactive.Background}"/>
                                 </Style>
 
-                                <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_RootOLBI">
+                                <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_RootBorder">
                                     <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedActive.Background}"/>
                                 </Style>
 
-                                <Style Selector="^[IsRunning=true] /template/ Border#PART_RootOLBI">
+                                <Style Selector="^[IsRunning=true] /template/ Border#PART_RootBorder">
                                     <Setter Property="Background">
                                         <Setter.Value>
                                             <LinearGradientBrush>
@@ -270,25 +271,26 @@
                                 </Style>
                             </ControlTheme>
                         </ListBox.ItemContainerTheme>
-                    </operations:OperationListBox>
-                    <TabControl Grid.Row="2" 
-                                TabStripPlacement="Bottom" 
-                                BorderBrush="{DynamicResource PanelBorderBrush}" 
-                                BorderThickness="0,1,0,0">
+                    </ops:OperationListBox>
+                    <TabControl Grid.Row="2"
+                                TabStripPlacement="Top"
+                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                BorderThickness="0,1,0,1">
                         <TabItem Header="Operation Editors">
-                            <c:GroupBox Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                                        BorderThickness="0"
-                                        HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}">
-                                <c:GroupBox.Header>
-                                    <DockPanel>
-                                        <TextBlock Text="Operation Editor Panel"/>
-                                        <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,0"/>
-                                        <TextBlock x:Name="PART_PrimarySelectedOperationText"/>
+                            <DockPanel Background="{DynamicResource ABrush.Tone2.Background.Static}">
+                                <Border DockPanel.Dock="Top"
+                                        Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                                        BorderThickness="0,0,0,1">
+                                    <DockPanel LastChildFill="False" Height="22">
+                                        <TextBlock Text="Operation Editor Panel" VerticalAlignment="Center" Padding="4,0,0,0"/>
+                                        <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="5,3"/>
+                                        <TextBlock x:Name="PART_PrimarySelectedOperationText" VerticalAlignment="Center"/>
                                     </DockPanel>
-                                </c:GroupBox.Header>
-                                <containers:OperationEditorContentContainerListBox x:Name="PART_OperationEditorControlsListBox" Background="Transparent" BorderThickness="0">
+                                </Border>
+                                <ctain:OperationEditorContentContainerListBox x:Name="PART_OperationEditorControlsListBox" Background="Transparent" BorderThickness="0">
                                     <ListBox.Theme>
-                                        <ControlTheme TargetType="{x:Type containers:OperationEditorContentContainerListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
+                                        <ControlTheme TargetType="{x:Type ctain:OperationEditorContentContainerListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
                                     </ListBox.Theme>
                                     <ListBox.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -296,13 +298,13 @@
                                         </ItemsPanelTemplate>
                                     </ListBox.ItemsPanel>
                                     <ListBox.ItemContainerTheme>
-                                        <ControlTheme TargetType="{x:Type containers:OperationEditorContentContainerListBoxItem}">
+                                        <ControlTheme TargetType="{x:Type ctain:OperationEditorContentContainerListBoxItem}">
                                             <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
                                             <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
                                             <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
                                             <Setter Property="BorderThickness" Value="1"/>
                                             <Setter Property="Template">
-                                                <ControlTemplate TargetType="{x:Type containers:OperationEditorContentContainerListBoxItem}">
+                                                <ControlTemplate TargetType="{x:Type ctain:OperationEditorContentContainerListBoxItem}">
                                                     <Border x:Name="PART_Border" Background="{TemplateBinding Background}"
                                                             BorderBrush="{TemplateBinding BorderBrush}"
                                                             BorderThickness="{TemplateBinding BorderThickness}">
@@ -338,33 +340,41 @@
                                             </Style>
 
                                             <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_Border">
-                                                <Setter Property="BorderBrush" Value="{DynamicResource ListBoxItem.SelectedActive.Border}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource ABrush.AccentTone2.Border.Static}"/>
                                             </Style>
                                         </ControlTheme>
                                     </ListBox.ItemContainerTheme>
-                                </containers:OperationEditorContentContainerListBox>
-                            </c:GroupBox>
+                                </ctain:OperationEditorContentContainerListBox>
+                            </DockPanel>
                         </TabItem>
                         <TabItem Header="Conditions">
-                            <c:GroupBox Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                                        BorderThickness="0"
-                                        HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
-                                        HorizontalHeaderAlignment="Stretch"
-                                        avalonia:UIInputManager.FocusPath="SequencerWindow/ConditionList">
-                                <c:GroupBox.Header>
-                                    <DockPanel LastChildFill="False">
-                                        <TextBlock Text="Conditions Panel" VerticalAlignment="Center"/>
-                                        <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,0"/>
+                            <DockPanel Background="{DynamicResource ABrush.Tone2.Background.Static}"
+                                       sav:UIInputManager.FocusPath="SequencerWindow/ConditionList">
+                                <Border DockPanel.Dock="Top"
+                                        Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                                        BorderThickness="0,0,0,1">
+                                    <DockPanel LastChildFill="False" Height="22">
+                                        <TextBlock Text="Conditions Panel" VerticalAlignment="Center" Padding="4,0,0,0"/>
+                                        <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="5,3"/>
                                         <TextBlock x:Name="PART_PrimarySelectedConditionText" VerticalAlignment="Center"/>
-                                        <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,0"/>
-                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                                            <Button Content="Memory Compare" Click="Button_OnClick" VerticalAlignment="Center" Padding="4,1" DockPanel.Dock="Right"/>
-                                        </StackPanel>
+                                        <Border DockPanel.Dock="Right"
+                                                Background="{DynamicResource PanelBorderBrush}"
+                                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                BorderThickness="1,0,0,0">
+                                            <StackPanel Orientation="Horizontal" Spacing="1">
+                                                <Button Padding="5,2" BorderThickness="0"
+                                                        Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                        Click="Button_OnClick"
+                                                        Content="Memory Compare"/>
+                                            </StackPanel>
+                                        </Border>
                                     </DockPanel>
-                                </c:GroupBox.Header>
-                                <conditions:ConditionsListBox x:Name="PART_ConditionsListBox" Background="Transparent" BorderThickness="0">
+                                </Border>
+                                <cond:ConditionsListBox x:Name="PART_ConditionsListBox" Background="Transparent" BorderThickness="0">
                                     <ListBox.Theme>
-                                        <ControlTheme TargetType="{x:Type conditions:ConditionsListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
+                                        <ControlTheme TargetType="{x:Type cond:ConditionsListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
                                     </ListBox.Theme>
                                     <ListBox.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -372,18 +382,18 @@
                                         </ItemsPanelTemplate>
                                     </ListBox.ItemsPanel>
                                     <ListBox.ItemContainerTheme>
-                                        <ControlTheme TargetType="{x:Type conditions:ConditionsListBoxItem}">
+                                        <ControlTheme TargetType="{x:Type cond:ConditionsListBoxItem}">
                                             <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
                                             <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
                                             <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
                                             <Setter Property="BorderThickness" Value="0,0,0,1"/>
                                             <Setter Property="Padding" Value="2,2"/>
                                             <Setter Property="Template">
-                                                <ControlTemplate TargetType="{x:Type conditions:ConditionsListBoxItem}">
+                                                <ControlTemplate TargetType="{x:Type cond:ConditionsListBoxItem}">
                                                     <Border Background="{TemplateBinding Background}"
                                                             BorderBrush="{TemplateBinding BorderBrush}"
                                                             BorderThickness="{TemplateBinding BorderThickness}"
-                                                            x:Name="PART_RootOLBI">
+                                                            x:Name="PART_RootBorder">
                                                         <DockPanel>
                                                             <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right"
                                                                     ToolTip.Tip="Click and drag this grip to move the condition around. This cannot be done while the sequence is running.">
@@ -403,55 +413,57 @@
                                                     </Border>
                                                 </ControlTemplate>
                                             </Setter>
-                                            <Style Selector="^:pointerover /template/ Border#PART_RootOLBI">
+                                            <Style Selector="^:pointerover /template/ Border#PART_RootBorder">
                                                 <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.MouseOver}"/>
                                             </Style>
-                                            <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_RootOLBI">
+                                            <Style Selector="^:selected[IsFocused=False] /template/ Border#PART_RootBorder">
                                                 <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedInactive.Background}"/>
                                             </Style>
-                                            <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_RootOLBI">
+                                            <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_RootBorder">
                                                 <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedActive.Background}"/>
                                             </Style>
                                         </ControlTheme>
                                     </ListBox.ItemContainerTheme>
-                                </conditions:ConditionsListBox>
-                            </c:GroupBox>
+                                </cond:ConditionsListBox>
+                            </DockPanel>
                         </TabItem>
                     </TabControl>
-                    <DockPanel Grid.Row="3" DockPanel.Dock="Left" HorizontalSpacing="3" LastChildFill="False">
-                        <av:IconButton Padding="2" Width="24" Height="24"
-                                       IconMaxWidth="16" IconMaxHeight="16"
-                                       Background="Transparent" BorderThickness="0"
-                                       ToolTip.Tip="Open a dedicated connection"
-                                       Icon="{x:Static cb:SimpleIcons.ConnectToConsoleDedicatedIcon}"
-                                       cu:CommandUsageManager.UsageClassType="{x:Type commands:ConnectToDedicatedConsoleCommandUsage}"/>
-                        <Border Background="{DynamicResource ABrush.Tone4.Background.Static}"
-                                BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
-                                BorderThickness="1"
-                                VerticalAlignment="Center"
-                                Width="128">
-                            <TextBlock x:Name="PART_ActiveConnectionTextBoxRO"
-                                       Text="Error... hm"
-                                       ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                       Padding="2,1"/>
-                        </Border>
-                        <CheckBox x:Name="PART_UseDedicatedConnection" Content="Use Dedicated Connection">
-                            <ToolTip.Tip>
-                                <TextBlock>
-                                    <Run Text="Toggle using a dedicated connection instead of the memory engine's connection"/>
-                                    <LineBreak/>
-                                    <Run Text="Note: if you use the engine connection, the engine cannot do anything (scanning, refreshing, editing values, etc.)"/>
-                                </TextBlock>
-                            </ToolTip.Tip>
-                        </CheckBox>
-                        <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="1,3"/>
-                        <TextBlock x:Name="PART_ActivityStatusText"
-                                   Text="Caption here"
-                                   Padding="4,2" DockPanel.Dock="Right"
-                                   VerticalAlignment="Center"
-                                   TextTrimming="CharacterEllipsis"/>
-                    </DockPanel>
-                    <GridSplitter Grid.Row="1" Background="Transparent" Margin="0,-3,0,-14" Cursor="SizeNorthSouth"/>
+                    <Border Grid.Row="3" BorderThickness="0" BorderBrush="{DynamicResource PanelBorderBrush}">
+                        <DockPanel HorizontalSpacing="3" LastChildFill="False">
+                            <av:IconButton Padding="2" Width="24" Height="24"
+                                           IconMaxWidth="16" IconMaxHeight="16"
+                                           Background="Transparent" BorderThickness="0"
+                                           ToolTip.Tip="Open a dedicated connection"
+                                           Icon="{x:Static cb:SimpleIcons.ConnectToConsoleDedicatedIcon}"
+                                           cu:CommandUsageManager.UsageClassType="{x:Type cmd:ConnectToDedicatedConsoleCommandUsage}"/>
+                            <Border Background="{DynamicResource ABrush.Tone4.Background.Static}"
+                                    BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                                    BorderThickness="1"
+                                    VerticalAlignment="Center"
+                                    Width="128">
+                                <TextBlock x:Name="PART_ActiveConnectionTextBoxRO"
+                                           Text="Error... hm"
+                                           ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                           Padding="2,1"/>
+                            </Border>
+                            <CheckBox x:Name="PART_UseDedicatedConnection" Content="Use Dedicated Connection">
+                                <ToolTip.Tip>
+                                    <TextBlock>
+                                        <Run Text="Toggle using a dedicated connection instead of the memory engine's connection"/>
+                                        <LineBreak/>
+                                        <Run Text="Note: if you use the engine connection, the engine cannot do anything (scanning, refreshing, editing values, etc.)"/>
+                                    </TextBlock>
+                                </ToolTip.Tip>
+                            </CheckBox>
+                            <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="1,3"/>
+                            <TextBlock x:Name="PART_ActivityStatusText"
+                                       Text="Caption here"
+                                       Padding="4,2" DockPanel.Dock="Right"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </DockPanel>
+                    </Border>
+                    <GridSplitter Grid.Row="1" Background="Transparent" Margin="181,-3,0,-20" Cursor="SizeNorthSouth"/>
                 </Grid>
             </c:GroupBox>
 

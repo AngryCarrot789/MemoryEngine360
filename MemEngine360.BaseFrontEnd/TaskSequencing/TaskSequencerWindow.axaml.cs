@@ -162,7 +162,13 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
 
     private void OnOperationSelectionChanged(ILightSelectionManager<IOperationItemUI> sender) {
         IOperationItemUI? newPrimary = sender.Count == 1 ? ((IListSelectionManager<IOperationItemUI>) sender).SelectedItemList[0] : null;
-        this.PART_PrimarySelectedOperationText.Text = newPrimary?.Operation.DisplayName ?? (sender.Count == 0 ? "(No operation Selected)" : "(Too many operations selected)");
+
+        if (newPrimary != null) {
+            this.PART_PrimarySelectedOperationText.Text = $"Editing '{newPrimary.Operation.DisplayName}'";
+        }
+        else {
+            this.PART_PrimarySelectedOperationText.Text = sender.Count == 0 ? "(No operation Selected)" : "(Too many operations selected)";
+        }
 
         if (this.PrimarySelectedOperation != null) {
             this.PART_OperationEditorControlsListBox.SetOperation(null);
