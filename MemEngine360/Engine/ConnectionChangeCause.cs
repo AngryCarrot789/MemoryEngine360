@@ -19,14 +19,16 @@
 
 namespace MemEngine360.Engine;
 
+/// <summary>
+/// A cause for the engine connection changing.
+/// </summary>
 public enum ConnectionChangeCause {
     /// <summary>
-    /// The user connected to or disconnected from the console via in the standard ways
+    /// The user connected to or disconnected from the console in a standard way (e.g. open connection view or clicking disconnect)
     /// </summary>
     User,
     /// <summary>
-    /// The background worker notices the console connection was no longer
-    /// actually connected, so it was automatically changed to null
+    /// We lost connection to the console, maybe it was switched off or the network was disconnected
     /// </summary>
     LostConnection,
     /// <summary>

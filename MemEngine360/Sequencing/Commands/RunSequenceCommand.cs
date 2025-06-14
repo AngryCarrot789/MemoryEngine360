@@ -89,8 +89,10 @@ public class RunSequenceCommand : Command {
                 if (sequence.LastException != null) {
                     await IMessageDialogService.Instance.ShowMessage("Error encountered", "An exception occured while running sequence", sequence.LastException.GetToString());
                 }
-
-                ConnectionChangeCause cause = sequence.LastException is IOException ? ConnectionChangeCause.ConnectionError : ConnectionChangeCause.LostConnection;
+                
+                ConnectionChangeCause cause = sequence.LastException is IOException 
+                    ? ConnectionChangeCause.ConnectionError 
+                    : ConnectionChangeCause.LostConnection; // Use LostConnection even if not TimeoutException since it's the only other option that makes sense.
                 if (token != null) {
                     sequence.Manager.MemoryEngine.CheckConnection(token, cause);
                 }
