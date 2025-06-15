@@ -23,19 +23,28 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class StopSequenceCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? sequence)) {
+        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui))
             return Executability.Invalid;
-        }
+        
+        if (ui.PrimarySelectedSequence != null)
+            return ui.PrimarySelectedSequence.TaskSequence.IsRunning ? Executability.Valid : Executability.ValidButCannotExecute;
 
-        return sequence.IsRunning ? Executability.Valid : Executability.ValidButCannotExecute;
+        return Executability.Valid;
     }
     
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? sequence)) {
-            if (sequence.IsRunning) {
-                sequence.RequestCancellation();
-                await sequence.WaitForCompletion();
-            }
+        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui))
+            return;
+
+        List<TaskSequence> sequences = new List<TaskSequence>();
+        sequences.AddRange(ui.SequenceSelectionManager.SelectedItemList.Select(x => x.TaskSequence));
+        if (ui.PrimarySelectedSequence != null && !sequences.Contains(ui.PrimarySelectedSequence.TaskSequence))
+            sequences.Add(ui.PrimarySelectedSequence.TaskSequence); // wtf why is it not in the list?
+
+        foreach (TaskSequence seq in sequences) {
+            seq.RequestCancellation();
         }
+        
+        await Task.WhenAll(sequences.Select(x => x.WaitForCompletion()));
     }
 }

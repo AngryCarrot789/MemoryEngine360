@@ -50,32 +50,12 @@ public sealed class TaskSequence {
     private SequenceExecutionContext? myContext;
 
     /// <summary>
-    /// Gets our operations
-    /// </summary>
-    public ReadOnlyObservableList<BaseSequenceOperation> Operations { get; }
-
-    /// <summary>
-    /// Gets the list of conditions that must be met for this sequence to run.
-    /// </summary>
-    public ObservableList<BaseSequenceCondition> Conditions { get; }
-
-    /// <summary>
     /// Gets whether this sequence is currently running. This only changes on the main thread
     /// </summary>
     public bool IsRunning {
         get => this.isRunning;
         private set => PropertyHelper.SetAndRaiseINE(ref this.isRunning, value, this, static t => t.IsRunningChanged?.Invoke(t));
     }
-
-    /// <summary>
-    /// Gets the exception encountered while executing an operation in this sequence. This is set before <see cref="IsRunning"/> is changed
-    /// </summary>
-    public Exception? LastException { get; private set; }
-
-    /// <summary>
-    /// Gets the <see cref="TaskSequencerManager"/> that this sequence exists in
-    /// </summary>
-    public TaskSequencerManager? Manager => this.myManager;
 
     public string DisplayName {
         get => this.displayName;
@@ -123,24 +103,43 @@ public sealed class TaskSequence {
             PropertyHelper.SetAndRaiseINE(ref this.dedicatedConnection, value, this, static (t, a, b) => t.DedicatedConnectionChanged?.Invoke(t, a, b));
         }
     }
+    
+    /// <summary>
+    /// Gets the <see cref="TaskSequencerManager"/> that this sequence exists in
+    /// </summary>
+    public TaskSequencerManager? Manager => this.myManager;
+    
+    /// <summary>
+    /// Gets the exception encountered while executing an operation in this sequence. This is set before <see cref="IsRunning"/> is changed
+    /// </summary>
+    public Exception? LastException { get; private set; }
+    
+    /// <summary>
+    /// Gets our operations
+    /// </summary>
+    public ReadOnlyObservableList<BaseSequenceOperation> Operations { get; }
 
+    /// <summary>
+    /// Gets the list of conditions that must be met for this sequence to run.
+    /// </summary>
+    public ObservableList<BaseSequenceCondition> Conditions { get; }
+
+    public IActivityProgress Progress { get; }
+    
+    /// <summary>
+    /// An event fired when our running state changes. When this fires, the first operation will not have run yet.
+    /// </summary>
+    public event TaskSequenceEventHandler? IsRunningChanged;
+    public event TaskSequenceEventHandler? DisplayNameChanged;
+    public event TaskSequenceEventHandler? RunCountChanged;
+    public event TaskSequenceEventHandler? HasBusyLockPriorityChanged;
+    public event TaskSequenceEventHandler? UseEngineConnectionChanged;
+    
     /// <summary>
     /// Raised when <see cref="DedicatedConnection"/> changes. When <see cref="UseEngineConnection"/> is being set to true,
     /// the dedicated connection is closed and set to null, in which case, this event fires BEFORE <see cref="UseEngineConnection"/> is set to true
     /// </summary>
     public event TaskSequenceDedicatedConnectionChangedEventHandler? DedicatedConnectionChanged;
-
-    public IActivityProgress Progress { get; }
-
-    /// <summary>
-    /// An event fired when our running state changes. When this fires, the first operation will not have run yet.
-    /// </summary>
-    public event TaskSequenceEventHandler? IsRunningChanged;
-
-    public event TaskSequenceEventHandler? DisplayNameChanged;
-    public event TaskSequenceEventHandler? RunCountChanged;
-    public event TaskSequenceEventHandler? HasBusyLockPriorityChanged;
-    public event TaskSequenceEventHandler? UseEngineConnectionChanged;
 
     public TaskSequence() {
         this.operations = new ObservableList<BaseSequenceOperation>();
@@ -148,13 +147,15 @@ public sealed class TaskSequence {
         this.Conditions = new ObservableList<BaseSequenceCondition>();
         this.Conditions.BeforeItemAdded += (list, i, item) => {
             this.CheckNotRunning("Cannot add conditions while running");
+            if (item.TaskSequence == this)
+                throw new InvalidOperationException("Condition already added to this sequence");
             if (item.TaskSequence != null)
                 throw new InvalidOperationException("Condition already exists in another sequence");
         };
 
-        this.Conditions.BeforeItemsRemoved += (list, index, count) => this.CheckNotRunning("Cannot remove conditions while running");
+        this.Conditions.BeforeItemsRemoved += (list, index, count) => this.CheckNotRunning($"Cannot remove condition{Lang.S(count)} while running");
         this.Conditions.BeforeItemMoved += (list, oldIdx, newIdx, item) => this.CheckNotRunning("Cannot move conditions while running");
-        this.Conditions.BeforeItemReplace += (list, index, a, b) => this.CheckNotRunning("Cannot replace conditions while running");
+        this.Conditions.BeforeItemReplace += (list, index, a, b) => this.CheckNotRunning("Cannot replace condition while running");
         ObservableItemProcessor.MakeSimple(this.Conditions, c => BaseSequenceCondition.InternalSetSequence(c, this), c => BaseSequenceCondition.InternalSetSequence(c, null));
 
         this.Progress = new DefaultProgressTracker();
@@ -172,13 +173,11 @@ public sealed class TaskSequence {
             HasBusyLockPriority = this.hasBusyLockPriority
         };
 
-        foreach (BaseSequenceOperation operation in this.operations) {
-            sequence.AddOperation(operation.CreateClone());
-        }
-
-        foreach (BaseSequenceCondition condition in this.Conditions) {
+        foreach (BaseSequenceCondition condition in this.Conditions)
             sequence.Conditions.Add(condition.CreateClone());
-        }
+        
+        foreach (BaseSequenceOperation operation in this.operations)
+            sequence.AddOperation(operation.CreateClone());
 
         return sequence;
     }

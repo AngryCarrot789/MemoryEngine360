@@ -37,16 +37,17 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
     private string parsingText;
 
     private readonly TextBoxToEventPropertyBinder<CompareMemoryConditionListContent> valueBinder = new TextBoxToEventPropertyBinder<CompareMemoryConditionListContent>(nameof(ParsingTextChanged), (b) => b.Model.ParsingText, async (b, text) => {
-        b.Model.isUpdatingProviderDataValue = true;
-        (IDataValue?, bool parseIntAsHex) result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(b.Model.Condition!.ParseIntAsHex, b.Model.DataType, text);
-        b.Model.Condition!.ParseIntAsHex = result.parseIntAsHex;
-        if (result.Item1 != null) {
-            b.Model.Condition!.CompareTo = result.Item1;
+        DataValueState? newState = await BinderParsingUtils.TryParseTextAsDataValueAndModify(text, b.Model.DataType, b.Model.Condition!.ParseIntAsHex);
+        if (newState is DataValueState result) {
+            b.Model.isUpdatingProviderDataValue = true;
+            b.Model.Condition!.ParseIntAsHex = result.ParseIntAsHex;
+            b.Model.Condition!.CompareTo = result.Value;
+            b.Model.isUpdatingProviderDataValue = false;
+            b.Model.UpdateTextFromProviderValue();
+            return true;
         }
 
-        b.Model.isUpdatingProviderDataValue = false;
-        b.Model.UpdateTextFromProviderValue();
-        return result.Item1 != null;
+        return false;
     });
 
     private readonly IBinder<CompareMemoryCondition> addressBinder = new TextBoxToEventPropertyBinder<CompareMemoryCondition>(nameof(CompareMemoryCondition.AddressChanged), (b) => b.Model.Address.ToString("X8"), (b, text) => BinderParsingUtils.TryParseAddress(text, b, (a, v) => a.Model.Address = v));

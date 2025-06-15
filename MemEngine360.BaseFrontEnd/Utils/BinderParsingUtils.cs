@@ -28,6 +28,8 @@ using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.BaseFrontEnd.Utils;
 
+public record struct DataValueState(IDataValue Value, bool ParseIntAsHex);
+
 /// <summary>
 /// A helper class for binders. This provides reusable parsing logic, typically for <see cref="TextBoxToEventPropertyBinder{TModel}"/>
 /// </summary>
@@ -47,43 +49,38 @@ public static class BinderParsingUtils {
         return false;
     }
 
-    public static async Task<IDataValue?> TryParseTextAsDataValueAndModify(DataProviderHandler h, DataType dataType, string text) {
-        bool hasHexPrefix = text.StartsWith("0x");
-        if (hasHexPrefix && !h.ParseIntAsHex && dataType.IsInteger()) {
-            h.ParseIntAsHex = true;
-        }
-        else {
-            h.ParseIntAsHex = false;
-        }
-        
-        ValidationArgs args = new ValidationArgs(h.ParseIntAsHex && hasHexPrefix ? text.Substring(2) : text, [], false);
-        NumericDisplayType intNdt = h.ParseIntAsHex ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
-        if (DataValueUtils.TryParseTextAsDataValue(args, dataType, intNdt, StringType.ASCII, out IDataValue? value)) {
-            return value;
-        }
-        else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid text", args.Errors.Count > 0 ? args.Errors[0] : "Could not parse value as " + dataType, defaultButton: MessageBoxResult.OK);
+    public static async Task<IDataValue?> TryParseTextAsDataValueAndModify(string text, DataType initialDataType, DataProviderHandler h, bool canTryParseAsFloatOrDouble = true) {
+        DataValueState? state = await TryParseTextAsDataValueAndModify(text, initialDataType, h.ParseIntAsHex, canTryParseAsFloatOrDouble);
+        if (!state.HasValue) {
             return null;
         }
+
+        h.ParseIntAsHex = state.Value.ParseIntAsHex;
+        return state.Value.Value;
     }
-    
-    public static async Task<(IDataValue?, bool parseIntAsHex)> TryParseTextAsDataValueAndModify(bool parseIntAsHex, DataType dataType, string text) {
-        bool hasHexPrefix = text.StartsWith("0x");
-        if (hasHexPrefix && !parseIntAsHex && dataType.IsInteger()) {
+
+    public static async Task<DataValueState?> TryParseTextAsDataValueAndModify(string input, DataType initialDataType, bool parseIntAsHex, bool canTryParseAsFloatOrDouble = true) {
+        bool bHasHexPrefix = input.StartsWith("0x");
+        if (!parseIntAsHex && bHasHexPrefix && initialDataType.IsInteger())
             parseIntAsHex = true;
+
+        bool bIsNumeric = initialDataType.IsNumeric();
+        bool bTryParseAsFloat = canTryParseAsFloatOrDouble && bIsNumeric && !bHasHexPrefix && input.EndsWith("f", StringComparison.OrdinalIgnoreCase);
+        bool bInputEndsWithD = input.EndsWith("d", StringComparison.OrdinalIgnoreCase);
+        bool bTryParseAsDouble = canTryParseAsFloatOrDouble && bIsNumeric && !bHasHexPrefix && (bInputEndsWithD || input.Contains('.'));
+        ValidationArgs mainArgs = new ValidationArgs(parseIntAsHex && bHasHexPrefix ? input.Substring(2) : input, [], false);
+        if (DataValueUtils.TryParseTextAsDataValue(mainArgs, initialDataType, parseIntAsHex ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal, StringType.ASCII, out IDataValue? value)) {
+            return new DataValueState(value, parseIntAsHex);
+        }
+        else if (bTryParseAsFloat && float.TryParse(input.AsSpan(0, input.Length - 1), out float floatValue)) {
+            return new DataValueState(new DataValueFloat(floatValue), false);
+        }
+        else if (bTryParseAsDouble && double.TryParse(input.AsSpan(0, input.Length - (bInputEndsWithD ? 1 : 0)), out double doubleValue)) {
+            return new DataValueState(new DataValueDouble(doubleValue), false);
         }
         else {
-            parseIntAsHex = false;
-        }
-        
-        ValidationArgs args = new ValidationArgs(parseIntAsHex && hasHexPrefix ? text.Substring(2) : text, [], false);
-        NumericDisplayType intNdt = parseIntAsHex ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
-        if (DataValueUtils.TryParseTextAsDataValue(args, dataType, intNdt, StringType.ASCII, out IDataValue? value)) {
-            return (value, parseIntAsHex);
-        }
-        else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid text", args.Errors.Count > 0 ? args.Errors[0] : "Could not parse value as " + dataType, defaultButton: MessageBoxResult.OK);
-            return (null, parseIntAsHex);
+            await IMessageDialogService.Instance.ShowMessage("Invalid text", mainArgs.Errors.Count > 0 ? mainArgs.Errors[0] : "Could not parse value as " + initialDataType, defaultButton: MessageBoxResult.OK);
+            return null;
         }
     }
 }

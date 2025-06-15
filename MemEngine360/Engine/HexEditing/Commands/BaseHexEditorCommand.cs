@@ -23,7 +23,7 @@ namespace MemEngine360.Engine.HexEditing.Commands;
 
 public abstract class BaseHexEditorCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IHexEditorUI.DataKey.TryGetContext(e.ContextData, out var view)) {
+        if (!IHexEditorUI.DataKey.TryGetContext(e.ContextData, out IHexEditorUI? view)) {
             return Executability.Invalid;
         }
 
@@ -31,7 +31,7 @@ public abstract class BaseHexEditorCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IHexEditorUI.DataKey.TryGetContext(e.ContextData, out var view)) {
+        if (!IHexEditorUI.DataKey.TryGetContext(e.ContextData, out IHexEditorUI? view)) {
             return;
         }
 

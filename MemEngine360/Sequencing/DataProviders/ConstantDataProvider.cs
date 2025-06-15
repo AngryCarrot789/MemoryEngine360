@@ -38,7 +38,13 @@ public sealed class ConstantDataProvider : DataValueProvider {
 
     public IDataValue? DataValue {
         get => this.dataValue;
-        set => PropertyHelper.SetAndRaiseINE(ref this.dataValue, value, this, static t => t.DataValueChanged?.Invoke(t));
+        set {
+            PropertyHelper.SetAndRaiseINE(ref this.dataValue, null, this, static t => t.DataValueChanged?.Invoke(t));
+            if (value != null) {
+                this.DataType = value.DataType;
+                PropertyHelper.SetAndRaiseINE(ref this.dataValue, value, this, static t => t.DataValueChanged?.Invoke(t));
+            }
+        }
     }
 
     public StringType StringType {

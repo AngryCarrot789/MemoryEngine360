@@ -50,6 +50,16 @@
                                        ToolTip.Tip="Open connection for the memory engine" DockPanel.Dock="Right"
                                        Icon="{x:Static cb:SimpleIcons.ConnectToConsoleIcon}"
                                        cu:CommandUsageManager.UsageClassType="{x:Type cmd:OpenConsoleConnectionInSequencerCommandUsage}"/>
+                        
+                        <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                                       ToolTip.Tip="Open an XML file containing task sequences" DockPanel.Dock="Right"
+                                       Icon="{x:Static cb:SimpleIcons.OpenFileXMLIcon}"
+                                       cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.LoadTaskSequencesCommand"/>
+                        <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                                       ToolTip.Tip="Save the selected sequences to an XML file" DockPanel.Dock="Right"
+                                       Icon="{x:Static cb:SimpleIcons.SaveFileIcon}"
+                                       cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.SaveTaskSequencesCommand"/>
+                        
                         <TextBlock Text="Sequences" VerticalAlignment="Center"/>
                     </DockPanel>
                 </c:GroupBox.Header>

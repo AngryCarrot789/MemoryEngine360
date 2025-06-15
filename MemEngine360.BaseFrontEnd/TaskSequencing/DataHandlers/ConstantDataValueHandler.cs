@@ -33,7 +33,7 @@ public delegate void ConstantDataValueHandlerParsingTextChangedEventHandler(Cons
 public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider> {
     private readonly TextBoxToEventPropertyBinder<ConstantDataValueHandler> valueBinder = new TextBoxToEventPropertyBinder<ConstantDataValueHandler>(nameof(ParsingTextChanged), (b) => b.Model.ParsingText, async (b, text) => {
         b.Model.isUpdatingProviderDataValue = true;
-        IDataValue? result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(b.Model, b.Model.DataType, text);
+        IDataValue? result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(text, b.Model.DataType, b.Model);
         if (result != null) {
             b.Model.Provider.DataValue = result;
         }

@@ -165,7 +165,7 @@ public static class DataValueUtils {
             }
             case DataType.String: return new DataValueString(args.Input, stringType);
             case DataType.ByteArray: {
-                if (!MemoryPattern.TryCompile(args.Input, out var pattern, false, out string? errorMessage)) {
+                if (!MemoryPattern.TryCompile(args.Input, out MemoryPattern pattern, false, out string? errorMessage)) {
                     args.Errors.Add(errorMessage);
                     break;
                 }

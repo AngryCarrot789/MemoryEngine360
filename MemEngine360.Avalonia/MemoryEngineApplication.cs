@@ -19,7 +19,10 @@
 
 using System;
 using System.Diagnostics;
+using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
+using System.Xml;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -42,8 +45,13 @@ using MemEngine360.Connections.Testing;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.HexEditing.Commands;
+using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Commands;
+using MemEngine360.Sequencing.Conditions;
+using MemEngine360.Sequencing.DataProviders;
+using MemEngine360.Sequencing.Operations;
+using MemEngine360.ValueAbstraction;
 using MemEngine360.Xbox360XBDM;
 using MemEngine360.Xbox360XDevkit;
 using MemEngine360.XboxBase;
@@ -60,6 +68,7 @@ using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Services;
 using PFXToolKitUI.Themes;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Avalonia;
 
@@ -136,6 +145,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.RunSequenceCommand", new RunSequenceCommand());
         manager.Register("commands.sequencer.ToggleOperationEnabledCommand", new ToggleOperationEnabledCommand());
         manager.Register("commands.sequencer.ToggleConditionEnabledCommand", new ToggleConditionEnabledCommand());
+        manager.Register("commands.sequencer.SaveTaskSequencesCommand", new SaveTaskSequencesCommand());
+        manager.Register("commands.sequencer.LoadTaskSequencesCommand", new LoadTaskSequencesCommand());
     }
 
     protected override void RegisterServices(ServiceManager manager) {
@@ -191,7 +202,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 #if DEBUG
         if (Debugger.IsAttached) {
             OpenConnectionView.Registry.RegisterType<TestConnectionInfo>(() => new OpenTestConnectionView());
-            
+
             ConsoleConnectionManager manager = Instance.ServiceManager.GetService<ConsoleConnectionManager>();
             manager.Register(ConnectionTypeDebugFile.TheID, ConnectionTypeDebugFile.Instance);
             manager.Register(ConnectionTypeTest.TheID, ConnectionTypeTest.Instance);
@@ -207,7 +218,108 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             themeManager.SetTheme(theme);
         }
 
+        RegisterTaskSequencerSerialization();
         return base.OnApplicationFullyLoaded();
+    }
+
+    private static void RegisterTaskSequencerSerialization() {
+        XmlTaskSequenceSerialization.RegisterCondition("CompareMemory", typeof(CompareMemoryCondition), (document, element, _cond) => {
+            CompareMemoryCondition condition = (CompareMemoryCondition) _cond;
+            element.SetAttribute("Address", condition.Address.ToString("X8"));
+            element.SetAttribute("CompareType", condition.CompareType.ToString());
+            element.SetAttribute("ParseIntInputAsHex", condition.ParseIntAsHex ? "true" : "false");
+            if (condition.CompareTo != null) {
+                XmlTaskSequenceSerialization.SerializeDataValue((XmlElement) element.AppendChild(document.CreateElement("CompareTo"))!, condition.CompareTo);
+            }
+        }, (element, _cond) => {
+            CompareMemoryCondition condition = (CompareMemoryCondition) _cond;
+            if (!uint.TryParse(element.GetAttribute("Address"), NumberStyles.HexNumber, null, out uint address))
+                throw new Exception("Invalid uint for address: " + element.GetAttribute("Address"));
+            if (!Enum.TryParse(element.GetAttribute("CompareType"), true, out CompareType compareType))
+                throw new Exception("Invalid CompareType: " + element.GetAttribute("CompareType"));
+            if (!bool.TryParse(element.GetAttribute("ParseIntInputAsHex"), out bool parseIntAsHex))
+                throw new Exception("Invalid bool for ParseIntInputAsHex: " + element.GetAttribute("ParseIntInputAsHex"));
+            condition.Address = address;
+            condition.CompareType = compareType;
+            condition.ParseIntAsHex = parseIntAsHex;
+            if (element.GetElementsByTagName("CompareTo").OfType<XmlElement>().FirstOrDefault() is XmlElement dataTypeElement)
+                condition.CompareTo = XmlTaskSequenceSerialization.DeserializeDataValue(dataTypeElement);
+        });
+
+        XmlTaskSequenceSerialization.RegisterOperation("Delay", typeof(DelayOperation), (document, element, _op) => {
+            DelayOperation op = (DelayOperation) _op;
+            element.SetAttribute("Delay", TimeSpanUtils.ConvertToString(op.Delay));
+        }, (element, _op) => {
+            DelayOperation op = (DelayOperation) _op;
+            if (!TimeSpanUtils.TryParseTime(element.GetAttribute("Delay"), out TimeSpan delay, out string? errorMessage))
+                throw new Exception($"Invalid delay value '{element.GetAttribute("Delay")}'. " + errorMessage);
+            op.Delay = delay;
+        });
+
+        XmlTaskSequenceSerialization.RegisterOperation("SetMemory", typeof(SetMemoryOperation), (document, element, _op) => {
+            SetMemoryOperation op = (SetMemoryOperation) _op;
+            element.SetAttribute("Address", op.Address.ToString("X8"));
+            element.SetAttribute("IterateCount", op.IterateCount.ToString());
+            if (op.DataValueProvider is ConstantDataProvider constProvider) {
+                XmlElement providerElement = (XmlElement) element.AppendChild(document.CreateElement("ConstantProvider"))!;
+                if (constProvider.DataValue is IDataValue value)
+                    XmlTaskSequenceSerialization.SerializeDataValue((XmlElement) providerElement.AppendChild(document.CreateElement("Value"))!, value);
+                providerElement.SetAttribute("DataType", constProvider.DataType.ToString());
+                providerElement.SetAttribute("ParseIntInputAsHex", constProvider.ParseIntAsHex ? "true" : "false");
+                providerElement.SetAttribute("AppendNullCharToString", constProvider.AppendNullCharToString ? "true" : "false");
+            }
+            else if (op.DataValueProvider is RandomNumberDataProvider randomProvider) {
+                XmlElement providerElement = (XmlElement) element.AppendChild(document.CreateElement("RandomProvider"))!;
+                if (randomProvider.Minimum is IDataValue minVal)
+                    XmlTaskSequenceSerialization.SerializeDataValue((XmlElement) providerElement.AppendChild(document.CreateElement("MinNumber"))!, minVal);
+                if (randomProvider.Maximum is IDataValue maxVal)
+                    XmlTaskSequenceSerialization.SerializeDataValue((XmlElement) providerElement.AppendChild(document.CreateElement("MaxNumber"))!, maxVal);
+                providerElement.SetAttribute("DataType", randomProvider.DataType.ToString());
+                providerElement.SetAttribute("ParseIntInputAsHex", randomProvider.ParseIntAsHex ? "true" : "false");
+                providerElement.SetAttribute("AppendNullCharToString", randomProvider.AppendNullCharToString ? "true" : "false");
+            }
+        }, (element, _op) => {
+            SetMemoryOperation op = (SetMemoryOperation) _op;
+            if (!uint.TryParse(element.GetAttribute("Address"), NumberStyles.HexNumber, null, out uint address))
+                throw new Exception("Invalid uint for address: " + element.GetAttribute("Address"));
+            if (!uint.TryParse(element.GetAttribute("IterateCount"), out uint itrCount))
+                throw new Exception("Invalid uint for iterate count: " + element.GetAttribute("IterateCount"));
+            op.Address = address;
+            op.IterateCount = itrCount;
+
+            if (element.GetElementsByTagName("ConstantProvider").OfType<XmlElement>().FirstOrDefault() is XmlElement constElement) {
+                if (!Enum.TryParse(constElement.GetAttribute("DataType"), true, out DataType dataType))
+                    throw new Exception("Invalid DataType: " + constElement.GetAttribute("DataType"));
+                if (!bool.TryParse(constElement.GetAttribute("ParseIntInputAsHex"), out bool parseIntInputAsHex))
+                    throw new Exception("Invalid bool for ParseIntInputAsHex: " + constElement.GetAttribute("ParseIntInputAsHex"));
+                if (!bool.TryParse(constElement.GetAttribute("AppendNullCharToString"), out bool appendNullCharToString))
+                    throw new Exception("Invalid bool for AppendNullCharToString: " + constElement.GetAttribute("AppendNullCharToString"));
+
+                ConstantDataProvider constProvider = (ConstantDataProvider) (op.DataValueProvider = new ConstantDataProvider());
+                constProvider.AppendNullCharToString = appendNullCharToString;
+                constProvider.ParseIntAsHex = parseIntInputAsHex;
+                constProvider.DataType = dataType;
+                if (constElement.GetElementsByTagName("Value").OfType<XmlElement>().FirstOrDefault() is XmlElement valueElement)
+                    constProvider.DataValue = XmlTaskSequenceSerialization.DeserializeDataValue(valueElement);
+            }
+            else if (element.GetElementsByTagName("RandomProvider").OfType<XmlElement>().FirstOrDefault() is XmlElement randElement) {
+                if (!Enum.TryParse(randElement.GetAttribute("DataType"), true, out DataType dataType))
+                    throw new Exception("Invalid DataType: " + randElement.GetAttribute("DataType"));
+                if (!bool.TryParse(randElement.GetAttribute("ParseIntInputAsHex"), out bool parseIntInputAsHex))
+                    throw new Exception("Invalid bool for ParseIntInputAsHex: " + randElement.GetAttribute("ParseIntInputAsHex"));
+                if (!bool.TryParse(randElement.GetAttribute("AppendNullCharToString"), out bool appendNullCharToString))
+                    throw new Exception("Invalid bool for AppendNullCharToString: " + randElement.GetAttribute("AppendNullCharToString"));
+
+                RandomNumberDataProvider randomProvider = (RandomNumberDataProvider) (op.DataValueProvider = new RandomNumberDataProvider());
+                randomProvider.AppendNullCharToString = appendNullCharToString;
+                randomProvider.ParseIntAsHex = parseIntInputAsHex;
+                randomProvider.DataType = dataType;
+                if (randElement.GetElementsByTagName("MinNumber").OfType<XmlElement>().FirstOrDefault() is XmlElement minElement)
+                    randomProvider.Minimum = (BaseNumericDataValue) XmlTaskSequenceSerialization.DeserializeDataValue(minElement);
+                if (randElement.GetElementsByTagName("MaxNumber").OfType<XmlElement>().FirstOrDefault() is XmlElement maxElement)
+                    randomProvider.Maximum = (BaseNumericDataValue) XmlTaskSequenceSerialization.DeserializeDataValue(maxElement);
+            }
+        });
     }
 
     protected override string? GetSolutionFileName() => "MemEngine.sln";
@@ -227,7 +339,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 // we don't have access to a windowing system, so the app would shut down.
                 return;
             }
-            
+
             await progress.ProgressAndSynchroniseAsync("Startup completed. Loading engine window...", 1.0);
             if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
                 EngineWindow view = new EngineWindow();
@@ -235,7 +347,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     (progress as SplashScreenWindow)?.Close();
                     desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
                 }
-                
+
                 system.Register(view, true);
                 view.Show();
 

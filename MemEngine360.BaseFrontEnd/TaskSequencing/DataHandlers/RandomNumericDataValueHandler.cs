@@ -33,7 +33,7 @@ public delegate void RandomDataValueHandlerEventHandler(RandomNumericDataValueHa
 public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDataProvider> {
     private readonly TextBoxToEventPropertyBinder<RandomNumericDataValueHandler> minimumBinder = new TextBoxToEventPropertyBinder<RandomNumericDataValueHandler>(nameof(ParsingMinimumTextChanged), (b) => b.Model.ParsingMinimumText, async (b, text) => {
         b.Model.isUpdatingProviderValues = true;
-        IDataValue? result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(b.Model, b.Model.DataType, text);
+        IDataValue? result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(text, b.Model.DataType, b.Model);
         if (result != null) {
             BaseNumericDataValue? max;
             BaseNumericDataValue? newValue = (BaseNumericDataValue?) result;
@@ -51,7 +51,7 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
 
     private readonly TextBoxToEventPropertyBinder<RandomNumericDataValueHandler> maximumBinder = new TextBoxToEventPropertyBinder<RandomNumericDataValueHandler>(nameof(ParsingMaximumTextChanged), (b) => b.Model.ParsingMaximumText, async (b, text) => {
         b.Model.isUpdatingProviderValues = true;
-        IDataValue? result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(b.Model, b.Model.DataType, text);
+        IDataValue? result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(text, b.Model.DataType, b.Model);
         if (result != null) {
             BaseNumericDataValue? min;
             BaseNumericDataValue? newValue = (BaseNumericDataValue?) result;
