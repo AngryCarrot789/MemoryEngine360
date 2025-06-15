@@ -47,7 +47,7 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
                 }
 
                 if (max != null && newMin.CompareTo(max) > 0) {
-                    newMin = max;
+                    b.Model.Provider.Maximum = newMin;
                 }
             }
 
@@ -56,6 +56,7 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
 
         b.Model.isUpdatingProviderValues = false;
         b.Model.UpdateTextFromMinimumValue();
+        b.Model.UpdateTextFromMaximumValue();
         return result != null;
     });
 
@@ -74,7 +75,7 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
                 }
                 
                 if (min != null && newMax.CompareTo(min) < 0) {
-                    newMax = min;
+                    b.Model.Provider.Minimum = newMax;
                 }
             }
 
@@ -83,6 +84,7 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
 
         b.Model.isUpdatingProviderValues = false;
         b.Model.UpdateTextFromMaximumValue();
+        b.Model.UpdateTextFromMinimumValue();
         return result != null;
     });
 

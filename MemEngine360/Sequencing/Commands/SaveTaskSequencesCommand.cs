@@ -42,7 +42,7 @@ public class SaveTaskSequencesCommand : Command {
             return;
         }
         
-        string? filePath = await IFilePickDialogService.Instance.SaveFile("Save the selected sequences to a file", Filters.XmlAndAll);
+        string? filePath = await IFilePickDialogService.Instance.SaveFile($"Save {items.Count} sequence{Lang.S(items.Count)} to a file", Filters.XmlAndAll);
         if (filePath == null) {
             return;
         }

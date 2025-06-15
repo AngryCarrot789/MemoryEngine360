@@ -21,22 +21,22 @@ using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Sequencing.Commands;
 
-public class StopSequenceCommand : Command {
+public class StopSelectedSequencesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? sequence))
+        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui))
             return Executability.Invalid;
 
-        return sequence.IsRunning ? Executability.Valid : Executability.ValidButCannotExecute;
+        return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? seq))
+        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui))
             return;
 
-        if (!seq.IsRunning)
-            return;
-        
-        seq.RequestCancellation();
-        await seq.WaitForCompletion();
+        List<TaskSequence> sequences = ui.SequenceSelectionManager.SelectedItemList.Select(x => x.TaskSequence).ToList();
+        foreach (TaskSequence seq in sequences)
+            seq.RequestCancellation();
+
+        await Task.WhenAll(sequences.Select(x => x.WaitForCompletion()));
     }
 }

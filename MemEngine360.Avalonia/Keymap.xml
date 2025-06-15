@@ -107,10 +107,16 @@
                 <KeyStroke Mods="CTRL" Key="D"/>
             </Shortcut>
             <Shortcut Name="RunSequence" CommandId="commands.sequencer.RunSequenceCommand">
-                <KeyStroke Key="F7"/>
-            </Shortcut>
-            <Shortcut Name="StopSequence" CommandId="commands.sequencer.StopSequenceCommand">
                 <KeyStroke Key="F5"/>
+            </Shortcut>
+            <Shortcut Name="StopSequence" CommandId="commands.sequencer.StopSelectedSequencesCommand">
+                <KeyStroke Key="F6"/>
+            </Shortcut>
+            <Shortcut Name="SaveTaskSequences" CommandId="commands.sequencer.SaveTaskSequencesCommand">
+                <KeyStroke Mods="CTRL" Key="S"/>
+            </Shortcut>
+            <Shortcut Name="LoadTaskSequences" CommandId="commands.sequencer.LoadTaskSequencesCommand">
+                <KeyStroke Mods="CTRL" Key="O"/>
             </Shortcut>
         </Group>
         <Group Name="OperationList" DisplayName="Operation List Box" Description="The list box of operations within a sequence">

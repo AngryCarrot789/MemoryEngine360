@@ -209,30 +209,39 @@ public sealed class TaskSequence {
         CancellationToken token = this.myCts.Token;
         await ActivityManager.Instance.RunTask(async () => {
             for (int count = this.runCount; (count < 0 || count != 0) && !token.IsCancellationRequested; --count) {
-                try {
-                    Task<bool> task = this.CanRunForConditions(token);
-                    bool wasCompletedSync = task.IsCompleted;
-                    bool result = await task;
-                    if (!result) {
-                        if (wasCompletedSync)
-                            // try save some CPU between iterations
-                            await Task.Yield();
-                        continue;
+                if (this.Conditions.Count > 0) {
+                    this.Progress.Text = "Checking conditions...";
+                    this.Progress.IsIndeterminate = true;
+                    
+                    try {
+                        Task<bool> task = this.CanRunForConditions(token);
+                        bool wasCompletedSync = task.IsCompleted;
+                        bool result = await task;
+                        if (!result) {
+                            if (wasCompletedSync)
+                                // try save some CPU between iterations
+                                await Task.Yield();
+                            continue;
+                        }
                     }
-                }
-                catch (OperationCanceledException) {
-                    return;
-                }
-                catch (Exception e) {
-                    this.LastException = e;
-                    return;
+                    catch (OperationCanceledException) {
+                        return;
+                    }
+                    catch (Exception e) {
+                        this.LastException = e;
+                        return;
+                    }
+                    
+                    this.Progress.IsIndeterminate = false;
                 }
 
+                this.Progress.Text = "Running operation(s)";
+                
                 // Save some CPU cycles
                 if (ops.Count < 1) {
                     await Task.Delay(25, token);
                 }
-
+                
                 foreach (BaseSequenceOperation operation in ops) {
                     if (operation.IsEnabled) {
                         try {
@@ -267,19 +276,13 @@ public sealed class TaskSequence {
         }
     }
 
-    // Don't use async here to squeeze some more performance out of cached completed task
-    // with true boolean, since the most likely case is no conditions are used.
-    // And anyway calling into CanRunForConditionsImpl has barely any extra overhead,
-    // or at least far less than the overhead of async return true if we didn't use an impl method
-    private Task<bool> CanRunForConditions(CancellationToken token) {
-        return this.Conditions.Count < 1 ? Task.FromResult(true) : this.CanRunForConditionsImpl(token);
-    }
-
-    private async Task<bool> CanRunForConditionsImpl(CancellationToken token) {
+    private async Task<bool> CanRunForConditions(CancellationToken token) {
         Dictionary<TypedAddress, IDataValue> cache = new Dictionary<TypedAddress, IDataValue>();
         bool isConditionMet = true;
         foreach (BaseSequenceCondition condition in this.Conditions) {
-            isConditionMet &= await condition.IsConditionMet(this.myContext!, cache, token);
+            if (condition.IsEnabled) {
+                isConditionMet &= await condition.IsConditionMet(this.myContext!, cache, token);
+            }
         }
 
         return isConditionMet;

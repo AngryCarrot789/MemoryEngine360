@@ -142,6 +142,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.EditConditionOutputModeCommand", new EditConditionOutputModeCommand());
         manager.Register("commands.sequencer.RenameSequenceCommand", new RenameSequenceCommand());
         manager.Register("commands.sequencer.StopSequenceCommand", new StopSequenceCommand());
+        manager.Register("commands.sequencer.StopSelectedSequencesCommand", new StopSelectedSequencesCommand());
         manager.Register("commands.sequencer.RunSequenceCommand", new RunSequenceCommand());
         manager.Register("commands.sequencer.ToggleOperationEnabledCommand", new ToggleOperationEnabledCommand());
         manager.Register("commands.sequencer.ToggleConditionEnabledCommand", new ToggleConditionEnabledCommand());
