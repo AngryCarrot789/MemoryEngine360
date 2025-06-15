@@ -100,6 +100,8 @@ public class HexEditorInfo : ITransferableData {
     
     public MemoryEngine MemoryEngine { get; }
 
+    public event EventHandler? RestartAutoRefresh;
+    
     public HexEditorInfo(MemoryEngine memoryEngine) {
         this.MemoryEngine = memoryEngine;
         this.TransferableData = new TransferableData(this);
@@ -116,4 +118,6 @@ public class HexEditorInfo : ITransferableData {
             this.inspectorEndianness = InspectorEndiannessParameter.GetDefaultValue(this);
         }
     }
+
+    public void RaiseRestartAutoRefresh() => this.RestartAutoRefresh?.Invoke(this, EventArgs.Empty);
 }

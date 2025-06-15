@@ -149,6 +149,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
     private uint actualStartAddress;
     private AutoRefreshTask? autoRefreshTask;
+    private bool flagRestartAutoRefresh;
 
     private MemoryBinaryDocument? myDocument;
 
@@ -703,14 +704,22 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         this.autoRefreshAddrBinder.SwitchModel(newData);
         this.autoRefreshLenBinder.SwitchModel(newData);
         if (oldData != null) {
+            oldData.RestartAutoRefresh -= this.OnRestartAutoRefresh;
             oldData.MemoryEngine.ConnectionAboutToChange -= this.OnConnectionAboutToChange;
             this.endiannessBinder.Detach();
         }
 
         if (newData != null) {
+            newData.RestartAutoRefresh += this.OnRestartAutoRefresh;
             newData.MemoryEngine.ConnectionAboutToChange += this.OnConnectionAboutToChange;
             this.endiannessBinder.Attach(newData);
             this.PART_CancelButton.Focus();
+        }
+    }
+
+    private void OnRestartAutoRefresh(object? sender, EventArgs e) {
+        if (this.autoRefreshTask != null && !this.autoRefreshTask.IsCompleted && this.autoRefreshTask.RequestCancellation()) {
+            this.flagRestartAutoRefresh = true;
         }
     }
 
@@ -896,6 +905,11 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 this.control.readAllCommand.RaiseCanExecuteChanged();
                 this.control.refreshDataCommand.RaiseCanExecuteChanged();
                 this.control.uploadDataCommand.RaiseCanExecuteChanged();
+
+                if (this.control.flagRestartAutoRefresh) {
+                    this.control.flagRestartAutoRefresh = false;
+                    this.control.runAutoRefreshCommand.Execute(null);
+                }
             });
         }
 

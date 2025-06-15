@@ -32,10 +32,17 @@ public class SetAutoScanRangeAsSelectionCommand : Command {
         if (!IHexEditorUI.DataKey.TryGetContext(e.ContextData, out IHexEditorUI? view)) {
             return Task.CompletedTask;
         }
-        
+
         BitRange selection = view.SelectionRange;
-        view.HexDisplayInfo!.AutoRefreshStartAddress = (uint) (view.CurrentStartOffset + selection.Start.ByteIndex);
-        view.HexDisplayInfo!.AutoRefreshLength = (uint) selection.ByteLength;
+
+        uint startAddr = (uint) (view.CurrentStartOffset + selection.Start.ByteIndex);
+        uint length = (uint) selection.ByteLength;
+
+        view.HexDisplayInfo!.AutoRefreshStartAddress = startAddr;
+        view.HexDisplayInfo!.AutoRefreshLength = length;
+
+        if (startAddr != 0 && length != 0)
+            view.HexDisplayInfo.RaiseRestartAutoRefresh();
 
         return Task.CompletedTask;
     }

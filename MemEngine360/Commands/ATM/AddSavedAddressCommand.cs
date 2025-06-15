@@ -38,12 +38,24 @@ public class AddSavedAddressCommand : Command {
         }
 
         uint initialAddress = 0;
+        AddressTableGroupEntry? targetParent = null;
         if (IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             IList<ScanResultViewModel> list = ui.ScanResultSelectionManager.SelectedItemList;
             if (list.Count > 0)
                 initialAddress = list[list.Count - 1].Address;
-        }
 
+            if (ui.AddressTableSelectionManager.Count == 1) {
+                BaseAddressTableEntry entry = ui.AddressTableSelectionManager.SelectedItemList[0].Entry;
+                if (entry is AddressTableGroupEntry) {
+                    targetParent = (AddressTableGroupEntry) entry;
+                }
+                else {
+                    targetParent = entry.Parent;
+                }
+            }
+        }
+        
+        targetParent ??= engine.AddressTableManager.RootEntry;
         DoubleUserInputInfo addrDescInfo = new DoubleUserInputInfo() {
             Caption = "Add address",
             LabelA = "Memory address (hex)",
@@ -84,7 +96,7 @@ public class AddSavedAddressCommand : Command {
                 result.StringLength = dataTypeInfo.StringLength;
                 result.ArrayLength = dataTypeInfo.ArrayLength;
                 result.DataType = dataTypeInfo.DataType;
-                engine.AddressTableManager.RootEntry.AddEntry(result);
+                targetParent.AddEntry(result);
                 engine.ScanningProcessor.RefreshSavedAddressesLater();
             }
         }
