@@ -274,7 +274,13 @@ public class ScanningProcessor {
 
     public bool ScanForAnyDataType {
         get => this.scanForAnyDataType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.scanForAnyDataType, value, this, static t => t.ScanForAnyDataTypeChanged?.Invoke(t));
+        set {
+            if (this.scanForAnyDataType != value) {
+                this.scanForAnyDataType = value;
+                this.ScanForAnyDataTypeChanged?.Invoke(this);
+                this.Alignment = value ? 1 : this.dataType.GetAlignmentFromDataType();
+            }
+        }
     }
 
     public NumericScanType NumericScanType {

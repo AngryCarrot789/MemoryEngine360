@@ -38,7 +38,8 @@ public class DeleteSelectedSavedAddressesCommand : Command {
 
         List<IAddressTableEntryUI> items = engine.AddressTableSelectionManager.SelectedItems.ToList();
         foreach (IAddressTableEntryUI entry in items) {
-            entry.Entry!.Parent?.RemoveEntry(entry.Entry!);
+            if (entry.IsValid)
+                entry.Entry.Parent?.RemoveEntry(entry.Entry);
         }
     }
 }

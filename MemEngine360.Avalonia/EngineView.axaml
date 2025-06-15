@@ -364,7 +364,7 @@
                                         BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                         Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                         cmdu:CommandUsageManager.UsageClassType="{x:Type ac:RefreshSavedAddressesCommandUsage}"
-                                        ToolTip.Tip="Refresh the values. This is done automatically every 2 seconds"/>
+                                        ToolTip.Tip="Manually refresh the scan results and saved addresses values"/>
                             </StackPanel>
                             <Border/>
                         </DockPanel>

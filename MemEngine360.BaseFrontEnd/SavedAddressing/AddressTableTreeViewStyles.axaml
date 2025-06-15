@@ -251,18 +251,18 @@
                                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,0,0,1" Height="22">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition SharedSizeGroup="ATTV_A" Width="125"/>
+                                            <ColumnDefinition SharedSizeGroup="ATTV_A" Width="280"/>
                                             <ColumnDefinition Width="0"/>
-                                            <ColumnDefinition SharedSizeGroup="ATTV_B" Width="250"/>
+                                            <ColumnDefinition SharedSizeGroup="ATTV_B" Width="80"/>
                                             <ColumnDefinition Width="0"/>
                                             <ColumnDefinition SharedSizeGroup="ATTV_C" Width="75"/>
                                             <ColumnDefinition Width="0"/>
-                                            <ColumnDefinition SharedSizeGroup="ATTV_D" Width="150"/>
+                                            <ColumnDefinition SharedSizeGroup="ATTV_D" Width="180"/>
                                             <ColumnDefinition Width="0"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Address" Grid.Column="0" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
-                                        <TextBlock Text="Description" Grid.Column="2" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
+                                        <TextBlock Text="Description" Grid.Column="0" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
+                                        <TextBlock Text="Address" Grid.Column="2" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
                                         <TextBlock Text="Data Type" Grid.Column="4" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
                                         <TextBlock Text="Value" Grid.Column="6" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
                                         <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="1" Width="1"/>
@@ -354,11 +354,11 @@
                                            Focusable="False">
                                         <StackPanel Orientation="Horizontal" Spacing="3">
                                             <ContentPresenter x:Name="PART_IconPresenter" IsVisible="False"/>
-                                            <TextBlock x:Name="PART_AddressTextBlock" Text="{TemplateBinding Header}" Margin="0,-1,0,0" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="PART_Description" Text="{TemplateBinding Header}" Margin="0,-1,0,0" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Panel>
                                 </Grid>
-                                <TextBlock Grid.Column="2" x:Name="PART_Description"
+                                <TextBlock Grid.Column="2" x:Name="PART_AddressTextBlock"
                                            Text="" Padding="4,1" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="4" x:Name="PART_DataTypeText"
                                            Text="" Padding="4,1" VerticalAlignment="Center"/>

@@ -36,4 +36,9 @@ public interface IAddressTableEntryUI {
     /// Gets or sets if this item is selected
     /// </summary>
     bool IsSelected { get; set; }
+
+    /// <summary>
+    /// Gets whether the entry exists in the UI
+    /// </summary>
+    bool IsValid { get; }
 }

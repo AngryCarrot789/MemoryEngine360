@@ -44,16 +44,16 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         private set => this.SetAndRaise(IsFolderItemProperty, ref this.isFolderItem, value);
     }
 
-    private readonly IBinder<BaseAddressTableEntry> descriptionBinder = new EventPropertyBinder<BaseAddressTableEntry>(nameof(BaseAddressTableEntry.DescriptionChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.Description));
+    private readonly IBinder<BaseAddressTableEntry> descriptionBinder = new EventPropertyBinder<BaseAddressTableEntry>(nameof(BaseAddressTableEntry.DescriptionChanged), b => b.Control.SetValue(HeaderProperty, b.Model.Description));
 
     private readonly IBinder<AddressTableGroupEntry> groupAddressBinder = new EventPropertyBinder<AddressTableGroupEntry>(nameof(AddressTableGroupEntry.GroupAddressChanged), b => {
         uint addr = b.Model.GroupAddress;
         bool abs = b.Model.IsAddressAbsolute;
-        b.Control.SetValue(HeaderProperty, addr == 0 ? "Group" : $"{(abs ? "" : "+") + addr.ToString(abs ? "X8" : "X")}");
+        b.Control.SetValue(TextBlock.TextProperty, addr == 0 && abs ? "" : $"{(abs ? "" : "+") + addr.ToString(abs ? "X8" : "X")}");
     });
 
     private readonly IBinder<AddressTableEntry> entryAddressBinder = new EventPropertyBinder<AddressTableEntry>(nameof(AddressTableEntry.AddressChanged), b => {
-        b.Control.SetValue(HeaderProperty, (b.Model.IsAddressAbsolute ? "" : "+") + b.Model.Address.ToString(b.Model.IsAddressAbsolute ? "X8" : "X"));
+        b.Control.SetValue(TextBlock.TextProperty, (b.Model.IsAddressAbsolute ? "" : "+") + b.Model.Address.ToString(b.Model.IsAddressAbsolute ? "X8" : "X"));
     });
 
     private readonly IBinder<AddressTableEntry> dataTypeTextBinder = new EventPropertyBinder<AddressTableEntry>(nameof(AddressTableEntry.DataTypeChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.DataType.ToString()));
@@ -67,13 +67,15 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     private TextBlock? PART_DataTypeText;
     private TextBlock? PART_ValueText;
 
-    private readonly DataManagerCommandWrapper EditDescriptionCommand, EditDataTypeCommand;
+    private readonly DataManagerCommandWrapper EditAddressCommand, EditDataTypeCommand;
 
     BaseAddressTableEntry IAddressTableEntryUI.Entry => this.EntryObject ?? throw new Exception("Not connected to an entry");
 
+    bool IAddressTableEntryUI.IsValid => this.EntryObject != null;
+
     public AddressTableTreeViewItem() {
         DataManager.GetContextData(this).Set(IAddressTableEntryUI.DataKey, this);
-        this.EditDescriptionCommand = new DataManagerCommandWrapper(this, "commands.memengine.EditSavedAddressDescriptionCommand", false);
+        this.EditAddressCommand = new DataManagerCommandWrapper(this, "commands.memengine.EditSavedAddressAddressCommand", false);
         this.EditDataTypeCommand = new DataManagerCommandWrapper(this, "commands.memengine.EditSavedAddressDataTypeCommand", false);
     }
 
@@ -83,16 +85,27 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
         base.OnApplyTemplate(e);
         this.PART_DragDropMoveBorder = e.NameScope.GetTemplateChild<Border>(nameof(this.PART_DragDropMoveBorder));
-        this.PART_AddressTextBlock = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_AddressTextBlock));
         this.PART_Description = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_Description));
-        this.PART_Description.DoubleTapped += (s, args) => this.EditDescriptionCommand.Execute(null);
         this.PART_DataTypeText = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_DataTypeText));
-        this.PART_DataTypeText.DoubleTapped += (s, args) => this.EditDataTypeCommand.Execute(null);
+        this.PART_AddressTextBlock = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_AddressTextBlock));
         this.PART_ValueText = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_ValueText));
+        
+        // Handle pointer press on double or more click, so that it doesn't expand/collapse this tree item
+        this.PART_AddressTextBlock.DoubleTapped += (s, args) => this.EditAddressCommand.Execute(null);
+        this.PART_AddressTextBlock.PointerPressed += (s, args) => {
+            if (args.ClickCount > 1)
+                args.Handled = true;
+        };
+        
+        this.PART_DataTypeText.DoubleTapped += (s, args) => this.EditDataTypeCommand.Execute(null);
+        this.PART_DataTypeText.PointerPressed += (s, args) => {
+            if (args.ClickCount > 1)
+                args.Handled = true;
+        };
 
-        this.descriptionBinder.AttachControl(this.PART_Description);
-        this.groupAddressBinder.AttachControl(this);
-        this.entryAddressBinder.AttachControl(this);
+        this.descriptionBinder.AttachControl(this);
+        this.groupAddressBinder.AttachControl(this.PART_AddressTextBlock);
+        this.entryAddressBinder.AttachControl(this.PART_AddressTextBlock);
         this.dataTypeTextBinder.AttachControl(this.PART_DataTypeText);
         this.valueTextBinder.AttachControl(this.PART_ValueText);
     }
@@ -255,24 +268,25 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     }
 }
 
-public class AddressTableContextRegistry {
+public static class AddressTableContextRegistry {
     public static readonly ContextRegistry Registry = new ContextRegistry("Saved Address Entry");
 
     static AddressTableContextRegistry() {
         FixedContextGroup modEdit = Registry.GetFixedGroup("modify.edit");
-        modEdit.AddHeader("Edit");
-        modEdit.AddCommand("commands.memengine.EditSavedAddressAddressCommand", "Edit Address");
-        modEdit.AddCommand("commands.memengine.EditSavedAddressValueCommand", "Edit Value");
-        modEdit.AddCommand("commands.memengine.EditSavedAddressDataTypeCommand", "Edit Data Type");
-        modEdit.AddCommand("commands.memengine.EditSavedAddressDescriptionCommand", "Edit Description");
-
         FixedContextGroup modGeneric = Registry.GetFixedGroup("modify.general");
         modGeneric.AddHeader("General");
         modGeneric.AddCommand("commands.memengine.CopyAbsoluteAddressToClipboardCommand", "Copy Absolute Address");
         modGeneric.AddCommand("commands.memengine.CopySavedAddressInDialogCommand", "Copy (in dialog)");
         modGeneric.AddCommand("commands.memengine.RefreshSavedAddressesCommand", "Refresh");
-        modGeneric.AddCommand("commands.memengine.DeleteSelectedSavedAddressesCommand", "Delete");
+        modGeneric.AddCommand("commands.meengine.ToggleSavedAddressAutoRefreshCommand", "Toggle Enabled");
+        modGeneric.AddSeparator();
         modGeneric.AddCommand("commands.memengine.GroupEntriesCommand", "Group");
-        modGeneric.AddCommand("commands.memengine.ToggleSavedAddressAutoRefreshCommand", "Toggle Enabled");
+        modGeneric.AddCommand("commands.memengine.DeleteSelectedSavedAddressesCommand", "Delete");
+        
+        modEdit.AddHeader("Modify");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressAddressCommand", "Edit Address");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressValueCommand", "Edit Value");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressDataTypeCommand", "Edit Data Type");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressDescriptionCommand", "Edit Description");
     }
 }
