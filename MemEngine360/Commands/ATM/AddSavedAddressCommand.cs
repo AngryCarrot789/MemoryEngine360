@@ -82,6 +82,7 @@ public class AddSavedAddressCommand : Command {
 
                 result.StringType = dataTypeInfo.StringScanOption;
                 result.StringLength = dataTypeInfo.StringLength;
+                result.ArrayLength = dataTypeInfo.ArrayLength;
                 result.DataType = dataTypeInfo.DataType;
                 engine.AddressTableManager.RootEntry.AddEntry(result);
                 engine.ScanningProcessor.RefreshSavedAddressesLater();

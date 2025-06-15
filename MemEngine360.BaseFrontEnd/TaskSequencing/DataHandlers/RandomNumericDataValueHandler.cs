@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Text;
 using Avalonia.Controls;
 using MemEngine360.BaseFrontEnd.Utils;
 using MemEngine360.Engine;
@@ -36,12 +37,21 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
         IDataValue? result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(text, b.Model.DataType, b.Model);
         if (result != null) {
             BaseNumericDataValue? max;
-            BaseNumericDataValue? newValue = (BaseNumericDataValue?) result;
-            if (newValue != null && (max = b.Model.Provider.Maximum) != null && newValue.CompareTo(max) > 0) {
-                newValue = max;
+            BaseNumericDataValue? newMin = (BaseNumericDataValue?) result;
+            if (newMin != null && (max = b.Model.Provider.Maximum) != null) {
+                if (max.DataType != newMin.DataType) {
+                    b.Model.Provider.Maximum = null;
+                    b.Model.Provider.Minimum = null;
+                    b.Model.Provider.DataType = newMin.DataType;
+                    b.Model.Provider.Maximum = max = (BaseNumericDataValue?) IDataValue.TryConvertDataValue(max, newMin.DataType, StringType.ASCII);
+                }
+
+                if (max != null && newMin.CompareTo(max) > 0) {
+                    newMin = max;
+                }
             }
 
-            b.Model.Provider.Minimum = newValue;
+            b.Model.Provider.Minimum = newMin;
         }
 
         b.Model.isUpdatingProviderValues = false;
@@ -54,12 +64,21 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
         IDataValue? result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(text, b.Model.DataType, b.Model);
         if (result != null) {
             BaseNumericDataValue? min;
-            BaseNumericDataValue? newValue = (BaseNumericDataValue?) result;
-            if (newValue != null && (min = b.Model.Provider.Minimum) != null && newValue.CompareTo(min) < 0) {
-                newValue = min;
+            BaseNumericDataValue? newMax = (BaseNumericDataValue?) result;
+            if (newMax != null && (min = b.Model.Provider.Minimum) != null) {
+                if (min.DataType != newMax.DataType) {
+                    b.Model.Provider.Maximum = null;
+                    b.Model.Provider.Minimum = null;
+                    b.Model.Provider.DataType = newMax.DataType;
+                    b.Model.Provider.Minimum = min = (BaseNumericDataValue?) IDataValue.TryConvertDataValue(min, newMax.DataType, StringType.ASCII);
+                }
+                
+                if (min != null && newMax.CompareTo(min) < 0) {
+                    newMax = min;
+                }
             }
 
-            b.Model.Provider.Maximum = newValue;
+            b.Model.Provider.Maximum = newMax;
         }
 
         b.Model.isUpdatingProviderValues = false;
@@ -90,7 +109,7 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
         this.PART_Minimum = partMinimum;
         this.PART_Maximum = partMaximum;
     }
-    
+
     protected override void OnParseIntAsHexChanged() {
         base.OnParseIntAsHexChanged();
         if (this.IsConnected) {
@@ -172,7 +191,7 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
             this.UpdateTextFromMaximumValue();
         }
     }
-    
+
     protected override void OnDataTypeChanged() {
         base.OnDataTypeChanged();
         this.Provider.DataType = this.DataType;

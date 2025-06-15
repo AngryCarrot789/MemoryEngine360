@@ -483,7 +483,7 @@
             </c:GroupBox>
 
             <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="1"/>
-            <GridSplitter Grid.Column="1" Margin="-2,0,-8,0" Background="Transparent" Cursor="SizeWestEast"/>
+            <local:GridSplitterNonHitListBoxItem Grid.Column="1" Margin="-5,0,-8,0" Background="Transparent" Cursor="SizeWestEast"/>
         </Grid>
     </Border>
 </w:DesktopWindow>

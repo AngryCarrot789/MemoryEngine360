@@ -18,7 +18,6 @@
 // 
 
 using System.Text;
-using MemEngine360.Commands.ATM.XML;
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
@@ -27,7 +26,7 @@ using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
-namespace MemEngine360.Commands.ATM;
+namespace MemEngine360.Commands.ATM.XML;
 
 public class SaveSavedAddressesToFileCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
@@ -37,7 +36,7 @@ public class SaveSavedAddressesToFileCommand : Command {
 
         return Executability.Valid;
     }
-
+    
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return;

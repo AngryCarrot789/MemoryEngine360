@@ -32,6 +32,7 @@ namespace MemEngine360.BaseFrontEnd.Services;
 
 public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IUserInputContent {
     public static readonly StyledProperty<int> StringLengthProperty = AvaloniaProperty.Register<SavedResultDataTypeEditorUserInputControl, int>(nameof(StringLength));
+    public static readonly StyledProperty<int> ArrayLengthProperty = AvaloniaProperty.Register<SavedResultDataTypeEditorUserInputControl, int>(nameof(ArrayLength));
 
     private UserInputDialogView? myDialog;
     private SavedResultDataTypeUserInputInfo? myData;
@@ -46,6 +47,11 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
     public int StringLength {
         get => this.GetValue(StringLengthProperty);
         set => this.SetValue(StringLengthProperty, value);
+    }
+
+    public int ArrayLength {
+        get => this.GetValue(ArrayLengthProperty);
+        set => this.SetValue(ArrayLengthProperty, value);
     }
 
     public SavedResultDataTypeEditorUserInputControl() {
@@ -65,9 +71,9 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
                 case DataType.Double:
                     ((TabControl) b.Control).SelectedIndex = 0;
                     break;
-                case DataType.String:  ((TabControl) b.Control).SelectedIndex = 1; break;
+                case DataType.String:    ((TabControl) b.Control).SelectedIndex = 1; break;
                 case DataType.ByteArray: ((TabControl) b.Control).SelectedIndex = 2; break;
-                default:               throw new ArgumentOutOfRangeException();
+                default:                 throw new ArgumentOutOfRangeException();
             }
         }, (b) => {
             switch (((TabControl) b.Control).SelectedIndex) {
@@ -80,8 +86,13 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) {
         base.OnPropertyChanged(change);
-        if (change.Property == StringLengthProperty && this.myData != null) {
-            this.myData.StringLength = ((AvaloniaPropertyChangedEventArgs<int>) change).NewValue.GetValueOrDefault();
+        if (this.myData != null) {
+            if (change.Property == StringLengthProperty) {
+                this.myData.StringLength = ((AvaloniaPropertyChangedEventArgs<int>) change).NewValue.GetValueOrDefault();
+            }
+            else if (change.Property == ArrayLengthProperty) {
+                this.myData.ArrayLength = ((AvaloniaPropertyChangedEventArgs<int>) change).NewValue.GetValueOrDefault();
+            }
         }
     }
 
@@ -91,12 +102,14 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
         this.lastNumericDataType = this.myData.DataType;
         this.myData.DataTypeChanged += this.MyDataOnDataTypeChanged;
         this.myData.StringLengthChanged += this.MyDataOnStringLengthChanged;
+        this.myData.ArrayLengthChanged += this.MyDataOnArrayLengthChanged;
         this.selectedTabIndexBinder.Attach(this.PART_TabControl, this.myData);
         this.dataTypeBinder.Attach(this.PART_DataTypeComboBox, this.myData);
         this.displayAsHexBinder.Attach(this.PART_DisplayAsHex, this.myData);
         this.displayAsUnsignedBinder.Attach(this.PART_DisplayAsUnsigned, this.myData);
         this.stringScanModeBinder.Attach(this.myData);
         this.StringLength = this.myData.StringLength;
+        this.ArrayLength = this.myData.ArrayLength;
     }
 
     private void MyDataOnDataTypeChanged(SavedResultDataTypeUserInputInfo sender) {
@@ -105,12 +118,13 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
         }
     }
 
-    private void MyDataOnStringLengthChanged(SavedResultDataTypeUserInputInfo sender) {
-        this.StringLength = sender.StringLength;
-    }
+    private void MyDataOnStringLengthChanged(SavedResultDataTypeUserInputInfo sender) => this.StringLength = sender.StringLength;
+
+    private void MyDataOnArrayLengthChanged(SavedResultDataTypeUserInputInfo sender) => this.ArrayLength = sender.ArrayLength;
 
     public void Disconnect() {
         this.myData!.StringLengthChanged -= this.MyDataOnStringLengthChanged;
+        this.myData!.ArrayLengthChanged -= this.MyDataOnArrayLengthChanged;
         this.myData!.DataTypeChanged -= this.MyDataOnDataTypeChanged;
         this.selectedTabIndexBinder.Detach();
         this.dataTypeBinder.Detach();

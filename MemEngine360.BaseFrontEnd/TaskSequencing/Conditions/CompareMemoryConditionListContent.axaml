@@ -6,7 +6,8 @@
                             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="30"
                             x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Conditions.CompareMemoryConditionListContent">
     <StackPanel Orientation="Horizontal">
-        <Ellipse x:Name="PART_IsConditionMetEllipse" Width="6" Height="6" VerticalAlignment="Center" Stroke="Black" StrokeThickness="1"/>
+        <Ellipse x:Name="PART_IsConditionMetEllipse" Width="6" Height="6" VerticalAlignment="Center" Stroke="Black" StrokeThickness="1"
+                 ToolTip.Tip="Indicates if the condition is currently met. Fades to black when no longer met"/>
         <TextBlock Text="Compare Value At" FontFamily="{StaticResource FontOxanium}" FontWeight="Medium" VerticalAlignment="Center" Padding="4,0"/>
         <TextBox x:Name="PART_AddressTextBox" VerticalContentAlignment="Center"
                  Padding="4,2" Width="105"

@@ -146,6 +146,10 @@ public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider
     }
 
     public void TryUpdateProviderValueWithConvertedValue() {
+        if (this.isUpdatingProviderDataValue) {
+            return;
+        }
+        
         if (this.IsConnected) {
             lock (this.Provider.Lock) {
                 this.isUpdatingProviderDataValue = true;

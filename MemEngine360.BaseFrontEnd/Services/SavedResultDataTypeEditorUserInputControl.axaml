@@ -35,6 +35,13 @@
                 </StackPanel>
             </TabItem>
             <TabItem Header="Pattern">
+                <StackPanel Margin="3">
+                    <DockPanel>
+                        <TextBlock Text="Length: " DockPanel.Dock="Left" VerticalAlignment="Center" Padding="2,0,4,0"/>
+                        <TextBox x:Name="PART_ArrayLength" VerticalAlignment="Center"
+                                 Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type services:SavedResultDataTypeEditorUserInputControl}}, Path=ArrayLength, Mode=TwoWay}"/>
+                    </DockPanel>
+                </StackPanel>
             </TabItem>
         </TabControl>
     </Grid>

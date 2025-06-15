@@ -67,13 +67,12 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     private TextBlock? PART_DataTypeText;
     private TextBlock? PART_ValueText;
 
-    private readonly DataManagerCommandWrapper EditAddressCommand, EditDescriptionCommand, EditDataTypeCommand;
+    private readonly DataManagerCommandWrapper EditDescriptionCommand, EditDataTypeCommand;
 
     BaseAddressTableEntry IAddressTableEntryUI.Entry => this.EntryObject ?? throw new Exception("Not connected to an entry");
 
     public AddressTableTreeViewItem() {
         DataManager.GetContextData(this).Set(IAddressTableEntryUI.DataKey, this);
-        this.EditAddressCommand = new DataManagerCommandWrapper(this, "commands.memengine.EditSavedAddressAddressCommand", false);
         this.EditDescriptionCommand = new DataManagerCommandWrapper(this, "commands.memengine.EditSavedAddressDescriptionCommand", false);
         this.EditDataTypeCommand = new DataManagerCommandWrapper(this, "commands.memengine.EditSavedAddressDataTypeCommand", false);
     }
@@ -85,7 +84,6 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         base.OnApplyTemplate(e);
         this.PART_DragDropMoveBorder = e.NameScope.GetTemplateChild<Border>(nameof(this.PART_DragDropMoveBorder));
         this.PART_AddressTextBlock = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_AddressTextBlock));
-        this.PART_AddressTextBlock.DoubleTapped += (s, args) => this.EditAddressCommand.Execute(null);
         this.PART_Description = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_Description));
         this.PART_Description.DoubleTapped += (s, args) => this.EditDescriptionCommand.Execute(null);
         this.PART_DataTypeText = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_DataTypeText));
@@ -271,7 +269,7 @@ public class AddressTableContextRegistry {
         FixedContextGroup modGeneric = Registry.GetFixedGroup("modify.general");
         modGeneric.AddHeader("General");
         modGeneric.AddCommand("commands.memengine.CopyAbsoluteAddressToClipboardCommand", "Copy Absolute Address");
-        modGeneric.AddCommand("commands.memengine.CopyAddressTableEntryToClipboard", "Copy (as dialog)");
+        modGeneric.AddCommand("commands.memengine.CopySavedAddressInDialogCommand", "Copy (in dialog)");
         modGeneric.AddCommand("commands.memengine.RefreshSavedAddressesCommand", "Refresh");
         modGeneric.AddCommand("commands.memengine.DeleteSelectedSavedAddressesCommand", "Delete");
         modGeneric.AddCommand("commands.memengine.GroupEntriesCommand", "Group");

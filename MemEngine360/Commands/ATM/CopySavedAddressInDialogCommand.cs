@@ -25,7 +25,7 @@ using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Commands.ATM;
 
-public class CopyAddressTableEntryToClipboardCommand : Command {
+public class CopySavedAddressInDialogCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         return e.ContextData.ContainsKey(IEngineUI.EngineUIDataKey) ? Executability.Valid : Executability.Invalid;
     }

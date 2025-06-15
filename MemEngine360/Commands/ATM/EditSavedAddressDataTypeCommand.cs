@@ -62,6 +62,7 @@ public class EditSavedAddressDataTypeCommand : Command {
             
             saved.StringType = info.StringScanOption;
             saved.StringLength = info.StringLength;
+            saved.ArrayLength = info.ArrayLength;
             saved.DataType = info.DataType;
             saved.ScanningProcessor.RefreshSavedAddressesLater();
         }
@@ -73,7 +74,7 @@ public delegate void SavedResultDataTypeUserInputInfoEventHandler(SavedResultDat
 public class SavedResultDataTypeUserInputInfo : UserInputInfo {
     private DataType dataType;
     private StringType stringScanOption;
-    private int stringLength;
+    private int stringLength, arrayLength;
     private bool displayAsHex, displayAsSigned;
 
     public DataType DataType {
@@ -89,6 +90,11 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
     public int StringLength {
         get => this.stringLength;
         set => PropertyHelper.SetAndRaiseINE(ref this.stringLength, value, this, static t => t.StringLengthChanged?.Invoke(t));
+    }
+    
+    public int ArrayLength {
+        get => this.arrayLength;
+        set => PropertyHelper.SetAndRaiseINE(ref this.arrayLength, value, this, static t => t.ArrayLengthChanged?.Invoke(t));
     }
 
     public bool DisplayAsHex {
@@ -122,6 +128,7 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
     public event SavedResultDataTypeUserInputInfoEventHandler? DataTypeChanged;
     public event SavedResultDataTypeUserInputInfoEventHandler? StringScanOptionChanged;
     public event SavedResultDataTypeUserInputInfoEventHandler? StringLengthChanged;
+    public event SavedResultDataTypeUserInputInfoEventHandler? ArrayLengthChanged;
     public event SavedResultDataTypeUserInputInfoEventHandler? DisplayAsHexChanged;
     public event SavedResultDataTypeUserInputInfoEventHandler? DisplayAsUnsignedChanged;
 
@@ -130,6 +137,7 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
 
     public SavedResultDataTypeUserInputInfo(AddressTableEntry result) {
         this.stringLength = result.StringLength;
+        this.arrayLength = result.ArrayLength;
         this.displayAsHex = result.NumericDisplayType == NumericDisplayType.Hexadecimal;
         this.displayAsSigned = result.NumericDisplayType == NumericDisplayType.Unsigned;
         this.dataType = result.DataType;

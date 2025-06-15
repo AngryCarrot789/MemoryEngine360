@@ -24,8 +24,14 @@
                     <KeyStroke Key="Space"/>
                 </Shortcut>
             </Group>
+            <Shortcut Name="EditSavedAddressAddress" CommandId="commands.memengine.EditSavedAddressAddressCommand">
+                <KeyStroke Mods="CTRL" Key="W"/>
+            </Shortcut>
             <Shortcut Name="EditSavedAddressValue" CommandId="commands.memengine.EditSavedAddressValueCommand">
                 <KeyStroke Mods="CTRL" Key="E"/>
+            </Shortcut>
+            <Shortcut Name="EditSavedAddressDataType" CommandId="commands.memengine.EditSavedAddressDataTypeCommand">
+                <KeyStroke Mods="CTRL" Key="T"/>
             </Shortcut>
             <Shortcut Name="ChangeDescription1" CommandId="commands.memengine.EditSavedAddressDescriptionCommand">
                 <KeyStroke Key="F2"/>
@@ -33,7 +39,10 @@
             <Shortcut Name="ChangeDescription2" CommandId="commands.memengine.EditSavedAddressDescriptionCommand">
                 <KeyStroke Mods="CTRL" Key="R"/>
             </Shortcut>
-            <Shortcut Name="CopyResultsToClipboardCSV" CommandId="commands.memengine.CopyAddressTableEntryToClipboard">
+            <Shortcut Name="CopyResultsToClipboardCSV" CommandId="commands.memengine.CopySavedAddressInDialogCommand">
+                <KeyStroke Mods="CTRL+ALT" Key="C"/>
+            </Shortcut>
+            <Shortcut Name="CopyAbsoluteAddressToClipboard" CommandId="commands.memengine.CopyAbsoluteAddressToClipboardCommand">
                 <KeyStroke Mods="CTRL" Key="C"/>
             </Shortcut>
             <Shortcut Name="DeleteSelections" CommandId="commands.memengine.DeleteSelectedSavedAddressesCommand">

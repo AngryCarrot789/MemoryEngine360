@@ -81,24 +81,10 @@ public class AddSelectedScanResultsToSavedAddressListCommandUsage : EngineUIButt
     }
 }
 
-public class SelectRangeFromRegionCommandUsage : EngineConnectionReliantButtonCommandUsage {
-    public SelectRangeFromRegionCommandUsage() : base("commands.memengine.SelectRangeFromMemoryRegionCommand") {
-    }
+public class SelectRangeFromRegionCommandUsage() : EngineConnectionReliantButtonCommandUsage("commands.memengine.SelectRangeFromMemoryRegionCommand");
+public class ShowCommandUsage() : EngineConnectionReliantButtonCommandUsage("commands.memengine.ShowMemoryCommand");
 
-    protected override void OnUpdateForCanExecuteState(Executability state) {
-        base.OnUpdateForCanExecuteState(state);
-        this.Button.IsVisible = state != Executability.Invalid;
-    }
-}
-public class ShowCommandUsage : EngineConnectionReliantButtonCommandUsage {
-    public ShowCommandUsage() : base("commands.memengine.ShowMemoryCommand") {
-    }
-}
-
-public class ResetScanOptionsCommandUsage : EngineConnectionReliantButtonCommandUsage {
-    public ResetScanOptionsCommandUsage() : base("commands.memengine.ResetScanOptionsCommand") {
-    }
-
+public class ResetScanOptionsCommandUsage() : EngineConnectionReliantButtonCommandUsage("commands.memengine.ResetScanOptionsCommand") {
     protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine) {
         base.OnEngineChanged(oldEngine, newEngine);
         if (oldEngine != null)
