@@ -38,6 +38,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public static readonly PersistentProperty<uint> AutoRefreshUpdatesPerSecondProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("AutoRefreshUpdatesPerSecond", defaultValue: 12, owner => owner.autoRefreshUpdatesPerSecond, (x, y) => x.autoRefreshUpdatesPerSecond = Math.Clamp(y, 1, 20), false);
     public static readonly PersistentProperty<uint> MaxRowsBeforeDisableAutoRefreshProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("MaxRowsBeforeDisableAutoRefresh", defaultValue: 400, owner => owner.maxRowsBeforeDisableAutoRefresh, (x, y) => x.maxRowsBeforeDisableAutoRefresh = y, false);
     public static readonly PersistentProperty<bool> IsAutoRefreshResultsEnabledProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("IsAutoRefreshResultsEnabled", defaultValue: true, owner => owner.isAutoRefreshResultsEnabled, (x, y) => x.isAutoRefreshResultsEnabled = y, false);
+    public static readonly PersistentProperty<bool> UseNaNInfProtectionProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("UseNaNInfProtection", defaultValue: true, owner => owner.useNaNInfProtection, (x, y) => x.useNaNInfProtection = y, false);
     public static readonly PersistentProperty<double> FloatingPointEpsilonProperty = PersistentProperty.RegisterParsable<double, BasicApplicationConfiguration>("FloatingPointEpsilon", defaultValue: 0.00001D, owner => owner.floatingPointEpsilon, (x, y) => x.floatingPointEpsilon = Math.Clamp(y, 0, 0.9999D), false);
 
     public static BasicApplicationConfiguration Instance => ApplicationPFX.Instance.PersistentStorageManager.GetConfiguration<BasicApplicationConfiguration>();
@@ -56,6 +57,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     private uint autoRefreshUpdatesPerSecond = AutoRefreshUpdatesPerSecondProperty.DefaultValue;
     private uint maxRowsBeforeDisableAutoRefresh = MaxRowsBeforeDisableAutoRefreshProperty.DefaultValue;
     private bool isAutoRefreshResultsEnabled = IsAutoRefreshResultsEnabledProperty.DefaultValue;
+    private bool useNaNInfProtection = UseNaNInfProtectionProperty.DefaultValue;
     private double floatingPointEpsilon = FloatingPointEpsilonProperty.DefaultValue;
 
     /// <summary>
@@ -136,6 +138,11 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public bool IsAutoRefreshResultsEnabled {
         get => IsAutoRefreshResultsEnabledProperty.GetValue(this);
         set => IsAutoRefreshResultsEnabledProperty.SetValue(this, value);
+    }
+    
+    public bool UseNaNInfProtection {
+        get => UseNaNInfProtectionProperty.GetValue(this);
+        set => UseNaNInfProtectionProperty.SetValue(this, value);
     }
     
     public double FloatingPointEpsilon {

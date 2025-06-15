@@ -17,8 +17,11 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using MemEngine360.Configs;
+using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.ValueAbstraction;
@@ -27,6 +30,7 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Sequencing.Operations;
 
 public delegate void SetVariableOperationEventHandler(SetMemoryOperation sender);
+
 public delegate void SetVariableOperationDataValueProviderChangedEventHandler(SetMemoryOperation sender, DataValueProvider? oldProvider, DataValueProvider? newProvider);
 
 /// <summary>
@@ -36,7 +40,8 @@ public class SetMemoryOperation : BaseSequenceOperation {
     private uint address;
     private DataValueProvider? dataValueProvider;
     private uint iterateCount = 1;
-    
+    private SetMemoryWriteMode writeMode;
+
     // Used to save the values when the user switches provider type in the UI.
     // Yeah I know UI stuff in models yucky etc etc, may fix later
     public ConstantDataProvider? InitialConstantDataProvider;
@@ -60,7 +65,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
                 this.InitialConstantDataProvider = (ConstantDataProvider?) value;
             else if (this.InitialRandomNumberDataProvider == null && value is RandomNumberDataProvider)
                 this.InitialRandomNumberDataProvider = (RandomNumberDataProvider?) value;
-            
+
             DataValueProvider? oldProvider = this.dataValueProvider;
             if (!Equals(oldProvider, value)) {
                 this.dataValueProvider = value;
@@ -77,11 +82,17 @@ public class SetMemoryOperation : BaseSequenceOperation {
         set => PropertyHelper.SetAndRaiseINE(ref this.iterateCount, value, this, static t => t.IterateCountChanged?.Invoke(t));
     }
 
+    public SetMemoryWriteMode WriteMode {
+        get => this.writeMode;
+        set => PropertyHelper.SetAndRaiseINE(ref this.writeMode, value, this, static t => t.WriteModeChanged?.Invoke(t));
+    }
+
     public override string DisplayName => "Set Memory";
 
     public event SetVariableOperationEventHandler? AddressChanged;
     public event SetVariableOperationDataValueProviderChangedEventHandler? DataValueProviderChanged;
     public event SetVariableOperationEventHandler? IterateCountChanged;
+    public event SetVariableOperationEventHandler? WriteModeChanged;
 
     public SetMemoryOperation() {
     }
@@ -111,6 +122,56 @@ public class SetMemoryOperation : BaseSequenceOperation {
             }
         }
 
+        uint addr = this.address;
+        if (this.writeMode != SetMemoryWriteMode.Set && value is BaseNumericDataValue numVal) {
+            BaseNumericDataValue consoleVal = (BaseNumericDataValue) await MemoryEngine.ReadDataValue(ctx.Connection, addr, numVal);
+            if (numVal.DataType.IsFloatingPoint()) {
+                double dval;
+                switch (this.writeMode) {
+                    case SetMemoryWriteMode.Add:      dval = consoleVal.ToDouble() + numVal.ToDouble(); break;
+                    case SetMemoryWriteMode.Multiply: dval = consoleVal.ToDouble() * numVal.ToDouble(); break;
+                    case SetMemoryWriteMode.Divide:
+                        double d = numVal.ToDouble();
+                        dval = d != 0.0 ? consoleVal.ToDouble() / d : consoleVal.ToDouble();
+                        break;
+                    default:
+                        Debug.Fail("Error");
+                        return;
+                }
+
+                // protect against NaN or Inf, since it can cause some games to completely freak out and crash the console 
+                if ((double.IsNaN(dval) || double.IsInfinity(dval)) && BasicApplicationConfiguration.Instance.UseNaNInfProtection) {
+                    dval = 0.0;
+                }
+
+                value = numVal.DataType == DataType.Float ? new DataValueFloat((float) dval) : new DataValueDouble(dval);
+            }
+            else {
+                long lval;
+                switch (this.writeMode) {
+                    case SetMemoryWriteMode.Add:      lval = consoleVal.ToLong() + numVal.ToLong(); break;
+                    case SetMemoryWriteMode.Multiply: lval = consoleVal.ToLong() * numVal.ToLong(); break;
+                    case SetMemoryWriteMode.Divide:
+                        long l = numVal.ToLong();
+                        lval = l != 0 ? consoleVal.ToLong() / l : consoleVal.ToLong();
+                        break;
+                    default:
+                        Debug.Fail("Error");
+                        return;
+                }
+
+                switch (numVal.DataType) {
+                    case DataType.Byte:  value = new DataValueByte((byte) lval); break;
+                    case DataType.Int16: value = new DataValueInt16((short) lval); break;
+                    case DataType.Int32: value = new DataValueInt32((int) lval); break;
+                    case DataType.Int64: value = new DataValueInt64(lval); break;
+                    default:
+                        Debug.Fail("Error");
+                        return;
+                }
+            }
+        }
+
         try {
             ctx.Progress.Text = "Setting memory";
             byte[]? buffer = GetDataBuffer(ctx.Connection.IsLittleEndian, value, provider.AppendNullCharToString, this.iterateCount);
@@ -118,7 +179,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
                 // Note for test connection, when a sequence repeats forever and has no delay, only sets memory,
                 // this method is extremely laggy when a debugger is attached, probably because of the
                 // timeout exceptions being thrown, and the IDE tries to intercept them
-                await ctx.Connection.WriteBytes(this.address, buffer);
+                await ctx.Connection.WriteBytes(addr, buffer);
             }
         }
         finally {
@@ -143,7 +204,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
         if (byteCount == 0 || (iterate > (int.MaxValue / byteCount)) /* overflow check */) {
             return null;
         }
-        
+
         Span<byte> bytes = stackalloc byte[(int) byteCount];
         value.GetBytes(bytes);
         if (value.DataType.IsEndiannessSensitive() && BitConverter.IsLittleEndian != littleEndian) {

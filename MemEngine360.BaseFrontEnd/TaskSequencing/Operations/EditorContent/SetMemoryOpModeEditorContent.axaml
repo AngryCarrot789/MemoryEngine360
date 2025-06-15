@@ -1,0 +1,15 @@
+﻿<ec:BaseOperationEditorContent xmlns="https://github.com/avaloniaui"
+                               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                               xmlns:ec="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent"
+                               mc:Ignorable="d"
+                               x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.SetMemoryOpModeEditorContent"
+                               Width="80">
+    <StackPanel Spacing="4" Margin="2">
+        <RadioButton x:Name="PART_Set" Content="Set" ToolTip.Tip="Set the console's value to the operation's value"/>
+        <RadioButton x:Name="PART_Add" Content="Add" ToolTip.Tip="Add the operation's value to the console's value"/>
+        <RadioButton x:Name="PART_Multiply" Content="Multiply" ToolTip.Tip="Multiply the console's value by the operation's value"/>
+        <RadioButton x:Name="PART_Divide" Content="Divide" ToolTip.Tip="Multiply the console's value by the operation's value"/>
+    </StackPanel>
+</ec:BaseOperationEditorContent>

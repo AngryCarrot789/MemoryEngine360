@@ -54,6 +54,7 @@ public class BaseOperationEditorContent : UserControl {
         OperationProperty.Changed.AddClassHandler<BaseOperationEditorContent, BaseSequenceOperation?>((o, e) => o.OnOperationChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
         Registry.RegisterType(typeof(DelayOperation), () => new DelayOperationEditorContent());
         Registry.RegisterType(typeof(SetMemoryOperation), () => new SetMemoryOperationEditorContent());
+        Registry.RegisterType(typeof(SetMemoryOperation), () => new SetMemoryOpModeEditorContent());
         Registry.RegisterType(typeof(BaseSequenceOperation), () => new RandomTriggerEditorContent());
     }
     

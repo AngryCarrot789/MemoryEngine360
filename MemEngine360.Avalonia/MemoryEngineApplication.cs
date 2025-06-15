@@ -261,6 +261,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             SetMemoryOperation op = (SetMemoryOperation) _op;
             element.SetAttribute("Address", op.Address.ToString("X8"));
             element.SetAttribute("IterateCount", op.IterateCount.ToString());
+            element.SetAttribute("WriteMode", op.WriteMode.ToString());
             if (op.DataValueProvider is ConstantDataProvider constProvider) {
                 XmlElement providerElement = (XmlElement) element.AppendChild(document.CreateElement("ConstantProvider"))!;
                 if (constProvider.DataValue is IDataValue value)
@@ -281,44 +282,27 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             }
         }, (element, _op) => {
             SetMemoryOperation op = (SetMemoryOperation) _op;
-            if (!uint.TryParse(element.GetAttribute("Address"), NumberStyles.HexNumber, null, out uint address))
-                throw new Exception("Invalid uint for address: " + element.GetAttribute("Address"));
-            if (!uint.TryParse(element.GetAttribute("IterateCount"), out uint itrCount))
-                throw new Exception("Invalid uint for iterate count: " + element.GetAttribute("IterateCount"));
-            op.Address = address;
-            op.IterateCount = itrCount;
+            op.Address = GetRequiredAttribute(element, "Address", s => uint.Parse(s, NumberStyles.HexNumber));
+            op.IterateCount = GetOptionalAttribute(element, "IterateCount", uint.Parse, op.IterateCount);
+            op.WriteMode = GetOptionalAttribute(element, "WriteMode", s => Enum.Parse<SetMemoryWriteMode>(s, true), op.WriteMode);
 
             if (element.GetElementsByTagName("ConstantProvider").OfType<XmlElement>().FirstOrDefault() is XmlElement constElement) {
-                if (!Enum.TryParse(constElement.GetAttribute("DataType"), true, out DataType dataType))
-                    throw new Exception("Invalid DataType: " + constElement.GetAttribute("DataType"));
-                if (!bool.TryParse(constElement.GetAttribute("ParseIntInputAsHex"), out bool parseIntInputAsHex))
-                    throw new Exception("Invalid bool for ParseIntInputAsHex: " + constElement.GetAttribute("ParseIntInputAsHex"));
-                if (!bool.TryParse(constElement.GetAttribute("AppendNullCharToString"), out bool appendNullCharToString))
-                    throw new Exception("Invalid bool for AppendNullCharToString: " + constElement.GetAttribute("AppendNullCharToString"));
-
                 ConstantDataProvider constProvider = (ConstantDataProvider) (op.DataValueProvider = new ConstantDataProvider());
-                constProvider.AppendNullCharToString = appendNullCharToString;
-                constProvider.ParseIntAsHex = parseIntInputAsHex;
-                constProvider.DataType = dataType;
+                constProvider.DataType = GetRequiredAttribute(constElement, "DataType", s => Enum.Parse<DataType>(s, true));
+                constProvider.AppendNullCharToString = GetOptionalAttribute(constElement, "AppendNullCharToString", bool.Parse, constProvider.AppendNullCharToString);
+                constProvider.ParseIntAsHex = GetOptionalAttribute(constElement, "ParseIntInputAsHex", bool.Parse, constProvider.ParseIntAsHex);
                 if (constElement.GetElementsByTagName("Value").OfType<XmlElement>().FirstOrDefault() is XmlElement valueElement)
                     constProvider.DataValue = XmlTaskSequenceSerialization.DeserializeDataValue(valueElement);
             }
             else if (element.GetElementsByTagName("RandomProvider").OfType<XmlElement>().FirstOrDefault() is XmlElement randElement) {
-                if (!Enum.TryParse(randElement.GetAttribute("DataType"), true, out DataType dataType))
-                    throw new Exception("Invalid DataType: " + randElement.GetAttribute("DataType"));
-                if (!bool.TryParse(randElement.GetAttribute("ParseIntInputAsHex"), out bool parseIntInputAsHex))
-                    throw new Exception("Invalid bool for ParseIntInputAsHex: " + randElement.GetAttribute("ParseIntInputAsHex"));
-                if (!bool.TryParse(randElement.GetAttribute("AppendNullCharToString"), out bool appendNullCharToString))
-                    throw new Exception("Invalid bool for AppendNullCharToString: " + randElement.GetAttribute("AppendNullCharToString"));
-
-                RandomNumberDataProvider randomProvider = (RandomNumberDataProvider) (op.DataValueProvider = new RandomNumberDataProvider());
-                randomProvider.AppendNullCharToString = appendNullCharToString;
-                randomProvider.ParseIntAsHex = parseIntInputAsHex;
-                randomProvider.DataType = dataType;
+                RandomNumberDataProvider provider = (RandomNumberDataProvider) (op.DataValueProvider = new RandomNumberDataProvider());
+                provider.DataType = GetRequiredAttribute(randElement, "DataType", s => Enum.Parse<DataType>(s, true));
+                provider.AppendNullCharToString = GetOptionalAttribute(randElement, "AppendNullCharToString", bool.Parse, provider.AppendNullCharToString);
+                provider.ParseIntAsHex = GetOptionalAttribute(randElement, "ParseIntInputAsHex", bool.Parse, provider.ParseIntAsHex);
                 if (randElement.GetElementsByTagName("MinNumber").OfType<XmlElement>().FirstOrDefault() is XmlElement minElement)
-                    randomProvider.Minimum = (BaseNumericDataValue) XmlTaskSequenceSerialization.DeserializeDataValue(minElement);
+                    provider.Minimum = (BaseNumericDataValue) XmlTaskSequenceSerialization.DeserializeDataValue(minElement);
                 if (randElement.GetElementsByTagName("MaxNumber").OfType<XmlElement>().FirstOrDefault() is XmlElement maxElement)
-                    randomProvider.Maximum = (BaseNumericDataValue) XmlTaskSequenceSerialization.DeserializeDataValue(maxElement);
+                    provider.Maximum = (BaseNumericDataValue) XmlTaskSequenceSerialization.DeserializeDataValue(maxElement);
             }
         });
     }
@@ -379,6 +363,32 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
                 system.Register(new AboutWindow()).Show(system.GetActiveWindowOrNull());
             }
+        }
+    }
+
+    private static T GetOptionalAttribute<T>(XmlElement srcElement, string attributeName, Func<string, T> converter, T notPresentValue) {
+        XmlAttribute? node = srcElement.GetAttributeNode(attributeName);
+        if (node == null)
+            return notPresentValue;
+
+        try {
+            return converter(node.Value);
+        }
+        catch (Exception e) {
+            throw new Exception($"Failed to parse attribute '{attributeName}' as {typeof(T).Name}", e);
+        }
+    }
+
+    private static T GetRequiredAttribute<T>(XmlElement srcElement, string attributeName, Func<string, T> converter) {
+        XmlAttribute? node = srcElement.GetAttributeNode(attributeName);
+        if (node == null)
+            throw new Exception($"Missing required attribute '{attributeName}'");
+
+        try {
+            return converter(node.Value);
+        }
+        catch (Exception e) {
+            throw new Exception($"Failed to parse attribute '{attributeName}' as {typeof(T).Name}", e);
         }
     }
 }
