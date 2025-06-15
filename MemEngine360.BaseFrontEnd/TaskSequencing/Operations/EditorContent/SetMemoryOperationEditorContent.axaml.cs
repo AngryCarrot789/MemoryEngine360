@@ -27,10 +27,13 @@ using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
+using PFXToolKitUI.PropertyEditing.DataTransfer.Enums;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent;
 
 public partial class SetMemoryOperationEditorContent : BaseOperationEditorContent {
+    private static readonly DataParameterEnumInfo<DataType> RandomDataTypeInfo = DataParameterEnumInfo<DataType>.FromAllowed([DataType.Byte, DataType.Int16, DataType.Int32, DataType.Int64, DataType.Float, DataType.Double]);
+    
     private readonly AvaloniaPropertyToEventPropertyBinder<DataProviderHandler> parseIntAsHexBinder = new AvaloniaPropertyToEventPropertyBinder<DataProviderHandler>(CheckBox.IsCheckedProperty, nameof(DataProviderHandler.ParseIntAsHexChanged), (b) => ((CheckBox) b.Control).IsChecked = b.Model.ParseIntAsHex, (b) => b.Model.ParseIntAsHex = ((CheckBox) b.Control).IsChecked == true);
     private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(ConstantDataValueHandler), nameof(ConstantDataValueHandler.StringTypeChanged), (x) => ((ConstantDataValueHandler) x).StringType, (x, v) => ((ConstantDataValueHandler) x).StringType = v);
     private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(DataProviderHandler), nameof(DataProviderHandler.DataTypeChanged), (x) => ((DataProviderHandler) x).DataType, (x, y) => ((DataProviderHandler) x).DataType = y);
@@ -102,7 +105,11 @@ public partial class SetMemoryOperationEditorContent : BaseOperationEditorConten
             if (this.myDataProviderEditorHandler != null) {
                 this.myDataProviderEditorHandler.Connect(newProvider);
                 
-                this.dataTypeBinder.Attach(this.PART_DataTypeCombo, this.myDataProviderEditorHandler);
+                if (newProvider is ConstantDataProvider)
+                    this.dataTypeBinder.Attach(this.PART_DataTypeCombo, this.myDataProviderEditorHandler);
+                else if (newProvider is RandomNumberDataProvider)
+                    this.dataTypeBinder.Attach(this.PART_DataTypeCombo, this.myDataProviderEditorHandler, RandomDataTypeInfo);
+                
                 this.parseIntAsHexBinder.AttachModel(this.myDataProviderEditorHandler);
                 if (this.myDataProviderEditorHandler is ConstantDataValueHandler)
                     this.stringScanModeBinder.Attach(this.myDataProviderEditorHandler);

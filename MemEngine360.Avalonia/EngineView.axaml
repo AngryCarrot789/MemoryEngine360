@@ -49,7 +49,7 @@
             <Grid x:Name="PART_ContentGrid">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="5"/>
-                    <RowDefinition Height="30*" MinHeight="200"/>
+                    <RowDefinition Height="30*" MinHeight="100"/>
                     <RowDefinition Height="5"/>
                     <RowDefinition Height="15*" MinHeight="120"/>
                     <RowDefinition Height="5"/>

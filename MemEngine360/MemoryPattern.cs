@@ -110,7 +110,7 @@ public readonly struct MemoryPattern {
                         StringBuilder sb = new StringBuilder();
                         sb.Append("Byte does not contain two hex characters: ").Append(tokens[i]);
                         if (byte.TryParse(tokens[i], out byte value)) {
-                            sb.Append(". Did you mean ").Append(value.ToString("X2")).Append(" (hex)?");
+                            sb.Append(". Did you mean ").Append(value.ToString("X2")).Append(" (the byte value as hex)?");
                         }
 
                         userErrMsg = sb.ToString();

@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using MemEngine360.BaseFrontEnd.Utils;
 using MemEngine360.Engine;
@@ -184,6 +185,7 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
             return;
         }
 
+        ((ToggleButton) sender!).IsChecked = true;
         if (ReferenceEquals(sender, this.PART_CMP_EQ))
             this.Condition!.CompareType = CompareType.Equals;
         else if (ReferenceEquals(sender, this.PART_CMP_NEQ))
