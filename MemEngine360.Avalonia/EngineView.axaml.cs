@@ -80,53 +80,59 @@ public partial class EngineView : UserControl, IEngineUI {
                 w.UpdateScanResultCounterText();
             });
 
-    private readonly IBinder<ScanningProcessor> scanAddressBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanRangeChanged), (b) => $"{b.Model.StartAddress:X8}", async (b, x) => {
-        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
-            if (value == b.Model.StartAddress) {
-                return true;
-            }
+    private readonly IBinder<ScanningProcessor> scanAddressBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(
+        nameof(ScanningProcessor.ScanRangeChanged),
+        (b) => $"{b.Model.StartAddress:X8}",
+        async (b, x) => {
+            if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
+                if (value == b.Model.StartAddress) {
+                    return true;
+                }
 
-            if (value + b.Model.ScanLength < value) {
-                return await OnAddressOrLengthOutOfRange(b.Model, value, b.Model.ScanLength);
+                if (value + b.Model.ScanLength < value) {
+                    return await OnAddressOrLengthOutOfRange(b.Model, value, b.Model.ScanLength);
+                }
+                else {
+                    b.Model.SetScanRange(value, b.Model.ScanLength);
+                    return true;
+                }
+            }
+            else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
+                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
             }
             else {
-                b.Model.SetScanRange(value, b.Model.ScanLength);
-                return true;
-            }
-        }
-        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
-        }
-        else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
-        }
-
-        return false;
-    });
-
-    private readonly IBinder<ScanningProcessor> scanLengthBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanRangeChanged), (b) => $"{b.Model.ScanLength:X8}", async (b, x) => {
-        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
-            if (value == b.Model.ScanLength) {
-                return true;
+                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
             }
 
-            if (b.Model.StartAddress + value < value) {
-                return await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
+            return false;
+        });
+
+    private readonly IBinder<ScanningProcessor> scanLengthBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(
+        nameof(ScanningProcessor.ScanRangeChanged),
+        (b) => $"{b.Model.ScanLength:X8}",
+        async (b, x) => {
+            if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
+                if (value == b.Model.ScanLength) {
+                    return true;
+                }
+
+                if (b.Model.StartAddress + value < value) {
+                    return await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
+                }
+                else {
+                    b.Model.SetScanRange(b.Model.StartAddress, value);
+                    return true;
+                }
+            }
+            else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
+                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Scan Length is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
             }
             else {
-                b.Model.SetScanRange(b.Model.StartAddress, value);
-                return true;
+                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
             }
-        }
-        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Scan Length is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
-        }
-        else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
-        }
 
-        return false;
-    });
+            return false;
+        });
 
     private static async Task<bool> OnAddressOrLengthOutOfRange(ScanningProcessor processor, uint start, uint length) {
         bool didChangeStart = processor.StartAddress != start;
