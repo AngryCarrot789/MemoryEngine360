@@ -200,17 +200,18 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             DisplayName = "Memory Engine", Id = "config.memoryengine", Page = new MemoryEngineConfigurationPage()
         });
 
+        ConsoleConnectionManager manager = Instance.ServiceManager.GetService<ConsoleConnectionManager>();
+        manager.Register(ConnectionTypeBinaryFile.TheID, ConnectionTypeBinaryFile.Instance);
+        
 #if DEBUG
         if (Debugger.IsAttached) {
             OpenConnectionView.Registry.RegisterType<TestConnectionInfo>(() => new OpenTestConnectionView());
 
-            ConsoleConnectionManager manager = Instance.ServiceManager.GetService<ConsoleConnectionManager>();
-            manager.Register(ConnectionTypeDebugFile.TheID, ConnectionTypeDebugFile.Instance);
             manager.Register(ConnectionTypeTest.TheID, ConnectionTypeTest.Instance);
         }
 #endif
 
-        OpenConnectionView.Registry.RegisterType<OpenDebuggingFileInfo>(() => new OpenDebuggingFileView());
+        OpenConnectionView.Registry.RegisterType<OpenBinaryFileInfo>(() => new OpenBinaryFileView());
 
         Theme? theme;
         ThemeManager themeManager = this.ServiceManager.GetService<ThemeManager>();

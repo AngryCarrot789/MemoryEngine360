@@ -36,35 +36,35 @@ public static class ValueScannerUtils {
         return Math.Truncate(value * factor) / factor;
     }
 
-    public static T CreateNumberFromBytes<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {
+    public static T CreateNumberFromBytes<T>(ReadOnlySpan<byte> bytes, bool isDataLittleEndian) where T : INumber<T> {
         if (typeof(T) == typeof(sbyte))
             return CreateGeneric_sbyte<T>(bytes);
         if (typeof(T) == typeof(byte))
             return CreateGeneric_byte<T>(bytes);
         if (typeof(T) == typeof(short))
-            return CreateGeneric_short<T>(bytes);
+            return CreateGeneric_short<T>(bytes, isDataLittleEndian);
         if (typeof(T) == typeof(ushort))
-            return CreateGeneric_ushort<T>(bytes);
+            return CreateGeneric_ushort<T>(bytes, isDataLittleEndian);
         if (typeof(T) == typeof(int))
-            return CreateGeneric_int<T>(bytes);
+            return CreateGeneric_int<T>(bytes, isDataLittleEndian);
         if (typeof(T) == typeof(uint))
-            return CreateGeneric_uint<T>(bytes);
+            return CreateGeneric_uint<T>(bytes, isDataLittleEndian);
         if (typeof(T) == typeof(long))
-            return CreateGeneric_long<T>(bytes);
+            return CreateGeneric_long<T>(bytes, isDataLittleEndian);
         if (typeof(T) == typeof(ulong))
-            return CreateGeneric_ulong<T>(bytes);
+            return CreateGeneric_ulong<T>(bytes, isDataLittleEndian);
         if (typeof(T) == typeof(float))
-            return CreateGeneric_float<T>(bytes);
+            return CreateGeneric_float<T>(bytes, isDataLittleEndian);
         if (typeof(T) == typeof(double))
-            return CreateGeneric_double<T>(bytes);
+            return CreateGeneric_double<T>(bytes, isDataLittleEndian);
         throw new NotSupportedException();
     }
     
-    public static T CreateFloat<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {
+    public static T CreateFloat<T>(ReadOnlySpan<byte> bytes, bool isDataLittleEndian) where T : INumber<T> {
         if (typeof(T) == typeof(float))
-            return CreateGeneric_float<T>(bytes);
+            return CreateGeneric_float<T>(bytes, isDataLittleEndian);
         if (typeof(T) == typeof(double))
-            return CreateGeneric_double<T>(bytes);
+            return CreateGeneric_double<T>(bytes, isDataLittleEndian);
         throw new NotSupportedException();
     }
 
@@ -82,43 +82,43 @@ public static class ValueScannerUtils {
         return Unsafe.As<byte, T>(ref value);
     }
 
-    private static T CreateGeneric_short<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {
-        short value = BinaryPrimitives.ReadInt16BigEndian(bytes);
+    private static T CreateGeneric_short<T>(ReadOnlySpan<byte> bytes, bool isDataLittleEndian) where T : INumber<T> {
+        short value = isDataLittleEndian ? BinaryPrimitives.ReadInt16LittleEndian(bytes) : BinaryPrimitives.ReadInt16BigEndian(bytes);
         return Unsafe.As<short, T>(ref value);
     }
 
-    private static T CreateGeneric_ushort<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {
-        ushort value = BinaryPrimitives.ReadUInt16BigEndian(bytes);
+    private static T CreateGeneric_ushort<T>(ReadOnlySpan<byte> bytes, bool isDataLittleEndian) where T : INumber<T> {
+        ushort value = isDataLittleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(bytes) : BinaryPrimitives.ReadUInt16BigEndian(bytes);
         return Unsafe.As<ushort, T>(ref value);
     }
 
-    private static T CreateGeneric_int<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {
-        int value = BinaryPrimitives.ReadInt32BigEndian(bytes);
+    private static T CreateGeneric_int<T>(ReadOnlySpan<byte> bytes, bool isDataLittleEndian) where T : INumber<T> {
+        int value = isDataLittleEndian ? BinaryPrimitives.ReadInt32LittleEndian(bytes) : BinaryPrimitives.ReadInt32BigEndian(bytes);
         return Unsafe.As<int, T>(ref value);
     }
 
-    private static T CreateGeneric_uint<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {
-        uint value = BinaryPrimitives.ReadUInt32BigEndian(bytes);
+    private static T CreateGeneric_uint<T>(ReadOnlySpan<byte> bytes, bool isDataLittleEndian) where T : INumber<T> {
+        uint value = isDataLittleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(bytes) : BinaryPrimitives.ReadUInt32BigEndian(bytes);
         return Unsafe.As<uint, T>(ref value);
     }
 
-    private static T CreateGeneric_long<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {
-        long value = BinaryPrimitives.ReadInt64BigEndian(bytes);
+    private static T CreateGeneric_long<T>(ReadOnlySpan<byte> bytes, bool isDataLittleEndian) where T : INumber<T> {
+        long value = isDataLittleEndian ? BinaryPrimitives.ReadInt64LittleEndian(bytes) : BinaryPrimitives.ReadInt64BigEndian(bytes);
         return Unsafe.As<long, T>(ref value);
     }
 
-    private static T CreateGeneric_ulong<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {
-        ulong value = BinaryPrimitives.ReadUInt64BigEndian(bytes);
+    private static T CreateGeneric_ulong<T>(ReadOnlySpan<byte> bytes, bool isDataLittleEndian) where T : INumber<T> {
+        ulong value = isDataLittleEndian ? BinaryPrimitives.ReadUInt64LittleEndian(bytes) : BinaryPrimitives.ReadUInt64BigEndian(bytes);
         return Unsafe.As<ulong, T>(ref value);
     }
 
-    private static T CreateGeneric_float<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {
-        float value = BinaryPrimitives.ReadSingleBigEndian(bytes);
+    private static T CreateGeneric_float<T>(ReadOnlySpan<byte> bytes, bool isDataLittleEndian) where T : INumber<T> {
+        float value = isDataLittleEndian ? BinaryPrimitives.ReadSingleLittleEndian(bytes) : BinaryPrimitives.ReadSingleBigEndian(bytes);
         return Unsafe.As<float, T>(ref value);
     }
 
-    private static T CreateGeneric_double<T>(ReadOnlySpan<byte> bytes) where T : INumber<T> {
-        double value = BinaryPrimitives.ReadDoubleBigEndian(bytes);
+    private static T CreateGeneric_double<T>(ReadOnlySpan<byte> bytes, bool isDataLittleEndian) where T : INumber<T> {
+        double value = isDataLittleEndian ? BinaryPrimitives.ReadDoubleLittleEndian(bytes) : BinaryPrimitives.ReadDoubleBigEndian(bytes);
         return Unsafe.As<double, T>(ref value);
     }
 }

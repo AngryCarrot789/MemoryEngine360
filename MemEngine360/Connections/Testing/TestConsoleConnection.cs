@@ -27,6 +27,8 @@ public class TestConsoleConnection : BaseConsoleConnection {
     protected override bool IsConnectedCore => !this.IsClosed;
 
     public override bool IsLittleEndian => BitConverter.IsLittleEndian;
+    
+    public override AddressRange AddressableRange { get; } = new AddressRange(0, uint.MaxValue);
 
     public TestConsoleConnection(TestConnectionMode mode) {
         this.mode = mode;

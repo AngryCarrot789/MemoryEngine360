@@ -92,7 +92,8 @@ public sealed class DataTypedScanningContext : ScanningContext {
     /// Returns true when scanning and proceed.
     /// False when there's errors (e.g. non-integer when scanning for an integer, or min is greater than max when scanning in 'between' mode)
     /// </summary>
-    internal override async Task<bool> Setup() {
+    /// <param name="connection1"></param>
+    internal override async Task<bool> SetupCore(IConsoleConnection connection1) {
         switch (this.dataType) {
             case DataType.Byte:   this.cbDataType = sizeof(byte); break;
             case DataType.Int16:  this.cbDataType = sizeof(short); break;
@@ -394,7 +395,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
     }
 
     private BaseNumericDataValue<T>? CompareInt<T>(ReadOnlySpan<byte> searchValueBytes, ulong theInputA, ulong theInputB) where T : unmanaged, IBinaryInteger<T> {
-        T value = ValueScannerUtils.CreateNumberFromBytes<T>(searchValueBytes);
+        T value = ValueScannerUtils.CreateNumberFromBytes<T>(searchValueBytes, this.isConnectionLittleEndian);
         T valA = Unsafe.As<ulong, T>(ref theInputA), valB;
         switch (this.numericScanType) {
             case NumericScanType.Equals:              return value == valA ? IDataValue.CreateNumeric(value) : null;
@@ -421,7 +422,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
 
     private BaseFloatDataValue<T>? CompareFloat<T>(ReadOnlySpan<byte> searchValueBytes, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T> {
         bool isFloat = typeof(T) == typeof(float);
-        T value = ValueScannerUtils.CreateFloat<T>(searchValueBytes);
+        T value = ValueScannerUtils.CreateFloat<T>(searchValueBytes, this.isConnectionLittleEndian);
 
         // We convert everything to doubles when comparing, for higher accuracy
         double dblVal = this.GetDoubleFromReadValue(value, this.inputA);

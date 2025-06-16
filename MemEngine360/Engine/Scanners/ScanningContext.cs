@@ -30,6 +30,7 @@ public abstract class ScanningContext {
     internal readonly uint alignment;
     internal readonly bool pauseConsoleDuringScan;
     internal readonly bool scanMemoryPages;
+    internal bool isConnectionLittleEndian;
     
     public Exception? ConnectionException { get; set; }
 
@@ -53,7 +54,12 @@ public abstract class ScanningContext {
         this.scanMemoryPages = processor.ScanMemoryPages;
     }
 
-    internal abstract Task<bool> Setup();
+    internal Task<bool> Setup(IConsoleConnection connection) {
+        this.isConnectionLittleEndian = connection.IsLittleEndian;
+        return this.SetupCore(connection);
+    }
+    
+    internal abstract Task<bool> SetupCore(IConsoleConnection connection);
 
     /// <summary>
     /// Performs the first scan. 

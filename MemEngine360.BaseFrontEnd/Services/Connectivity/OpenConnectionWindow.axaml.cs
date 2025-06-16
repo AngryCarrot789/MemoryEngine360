@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using Avalonia.Input;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
@@ -50,7 +51,9 @@ public partial class OpenConnectionWindow : DesktopWindow, IOpenConnectionView {
     protected override void OnKeyDown(KeyEventArgs e) {
         base.OnKeyDown(e);
         if (e.Key == Key.Escape) {
+            this.PART_ConnectToConsoleView.isClosingWindow = true;
             this.Close();
+            this.PART_ConnectToConsoleView.isClosingWindow = false;
         }
     }
 
@@ -68,6 +71,10 @@ public partial class OpenConnectionWindow : DesktopWindow, IOpenConnectionView {
 
     public Task<IConsoleConnection?> WaitForClose() {
         if (this.IsClosed) {
+            return Task.FromResult(this.closedConnection);
+        }
+        else if (!this.IsOpen || !this.IsLoaded) {
+            Debugger.Break();
             return Task.FromResult(this.closedConnection);
         }
         

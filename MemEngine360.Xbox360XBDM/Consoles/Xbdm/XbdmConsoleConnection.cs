@@ -53,6 +53,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     protected override bool IsConnectedCore => this.client.Connected;
 
     public override bool IsLittleEndian => false;
+    
+    public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
 
     public XbdmConsoleConnection(TcpClient client, StreamReader reader) {
         this.client = client;

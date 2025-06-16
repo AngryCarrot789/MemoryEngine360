@@ -44,6 +44,14 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
 
     public abstract bool IsLittleEndian { get; }
 
+    /// <summary>
+    /// Gets the supported addressing range. Reading/writing outside this range will yield invalid data.
+    /// <para>
+    /// This value can change at any time and there's no way to tell when, so beware of that.
+    /// </para>
+    /// </summary>
+    public abstract AddressRange AddressableRange { get; }
+    
     protected BaseConsoleConnection() {
     }
 

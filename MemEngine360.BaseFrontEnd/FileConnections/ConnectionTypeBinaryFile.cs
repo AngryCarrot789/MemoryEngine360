@@ -25,20 +25,19 @@ using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.BaseFrontEnd.FileConnections;
 
-public class ConnectionTypeDebugFile : RegisteredConnectionType {
-    public const string TheID = "memeng360.debugfile-coreimpl"; // -coreimpl suffix added to core plugins, not that we need to but eh
-    public static readonly RegisteredConnectionType Instance = new ConnectionTypeDebugFile();
+public class ConnectionTypeBinaryFile : RegisteredConnectionType {
+    public const string TheID = "memeng360.binaryfile-coreimpl"; // -coreimpl suffix added to core plugins, not that we need to but eh
+    public static readonly RegisteredConnectionType Instance = new ConnectionTypeBinaryFile();
 
-    public override string DisplayName => "Debug File";
+    public override string DisplayName => "Binary File";
 
-    public override string? FooterText => "Completely Unstable";
+    public override string? FooterText => "Semi-stable";
 
-    public override string LongDescription => $"Treats a file as a console. Can only read/write data. Be extremely careful you don't allocate a 1 terabyte file or something!{Environment.NewLine}" +
-                                              $"This 'console type' is extremely untested and not to be used for anything but debugging";
+    public override string LongDescription => $"Treats a file as a console connection. Can only read/write data. Be extremely careful you don't allocate a 1 terabyte file or something!";
 
     public override Icon Icon => SimpleIcons.OpenFileXMLIcon;
 
-    private ConnectionTypeDebugFile() {
+    private ConnectionTypeBinaryFile() {
     }
 
     public override IEnumerable<IContextObject> GetRemoteContextOptions() {
@@ -46,11 +45,11 @@ public class ConnectionTypeDebugFile : RegisteredConnectionType {
     }
 
     public override UserConnectionInfo? CreateConnectionInfo(IContextData context) {
-        return new OpenDebuggingFileInfo();
+        return new OpenBinaryFileInfo();
     }
 
     public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, CancellationTokenSource cancellation) {
-        OpenDebuggingFileInfo info = (OpenDebuggingFileInfo) _info!;
+        OpenBinaryFileInfo info = (OpenBinaryFileInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.FilePath) || !File.Exists(info.FilePath)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid file", "File does not exist");
             return null;
@@ -66,6 +65,6 @@ public class ConnectionTypeDebugFile : RegisteredConnectionType {
             return null;
         }
 
-        return new DebugFileConnection(stream);
+        return new BinaryFileConnection(stream, info.BaseAddress, info.AllowResizingFile);
     }
 }

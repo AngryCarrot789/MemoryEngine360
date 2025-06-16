@@ -72,7 +72,7 @@ public partial class OpenConnectionView : UserControl {
     public event OpenConnectionViewCurrentConnectionChangedEventHandler? CurrentConnectionChanged;
 
     private CancellationTokenSource? currCts;
-    private bool isConnecting, isClosingWindow;
+    internal bool isConnecting, isClosingWindow;
     private ConsoleTypeListBoxItem? myCurrentSelection;
 
     public OpenConnectionView() {

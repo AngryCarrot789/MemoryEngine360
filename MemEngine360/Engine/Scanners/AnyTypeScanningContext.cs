@@ -78,10 +78,8 @@ public class AnyTypeScanningContext : ScanningContext {
     /// Returns true when scanning and proceed.
     /// False when there's errors (e.g. non-integer when scanning for an integer, or min is greater than max when scanning in 'between' mode)
     /// </summary>
-    internal override async Task<bool> Setup() {
-        IConsoleConnection connection = this.Processor.MemoryEngine.Connection!;
-        Debug.Assert(connection != null);
-
+    /// <param name="connection1"></param>
+    internal override async Task<bool> SetupCore(IConsoleConnection connection) {
         if (string.IsNullOrEmpty(this.inputA)) {
             await IMessageDialogService.Instance.ShowMessage("Input format", "Input is empty");
             return false;
@@ -138,7 +136,7 @@ public class AnyTypeScanningContext : ScanningContext {
                 switch (this.intOrdering[j]) {
                     case DataType.Byte when this.in_byte.HasValue && (buffer.Length - i) >= sizeof(byte): {
                         byte val = this.in_byte.Value;
-                        if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<byte>(buffer.Slice((int) i, sizeof(byte))), Unsafe.As<byte, ulong>(ref val), 0)) != null) {
+                        if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<byte>(buffer.Slice((int) i, sizeof(byte)), this.isConnectionLittleEndian), Unsafe.As<byte, ulong>(ref val), 0)) != null) {
                             this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Byte, intNdt, this.stringType, value));
                             goto LoopEnd;
                         }
@@ -147,7 +145,7 @@ public class AnyTypeScanningContext : ScanningContext {
                     }
                     case DataType.Int16 when this.in_short.HasValue && (buffer.Length - i) >= sizeof(short): {
                         short val = this.in_short.Value;
-                        if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<short>(buffer.Slice((int) i, sizeof(short))), Unsafe.As<short, ulong>(ref val), 0)) != null) {
+                        if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<short>(buffer.Slice((int) i, sizeof(short)), this.isConnectionLittleEndian), Unsafe.As<short, ulong>(ref val), 0)) != null) {
                             this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int16, intNdt, this.stringType, value));
                             goto LoopEnd;
                         }
@@ -156,7 +154,7 @@ public class AnyTypeScanningContext : ScanningContext {
                     }
                     case DataType.Int32 when this.in_int.HasValue && (buffer.Length - i) >= sizeof(int): {
                         int val = this.in_int.Value;
-                        if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<int>(buffer.Slice((int) i, sizeof(int))), Unsafe.As<int, ulong>(ref val), 0)) != null) {
+                        if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<int>(buffer.Slice((int) i, sizeof(int)), this.isConnectionLittleEndian), Unsafe.As<int, ulong>(ref val), 0)) != null) {
                             this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int32, intNdt, this.stringType, value));
                             goto LoopEnd;
                         }
@@ -171,7 +169,7 @@ public class AnyTypeScanningContext : ScanningContext {
                     }
                     case DataType.Int64 when this.in_long.HasValue && (buffer.Length - i) >= sizeof(long): {
                         long val = this.in_long.Value;
-                        if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<long>(buffer.Slice((int) i, sizeof(long))), Unsafe.As<long, ulong>(ref val), 0)) != null) {
+                        if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<long>(buffer.Slice((int) i, sizeof(long)), this.isConnectionLittleEndian), Unsafe.As<long, ulong>(ref val), 0)) != null) {
                             this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int64, intNdt, this.stringType, value));
                             goto LoopEnd;
                         }
@@ -183,7 +181,7 @@ public class AnyTypeScanningContext : ScanningContext {
 
             if (this.in_float.HasValue && (buffer.Length - i) >= sizeof(float)) {
                 float val = this.in_float.Value;
-                float readVal = ValueScannerUtils.CreateFloat<float>(buffer.Slice((int) i, sizeof(float)));
+                float readVal = ValueScannerUtils.CreateFloat<float>(buffer.Slice((int) i, sizeof(float)), this.isConnectionLittleEndian);
                 if ((value = this.CompareFloat(readVal, Unsafe.As<float, ulong>(ref val), 0)) != null) {
                     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Float, NumericDisplayType.Normal, this.stringType, value));
                     continue;
@@ -192,7 +190,7 @@ public class AnyTypeScanningContext : ScanningContext {
 
             if (this.in_double.HasValue && (buffer.Length - i) >= sizeof(double)) {
                 double val = this.in_double.Value;
-                double readVal = ValueScannerUtils.CreateFloat<double>(buffer.Slice((int) i, sizeof(double)));
+                double readVal = ValueScannerUtils.CreateFloat<double>(buffer.Slice((int) i, sizeof(double)), this.isConnectionLittleEndian);
                 if ((value = this.CompareFloat(readVal, Unsafe.As<double, ulong>(ref val), 0)) != null) {
                     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Double, NumericDisplayType.Normal, this.stringType, value));
                     continue;

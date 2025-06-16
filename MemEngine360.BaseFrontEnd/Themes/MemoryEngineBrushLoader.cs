@@ -34,6 +34,7 @@ public static class MemoryEngineBrushLoader {
         // MAKE SURE TO UPDATE ANY INHERITANCE IN MemoryEngineThemes.axaml TOO! Otherwise, the app won't look the same at runtime compared to design time | This is the inheritance column |
         List<(string, string, string)> items = [
             ("Memory Engine/Engine/Background",                                 "ABrush.MemEngine.MainView.Background",                                 "ABrush.Tone3.Background.Static"),
+            ("Memory Engine/Engine/Status bar",                                 "ABrush.PFX.StatusBar.Background",                                      "ABrush.Tone6.Background.Static"),
             
             ("Memory Engine/Engine/Scan Options/TextBox/Background",            "ABrush.MemEngine.MainView.ScanOptions.TextBox.Background",             "ABrush.Tone2.Background.Static"),
             ("Memory Engine/Engine/Scan Options/TextBox/Border",                "ABrush.MemEngine.MainView.ScanOptions.TextBox.Border",                 "ABrush.Tone6.Border.Static"),

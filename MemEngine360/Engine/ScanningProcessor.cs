@@ -467,7 +467,8 @@ public class ScanningProcessor {
                 scanForAnything
                     ? new AnyTypeScanningContext(this)
                     : new DataTypedScanningContext(this);
-            if (!await context.Setup()) {
+            
+            if (!await context.Setup(connection)) {
                 return;
             }
 

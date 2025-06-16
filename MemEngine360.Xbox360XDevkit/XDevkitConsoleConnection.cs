@@ -36,6 +36,8 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
     protected override bool IsConnectedCore => this.isConnectedAsDebugger;
 
     public override bool IsLittleEndian => false;
+    
+    public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
 
     public XDevkitConsoleConnection(XboxManager manager, XboxConsole console) {
         this.manager = manager;

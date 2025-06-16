@@ -17,6 +17,10 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Data;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.Services.Windowing;
@@ -32,8 +36,30 @@ public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
         OpenConnectionWindow window = new OpenConnectionWindow() {
             MemoryEngine = engine, TypeToFocusOnOpened = focusedTypeId
         };
-
+        
         system.Register(window).Show();
         return window;
+    }
+
+    public class CoolWindow : DesktopWindow {
+        public CoolWindow() {
+            CheckBox coolCheckBox = new CheckBox() {Content = "Item 1"};
+            DynamicResourceExtension DynamicResource = new DynamicResourceExtension("ABrush.Tone7.Background.Static");
+            BindingExpressionBase binding = coolCheckBox.Bind(BackgroundProperty, DynamicResource);
+            binding.Dispose();
+            
+            this.Content = new Grid() {
+                Children = {
+                    new StackPanel() {
+                        Spacing = 5, Margin = new Thickness(10),
+                        Children = {
+                            coolCheckBox,
+                            new CheckBox() {Content = "Item 2"},
+                            new CheckBox() {Content = "Item 3", [!BackgroundProperty] = new DynamicResourceExtension("ABrush.Tone8.Background.Static")},
+                        }
+                    }
+                }
+            };
+        }
     }
 }
