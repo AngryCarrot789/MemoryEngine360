@@ -32,7 +32,7 @@ namespace MemEngine360.Connections;
 public abstract class BaseConsoleConnection : IConsoleConnection {
     protected readonly byte[] sharedOneByteArray = new byte[1];
     private volatile int busyStack;
-    protected bool isClosed;
+    protected volatile bool isClosed;
 
     public abstract RegisteredConnectionType ConnectionType { get; }
 

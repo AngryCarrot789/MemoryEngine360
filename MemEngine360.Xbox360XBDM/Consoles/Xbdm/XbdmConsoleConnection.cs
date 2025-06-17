@@ -26,6 +26,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Avalonia.Platform;
 using MemEngine360.Connections;
 using MemEngine360.XboxBase;
 using PFXToolKitUI.Utils;
@@ -36,15 +37,35 @@ namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 // https://github.com/XeClutch/Cheat-Engine-For-Xbox-360/blob/master/Cheat%20Engine%20for%20Xbox%20360/PhantomRTM.cs
 
 public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHavePowerFunctions, IXboxDebuggable {
+    private static int NextReaderID = 1;
+
     private readonly byte[] sharedTwoByteArray = new byte[2];
     private readonly byte[] sharedSetMemCommandBuffer = new byte[14 + 8 + 6 + 128 + 2];
     private readonly byte[] sharedGetMemCommandBuffer = new byte[14 + 8 + 10 + 8 + 2];
-    private readonly byte[] charBytesBuffer = new byte[4096];
+    private readonly byte[] localReadBuffer = new byte[4096];
     private readonly StringBuilder sbLineBuffer = new StringBuilder(400);
+    private readonly TcpClient client;
+
     private bool isWaitingForNewLine;
     private int idxBeginLnBuf, idxEndLnBuf;
 
-    private readonly TcpClient client;
+    private readonly AutoResetEvent readEvent = new AutoResetEvent(false);
+    private volatile int readType;
+    private BinaryReadInfo readInfo_binary;
+    private StringLineReadInfo readInfo_string;
+
+    private readonly struct BinaryReadInfo(byte[] dstBuffer, int offset, int count, TaskCompletionSource completion, CancellationToken cancellation) {
+        public readonly byte[] dstBuffer = dstBuffer;
+        public readonly int offset = offset;
+        public readonly int count = count;
+        public readonly TaskCompletionSource completion = completion;
+        public readonly CancellationToken cancellation = cancellation;
+    }
+
+    private readonly struct StringLineReadInfo(TaskCompletionSource<string> completion, CancellationToken cancellation) {
+        public readonly TaskCompletionSource<string> completion = completion;
+        public readonly CancellationToken cancellation = cancellation;
+    }
 
     public EndPoint? EndPoint => this.IsConnected ? this.client.Client.RemoteEndPoint : null;
 
@@ -64,6 +85,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         "getmem addr=0x"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 0, 14));
         " length=0x"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 22, 10));
         "\r\n"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 40, 2));
+
+        new Thread(this.ReaderThreadMain) {
+            Name = $"XBDM Reader Thread #{NextReaderID++}",
+            IsBackground = true
+        }.Start();
     }
 
     protected override Task CloseCore() {
@@ -416,11 +442,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             // since the xbox isn't sending two bytes of ASCII for a single byte of data
             this.FillGetMemCommandBuffer(address, (uint) count);
             await this.InternalWriteBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
-            ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
+            ConsoleResponse response = await this.InternalReadResponseOld().ConfigureAwait(false);
             VerifyResponse("getmem", response.ResponseType, ResponseType.MultiResponse);
             int cbRead = 0;
             string line;
-            while ((line = await this.InternalReadLineFromStream().ConfigureAwait(false)) != ".") {
+            while ((line = await this.InternalReadLineFromStreamOld().ConfigureAwait(false)) != ".") {
                 cbRead += DecodeLine(line, dstBuffer, offset, cbRead);
             }
 
@@ -460,13 +486,14 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
         int header, chunkSize, statusFlag = 0;
         uint totalRead = 0;
-        
+
         do {
             if (statusFlag != 0) {
                 throw new IOException("Not enough bytes read");
             }
 
-            await this.InternalReadBytesFromBufferOrStream(this.sharedTwoByteArray, 0, 2);
+            await this.ReadFromBufferOrStreamAsync(this.sharedTwoByteArray, 0, 2);
+            
             header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(this.sharedTwoByteArray, 0, 2));
             chunkSize = header & 0x7FFF;
             statusFlag = header & 0x8000;
@@ -474,7 +501,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 throw new IOException("Received more bytes than expected or invalid data");
             }
 
-            await this.InternalReadBytesFromBufferOrStream(dstBuffer, (int) (offset + totalRead), chunkSize);
+            await this.ReadFromBufferOrStreamAsync(dstBuffer, (int) (offset + totalRead), chunkSize);
 
             address += 0x400;
             totalRead += (uint) chunkSize;
@@ -502,6 +529,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     private async Task<ConsoleResponse> InternalReadResponse() {
         string responseText = await this.InternalReadLineFromStream().ConfigureAwait(false);
+        return ConsoleResponse.FromFirstLine(responseText);
+    }
+
+    private async Task<ConsoleResponse> InternalReadResponseOld() {
+        string responseText = await this.InternalReadLineFromStreamOld().ConfigureAwait(false);
         return ConsoleResponse.FromFirstLine(responseText);
     }
 
@@ -573,7 +605,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
         int available = this.idxEndLnBuf - this.idxBeginLnBuf;
         int read = Math.Min(available, count);
-        this.charBytesBuffer.AsSpan(this.idxBeginLnBuf, read).CopyTo(dstBuffer.AsSpan(offset, read));
+        this.localReadBuffer.AsSpan(this.idxBeginLnBuf, read).CopyTo(dstBuffer.AsSpan(offset, read));
         if ((this.idxBeginLnBuf += read) >= this.idxEndLnBuf) {
             this.idxBeginLnBuf = this.idxEndLnBuf = 0;
         }
@@ -583,7 +615,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     // returns: true when bytes processed or read from stream, false when no bytes available at all
     private bool ReadChars(out string? line) {
-        int cbUsed, cbReadable;
+        int cbUsed;
 
         // Read buffered data first before reading any more data from TCP
         if (this.idxBeginLnBuf < this.idxEndLnBuf) {
@@ -599,29 +631,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             }
         }
 
-        if ((cbReadable = this.client.Available) < 1) {
-            line = null;
-            return false;
-        }
-
-        // Tried different ways to prevent InternalReadLineFromStream maxing out the CPU waiting for bytes, but it's just no good.
-        // what we may need is a dedicated reader thread that sits in an inf loop using the BeginRead and just blocks
-        // (hopefully without consuming CPU) until it reads something. Then we shove that into a buffer, wait for \r\n then signal
-        // line received which continues the current waiting task.
-        // To handle timeouts, there would be bIsWaitingForLine and dateWhenWaitStarted and when the reader thread detects
-        // it took more than X seconds to receive full command, then shutdown the socket and notify continuation of timeout.
-        // For now, we'll just sit in a Task.Yield() loop, with occasional Task.Delay() when console didn't response for a longer time
-
-        // int cbRead = ApplicationPFX.Instance.Dispatcher.Invoke(() => {
-        //     int cbRead = 0;
-        //     NetworkStream stream = this.client.GetStream();
-        //     IAsyncResult beginRead = stream.BeginRead(this.abReadBuffer, 0, Math.Min(this.client.Available, this.abReadBuffer.Length), ar => Volatile.Write(ref cbRead, stream.EndRead(ar)), null);
-        //     beginRead.AsyncWaitHandle.WaitOne();
-        //     return Volatile.Read(ref cbRead);
-        // });
-
         // converting this method into async and using await ReadAsync doesn't really help
-        int cbRead = this.client.GetStream().Read(this.charBytesBuffer, 0, Math.Min(cbReadable, this.charBytesBuffer.Length));
+        int available = this.client.Available;
+        int cbRead = this.client.GetStream().Read(this.localReadBuffer, 0, Math.Min(available, this.localReadBuffer.Length));
         if (cbRead < 1) {
             line = null;
             return false;
@@ -638,7 +650,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     private int ProcessBufferAsString(int offset, int endIndex, out string? line) {
-        ref byte buffer = ref MemoryMarshal.GetArrayDataReference(this.charBytesBuffer);
+        ref byte buffer = ref MemoryMarshal.GetArrayDataReference(this.localReadBuffer);
 
         bool bNeedNewLine = this.isWaitingForNewLine;
         for (int i = offset; i < endIndex; i++) {
@@ -668,7 +680,31 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         return endIndex - offset;
     }
 
+    private async Task ActivateReader(int mode, CancellationToken token) {
+        int currentMode; // for debugging
+        while ((currentMode = Interlocked.CompareExchange(ref this.readType, mode, 0)) != 0) {
+            if (this.isClosed)
+                throw new IOException("Connection closed"); // maybe use a field to specify if closed due to timeout?
+
+            if (token.IsCancellationRequested) {
+                this.CloseAndDispose();
+                token.ThrowIfCancellationRequested();
+            }
+
+            await Task.Yield();
+        }
+    }
+
     private async Task<string> InternalReadLineFromStream(CancellationToken token = default) {
+        await this.ActivateReader(1, token);
+
+        TaskCompletionSource<string> tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        this.readInfo_string = new StringLineReadInfo(tcs, token);
+        this.readEvent.Set();
+        return await tcs.Task.ConfigureAwait(false);
+    }
+
+    private async Task<string> InternalReadLineFromStreamOld(CancellationToken token = default) {
         // WARNING: very important not to breakpoint anywhere in the loop when debugging, because if the loop
         // times out mid-operation, the connection becomes corrupted and we have to force close it.
 
@@ -700,13 +736,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         this.CloseAndDispose();
         throw new TimeoutException("Timeout while reading line");
     }
-
-    private void ReadLocalBufferOrStream(byte[] buffer, int offset, int count) {
-        int cbTotalRead = this.ReadBytesFromBuffer(buffer, offset, count);
-        while (cbTotalRead < count) {
-            int cbReadTcp = this.client.GetStream().Read(buffer, offset + cbTotalRead, count - cbTotalRead);
-            cbTotalRead += cbReadTcp;
-        }
+    
+    private async Task ReadFromBufferOrStreamAsync(byte[] buffer, int offset, int count) {
+        int cbRead = this.ReadLocalBufferOrStream(buffer, offset, count);
+        if (cbRead < count)
+            await this.InternalReadBytesFromBufferOrStream(buffer, offset + cbRead, count - cbRead);
     }
 
     private async Task InternalReadBytesFromBufferOrStream(byte[] buffer, int offset, int count, CancellationToken token = default) {
@@ -716,19 +750,133 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             return;
         }
 
+        await this.ActivateReader(2, token);
+
+        TaskCompletionSource tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        this.readInfo_binary = new BinaryReadInfo(buffer, offset, count, tcs, token);
+        this.readEvent.Set();
+        await tcs.Task.ConfigureAwait(false);
+    }
+
+    private void ReaderThreadMain() {
+        while (!this.isClosed) {
+            this.readEvent.WaitOne();
+            
+            // -1 means locked (busy or connection closed)
+            int mode = Interlocked.Exchange(ref this.readType, -1);
+            switch (mode) {
+                case -1:
+                    Debugger.Break();
+                    this.CloseAndDispose();
+                    return;
+                case 0:
+                    Debug.WriteLine("Reader thread woke up for nothing");
+                    this.readType = 0;
+                    break;
+                case 1: this.ReadStringData(); break;
+                case 2: this.ReadBinaryData(); break;
+            }
+        }
+    }
+
+    private void ReadStringData() {
+        StringLineReadInfo info = this.readInfo_string;
+        if (info.completion == null) {
+            Debugger.Break();
+            Debug.Fail(nameof(this.readInfo_string) + " invalid");
+        }
+
+        if (info.cancellation.IsCancellationRequested) {
+            this.CloseAndDispose();
+            info.completion.SetException(new TimeoutException("Timeout while reading line"));
+            this.readType = -1;
+            return;
+        }
+
+        const long MaxReadIntervalToSleep = TimeSpan.TicksPerMillisecond * 18;
+        long currentTime = Time.GetSystemTicks(), lastReadTime = currentTime;
+        long endTicks = currentTime + (TimeSpan.TicksPerSecond * 5000 /* 5 seconds */);
+
+        while (true) {
+            string? line;
+            bool hadAnyAction;
+            try {
+                hadAnyAction = this.ReadChars(out line);
+            }
+            catch (Exception e) {
+                this.CloseAndDispose();
+                info.completion.SetException(e);
+                this.readType = -1;
+                break;
+            }
+
+            if (line != null) {
+                info.completion.SetResult(line);
+                this.readType = 0;
+                break;
+            }
+
+            if (!hadAnyAction && this.client.Available < 1) {
+                // No data yet, so wait for data to come in. If we've received nothing for a few millis,
+                // then just delay for a little bit. On Windows, Task.Delay() will always be about 16ms
+                // due to thread context switching
+                if ((Time.GetSystemTicks() - lastReadTime) >= MaxReadIntervalToSleep) {
+                    Thread.Sleep(10);
+                }
+                else {
+                    Thread.Yield();
+                }
+            }
+
+            if (info.cancellation.IsCancellationRequested || (hadAnyAction ? (lastReadTime = Time.GetSystemTicks()) : Time.GetSystemTicks()) >= endTicks) {
+                this.CloseAndDispose();
+                info.completion.SetException(new TimeoutException("Timeout while reading line"));
+                this.readType = -1;
+                break;
+            }
+        }
+    }
+
+    private void ReadBinaryData() {
+        BinaryReadInfo info = this.readInfo_binary;
+        if (info.dstBuffer == null) {
+            Debugger.Break();
+            Debug.Fail(nameof(this.readInfo_binary) + " invalid");
+        }
+
         const long MaxReadIntervalToSleep = TimeSpan.TicksPerMillisecond * 18; // 5ms
         long currentTime = Time.GetSystemTicks(), lastReadTime = currentTime;
         long endTicks = currentTime + (TimeSpan.TicksPerSecond * 5 /* 5 seconds */);
-        int cbRead, cbReadable;
-        do {
-            token.ThrowIfCancellationRequested();
+        int count = info.count, offset = info.offset;
+        Debug.Assert(count >= 0);
 
+        // Most likely reading data after sending a command, so by cancelling
+        // it, there's no option other than to shut down connection
+        if (info.cancellation.IsCancellationRequested) {
+            this.CloseAndDispose();
+            info.completion.SetException(new TimeoutException("Timeout while reading data"));
+            this.readType = -1;
+            return;
+        }
+
+        while (true) {
+            int cbRead, cbReadable;
             if ((cbReadable = this.idxEndLnBuf - this.idxBeginLnBuf) != 0 || (cbReadable = this.client.Available) >= 1) {
                 int readCount = Math.Min(cbReadable, count);
-                cbRead = this.ReadBytesFromBuffer(buffer, offset, readCount);
+                cbRead = this.ReadBytesFromBuffer(info.dstBuffer, offset, readCount);
                 if (cbRead < readCount) {
                     // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-                    int cbReadTcp = this.client.GetStream().Read(buffer, offset + cbRead, readCount - cbRead);
+                    int cbReadTcp;
+                    try {
+                        cbReadTcp = this.client.GetStream().Read(info.dstBuffer, offset + cbRead, readCount - cbRead);
+                    }
+                    catch (Exception e) {
+                        this.CloseAndDispose();
+                        info.completion.SetException(e);
+                        this.readType = -1;
+                        break;
+                    }
+
                     cbRead += cbReadTcp;
                 }
 
@@ -740,7 +888,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             }
 
             if (count < 1) {
-                return;
+                info.completion.SetResult();
+                this.readType = 0;
+                break;
             }
 
             if (cbRead < 1 && this.client.Available < 1 && (this.idxEndLnBuf - this.idxBeginLnBuf) == 0) {
@@ -748,16 +898,30 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 // then just delay for a little bit. On Windows, Task.Delay() will always be about 16ms
                 // due to thread context switching
                 if ((Time.GetSystemTicks() - lastReadTime) >= MaxReadIntervalToSleep) {
-                    await Task.Delay(5, token).ConfigureAwait(false);
+                    Thread.Sleep(10);
                 }
                 else {
-                    await Task.Yield();
+                    Thread.Yield();
                 }
             }
-        } while ((cbRead > 0 ? (lastReadTime = Time.GetSystemTicks()) : Time.GetSystemTicks()) < endTicks);
 
-        this.CloseAndDispose();
-        throw new TimeoutException("Timeout while reading line");
+            if (info.cancellation.IsCancellationRequested || (cbRead > 0 ? (lastReadTime = Time.GetSystemTicks()) : Time.GetSystemTicks()) >= endTicks) {
+                this.CloseAndDispose();
+                info.completion.SetException(new TimeoutException("Timeout while reading line"));
+                this.readType = -1;
+                break;
+            }
+        }
+    }
+    
+    private int ReadLocalBufferOrStream(byte[] buffer, int offset, int count) {
+        int cbTotalRead = this.ReadBytesFromBuffer(buffer, offset, count);
+        if (cbTotalRead < count) {
+            int cbReadTcp = this.client.GetStream().Read(buffer, offset + cbTotalRead, Math.Min(count - cbTotalRead, this.client.Available));
+            cbTotalRead += cbReadTcp;
+        }
+
+        return cbTotalRead;
     }
 
     private static void VerifyResponse(string commandName, ResponseType actual, ResponseType expected) {
