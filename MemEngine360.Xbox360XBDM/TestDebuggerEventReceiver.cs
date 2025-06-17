@@ -40,7 +40,7 @@ public class TestDebuggerEventReceiver {
                 throw new Exception("Borken");
             }
 
-            XbdmConsoleConnection connection = new XbdmConsoleConnection(client, cmdReader);
+            XbdmConsoleConnection connection = new XbdmConsoleConnection(client);
 
             ConsoleResponse response = await connection.SendCommand($"debugger connect override name=\"{Environment.MachineName}\" user=\"MemoryEngine360\"");
             if (response.ResponseType != ResponseType.SingleResponse) {

@@ -108,7 +108,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
                 StreamReader reader = new StreamReader(client.GetStream(), leaveOpen: true);
                 string? response = (await Task.Run(() => reader.ReadLine(), cancellation.Token))?.ToLower();
                 if (response == "201- connected") {
-                    return new XbdmConsoleConnection(client, reader);
+                    return new XbdmConsoleConnection(client);
                 }
 
                 await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => IMessageDialogService.Instance.ShowMessage("Error", "Received invalid response from console: " + (response ?? "")));

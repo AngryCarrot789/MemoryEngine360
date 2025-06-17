@@ -36,6 +36,7 @@ namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 // https://github.com/XeClutch/Cheat-Engine-For-Xbox-360/blob/master/Cheat%20Engine%20for%20Xbox%20360/PhantomRTM.cs
 
 public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHavePowerFunctions, IXboxDebuggable {
+    private readonly byte[] sharedTwoByteArray = new byte[2];
     private readonly byte[] sharedSetMemCommandBuffer = new byte[14 + 8 + 6 + 128 + 2];
     private readonly byte[] sharedGetMemCommandBuffer = new byte[14 + 8 + 10 + 8 + 2];
     private readonly byte[] charBytesBuffer = new byte[4096];
@@ -44,7 +45,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     private int idxBeginLnBuf, idxEndLnBuf;
 
     private readonly TcpClient client;
-    private readonly StreamReader reader;
 
     public EndPoint? EndPoint => this.IsConnected ? this.client.Client.RemoteEndPoint : null;
 
@@ -53,12 +53,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     protected override bool IsConnectedCore => this.client.Connected;
 
     public override bool IsLittleEndian => false;
-    
+
     public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
 
-    public XbdmConsoleConnection(TcpClient client, StreamReader reader) {
+    public XbdmConsoleConnection(TcpClient client) {
         this.client = client;
-        this.reader = reader;
 
         "setmem addr=0x"u8.CopyTo(new Span<byte>(this.sharedSetMemCommandBuffer, 0, 14));
         " data="u8.CopyTo(new Span<byte>(this.sharedSetMemCommandBuffer, 22, 6));
@@ -411,21 +410,27 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     protected override async Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
-        this.FillGetMemCommandBuffer(address, (uint) count);
-        await this.InternalWriteBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
-        ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
-        VerifyResponse("getmem", response.ResponseType, ResponseType.MultiResponse);
+        if (count <= 128) {
+            // For some reason, the old string-based reader is faster for small chunks of data.
+            // However, once reading 1000s of bytes, the binary based one is twice as fast,
+            // since the xbox isn't sending two bytes of ASCII for a single byte of data
+            this.FillGetMemCommandBuffer(address, (uint) count);
+            await this.InternalWriteBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
+            ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
+            VerifyResponse("getmem", response.ResponseType, ResponseType.MultiResponse);
+            int cbRead = 0;
+            string line;
+            while ((line = await this.InternalReadLineFromStream().ConfigureAwait(false)) != ".") {
+                cbRead += DecodeLine(line, dstBuffer, offset, cbRead);
+            }
 
-        int cbRead = 0;
-        string line;
-        while ((line = await this.InternalReadLineFromStream().ConfigureAwait(false)) != ".") {
-            cbRead += DecodeLine(line, dstBuffer, offset, cbRead);
+            if (cbRead != count) {
+                throw new IOException("Incorrect number of bytes read");
+            }
         }
-
-        if (cbRead != count) {
-            throw new IOException("Incorrect number of bytes read");
+        else {
+            await this.NewReadBytes(address, dstBuffer, offset, count);
         }
-        // await this.NewReadBytes(address, dstBuffer, offset, count);
     }
 
     private static int DecodeLine(string line, byte[] dstBuffer, int offset, int cbTotalRead) {
@@ -446,52 +451,36 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     // Sometimes it works, sometimes it doesn't. And it also doesn't read from the correct address which is odd
     public async Task<uint> NewReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
-        if (count == 0) {
+        if (count <= 0) {
             return 0;
         }
-
-        Debug.WriteLine($"SENDING GETMEMEX. TCP AVAILABLE = {this.client.Available}");
 
         ConsoleResponse response = await this.SendCommandAndGetResponse($"getmemex addr=0x{address:X8} length=0x{count:X8}").ConfigureAwait(false);
         VerifyResponse("getmemex", response.ResponseType, ResponseType.BinaryResponse);
 
-        Debug.WriteLine($"RESPONSE: {response}. TCP AVAILABLE = {this.client.Available}");
-
         int header, chunkSize, statusFlag = 0;
         uint totalRead = 0;
-        byte[] buffer = new byte[0x402];
+        
         do {
             if (statusFlag != 0) {
-                throw new IOException("Did not receive enough bytes");
+                throw new IOException("Not enough bytes read");
             }
 
-            Debug.WriteLine($"READING HEADER (2 BYTES). TCP AVAILABLE = {this.client.Available}");
-
-            // await this.InternalReadBytesFromStream(buffer, 0, 2);
-            int cbRead = this.client.GetStream().Read(buffer, 0, 2);
-
-            header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(buffer, 0, 2));
+            await this.InternalReadBytesFromBufferOrStream(this.sharedTwoByteArray, 0, 2);
+            header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(this.sharedTwoByteArray, 0, 2));
             chunkSize = header & 0x7FFF;
             statusFlag = header & 0x8000;
-
-            Debug.WriteLine($"READ HEADER. CBCHUNK = {chunkSize}, STATUS = {statusFlag}. TCP AVAILABLE = {this.client.Available}");
             if (count < chunkSize) {
-                throw new IOException("Received more bytes than expected");
+                throw new IOException("Received more bytes than expected or invalid data");
             }
 
-            // await this.InternalReadBytesFromStream(buffer, 0, chunkSize);
-            cbRead = this.client.GetStream().Read(buffer, 0, chunkSize);
-            Debug.WriteLine($"READ DATA. TCP AVAILABLE = {this.client.Available}");
-
-            buffer.AsSpan(0, chunkSize).CopyTo(dstBuffer.AsSpan(offset, chunkSize));
+            await this.InternalReadBytesFromBufferOrStream(dstBuffer, (int) (offset + totalRead), chunkSize);
 
             address += 0x400;
             totalRead += (uint) chunkSize;
             count -= chunkSize;
-            offset += chunkSize;
         } while (count > 0);
 
-        Debug.WriteLine($"SUCCESSFULLY READ {totalRead}");
         return totalRead;
     }
 
@@ -577,13 +566,28 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         NumberUtils.UInt32ToHexAscii(count, ref dstAscii, 32);
     }
 
+    private int ReadBytesFromBuffer(byte[] dstBuffer, int offset, int count) {
+        if (this.idxBeginLnBuf == this.idxEndLnBuf) {
+            return 0;
+        }
+
+        int available = this.idxEndLnBuf - this.idxBeginLnBuf;
+        int read = Math.Min(available, count);
+        this.charBytesBuffer.AsSpan(this.idxBeginLnBuf, read).CopyTo(dstBuffer.AsSpan(offset, read));
+        if ((this.idxBeginLnBuf += read) >= this.idxEndLnBuf) {
+            this.idxBeginLnBuf = this.idxEndLnBuf = 0;
+        }
+
+        return read;
+    }
+
     // returns: true when bytes processed or read from stream, false when no bytes available at all
     private bool ReadChars(out string? line) {
         int cbUsed, cbReadable;
 
         // Read buffered data first before reading any more data from TCP
         if (this.idxBeginLnBuf < this.idxEndLnBuf) {
-            cbUsed = this.ProcessBufferBytes(this.idxBeginLnBuf, this.idxEndLnBuf, out line);
+            cbUsed = this.ProcessBufferAsString(this.idxBeginLnBuf, this.idxEndLnBuf, out line);
 
             // should only need to do == but whatever, just in case
             if ((this.idxBeginLnBuf += cbUsed) >= this.idxEndLnBuf) {
@@ -623,7 +627,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             return false;
         }
 
-        cbUsed = this.ProcessBufferBytes(0, cbRead, out line);
+        cbUsed = this.ProcessBufferAsString(0, cbRead, out line);
         if (cbUsed != cbRead) {
             Debug.Assert(line != null);
             this.idxBeginLnBuf = cbUsed;
@@ -633,7 +637,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         return true;
     }
 
-    private int ProcessBufferBytes(int offset, int endIndex, out string? line) {
+    private int ProcessBufferAsString(int offset, int endIndex, out string? line) {
         ref byte buffer = ref MemoryMarshal.GetArrayDataReference(this.charBytesBuffer);
 
         bool bNeedNewLine = this.isWaitingForNewLine;
@@ -668,25 +672,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         // WARNING: very important not to breakpoint anywhere in the loop when debugging, because if the loop
         // times out mid-operation, the connection becomes corrupted and we have to force close it.
 
-        // string? line;
-        // try {
-        //     Task<string?> task1 = this.reader.ReadLineAsync(token).AsTask();
-        //     Task<string?> task2 = Task.Delay(5000, token).ContinueWith(string? (x) => null, token);
-        //     line = await await Task.WhenAny(task1, task2);
-        // }
-        // catch (OperationCanceledException) {
-        //     if (token.IsCancellationRequested)
-        //         throw;
-        //     line = null;
-        // }
-        //
-        // if (line == null) {
-        //     throw new EndOfStreamException("Timeoue while reading line");
-        // }
-        //
-        // return line;
-
-        const long MaxReadIntervalToSleep = TimeSpan.TicksPerMillisecond * 5; // 5ms
+        const long MaxReadIntervalToSleep = TimeSpan.TicksPerMillisecond * 18;
         bool hadAnyAction;
         long currentTime = Time.GetSystemTicks(), lastReadTime = currentTime;
         long endTicks = currentTime + (TimeSpan.TicksPerSecond * 5 /* 5 seconds */);
@@ -713,49 +699,51 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
         this.CloseAndDispose();
         throw new TimeoutException("Timeout while reading line");
-
-        // ORIGINAL METHOD:
-        //   string? result;
-        //   try {
-        //       result = await this.reader.ReadLineAsync(token).ConfigureAwait(false);
-        //   }
-        //   catch (IOException e) {
-        //       this.client.Client.Close();
-        //       this.isClosed = true;
-        //       throw new IOException("IOError while reading bytes", e);
-        //   }
-        //   return result ?? throw new EndOfStreamException("No more bytes to read");
     }
 
-    private async Task InternalReadBytesFromStream(byte[] buffer, int offset, int count, CancellationToken token = default) {
+    private void ReadLocalBufferOrStream(byte[] buffer, int offset, int count) {
+        int cbTotalRead = this.ReadBytesFromBuffer(buffer, offset, count);
+        while (cbTotalRead < count) {
+            int cbReadTcp = this.client.GetStream().Read(buffer, offset + cbTotalRead, count - cbTotalRead);
+            cbTotalRead += cbReadTcp;
+        }
+    }
+
+    private async Task InternalReadBytesFromBufferOrStream(byte[] buffer, int offset, int count, CancellationToken token = default) {
         // WARNING: very important not to breakpoint anywhere in the loop when debugging, because if the loop
         // times out mid-operation, the connection becomes corrupted and we have to force close it.
         if (count < 1) {
             return;
         }
 
-        const long MaxReadIntervalToSleep = TimeSpan.TicksPerMillisecond * 5; // 5ms
+        const long MaxReadIntervalToSleep = TimeSpan.TicksPerMillisecond * 18; // 5ms
         long currentTime = Time.GetSystemTicks(), lastReadTime = currentTime;
         long endTicks = currentTime + (TimeSpan.TicksPerSecond * 5 /* 5 seconds */);
         int cbRead, cbReadable;
         do {
             token.ThrowIfCancellationRequested();
 
-            if ((cbReadable = this.client.Available) < 1) {
-                cbRead = 0;
-            }
-            else {
-                // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-                cbRead = this.client.GetStream().Read(buffer, offset, Math.Min(cbReadable, count));
+            if ((cbReadable = this.idxEndLnBuf - this.idxBeginLnBuf) != 0 || (cbReadable = this.client.Available) >= 1) {
+                int readCount = Math.Min(cbReadable, count);
+                cbRead = this.ReadBytesFromBuffer(buffer, offset, readCount);
+                if (cbRead < readCount) {
+                    // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+                    int cbReadTcp = this.client.GetStream().Read(buffer, offset + cbRead, readCount - cbRead);
+                    cbRead += cbReadTcp;
+                }
+
                 count -= cbRead;
                 offset += cbRead;
+            }
+            else {
+                cbRead = 0;
             }
 
             if (count < 1) {
                 return;
             }
 
-            if (cbRead < 1 && this.client.Available < 1) {
+            if (cbRead < 1 && this.client.Available < 1 && (this.idxEndLnBuf - this.idxBeginLnBuf) == 0) {
                 // No data yet, so wait for data to come in. If we've received nothing for a few millis,
                 // then just delay for a little bit. On Windows, Task.Delay() will always be about 16ms
                 // due to thread context switching
