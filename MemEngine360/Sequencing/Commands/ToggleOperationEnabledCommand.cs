@@ -23,11 +23,11 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class ToggleOperationEnabledCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return ITaskSequencerUI.TaskSequencerUIDataKey.GetExecutabilityForPresence(e.ContextData);
+        return ITaskSequenceManagerUI.DataKey.GetExecutabilityForPresence(e.ContextData);
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
             return;
         }
 

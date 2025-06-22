@@ -202,7 +202,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
         ConsoleConnectionManager manager = Instance.ServiceManager.GetService<ConsoleConnectionManager>();
         manager.Register(ConnectionTypeBinaryFile.TheID, ConnectionTypeBinaryFile.Instance);
-        
+
 #if DEBUG
         if (Debugger.IsAttached) {
             OpenConnectionView.Registry.RegisterType<TestConnectionInfo>(() => new OpenTestConnectionView());
@@ -328,12 +328,12 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
             await progress.ProgressAndSynchroniseAsync("Startup completed. Loading engine window...", 1.0);
             if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
+                system.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                
                 EngineWindow view = new EngineWindow();
-                if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
-                    (progress as SplashScreenWindow)?.Close();
-                    desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
-                }
-
+                (progress as SplashScreenWindow)?.Close();
+                
+                system.ShutdownMode = ShutdownMode.OnMainWindowClose;
                 system.Register(view, true);
                 view.Show();
 

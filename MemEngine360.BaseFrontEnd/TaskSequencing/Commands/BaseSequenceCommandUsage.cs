@@ -42,7 +42,7 @@ public abstract class BaseSequenceCommandUsage : SimpleButtonCommandUsage {
         TaskSequence? oldSeq = this.TaskSequence;
         TaskSequence? newSeq = null;
         if (this.GetContextData() is IContextData data) {
-            ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(data, out newSeq);
+            newSeq = ITaskSequenceEntryUI.DataKey.TryGetContext(data, out ITaskSequenceEntryUI? newSeqUI) ? newSeqUI.TaskSequence : null;
         }
 
         if (oldSeq != newSeq) {

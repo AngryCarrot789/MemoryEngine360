@@ -23,14 +23,13 @@ using PFXToolKitUI.Utils.Accessing;
 
 namespace MemEngine360.Configs;
 
-public class MemoryEngineConfigurationPage : ConfigurationPage, ITransferableData {
+public class MemoryEngineConfigurationPage : ConfigurationPage {
     public static readonly DataParameterNumber<uint> ValueRefreshRateParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemoryEngineConfigurationPage), nameof(ValueRefreshRate), BasicApplicationConfiguration.RefreshRateMillisProperty.DefaultValue, 250, uint.MaxValue, ValueAccessors.Reflective<uint>(typeof(MemoryEngineConfigurationPage), nameof(valueRefreshRate))));
     public static readonly DataParameterNumber<uint> AutoRefreshUpdatesPerSecondParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemoryEngineConfigurationPage), nameof(AutoRefreshUpdatesPerSecond), BasicApplicationConfiguration.AutoRefreshUpdatesPerSecondProperty.DefaultValue, 1, 20, ValueAccessors.Reflective<uint>(typeof(MemoryEngineConfigurationPage), nameof(autoRefreshUpdatesPerSecond))));
     public static readonly DataParameterNumber<uint> MaxRowsBeforeDisableAutoRefreshParameter = DataParameter.Register(new DataParameterNumber<uint>(typeof(MemoryEngineConfigurationPage), nameof(MaxRowsBeforeDisableAutoRefresh), BasicApplicationConfiguration.MaxRowsBeforeDisableAutoRefreshProperty.DefaultValue, ValueAccessors.Reflective<uint>(typeof(MemoryEngineConfigurationPage), nameof(maxRowsBeforeDisableAutoRefresh))));
     public static readonly DataParameterNumber<double> FloatingPointEpsilonParameter = DataParameter.Register(new DataParameterNumber<double>(typeof(MemoryEngineConfigurationPage), nameof(FloatingPointEpsilon), BasicApplicationConfiguration.FloatingPointEpsilonProperty.DefaultValue, 0, 0.9999D, ValueAccessors.Reflective<double>(typeof(MemoryEngineConfigurationPage), nameof(floatingPointEpsilon))));
     public static readonly DataParameterBool IsAutoRefreshResultsEnabledParameter = DataParameter.Register(new DataParameterBool(typeof(MemoryEngineConfigurationPage), nameof(IsAutoRefreshResultsEnabled), BasicApplicationConfiguration.IsAutoRefreshResultsEnabledProperty.DefaultValue, ValueAccessors.Reflective<bool>(typeof(MemoryEngineConfigurationPage), nameof(isValueRefreshEnabled))));
 
-    private bool ignoreDpChange;
     private uint valueRefreshRate;
     private uint autoRefreshUpdatesPerSecond;
     private uint maxRowsBeforeDisableAutoRefresh;
@@ -46,7 +45,7 @@ public class MemoryEngineConfigurationPage : ConfigurationPage, ITransferableDat
         get => this.autoRefreshUpdatesPerSecond;
         set => DataParameter.SetValueHelper(this, AutoRefreshUpdatesPerSecondParameter, ref this.autoRefreshUpdatesPerSecond, value);
     }
-    
+
     public uint MaxRowsBeforeDisableAutoRefresh {
         get => this.maxRowsBeforeDisableAutoRefresh;
         set => DataParameter.SetValueHelper(this, MaxRowsBeforeDisableAutoRefreshParameter, ref this.maxRowsBeforeDisableAutoRefresh, value);
@@ -61,26 +60,12 @@ public class MemoryEngineConfigurationPage : ConfigurationPage, ITransferableDat
         get => this.floatingPointEpsilon;
         set => DataParameter.SetValueHelper(this, FloatingPointEpsilonParameter, ref this.floatingPointEpsilon, value);
     }
-    
-    public TransferableData TransferableData { get; }
 
     public MemoryEngineConfigurationPage() {
-        this.TransferableData = new TransferableData(this);
-        this.valueRefreshRate = ValueRefreshRateParameter.GetDefaultValue(this);
-        this.autoRefreshUpdatesPerSecond = AutoRefreshUpdatesPerSecondParameter.GetDefaultValue(this);
-        this.maxRowsBeforeDisableAutoRefresh = MaxRowsBeforeDisableAutoRefreshParameter.GetDefaultValue(this);
-        this.isValueRefreshEnabled = IsAutoRefreshResultsEnabledParameter.GetDefaultValue(this);
     }
 
     static MemoryEngineConfigurationPage() {
-        DataParameter.AddMultipleHandlers(MarkModifiedForDPChanged, 
-            ValueRefreshRateParameter, AutoRefreshUpdatesPerSecondParameter, 
-            MaxRowsBeforeDisableAutoRefreshParameter, IsAutoRefreshResultsEnabledParameter);
-    }
-
-    private static void MarkModifiedForDPChanged(DataParameter parameter, ITransferableData owner) {
-        if (!((MemoryEngineConfigurationPage) owner).ignoreDpChange)
-            ((MemoryEngineConfigurationPage) owner).IsModified = true;
+        AffectsIsModified(ValueRefreshRateParameter, AutoRefreshUpdatesPerSecondParameter, MaxRowsBeforeDisableAutoRefreshParameter, IsAutoRefreshResultsEnabledParameter);
     }
 
     protected override ValueTask OnContextCreated(ConfigurationContext context) {
@@ -91,16 +76,14 @@ public class MemoryEngineConfigurationPage : ConfigurationPage, ITransferableDat
         return ValueTask.CompletedTask;
     }
 
-    protected override void OnActiveContextChanged(ConfigurationContext? oldContext, ConfigurationContext? newContext) {
-        base.OnActiveContextChanged(oldContext, newContext);
+    protected override void OnIsViewingChanged(ConfigurationContext? oldContext, ConfigurationContext? newContext) {
+        base.OnIsViewingChanged(oldContext, newContext);
         if (newContext != null) {
-            this.ignoreDpChange = true;
             this.ValueRefreshRate = BasicApplicationConfiguration.Instance.RefreshRateMillis;
             this.AutoRefreshUpdatesPerSecond = BasicApplicationConfiguration.Instance.AutoRefreshUpdatesPerSecond;
             this.MaxRowsBeforeDisableAutoRefresh = BasicApplicationConfiguration.Instance.MaxRowsBeforeDisableAutoRefresh;
             this.IsAutoRefreshResultsEnabled = BasicApplicationConfiguration.Instance.IsAutoRefreshResultsEnabled;
             this.FloatingPointEpsilon = BasicApplicationConfiguration.Instance.FloatingPointEpsilon;
-            this.ignoreDpChange = false;
             this.IsModified = false;
         }
     }

@@ -28,8 +28,8 @@ namespace MemEngine360.Engine;
 /// <summary>
 /// An abstraction around the engine window
 /// </summary>
-public interface IEngineUI : ITopLevel {
-    public static readonly DataKey<IEngineUI> EngineUIDataKey = DataKey<IEngineUI>.Create("IEngineUI");
+public interface IEngineUI {
+    public static readonly DataKey<IEngineUI> DataKey = DataKey<IEngineUI>.Create(nameof(IEngineUI));
 
     /// <summary>
     /// A data key used by the connection change notification to tell whether a disconnection originated from the notification's "Disconnect" command

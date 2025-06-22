@@ -20,8 +20,6 @@
 using System;
 using System.IO;
 using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
@@ -38,16 +36,19 @@ public partial class App : Application {
 
         ApplicationPFX.InitializeInstance(new MemoryEngineApplication(this));
         
-        if (this.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop1) {
-            desktop1.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            SplashScreenWindow splashScreen = new SplashScreenWindow();
-            this.progress = splashScreen;
-            desktop1.MainWindow = splashScreen;
-            splashScreen.Show();
-        }
-        else {
-            this.progress = new EmptyApplicationStartupProgress();
-        }
+        // if (this.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop1) {
+        //     desktop1.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        //     SplashScreenWindow splashScreen = new SplashScreenWindow();
+        //     this.progress = splashScreen;
+        //     desktop1.MainWindow = splashScreen;
+        //     splashScreen.Show();
+        // }
+        // else {
+        //     this.progress = new EmptyApplicationStartupProgress();
+        // }
+
+        // Splash Screen only flashes, so long startups are beyond our control here
+        this.progress = new EmptyApplicationStartupProgress();
     }
 
     public override async void OnFrameworkInitializationCompleted() {

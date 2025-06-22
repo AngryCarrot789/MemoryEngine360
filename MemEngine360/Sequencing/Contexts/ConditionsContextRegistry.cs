@@ -23,32 +23,23 @@ namespace MemEngine360.Sequencing.Contexts;
 
 public static class ConditionsContextRegistry {
     public static readonly ContextRegistry Registry = new ContextRegistry("Condition");
-    
+
     static ConditionsContextRegistry() {
         FixedContextGroup actions = Registry.GetFixedGroup("conditions");
         actions.AddHeader("Edit");
         actions.AddCommand("commands.sequencer.EditConditionOutputModeCommand", "Edit output mode");
         actions.AddHeader("General");
         actions.AddCommand("commands.sequencer.DuplicateConditionsCommand", "Duplicate");
-        actions.AddDynamicSubGroup((group, ctx, items) => {
-            if (!ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(ctx, out ITaskSequencerUI? ui)) {
-                return;
-            }
-
-            int count = ui.ConditionSelectionManager.SelectedItemList.Count;
-            if (count < 1) {
-                return;
-            }
-            
-            if (count == 1) {
+        actions.AddCommand("commands.sequencer.ToggleConditionEnabledCommand", "Toggle Enabled").AddSimpleContextUpdate(ITaskSequenceManagerUI.DataKey, (e, ui) => {
+            if (ui != null && ui.ConditionSelectionManager.SelectedItemList.Count == 1) {
                 IConditionItemUI item = ui.ConditionSelectionManager.SelectedItemList[0];
-                items.Add(new CommandContextEntry("commands.sequencer.ToggleConditionEnabledCommand", item.Condition.IsEnabled ? "Disable" : "Enable"));
+                e.DisplayName = item.Condition.IsEnabled ? "Disable" : "Enable";
             }
             else {
-                items.Add(new CommandContextEntry("commands.sequencer.ToggleConditionEnabledCommand", "Toggle Enabled"));
+                e.DisplayName = "Toggle Enabled";
             }
         });
-        
+
         actions.AddSeparator();
         actions.AddCommand("commands.sequencer.DeleteConditionSelectionCommand", "Delete");
     }

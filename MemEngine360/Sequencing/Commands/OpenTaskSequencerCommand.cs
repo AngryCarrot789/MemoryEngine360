@@ -25,7 +25,7 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class OpenTaskSequencerCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? memUi)) {
+        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? memUi)) {
             return Executability.Invalid;
         }
 
@@ -33,7 +33,7 @@ public class OpenTaskSequencerCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? memUi)) {
+        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? memUi)) {
             return;
         }
 

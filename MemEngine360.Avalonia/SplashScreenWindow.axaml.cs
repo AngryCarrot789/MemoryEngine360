@@ -45,7 +45,7 @@ public partial class SplashScreenWindow : Window, IApplicationStartupProgress {
 
     public SplashScreenWindow() {
         this.InitializeComponent();
-        this.CompletionState = new ConcurrentCompletionState(DispatchPriority.INTERNAL_BeforeRender);
+        this.CompletionState = new ConcurrentCompletionState(DispatchPriority.Normal);
         this.CompletionState.CompletionValueChanged += this.CompletionStateOnCompletionValueChanged;
     }
 
@@ -68,5 +68,5 @@ public partial class SplashScreenWindow : Window, IApplicationStartupProgress {
         return this.SynchroniseAsync();
     }
 
-    public Task SynchroniseAsync() => ApplicationPFX.Instance.Dispatcher.Process(DispatchPriority.INTERNAL_AfterRender);
+    public Task SynchroniseAsync() => ApplicationPFX.Instance.Dispatcher.Process(DispatchPriority.AfterRender);
 }

@@ -27,7 +27,6 @@ using PFXToolKitUI.Avalonia.AvControls;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Services.Messaging;
 
@@ -100,9 +99,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
         this.myEngine = this.Model!.Manager!.MemoryEngine;
         this.Model.IsRunningChanged += this.OnIsRunningChanged;
 
-        using MultiChangeToken batch = DataManager.GetContextData(this).BeginChange();
-        batch.Context.Set(ITaskSequencerUI.TaskSequenceDataKey, this.Model!).Set(ITaskSequenceEntryUI.DataKey, this);
-        
+        DataManager.GetContextData(this).Set(ITaskSequenceEntryUI.DataKey, this);
         AdvancedContextMenu.SetContextRegistry(this, TaskSequenceContextRegistry.Registry);
     }
 
@@ -111,8 +108,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
         this.Model!.IsRunningChanged -= this.OnIsRunningChanged;
         AdvancedContextMenu.SetContextRegistry(this, null);
 
-        using MultiChangeToken batch = DataManager.GetContextData(this).BeginChange();
-        batch.Context.Set(ITaskSequencerUI.TaskSequenceDataKey, null).Set(ITaskSequenceEntryUI.DataKey, null);
+        DataManager.GetContextData(this).Set(ITaskSequenceEntryUI.DataKey, null);
     }
 
     protected override void OnRemovedFromList() {
@@ -124,7 +120,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
         if (this.PART_ToggleBusyExclusive == null) {
             return;
         }
-        
+
         TaskSequence? model = this.Model;
         if (model == null) {
             return;

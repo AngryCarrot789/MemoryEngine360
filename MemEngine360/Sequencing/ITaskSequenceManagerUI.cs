@@ -22,10 +22,9 @@ using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Sequencing;
 
-public interface ITaskSequencerUI {
-    public static readonly DataKey<ITaskSequencerUI> TaskSequencerUIDataKey = DataKey<ITaskSequencerUI>.Create("ITaskSequencerUI");
-    public static readonly DataKey<TaskSequence> TaskSequenceDataKey = DataKey<TaskSequence>.Create("TaskSequence");
-    
+public interface ITaskSequenceManagerUI {
+    public static readonly DataKey<ITaskSequenceManagerUI> DataKey = DataKey<ITaskSequenceManagerUI>.Create(nameof(ITaskSequenceManagerUI));
+
     /// <summary>
     /// Gets the task sequence manager
     /// </summary>

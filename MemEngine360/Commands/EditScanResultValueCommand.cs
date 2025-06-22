@@ -35,7 +35,7 @@ public class EditScanResultValueCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         ScanningProcessor processor;
         if (!ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? result)) {
-            if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+            if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
                 return Executability.Invalid;
             }
 
@@ -55,7 +55,7 @@ public class EditScanResultValueCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         MemoryEngine? engine = null;
         List<ScanResultViewModel> scanResults = new List<ScanResultViewModel>();
-        if (IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             scanResults.AddRange(ui.ScanResultSelectionManager.SelectedItems);
             engine = ui.MemoryEngine;
         }

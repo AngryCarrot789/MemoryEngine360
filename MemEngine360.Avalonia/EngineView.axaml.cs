@@ -37,6 +37,8 @@ using MemEngine360.XboxBase;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.BindingV3;
+using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Selecting;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Icons;
@@ -55,6 +57,8 @@ using PFXToolKitUI.Utils.Commands;
 namespace MemEngine360.Avalonia;
 
 public partial class EngineView : UserControl, IEngineUI {
+    private static readonly EventPropertyBinderEx<ScanningProcessor> AlignmentBinder = Binder.EventOneWay<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (c, m) => ((EngineView) c).PART_ScanOption_Alignment.Content = m.Alignment.ToString());
+    
     #region BINDERS
 
     // PFX framework uses binders to simplify "binding" model values to controls
@@ -84,6 +88,8 @@ public partial class EngineView : UserControl, IEngineUI {
         nameof(ScanningProcessor.ScanRangeChanged),
         (b) => $"{b.Model.StartAddress:X8}",
         async (b, x) => {
+            DataManager.EvaluateContextDataRaw(b.Control);
+            
             if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
                 if (value == b.Model.StartAddress) {
                     return true;
@@ -202,8 +208,6 @@ public partial class EngineView : UserControl, IEngineUI {
         }
     }
 
-    IClipboardService? ITopLevel.ClipboardService => (TopLevel.GetTopLevel(this) as EngineWindow)?.ClipboardService;
-
     private readonly ContextEntryGroup themesSubList;
     private ObservableItemProcessorIndexing<Theme>? themeListHandler;
     private TextNotification? connectionNotification;
@@ -223,7 +227,7 @@ public partial class EngineView : UserControl, IEngineUI {
         // connect, then once connected, it's either now invisible or clickable. This is just a POF really
         private void OnCapturedContextChanged(BaseContextEntry sender, IContextData? oldCapturedContext, IContextData? newCapturedContext) {
             if (newCapturedContext != null) {
-                if (IEngineUI.EngineUIDataKey.TryGetContext(newCapturedContext, out IEngineUI? newUI) && !ReferenceEquals(this.ctxMemUI, newUI)) {
+                if (IEngineUI.DataKey.TryGetContext(newCapturedContext, out IEngineUI? newUI) && !ReferenceEquals(this.ctxMemUI, newUI)) {
                     if (this.ctxMemUI != null)
                         this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
                     (this.ctxMemUI = newUI).MemoryEngine.ConnectionChanged += this.OnContextMemUIConnectionChanged;
@@ -240,7 +244,7 @@ public partial class EngineView : UserControl, IEngineUI {
         }
 
         public override bool CanExecute(IContextData context) {
-            if (!IEngineUI.EngineUIDataKey.TryGetContext(context, out IEngineUI? ui)) {
+            if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
                 return false;
             }
 
@@ -258,7 +262,7 @@ public partial class EngineView : UserControl, IEngineUI {
         }
 
         public override async Task OnExecute(IContextData context) {
-            if (!IEngineUI.EngineUIDataKey.TryGetContext(context, out IEngineUI? ui)) {
+            if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
                 return;
             }
 
@@ -392,7 +396,7 @@ public partial class EngineView : UserControl, IEngineUI {
                 }
             }
 
-            SingleUserInputInfo.TextParameter.AddValueChangedHandler(info, (parameter, owner) => UpdateFooter((SingleUserInputInfo) owner));
+            info.TextChanged += UpdateFooter;
             UpdateFooter(info);
             if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
                 p.Alignment = NumberUtils.ParseHexOrRegular<uint>(info.Text);
@@ -474,7 +478,7 @@ public partial class EngineView : UserControl, IEngineUI {
 
     private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
         TextNotification notification = this.connectionNotification ??= new TextNotification() {
-            ContextData = new ContextData().Set(IEngineUI.EngineUIDataKey, this)
+            ContextData = new ContextData().Set(IEngineUI.DataKey, this)
         };
 
         if (newConn != null) {
@@ -484,14 +488,14 @@ public partial class EngineView : UserControl, IEngineUI {
             notification.Commands.Add(this.connectionNotificationCommandGetStarted ??= new LambdaNotificationCommand("Get Started", static async (c) => {
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     const string url = "https://github.com/AngryCarrot789/MemoryEngine360/wiki#quick-start";
-                    IEngineUI mem = IEngineUI.EngineUIDataKey.GetContext(c.ContextData!)!;
+                    IEngineUI mem = IEngineUI.DataKey.GetContext(c.ContextData!)!;
                     return TopLevel.GetTopLevel((EngineView) mem)?.Launcher.LaunchUriAsync(new Uri(url)) ?? Task.FromResult(false);
                 });
             }) { ToolTip = "Opens a link to MemoryEngine360's quick start guide on the wiki" });
 
             notification.Commands.Add(this.connectionNotificationCommandDisconnect ??= new LambdaNotificationCommand("Disconnect", static async (c) => {
                 // ContextData ensured non-null by LambdaNotificationCommand.requireContext
-                IEngineUI mem = IEngineUI.EngineUIDataKey.GetContext(c.ContextData!)!;
+                IEngineUI mem = IEngineUI.DataKey.GetContext(c.ContextData!)!;
                 if (mem.MemoryEngine.Connection != null) {
                     ((ContextData) c.ContextData!).Set(IEngineUI.IsDisconnectFromNotification, true);
                     await OpenConsoleConnectionDialogCommand.DisconnectInActivity(mem, 0);
@@ -520,7 +524,7 @@ public partial class EngineView : UserControl, IEngineUI {
                     notification.CanAutoHide = false;
                     notification.Commands.Add(this.connectionNotificationCommandReconnect ??= new LambdaNotificationCommand("Reconnect", static async (c) => {
                         // ContextData ensured non-null by LambdaNotificationCommand.requireContext
-                        IEngineUI mem = IEngineUI.EngineUIDataKey.GetContext(c.ContextData!)!;
+                        IEngineUI mem = IEngineUI.DataKey.GetContext(c.ContextData!)!;
                         MemoryEngine eng = mem.MemoryEngine;
                         if (eng.Connection != null) {
                             c.Notification?.Close();

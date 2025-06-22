@@ -28,7 +28,7 @@ namespace MemEngine360.Commands;
 public class CopyScanResultsToClipboardCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         if (!ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? _)) {
-            if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+            if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
                 return Executability.Invalid;
             }
             else if (ui.ScanResultSelectionManager.Count < 1) {
@@ -42,7 +42,7 @@ public class CopyScanResultsToClipboardCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         MemoryEngine? engine = null;
         List<ScanResultViewModel> scanResults = new List<ScanResultViewModel>();
-        if (IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             scanResults.AddRange(ui.ScanResultSelectionManager.SelectedItems);
             engine = ui.MemoryEngine;
         }
@@ -68,7 +68,7 @@ public class CopyScanResultsToClipboardCommand : Command {
         };
 
         if (await IMessageDialogService.Instance.ShowMessage(info) == MessageBoxResult.OK) {
-            if (ITopLevel.DataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel) && topLevel.ClipboardService != null) {
+            if (IDesktopWindow.DataKey.TryGetContext(e.ContextData, out IDesktopWindow? topLevel) && topLevel.ClipboardService != null) {
                 await ActivityManager.Instance.RunTask(async () => {
                     ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Clipboard", "Copying to clipboard");
                     CancellationToken token = ActivityManager.Instance.CurrentTask.CancellationToken;

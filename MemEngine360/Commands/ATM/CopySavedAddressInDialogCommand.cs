@@ -27,11 +27,11 @@ namespace MemEngine360.Commands.ATM;
 
 public class CopySavedAddressInDialogCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return e.ContextData.ContainsKey(IEngineUI.EngineUIDataKey) ? Executability.Valid : Executability.Invalid;
+        return e.ContextData.ContainsKey(IEngineUI.DataKey) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             return;
         }
 

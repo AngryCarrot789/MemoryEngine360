@@ -56,11 +56,11 @@ public class ScanningOrderListBoxItem : ModelBasedListBoxItem<ScanningOrderModel
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
         base.OnApplyTemplate(e);
-        this.PART_Toggle = e.NameScope.GetTemplateChild<CheckBox>("PART_Toggle");
+        this.PART_Toggle = e.NameScope.GetTemplateChild<CheckBox>(nameof(this.PART_Toggle));
         this.toggleBinder.AttachControl(this.PART_Toggle);
         if (this.Model != null)
             this.PART_Toggle.Content = this.Model!.DataType.ToString();
-        
+
         this.SetDragSourceControl(e.NameScope.GetTemplateChild<Border>("PART_DragGrip"));
     }
 

@@ -43,7 +43,7 @@ public class EditSavedAddressValueCommand : Command {
             processor = theResult.Entry.AddressTableManager!.MemoryEngine.ScanningProcessor;
         }
 
-        if (IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             processor = ui.MemoryEngine.ScanningProcessor;
         }
 
@@ -59,7 +59,7 @@ public class EditSavedAddressValueCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         MemoryEngine? engine = null;
         List<AddressTableEntry> savedList = new List<AddressTableEntry>();
-        if (IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             savedList.AddRange(ui.AddressTableSelectionManager.SelectedItems.Where(x => x.Entry is AddressTableEntry).Select(x => (AddressTableEntry) x.Entry));
             engine = ui.MemoryEngine;
         }

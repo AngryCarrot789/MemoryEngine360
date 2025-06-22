@@ -85,7 +85,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
     public delegate void HexDisplayControlTheEndiannessChangedEventHandler(HexEditorWindow sender);
 
-    private readonly AvaloniaPropertyToDataParameterBinder<HexEditorInfo> captionBinder = new AvaloniaPropertyToDataParameterBinder<HexEditorInfo>(TitleProperty, HexEditorInfo.CaptionParameter);
+    private readonly AvaloniaPropertyToDataParameterAutoBinder<HexEditorInfo> captionBinder = new AvaloniaPropertyToDataParameterAutoBinder<HexEditorInfo>(TitleProperty, HexEditorInfo.CaptionParameter);
 
     private readonly TextBoxToDataParameterBinder<HexEditorInfo, uint> addrBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.StartAddressParameter, (p) => p!.ToString("X8"), async (t, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
@@ -539,7 +539,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 this.PART_HexEditor.HexView.ScrollOffset = scroll;
                 this.CaretLocation = location;
                 this.SelectionRange = selection;
-            }, DispatchPriority.INTERNAL_BeforeRender);
+            }, DispatchPriority.Normal);
 
             this.UpdateSelectionText();
             this.UpdateCaretText();

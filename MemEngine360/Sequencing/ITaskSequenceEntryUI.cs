@@ -25,7 +25,7 @@ namespace MemEngine360.Sequencing;
 /// An actual sequence item in the sequencer UI
 /// </summary>
 public interface ITaskSequenceEntryUI {
-    public static readonly DataKey<ITaskSequenceEntryUI> DataKey = DataKey<ITaskSequenceEntryUI>.Create("ITaskSequenceEntryUI");
+    public static readonly DataKey<ITaskSequenceEntryUI> DataKey = DataKey<ITaskSequenceEntryUI>.Create(nameof(ITaskSequenceEntryUI));
     
     /// <summary>
     /// Gets this entry's sequence model

@@ -27,7 +27,7 @@ namespace MemEngine360.Commands.ATM;
 
 public class GroupEntriesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             return Executability.Invalid;
         }
 
@@ -44,7 +44,7 @@ public class GroupEntriesCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             return;
         }
 

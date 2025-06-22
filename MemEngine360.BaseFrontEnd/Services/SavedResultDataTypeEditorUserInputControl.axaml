@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:services="clr-namespace:MemEngine360.BaseFrontEnd.Services"
+             xmlns:s="clr-namespace:MemEngine360.BaseFrontEnd.Services"
              mc:Ignorable="d" MinHeight="200">
     <Grid RowDefinitions="0,Auto,3,Auto,5,*,0" ColumnDefinitions="0,*,0">
         <TextBlock Grid.Row="1" Grid.Column="1" Text="Select new data type"/>
@@ -29,7 +29,7 @@
                         <DockPanel>
                             <TextBlock Text="Length: " DockPanel.Dock="Left" VerticalAlignment="Center" Padding="2,0,4,0"/>
                             <TextBox x:Name="PART_StringLength" VerticalAlignment="Center"
-                                     Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type services:SavedResultDataTypeEditorUserInputControl}}, Path=StringLength, Mode=TwoWay}"/>
+                                     Text="{CompiledBinding $parent[s:SavedResultDataTypeEditorUserInputControl].StringLength, Mode=TwoWay}"/>
                         </DockPanel>
                     </StackPanel>
                 </StackPanel>
@@ -39,7 +39,7 @@
                     <DockPanel>
                         <TextBlock Text="Length: " DockPanel.Dock="Left" VerticalAlignment="Center" Padding="2,0,4,0"/>
                         <TextBox x:Name="PART_ArrayLength" VerticalAlignment="Center"
-                                 Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type services:SavedResultDataTypeEditorUserInputControl}}, Path=ArrayLength, Mode=TwoWay}"/>
+                                 Text="{CompiledBinding $parent[s:SavedResultDataTypeEditorUserInputControl].ArrayLength, Mode=TwoWay}"/>
                     </DockPanel>
                 </StackPanel>
             </TabItem>

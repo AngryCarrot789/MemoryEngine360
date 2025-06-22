@@ -36,7 +36,7 @@ public class GridSplitterNonHitListBoxItem : GridSplitter, ICustomHitTest {
             return true;
 
         Visual? hit = topLevel.GetVisualAt(targetPoint.Value, visual => !(visual is GridSplitter));
-        ListBoxItem? listItem = VisualTreeUtils.GetParent<ListBoxItem>(hit);
+        ListBoxItem? listItem = VisualTreeUtils.FindLogicalParent<ListBoxItem>(hit);
         return listItem == null;
     }
 }

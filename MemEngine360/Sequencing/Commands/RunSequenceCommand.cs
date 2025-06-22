@@ -31,10 +31,11 @@ public class RunSequenceCommand : Command {
     }
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? sequence)) {
+        if (!ITaskSequenceEntryUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceEntryUI? seq)) {
             return Executability.Invalid;
         }
 
+        TaskSequence sequence = seq.TaskSequence;
         if (sequence.IsRunning || sequence.Manager == null /* shouldn't be null... */) {
             return Executability.ValidButCannotExecute;
         }
@@ -47,10 +48,11 @@ public class RunSequenceCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.TaskSequenceDataKey.TryGetContext(e.ContextData, out TaskSequence? sequence)) {
+        if (!ITaskSequenceEntryUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceEntryUI? seq)) {
             return;
         }
 
+        TaskSequence sequence = seq.TaskSequence;
         if (sequence.IsRunning || sequence.Manager == null /* shouldn't be null... */) {
             return;
         }
@@ -89,9 +91,9 @@ public class RunSequenceCommand : Command {
                 if (sequence.LastException != null) {
                     await IMessageDialogService.Instance.ShowMessage("Error encountered", "An exception occured while running sequence", sequence.LastException.GetToString());
                 }
-                
-                ConnectionChangeCause cause = sequence.LastException is IOException 
-                    ? ConnectionChangeCause.ConnectionError 
+
+                ConnectionChangeCause cause = sequence.LastException is IOException
+                    ? ConnectionChangeCause.ConnectionError
                     : ConnectionChangeCause.LostConnection; // Use LostConnection even if not TimeoutException since it's the only other option that makes sense.
                 if (token != null) {
                     sequence.Manager.MemoryEngine.CheckConnection(token, cause);

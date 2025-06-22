@@ -41,7 +41,7 @@ public abstract class BaseSequenceManagerCommandUsage : SimpleButtonCommandUsage
         base.OnContextChanged();
         TaskSequencerManager? oldManager = this.TaskSequencerManager;
         TaskSequencerManager? newManager = null;
-        if (this.GetContextData() is IContextData data && ITaskSequencerUI.TaskSequencerUIDataKey.TryGetContext(data, out ITaskSequencerUI? ui)) {
+        if (this.GetContextData() is IContextData data && ITaskSequenceManagerUI.DataKey.TryGetContext(data, out ITaskSequenceManagerUI? ui)) {
             newManager = ui.Manager;
         }
 

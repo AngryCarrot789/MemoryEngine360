@@ -172,7 +172,7 @@
 
                                     <cb:DataGridTextColumnEx x:DataType="{x:Type models:XboxModuleSection}" Width="125"
                                                              Header="Name" CanUserResize="True" IsReadOnly="True"
-                                                             Binding="{Binding Name, Mode=OneWay, Converter={x:Static modules:EmptyStringToTextConverter.Instance}, ConverterParameter='Unavailable'}"
+                                                             Binding="{Binding PartName, Mode=OneWay, Converter={x:Static modules:EmptyStringToTextConverter.Instance}, ConverterParameter='Unavailable'}"
                                                              CellDataKeyForDC="{x:Static models:XboxModuleSection.DataKey}"
                                                              DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
 

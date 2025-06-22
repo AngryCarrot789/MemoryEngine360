@@ -393,7 +393,7 @@ public class ScanningProcessor {
             for (int i = 0; i < 10 && this.resultBuffer.TryDequeue(out ScanResultViewModel? result); i++) {
                 this.ScanResults.Add(result);
             }
-        }, TimeSpan.FromMilliseconds(100), DispatchPriority.INTERNAL_BeforeRender);
+        }, TimeSpan.FromMilliseconds(100), DispatchPriority.Normal);
 
         this.rldaRefreshSavedAddressList = RateLimitedDispatchActionBase.ForDispatcherAsync(this.RefreshSavedAddressesAsync, TimeSpan.FromMilliseconds(100));
 

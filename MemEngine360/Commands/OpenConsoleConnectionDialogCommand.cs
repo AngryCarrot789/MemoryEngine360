@@ -33,7 +33,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
     private IOpenConnectionView? myDialog;
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? memUi)) {
+        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? memUi)) {
             return Executability.Invalid;
         }
 
@@ -46,7 +46,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
             return;
         }
 
-        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? memUi)) {
+        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? memUi)) {
             return;
         }
 

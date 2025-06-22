@@ -36,7 +36,7 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
         set => this.SetValue(TaskSequenceProperty, value);
     }
 
-    public ITaskSequencerUI TaskSequencerUI { get; internal set; }
+    public ITaskSequenceManagerUI TaskSequencerUI { get; internal set; }
     
     public IListSelectionManager<IOperationItemUI> ControlSelectionManager { get; }
 

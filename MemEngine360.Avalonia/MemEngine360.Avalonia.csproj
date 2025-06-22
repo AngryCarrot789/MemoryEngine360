@@ -6,22 +6,16 @@
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-        <PublishSingleFile>true</PublishSingleFile>
         <AssemblyName>MemoryEngine360</AssemblyName>
         <ApplicationIcon>Icons\icon.ico</ApplicationIcon>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-      <PlatformTarget>x64</PlatformTarget>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-      <PlatformTarget>x64</PlatformTarget>
+        <PlatformTarget>x64</PlatformTarget>
+        <PublishSingleFile>true</PublishSingleFile>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Avalonia" Version="11.3.1" />
         <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.1" />
         <PackageReference Include="Avalonia.Desktop" Version="11.3.1" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.1" />
         <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.1" />
         <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.1" />
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
@@ -59,13 +53,6 @@
       <Content Include="Keymap.xml">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Update="Services\Connectivity\ConnectToConsoleView.axaml.cs">
-        <DependentUpon>ConnectToConsoleUserInputControl.axaml</DependentUpon>
-        <SubType>Code</SubType>
-      </Compile>
     </ItemGroup>
 
     <ItemGroup>

@@ -46,7 +46,7 @@ public partial class EngineWindow : DesktopWindow {
         using MultiChangeToken change = DataManager.GetContextData(this).BeginChange();
         change.Context.
                Set(MemoryEngine.EngineDataKey, this.PART_MemEngineView.MemoryEngine).
-               Set(IEngineUI.EngineUIDataKey, this.PART_MemEngineView);
+               Set(IEngineUI.DataKey, this.PART_MemEngineView);
 
         ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineOpened(this.PART_MemEngineView);
     }
@@ -56,7 +56,7 @@ public partial class EngineWindow : DesktopWindow {
         
         ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineClosed(this.PART_MemEngineView);
 
-        DataManager.GetContextData(this).Remove(MemoryEngine.EngineDataKey, IEngineUI.EngineUIDataKey);
+        DataManager.GetContextData(this).Remove(MemoryEngine.EngineDataKey, IEngineUI.DataKey);
     }
 
     protected override async Task<bool> OnClosingAsync(WindowCloseReason reason) {

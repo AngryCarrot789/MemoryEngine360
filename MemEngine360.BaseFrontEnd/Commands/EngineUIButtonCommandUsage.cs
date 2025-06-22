@@ -34,7 +34,7 @@ public class EngineUIButtonCommandUsage : SimpleButtonCommandUsage {
         IEngineUI? oldEngine = this.UI;
         IEngineUI? newEngine = null;
         if (this.GetContextData() is IContextData data) {
-            IEngineUI.EngineUIDataKey.TryGetContext(data, out newEngine);
+            IEngineUI.DataKey.TryGetContext(data, out newEngine);
         }
 
         if (oldEngine != newEngine) {

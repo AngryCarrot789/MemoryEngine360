@@ -29,7 +29,6 @@ using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Tasks;
@@ -37,7 +36,7 @@ using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
-public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
+public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI {
     public static readonly StyledProperty<TaskSequencerManager?> TaskSequencerManagerProperty = AvaloniaProperty.Register<TaskSequencerWindow, TaskSequencerManager?>(nameof(TaskSequencerManager));
 
     private readonly IBinder<TaskSequence> useDedicatedConnectionBinder = new EventPropertyBinder<TaskSequence>(nameof(TaskSequence.UseEngineConnectionChanged), (b) => {
@@ -106,7 +105,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
         this.useDedicatedConnectionBinder.AttachControl(this.PART_UseDedicatedConnection);
         this.currentConnectionTypeBinder.AttachControl(this.PART_ActiveConnectionTextBoxRO);
 
-        DataManager.GetContextData(this).Set(ITaskSequencerUI.TaskSequencerUIDataKey, this);
+        DataManager.GetContextData(this).Set(ITaskSequenceManagerUI.DataKey, this);
         if (Design.IsDesignMode) {
             this.TaskSequencerManager = new MemoryEngine().TaskSequencerManager;
         }
@@ -156,8 +155,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
         this.OnSequenceProgressTextChanged(newSeqUI?.TaskSequence.Progress ?? EmptyActivityProgress.Instance);
         ((AsyncRelayCommand) this.PART_UseDedicatedConnection.Command!).RaiseCanExecuteChanged();
 
-        using MultiChangeToken batch = DataManager.GetContextData(this.PART_CurrentSequenceGroupBox).BeginChange();
-        batch.Context.Set(ITaskSequencerUI.TaskSequenceDataKey, newSeqUI?.TaskSequence).Set(ITaskSequenceEntryUI.DataKey, newSeqUI);
+        DataManager.GetContextData(this.PART_CurrentSequenceGroupBox).Set(ITaskSequenceEntryUI.DataKey, newSeqUI);
     }
 
     private void OnPrimarySequenceIsRunningChanged(TaskSequence sender) {

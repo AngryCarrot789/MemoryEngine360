@@ -27,30 +27,24 @@ namespace MemEngine360.Commands.ATM;
 
 public class CopyAbsoluteAddressToClipboardCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui) || ui.ClipboardService == null) {
+        if (!IDesktopWindow.DataKey.TryGetContext(e.ContextData, out IDesktopWindow? window) || window.ClipboardService == null)
             return Executability.Invalid;
-        }
+        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui))
+            return Executability.Invalid;
 
-        if (ui.AddressTableSelectionManager.Count != 1) {
+        if (ui.AddressTableSelectionManager.Count != 1)
             return Executability.ValidButCannotExecute;
-        }
-
         return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        IClipboardService? clipboard;
+        if (!IDesktopWindow.DataKey.TryGetContext(e.ContextData, out IDesktopWindow? window) || (clipboard = window.ClipboardService) == null)
             return;
-        }
-
-        if (ui.AddressTableSelectionManager.Count != 1) {
+        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui))
             return;
-        }
-
-        IClipboardService? clipboard = ui.ClipboardService;
-        if (clipboard == null) {
+        if (ui.AddressTableSelectionManager.Count != 1)
             return;
-        }
 
         IAddressTableEntryUI first = ui.AddressTableSelectionManager.SelectedItemList[0];
         uint address = (first.Entry as AddressTableEntry)?.AbsoluteAddress ?? ((AddressTableGroupEntry) first.Entry).AbsoluteAddress;

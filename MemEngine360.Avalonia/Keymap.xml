@@ -1,11 +1,14 @@
 ﻿<?xml version="1.0"?>
 
 <KeyMap Version="1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="Keymap.xsd">
+    <Shortcut Name="DebugContext" CommandId="commands.application.DebugContextCommand">
+        <KeyStroke Mods="CTRL+ALT" Key="D"/>
+        <KeyStroke Mods="CTRL+ALT" Key="OemPeriod"/>
+    </Shortcut>
     <Group Name="EngineWindow" DisplayName="Memory Engine Window" Description="The entire engine window">
         <Shortcut Name="ConnectToConsole" CommandId="commands.memengine.OpenConsoleConnectionDialogCommand">
             <KeyStroke Mods="CTRL" Key="O"/>
         </Shortcut>
-        
         <Group Name="ScanResultList">
             <Shortcut Name="EditScanResultValue" CommandId="commands.memengine.EditScanResultValueCommand">
                 <KeyStroke Mods="CTRL" Key="E"/>

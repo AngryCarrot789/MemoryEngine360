@@ -26,7 +26,6 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using Avalonia.Platform;
 using MemEngine360.Connections;
 using MemEngine360.XboxBase;
 using PFXToolKitUI.Utils;

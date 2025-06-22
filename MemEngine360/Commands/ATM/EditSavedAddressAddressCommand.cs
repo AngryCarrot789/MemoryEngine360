@@ -31,7 +31,7 @@ public class EditSavedAddressAddressCommand : Command {
             return Executability.Valid;
         }
         
-        if (IEngineUI.EngineUIDataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
             return Executability.Valid;
         }
 
