@@ -28,13 +28,13 @@ namespace MemEngine360.BaseFrontEnd.XboxBase.Modules;
 
 public partial class ModuleViewerWindow : DesktopWindow {
     public static readonly StyledProperty<XboxModuleManager?> XboxModuleManagerProperty = AvaloniaProperty.Register<ModuleViewerWindow, XboxModuleManager?>(nameof(XboxModuleManager));
-    private readonly IBinder<XboxModule> shortNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.NameChanged), (b) => ((TextBox) b.Control).Text = b.Model.Name);
-    private readonly IBinder<XboxModule> fullNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.FullNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.FullName);
-    private readonly IBinder<XboxModule> peModuleNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.PEModuleNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.PEModuleName);
-    private readonly IBinder<XboxModule> baseAddressBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.BaseAddressChanged), (b) => ((TextBox) b.Control).Text = b.Model.BaseAddress.ToString("X8"));
-    private readonly IBinder<XboxModule> entryPointBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.EntryPointChanged), (b) => ((TextBox) b.Control).Text = b.Model.EntryPoint.ToString("X8"));
-    private readonly IBinder<XboxModule> moduleSizeBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.ModuleSizeChanged), (b) => ((TextBox) b.Control).Text = b.Model.ModuleSize.ToString("X8"));
-    private readonly IBinder<XboxModule> originalSizeBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.OriginalModuleSizeChanged), (b) => ((TextBox) b.Control).Text = b.Model.OriginalModuleSize.ToString("X8"));
+    private readonly IBinder<XboxModule> shortNameBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.NameChanged), (b) => ((TextBox) b.Control).Text = b.Model.Name);
+    private readonly IBinder<XboxModule> fullNameBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.FullNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.FullName);
+    private readonly IBinder<XboxModule> peModuleNameBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.PEModuleNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.PEModuleName);
+    private readonly IBinder<XboxModule> baseAddressBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.BaseAddressChanged), (b) => ((TextBox) b.Control).Text = b.Model.BaseAddress.ToString("X8"));
+    private readonly IBinder<XboxModule> entryPointBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.EntryPointChanged), (b) => ((TextBox) b.Control).Text = b.Model.EntryPoint.ToString("X8"));
+    private readonly IBinder<XboxModule> moduleSizeBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.ModuleSizeChanged), (b) => ((TextBox) b.Control).Text = b.Model.ModuleSize.ToString("X8"));
+    private readonly IBinder<XboxModule> originalSizeBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.OriginalModuleSizeChanged), (b) => ((TextBox) b.Control).Text = b.Model.OriginalModuleSize.ToString("X8"));
     
     public XboxModuleManager? XboxModuleManager {
         get => this.GetValue(XboxModuleManagerProperty);

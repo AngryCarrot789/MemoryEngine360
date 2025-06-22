@@ -87,11 +87,20 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
     public CompareMemoryConditionListContent() {
         this.InitializeComponent();
         this.addressBinder.AttachControl(this.PART_AddressTextBox);
-        this.dataTypeBinder.Attach(this.PART_DataTypeComboBox, this);
         this.valueBinder.AttachControl(this.PART_ValueTextBox);
         this.SetConditionMetIndicator(this.PART_IsConditionMetEllipse);
     }
-    
+
+    protected override void OnLoaded(RoutedEventArgs e) {
+        this.dataTypeBinder.Attach(this.PART_DataTypeComboBox, this);
+        base.OnLoaded(e);
+    }
+
+    protected override void OnUnloaded(RoutedEventArgs e) {
+        this.dataTypeBinder.Detach();
+        base.OnUnloaded(e);
+    }
+
     public void UpdateTextFromProviderValue() {
         CompareMemoryCondition? cond = this.Condition;
         this.ParsingText = cond?.CompareTo != null

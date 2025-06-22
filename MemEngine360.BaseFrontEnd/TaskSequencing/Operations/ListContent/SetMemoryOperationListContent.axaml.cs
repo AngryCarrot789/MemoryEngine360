@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using Avalonia.Interactivity;
 using MemEngine360.BaseFrontEnd.TaskSequencing.DataHandlers;
 using MemEngine360.BaseFrontEnd.Utils;
 using MemEngine360.Engine.Modes;
@@ -53,7 +54,16 @@ public partial class SetMemoryOperationListContent : BaseOperationListContent {
         this.addressBinder.AttachControl(this.PART_AddressTextBox);
         this.iterateBinder.AttachControl(this.PART_IterateCountTextBox);
         this.constDataValueHandler = new ConstantDataValueHandler(this.PART_ValueTextBox);
+    }
+
+    protected override void OnLoaded(RoutedEventArgs e) {
         this.dataTypeBinder.Attach(this.PART_DataTypeComboBox, this.constDataValueHandler);
+        base.OnLoaded(e);
+    }
+
+    protected override void OnUnloaded(RoutedEventArgs e) {
+        this.dataTypeBinder.Detach();
+        base.OnUnloaded(e);
     }
 
     protected override void OnOperationChanged(BaseSequenceOperation? oldOperation, BaseSequenceOperation? newOperation) {

@@ -34,11 +34,11 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent;
 public partial class SetMemoryOperationEditorContent : BaseOperationEditorContent {
     private static readonly DataParameterEnumInfo<DataType> RandomDataTypeInfo = DataParameterEnumInfo<DataType>.FromAllowed([DataType.Byte, DataType.Int16, DataType.Int32, DataType.Int64, DataType.Float, DataType.Double]);
     
-    private readonly AvaloniaPropertyToEventPropertyBinder<DataProviderHandler> parseIntAsHexBinder = new AvaloniaPropertyToEventPropertyBinder<DataProviderHandler>(CheckBox.IsCheckedProperty, nameof(DataProviderHandler.ParseIntAsHexChanged), (b) => ((CheckBox) b.Control).IsChecked = b.Model.ParseIntAsHex, (b) => b.Model.ParseIntAsHex = ((CheckBox) b.Control).IsChecked == true);
+    private readonly IBinder<DataProviderHandler> parseIntAsHexBinder = new AvaloniaPropertyToEventPropertyBinder<DataProviderHandler>(CheckBox.IsCheckedProperty, nameof(DataProviderHandler.ParseIntAsHexChanged), (b) => ((CheckBox) b.Control).IsChecked = b.Model.ParseIntAsHex, (b) => b.Model.ParseIntAsHex = ((CheckBox) b.Control).IsChecked == true);
     private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(ConstantDataValueHandler), nameof(ConstantDataValueHandler.StringTypeChanged), (x) => ((ConstantDataValueHandler) x).StringType, (x, v) => ((ConstantDataValueHandler) x).StringType = v);
     private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(DataProviderHandler), nameof(DataProviderHandler.DataTypeChanged), (x) => ((DataProviderHandler) x).DataType, (x, y) => ((DataProviderHandler) x).DataType = y);
 
-    private readonly AvaloniaPropertyToEventPropertyBinder<SetMemoryOperation> selectedTabIndexBinder = new AvaloniaPropertyToEventPropertyBinder<SetMemoryOperation>(TabControl.SelectedIndexProperty, nameof(SetMemoryOperation.DataValueProviderChanged), (b) => {
+    private readonly IBinder<SetMemoryOperation> selectedTabIndexBinder = new AvaloniaPropertyToEventPropertyBinder<SetMemoryOperation>(TabControl.SelectedIndexProperty, nameof(SetMemoryOperation.DataValueProviderChanged), (b) => {
         switch (b.Model.DataValueProvider) {
             case ConstantDataProvider:     ((TabControl) b.Control).SelectedIndex = 0; break;
             case RandomNumberDataProvider: ((TabControl) b.Control).SelectedIndex = 1; break;

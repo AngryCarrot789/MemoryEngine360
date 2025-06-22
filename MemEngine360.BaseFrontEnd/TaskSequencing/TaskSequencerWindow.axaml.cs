@@ -39,7 +39,7 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI {
     public static readonly StyledProperty<TaskSequencerManager?> TaskSequencerManagerProperty = AvaloniaProperty.Register<TaskSequencerWindow, TaskSequencerManager?>(nameof(TaskSequencerManager));
 
-    private readonly IBinder<TaskSequence> useDedicatedConnectionBinder = new EventPropertyBinder<TaskSequence>(nameof(TaskSequence.UseEngineConnectionChanged), (b) => {
+    private readonly IBinder<TaskSequence> useDedicatedConnectionBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.UseEngineConnectionChanged), (b) => {
         ((CheckBox) b.Control).IsChecked = !b.Model.UseEngineConnection;
     });
 
@@ -109,6 +109,12 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
         if (Design.IsDesignMode) {
             this.TaskSequencerManager = new MemoryEngine().TaskSequencerManager;
         }
+    }
+
+    protected override void OnClosed(EventArgs e) {
+        // Prevent memory leaks
+        this.TaskSequencerManager = null;
+        base.OnClosed(e);
     }
 
     public ITaskSequenceEntryUI GetSequenceControl(TaskSequence sequence) {

@@ -44,20 +44,20 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         private set => this.SetAndRaise(IsFolderItemProperty, ref this.isFolderItem, value);
     }
 
-    private readonly IBinder<BaseAddressTableEntry> descriptionBinder = new EventPropertyBinder<BaseAddressTableEntry>(nameof(BaseAddressTableEntry.DescriptionChanged), b => b.Control.SetValue(HeaderProperty, b.Model.Description));
+    private readonly IBinder<BaseAddressTableEntry> descriptionBinder = new EventUpdateBinder<BaseAddressTableEntry>(nameof(BaseAddressTableEntry.DescriptionChanged), b => b.Control.SetValue(HeaderProperty, b.Model.Description));
 
-    private readonly IBinder<AddressTableGroupEntry> groupAddressBinder = new EventPropertyBinder<AddressTableGroupEntry>(nameof(AddressTableGroupEntry.GroupAddressChanged), b => {
+    private readonly IBinder<AddressTableGroupEntry> groupAddressBinder = new EventUpdateBinder<AddressTableGroupEntry>(nameof(AddressTableGroupEntry.GroupAddressChanged), b => {
         uint addr = b.Model.GroupAddress;
         bool abs = b.Model.IsAddressAbsolute;
         b.Control.SetValue(TextBlock.TextProperty, addr == 0 && abs ? "" : $"{(abs ? "" : "+") + addr.ToString(abs ? "X8" : "X")}");
     });
 
-    private readonly IBinder<AddressTableEntry> entryAddressBinder = new EventPropertyBinder<AddressTableEntry>(nameof(AddressTableEntry.AddressChanged), b => {
+    private readonly IBinder<AddressTableEntry> entryAddressBinder = new EventUpdateBinder<AddressTableEntry>(nameof(AddressTableEntry.AddressChanged), b => {
         b.Control.SetValue(TextBlock.TextProperty, (b.Model.IsAddressAbsolute ? "" : "+") + b.Model.Address.ToString(b.Model.IsAddressAbsolute ? "X8" : "X"));
     });
 
-    private readonly IBinder<AddressTableEntry> dataTypeTextBinder = new EventPropertyBinder<AddressTableEntry>(nameof(AddressTableEntry.DataTypeChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.DataType.ToString()));
-    private readonly IBinder<AddressTableEntry> valueTextBinder = new EventPropertyBinder<AddressTableEntry>(nameof(AddressTableEntry.ValueChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.Value != null ? DataValueUtils.GetStringFromDataValue(b.Model, b.Model.Value, putStringInQuotes: true) : ""));
+    private readonly IBinder<AddressTableEntry> dataTypeTextBinder = new EventUpdateBinder<AddressTableEntry>(nameof(AddressTableEntry.DataTypeChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.DataType.ToString()));
+    private readonly IBinder<AddressTableEntry> valueTextBinder = new EventUpdateBinder<AddressTableEntry>(nameof(AddressTableEntry.ValueChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.Value != null ? DataValueUtils.GetStringFromDataValue(b.Model, b.Model.Value, putStringInQuotes: true) : ""));
     private ObservableItemProcessorIndexing<BaseAddressTableEntry>? compositeListener;
     private Border? PART_DragDropMoveBorder;
     private bool isFolderItem;

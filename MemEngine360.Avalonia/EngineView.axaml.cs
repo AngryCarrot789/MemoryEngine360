@@ -37,7 +37,6 @@ using MemEngine360.XboxBase;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
-using PFXToolKitUI.Avalonia.BindingV3;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Selecting;
 using PFXToolKitUI.CommandSystem;
@@ -57,15 +56,13 @@ using PFXToolKitUI.Utils.Commands;
 namespace MemEngine360.Avalonia;
 
 public partial class EngineView : UserControl, IEngineUI {
-    private static readonly EventPropertyBinderEx<ScanningProcessor> AlignmentBinder = Binder.EventOneWay<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (c, m) => ((EngineView) c).PART_ScanOption_Alignment.Content = m.Alignment.ToString());
-    
     #region BINDERS
 
     // PFX framework uses binders to simplify "binding" model values to controls
     // and vice versa. There's a bunch of different binders that exist for us to use.
 
-    private readonly EventPropertyBinder<MemoryEngine> connectedHostNameBinder =
-        new EventPropertyBinder<MemoryEngine>(
+    private readonly IBinder<MemoryEngine> connectedHostNameBinder =
+        new EventUpdateBinder<MemoryEngine>(
             nameof(MemoryEngine.ConnectionChanged),
             (b) => {
                 // TODO: Maybe implement a custom control that represents the connection state?
@@ -74,8 +71,8 @@ public partial class EngineView : UserControl, IEngineUI {
                 b.Control.SetValue(TextBlock.TextProperty, text);
             } /* UI changes do not reflect back into models, so no updateModel */);
 
-    private readonly EventPropertyBinder<ScanningProcessor> isScanningBinder =
-        new EventPropertyBinder<ScanningProcessor>(
+    private readonly IBinder<ScanningProcessor> isScanningBinder =
+        new EventUpdateBinder<ScanningProcessor>(
             nameof(ScanningProcessor.IsScanningChanged),
             (b) => {
                 EngineView w = (EngineView) b.Control;
@@ -89,7 +86,7 @@ public partial class EngineView : UserControl, IEngineUI {
         (b) => $"{b.Model.StartAddress:X8}",
         async (b, x) => {
             DataManager.EvaluateContextDataRaw(b.Control);
-            
+
             if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
                 if (value == b.Model.StartAddress) {
                     return true;
@@ -167,7 +164,7 @@ public partial class EngineView : UserControl, IEngineUI {
         return true;
     }
 
-    private readonly IBinder<ScanningProcessor> alignmentBinder = new EventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((EngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
+    private readonly IBinder<ScanningProcessor> alignmentBinder = new EventUpdateBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((EngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
 
     // Will reimplement at some point
@@ -461,6 +458,10 @@ public partial class EngineView : UserControl, IEngineUI {
         this.pauseXboxBinder.Detach();
         // this.forceLEBinder.Detach();
         this.scanMemoryPagesBinder.Detach();
+        
+        this.PART_ScanOptionsControl.MemoryEngine = null;
+        this.PART_SavedAddressTree.AddressTableManager = null;
+        this.PART_TopLevelMenu.TopLevelMenuRegistry = null;
     }
 
     private class SetThemeContextEntry : CustomContextEntry {

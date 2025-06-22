@@ -27,8 +27,8 @@ using PFXToolKitUI.Avalonia.Utils;
 namespace MemEngine360.BaseFrontEnd.XboxBase.Modules;
 
 public class ModuleListBoxItem : ModelBasedListBoxItem<XboxModule> {
-    private readonly IBinder<XboxModule> shortNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.NameChanged), (b) => ((TextBlock) b.Control).Text = b.Model.Name);
-    private readonly IBinder<XboxModule> longNameBinder = new EventPropertyBinder<XboxModule>(nameof(XboxModule.FullNameChanged), (b) => {
+    private readonly IBinder<XboxModule> shortNameBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.NameChanged), (b) => ((TextBlock) b.Control).Text = b.Model.Name);
+    private readonly IBinder<XboxModule> longNameBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.FullNameChanged), (b) => {
         ((TextBlock) b.Control).Text = string.IsNullOrWhiteSpace(b.Model.FullName) ? "Full Name Unavailable" : b.Model.FullName;
     });
 

@@ -42,7 +42,7 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
     private readonly IBinder<SavedResultDataTypeUserInputInfo> displayAsHexBinder = new AvaloniaPropertyToEventPropertyBinder<SavedResultDataTypeUserInputInfo>(CheckBox.IsCheckedProperty, nameof(SavedResultDataTypeUserInputInfo.DisplayAsHexChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.DisplayAsHex, (b) => b.Model.DisplayAsHex = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<SavedResultDataTypeUserInputInfo> displayAsUnsignedBinder = new AvaloniaPropertyToEventPropertyBinder<SavedResultDataTypeUserInputInfo>(CheckBox.IsCheckedProperty, nameof(SavedResultDataTypeUserInputInfo.DisplayAsUnsignedChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.DisplayAsUnsigned, (b) => b.Model.DisplayAsUnsigned = ((ToggleButton) b.Control).IsChecked == true);
     private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(SavedResultDataTypeUserInputInfo), nameof(SavedResultDataTypeUserInputInfo.StringScanOptionChanged), (x) => ((SavedResultDataTypeUserInputInfo) x).StringScanOption, (x, v) => ((SavedResultDataTypeUserInputInfo) x).StringScanOption = v);
-    private readonly AvaloniaPropertyToEventPropertyBinder<SavedResultDataTypeUserInputInfo> selectedTabIndexBinder;
+    private readonly IBinder<SavedResultDataTypeUserInputInfo> selectedTabIndexBinder;
 
     public int StringLength {
         get => this.GetValue(StringLengthProperty);
