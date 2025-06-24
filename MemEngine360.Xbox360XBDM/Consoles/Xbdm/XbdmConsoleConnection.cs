@@ -107,7 +107,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
 
-        return await this.InternalReadLineFromStream(token);
+        return await this.InternalReadLineFromStreamThreaded(token);
     }
 
     /// <summary>
@@ -171,7 +171,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         List<string> list = new List<string>();
 
         string line;
-        while ((line = await this.InternalReadLineFromStream().ConfigureAwait(false)) != ".") {
+        while ((line = await this.InternalReadLineFromStreamThreaded().ConfigureAwait(false)) != ".") {
             list.Add(line);
         }
 
@@ -381,7 +381,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         VerifyResponse("getmem", response.ResponseType, ResponseType.MultiResponse);
 
         string line;
-        while ((line = await this.InternalReadLineFromStream().ConfigureAwait(false)) != ".") {
+        while ((line = await this.InternalReadLineFromStreamThreaded().ConfigureAwait(false)) != ".") {
             if (line.Contains('?')) {
                 return true;
             }
@@ -475,7 +475,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     // Sometimes it works, sometimes it doesn't. And it also doesn't read from the correct address which is odd
-    public async Task<uint> NewReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
+    public async Task<int> NewReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
         if (count <= 0) {
             return 0;
         }
@@ -483,16 +483,14 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         ConsoleResponse response = await this.SendCommandAndGetResponse($"getmemex addr=0x{address:X8} length=0x{count:X8}").ConfigureAwait(false);
         VerifyResponse("getmemex", response.ResponseType, ResponseType.BinaryResponse);
 
-        int header, chunkSize, statusFlag = 0;
-        uint totalRead = 0;
-
+        int header, chunkSize, statusFlag = 0, cbReadTotal = 0;
         do {
             if (statusFlag != 0) {
                 throw new IOException("Not enough bytes read");
             }
 
             await this.ReadFromBufferOrStreamAsync(this.sharedTwoByteArray, 0, 2);
-            
+
             header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(this.sharedTwoByteArray, 0, 2));
             chunkSize = header & 0x7FFF;
             statusFlag = header & 0x8000;
@@ -500,34 +498,43 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 throw new IOException("Received more bytes than expected or invalid data");
             }
 
-            await this.ReadFromBufferOrStreamAsync(dstBuffer, (int) (offset + totalRead), chunkSize);
+            await this.ReadFromBufferOrStreamAsync(dstBuffer, offset + cbReadTotal, chunkSize);
 
             address += 0x400;
-            totalRead += (uint) chunkSize;
+            cbReadTotal += chunkSize;
             count -= chunkSize;
         } while (count > 0);
 
-        return totalRead;
+        return cbReadTotal;
     }
 
     protected override async Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
+        int cbReadTotal = 0;
         while (count > 0) {
-            int cbWrite = Math.Min(count, 64 /* Fixed Chunk Size */);
-            this.FillSetMemCommandBuffer(address, srcBuffer, offset, cbWrite);
-            await this.InternalWriteBytes(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, 30 + (cbWrite << 1))).ConfigureAwait(false);
+            int cbToWrite = Math.Min(count, 64 /* Fixed Chunk Size */);
+            this.FillSetMemCommandBuffer(address + (uint) cbReadTotal, srcBuffer, offset + cbReadTotal, cbToWrite);
+            await this.InternalWriteBytes(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, 30 + (cbToWrite << 1))).ConfigureAwait(false);
             ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
             if (response.ResponseType != ResponseType.SingleResponse && response.ResponseType != ResponseType.MemoryNotMapped) {
                 VerifyResponse("setmem", response.ResponseType, ResponseType.SingleResponse);
             }
 
-            address += (uint) cbWrite;
-            offset += cbWrite;
-            count -= cbWrite;
+            cbReadTotal += cbToWrite;
+            count -= cbToWrite;
         }
     }
 
+    private static int GetSafeCountForAddress(uint address, int count) {
+        ulong overflow = (ulong) address + (uint) count;
+        if (overflow > uint.MaxValue) {
+            count = Math.Max(0, (int) (overflow - uint.MaxValue));
+        }
+
+        return count;
+    }
+
     private async Task<ConsoleResponse> InternalReadResponse() {
-        string responseText = await this.InternalReadLineFromStream().ConfigureAwait(false);
+        string responseText = await this.InternalReadLineFromStreamThreaded().ConfigureAwait(false);
         return ConsoleResponse.FromFirstLine(responseText);
     }
 
@@ -556,17 +563,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     private async Task<ConsoleResponse> SendCommandAndGetResponse(string command) {
         await this.InternalWriteCommand(command).ConfigureAwait(false);
-        ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
-        if (response.ResponseType == ResponseType.UnknownCommand) {
-            if (this.client.Available > 0) {
-                Debugger.Break(); // this was originally to fix an issue where we sent
-                // extra \r\n but we fixed that so this checking shouldn't be necessary
-                string responseText = await this.InternalReadLineFromStream().ConfigureAwait(false) ?? "";
-                response = ConsoleResponse.FromFirstLine(responseText);
-            }
-        }
-
-        return response;
+        return await this.InternalReadResponse().ConfigureAwait(false);
     }
 
     // Using this over-optimised version of creating the command buffer
@@ -679,23 +676,17 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         return endIndex - offset;
     }
 
-    private async Task ActivateReader(int mode, CancellationToken token) {
-        int currentMode; // for debugging
-        while ((currentMode = Interlocked.CompareExchange(ref this.readType, mode, 0)) != 0) {
+    private async ValueTask ActivateReader(int mode) {
+        int currMode = Interlocked.CompareExchange(ref this.readType, mode, 0);
+        if (currMode != 0) {
             if (this.isClosed)
                 throw new IOException("Connection closed"); // maybe use a field to specify if closed due to timeout?
-
-            if (token.IsCancellationRequested) {
-                this.CloseAndDispose();
-                token.ThrowIfCancellationRequested();
-            }
-
-            await Task.Yield();
+            throw new InvalidOperationException("Already activated");
         }
     }
 
-    private async Task<string> InternalReadLineFromStream(CancellationToken token = default) {
-        await this.ActivateReader(1, token);
+    private async Task<string> InternalReadLineFromStreamThreaded(CancellationToken token = default) {
+        await this.ActivateReader(1);
 
         TaskCompletionSource<string> tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         this.readInfo_string = new StringLineReadInfo(tcs, token);
@@ -735,7 +726,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         this.CloseAndDispose();
         throw new TimeoutException("Timeout while reading line");
     }
-    
+
     private async Task ReadFromBufferOrStreamAsync(byte[] buffer, int offset, int count) {
         int cbRead = this.ReadLocalBufferOrStream(buffer, offset, count);
         if (cbRead < count)
@@ -749,7 +740,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             return;
         }
 
-        await this.ActivateReader(2, token);
+        await this.ActivateReader(2);
 
         TaskCompletionSource tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         this.readInfo_binary = new BinaryReadInfo(buffer, offset, count, tcs, token);
@@ -760,7 +751,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     private void ReaderThreadMain() {
         while (!this.isClosed) {
             this.readEvent.WaitOne();
-            
+
             // -1 means locked (busy or connection closed)
             int mode = Interlocked.Exchange(ref this.readType, -1);
             switch (mode) {
@@ -912,7 +903,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             }
         }
     }
-    
+
     private int ReadLocalBufferOrStream(byte[] buffer, int offset, int count) {
         int cbTotalRead = this.ReadBytesFromBuffer(buffer, offset, count);
         if (cbTotalRead < count) {

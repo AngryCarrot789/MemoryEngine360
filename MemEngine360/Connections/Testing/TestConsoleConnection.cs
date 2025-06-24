@@ -52,8 +52,8 @@ public class TestConsoleConnection : BaseConsoleConnection {
     
     private Task GetTask() {
         return this.mode switch {
-            TestConnectionMode.TimeoutError => Task.FromException(new TimeoutException("Test timeout exception")), 
-            TestConnectionMode.IOError => Task.FromException(new IOException("Test IO error")), 
+            TestConnectionMode.TimeoutError => Task.FromException(new TimeoutException("Connection timed out (TestConnection)")), 
+            TestConnectionMode.IOError => Task.FromException(new IOException("IO Error (TestConnection)")), 
             _ => Task.CompletedTask
         };
     }

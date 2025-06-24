@@ -83,8 +83,6 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
     private readonly OffsetColumn myOffsetColumn;
 
-    public delegate void HexDisplayControlTheEndiannessChangedEventHandler(HexEditorWindow sender);
-
     private readonly AvaloniaPropertyToDataParameterAutoBinder<HexEditorInfo> captionBinder = new AvaloniaPropertyToDataParameterAutoBinder<HexEditorInfo>(TitleProperty, HexEditorInfo.CaptionParameter);
 
     private readonly TextBoxToDataParameterBinder<HexEditorInfo, uint> addrBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.StartAddressParameter, (p) => p!.ToString("X8"), async (t, x) => {
@@ -678,25 +676,10 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     }
 
     static HexEditorWindow() {
-        HexDisplayInfoProperty.Changed.AddClassHandler<HexEditorWindow, HexEditorInfo?>((o, e) => o.OnInfoChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+        HexDisplayInfoProperty.Changed.AddClassHandler<HexEditorWindow, HexEditorInfo?>((s, e) => s.OnHexDisplayInfoChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
-    protected override void OnOpenedCore() {
-        base.OnOpenedCore();
-
-        UIInputManager.SetFocusPath(this, "HexDisplayWindow");
-        UIInputManager.SetFocusPath(this.PART_HexEditor, "HexDisplayWindow/HexEditor");
-        using MultiChangeToken change = DataManager.GetContextData(this).BeginChange();
-        change.Context.Set(IHexEditorUI.DataKey, this);
-    }
-
-    protected override void OnClosed(EventArgs e) {
-        base.OnClosed(e);
-        this.autoRefreshTask?.RequestCancellation();
-        this.HexDisplayInfo = null;
-    }
-
-    private void OnInfoChanged(HexEditorInfo? oldData, HexEditorInfo? newData) {
+    private void OnHexDisplayInfoChanged(HexEditorInfo? oldData, HexEditorInfo? newData) {
         this.captionBinder.SwitchModel(newData);
         this.addrBinder.SwitchModel(newData);
         this.lenBinder.SwitchModel(newData);
@@ -715,6 +698,21 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             this.endiannessBinder.Attach(newData);
             this.PART_CancelButton.Focus();
         }
+    }
+
+    protected override void OnOpenedCore() {
+        base.OnOpenedCore();
+
+        UIInputManager.SetFocusPath(this, "HexDisplayWindow");
+        UIInputManager.SetFocusPath(this.PART_HexEditor, "HexDisplayWindow/HexEditor");
+        using MultiChangeToken change = DataManager.GetContextData(this).BeginChange();
+        change.Context.Set(IHexEditorUI.DataKey, this);
+    }
+
+    protected override void OnClosed(EventArgs e) {
+        base.OnClosed(e);
+        this.autoRefreshTask?.RequestCancellation();
+        this.HexDisplayInfo = null;
     }
 
     private void OnRestartAutoRefresh(object? sender, EventArgs e) {
