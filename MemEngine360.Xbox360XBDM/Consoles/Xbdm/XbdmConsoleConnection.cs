@@ -475,9 +475,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     // Sometimes it works, sometimes it doesn't. And it also doesn't read from the correct address which is odd
-    public async Task<int> NewReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
+    public async Task NewReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
         if (count <= 0) {
-            return 0;
+            return;
         }
 
         ConsoleResponse response = await this.SendCommandAndGetResponse($"getmemex addr=0x{address:X8} length=0x{count:X8}").ConfigureAwait(false);
@@ -485,8 +485,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
         int header, chunkSize, statusFlag = 0, cbReadTotal = 0;
         do {
-            if (statusFlag != 0) {
-                throw new IOException("Not enough bytes read");
+            if (statusFlag != 0) { // Most likely reading invalid/protected memory
+                dstBuffer.AsSpan(offset + cbReadTotal, count).Clear();
+                return;
             }
 
             await this.ReadFromBufferOrStreamAsync(this.sharedTwoByteArray, 0, 2);
@@ -498,14 +499,13 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 throw new IOException("Received more bytes than expected or invalid data");
             }
 
-            await this.ReadFromBufferOrStreamAsync(dstBuffer, offset + cbReadTotal, chunkSize);
+            if (chunkSize > 0)
+                await this.ReadFromBufferOrStreamAsync(dstBuffer, offset + cbReadTotal, chunkSize);
 
             address += 0x400;
             cbReadTotal += chunkSize;
             count -= chunkSize;
         } while (count > 0);
-
-        return cbReadTotal;
     }
 
     protected override async Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
@@ -677,11 +677,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     private async ValueTask ActivateReader(int mode) {
-        int currMode = Interlocked.CompareExchange(ref this.readType, mode, 0);
-        if (currMode != 0) {
+        int currMode;
+        while ((currMode = Interlocked.CompareExchange(ref this.readType, mode, 0)) != 0) {
             if (this.isClosed)
                 throw new IOException("Connection closed"); // maybe use a field to specify if closed due to timeout?
-            throw new InvalidOperationException("Already activated");
+            await Task.Yield();
         }
     }
 

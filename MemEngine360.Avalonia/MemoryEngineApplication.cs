@@ -91,6 +91,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.CopyScanResultsToClipboardCommand", new CopyScanResultsToClipboardCommand());
         manager.Register("commands.memengine.CopySavedAddressInDialogCommand", new CopySavedAddressInDialogCommand());
         manager.Register("commands.memengine.CopyAbsoluteAddressToClipboardCommand", new CopyAbsoluteAddressToClipboardCommand());
+        manager.Register("commands.memengine.CopyAddressToClipboardCommand", new CopyAddressToClipboardCommand());
+        manager.Register("commands.memengine.CopyATEValueToClipboardCommand", new CopyATEValueToClipboardCommand());
         manager.Register("commands.memengine.EditSavedAddressValueCommand", new EditSavedAddressValueCommand());
         manager.Register("commands.memengine.EditSavedAddressDataTypeCommand", new EditSavedAddressDataTypeCommand());
         manager.Register("commands.memengine.EditSavedAddressDescriptionCommand", new EditSavedAddressDescriptionCommand());

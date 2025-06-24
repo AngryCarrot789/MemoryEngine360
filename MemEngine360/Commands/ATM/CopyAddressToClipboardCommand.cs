@@ -17,17 +17,15 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
-using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Commands.ATM;
 
-public class CopyAbsoluteAddressToClipboardCommand : BaseCopyAddressTableEntryCommand {
+public class CopyAddressToClipboardCommand : BaseCopyAddressTableEntryCommand {
     protected override async Task Copy(IAddressTableEntryUI entry, IClipboardService clipboard) {
-        uint address = (entry.Entry as AddressTableEntry)?.AbsoluteAddress ?? ((AddressTableGroupEntry) entry.Entry).AbsoluteAddress;
+        uint address = (entry.Entry as AddressTableEntry)?.Address ?? ((AddressTableGroupEntry) entry.Entry).GroupAddress;
         string addrText = address.ToString("X8");
         try {
             await clipboard.SetTextAsync(addrText);

@@ -51,6 +51,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
     internal readonly bool isSecondInputRequired;
 
     // enough bytes to store all data types except string and byte array
+    // note: DataType.Float is parsed as double for extra precision
     internal ulong numericInputA, numericInputB;
     internal MemoryPattern memoryPattern;
     internal Decoder stringDecoder;
@@ -167,7 +168,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                     case DataType.Int16:  isBackward = Unsafe.As<ulong, short>(ref this.numericInputA) > Unsafe.As<ulong, short>(ref this.numericInputB); break;
                     case DataType.Int32:  isBackward = Unsafe.As<ulong, int>(ref this.numericInputA) > Unsafe.As<ulong, int>(ref this.numericInputB); break;
                     case DataType.Int64:  isBackward = Unsafe.As<ulong, long>(ref this.numericInputA) > Unsafe.As<ulong, long>(ref this.numericInputB); break;
-                    case DataType.Float:  isBackward = Unsafe.As<ulong, float>(ref this.numericInputA) > Unsafe.As<ulong, float>(ref this.numericInputB); break;
+                    case DataType.Float:  isBackward = Unsafe.As<ulong, double>(ref this.numericInputA) > Unsafe.As<ulong, double>(ref this.numericInputB); break;
                     case DataType.Double: isBackward = Unsafe.As<ulong, double>(ref this.numericInputA) > Unsafe.As<ulong, double>(ref this.numericInputB); break;
                     case DataType.ByteArray:
                     case DataType.String:
@@ -256,13 +257,38 @@ public sealed class DataTypedScanningContext : ScanningContext {
             Debug.Fail("Missing data type");
         }
     }
-    
+
     internal override async Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken) {
         FirstTypedScanTask task = new FirstTypedScanTask(this, connection, busyToken);
         await task.RunWithCurrentActivity();
         return task.BusyToken;
     }
-    
+
+    public override async Task<bool> CanRunNextScan(List<ScanResultViewModel> srcList) {
+        bool hasDifferentDataTypes = false;
+        DataType firstDataType = this.dataType;
+        if (srcList.Count > 0) {
+            firstDataType = srcList[0].DataType;
+            for (int i = 1; i < srcList.Count; i++) {
+                if (srcList[i].DataType != firstDataType) {
+                    hasDifferentDataTypes = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasDifferentDataTypes) {
+            await IMessageDialogService.Instance.ShowMessage("Error", "Result list contains results with different data types. Toggle the \"Any\" (unknown data type) button to search using these results");
+            return false;
+        }
+        else if (firstDataType != this.dataType) {
+            await IMessageDialogService.Instance.ShowMessage("Error", $"Search data type is different to the search results. You're searching for {this.dataType}, but the results contain {firstDataType}");
+            return false;
+        }
+
+        return true;
+    }
+
     internal override async Task<IDisposable?> PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, IDisposable busyToken) {
         ActivityTask task = ActivityManager.Instance.CurrentTask;
         if (this.dataType.IsNumeric()) {
@@ -275,12 +301,12 @@ public sealed class DataTypedScanningContext : ScanningContext {
 
                     ScanResultViewModel res = srcList[i];
 
-                    ulong searchA = 0, searchB = 0;
+                    ulong searchA, searchB = 0;
                     if (this.nextScanUsesFirstValue) {
                         searchA = GetNumericDataValueAsULong(res.FirstValue);
                     }
                     else if (this.nextScanUsesPreviousValue) {
-                        searchB = GetNumericDataValueAsULong(res.PreviousValue);
+                        searchA = GetNumericDataValueAsULong(res.PreviousValue);
                     }
                     else {
                         searchA = this.numericInputA;
@@ -421,26 +447,27 @@ public sealed class DataTypedScanningContext : ScanningContext {
     }
 
     private BaseFloatDataValue<T>? CompareFloat<T>(ReadOnlySpan<byte> searchValueBytes, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T> {
-        bool isFloat = typeof(T) == typeof(float);
-        T value = ValueScannerUtils.CreateFloat<T>(searchValueBytes, this.isConnectionLittleEndian);
+        T preProcessedValue = ValueScannerUtils.CreateFloat<T>(searchValueBytes, this.isConnectionLittleEndian);
 
-        // We convert everything to doubles when comparing, for higher accuracy
-        double dblVal = this.GetDoubleFromReadValue(value, this.inputA);
-        double valA = isFloat ? Unsafe.As<ulong, float>(ref theInputA) : Unsafe.As<ulong, double>(ref theInputA), valB;
+        // We convert everything to doubles when comparing, for higher accuracy.
+        // InputA and InputB are parsed as doubles, even when the DataType is Float
+        double valToCmp = GetDoubleFromReadValue(preProcessedValue, this.inputA, this.floatScanOption);
+        double valA = Unsafe.As<ulong, double>(ref theInputA);
+        double valB;
         switch (this.numericScanType) {
-            case NumericScanType.Equals:              return Math.Abs(dblVal - valA) < this.floatEpsilon ? IDataValue.CreateFloat(value) : null;
-            case NumericScanType.NotEquals:           return Math.Abs(dblVal - valA) >= this.floatEpsilon ? IDataValue.CreateFloat(value) : null;
-            case NumericScanType.LessThan:            return dblVal < valA ? IDataValue.CreateFloat(value) : null;
-            case NumericScanType.LessThanOrEquals:    return dblVal <= valA ? IDataValue.CreateFloat(value) : null;
-            case NumericScanType.GreaterThan:         return dblVal > valA ? IDataValue.CreateFloat(value) : null;
-            case NumericScanType.GreaterThanOrEquals: return dblVal >= valA ? IDataValue.CreateFloat(value) : null;
+            case NumericScanType.Equals:              return Math.Abs(valToCmp - valA) < this.floatEpsilon ? IDataValue.CreateFloat(preProcessedValue) : null;
+            case NumericScanType.NotEquals:           return !(Math.Abs(valToCmp - valA) < this.floatEpsilon) ? IDataValue.CreateFloat(preProcessedValue) : null;
+            case NumericScanType.LessThan:            return valToCmp < valA ? IDataValue.CreateFloat(preProcessedValue) : null;
+            case NumericScanType.LessThanOrEquals:    return valToCmp <= valA ? IDataValue.CreateFloat(preProcessedValue) : null;
+            case NumericScanType.GreaterThan:         return valToCmp > valA ? IDataValue.CreateFloat(preProcessedValue) : null;
+            case NumericScanType.GreaterThanOrEquals: return valToCmp >= valA ? IDataValue.CreateFloat(preProcessedValue) : null;
             case NumericScanType.Between: {
-                valB = isFloat ? Unsafe.As<ulong, float>(ref theInputB) : Unsafe.As<ulong, double>(ref theInputB);
-                return dblVal < valA || dblVal > valB ? IDataValue.CreateFloat(value) : null;
+                valB = Unsafe.As<ulong, double>(ref theInputB);
+                return valToCmp >= valA && valToCmp <= valB ? IDataValue.CreateFloat(preProcessedValue) : null;
             }
             case NumericScanType.NotBetween: {
-                valB = isFloat ? Unsafe.As<ulong, float>(ref theInputB) : Unsafe.As<ulong, double>(ref theInputB);
-                return dblVal >= valA && dblVal <= valB ? IDataValue.CreateFloat(value) : null;
+                valB = Unsafe.As<ulong, double>(ref theInputB);
+                return valToCmp < valA || valToCmp > valB ? IDataValue.CreateFloat(preProcessedValue) : null;
             }
         }
 
@@ -448,13 +475,13 @@ public sealed class DataTypedScanningContext : ScanningContext {
         return null;
     }
 
-    private double GetDoubleFromReadValue<T>(T readValue /* value from console */, string inputText /* user input value */) where T : unmanaged, IFloatingPoint<T> {
+    public static double GetDoubleFromReadValue<T>(T readValue /* value from console */, string inputText /* user input value */, FloatScanOption scanOption) where T : unmanaged, IFloatingPoint<T> {
         double value = typeof(T) == typeof(float) ? Unsafe.As<T, float>(ref readValue) : Unsafe.As<T, double>(ref readValue);
 
         int idx = inputText.IndexOf('.');
         if (idx == -1 || idx == (inputText.Length - 1) /* last char, assume trimmed start+end */) {
             // just clip the decimals off
-            return this.floatScanOption == FloatScanOption.TruncateToQuery ? Math.Truncate(value) : Math.Round(value);
+            return scanOption == FloatScanOption.TruncateToQuery ? Math.Truncate(value) : Math.Round(value);
         }
         else {
             // Say user searches for "24.3245"
@@ -463,19 +490,25 @@ public sealed class DataTypedScanningContext : ScanningContext {
             // therefore, if readValue is 24.3245735, it either
             // gets truncated to 24.3245 or rounded to 24.3246
             int decimals = inputText.Length - (idx + 1);
-            value = this.floatScanOption == FloatScanOption.TruncateToQuery ? ValueScannerUtils.TruncateDouble(value, decimals) : Math.Round(value, decimals);
+            value = scanOption == FloatScanOption.TruncateToQuery ? ValueScannerUtils.TruncateDouble(value, decimals) : Math.Round(value, decimals);
             return value;
         }
     }
 
     private static ulong GetNumericDataValueAsULong(IDataValue data) {
         switch (data.DataType) {
-            case DataType.Byte:   return ((DataValueByte) data).Value;
-            case DataType.Int16:  return (ulong) ((DataValueInt16) data).Value;
-            case DataType.Int32:  return (ulong) ((DataValueInt32) data).Value;
-            case DataType.Int64:  return (ulong) ((DataValueInt64) data).Value;
-            case DataType.Float:  return BitConverter.SingleToUInt32Bits(((DataValueFloat) data).Value);
-            case DataType.Double: return BitConverter.DoubleToUInt64Bits(((DataValueDouble) data).Value);
+            case DataType.Byte:  return ((DataValueByte) data).Value;
+            case DataType.Int16: return (ulong) ((DataValueInt16) data).Value;
+            case DataType.Int32: return (ulong) ((DataValueInt32) data).Value;
+            case DataType.Int64: return (ulong) ((DataValueInt64) data).Value;
+            case DataType.Float: {
+                double v = ((DataValueFloat) data).Value;
+                return Unsafe.As<double, ulong>(ref v);
+            }
+            case DataType.Double: {
+                double v = ((DataValueDouble) data).Value;
+                return Unsafe.As<double, ulong>(ref v);
+            }
             case DataType.String:
             case DataType.ByteArray:
             default:
@@ -517,8 +550,12 @@ public sealed class DataTypedScanningContext : ScanningContext {
                         value = val;
                     }
                 }
-                else if (result = float.TryParse(text, floatNs, null, out float val)) {
-                    value = Unsafe.As<float, uint>(ref val);
+                // we parse float inputs as double for extra precision.
+                // E.g. parsing '-2234.6187' as a float results in -2234.61865
+                else if (result = double.TryParse(text, floatNs, null, out double val)) {
+                    if (val >= float.MinValue && val <= float.MaxValue) {
+                        value = Unsafe.As<double, ulong>(ref val);
+                    }
                 }
 
                 break;

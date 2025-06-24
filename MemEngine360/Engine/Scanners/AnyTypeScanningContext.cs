@@ -27,6 +27,7 @@ using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Scanners;
@@ -47,7 +48,7 @@ public class AnyTypeScanningContext : ScanningContext {
     private short? in_short;
     private int? in_int;
     private long? in_long;
-    private float? in_float;
+    private double? in_float;
     private double? in_double;
 
     private bool canSearchForString;
@@ -55,6 +56,7 @@ public class AnyTypeScanningContext : ScanningContext {
     private char[]? charBuffer;
     private Decoder? stringDecoder;
     private DataType[] intOrdering;
+    internal MemoryPattern memoryPattern;
 
     /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result
@@ -95,10 +97,12 @@ public class AnyTypeScanningContext : ScanningContext {
             this.in_int = i;
         if (udto.CanSearchForLong && long.TryParse(this.inputA, intNs, null, out long l))
             this.in_long = l;
-        if (udto.CanSearchForFloat && float.TryParse(this.inputA, out float f))
+        if (udto.CanSearchForFloat && double.TryParse(this.inputA, out double f) && f >= float.MinValue && f <= float.MaxValue)
             this.in_float = f;
         if (udto.CanSearchForDouble && double.TryParse(this.inputA, out double d))
             this.in_double = d;
+        if (udto.CanRunNextScanForByteArray && this.Processor.HasDoneFirstScan)
+            MemoryPattern.TryCompile(this.inputA, out this.memoryPattern);
 
         this.intOrdering = udto.IntDataTypeOrdering.CloneArrayUnsafe();
         Debug.Assert(this.intOrdering.Length == 4);
@@ -180,9 +184,9 @@ public class AnyTypeScanningContext : ScanningContext {
             }
 
             if (this.in_float.HasValue && (buffer.Length - i) >= sizeof(float)) {
-                float val = this.in_float.Value;
+                double val = this.in_float.Value;
                 float readVal = ValueScannerUtils.CreateFloat<float>(buffer.Slice((int) i, sizeof(float)), this.isConnectionLittleEndian);
-                if ((value = this.CompareFloat(readVal, Unsafe.As<float, ulong>(ref val), 0)) != null) {
+                if ((value = this.CompareFloat(readVal, Unsafe.As<double, ulong>(ref val), 0)) != null) {
                     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Float, NumericDisplayType.Normal, this.stringType, value));
                     continue;
                 }
@@ -240,32 +244,11 @@ public class AnyTypeScanningContext : ScanningContext {
         }
     }
 
-    // private BaseNumericDataValue<T>? CompareIntFromFloat<T>(float floatValue, ulong theInputA, ulong theInputB) where T : unmanaged, IBinaryInteger<T> {
-    //     T valA = Unsafe.As<ulong, T>(ref theInputA), valB;
-    //     switch (this.numericScanType) {
-    //         case NumericScanType.Equals:              return value == valA ? IDataValue.CreateNumeric(value) : null;
-    //         case NumericScanType.NotEquals:           return value != valA ? IDataValue.CreateNumeric(value) : null;
-    //         case NumericScanType.LessThan:            return value < valA ? IDataValue.CreateNumeric(value) : null;
-    //         case NumericScanType.LessThanOrEquals:    return value <= valA ? IDataValue.CreateNumeric(value) : null;
-    //         case NumericScanType.GreaterThan:         return value > valA ? IDataValue.CreateNumeric(value) : null;
-    //         case NumericScanType.GreaterThanOrEquals: return value >= valA ? IDataValue.CreateNumeric(value) : null;
-    //         case NumericScanType.Between: {
-    //             valB = Unsafe.As<ulong, T>(ref theInputB);
-    //             return value >= valA && value <= valB ? IDataValue.CreateNumeric(value) : null;
-    //         }
-    //         case NumericScanType.NotBetween: {
-    //             valB = Unsafe.As<ulong, T>(ref theInputB);
-    //             return value < valA || value > valB ? IDataValue.CreateNumeric(value) : null;
-    //         }
-    //         default: throw new ArgumentOutOfRangeException();
-    //     }
-    // }
-
     private BaseFloatDataValue<T>? CompareFloat<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T> {
-        bool isFloat = typeof(T) == typeof(float);
         // We convert everything to doubles when comparing, for higher accuracy
-        double dblVal = this.GetDoubleFromReadValue(value, this.inputA);
-        double valA = isFloat ? Unsafe.As<ulong, float>(ref theInputA) : Unsafe.As<ulong, double>(ref theInputA), valB;
+        double dblVal = DataTypedScanningContext.GetDoubleFromReadValue(value, this.inputA, this.floatScanOption);
+        double valA = Unsafe.As<ulong, double>(ref theInputA);
+        double valB;
         switch (this.numericScanType) {
             case NumericScanType.Equals:              return Math.Abs(dblVal - valA) < this.floatEpsilon ? IDataValue.CreateFloat(value) : null;
             case NumericScanType.NotEquals:           return Math.Abs(dblVal - valA) >= this.floatEpsilon ? IDataValue.CreateFloat(value) : null;
@@ -274,12 +257,12 @@ public class AnyTypeScanningContext : ScanningContext {
             case NumericScanType.GreaterThan:         return dblVal > valA ? IDataValue.CreateFloat(value) : null;
             case NumericScanType.GreaterThanOrEquals: return dblVal >= valA ? IDataValue.CreateFloat(value) : null;
             case NumericScanType.Between: {
-                valB = isFloat ? Unsafe.As<ulong, float>(ref theInputB) : Unsafe.As<ulong, double>(ref theInputB);
-                return dblVal < valA || dblVal > valB ? IDataValue.CreateFloat(value) : null;
+                valB = Unsafe.As<ulong, double>(ref theInputB);
+                return dblVal >= valA && dblVal <= valB ? IDataValue.CreateFloat(value) : null;
             }
             case NumericScanType.NotBetween: {
-                valB = isFloat ? Unsafe.As<ulong, float>(ref theInputB) : Unsafe.As<ulong, double>(ref theInputB);
-                return dblVal >= valA && dblVal <= valB ? IDataValue.CreateFloat(value) : null;
+                valB = Unsafe.As<ulong, double>(ref theInputB);
+                return dblVal < valA || dblVal > valB ? IDataValue.CreateFloat(value) : null;
             }
         }
 
@@ -287,30 +270,14 @@ public class AnyTypeScanningContext : ScanningContext {
         return null;
     }
 
-    private double GetDoubleFromReadValue<T>(T readValue /* value from console */, string inputText /* user input value */) where T : unmanaged, IFloatingPoint<T> {
-        double value = typeof(T) == typeof(float) ? Unsafe.As<T, float>(ref readValue) : Unsafe.As<T, double>(ref readValue);
-
-        int idx = inputText.IndexOf('.');
-        if (idx == -1 || idx == (inputText.Length - 1) /* last char, assume trimmed start+end */) {
-            // just clip the decimals off
-            return this.floatScanOption == FloatScanOption.TruncateToQuery ? Math.Truncate(value) : Math.Round(value);
-        }
-        else {
-            // Say user searches for "24.3245"
-            //               idx = 2 -> ^
-            // decimals = len(7) - (idx(2) + 1) = 4
-            // therefore, if readValue is 24.3245735, it either
-            // gets truncated to 24.3245 or rounded to 24.3246
-            int decimals = inputText.Length - (idx + 1);
-            value = this.floatScanOption == FloatScanOption.TruncateToQuery ? ValueScannerUtils.TruncateDouble(value, decimals) : Math.Round(value, decimals);
-            return value;
-        }
-    }
-
     internal override async Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken) {
         FirstTypedScanTask task = new FirstTypedScanTask(this, connection, busyToken);
         await task.RunWithCurrentActivity();
         return task.BusyToken;
+    }
+
+    public override Task<bool> CanRunNextScan(List<ScanResultViewModel> srcList) {
+        return Task.FromResult(true);
     }
 
     /// <summary>
@@ -321,130 +288,59 @@ public class AnyTypeScanningContext : ScanningContext {
     /// <param name="srcList">The source list of items</param>
     /// <param name="busyToken"></param>
     internal override async Task<IDisposable?> PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, IDisposable busyToken) {
-        await IMessageDialogService.Instance.ShowMessage("Unsupported", "Next Scan not supported for any data type mode yet");
+        ActivityTask task = ActivityManager.Instance.CurrentTask;
+        using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
+            for (int i = 0; i < srcList.Count; i++) {
+                ScanResultViewModel res = srcList[i];
+                task.CheckCancelled();
+                task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
+                task.Progress.CompletionState.OnProgress(1.0);
 
-        // ActivityTask task = ActivityManager.Instance.CurrentTask;
-        // if (this.dataType.IsNumeric()) {
-        //     using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
-        //         byte[] buffer = new byte[this.cbDataType];
-        //         for (int i = 0; i < srcList.Count; i++) {
-        //             task.CheckCancelled();
-        //             task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
-        //             task.Progress.CompletionState.OnProgress(1.0);
-        //
-        //             ScanResultViewModel res = srcList[i];
-        //
-        //             ulong searchA = 0, searchB = 0;
-        //             if (this.nextScanUsesFirstValue) {
-        //                 searchA = GetNumericDataValueAsULong(res.FirstValue);
-        //             }
-        //             else if (this.nextScanUsesPreviousValue) {
-        //                 searchB = GetNumericDataValueAsULong(res.PreviousValue);
-        //             }
-        //             else {
-        //                 searchA = this.numericInputA;
-        //                 searchB = this.numericInputB;
-        //             }
-        //
-        //             await connection.ReadBytes(res.Address, buffer, 0, buffer.Length);
-        //
-        //             IDataValue? match;
-        //             switch (this.dataType) {
-        //                 case DataType.Byte:   match = this.CompareInt<byte>(buffer, searchA, searchB); break;
-        //                 case DataType.Int16:  match = this.CompareInt<short>(buffer, searchA, searchB); break;
-        //                 case DataType.Int32:  match = this.CompareInt<int>(buffer, searchA, searchB); break;
-        //                 case DataType.Int64:  match = this.CompareInt<long>(buffer, searchA, searchB); break;
-        //                 case DataType.Float:  match = this.CompareFloat<float>(buffer, searchA, searchB); break;
-        //                 case DataType.Double: match = this.CompareFloat<double>(buffer, searchA, searchB); break;
-        //                 default:              throw new ArgumentOutOfRangeException();
-        //             }
-        //
-        //             if (match != null) {
-        //                 res.CurrentValue = res.PreviousValue = match;
-        //                 this.ResultFound?.Invoke(this, res);
-        //             }
-        //         }
-        //     }
-        // }
-        // else if (this.dataType == DataType.String) {
-        //     using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
-        //         Encoding encoding = this.stringType.ToEncoding();
-        //         bool useInputValue = !this.nextScanUsesFirstValue && !this.nextScanUsesPreviousValue;
-        //         int cbInputValue = useInputValue ? encoding.GetMaxByteCount(this.inputA.Length) : 0;
-        //         byte[]? inputByteBuffer = useInputValue ? new byte[cbInputValue] : null;
-        //         char[]? inputCharBuffer = useInputValue ? new char[encoding.GetMaxCharCount(cbInputValue)] : null;
-        //         for (int i = 0; i < srcList.Count; i++) {
-        //             task.CheckCancelled();
-        //             task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
-        //             task.Progress.CompletionState.OnProgress(1.0);
-        //
-        //             ScanResultViewModel res = srcList[i];
-        //             string search;
-        //             int cbSearchTerm;
-        //             byte[] dstByteBuffer;
-        //             char[] dstCharBuffer;
-        //             if (useInputValue) {
-        //                 search = this.inputA;
-        //                 cbSearchTerm = cbInputValue;
-        //                 dstByteBuffer = inputByteBuffer!;
-        //                 dstCharBuffer = inputCharBuffer!;
-        //             }
-        //             else {
-        //                 if (this.nextScanUsesFirstValue) {
-        //                     search = ((DataValueString) res.FirstValue).Value;
-        //                 }
-        //                 else {
-        //                     Debug.Assert(this.nextScanUsesPreviousValue);
-        //                     search = ((DataValueString) res.PreviousValue).Value;
-        //                 }
-        //
-        //                 cbSearchTerm = encoding.GetMaxByteCount(search.Length);
-        //                 dstByteBuffer = new byte[cbSearchTerm];
-        //                 dstCharBuffer = new char[encoding.GetMaxCharCount(cbSearchTerm)];
-        //             }
-        //
-        //             // int cchBuffer = this.stringType.ToEncoding().GetChars(memory, this.charBuffer.AsSpan());
-        //
-        //             await connection.ReadBytes(res.Address, dstByteBuffer, 0, cbSearchTerm);
-        //             if (encoding.TryGetChars(dstByteBuffer, dstCharBuffer, out int cchRead)) {
-        //                 if (new ReadOnlySpan<char>(dstCharBuffer, 0, cchRead).Equals(search.AsSpan(), this.stringComparison)) {
-        //                     string text = new string(dstCharBuffer, 0, cchRead);
-        //                     res.CurrentValue = res.PreviousValue = new DataValueString(text, this.stringType);
-        //                     this.ResultFound?.Invoke(this, res);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-        // else if (this.dataType == DataType.ByteArray) {
-        //     using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
-        //         for (int i = 0; i < srcList.Count; i++) {
-        //             task.CheckCancelled();
-        //             task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
-        //             task.Progress.CompletionState.OnProgress(1.0);
-        //
-        //             ScanResultViewModel res = srcList[i];
-        //             MemoryPattern search;
-        //             if (this.nextScanUsesFirstValue)
-        //                 search = MemoryPattern.Create(((DataValueByteArray) res.FirstValue).Value);
-        //             else if (this.nextScanUsesPreviousValue)
-        //                 search = MemoryPattern.Create(((DataValueByteArray) res.PreviousValue).Value);
-        //             else {
-        //                 search = this.memoryPattern;
-        //                 Debug.Assert(search.IsValid);
-        //             }
-        //
-        //             byte[] bytes = await connection.ReadBytes(res.Address, search.Length);
-        //             if (search.Matches(bytes)) {
-        //                 res.CurrentValue = res.PreviousValue = new DataValueByteArray(bytes);
-        //                 this.ResultFound?.Invoke(this, res);
-        //             }
-        //         }
-        //     }
-        // }
-        // else {
-        //     Debug.Fail("Missing data type");
-        // }
+                if (res.DataType.IsNumeric()) {
+                    IDataValue? match = null;
+                    switch (res.DataType) {
+                        case DataType.Byte when this.in_byte is byte val:       match = this.CompareInt(await connection.ReadByte(res.Address), Unsafe.As<byte, ulong>(ref val), 0); break;
+                        case DataType.Int16 when this.in_short is short val:    match = this.CompareInt(await connection.ReadValue<short>(res.Address), Unsafe.As<short, ulong>(ref val), 0); break;
+                        case DataType.Int32 when this.in_int is int val:        match = this.CompareInt(await connection.ReadValue<int>(res.Address), Unsafe.As<int, ulong>(ref val), 0); break;
+                        case DataType.Int64 when this.in_long is long val:      match = this.CompareInt(await connection.ReadValue<long>(res.Address), Unsafe.As<long, ulong>(ref val), 0); break;
+                        case DataType.Float when this.in_float is double val:   match = this.CompareFloat(await connection.ReadValue<float>(res.Address), Unsafe.As<double, ulong>(ref val), 0); break;
+                        case DataType.Double when this.in_double is double val: match = this.CompareFloat(await connection.ReadValue<double>(res.Address), Unsafe.As<double, ulong>(ref val), 0); break;
+                    }
+
+                    if (match != null) {
+                        res.CurrentValue = res.PreviousValue = match;
+                        this.ResultFound?.Invoke(this, res);
+                    }
+                }
+                else if (res.DataType == DataType.String) {
+                    using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
+                        Encoding encoding = this.stringType.ToEncoding();
+                        int cbSearchTerm = encoding.GetMaxByteCount(this.inputA.Length);
+                        byte[] dstByteBuffer = new byte[cbSearchTerm];
+                        char[] dstCharBuffer = new char[encoding.GetMaxCharCount(cbSearchTerm)];
+
+                        await connection.ReadBytes(res.Address, dstByteBuffer, 0, cbSearchTerm);
+                        if (encoding.TryGetChars(dstByteBuffer, dstCharBuffer, out int cchRead)) {
+                            if (new ReadOnlySpan<char>(dstCharBuffer, 0, cchRead).Equals(this.inputA.AsSpan(), this.stringComparison)) {
+                                string text = new string(dstCharBuffer, 0, cchRead);
+                                res.CurrentValue = res.PreviousValue = new DataValueString(text, this.stringType);
+                                this.ResultFound?.Invoke(this, res);
+                            }
+                        }
+                    }
+                }
+                else if (res.DataType == DataType.ByteArray) {
+                    using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
+                        MemoryPattern search = this.memoryPattern;
+                        byte[] bytes = await connection.ReadBytes(res.Address, search.Length);
+                        if (search.Matches(bytes)) {
+                            res.CurrentValue = res.PreviousValue = new DataValueByteArray(bytes);
+                            this.ResultFound?.Invoke(this, res);
+                        }
+                    }
+                }
+            }
+        }
 
         return busyToken;
     }

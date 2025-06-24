@@ -18,8 +18,14 @@
 // 
 
 using System;
+using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,7 +37,10 @@ using MemEngine360.BaseFrontEnd;
 using MemEngine360.Commands;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.Scanners;
+using MemEngine360.ValueAbstraction;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using MemEngine360.XboxBase;
 using PFXToolKitUI;
@@ -332,12 +341,143 @@ public partial class EngineView : UserControl, IEngineUI {
         }
 
         {
-            ContextEntryGroup entry = new ContextEntryGroup("Tools");
-            entry.Items.Add(new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Open Sequencer"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.ShowModulesCommand", "Show Modules"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Show Memory Regions"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Open debugger"));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scan [DEBUG ONLY]"));
+            ContextEntryGroup entry = new ContextEntryGroup("Tools") {
+                Items = {
+                    new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Open Sequencer"),
+                    new CommandContextEntry("commands.memengine.ShowModulesCommand", "Show Modules"),
+                    new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Show Memory Regions"),
+                    new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Open debugger"),
+                    new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scan [DEBUG ONLY]"),
+                    new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scan [DEBUG ONLY]")
+                }
+            };
+
+            if (Debugger.IsAttached) {
+                entry.Items.Add(new ContextEntryGroup("Debug Commands (play time, baby)") {
+                    Items = {
+                        new CustomLambdaContextEntry("[BO1] Find Nearby AI", async (ctx) => {
+                            if (!IEngineUI.DataKey.TryGetContext(ctx, out var engineUI))
+                                return;
+                            
+                            MemoryEngine engine = engineUI.MemoryEngine;
+                            await engine.BeginBusyOperationActivityAsync(async (t, c) => {
+                                if (engine.ScanningProcessor.IsScanning) {
+                                    await IMessageDialogService.Instance.ShowMessage("Currently scanning", "Cannot run. Engine is scanning for a value");
+                                    return;
+                                }
+
+                                SingleUserInputInfo info = new SingleUserInputInfo("Range", "Input maximum radius from you", "Radius", "100.0") {
+                                    Validate = args => {
+                                        if (!float.TryParse(args.Input, out _))
+                                            args.Errors.Add("Invalid float");
+                                    }
+                                };
+
+                                if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
+                                    return;
+                                }
+
+                                float radius = float.Parse(info.Text);
+
+                                // BO1 stores positions as X Z Y. Or maybe they treat Z as up/down.
+                                // I'm too used to the OpenGL/Minecraft coordinate system lmao
+                                const uint addr_p1_x = 0x82DC184C;
+                                float p1_x = await c.ReadValue<float>(addr_p1_x);
+                                float p1_z = await c.ReadValue<float>(addr_p1_x + 0x4);
+                                float p1_y = await c.ReadValue<float>(addr_p1_x + 0x8);
+
+
+                                AddressRange range = new AddressRange(engine.ScanningProcessor.StartAddress, engine.ScanningProcessor.ScanLength);
+                                List<(uint, float)> results = new List<(uint, float)>();
+                                using CancellationTokenSource cts = new CancellationTokenSource();
+                                await ActivityManager.Instance.RunTask(async () => {
+                                    ActivityTask activity = ActivityManager.Instance.CurrentTask;
+                                    IActivityProgress prog = activity.Progress;
+
+                                    if (c is IHaveIceCubes)
+                                        await ((IHaveIceCubes) c).DebugFreeze();
+
+                                    if (engine.ScanningProcessor.HasDoneFirstScan) {
+                                        List<ScanResultViewModel> list = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => engine.ScanningProcessor.GetScanResultsAndQueued());
+                                        using PopCompletionStateRangeToken token = prog.CompletionState.PushCompletionRange(0, 1.0 / list.Count);
+                                        foreach (ScanResultViewModel result in list) {
+                                            activity.CheckCancelled();
+                                            prog.CompletionState.OnProgress(1);
+
+                                            if (!(result.CurrentValue is DataValueFloat floatval)) {
+                                                continue;
+                                            }
+
+                                            DataValueFloat currVal = (DataValueFloat) await MemoryEngine.ReadDataValue(c, result.Address, floatval);
+                                            if (Math.Abs(currVal.Value - p1_x) <= radius) {
+                                                results.Add((result.Address, currVal.Value));
+                                            }
+                                        }
+                                    }
+                                    else {
+                                        using PopCompletionStateRangeToken token = prog.CompletionState.PushCompletionRange(0, 1.0 / range.Length);
+                                        bool isLE = c.IsLittleEndian;
+                                        byte[] buffer = new byte[0x10008]; // read 8 over for Z and Y axis
+                                        int chunkIdx = 0;
+                                        uint totalChunks = range.Length / 0x10000;
+                                        for (uint addr = range.BaseAddress, end = range.EndAddress; addr < end; addr += 0x10000) {
+                                            activity.CheckCancelled();
+                                            prog.CompletionState.OnProgress(0x10000);
+                                            prog.Text = $"Chunk {++chunkIdx}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(range.Length - (end - addr), false)}/{ValueScannerUtils.ByteFormatter.ToString(range.Length, false)})";
+                                            await c.ReadBytes(addr, buffer, 0, buffer.Length);
+
+                                            float x, z, y;
+                                            for (int offset = 0; offset < (buffer.Length - 0x8) /* X10008-8=65535 */; offset += 4) {
+                                                x = AsFloat(buffer, offset, isLE);
+                                                z = AsFloat(buffer, offset + 4, isLE);
+                                                y = AsFloat(buffer, offset + 8, isLE);
+                                                if (Math.Abs(x - p1_x) <= radius && Math.Abs(z - p1_z) <= radius && Math.Abs(y - p1_y) <= radius) {
+                                                    if (!(Math.Abs(x - p1_x) < 0.001F) && !(Math.Abs(z - p1_z) < 0.001F) && !(Math.Abs(y - p1_y) < 0.001F)) {
+                                                        if (addr + (uint) offset != addr_p1_x)
+                                                            results.Add((addr + (uint) offset, x));
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+
+                                    if (c is IHaveIceCubes)
+                                        await ((IHaveIceCubes) c).DebugUnFreeze();
+                                    return;
+
+                                    static float AsFloat(byte[] buffer, int offset, bool isDataLittleEndian) {
+                                        float value = Unsafe.ReadUnaligned<float>(ref buffer[offset]);
+                                        if (BitConverter.IsLittleEndian != isDataLittleEndian) {
+                                            MemoryMarshal.CreateSpan(ref Unsafe.As<float, byte>(ref value), sizeof(float)).Reverse();
+                                        }
+
+                                        return value;
+                                    }
+                                }, cts);
+
+                                if (results.Count > 0) {
+                                    engine.ScanningProcessor.ResetScan();
+                                    engine.ScanningProcessor.DataType = DataType.Float;
+                                    engine.ScanningProcessor.FloatScanOption = FloatScanOption.RoundToQuery;
+                                    engine.ScanningProcessor.NumericScanType = NumericScanType.Between;
+                                    engine.ScanningProcessor.InputA = (p1_x - radius).ToString("F4");
+                                    engine.ScanningProcessor.InputB = (p1_x + radius).ToString("F4");
+                                    foreach ((uint addr, float val) in results) {
+                                        engine.ScanningProcessor.ScanResults.Add(new ScanResultViewModel(engine.ScanningProcessor, addr, DataType.Float, NumericDisplayType.Normal, StringType.ASCII, new DataValueFloat(val)));
+                                    }
+
+                                    engine.ScanningProcessor.HasDoneFirstScan = true;
+                                }
+                                else {
+                                    await IMessageDialogService.Instance.ShowMessage("No results!", "Did not find anything nearby");
+                                }
+                            });
+                        }, (c) => c.ContainsKey(IEngineUI.DataKey.Id))
+                    }
+                });
+            }
+
             this.TopLevelMenuRegistry.Items.Add(entry);
         }
 
@@ -458,7 +598,7 @@ public partial class EngineView : UserControl, IEngineUI {
         this.pauseXboxBinder.Detach();
         // this.forceLEBinder.Detach();
         this.scanMemoryPagesBinder.Detach();
-        
+
         this.PART_ScanOptionsControl.MemoryEngine = null;
         this.PART_SavedAddressTree.AddressTableManager = null;
         this.PART_TopLevelMenu.TopLevelMenuRegistry = null;

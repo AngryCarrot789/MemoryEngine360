@@ -70,6 +70,13 @@ public abstract class ScanningContext {
     internal abstract Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken);
 
     /// <summary>
+    /// Appends the scanning processor's current results to the src list 
+    /// </summary>
+    /// <param name="srcList"></param>
+    /// <returns></returns>
+    public abstract Task<bool> CanRunNextScan(List<ScanResultViewModel> srcList);
+    
+    /// <summary>
     /// Performs a next scan. Requirements: the src list's items are guaranteed to have the
     /// same data types, and it equals our internal scanning data type
     /// </summary>
