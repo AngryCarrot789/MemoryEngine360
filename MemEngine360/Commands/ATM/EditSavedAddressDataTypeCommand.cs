@@ -40,11 +40,21 @@ public class EditSavedAddressDataTypeCommand : Command {
             return;
         }
 
+        // somehow disconnected from tree
+        if (saved.AddressTableManager == null) {
+            return;
+        }
+
         SavedResultDataTypeUserInputInfo info = new SavedResultDataTypeUserInputInfo(saved) {
             Caption = "Modify data type"
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+            // somehow disconnected from tree during dialog
+            if (saved.AddressTableManager == null) {
+                return;
+            }
+            
             if (info.DataType.IsNumeric()) {
                 if (info.DisplayAsHex) {
                     saved.NumericDisplayType = NumericDisplayType.Hexadecimal;
@@ -64,7 +74,7 @@ public class EditSavedAddressDataTypeCommand : Command {
             saved.StringLength = info.StringLength;
             saved.ArrayLength = info.ArrayLength;
             saved.DataType = info.DataType;
-            saved.ScanningProcessor.RefreshSavedAddressesLater();
+            saved.AddressTableManager.MemoryEngine.ScanningProcessor.RefreshSavedAddressesLater();
         }
     }
 }

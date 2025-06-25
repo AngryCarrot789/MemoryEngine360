@@ -62,13 +62,11 @@ public sealed class AddressTableTreeView : TreeView {
         this.controlToModel = new Dictionary<AddressTableTreeViewItem, BaseAddressTableEntry>();
         this.modelToControl = new Dictionary<BaseAddressTableEntry, AddressTableTreeViewItem>();
         this.itemCache = new Stack<AddressTableTreeViewItem>();
-        DragDrop.SetAllowDrop(this, true);
         this.SelectedItems = this.selectedItemsList = new AvaloniaList<AddressTableTreeViewItem>();
+        DragDrop.SetAllowDrop(this, true);
     }
 
-    protected AddressTableTreeViewItem CreateTreeViewItem() => new AddressTableTreeViewItem();
-
-    private void MarkContainerSelected(Control container, bool selected) {
+    public static void MarkContainerSelected(Control container, bool selected) {
         container.SetCurrentValue(SelectingItemsControl.IsSelectedProperty, selected);
     }
 
@@ -155,7 +153,7 @@ public sealed class AddressTableTreeView : TreeView {
     }
 
     public AddressTableTreeViewItem GetCachedItemOrNew() {
-        return this.itemCache.Count > 0 ? this.itemCache.Pop() : this.CreateTreeViewItem();
+        return this.itemCache.Count > 0 ? this.itemCache.Pop() : new AddressTableTreeViewItem();
     }
 
     public void PushCachedItem(AddressTableTreeViewItem item) {
@@ -183,5 +181,67 @@ public sealed class AddressTableTreeView : TreeView {
                 control.IsSelected = true;
             }
         }
+    }
+
+    public static (List<AddressTableTreeViewItem>?, DropListResult) GetEffectiveDropList(AddressTableTreeViewItem target, List<AddressTableTreeViewItem> source) {
+        List<AddressTableTreeViewItem> roots = new List<AddressTableTreeViewItem>();
+        foreach (AddressTableTreeViewItem item in source) {
+            if (item == target) {
+                return (null, DropListResult.DropListIntoSelf);
+            }
+            
+            if (IsDescendentOf(target, item)) {
+                return (null, DropListResult.DropListIntoDescendentOfList);
+            }
+
+            for (int i = roots.Count - 1; i >= 0; i--) {
+                if (IsDescendentOf(roots[i], item) || IsDescendentOf(item, roots[i])) {
+                    roots.RemoveAt(i);
+                }
+            }
+            
+            roots.Add(item);
+        }
+
+        foreach (AddressTableTreeViewItem item in roots) {
+            if (item.ParentNode != target) {
+                return (roots, DropListResult.Valid);
+            }
+        }
+        
+        return (roots, DropListResult.ValidButDropListAlreadyInTarget);
+    }
+
+    private static bool IsDescendentOf(AddressTableTreeViewItem self, AddressTableTreeViewItem item) {
+        for (AddressTableTreeViewItem? par = self; par != null; par = par.ParentNode) {
+            if (par == item) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public enum DropListResult {
+        /// <summary>
+        /// User tried to drop the items into an item within the drop list
+        /// </summary>
+        DropListIntoDescendentOfList,
+        
+        /// <summary>
+        /// User tried to drop a single item into itself. This is the exact same
+        /// as <see cref="DropListIntoDescendentOfList"/> but only for a single item in the source list
+        /// </summary>
+        DropListIntoSelf,
+        
+        /// <summary>
+        /// The drop list contains items already present in the drop target
+        /// </summary>
+        ValidButDropListAlreadyInTarget,
+        
+        /// <summary>
+        /// List contains a valid list of all the highest level tree nodes that can be moved into the target
+        /// </summary>
+        Valid
     }
 }

@@ -132,7 +132,7 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="{TemplateBinding CornerRadius}"
-                                Focusable="True" Height="23"
+                                Focusable="False" Height="23"
                                 TemplatedControl.IsTemplateFocusTarget="True">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -209,6 +209,9 @@
             <Style Selector="^/template/ TextBlock#PART_AddressTextBlock">
                 <Setter Property="Padding" Value="4,1"/>
             </Style>
+        </Style>
+        <Style Selector="^[IsDroppableTargetOver=true] /template/ Border#PART_DropTargetOverBorder">
+            <Setter Property="BorderThickness" Value="1"/>
         </Style>
         <Style Selector="^[IsFolderItem=true] /template/ ContentPresenter#PART_IconPresenter">
             <Setter Property="IsVisible" Value="True"/>

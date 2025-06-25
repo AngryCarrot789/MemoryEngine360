@@ -127,11 +127,6 @@ public class AddressTableEntry : BaseAddressTableEntry {
     public NumericDisplayType CurrentValueDisplayType { get; private set; }
 
     /// <summary>
-    /// Gets the scanning processor that owns this saved address
-    /// </summary>
-    public ScanningProcessor ScanningProcessor { get; set; }
-
-    /// <summary>
     /// Gets or sets if this object is currently visible in the results
     /// list in the mem engine view. This is a filthy workaround 
     /// </summary>
@@ -146,20 +141,18 @@ public class AddressTableEntry : BaseAddressTableEntry {
     public event AddressTableEntryEventHandler? ArrayLengthChanged;
     public event AddressTableEntryEventHandler? NumericDisplayTypeChanged;
 
-    public AddressTableEntry(ScanningProcessor scanningProcessor, uint address, bool isAddressAbsolute = true) {
-        this.ScanningProcessor = scanningProcessor;
+    public AddressTableEntry(uint address, bool isAddressAbsolute = true) {
         this.Address = address;
         this.IsAddressAbsolute = isAddressAbsolute;
     }
 
     public AddressTableEntry(ScanResultViewModel result) {
-        this.ScanningProcessor = result.ScanningProcessor;
         this.Address = result.Address;
         this.dataType = result.DataType;
         this.value = result.CurrentValue;
         this.numericDisplayType = result.NumericDisplayType;
         if (this.dataType == DataType.String) {
-            this.stringType = this.ScanningProcessor.StringScanOption;
+            this.stringType = result.ScanningProcessor.StringScanOption;
             this.stringLength = ((DataValueString) this.value).Value.Length;
         }
         else if (this.dataType == DataType.ByteArray) {
@@ -178,5 +171,19 @@ public class AddressTableEntry : BaseAddressTableEntry {
             this.IsAddressAbsolute = isAbsolute;
             this.AddressChanged?.Invoke(this);
         }
+    }
+
+    public override BaseAddressTableEntry CreateClone() {
+        return new AddressTableEntry(this.Address, this.IsAddressAbsolute) {
+            Description = this.Description,
+            Address = this.Address,
+            DataType = this.DataType,
+            StringType = this.StringType,
+            StringLength = this.StringLength,
+            ArrayLength = this.ArrayLength,
+            IsAutoRefreshEnabled = this.IsAutoRefreshEnabled,
+            NumericDisplayType = this.NumericDisplayType,
+            Value = this.Value,
+        };
     }
 }

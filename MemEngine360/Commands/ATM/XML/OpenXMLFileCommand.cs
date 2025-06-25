@@ -97,7 +97,7 @@ public class OpenXMLFileCommand : Command {
             }
             else {
                 XmlAddressEntry theEntry = (XmlAddressEntry) item;
-                entry.AddEntry(new AddressTableEntry(processor, theEntry.Address, theEntry.IsAddressAbsolute) {
+                entry.AddEntry(new AddressTableEntry(theEntry.Address, theEntry.IsAddressAbsolute) {
                     DataType = theEntry.DataType,
                     Description = theEntry.Description,
                     NumericDisplayType = theEntry.NumericDisplayType,

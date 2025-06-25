@@ -68,7 +68,7 @@ public class AddSavedAddressCommand : Command {
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(addrDescInfo) == true) {
-            AddressTableEntry result = new AddressTableEntry(engine.ScanningProcessor, uint.Parse(addrDescInfo.TextA, NumberStyles.HexNumber, null)) {
+            AddressTableEntry result = new AddressTableEntry(uint.Parse(addrDescInfo.TextA, NumberStyles.HexNumber, null)) {
                 Description = addrDescInfo.TextB
             };
 

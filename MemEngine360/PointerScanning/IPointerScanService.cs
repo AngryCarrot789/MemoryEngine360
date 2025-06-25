@@ -18,17 +18,12 @@
 // 
 
 using MemEngine360.Engine;
-using MemEngine360.PointerScanning;
-using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI;
 
-namespace MemEngine360.Commands;
+namespace MemEngine360.PointerScanning;
 
-public class PointerScanCommand : Command {
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine)) {
-            return;
-        }
-
-        await IPointerScanService.Instance.ShowPointerScan(engine.MemoryEngine);
-    }
+public interface IPointerScanService {
+    public static IPointerScanService Instance => ApplicationPFX.Instance.ServiceManager.GetService<IPointerScanService>();
+    
+    Task ShowPointerScan(MemoryEngine engine);
 }

@@ -17,18 +17,14 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
-using MemEngine360.PointerScanning;
-using PFXToolKitUI.CommandSystem;
+namespace MemEngine360.PointerScanning;
 
-namespace MemEngine360.Commands;
+public readonly struct Pointer {
+    public readonly uint Address;
+    public readonly uint Offset;
 
-public class PointerScanCommand : Command {
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine)) {
-            return;
-        }
-
-        await IPointerScanService.Instance.ShowPointerScan(engine.MemoryEngine);
+    public Pointer(uint address, uint offset) {
+        this.Address = address;
+        this.Offset = offset;
     }
 }

@@ -22,6 +22,7 @@ using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.PointerScanning;
 using MemEngine360.Sequencing;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
@@ -101,6 +102,8 @@ public class MemoryEngine {
     public TaskSequencerManager TaskSequencerManager { get; }
 
     public AddressTableManager AddressTableManager { get; }
+    
+    public PointerScanner PointerScanner { get; }
 
     /// <summary>
     /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working
@@ -158,6 +161,7 @@ public class MemoryEngine {
         this.ScanningProcessor = new ScanningProcessor(this);
         this.AddressTableManager = new AddressTableManager(this);
         this.TaskSequencerManager = new TaskSequencerManager(this);
+        this.PointerScanner = new PointerScanner(this);
         this.busyLockAsyncWaiters = new LinkedList<CancellableTaskCompletionSource>();
         Task.Factory.StartNew(async () => {
             long timeSinceRefreshedAddresses = DateTime.Now.Ticks;

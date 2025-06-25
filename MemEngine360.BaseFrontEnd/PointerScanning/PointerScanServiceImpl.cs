@@ -19,16 +19,28 @@
 
 using MemEngine360.Engine;
 using MemEngine360.PointerScanning;
-using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Avalonia.Services.Windowing;
 
-namespace MemEngine360.Commands;
+namespace MemEngine360.BaseFrontEnd.PointerScanning;
 
-public class PointerScanCommand : Command {
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine)) {
+public class PointerScanServiceImpl : IPointerScanService {
+    public async Task ShowPointerScan(MemoryEngine engine) {
+        if (!WindowingSystem.TryGetInstance(out var system)) {
             return;
         }
+        
+        PointerScanWindow window = new PointerScanWindow() {
+            PointerScanner = engine.PointerScanner
+        };
 
-        await IPointerScanService.Instance.ShowPointerScan(engine.MemoryEngine);
+        window.Closed += (sender, args) => {
+            if (((PointerScanWindow) sender!).PointerScanner is PointerScanner scanner) {
+                scanner.DisposeMemoryDump();
+                scanner.Clear();
+                ((PointerScanWindow) sender!).PointerScanner = null;
+            }
+        };
+        
+        system.Register(window).Show();
     }
 }

@@ -143,6 +143,12 @@ public abstract class BaseAddressTableEntry : ITransferableData {
     protected virtual void OnDetachedFromATM(BaseAddressTableEntry origin, AddressTableManager oldAddressTableManager) {
     }
 
+    /// <summary>
+    /// Creates a deep clone of this object, as if the user created it from scratch
+    /// </summary>
+    /// <returns>The new clone</returns>
+    public abstract BaseAddressTableEntry CreateClone();
+    
     public static bool CheckHaveParentsAndAllMatch(ISelectionManager<BaseAddressTableEntry> manager, [NotNullWhen(true)] out AddressTableGroupEntry? sameParent) {
         return CheckHaveParentsAndAllMatch(manager.SelectedItems, out sameParent);
     }
@@ -162,16 +168,6 @@ public abstract class BaseAddressTableEntry : ITransferableData {
         }
 
         return true;
-    }
-
-    /// <summary>
-    /// A helper method for removing a list of items from their parent containers
-    /// </summary>
-    /// <param name="list"></param>
-    public static void RemoveListFromTree(List<BaseAddressTableEntry> list) {
-        foreach (BaseAddressTableEntry entry in list) {
-            entry.Parent?.RemoveEntry(entry);
-        }
     }
 
     internal static void InternalOnPreRemoveFromOwner(BaseAddressTableEntry entry) {

@@ -139,6 +139,16 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
         }
     }
 
+    public void MoveEntryTo(BaseAddressTableEntry entry, AddressTableGroupEntry newParent) {
+        if (!ReferenceEquals(entry.Parent, this))
+            throw new InvalidOperationException("Entry does not exist in this group");
+
+        int idx = InternalIndexInParent(entry);
+        this.RemoveEntryAt(idx);
+        
+        newParent.AddEntry(entry);
+    }
+    
     public int IndexOf(BaseAddressTableEntry entry) {
         return ReferenceEquals(entry.Parent, this) ? InternalIndexInParent(entry) : -1;
     }
@@ -196,5 +206,17 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
         for (int i = this.items.Count - 1; i >= 0; i--) {
             this.RemoveEntryAt(i);
         }
+    }
+
+    public override BaseAddressTableEntry CreateClone() {
+        AddressTableGroupEntry entry = new AddressTableGroupEntry(this.GroupAddress, this.IsAddressAbsolute) {
+            Description = this.Description
+        };
+
+        foreach (BaseAddressTableEntry item in this.items) {
+            entry.AddEntry(item.CreateClone());
+        }
+
+        return entry;
     }
 }

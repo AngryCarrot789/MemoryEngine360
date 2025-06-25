@@ -153,7 +153,7 @@ public class OpenCSVFileCommand : Command {
         }
 
         foreach (SavedAddress address in list) {
-            saved.AddEntry(new AddressTableEntry(engine.ScanningProcessor, address.Address) {
+            saved.AddEntry(new AddressTableEntry(address.Address) {
                 DataType = address.DataType,
                 Description = address.Desc,
                 NumericDisplayType = address.NDT,

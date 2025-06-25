@@ -17,10 +17,13 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.AdvancedMenuService;
@@ -28,12 +31,21 @@ using PFXToolKitUI.Avalonia.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Interactivity;
+using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.BaseFrontEnd.SavedAddressing;
 
 public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryUI {
     public static readonly DirectProperty<AddressTableTreeViewItem, bool> IsFolderItemProperty = AvaloniaProperty.RegisterDirect<AddressTableTreeViewItem, bool>("IsFolderItem", o => o.IsFolderItem, null);
+    public static readonly StyledProperty<bool> IsDroppableTargetOverProperty = AvaloniaProperty.Register<AddressTableTreeViewItem, bool>(nameof(IsDroppableTargetOver));
+
+    public bool IsDroppableTargetOver {
+        get => this.GetValue(IsDroppableTargetOverProperty);
+        set => this.SetValue(IsDroppableTargetOverProperty, value);
+    }
 
     public AddressTableTreeView? MyTree { get; private set; }
     public AddressTableTreeViewItem? ParentNode { get; private set; }
@@ -69,6 +81,12 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
 
     private readonly DataManagerCommandWrapper EditAddressCommand, EditDataTypeCommand;
 
+    private NodeDragState dragBtnState;
+    private bool hasCompletedDrop;
+    private bool wasSelectedOnPress;
+    private Point clickMousePoint;
+    private bool isProcessingAsyncDrop;
+
     BaseAddressTableEntry IAddressTableEntryUI.Entry => this.EntryObject ?? throw new Exception("Not connected to an entry");
 
     bool IAddressTableEntryUI.IsValid => this.EntryObject != null;
@@ -80,6 +98,22 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     }
 
     static AddressTableTreeViewItem() {
+        DragDrop.DragEnterEvent.AddClassHandler<AddressTableTreeViewItem>((o, e) => o.OnDragEnter(e));
+        DragDrop.DragOverEvent.AddClassHandler<AddressTableTreeViewItem>((o, e) => o.OnDragOver(e));
+        DragDrop.DragLeaveEvent.AddClassHandler<AddressTableTreeViewItem>((o, e) => o.OnDragLeave(e));
+        DragDrop.DropEvent.AddClassHandler<AddressTableTreeViewItem>((o, e) => o.OnDrop(e));
+    }
+
+    protected override void OnLoaded(RoutedEventArgs e) {
+        base.OnLoaded(e);
+    }
+
+    protected override void OnUnloaded(RoutedEventArgs e) {
+        base.OnUnloaded(e);
+    }
+
+    protected override void OnLostFocus(RoutedEventArgs e) {
+        base.OnLostFocus(e);
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
@@ -89,14 +123,14 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         this.PART_DataTypeText = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_DataTypeText));
         this.PART_AddressTextBlock = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_AddressTextBlock));
         this.PART_ValueText = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_ValueText));
-        
+
         // Handle pointer press on double or more click, so that it doesn't expand/collapse this tree item
         this.PART_AddressTextBlock.DoubleTapped += (s, args) => this.EditAddressCommand.Execute(null);
         this.PART_AddressTextBlock.PointerPressed += (s, args) => {
             if (args.ClickCount > 1)
                 args.Handled = true;
         };
-        
+
         this.PART_DataTypeText.DoubleTapped += (s, args) => this.EditDataTypeCommand.Execute(null);
         this.PART_DataTypeText.PointerPressed += (s, args) => {
             if (args.ClickCount > 1)
@@ -115,6 +149,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         this.ParentNode = parentNode;
         this.EntryObject = layer;
         this.IsFolderItem = layer is AddressTableGroupEntry;
+        DragDrop.SetAllowDrop(this, this.IsFolderItem);
     }
 
     public void OnAdded() {
@@ -251,7 +286,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
 
     protected override void OnPointerPressed(PointerPressedEventArgs e) {
         base.OnPointerPressed(e);
-        if (e.Handled || this.EntryObject == null) {
+        if (e.Handled || this.EntryObject == null || this.MyTree == null) {
             return;
         }
 
@@ -264,8 +299,266 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                     e.Handled = true;
                 }
             }
+            else if (e.KeyModifiers == KeyModifiers.None || e.KeyModifiers == KeyModifiers.Control) {
+                if (this.dragBtnState == NodeDragState.None && (this.IsFocused || this.Focus(NavigationMethod.Pointer, e.KeyModifiers))) {
+                    this.dragBtnState = NodeDragState.Initiated;
+                    e.Pointer.Capture(this);
+                    this.clickMousePoint = point.Position;
+                    this.wasSelectedOnPress = this.IsSelected;
+                    if (isToggle) {
+                        if (this.wasSelectedOnPress) {
+                            // do nothing; toggle selection in mouse release
+                        }
+                        else {
+                            this.SetCurrentValue(IsSelectedProperty, true);
+                        }
+                    }
+                    else if (!this.wasSelectedOnPress || this.MyTree!.SelectedItems.Count < 2) {
+                        // Set as only selection if 0 or 1 items selected, or we aren't selected
+                        this.MyTree!.SetSelection(this);
+                    }
+                }
+
+                // handle to stop tree view from selecting stuff
+                e.Handled = true;
+            }
         }
     }
+
+    #region Drag Drop
+
+    private void ResetDragDropState(PointerEventArgs e) {
+        this.dragBtnState = NodeDragState.None;
+        if (this == e.Pointer.Captured) {
+            e.Pointer.Capture(null);
+        }
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e) {
+        base.OnPointerReleased(e);
+        PointerPoint point = e.GetCurrentPoint(this);
+        if (point.Properties.PointerUpdateKind == PointerUpdateKind.LeftButtonReleased) {
+            NodeDragState lastDragState = this.dragBtnState;
+            if (lastDragState != NodeDragState.None) {
+                this.ResetDragDropState(e);
+                if (this.MyTree != null) {
+                    bool isToggle = (e.KeyModifiers & KeyModifiers.Control) != 0;
+                    int selCount = this.MyTree.SelectedItems.Count;
+                    if (selCount == 0) {
+                        // very rare scenario, shouldn't really occur
+                        this.MyTree.SetSelection(this);
+                    }
+                    else if (isToggle && this.wasSelectedOnPress && lastDragState != NodeDragState.Completed) {
+                        // Check we want to toggle, check we were selected on click and we probably are still selected,
+                        // and also check that the last drag wasn't completed/cancelled just because it feels more normal that way
+                        this.SetCurrentValue(IsSelectedProperty, false);
+                    }
+                    else if (selCount > 1 && !isToggle && lastDragState != NodeDragState.Completed) {
+                        this.MyTree.SetSelection(this);
+                    }
+                }
+            }
+        }
+    }
+
+    protected override void OnPointerMoved(PointerEventArgs e) {
+        base.OnPointerMoved(e);
+        PointerPoint point = e.GetCurrentPoint(this);
+        if (!point.Properties.IsLeftButtonPressed) {
+            this.ResetDragDropState(e);
+            this.clickMousePoint = new Point(0, 0);
+            return;
+        }
+
+        if (this.dragBtnState != NodeDragState.Initiated || this.MyTree == null) {
+            return;
+        }
+
+        if (this.EntryObject == null || this.EntryObject.AddressTableManager == null) {
+            return;
+        }
+
+        Point mPos = point.Position;
+        Point clickPos = this.clickMousePoint;
+        Point change = new Point(Math.Abs(mPos.X - clickPos.X), Math.Abs(mPos.X - clickPos.X));
+        if (change.X > 4 || change.Y > 4) {
+            this.IsSelected = true;
+            List<AddressTableTreeViewItem> selection = this.MyTree.SelectedItems.Cast<AddressTableTreeViewItem>().ToList();
+            if (selection.Count < 1 || !selection.Contains(this)) {
+                this.ResetDragDropState(e);
+                return;
+            }
+
+            try {
+                DataObject obj = new DataObject();
+                obj.Set(DropKey, selection);
+
+                this.dragBtnState = NodeDragState.Active;
+                DragDrop.DoDragDrop(e, obj, DragDropEffects.Move | DragDropEffects.Copy);
+            }
+            catch (Exception ex) {
+                Debug.WriteLine("Exception while executing resource tree item drag drop: " + ex.GetToString());
+            }
+            finally {
+                this.dragBtnState = NodeDragState.Completed;
+                if (this.hasCompletedDrop) {
+                    this.hasCompletedDrop = false;
+                    // this.IsSelected = false;
+                }
+            }
+        }
+    }
+
+    public const string DropKey = "MemoryEngine.ATEItem.Drop";
+
+    private void CompleteDragForDrop() {
+        this.hasCompletedDrop = true;
+    }
+
+    private void OnDragEnter(DragEventArgs e) {
+        this.OnDragOver(e);
+    }
+
+    private void OnDragOver(DragEventArgs e) {
+        if (!GetResourceListFromDragEvent(e, out List<AddressTableTreeViewItem>? items)) {
+            e.DragEffects = DragDropEffects.None;
+        }
+        else {
+            (List<AddressTableTreeViewItem>?, AddressTableTreeView.DropListResult) result = AddressTableTreeView.GetEffectiveDropList(this, items);
+            if (result.Item2 != AddressTableTreeView.DropListResult.ValidButDropListAlreadyInTarget && result.Item2 != AddressTableTreeView.DropListResult.Valid) {
+                e.DragEffects = DragDropEffects.None;
+            }
+            else {
+                EnumDropType dropType = DropUtils.GetDropAction(e.KeyModifiers, (EnumDropType) e.DragEffects);
+                e.DragEffects = (DragDropEffects) dropType;
+            }
+        }
+
+        this.IsDroppableTargetOver = e.DragEffects != DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void OnDragLeave(DragEventArgs e) {
+        if (!this.IsPointerOver) {
+            this.IsDroppableTargetOver = false;
+            this.PART_DragDropMoveBorder!.BorderThickness = default;
+        }
+    }
+
+    private async void OnDrop(DragEventArgs e) {
+        e.Handled = true;
+        if (this.isProcessingAsyncDrop || this.EntryObject == null) {
+            return;
+        }
+
+        try {
+            Debug.Assert(this.IsFolderItem);
+
+            Point point = e.GetPosition(this);
+            EnumDropType dropType = DropUtils.GetDropAction(e.KeyModifiers, (EnumDropType) e.DragEffects);
+
+            this.isProcessingAsyncDrop = true;
+            // Dropped non-resources into this node
+            if (!GetResourceListFromDragEvent(e, out List<AddressTableTreeViewItem>? theDroppedItemList)) {
+                await IMessageDialogService.Instance.ShowMessage("Unknown Data", "Unknown dropped item(s)");
+                return;
+            }
+
+            (List<AddressTableTreeViewItem>?, AddressTableTreeView.DropListResult) result = AddressTableTreeView.GetEffectiveDropList(this, theDroppedItemList);
+            if (result.Item2 == AddressTableTreeView.DropListResult.ValidButDropListAlreadyInTarget) {
+                if (dropType != EnumDropType.Copy) {
+                    return;
+                }
+            }
+            else if (result.Item2 != AddressTableTreeView.DropListResult.Valid) {
+                await IMessageDialogService.Instance.ShowMessage("Invalid Drop", result.Item2 switch {
+                    AddressTableTreeView.DropListResult.DropListIntoDescendentOfList => "Cannot drop item(s) into a folder that is also being dropped",
+                    AddressTableTreeView.DropListResult.DropListIntoSelf => "Cannot drop item into itself",
+                    AddressTableTreeView.DropListResult.ValidButDropListAlreadyInTarget => "Items already present in this item",
+                    AddressTableTreeView.DropListResult.Valid => "Huh",
+                    _ => throw new ArgumentOutOfRangeException()
+                });
+
+                return;
+            }
+
+            AddressTableGroupEntry thisModel = (AddressTableGroupEntry) this.EntryObject!;
+            List<BaseAddressTableEntry> droppedModels = result.Item1!.Select(x => x.EntryObject!).ToList();
+            List<BaseAddressTableEntry> selection;
+
+            if (dropType == EnumDropType.Move) {
+                foreach (BaseAddressTableEntry entry in droppedModels) {
+                    entry.Parent!.MoveEntryTo(entry, thisModel);
+                }
+
+                selection = droppedModels;
+            }
+            else {
+                List<BaseAddressTableEntry> cloneList = new List<BaseAddressTableEntry>();
+                foreach (BaseAddressTableEntry dropped in droppedModels) {
+                    BaseAddressTableEntry clone = dropped.CreateClone();
+                    if (!string.IsNullOrWhiteSpace(clone.Description)) {
+                        if (!TextIncrement.GetIncrementableString((s => thisModel.Items.All(x => x.Description != s)), clone.Description ?? "", out string? name, canAcceptInitialInput: false))
+                            name = clone.Description ?? "";
+                        clone.Description = name;
+                    }
+
+                    cloneList.Add(clone);
+                }
+
+                thisModel.AddEntries(cloneList);
+                selection = cloneList;
+            }
+
+            this.MyTree!.SetSelection(selection);
+        }
+#if !DEBUG
+            catch (Exception exception) {
+                await PFXToolKitUI.Services.Messaging.IMessageDialogService.Instance.ShowMessage("Error", "An error occurred while processing list item drop", exception.ToString());
+            }
+#endif
+        finally {
+            this.IsDroppableTargetOver = false;
+            this.isProcessingAsyncDrop = false;
+            this.PART_DragDropMoveBorder!.BorderThickness = default;
+        }
+    }
+
+    /// <summary>
+    /// Tries to get the list of resources being drag-dropped from the given drag event
+    /// </summary>
+    /// <param name="e">Drag event (enter, over, drop, etc.)</param>
+    /// <param name="items">The resources in the drag event</param>
+    /// <returns>True if there were resources available, otherwise false, meaning no resources are being dragged</returns>
+    public static bool GetResourceListFromDragEvent(DragEventArgs e, [NotNullWhen(true)] out List<AddressTableTreeViewItem>? items) {
+        if (e.Data.Contains(DropKey)) {
+            object? obj = e.Data.Get(DropKey);
+            if ((items = obj as List<AddressTableTreeViewItem>) != null) {
+                return true;
+            }
+        }
+
+        items = null;
+        return false;
+    }
+
+    #endregion
+}
+
+public enum NodeDragState {
+    // No drag drop has been started yet
+    None = 0,
+
+    // User left-clicked, so wait for enough move movement
+    Initiated = 1,
+
+    // User moved their mouse enough. DragDrop is running
+    Active = 2,
+
+    // Node dropped, this is used to ensure we don't restart when the mouse moves
+    // again e.g. if they right-click (which win32 takes as cancelling the drop) but
+    // the user keeps left mouse pressed
+    Completed = 3
 }
 
 public static class AddressTableContextRegistry {
@@ -284,7 +577,7 @@ public static class AddressTableContextRegistry {
         modGeneric.AddSeparator();
         modGeneric.AddCommand("commands.memengine.GroupEntriesCommand", "Group");
         modGeneric.AddCommand("commands.memengine.DeleteSelectedSavedAddressesCommand", "Delete");
-        
+
         modEdit.AddHeader("Modify");
         modEdit.AddCommand("commands.memengine.EditSavedAddressAddressCommand", "Edit Address");
         modEdit.AddCommand("commands.memengine.EditSavedAddressValueCommand", "Edit Value");

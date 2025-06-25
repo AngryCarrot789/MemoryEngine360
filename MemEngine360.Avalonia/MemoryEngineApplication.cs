@@ -29,6 +29,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using MemEngine360.BaseFrontEnd;
 using MemEngine360.BaseFrontEnd.FileConnections;
 using MemEngine360.BaseFrontEnd.MemRegions;
+using MemEngine360.BaseFrontEnd.PointerScanning;
 using MemEngine360.BaseFrontEnd.Services;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.BaseFrontEnd.Services.HexEditing;
@@ -46,6 +47,7 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Modes;
+using MemEngine360.PointerScanning;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Commands;
 using MemEngine360.Sequencing.Conditions;
@@ -168,6 +170,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.RegisterConstant<ITaskSequencerService>(new TaskSequencerServiceImpl());
         manager.RegisterConstant<MemoryEngineManager>(new MemoryEngineManagerImpl());
         manager.RegisterConstant<IEditConditionOutputModeService>(new EditConditionOutputModeServiceImpl());
+        manager.RegisterConstant<IPointerScanService>(new PointerScanServiceImpl());
 
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }

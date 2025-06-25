@@ -18,12 +18,9 @@
 // 
 
 using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -347,8 +344,7 @@ public partial class EngineView : UserControl, IEngineUI {
                     new CommandContextEntry("commands.memengine.ShowModulesCommand", "Show Modules"),
                     new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Show Memory Regions"),
                     new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Open debugger"),
-                    new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scan [DEBUG ONLY]"),
-                    new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scan [DEBUG ONLY]")
+                    new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scanner"),
                 }
             };
 
