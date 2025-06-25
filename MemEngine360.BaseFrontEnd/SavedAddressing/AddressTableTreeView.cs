@@ -221,27 +221,26 @@ public sealed class AddressTableTreeView : TreeView {
 
         return false;
     }
+}
 
-    public enum DropListResult {
-        /// <summary>
-        /// User tried to drop the items into an item within the drop list
-        /// </summary>
-        DropListIntoDescendentOfList,
+public enum DropListResult {
+    /// <summary>
+    /// User tried to drop the items into an item within the drop list
+    /// </summary>
+    DropListIntoDescendentOfList,
         
-        /// <summary>
-        /// User tried to drop a single item into itself. This is the exact same
-        /// as <see cref="DropListIntoDescendentOfList"/> but only for a single item in the source list
-        /// </summary>
-        DropListIntoSelf,
+    /// <summary>
+    /// User tried to drop a single item into itself.
+    /// </summary>
+    DropListIntoSelf,
         
-        /// <summary>
-        /// The drop list contains items already present in the drop target
-        /// </summary>
-        ValidButDropListAlreadyInTarget,
+    /// <summary>
+    /// The drop list contains items already present in the drop target
+    /// </summary>
+    ValidButDropListAlreadyInTarget,
         
-        /// <summary>
-        /// List contains a valid list of all the highest level tree nodes that can be moved into the target
-        /// </summary>
-        Valid
-    }
+    /// <summary>
+    /// List contains a valid list of all the highest level tree nodes that can be moved into the target
+    /// </summary>
+    Valid
 }
