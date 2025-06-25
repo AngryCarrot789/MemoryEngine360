@@ -477,7 +477,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
             this.PART_DragDropMoveBorder!.BorderThickness = default;
         }
         else if (location.HasValue) {
-            this.IsDroppableTargetOver = true;
+            this.IsDroppableTargetOver = false;
             this.PART_DragDropMoveBorder!.BorderThickness = location.Value == DropTarget.Location.Above ? new Thickness(0, 1, 0, 0) : new Thickness(0, 0, 0, 1);
         }
         else {
