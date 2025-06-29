@@ -54,44 +54,7 @@ public sealed class DynamicAddress : IMemoryAddress, IEquatable<DynamicAddress> 
     /// Tries to resolve this pointer and give the address of the effective value. The given address may be a null pointer when this method returns true
     /// </summary>
     /// <returns>The final pointer which points to a useful value. Or returns null when a dereferenced pointer is invalid</returns>
-    public async Task<uint?> TryResolve(IConsoleConnection connection) {
-        // ImmutableArray<int> offsets = this.Offsets;
-        // long ptr = Math.Max(this.BaseAddress + offsets[0], 0);
-        // if (ptr <= 0 || ptr > uint.MaxValue) {
-        //     return null;
-        // }
-        //
-        // for (int i = 1; i < offsets.Length; i++) {
-        //     // first run: deref base pointer
-        //     // nth run:   deref last pointer
-        //     uint deref = await connection.ReadValue<uint>((uint) ptr);
-        //     
-        //     // the dereferenced pointer value. For a valid
-        //     // dynamic address, is will be another pointer
-        //     ptr = Math.Max(deref + offsets[i], 0);
-        //     if (ptr <= 0 || ptr > uint.MaxValue) {
-        //         return null;
-        //     }
-        // }
-        //
-        // // The final pointer, which points to hopefully an effective value (e.g. float or literally anything)
-        // return (uint) ptr;
-        
-        long ptr = this.BaseAddress;
-        foreach (int offset in this.Offsets) {
-            uint deref = await connection.ReadValue<uint>((uint) ptr);
-            
-            // the dereferenced pointer value. For a valid
-            // dynamic address, is will be another pointer
-            ptr = Math.Max(deref + offset, 0);
-            if (ptr <= 0 || ptr > uint.MaxValue) {
-                return null;
-            }
-        }
-
-        // The final pointer, which points to hopefully an effective value (e.g. float or literally anything)
-        return (uint) ptr;
-    }
+    public Task<uint?> TryResolve(IConsoleConnection connection) => connection.ResolvePointer(this);
 
     public bool Equals(DynamicAddress? other) {
         if (other == null)

@@ -82,28 +82,27 @@ public static class MemoryAddressUtils {
         if (entry.MemoryAddress.IsStatic) {
             return ((StaticAddress) entry.MemoryAddress).Address;
         }
-        else {
-            IDisposable? token;
-            IConsoleConnection? connection;
-            MemoryEngine? engine = entry.AddressTableManager?.MemoryEngine;
-            if (engine != null && (token = await engine.BeginBusyOperationAsync(250)) != null) {
-                try {
-                    if ((connection = engine.Connection) != null) {
-                        try {
-                            return await entry.MemoryAddress.TryResolveAddress(connection) ?? 0;
-                        }
-                        catch {
-                            // probably timeout or IO exception, so just ignore
-                        }
+
+        IDisposable? token;
+        IConsoleConnection? connection;
+        MemoryEngine? engine = entry.AddressTableManager?.MemoryEngine;
+        if (engine != null && (token = await engine.BeginBusyOperationAsync(250)) != null) {
+            try {
+                if ((connection = engine.Connection) != null) {
+                    try {
+                        return await entry.MemoryAddress.TryResolveAddress(connection) ?? 0;
+                    }
+                    catch {
+                        // probably timeout or IO exception, so just ignore
                     }
                 }
-                finally {
-                    token.Dispose();
-                }
             }
-
-            return null;
+            finally {
+                token.Dispose();
+            }
         }
+
+        return null;
     }
 
     public static Task<uint?> TryResolveAddress(this IMemoryAddress address, IConsoleConnection connection) {

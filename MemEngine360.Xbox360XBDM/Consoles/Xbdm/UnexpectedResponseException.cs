@@ -22,7 +22,7 @@ namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 /// <summary>
 /// An IO exception thrown when the console responds with an invalid response to a command.
 /// </summary>
-public class UnexpectedResponseException : Exception {
+public class UnexpectedResponseException : IOException {
     public string CommandName { get; }
 
     public ResponseType Actual { get; }

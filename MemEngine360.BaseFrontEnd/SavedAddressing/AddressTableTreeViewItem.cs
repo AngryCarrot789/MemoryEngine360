@@ -57,6 +57,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     }
 
     private readonly IBinder<BaseAddressTableEntry> descriptionBinder = new EventUpdateBinder<BaseAddressTableEntry>(nameof(BaseAddressTableEntry.DescriptionChanged), b => b.Control.SetValue(HeaderProperty, b.Model.Description));
+
     private readonly IBinder<AddressTableEntry> entryAddressBinder = new EventUpdateBinder<AddressTableEntry>(nameof(AddressTableEntry.MemoryAddressChanged), b => {
         b.Control.SetValue(TextBlock.TextProperty, b.Model.MemoryAddress.ToString());
     });
@@ -99,7 +100,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     }
 
     public void Focus() => base.Focus();
-    
+
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
         base.OnApplyTemplate(e);
         this.PART_DragDropMoveBorder = e.NameScope.GetTemplateChild<Border>(nameof(this.PART_DragDropMoveBorder));
@@ -400,23 +401,23 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         this.hasCompletedDrop = true;
     }
 
-    private DropTarget.Location GetDropTarget(Point pt, bool isFolder, bool isDropValid) {
+    private DropLocation GetDropLocation(Point pt, bool isFolder, bool isDropValid) {
         const double NormalBorder = 8.0;
         // Inside drop is only allowed when a folder and the drop is valid
         if (isFolder && isDropValid) {
             if (DoubleUtils.LessThan(pt.Y, NormalBorder)) {
-                return DropTarget.Location.Above;
+                return DropLocation.Above;
             }
             else if (DoubleUtils.GreaterThanOrClose(pt.Y, this.Bounds.Height - NormalBorder)) {
-                return DropTarget.Location.Below;
+                return DropLocation.Below;
             }
             else {
-                return DropTarget.Location.Inside;
+                return DropLocation.Inside;
             }
         }
         else {
             double middle = this.Bounds.Height / 2.0;
-            return DoubleUtils.LessThan(pt.Y, middle) ? DropTarget.Location.Above : DropTarget.Location.Below;
+            return DoubleUtils.LessThan(pt.Y, middle) ? DropLocation.Above : DropLocation.Below;
         }
     }
 
@@ -426,7 +427,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
 
     private void OnDragOver(DragEventArgs e) {
         Point point = e.GetPosition(this);
-        DropTarget.Location? location;
+        DropLocation? location;
         if (!GetResourceListFromDragEvent(e, out List<AddressTableTreeViewItem>? items)) {
             e.DragEffects = DragDropEffects.None;
             location = null;
@@ -441,23 +442,23 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                     e.DragEffects = DragDropEffects.None;
                 }
                 else {
-                    location = this.GetDropTarget(point, this.IsFolderItem, false);
-                    e.DragEffects = location != DropTarget.Location.Inside ? (DragDropEffects) dropType : DragDropEffects.None;
+                    location = this.GetDropLocation(point, this.IsFolderItem, false);
+                    e.DragEffects = location != DropLocation.Inside ? (DragDropEffects) dropType : DragDropEffects.None;
                 }
             }
             else {
                 e.DragEffects = (DragDropEffects) dropType;
-                location = this.GetDropTarget(point, this.IsFolderItem, true);
+                location = this.GetDropLocation(point, this.IsFolderItem, true);
             }
         }
 
-        if (location == DropTarget.Location.Inside || e.DragEffects == DragDropEffects.None) {
+        if (location == DropLocation.Inside || e.DragEffects == DragDropEffects.None) {
             this.IsDroppableTargetOver = e.DragEffects != DragDropEffects.None;
             this.PART_DragDropMoveBorder!.BorderThickness = default;
         }
         else if (location.HasValue) {
             this.IsDroppableTargetOver = false;
-            this.PART_DragDropMoveBorder!.BorderThickness = location.Value == DropTarget.Location.Above ? new Thickness(0, 1, 0, 0) : new Thickness(0, 0, 0, 1);
+            this.PART_DragDropMoveBorder!.BorderThickness = location.Value == DropLocation.Above ? new Thickness(0, 1, 0, 0) : new Thickness(0, 0, 0, 1);
         }
         else {
             this.IsDroppableTargetOver = false;
@@ -491,37 +492,31 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                 await IMessageDialogService.Instance.ShowMessage("Unknown Data", "Unknown dropped item(s)");
                 return;
             }
-            
+
             (List<AddressTableTreeViewItem>?, DropListResult) result = AddressTableTreeView.GetEffectiveDropList(this, theDroppedItemList);
-            DropTarget.Location location;
+            DropLocation dropLocation;
+            if (result.Item2 == DropListResult.DropListIntoSelf) {
+                return;
+            }
+            
             if (result.Item2 == DropListResult.ValidButDropListAlreadyInTarget) {
                 // Technically the drop is valid, but we specify false so that inside is not
                 // allowed, to use the full height of this tree node for above/below
-                location = this.GetDropTarget(point, this.IsFolderItem, false);
-                
-                if (dropType != EnumDropType.Copy && location == DropTarget.Location.Inside) {
-                    return;
-                }
-            }
-            else if (result.Item2 != DropListResult.Valid) {
-                if (result.Item2 == DropListResult.DropListIntoSelf) {
-                    return;
-                }
-                
-                location = this.GetDropTarget(point, this.IsFolderItem, result.Item2 == DropListResult.Valid);
+                dropLocation = this.GetDropLocation(point, this.IsFolderItem, false);
+                Debug.Assert(dropLocation != DropLocation.Inside, "Impossible condition");
             }
             else {
-                location = this.GetDropTarget(point, this.IsFolderItem, true);
+                dropLocation = this.GetDropLocation(point, this.IsFolderItem, result.Item2 == DropListResult.Valid);
             }
-            
+
             List<BaseAddressTableEntry> droppedModels = result.Item1!.Select(x => x.EntryObject!).ToList();
             List<BaseAddressTableEntry> selection;
 
             if (dropType == EnumDropType.Move) {
-                if (location == DropTarget.Location.Inside) {
+                if (dropLocation == DropLocation.Inside) {
                     AddressTableGroupEntry thisModel = (AddressTableGroupEntry) this.EntryObject!;
                     Debug.Assert(thisModel.Parent != null, "Why is there a ATTreeViewItem for the root entry object? Or why is it removed???");
-                    
+
                     foreach (BaseAddressTableEntry entry in droppedModels) {
                         entry.Parent!.MoveEntryTo(entry, thisModel);
                     }
@@ -531,7 +526,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                     AddressTableGroupEntry dstModel = this.EntryObject!.Parent!;
                     Debug.Assert(dstModel != null, "This ATTreeViewItem is not in a parent...?");
 
-                    
+
                     // User wants to move items above or below current instance. First, remove all
                     // dropped entries to make calculating indices easier. TODO improve this though 
                     foreach (BaseAddressTableEntry entry in droppedModels) {
@@ -539,7 +534,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                     }
 
                     int index = dstModel.IndexOf(thisModel);
-                    if (location == DropTarget.Location.Below) {
+                    if (dropLocation == DropLocation.Below) {
                         index++;
                     }
 
@@ -547,7 +542,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                         dstModel.InsertEntry(index++, entry);
                     }
                 }
-                
+
                 selection = droppedModels;
             }
             else {
@@ -556,22 +551,22 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                     cloneList.Add(dropped.CreateClone());
                 }
 
-                if (location == DropTarget.Location.Inside) {
+                if (dropLocation == DropLocation.Inside) {
                     AddressTableGroupEntry thisModel = (AddressTableGroupEntry) this.EntryObject!;
                     Debug.Assert(thisModel.Parent != null, "Why is there a ATTreeViewItem for the root entry object? Or why is it removed???");
-                    
+
                     thisModel.AddEntries(cloneList);
                 }
                 else {
                     BaseAddressTableEntry thisModel = this.EntryObject!;
                     AddressTableGroupEntry dstModel = thisModel.Parent!;
                     Debug.Assert(dstModel != null, "This ATTreeViewItem is not in a parent...?");
-                    
+
                     int index = dstModel.IndexOf(thisModel);
-                    if (location == DropTarget.Location.Below) {
+                    if (dropLocation == DropLocation.Below) {
                         index++;
                     }
-                    
+
                     foreach (BaseAddressTableEntry entry in cloneList) {
                         dstModel.InsertEntry(index++, entry);
                     }
@@ -631,22 +626,10 @@ public enum NodeDragState {
     Completed = 3
 }
 
-public readonly struct DropTarget {
-    public readonly AddressTableTreeViewItem target;
-    public readonly DropListResult dropResult;
-    public readonly Location location;
-
-    public DropTarget(AddressTableTreeViewItem target, DropListResult dropResult, Location location) {
-        this.target = target;
-        this.dropResult = dropResult;
-        this.location = location;
-    }
-
-    public enum Location {
-        Inside,
-        Below,
-        Above
-    }
+internal enum DropLocation {
+    Inside,
+    Below,
+    Above
 }
 
 public static class AddressTableContextRegistry {

@@ -93,6 +93,12 @@ public readonly struct MemoryPattern {
 
     private static bool InternalTryCompile(string input, out MemoryPattern pattern, bool allowWildcards, ref string? userErrMsg) {
         string[] tokens = input.Split(' ', int.MaxValue, StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length < 1) {
+            userErrMsg ??= "Input has no tokens";
+            pattern = default;
+            return false;
+        }
+
         byte?[] data = new byte?[tokens.Length];
         for (int i = 0; i < tokens.Length; i++) {
             if (tokens[i].StartsWith('?')) {

@@ -32,7 +32,6 @@ using PFXToolKitUI.Tasks;
 namespace MemEngine360.Engine.Scanners;
 
 public class AnyTypeScanningContext : ScanningContext {
-    internal const int ChunkSize = 0x10000; // 65536
     internal readonly double floatEpsilon = BasicApplicationConfiguration.Instance.FloatingPointEpsilon;
     internal readonly string inputA, inputB;
     internal readonly bool isIntInputHexadecimal;
@@ -52,10 +51,14 @@ public class AnyTypeScanningContext : ScanningContext {
 
     private bool canSearchForString;
     private int cbString;
+    private int cbDataMax;
     private char[]? charBuffer;
     private Decoder? stringDecoder;
     private DataType[] intOrdering;
     internal MemoryPattern memoryPattern;
+    private uint myOverlap;
+
+    public override uint Overlap => this.myOverlap;
 
     /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result
@@ -109,8 +112,8 @@ public class AnyTypeScanningContext : ScanningContext {
         if (this.canSearchForString = udto.CanSearchForString) {
             Encoding encoding = this.stringType.ToEncoding();
             int cbInputA = encoding.GetMaxByteCount(this.inputA.Length);
-            if (cbInputA > ChunkSize) {
-                await IMessageDialogService.Instance.ShowMessage("Invalid input", $"Input is too long. We read data in chunks of {ChunkSize / 1024}K, therefore, the string cannot contain more than that many bytes.");
+            if (cbInputA > DataTypedScanningContext.ChunkSize) {
+                await IMessageDialogService.Instance.ShowMessage("Invalid input", $"Input is too long. We read data in chunks of {DataTypedScanningContext.ChunkSize / 1024}K, therefore, the string cannot contain more than that many bytes.");
                 return false;
             }
 
@@ -119,7 +122,47 @@ public class AnyTypeScanningContext : ScanningContext {
             this.stringDecoder = encoding.GetDecoder();
         }
 
+        int maxSizePrimitive = this.in_long.HasValue || this.in_double.HasValue ? 8 : this.in_int.HasValue || this.in_float.HasValue ? 4 : (this.in_short.HasValue ? 2 : this.in_byte.HasValue ? 1 : 0);
+        int maxSizeMemPat = this.memoryPattern.IsValid ? this.memoryPattern.Length : 0;
+        this.cbDataMax = Math.Max(maxSizePrimitive, Math.Max(this.cbString, maxSizeMemPat));
+        this.myOverlap = (uint) Math.Max((long) this.cbDataMax - this.alignment, 0);
         return true;
+    }
+
+    private bool CanSearchType(int sizeOfType, int bufferSize, uint idx) {
+        // chunk      = 32
+        // cbMaxType  = 8 (byte, short, int)
+        // align      = 1
+        // overlap    = 7 (8-1)
+        // bufferSize = 39 (32+7)
+        
+        // say sizeOfType == sizeof(byte) (1)
+        //   when idx = 31 (last byte in non-overlap):
+        //     39 - (7 - sizeof(byte)) - 31 = 2 -> 2 > sizeof(byte) == true
+        //   when idx = 32 (the byte index is in the overlap region):
+        //     39 - (7 - sizeof(byte)) - 32 = 1 -> 1 > sizeof(byte) == false
+        // say sizeOfType == sizeof(short) (2)
+        //   when idx = 30 (last ushort in non-overlap area):
+        //     39 - (7 - sizeof(short)) - 30 = 4 -> 4 > sizeof(short) == true
+        //   when idx = 31 (require 1 byte into overlap last ushort in non-overlap area):
+        //     39 - (7 - sizeof(short)) - 31 = 3 -> 3 > sizeof(short) == true
+        //   when idx = 32 (first byte of short is in overlap region, so no good):
+        //     39 - (7 - sizeof(short)) - 32 = 2 -> 2 > sizeof(short) == false
+        // say sizeOfType == sizeof(int) (4)
+        //   when idx = 28 (last int in non-overlap area):
+        //     39 - (7 - sizeof(int)) - 28 = 8 -> 8 > sizeof(int) == true
+        //   when idx = 31 (3 bytes into overlap):
+        //     39 - (7 - sizeof(int)) - 31 = 5 -> 5 > sizeof(int) == true
+        //   when idx = 32 (integer is entirely in overlap):
+        //     39 - (7 - sizeof(int)) - 32 = 4 -> 4 > sizeof(int) == false
+        // say sizeOfType == sizeof(long) (8)
+        //   when idx = 24 (last long in non-overlap area):
+        //     39 - (7 - sizeof(long)) - 24 = 16 -> 16 > sizeof(long) == true
+        //   when idx = 31 (7 bytes into overlap):
+        //     39 - (7 - sizeof(long)) - 31 = 9 -> 9 > sizeof(long) == true
+        //   when idx = 32 (long is entirely in overlap):
+        //     39 - (7 - sizeof(long)) - 32 = 4 -> 4 > sizeof(long) == false
+        return bufferSize - (this.myOverlap - sizeOfType) - idx > sizeOfType;
     }
 
     /// <summary>
@@ -132,8 +175,11 @@ public class AnyTypeScanningContext : ScanningContext {
         NumericDisplayType intNdt = this.isIntInputHexadecimal ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
         for (uint i = 0; i < buffer.Length; i += this.alignment) {
             for (int j = 0; j < 4; j++) {
+                // TODO: maybe increment i by the size of data type that was found? or maybe we just stick with += alignment
+                // E.g. If a file is full of a ushort with a hex value of 0x1010, it will
+                // find it 37 times, since alignment is set to 1 
                 switch (this.intOrdering[j]) {
-                    case DataType.Byte when this.in_byte.HasValue && (buffer.Length - i) >= sizeof(byte): {
+                    case DataType.Byte when this.in_byte.HasValue && this.CanSearchType(sizeof(byte), buffer.Length, i): {
                         byte val = this.in_byte.Value;
                         if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<byte>(buffer.Slice((int) i, sizeof(byte)), this.isConnectionLittleEndian), Unsafe.As<byte, ulong>(ref val), 0)) != null) {
                             this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Byte, intNdt, this.stringType, value));
@@ -142,7 +188,7 @@ public class AnyTypeScanningContext : ScanningContext {
 
                         break;
                     }
-                    case DataType.Int16 when this.in_short.HasValue && (buffer.Length - i) >= sizeof(short): {
+                    case DataType.Int16 when this.in_short.HasValue && this.CanSearchType(sizeof(short), buffer.Length, i): {
                         short val = this.in_short.Value;
                         if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<short>(buffer.Slice((int) i, sizeof(short)), this.isConnectionLittleEndian), Unsafe.As<short, ulong>(ref val), 0)) != null) {
                             this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int16, intNdt, this.stringType, value));
@@ -151,7 +197,7 @@ public class AnyTypeScanningContext : ScanningContext {
 
                         break;
                     }
-                    case DataType.Int32 when this.in_int.HasValue && (buffer.Length - i) >= sizeof(int): {
+                    case DataType.Int32 when this.in_int.HasValue && this.CanSearchType(sizeof(int), buffer.Length, i): {
                         int val = this.in_int.Value;
                         if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<int>(buffer.Slice((int) i, sizeof(int)), this.isConnectionLittleEndian), Unsafe.As<int, ulong>(ref val), 0)) != null) {
                             this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int32, intNdt, this.stringType, value));
@@ -166,7 +212,7 @@ public class AnyTypeScanningContext : ScanningContext {
 
                         break;
                     }
-                    case DataType.Int64 when this.in_long.HasValue && (buffer.Length - i) >= sizeof(long): {
+                    case DataType.Int64 when this.in_long.HasValue && this.CanSearchType(sizeof(long), buffer.Length, i): {
                         long val = this.in_long.Value;
                         if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<long>(buffer.Slice((int) i, sizeof(long)), this.isConnectionLittleEndian), Unsafe.As<long, ulong>(ref val), 0)) != null) {
                             this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int64, intNdt, this.stringType, value));
@@ -178,7 +224,7 @@ public class AnyTypeScanningContext : ScanningContext {
                 }
             }
 
-            if (this.in_float.HasValue && (buffer.Length - i) >= sizeof(float)) {
+            if (this.in_float.HasValue && this.CanSearchType(sizeof(float), buffer.Length, i)) {
                 double val = this.in_float.Value;
                 float readVal = ValueScannerUtils.CreateFloat<float>(buffer.Slice((int) i, sizeof(float)), this.isConnectionLittleEndian);
                 if ((value = this.CompareFloat(readVal, Unsafe.As<double, ulong>(ref val), 0)) != null) {
@@ -187,7 +233,7 @@ public class AnyTypeScanningContext : ScanningContext {
                 }
             }
 
-            if (this.in_double.HasValue && (buffer.Length - i) >= sizeof(double)) {
+            if (this.in_double.HasValue && this.CanSearchType(sizeof(double), buffer.Length, i)) {
                 double val = this.in_double.Value;
                 double readVal = ValueScannerUtils.CreateFloat<double>(buffer.Slice((int) i, sizeof(double)), this.isConnectionLittleEndian);
                 if ((value = this.CompareFloat(readVal, Unsafe.As<double, ulong>(ref val), 0)) != null) {
@@ -196,7 +242,7 @@ public class AnyTypeScanningContext : ScanningContext {
                 }
             }
 
-            if (this.canSearchForString && (buffer.Length - i) >= this.cbString) {
+            if (this.canSearchForString && this.CanSearchType(this.cbString, buffer.Length, i)) {
                 ReadOnlySpan<byte> memory = buffer.Slice((int) i, this.cbString);
                 int cchUsed;
                 try {

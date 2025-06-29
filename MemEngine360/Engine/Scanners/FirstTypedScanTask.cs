@@ -113,8 +113,10 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
 
         Debug.Assert(!this.connection.IsClosed);
         IActivityProgress progress = ActivityManager.Instance.CurrentTask.Progress;
+        
+        uint overlap = this.ctx.Overlap;
+        byte[] tmpBuffer = new byte[DataTypedScanningContext.ChunkSize + overlap];
         if (this.ctx.scanMemoryPages && this.connection is IHaveMemoryRegions iHaveRegions) {
-            byte[] tmpBuffer = new byte[DataTypedScanningContext.ChunkSize];
             if (this.myRegions == null) {
                 progress.IsIndeterminate = true;
                 progress.Text = "Preparing memory regions...";
@@ -175,7 +177,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
                     progress.CompletionState.OnProgress(DataTypedScanningContext.ChunkSize);
 
                     uint baseAddress = region.BaseAddress + this.rgBaseOffset;
-                    int cbRead = (int) Math.Min(DataTypedScanningContext.ChunkSize, Math.Max(this.rgScanEnd - this.rgBaseOffset, 0) /* remaining */);
+                    int cbRead = (int) Math.Min(DataTypedScanningContext.ChunkSize, Math.Max(this.rgScanEnd - this.rgBaseOffset, 0) /* remaining */) + (int) overlap;
                     try {
                         await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, cbRead).ConfigureAwait(false);
                     }
@@ -205,7 +207,6 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
             }
 
             this.isProcessingCurrentRegion = true;
-            byte[] tmpBuffer = new byte[DataTypedScanningContext.ChunkSize]; //  + overlap
             while (this.rgBaseOffset < len) {
                 pauseOrCancelToken.ThrowIfCancellationRequested();
                 progress.Text = $"Chunk {this.chunkIdx + 1}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(this.rgBaseOffset, false)}/{ValueScannerUtils.ByteFormatter.ToString(len, false)})";
@@ -216,7 +217,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
                 // }
 
                 uint baseAddress = this.ctx.startAddress + this.rgBaseOffset;
-                int cbRead = (int) Math.Min(DataTypedScanningContext.ChunkSize, Math.Max(this.ctx.scanLength - this.rgBaseOffset, 0));
+                int cbRead = (int) Math.Min(DataTypedScanningContext.ChunkSize, Math.Max(this.ctx.scanLength - this.rgBaseOffset, 0)) + (int) overlap;
                 try {
                     await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, cbRead).ConfigureAwait(false);
                 }
@@ -226,7 +227,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
                     return;
                 }
 
-                this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, new ReadOnlySpan<byte>(tmpBuffer, 0, (int) cbRead));
+                this.ctx.ProcessMemoryBlockForFirstScan(baseAddress, new ReadOnlySpan<byte>(tmpBuffer, 0, cbRead));
 
                 this.rgBaseOffset += DataTypedScanningContext.ChunkSize; // + (uint) (overlap - currentOverlap);
                 this.chunkIdx++;

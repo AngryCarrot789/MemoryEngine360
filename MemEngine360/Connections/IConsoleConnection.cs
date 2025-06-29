@@ -20,6 +20,7 @@
 using System.Net.Sockets;
 using System.Numerics;
 using System.Text;
+using MemEngine360.Engine.Addressing;
 using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Connections;
@@ -257,19 +258,28 @@ public interface IConsoleConnection {
     /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
     Task WriteString(uint address, string value, Encoding encoding);
 
+    // /// <summary>
+    // /// Finds a memory pattern in the console
+    // /// </summary>
+    // /// <param name="address">The start address to begin scanning</param>
+    // /// <param name="count">The amount of bytes to process</param>
+    // /// <param name="pattern">The pattern</param>
+    // /// <param name="completion">Completion progress</param>
+    // /// <param name="cancellationToken">Used to notify cancellation of the operation</param>
+    // /// <returns>A task containing the found memory address </returns>
+    // /// <exception cref="IOException">An IO exception occurred, e.g. could not read from console or network error occurred</exception>
+    // /// <exception cref="TimeoutException">Timed out while reading from console</exception>
+    // Task<uint?> FindPattern(uint address, uint count, MemoryPattern pattern, CompletionState? completion = null, CancellationToken cancellationToken = default);
+
     /// <summary>
-    /// Finds a memory pattern in the console
+    /// Tries to resolve a dynamic address
     /// </summary>
-    /// <param name="address">The start address to begin scanning</param>
-    /// <param name="count">The amount of bytes to process</param>
-    /// <param name="pattern">The pattern</param>
-    /// <param name="completion">Completion progress</param>
-    /// <param name="cancellationToken">Used to notify cancellation of the operation</param>
-    /// <returns>A task containing the found memory address </returns>
+    /// <param name="address">The address to resolve</param>
+    /// <returns>The address of the value the address points to, or null, if a null pointer or invalid value was read from the console</returns>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not read from console or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while reading from console</exception>
-    Task<uint?> FindPattern(uint address, uint count, MemoryPattern pattern, CompletionState? completion = null, CancellationToken cancellationToken = default);
-
+    Task<uint?> ResolvePointer(DynamicAddress address);
+    
     /// <summary>
     /// Figures out if the memory region is either unallocated or intersects a protected region of memory at all,
     /// even if it's a single byte. Returns false when <see cref="count"/> is 0

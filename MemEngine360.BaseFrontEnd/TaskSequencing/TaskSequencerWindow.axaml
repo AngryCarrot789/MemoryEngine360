@@ -172,7 +172,6 @@
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
-                        sav:UIInputManager.FocusPath="SequencerWindow/OperationList"
                         x:Name="PART_CurrentSequenceGroupBox">
                 <c:GroupBox.Header>
                     <DockPanel HorizontalSpacing="3">
@@ -216,7 +215,8 @@
                                                  Background="{DynamicResource ABrush.Tone1.Background.Static}"
                                                  SelectionMode="Multiple"
                                                  CanDragItemPosition="True"
-                                                 ScrollViewer.VerticalScrollBarVisibility="Visible">
+                                                 ScrollViewer.VerticalScrollBarVisibility="Visible"
+                                                 sav:UIInputManager.FocusPath="SequencerWindow/OperationList">
                         <ListBox.Theme>
                             <ControlTheme TargetType="{x:Type ops:OperationListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
                         </ListBox.Theme>

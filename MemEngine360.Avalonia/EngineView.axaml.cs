@@ -349,9 +349,9 @@ public partial class EngineView : UserControl, IEngineUI {
                 }
             };
 
-            entry.Items.Add(new ContextEntryGroup("Play time, baby") {
+            entry.Items.Add(new ContextEntryGroup("Cool Utils") {
                 Items = {
-                    new CustomLambdaContextEntry("[BO1 SP] Find AI Near Camera", async (ctx) => {
+                    new CustomLambdaContextEntry("[BO1 SP] Find AI's X pos near camera", async (ctx) => {
                         if (!IEngineUI.DataKey.TryGetContext(ctx, out var engineUI))
                             return;
 
@@ -383,7 +383,6 @@ public partial class EngineView : UserControl, IEngineUI {
                             float p1_x = await c.ReadValue<float>(addr_p1_x);
                             float p1_z = await c.ReadValue<float>(addr_p1_x + 0x4);
                             float p1_y = await c.ReadValue<float>(addr_p1_x + 0x8);
-
 
                             AddressRange range = new AddressRange(engine.ScanningProcessor.StartAddress, engine.ScanningProcessor.ScanLength);
                             List<(uint, float)> results = new List<(uint, float)>();

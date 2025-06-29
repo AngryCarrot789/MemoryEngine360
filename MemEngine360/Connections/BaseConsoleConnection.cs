@@ -17,11 +17,13 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using MemEngine360.Engine.Addressing;
 using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Connections;
@@ -51,7 +53,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// </para>
     /// </summary>
     public abstract AddressRange AddressableRange { get; }
-    
+
     protected BaseConsoleConnection() {
     }
 
@@ -59,7 +61,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         if (!this.isClosed)
             Debug.WriteLine("Destructor called on " + nameof(BaseConsoleConnection) + " when still open");
     }
-    
+
     public abstract Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);
 
     public async Task Close() {
@@ -83,7 +85,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
         if (count == 0)
             return;
-        
+
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
 
@@ -97,7 +99,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
         if (offset < 0)
             throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
-        
+
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
 
@@ -143,11 +145,11 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
             Debug.Assert(cbField >= 0, "Field was negative");
-            
+
             await this.ReadBytesCore((uint) (address + offset), buffer, offset, cbField).ConfigureAwait(false);
             if (BitConverter.IsLittleEndian != this.IsLittleEndian)
                 Array.Reverse(buffer, offset, cbField);
-            
+
             offset += cbField;
 
             Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadStruct));
@@ -208,7 +210,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
         if (count == 0)
             return;
-        
+
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
 
@@ -242,11 +244,11 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
             Debug.Assert(cbField >= 0, "Field was negative");
-            
+
             Unsafe.As<byte, T>(ref buffer[offset]) = value;
             if (BitConverter.IsLittleEndian != this.IsLittleEndian)
                 Array.Reverse(buffer, offset, cbField);
-            
+
             offset += cbField;
             Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.WriteStruct));
         }
@@ -265,39 +267,38 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public async Task<uint?> FindPattern(uint address, uint count, MemoryPattern pattern, CompletionState? completion = null, CancellationToken cancellationToken = default) {
-        // if (!pattern.IsValid)
-        //     throw new ArgumentException("Pattern is invalid", nameof(pattern));
-        //
-        // this.EnsureNotDisposed();
-        // using BusyToken x = this.CreateBusyToken();
-        //
-        // cancellationToken.ThrowIfCancellationRequested();
-        //
-        // byte?[] pat = pattern.pattern;
-        // if (pat.Length < 1) {
-        //     return null;
-        // }
-        //
-        // using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
-        // uint chunkSize = (uint) (65535 + 65535 % pat.Length);
-        // byte[] buffer = new byte[chunkSize];
-        // do {
-        //     cancellationToken.ThrowIfCancellationRequested();
-        //     uint cbRead = Math.Min(chunkSize, count);
-        //     await this.ReadBytesCore(address, buffer, 0, cbRead).ConfigureAwait(false);
-        //
-        //     for (uint i = 0; i < count; i++) {
-        //         if ((buffer.Length - i) < pat.Length) {
-        //             break;
-        //         }
-        //     }
-        //
-        //     count -= cbRead;
-        //     address += cbRead;
-        //     
-        //     completion?.OnProgress(cbRead);
-        // } while (count > 0);
         return null;
+    }
+
+    // Use a dedicated resolve pointer to improve performance as much as possible,
+    // since reading from the console takes a long time, relative to 
+    public async Task<uint?> ResolvePointer(DynamicAddress address) {
+        // Even if Offsets.Length is zero, still check disposed and take busy token to try and catch unsynchronized access
+        this.EnsureNotDisposed();
+        using BusyToken x = this.CreateBusyToken();
+        
+        long ptr = address.BaseAddress;
+        ImmutableArray<int> offsets = address.Offsets;
+        
+        if (offsets.Length > 0) {
+            byte[] buffer = new byte[sizeof(uint)];
+            bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
+
+            foreach (int offset in offsets) {
+                await this.ReadBytesCore((uint) ptr, buffer, 0, buffer.Length).ConfigureAwait(false);
+                if (reverse)
+                    Array.Reverse(buffer);
+
+                uint deref = MemoryMarshal.Read<uint>(buffer);
+                ptr = Math.Max((long) deref + offset, 0);
+                if (ptr <= 0 || ptr > uint.MaxValue) {
+                    return null;
+                }
+            }
+        }
+
+        // The final pointer, which points to hopefully an effective value (e.g. float or literally anything)
+        return (uint) ptr;
     }
 
     protected BusyToken CreateBusyToken() {

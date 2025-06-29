@@ -40,6 +40,11 @@ public abstract class ScanningContext {
     public bool HasConnectionError => this.ConnectionException != null;
 
     /// <summary>
+    /// Gets the maximum amount of overlap required for cross-chunk scanning to work successfully
+    /// </summary>
+    public abstract uint Overlap { get; }
+
+    /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result
     /// </summary>
     public abstract event ScanningContextResultEventHandler? ResultFound;

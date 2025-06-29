@@ -65,6 +65,8 @@ public sealed class DataTypedScanningContext : ScanningContext {
     // engine's forced LE state is not automatic, and it forces an endianness different from the connection.
     // internal bool reverseEndianness;
 
+    public override uint Overlap => (uint) Math.Max((long) this.cbDataType - this.alignment, 0);
+
     /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result
     /// </summary>
@@ -129,6 +131,8 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 return false;
             }
         }
+        
+        Debug.Assert(this.cbDataType > 0);
 
         IConsoleConnection connection = this.Processor.MemoryEngine.Connection!;
         Debug.Assert(connection != null);
@@ -194,6 +198,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
     internal override void ProcessMemoryBlockForFirstScan(uint address, ReadOnlySpan<byte> buffer) {
         // by default, align is set to cbDataType except for string where it's 1. So in most cases, only check bounds for strings
         // There's also another issue with values between chunks, which we don't process because I can't get it to work...
+        
         bool checkBounds = this.alignment < this.cbDataType, isString;
         ReadOnlySpan<byte> memory;
         if (this.dataType.IsNumeric()) {
