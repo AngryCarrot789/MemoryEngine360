@@ -46,6 +46,9 @@ public sealed class DynamicAddress : IMemoryAddress, IEquatable<DynamicAddress> 
         this.BaseAddress = baseAddress;
         this.Offsets = offsets;
     }
+    
+    public DynamicAddress(uint baseAddress, IEnumerable<int> offsets) : this(baseAddress, offsets.ToImmutableArray()) {
+    }
 
     /// <summary>
     /// Tries to resolve this pointer and give the address of the effective value. The given address may be a null pointer when this method returns true
@@ -93,10 +96,9 @@ public sealed class DynamicAddress : IMemoryAddress, IEquatable<DynamicAddress> 
 
     public override string ToString() {
         StringBuilder sb = new StringBuilder();
-        ImmutableArray<int> offsets = this.Offsets;
-        sb.Append(this.BaseAddress.ToString("X8")).Append('+').Append(offsets[0].ToString("X"));
-        for (int i = 1; i < offsets.Length; i++) {
-            sb.Append("->[").Append(offsets[i].ToString("X")).Append(']');
+        sb.Append(this.BaseAddress.ToString("X8"));
+        foreach (int offset in this.Offsets) {
+            sb.Append("->").Append(offset.ToString("X"));
         }
 
         return sb.ToString(); 

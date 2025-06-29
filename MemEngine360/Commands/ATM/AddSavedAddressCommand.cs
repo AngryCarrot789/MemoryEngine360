@@ -65,7 +65,7 @@ public class AddSavedAddressCommand : Command {
                 if (!MemoryAddressUtils.TryParse(args.Input, out _, out string? errMsg))
                     args.Errors.Add(errMsg!);
             },
-            Footer = "Pointer format is base+offset1->[offset2]->[offset n]"
+            Footer = "Pointer format is Base->[Offset1]->[Offset N]"
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(addrDescInfo) == true) {

@@ -23,6 +23,7 @@ using System.Globalization;
 using System.Text;
 using Avalonia;
 using Avalonia.Controls;
+using MemEngine360.Engine.Addressing;
 using MemEngine360.PointerScanning;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Services.Windowing;
@@ -150,18 +151,8 @@ public partial class PointerScanWindow : DesktopWindow {
             this.listObservable = ObservableItemProcessor.MakeIndexable(newValue.PointerChain, this.OnItemAdded, this.OnItemRemoved, this.OnItemMoved);
     }
 
-    private static string GetPointerText(ImmutableArray<Pointer> pointers) {
-        StringBuilder sb = new StringBuilder();
-        sb.Append(pointers[0].Address.ToString("X8")).Append('+').Append(pointers[0].Offset.ToString("X"));
-        for (int i = 1; i < pointers.Length; i++) {
-            sb.Append("->[").Append(pointers[i].Offset.ToString("X")).Append(']');
-        }
-
-        return sb.ToString();
-    }
-    
-    private void OnItemAdded(object sender, int index, ImmutableArray<Pointer> item) {
-        this.PART_ScanResults.Items.Add(new ListBoxItem() { Content = GetPointerText(item) });
+    private void OnItemAdded(object sender, int index, ImmutableArray<Pointer> ptrs) {
+        this.PART_ScanResults.Items.Add(new ListBoxItem() { Content = new DynamicAddress(ptrs[0].Address, ptrs.Select(x => (int) x.Offset)) });
     }
     
     private void OnItemRemoved(object sender, int index, ImmutableArray<Pointer> item) {

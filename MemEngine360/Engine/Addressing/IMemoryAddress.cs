@@ -33,30 +33,31 @@ public interface IMemoryAddress {
 }
 
 public static class MemoryAddressUtils {
+    // Remove requirement for base pointer offset
     private static (IMemoryAddress?, string?) TryParseInternal(string? input) {
         if (string.IsNullOrWhiteSpace(input))
             return (null, "Input cannot be an empty string");
-
-        if (uint.TryParse(input, NumberStyles.HexNumber, null, out uint staticAddress)) {
+        if (uint.TryParse(input, NumberStyles.HexNumber, null, out uint staticAddress))
             return (new StaticAddress(staticAddress), null);
-        }
-
-        int firstOffset = input.IndexOf('+', StringComparison.Ordinal);
-        if (firstOffset == -1) {
-            return (null, "Invalid memory address");
-        }
-
-        ReadOnlySpan<char> span = input.AsSpan(0, firstOffset);
-        if (!uint.TryParse(span, NumberStyles.HexNumber, null, out uint baseAddress))
-            return (null, "Invalid base address: " + span.ToString());
 
         // 820002CD
         // 820002CD->25C->40->118
-        // 82000000+2CD->25C->40->118
+        uint baseAddress;
+        ReadOnlySpan<char> span;
         List<int> offsets = new List<int>();
-        int idxPtrToken, offset, idxBeginLastOffset = firstOffset + 1;
+        int firstOffset = input.IndexOf("->", StringComparison.Ordinal);
+        if (firstOffset == -1) {
+            if (!uint.TryParse(input, NumberStyles.HexNumber, null, out baseAddress))
+                return (null, "Invalid base address: " + input);
+            return (new DynamicAddress(baseAddress, []), null);
+        }
+        
+        if (!uint.TryParse(span = input.AsSpan(0, firstOffset), NumberStyles.HexNumber, null, out baseAddress))
+            return (null, "Invalid base address: " + span.ToString());
+        
+        int idxPtrToken, idxBeginLastOffset = firstOffset + 2, offset;
         while ((idxPtrToken = input.IndexOf("->", idxBeginLastOffset, StringComparison.Ordinal)) != -1) {
-            span = UnwrapBrackets(input.AsSpan(idxBeginLastOffset, idxPtrToken - (idxBeginLastOffset)));
+            span = input.AsSpan(idxBeginLastOffset, idxPtrToken - idxBeginLastOffset);
             if (!int.TryParse(span, NumberStyles.HexNumber, null, out offset))
                 return (null, "Invalid offset: " + span.ToString());
 
@@ -64,11 +65,11 @@ public static class MemoryAddressUtils {
             idxBeginLastOffset = idxPtrToken + 2;
         }
 
-        if (!int.TryParse(span = UnwrapBrackets(input.AsSpan(idxBeginLastOffset)), NumberStyles.HexNumber, null, out offset))
+        if (!int.TryParse(span = input.AsSpan(idxBeginLastOffset), NumberStyles.HexNumber, null, out offset))
             return (null, "Invalid offset: " + span.ToString());
         offsets.Add(offset);
 
-        return (new DynamicAddress(baseAddress, offsets.ToImmutableArray()), null);
+        return (new DynamicAddress(baseAddress, offsets), null);
     }
 
     public static bool TryParse(string? input, [NotNullWhen(true)] out IMemoryAddress? address) {
@@ -80,14 +81,6 @@ public static class MemoryAddressUtils {
         (IMemoryAddress?, string?) result = TryParseInternal(input);
         errorMessage = result.Item2;
         return (address = result.Item1) != null;
-    }
-
-    private static ReadOnlySpan<char> UnwrapBrackets(ReadOnlySpan<char> ros) {
-        if (ros.Length > 0 && ros[0] == '[' && ros[ros.Length - 1] == ']') {
-            return ros.Slice(1, ros.Length - 2);
-        }
-
-        return ros;
     }
 
     public static async Task<uint?> TryResolveAddressFromATE(AddressTableEntry entry) {

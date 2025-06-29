@@ -22,6 +22,7 @@ using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Addressing;
 using PFXToolKitUI;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
@@ -148,10 +149,6 @@ public class PointerScanner {
             this.value = value;
         }
 
-        public bool Resolve(PointerScanner scanner, out uint val) {
-            return scanner.TryReadU32(this.addr + this.offset, out val);
-        }
-
         public override string ToString() {
             return $"[{this.addr:X8} + {this.offset:X}] -> {this.value:X8}";
         }
@@ -198,12 +195,8 @@ public class PointerScanner {
                 (List<PointerPrivate> list, int depth)? currChain = options.currentChain;
                 if (currChain.HasValue) {
                     List<PointerPrivate> chain = currChain.Value.list;
-                    sb.Append(chain[0].addr.ToString("X8")).Append('+').Append(chain[0].offset.ToString("X"));
-                    for (int i = 1; i < chain.Count; i++) {
-                        sb.Append("->").Append(chain[i].offset.ToString("X"));
-                    }
-
-                    options.ActivityTask.Progress.Text = $"{sb} ({currChain.Value.depth} deep)";
+                    DynamicAddress address = new DynamicAddress(chain[0].addr, chain.Select(x => (int) x.offset));
+                    options.ActivityTask.Progress.Text = $"{address} ({currChain.Value.depth} deep)";
                 }
 
                 await Task.Delay(100);
