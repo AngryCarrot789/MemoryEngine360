@@ -572,7 +572,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                         index++;
                     }
                     
-                    foreach (BaseAddressTableEntry entry in droppedModels) {
+                    foreach (BaseAddressTableEntry entry in cloneList) {
                         dstModel.InsertEntry(index++, entry);
                     }
                 }
