@@ -70,4 +70,9 @@ public interface IEngineUI {
     /// Gets or sets if the activity list is visible in the UI
     /// </summary>
     bool IsActivtyListVisible { get; set; }
+
+    /// <summary>
+    /// Gets the UI component of an ATE
+    /// </summary>
+    IAddressTableEntryUI GetATEntryUI(BaseAddressTableEntry entry);
 }

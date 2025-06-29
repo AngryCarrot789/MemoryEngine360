@@ -24,6 +24,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
 using MemEngine360.Engine.SavedAddressing;
+using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 
@@ -38,10 +39,12 @@ public sealed class AddressTableTreeView : TreeView {
     // public static readonly StyledProperty<GridLength> ColumnWidth3Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth3", new GridLength(150));
     
     internal readonly Stack<AddressTableTreeViewItem> itemCache;
-    private IDisposable? collectionChangeListener;
-    internal readonly Dictionary<AddressTableTreeViewItem, BaseAddressTableEntry> controlToModel;
-    internal readonly Dictionary<BaseAddressTableEntry, AddressTableTreeViewItem> modelToControl;
+    internal readonly ModelControlDictionary<BaseAddressTableEntry, AddressTableTreeViewItem> itemMap;
     private readonly AvaloniaList<AddressTableTreeViewItem> selectedItemsList;
+
+    private IDisposable? collectionChangeListener;
+    
+    public IModelControlDictionary<BaseAddressTableEntry, AddressTableTreeViewItem> ItemMap => this.itemMap;
 
     // public GridLength ColumnWidth0 { get => this.GetValue(ColumnWidth0Property); set => this.SetValue(ColumnWidth0Property, value); }
     // public GridLength ColumnWidth1 { get => this.GetValue(ColumnWidth1Property); set => this.SetValue(ColumnWidth1Property, value); }
@@ -59,8 +62,7 @@ public sealed class AddressTableTreeView : TreeView {
     }
 
     public AddressTableTreeView() {
-        this.controlToModel = new Dictionary<AddressTableTreeViewItem, BaseAddressTableEntry>();
-        this.modelToControl = new Dictionary<BaseAddressTableEntry, AddressTableTreeViewItem>();
+        this.itemMap = new ModelControlDictionary<BaseAddressTableEntry, AddressTableTreeViewItem>();
         this.itemCache = new Stack<AddressTableTreeViewItem>();
         this.SelectedItems = this.selectedItemsList = new AvaloniaList<AddressTableTreeViewItem>();
         DragDrop.SetAllowDrop(this, true);
@@ -74,14 +76,6 @@ public sealed class AddressTableTreeView : TreeView {
         AddressTableManagerProperty.Changed.AddClassHandler<AddressTableTreeView, AddressTableManager?>((o, e) => o.OnATMChanged(e));
     }
 
-    private IEnumerable<AddressTableTreeViewItem> GetControlsFromModels(IEnumerable<BaseAddressTableEntry> items) {
-        foreach (BaseAddressTableEntry layer in items) {
-            if (this.modelToControl.TryGetValue(layer, out AddressTableTreeViewItem? control)) {
-                yield return control;
-            }
-        }
-    }
-
     public AddressTableTreeViewItem GetNodeAt(int index) {
         return (AddressTableTreeViewItem) this.Items[index]!;
     }
@@ -93,7 +87,7 @@ public sealed class AddressTableTreeView : TreeView {
     public void InsertNode(AddressTableTreeViewItem control, BaseAddressTableEntry layer, int index) {
         control.OnAdding(this, null, layer);
         this.Items.Insert(index, control);
-        this.AddResourceMapping(control, layer);
+        this.itemMap.AddMapping(layer, control);
         control.ApplyStyling();
         control.ApplyTemplate();
         control.OnAdded();
@@ -104,7 +98,7 @@ public sealed class AddressTableTreeView : TreeView {
         BaseAddressTableEntry model = control.EntryObject ?? throw new Exception("Expected node to have a resource");
         control.OnRemoving();
         this.Items.RemoveAt(index);
-        this.RemoveResourceMapping(control, model);
+        this.itemMap.RemoveMapping(model, control);
         control.OnRemoved();
         if (canCache)
             this.PushCachedItem(control);
@@ -140,18 +134,6 @@ public sealed class AddressTableTreeView : TreeView {
 
     private void OnATMLayerIndexMoved(object sender, int oldIndex, int newIndex, BaseAddressTableEntry item) => this.MoveNode(oldIndex, newIndex);
 
-    public void AddResourceMapping(AddressTableTreeViewItem control, BaseAddressTableEntry layer) {
-        this.controlToModel.Add(control, layer);
-        this.modelToControl.Add(layer, control);
-    }
-
-    public void RemoveResourceMapping(AddressTableTreeViewItem control, BaseAddressTableEntry layer) {
-        if (!this.controlToModel.Remove(control))
-            throw new Exception("Control did not exist in the map: " + control);
-        if (!this.modelToControl.Remove(layer))
-            throw new Exception("Resource did not exist in the map: " + layer);
-    }
-
     public AddressTableTreeViewItem GetCachedItemOrNew() {
         return this.itemCache.Count > 0 ? this.itemCache.Pop() : new AddressTableTreeViewItem();
     }
@@ -177,7 +159,7 @@ public sealed class AddressTableTreeView : TreeView {
     public void SetSelection(List<BaseAddressTableEntry> modelItems) {
         this.SelectedItems.Clear();
         foreach (BaseAddressTableEntry item in modelItems) {
-            if (this.modelToControl.TryGetValue(item, out AddressTableTreeViewItem? control)) {
+            if (this.itemMap.TryGetControl(item, out AddressTableTreeViewItem? control)) {
                 control.IsSelected = true;
             }
         }

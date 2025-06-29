@@ -67,6 +67,8 @@ public class GroupEntriesCommand : Command {
             minIndex = Math.Min(minIndex, firstParent.IndexOf(list[i]));
         }
 
+        ui.AddressTableSelectionManager.Clear();
+        
         Debug.Assert(minIndex != -1);
         firstParent.RemoveEntries(list);
 
@@ -74,5 +76,9 @@ public class GroupEntriesCommand : Command {
         newEntry.AddEntries(list);
         
         firstParent.InsertEntry(minIndex, newEntry);
+
+        IAddressTableEntryUI entry = ui.GetATEntryUI(newEntry);
+        ui.AddressTableSelectionManager.SetSelection(entry);
+        entry.Focus();
     }
 }

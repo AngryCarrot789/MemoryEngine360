@@ -727,4 +727,8 @@ public partial class EngineView : UserControl, IEngineUI {
     private void CloseActivityListButtonClicked(object? sender, RoutedEventArgs e) {
         this.IsActivtyListVisible = false;
     }
+
+    public IAddressTableEntryUI GetATEntryUI(BaseAddressTableEntry entry) {
+        return this.PART_SavedAddressTree.ItemMap.GetControl(entry);
+    }
 }

@@ -41,4 +41,6 @@ public interface IAddressTableEntryUI {
     /// Gets whether the entry exists in the UI
     /// </summary>
     bool IsValid { get; }
+
+    void Focus();
 }

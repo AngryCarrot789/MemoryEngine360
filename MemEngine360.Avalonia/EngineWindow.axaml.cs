@@ -97,25 +97,20 @@ public partial class EngineWindow : DesktopWindow {
             }
         }
 
-        IDisposable? token = engine.BeginBusyOperation();
+        IDisposable? token = await engine.BeginBusyOperationAsync(500);
         while (token == null) {
             MessageBoxInfo info = new MessageBoxInfo() {
                 Caption = "Engine busy", Message = $"Cannot close window yet because the engine is still busy and cannot be shutdown safely.{Environment.NewLine}" +
                                                    "What do you want to do?",
-                Buttons = MessageBoxButton.YesNoCancel,
+                Buttons = MessageBoxButton.YesNo,
                 DefaultButton = MessageBoxResult.Yes,
                 YesOkText = "Wait for operations",
-                NoText = "Force Close",
-                CancelText = "Cancel"
+                NoText = "Force Close"
             };
 
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
-            switch (result) {
-                case MessageBoxResult.None:
-                case MessageBoxResult.Cancel:
-                    return true; // stop window closing
-                case MessageBoxResult.No: return false; // let TCP pipes auto-timeout
-                default:                  break; // continue loop
+            if (result != MessageBoxResult.Yes /* Yes == wait for ops */) {
+                return false; // force close - let tcp things timeout
             }
 
             token = await engine.BeginBusyOperationActivityAsync("Safely closing window");

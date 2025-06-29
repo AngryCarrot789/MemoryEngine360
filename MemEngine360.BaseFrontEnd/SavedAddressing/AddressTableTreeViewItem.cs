@@ -98,18 +98,8 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         DragDrop.DropEvent.AddClassHandler<AddressTableTreeViewItem>((o, e) => o.OnDrop(e));
     }
 
-    protected override void OnLoaded(RoutedEventArgs e) {
-        base.OnLoaded(e);
-    }
-
-    protected override void OnUnloaded(RoutedEventArgs e) {
-        base.OnUnloaded(e);
-    }
-
-    protected override void OnLostFocus(RoutedEventArgs e) {
-        base.OnLostFocus(e);
-    }
-
+    public void Focus() => base.Focus();
+    
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
         base.OnApplyTemplate(e);
         this.PART_DragDropMoveBorder = e.NameScope.GetTemplateChild<Border>(nameof(this.PART_DragDropMoveBorder));
@@ -215,7 +205,6 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         this.EntryObject = null;
         this.IsFolderItem = false;
         AdvancedContextMenu.SetContextRegistry(this, null);
-        DataManager.ClearContextData(this);
     }
 
     private void OnLayerAdded(object sender, int index, BaseAddressTableEntry item) {
@@ -245,7 +234,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
 
         control.OnAdding(tree, this, layer);
         this.Items.Insert(index, control);
-        tree.AddResourceMapping(control, layer);
+        tree.itemMap.AddMapping(layer, control);
         control.ApplyStyling();
         control.ApplyTemplate();
         control.OnAdded();
@@ -260,7 +249,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         BaseAddressTableEntry resource = control.EntryObject ?? throw new Exception("Invalid application state");
         control.OnRemoving();
         this.Items.RemoveAt(index);
-        tree.RemoveResourceMapping(control, resource);
+        tree.itemMap.RemoveMapping(resource, control);
         control.OnRemoved();
         if (canCache)
             tree.PushCachedItem(control);
