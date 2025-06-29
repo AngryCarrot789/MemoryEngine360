@@ -1,9 +1,9 @@
-# ![](MemEngine360.Avalonia/icon-32.bmp) Memory Engine 360 v1.1.6-dev
+# ![](MemEngine360.Avalonia/icon-32.bmp) Memory Engine 360 v1.1.6
 This is a remake of Cheat Engine, but for consoles (so far only Xbox 360). This project was inspired by https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
 
-![](MemEngine360-DesktopUI_2025-05-31_18.56.19.png)
+![](MemoryEngine360_2025-06-30_00.22.07.png)
 
-> Hopefully this is obvious, but please take care when changing ('poking') values on your console. 
+> Please take care when changing ('poking') values on your console. 
 > You may break things, maybe even permanently if you change the wrong things.
 
 # Download and build
