@@ -55,20 +55,35 @@ public sealed class DynamicAddress : IMemoryAddress, IEquatable<DynamicAddress> 
     /// </summary>
     /// <returns>The final pointer which points to a useful value. Or returns null when a dereferenced pointer is invalid</returns>
     public async Task<uint?> TryResolve(IConsoleConnection connection) {
-        ImmutableArray<int> offsets = this.Offsets;
-        long ptr = Math.Max(this.BaseAddress + offsets[0], 0);
-        if (ptr <= 0 || ptr > uint.MaxValue) {
-            return null;
-        }
+        // ImmutableArray<int> offsets = this.Offsets;
+        // long ptr = Math.Max(this.BaseAddress + offsets[0], 0);
+        // if (ptr <= 0 || ptr > uint.MaxValue) {
+        //     return null;
+        // }
+        //
+        // for (int i = 1; i < offsets.Length; i++) {
+        //     // first run: deref base pointer
+        //     // nth run:   deref last pointer
+        //     uint deref = await connection.ReadValue<uint>((uint) ptr);
+        //     
+        //     // the dereferenced pointer value. For a valid
+        //     // dynamic address, is will be another pointer
+        //     ptr = Math.Max(deref + offsets[i], 0);
+        //     if (ptr <= 0 || ptr > uint.MaxValue) {
+        //         return null;
+        //     }
+        // }
+        //
+        // // The final pointer, which points to hopefully an effective value (e.g. float or literally anything)
+        // return (uint) ptr;
         
-        for (int i = 1; i < offsets.Length; i++) {
-            // first run: deref base pointer
-            // nth run:   deref last pointer
+        long ptr = this.BaseAddress;
+        foreach (int offset in this.Offsets) {
             uint deref = await connection.ReadValue<uint>((uint) ptr);
             
             // the dereferenced pointer value. For a valid
             // dynamic address, is will be another pointer
-            ptr = Math.Max(deref + offsets[i], 0);
+            ptr = Math.Max(deref + offset, 0);
             if (ptr <= 0 || ptr > uint.MaxValue) {
                 return null;
             }
