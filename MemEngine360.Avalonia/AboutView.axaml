@@ -9,7 +9,7 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
                 <Image Source="Icons/icon-32.bmp" Width="64" Height="64" RenderOptions.BitmapInterpolationMode="None"/>
                 <StackPanel>
-                    <TextBlock Text="Memory Engine 360 v1.1.6-dev" HorizontalAlignment="Center" FontSize="32" FontWeight="Bold"/>
+                    <TextBlock Text="Memory Engine 360 v1.1.6" HorizontalAlignment="Center" FontSize="32" FontWeight="Bold"/>
                     <TextBlock Text="Cheat Engine, but for xbox 360 (and more!)" HorizontalAlignment="Center" FontSize="20" FontWeight="Medium"/>
                 </StackPanel>
             </StackPanel>

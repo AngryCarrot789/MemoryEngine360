@@ -12,7 +12,7 @@
                  avalonia1:UIInputManager.FocusPath="EngineWindow"
                  MinWidth="600" MinHeight="520"
                  Width="680" Height="630"
-                 Title="Memory Engine 360 v1.1.6-dev"
+                 Title="Memory Engine 360 v1.1.6"
                  Icon="Icons/icon-16.bmp">
     <avalonia:EngineView x:Name="PART_MemEngineView"/>
 </w:DesktopWindow>
