@@ -17,8 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Globalization;
-using MemEngine360.Engine;
+using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
@@ -27,52 +26,37 @@ namespace MemEngine360.Commands.ATM;
 
 public class EditSavedAddressAddressCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? theResult)) {
-            return Executability.Valid;
-        }
-        
-        if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            return Executability.Valid;
+        if (!IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? theResult)) {
+            return Executability.Invalid;
         }
 
-        return Executability.Valid;
+        return theResult.Entry is AddressTableEntry ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out BaseAddressTableEntry? entry)) {
+        if (!IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? theResult)) {
             return;
         }
 
-        uint initialAddress = (entry as AddressTableEntry)?.Address ?? ((AddressTableGroupEntry) entry).GroupAddress;
-        bool isAbsolute = (entry as AddressTableEntry)?.IsAddressAbsolute ?? ((AddressTableGroupEntry) entry).IsAddressAbsolute;
-        SingleUserInputInfo input = new SingleUserInputInfo((isAbsolute ? "" : "+") + initialAddress.ToString(isAbsolute ? "X8" : "X")) {
+        if (!(theResult.Entry is AddressTableEntry entry)) {
+            return;
+        }
+
+        SingleUserInputInfo input = new SingleUserInputInfo(entry.MemoryAddress.ToString()) {
             Caption = "Dump memory region",
             Message = "Change the address of this saved address table entry",
             DefaultButton = true,
             Label = "Address (hex)",
             Validate = (a) => {
-                string text = a.Input.StartsWith('+') ? a.Input.Substring(1) : a.Input;
-                if (!uint.TryParse(text, NumberStyles.HexNumber, null, out _)) {
-                    if (ulong.TryParse(text, NumberStyles.HexNumber, null, out _)) {
-                        a.Errors.Add("Value is too big. Maximum is 0xFFFFFFFF");
-                    }
-                    else {
-                        a.Errors.Add("Invalid UInt32.");
-                    }
-                }
-            }
+                if (!MemoryAddressUtils.TryParse(a.Input, out _, out string? err))
+                    a.Errors.Add(err!);
+            },
+            Footer = "Pointer format is base+offset1->[offset2]->[offset n]"
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) == true) {
-            bool isUsingOffset = input.Text.StartsWith('+');
-            uint newAddr = uint.Parse(isUsingOffset ? input.Text.Substring(1) : input.Text, NumberStyles.HexNumber);
-            if (entry is AddressTableEntry) {
-                ((AddressTableEntry) entry).SetAddress(newAddr, !isUsingOffset);
-            }
-            else {
-                ((AddressTableGroupEntry) entry).SetAddress(newAddr, !isUsingOffset);
-            }
-
+            _ = MemoryAddressUtils.TryParse(input.Text, out IMemoryAddress? memoryAddress);
+            entry.MemoryAddress = memoryAddress!;
             entry.AddressTableManager?.MemoryEngine.ScanningProcessor.RefreshSavedAddressesLater();
         }
     }

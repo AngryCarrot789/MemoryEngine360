@@ -194,7 +194,7 @@ public class PointerScanner {
 
             Task task = tcs.Task;
             while (!task.IsCompleted) {
-                StringBuilder sb = new(64);
+                StringBuilder sb = new StringBuilder(64);
                 (List<PointerPrivate> list, int depth)? currChain = options.currentChain;
                 if (currChain.HasValue) {
                     List<PointerPrivate> chain = currChain.Value.list;
@@ -259,7 +259,7 @@ public class PointerScanner {
 
                                 List<PointerPrivate> chain = new List<PointerPrivate>() { pBase };
                                 if (pBase.value == this.searchAddress) {
-                                    this.PointerChain.Add(chain.Select(x => new Pointer(x.addr, x.offset)).ToImmutableArray());
+                                    this.AddPointerResult(chain.Select(x => new Pointer(x.addr, x.offset)).ToImmutableArray());
                                 }
                                 else if (0 < this.maxDepth) {
                                     this.FindNearbyPointers(chain, 1, options);
@@ -307,7 +307,7 @@ public class PointerScanner {
 
             uint srcAddress = basePtr.value + offset;
             if (srcAddress == this.searchAddress) {
-                this.PointerChain.Add(new List<PointerPrivate>(chain) {
+                this.AddPointerResult(new List<PointerPrivate>(chain) {
                                           new PointerPrivate(basePtr.value, offset, this.TryReadU32(srcAddress, out uint value) ? value : 0)
                                       }.
                                       Select(x => new Pointer(x.addr, x.offset)).
@@ -323,7 +323,7 @@ public class PointerScanner {
                 if (this.basePointers.TryGetValue(srcAddress, out uint dstAddress /* the address pointed to by srcAddress */)) {
                     PointerPrivate dstPtr = new PointerPrivate(basePtr.value, offset, dstAddress);
                     if (dstAddress == this.searchAddress) {
-                        this.PointerChain.Add(new List<PointerPrivate>(chain) { dstPtr }.
+                        this.AddPointerResult(new List<PointerPrivate>(chain) { dstPtr }.
                                               Select(x => new Pointer(x.addr, x.offset)).
                                               ToImmutableArray());
                     }
@@ -353,6 +353,10 @@ public class PointerScanner {
                 }
             }
         }
+    }
+
+    private void AddPointerResult(ImmutableArray<Pointer> result) {
+        ApplicationPFX.Instance.Dispatcher.Invoke(() => this.PointerChain.Add(result));
     }
 
     private bool TryReadU32(uint address, out uint value) {

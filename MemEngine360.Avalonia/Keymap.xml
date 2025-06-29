@@ -42,9 +42,6 @@
             <Shortcut Name="ChangeDescription2" CommandId="commands.memengine.EditSavedAddressDescriptionCommand">
                 <KeyStroke Mods="CTRL" Key="R"/>
             </Shortcut>
-            <Shortcut Name="CopyResultsToClipboardCSV" CommandId="commands.memengine.CopySavedAddressInDialogCommand">
-                <KeyStroke Mods="CTRL+ALT" Key="C"/>
-            </Shortcut>
             <Shortcut Name="CopyAbsoluteAddressToClipboard" CommandId="commands.memengine.CopyAbsoluteAddressToClipboardCommand">
                 <KeyStroke Mods="CTRL" Key="C"/>
             </Shortcut>

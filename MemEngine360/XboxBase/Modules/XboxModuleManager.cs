@@ -24,7 +24,7 @@ using PFXToolKitUI.Utils.Collections.Observable;
 namespace MemEngine360.XboxBase.Modules;
 
 public class XboxModuleManager {
-    private static readonly Dictionary<Type, Func<MemoryEngine, IConsoleConnection, XboxModuleManager, Task>> processors = new();
+    private static readonly Dictionary<Type, Func<MemoryEngine, IConsoleConnection, XboxModuleManager, Task>> processors = new Dictionary<Type, Func<MemoryEngine, IConsoleConnection, XboxModuleManager, Task>>();
     
     public ObservableList<XboxModule> Modules { get; }
 

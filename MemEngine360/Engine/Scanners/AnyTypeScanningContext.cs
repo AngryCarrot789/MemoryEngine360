@@ -28,7 +28,6 @@ using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
-using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Scanners;
 
@@ -104,11 +103,7 @@ public class AnyTypeScanningContext : ScanningContext {
         if (udto.CanRunNextScanForByteArray && this.Processor.HasDoneFirstScan)
             MemoryPattern.TryCompile(this.inputA, out this.memoryPattern);
 
-        this.intOrdering = udto.IntDataTypeOrdering.CloneArrayUnsafe();
-        Debug.Assert(this.intOrdering.Length == 4);
-        foreach (DataType dt in this.intOrdering) {
-            Debug.Assert(dt.IsInteger());
-        }
+        this.intOrdering = udto.GetIntDataTypeOrdering();
 
         // ReSharper disable once AssignmentInConditionalExpression
         if (this.canSearchForString = udto.CanSearchForString) {

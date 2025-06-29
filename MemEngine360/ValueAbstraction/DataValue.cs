@@ -180,7 +180,7 @@ public abstract class BaseNumericDataValue<T> : BaseNumericDataValue where T : u
     }
 
     public override bool Equals(object? obj) {
-        if (obj is null)
+        if (obj == null)
             return false;
         if (ReferenceEquals(this, obj))
             return true;
@@ -246,7 +246,7 @@ public class DataValueString : IDataValue {
     public bool Equals(IDataValue? other) => other is DataValueString str && this.Equals(str);
 
     public override bool Equals(object? obj) {
-        if (obj is null)
+        if (obj == null)
             return false;
         if (ReferenceEquals(this, obj))
             return true;
@@ -282,7 +282,7 @@ public class DataValueByteArray : IDataValue {
     public bool Equals(IDataValue? other) => other is DataValueByteArray str && this.Equals(str);
 
     public override bool Equals(object? obj) {
-        if (obj is null)
+        if (obj == null)
             return false;
         if (ReferenceEquals(this, obj))
             return true;

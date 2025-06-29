@@ -131,7 +131,7 @@ public class AutoRefreshLayer : Layer {
 
     private void DrawSelection(DrawingContext context, CellBasedColumn column, BitRange range) {
         Geometry? geometry = CellGeometryBuilder.CreateBoundingGeometry(column, range);
-        if (geometry is null)
+        if (geometry == null)
             return;
 
         if (this.theCaret.PrimaryColumnIndex == column.Index)

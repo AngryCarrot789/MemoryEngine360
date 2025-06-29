@@ -70,7 +70,8 @@ public abstract class ScanningContext {
     internal abstract Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken);
 
     /// <summary>
-    /// Appends the scanning processor's current results to the src list 
+    /// Check whether the next scan is allowed to run based on the current scan results.
+    /// Usually always returns true. This method may show error dialogs and return false.
     /// </summary>
     /// <param name="srcList"></param>
     /// <returns></returns>

@@ -17,8 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Globalization;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
@@ -62,14 +62,17 @@ public class AddSavedAddressCommand : Command {
             LabelB = "Description (optional)",
             TextA = initialAddress.ToString("X"),
             ValidateA = (args) => {
-                if (!uint.TryParse(args.Input, NumberStyles.HexNumber, null, out _))
-                    args.Errors.Add("Invalid memory address");
-            }
+                if (!MemoryAddressUtils.TryParse(args.Input, out _, out string? errMsg))
+                    args.Errors.Add(errMsg!);
+            },
+            Footer = "Pointer format is base+offset1->[offset2]->[offset n]"
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(addrDescInfo) == true) {
-            AddressTableEntry result = new AddressTableEntry(uint.Parse(addrDescInfo.TextA, NumberStyles.HexNumber, null)) {
-                Description = addrDescInfo.TextB
+            _ = MemoryAddressUtils.TryParse(addrDescInfo.TextA, out IMemoryAddress? memoryAddress, out _);
+            
+            AddressTableEntry result = new AddressTableEntry() {
+                MemoryAddress = memoryAddress!, Description = addrDescInfo.TextB
             };
 
             SavedResultDataTypeUserInputInfo dataTypeInfo = new SavedResultDataTypeUserInputInfo(result) {

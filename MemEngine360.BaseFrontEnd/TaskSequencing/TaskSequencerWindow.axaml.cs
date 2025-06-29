@@ -43,7 +43,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
         ((CheckBox) b.Control).IsChecked = !b.Model.UseEngineConnection;
     });
 
-    private readonly IBinder<TaskSequence> currentConnectionTypeBinder = new MultiEventPropertyBinder<TaskSequence>([nameof(TaskSequence.UseEngineConnectionChanged), nameof(TaskSequence.DedicatedConnectionChanged)], (b) => {
+    private readonly IBinder<TaskSequence> currentConnectionTypeBinder = new MultiEventUpdateBinder<TaskSequence>([nameof(TaskSequence.UseEngineConnectionChanged), nameof(TaskSequence.DedicatedConnectionChanged)], (b) => {
         ((TextBlock) b.Control).Opacity = b.Model.UseEngineConnection ? 0.6 : 1.0;
         if (b.Model.UseEngineConnection) {
             ((TextBlock) b.Control).Text = (b.Model.Manager?.MemoryEngine.Connection?.ConnectionType.DisplayName ?? "No Engine Connection");

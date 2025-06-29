@@ -19,6 +19,7 @@
 
 using System.Xml.Serialization;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.FilePicking;
@@ -88,7 +89,7 @@ public class OpenXMLFileCommand : Command {
     private static void AddToEntry(ScanningProcessor processor, XmlAddressEntryGroup group, AddressTableGroupEntry entry) {
         foreach (XmlBaseAddressEntry item in group.Items) {
             if (item is XmlAddressEntryGroup subGroup) {
-                AddressTableGroupEntry subEntry = new AddressTableGroupEntry(subGroup.GroupAddress, subGroup.IsAddressAbsolute) {
+                AddressTableGroupEntry subEntry = new AddressTableGroupEntry() {
                     Description = subGroup.Description
                 };
                 
@@ -97,7 +98,12 @@ public class OpenXMLFileCommand : Command {
             }
             else {
                 XmlAddressEntry theEntry = (XmlAddressEntry) item;
-                entry.AddEntry(new AddressTableEntry(theEntry.Address, theEntry.IsAddressAbsolute) {
+                if (!MemoryAddressUtils.TryParse(theEntry.Address, out IMemoryAddress? address)) {
+                    throw new Exception($"Invalid address: '{theEntry.Address}'");
+                }
+                
+                entry.AddEntry(new AddressTableEntry() {
+                    MemoryAddress = address,
                     DataType = theEntry.DataType,
                     Description = theEntry.Description,
                     NumericDisplayType = theEntry.NumericDisplayType,

@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Text;
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
@@ -36,92 +35,43 @@ public class SaveSavedAddressesToFileCommand : Command {
 
         return Executability.Valid;
     }
-    
+
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return;
         }
 
-        MessageBoxInfo info = new MessageBoxInfo("File type", "What type of file to save as? Note, CSV does not support groups") {
-            YesOkText = "XML", NoText = "CSV", DefaultButton = MessageBoxResult.Yes, Buttons = MessageBoxButton.YesNoCancel
-        };
-        
-        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
-        if (result == MessageBoxResult.Cancel || result == MessageBoxResult.None) {
+        string? path = await IFilePickDialogService.Instance.SaveFile("Save addresses to XML", Filters.XmlAndAll);
+        if (path == null) {
             return;
         }
 
-        if (result == MessageBoxResult.Yes) {
-            string? path = await IFilePickDialogService.Instance.SaveFile("Save addresses to XML", Filters.XmlAndAll);
-            if (path == null) {
-                return;
+        await ActivityManager.Instance.RunTask(async () => {
+            ActivityTask task = ActivityManager.Instance.CurrentTask;
+            task.Progress.Caption = "Save addresses to XML";
+            task.Progress.Text = "Serializing...";
+            task.Progress.IsIndeterminate = true;
+            try {
+                using MemoryStream stream = new MemoryStream();
+                stream.Capacity = 4096;
+
+                XmlAddressEntryGroup rootGroup = new XmlAddressEntryGroup();
+                AddToGroup(engine.AddressTableManager.RootEntry, rootGroup);
+                OpenXMLFileCommand.XmlGroupSerializer.Serialize(stream, rootGroup);
+
+                await File.WriteAllBytesAsync(path, stream.ToArray());
             }
-
-            await ActivityManager.Instance.RunTask(async () => {
-                ActivityTask task = ActivityManager.Instance.CurrentTask;
-                task.Progress.Caption = "Save addresses to XML";
-                task.Progress.Text = "Serializing...";
-                task.Progress.IsIndeterminate = true;
-                try {
-                    using MemoryStream stream = new MemoryStream();
-                    stream.Capacity = 4096;
-                    
-                    XmlAddressEntryGroup rootGroup = new XmlAddressEntryGroup();
-                    AddToGroup(engine.AddressTableManager.RootEntry, rootGroup);
-                    OpenXMLFileCommand.XmlGroupSerializer.Serialize(stream, rootGroup);
-                    
-                    await File.WriteAllBytesAsync(path, stream.ToArray());
-                }
-                catch (Exception ex) {
-                    await IMessageDialogService.Instance.ShowMessage("Error", "Error serializing", ex.GetToString());
-                }
-            });
-        }
-        else {
-            string? path = await IFilePickDialogService.Instance.SaveFile("Open a CSV containing saved addresses", Filters.CsvAndAll);
-            if (path == null) {
-                return;
+            catch (Exception ex) {
+                await IMessageDialogService.Instance.ShowMessage("Error", "Error serializing", ex.GetToString());
             }
-
-            List<AddressTableEntry> saved = engine.AddressTableManager.GetAllAddressEntries().ToList();
-            if (saved.Count < 1) {
-                return;
-            }
-
-            using CancellationTokenSource cts = new CancellationTokenSource();
-            await ActivityManager.Instance.RunTask(async () => {
-                ActivityTask task = ActivityManager.Instance.CurrentTask;
-                task.Progress.Caption = "Save addresses to CSV";
-                task.Progress.Text = "Serializing...";
-                task.Progress.IsIndeterminate = true;
-
-                List<string> lines = new List<string>();
-                foreach (AddressTableEntry address in saved) {
-                    task.CheckCancelled();
-                    StringBuilder sb = new StringBuilder();
-                    sb.Append(address.IsAutoRefreshEnabled).Append(',').
-                       Append(address.Address.ToString("X8")).Append(',').
-                       Append(address.Description ?? "").Append(',').
-                       Append((uint) address.NumericDisplayType).Append(',').
-                       Append((uint) address.DataType).Append(',').
-                       Append((uint) address.StringType).Append(',').
-                       Append(address.StringLength);
-                    lines.Add(sb.ToString());
-                }
-
-                task.Progress.Text = "Writing to file...";
-                await File.WriteAllLinesAsync(path, lines, task.CancellationToken);
-            }, cts);
-        }
+        });
     }
 
     private static void AddToGroup(AddressTableGroupEntry entry, XmlAddressEntryGroup group) {
         foreach (BaseAddressTableEntry item in entry.Items) {
             if (item is AddressTableGroupEntry subEntry1) {
                 XmlAddressEntryGroup subGroup = new XmlAddressEntryGroup() {
-                    Description = subEntry1.Description,
-                    GroupAddress = subEntry1.GroupAddress,
-                    IsAddressAbsolute = subEntry1.IsAddressAbsolute,
+                    Description = subEntry1.Description
                 };
 
                 group.Items.Add(subGroup);
@@ -131,8 +81,7 @@ public class SaveSavedAddressesToFileCommand : Command {
                 AddressTableEntry subEntry2 = (AddressTableEntry) item;
                 group.Items.Add(new XmlAddressEntry() {
                     DataType = subEntry2.DataType,
-                    Address = subEntry2.Address,
-                    IsAddressAbsolute = subEntry2.IsAddressAbsolute,
+                    Address = subEntry2.MemoryAddress.ToString(),
                     Description = subEntry2.Description,
                     NumericDisplayType = subEntry2.NumericDisplayType,
                     StringType = subEntry2.StringType,

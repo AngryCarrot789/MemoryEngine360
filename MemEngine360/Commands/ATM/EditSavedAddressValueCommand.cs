@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.ValueAbstraction;
@@ -114,12 +115,18 @@ public class EditSavedAddressValueCommand : Command {
         Debug.Assert(parsed && value != null);
 
         using CancellationTokenSource cts = new CancellationTokenSource();
-        await ActivityManager.Instance.RunTask(async () => {
+        int success = await ActivityManager.Instance.RunTask(async () => {
             ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Edit value", "Editing values");
+            int success = 0;
             foreach (AddressTableEntry scanResult in savedList) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
-                await MemoryEngine.WriteDataValue(conn, scanResult.AbsoluteAddress, value!);
-                IDataValue actualValue = await MemoryEngine.ReadDataValue(conn, scanResult.AbsoluteAddress, value);
+                uint? address = await scanResult.MemoryAddress.TryResolveAddress(conn);
+                if (!address.HasValue)
+                    continue; // pointer could not be resolved
+
+                success++;
+                await MemoryEngine.WriteDataValue(conn, address.Value, value!);
+                IDataValue actualValue = await MemoryEngine.ReadDataValue(conn, address.Value, value);
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     if (actualValue is DataValueString str) {
                         lastResult.StringType = str.StringType;
@@ -133,6 +140,15 @@ public class EditSavedAddressValueCommand : Command {
                     scanResult.Value = actualValue;
                 }, token: CancellationToken.None);
             }
+
+            return success;
         }, cts);
+
+        if (success != savedList.Count) {
+            await IMessageDialogService.Instance.ShowMessage("Not all values updated", 
+                $"Only {success}/{savedList.Count} were updated. The others' addresses could not be resolved", 
+                MessageBoxButton.OK, 
+                persistentDialogName:"IDontGiveAFuckAbout_CouldNotSetAllAddressValues");
+        }
     }
 }

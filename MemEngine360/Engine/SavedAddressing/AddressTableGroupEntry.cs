@@ -34,48 +34,12 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
 
     public bool IsRootEntry => this.Parent == null;
 
-    /// <summary>
-    /// Gets or sets this group's base address, used for relative addressing. May be relative
-    /// to parent, so use <see cref="AbsoluteAddress"/> for absolute address
-    /// </summary>
-    public uint GroupAddress { get; private set; }
-
-    /// <summary>
-    /// Gets or sets if <see cref="GroupAddress"/> is absolute and not relative to <see cref="BaseAddressTableEntry.Parent"/>
-    /// </summary>
-    public bool IsAddressAbsolute { get; private set; } = true;
-
-    /// <summary>
-    /// Gets the absolute resolved address for this group
-    /// </summary>
-    public uint AbsoluteAddress => this.IsAddressAbsolute ? this.GroupAddress : ((this.Parent?.AbsoluteAddress ?? 0) + this.GroupAddress);
-
-    public event AddressTableGroupEntryEventHandler? GroupAddressChanged;
-
     public AddressTableGroupEntry() {
         this.items = new SuspendableObservableList<BaseAddressTableEntry>();
         this.Items = new ReadOnlyObservableList<BaseAddressTableEntry>(this.items);
     }
     
-    public AddressTableGroupEntry(uint groupAddress, bool isAddressAbsolute = true) : this() {
-        this.GroupAddress = groupAddress;
-        this.IsAddressAbsolute = isAddressAbsolute;
-    }
-
     static AddressTableGroupEntry() {
-    }
-
-    /// <summary>
-    /// Sets the address of this entry
-    /// </summary>
-    /// <param name="newAddress">The new address</param>
-    /// <param name="isAbsolute">Whether the address is absolute or relative to the parent entry</param>
-    public void SetAddress(uint newAddress, bool isAbsolute) {
-        if (this.GroupAddress != newAddress || this.IsAddressAbsolute != isAbsolute) {
-            this.GroupAddress = newAddress;
-            this.IsAddressAbsolute = isAbsolute;
-            this.GroupAddressChanged?.Invoke(this);
-        }
     }
     
     public void AddEntry(BaseAddressTableEntry entry) => this.InsertEntry(this.items.Count, entry);
@@ -209,7 +173,7 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
     }
 
     public override BaseAddressTableEntry CreateClone() {
-        AddressTableGroupEntry entry = new AddressTableGroupEntry(this.GroupAddress, this.IsAddressAbsolute) {
+        AddressTableGroupEntry entry = new AddressTableGroupEntry() {
             Description = this.Description
         };
 

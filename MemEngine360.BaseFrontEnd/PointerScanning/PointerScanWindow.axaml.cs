@@ -154,7 +154,7 @@ public partial class PointerScanWindow : DesktopWindow {
         StringBuilder sb = new StringBuilder();
         sb.Append(pointers[0].Address.ToString("X8")).Append('+').Append(pointers[0].Offset.ToString("X"));
         for (int i = 1; i < pointers.Length; i++) {
-            sb.Append("->").Append(pointers[i].Offset.ToString("X"));
+            sb.Append("->[").Append(pointers[i].Offset.ToString("X")).Append(']');
         }
 
         return sb.ToString();

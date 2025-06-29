@@ -22,6 +22,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
+using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.Scanners;
@@ -81,12 +82,6 @@ public sealed class UnknownDataTypeOptions {
         set => PropertyHelper.SetAndRaiseINE(ref this.canRunNextScanForByteArray, value, this, static t => t.CanRunNextScanForByteArrayChanged?.Invoke(t));
     }
 
-    /// <summary>
-    /// The order in which we scan integer types. Default order is int32, int16 , byte and finally int64.
-    /// This order is used because int32 is the most common data type, next to int16 and then byte. int64 is uncommon hence it's last. 
-    /// </summary>
-    public DataType[] IntDataTypeOrdering => this.Orders.Select(x => x.DataType).ToArray();
-
     public event UnknownDataTypeOptionsEventHandler? CanSearchForFloatChanged;
     public event UnknownDataTypeOptionsEventHandler? CanSearchForDoubleChanged;
     public event UnknownDataTypeOptionsEventHandler? CanSearchForStringChanged;
@@ -99,6 +94,20 @@ public sealed class UnknownDataTypeOptions {
             new ScanningOrderModel(DataType.Byte),
             new ScanningOrderModel(DataType.Int64),
         };
+    }
+    
+    /// <summary>
+    /// The order in which we scan integer types. Default order is int32, int16 , byte and finally int64.
+    /// This order is used because int32 is the most common data type, next to int16 and then byte. int64 is uncommon hence it's last. 
+    /// </summary>
+    public DataType[] GetIntDataTypeOrdering() {
+        DataType[] array = this.Orders.Select(x => x.DataType).ToArray();
+        Debug.Assert(array.Length == 4);
+        foreach (DataType dt in array) {
+            Debug.Assert(dt.IsInteger());
+        }
+
+        return array;
     }
 }
 
@@ -504,7 +513,7 @@ public class ScanningProcessor {
             using CancellationTokenSource cts = new CancellationTokenSource();
             this.ScanningActivity = ActivityManager.Instance.RunTask(async () => {
                 ActivityTask thisTask = ActivityManager.Instance.CurrentTask;
-                await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+                await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     // If for some reason it gets force disconnected in an already scheduled
                     // dispatcher operation, we should just safely stop scanning
                     if (!connection.IsConnected || this.MemoryEngine.IsShuttingDown) {
@@ -512,7 +521,7 @@ public class ScanningProcessor {
                     }
 
                     this.IsScanning = true;
-                });
+                }, token: CancellationToken.None);
 
                 bool result = false;
                 if (this.isScanning && connection.IsConnected) {
@@ -770,13 +779,15 @@ public class ScanningProcessor {
                 token.ThrowIfCancellationRequested();
 
                 if (savedList != null) {
-                    IDataValue[] values = new IDataValue[savedList.Count];
+                    IDataValue?[] values = new IDataValue?[savedList.Count];
                     await Task.Run(async () => {
                         for (int i = 0; i < values.Length; i++) {
                             token.ThrowIfCancellationRequested();
                             AddressTableEntry item = savedList[i];
-                            if (item.IsAutoRefreshEnabled) // may change between dispatcher callbacks
-                                values[i] = await MemoryEngine.ReadDataValue(connection, item.AbsoluteAddress, item.DataType, item.StringType, item.StringLength, item.ArrayLength);
+                            if (item.IsAutoRefreshEnabled) { // may change between dispatcher callbacks
+                                uint? addr = await item.MemoryAddress.TryResolveAddress(connection);
+                                values[i] = addr.HasValue ? await MemoryEngine.ReadDataValue(connection, addr.Value, item.DataType, item.StringType, item.StringLength, item.ArrayLength) : null;
+                            }
                         }
                     }, token);
 

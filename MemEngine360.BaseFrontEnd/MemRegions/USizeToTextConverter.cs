@@ -24,7 +24,7 @@ using PFXToolKitUI.Interactivity.Formatting;
 namespace MemEngine360.BaseFrontEnd.MemRegions;
 
 public class USizeToTextConverter : IValueConverter {
-    public static readonly USizeToTextConverter Instance = new();
+    public static readonly USizeToTextConverter Instance = new USizeToTextConverter();
     
     internal static readonly AutoMemoryValueFormatter ByteFormatter = new AutoMemoryValueFormatter() {
         SourceFormat = MemoryFormatType.Byte,

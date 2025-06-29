@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Utils;
@@ -25,8 +26,11 @@ namespace MemEngine360.Engine.SavedAddressing;
 
 public delegate void AddressTableEntryEventHandler(AddressTableEntry sender);
 
+public delegate void AddressTableEntryMemoryAddressChangedEventHandler(AddressTableEntry sender, IMemoryAddress oldMemoryAddress, IMemoryAddress newMemoryAddress);
+
 public class AddressTableEntry : BaseAddressTableEntry {
     private bool isAutoRefreshEnabled = true;
+    private IMemoryAddress memoryAddress;
     private IDataValue? value;
     private DataType dataType = DataType.Byte;
     private StringType stringType = StringType.ASCII;
@@ -42,14 +46,15 @@ public class AddressTableEntry : BaseAddressTableEntry {
     }
 
     /// <summary>
-    /// Gets or sets this entry's address. May be relative to parent, so use <see cref="AbsoluteAddress"/>
+    /// Gets this entry's memory address. This value is never null, but may be <see cref="StaticAddress.Zero"/>
     /// </summary>
-    public uint Address { get; private set; }
-
-    /// <summary>
-    /// A helper property to resolve the absolute address based on <see cref="IsAddressAbsolute"/> and our parent's address
-    /// </summary>
-    public uint AbsoluteAddress => this.IsAddressAbsolute ? this.Address : ((this.Parent?.AbsoluteAddress ?? 0) + this.Address);
+    public IMemoryAddress MemoryAddress {
+        get => this.memoryAddress;
+        set {
+            ArgumentNullException.ThrowIfNull(value);
+            PropertyHelper.SetAndRaiseINE(ref this.memoryAddress, value, this, static (t, o, n) => t.MemoryAddressChanged?.Invoke(t, o, n));
+        }
+    }
 
     /// <summary>
     /// Gets or sets the current presented value
@@ -60,7 +65,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
             if (!Equals(this.value, value)) {
                 if (value != null && value.DataType != this.DataType)
                     throw new ArgumentException($"New value's data type does not match our data type: {value.DataType} != {this.DataType}");
-                
+
                 this.value = value;
                 this.CurrentValueDisplayType = this.NumericDisplayType;
                 this.ValueChanged?.Invoke(this);
@@ -92,7 +97,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
         set {
             if (value < 0)
                 throw new ArgumentOutOfRangeException(nameof(value), value, nameof(value) + " cannot be negative");
-            
+
             PropertyHelper.SetAndRaiseINE(ref this.stringLength, value, this, static t => t.StringLengthChanged?.Invoke(t));
         }
     }
@@ -102,7 +107,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
         set {
             if (value < 0)
                 throw new ArgumentOutOfRangeException(nameof(value), value, nameof(value) + " cannot be negative");
-            
+
             PropertyHelper.SetAndRaiseINE(ref this.arrayLength, value, this, static t => t.ArrayLengthChanged?.Invoke(t));
         }
     }
@@ -116,12 +121,6 @@ public class AddressTableEntry : BaseAddressTableEntry {
     }
 
     /// <summary>
-    /// Gets or sets if <see cref="AbsoluteAddress"/> should return <see cref="Address"/> or add our
-    /// parent's <see cref="AddressTableGroupEntry.AbsoluteAddress"/> to it
-    /// </summary>
-    public bool IsAddressAbsolute { get; private set; } = true;
-
-    /// <summary>
     /// Gets or sets the <see cref="Engine.NumericDisplayType"/> that was specified when <see cref="Value"/> changed
     /// </summary>
     public NumericDisplayType CurrentValueDisplayType { get; private set; }
@@ -133,7 +132,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
     public bool IsVisibleInMainSavedResultList { get; set; } = true;
 
     public event AddressTableEntryEventHandler? IsAutoRefreshEnabledChanged;
-    public event AddressTableEntryEventHandler? AddressChanged;
+    public event AddressTableEntryMemoryAddressChangedEventHandler? MemoryAddressChanged;
     public event AddressTableEntryEventHandler? ValueChanged;
     public event AddressTableEntryEventHandler? DataTypeChanged;
     public event AddressTableEntryEventHandler? StringTypeChanged;
@@ -141,13 +140,11 @@ public class AddressTableEntry : BaseAddressTableEntry {
     public event AddressTableEntryEventHandler? ArrayLengthChanged;
     public event AddressTableEntryEventHandler? NumericDisplayTypeChanged;
 
-    public AddressTableEntry(uint address, bool isAddressAbsolute = true) {
-        this.Address = address;
-        this.IsAddressAbsolute = isAddressAbsolute;
+    public AddressTableEntry() {
     }
 
     public AddressTableEntry(ScanResultViewModel result) {
-        this.Address = result.Address;
+        this.MemoryAddress = new StaticAddress(result.Address);
         this.dataType = result.DataType;
         this.value = result.CurrentValue;
         this.numericDisplayType = result.NumericDisplayType;
@@ -160,23 +157,10 @@ public class AddressTableEntry : BaseAddressTableEntry {
         }
     }
 
-    /// <summary>
-    /// Sets the address of this entry
-    /// </summary>
-    /// <param name="newAddress">The new address</param>
-    /// <param name="isAbsolute">Whether the address is absolute or relative to the parent entry</param>
-    public void SetAddress(uint newAddress, bool isAbsolute) {
-        if (this.Address != newAddress || this.IsAddressAbsolute != isAbsolute) {
-            this.Address = newAddress;
-            this.IsAddressAbsolute = isAbsolute;
-            this.AddressChanged?.Invoke(this);
-        }
-    }
-
     public override BaseAddressTableEntry CreateClone() {
-        return new AddressTableEntry(this.Address, this.IsAddressAbsolute) {
+        return new AddressTableEntry() {
             Description = this.Description,
-            Address = this.Address,
+            MemoryAddress = this.MemoryAddress,
             DataType = this.DataType,
             StringType = this.StringType,
             StringLength = this.StringLength,

@@ -102,7 +102,7 @@ public class MemoryEngine {
     public TaskSequencerManager TaskSequencerManager { get; }
 
     public AddressTableManager AddressTableManager { get; }
-    
+
     public PointerScanner PointerScanner { get; }
 
     /// <summary>
@@ -315,48 +315,55 @@ public class MemoryEngine {
     /// Begins a busy operation, waiting for existing busy operations to finish 
     /// </summary>
     /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
+    /// <param name="timeoutMilliseconds">An optional timeout value. When the amount of time elapses, we return null</param>
     /// <returns>The acquired token, or null if the task was cancelled</returns>
-    /// <exception cref="TaskCanceledException">Operation was cancelled, didn't get token in time</exception>
-    public async Task<IDisposable?> BeginBusyOperationAsync(CancellationToken cancellationToken) {
+    public Task<IDisposable?> BeginBusyOperationAsync(CancellationToken cancellationToken) {
         IDisposable? token = this.BeginBusyOperation();
-        while (token == null) {
-            LinkedListNode<CancellableTaskCompletionSource>? tcs = this.EnqueueAsyncWaiter(cancellationToken);
-            if (tcs == null) {
-                if (this.busyCount != 0) {
-                    // connectionLock is acquired on another thread and the busy token is still taken,
-                    // so the only thing we can do is just wait some time.
-                    try {
-                        await Task.Delay(10, cancellationToken);
-                    }
-                    catch (OperationCanceledException) {
-                        return null;
-                    }
-                }
-            }
-            else {
-                try {
-                    await tcs.Value.Task;
-                }
-                catch (OperationCanceledException) {
-                    if (tcs.List != null) {
-                        lock (this.connectionLock) {
-                            // Possible race condition between OCE handled on one thread, and the busy token disposed on another thread.
-                            // It's fine if we win the race since we'd remove the node before OnTokenDisposedUnderLock() clears
-                            // the list. But if that method wins, the list gets cleared under lock and tcs.List is null below
-                            if (tcs.List != null) {
-                                // We only need to remove on cancelled, because when it
-                                // completes normally, the list gets cleared anyway
-                                tcs.List!.Remove(tcs);
-                                tcs.Value.Dispose();
-                            }
-                        }
-                    }
+        if (token != null) {
+            return Task.FromResult<IDisposable?>(token);
+        }
 
-                    return null;
-                }
-            }
+        return this.InternalBeginOperationLoop(cancellationToken);
+    }
 
-            token = this.BeginBusyOperation();
+    /// <summary>
+    /// Begins a busy operation, waiting for existing busy operations to finish or the timeout period elapsed, in which case this method returns null
+    /// </summary>
+    /// <param name="timeoutMilliseconds">The maximum amount of time to wait to try and begin the operations</param>
+    /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
+    /// <returns></returns>
+    public async Task<IDisposable?> BeginBusyOperationAsync(int timeoutMilliseconds, CancellationToken cancellationToken = default) {
+        if (timeoutMilliseconds < -1)
+            throw new ArgumentOutOfRangeException(nameof(timeoutMilliseconds), "Timeout milliseconds cannot be below -1");
+
+        IDisposable? token = this.BeginBusyOperation();
+        if (token != null) {
+            return token;
+        }
+
+        if (timeoutMilliseconds == -1) // we'll wait infinitely.
+            return await this.InternalBeginOperationLoop(cancellationToken);
+
+        if (timeoutMilliseconds == 0)
+            return null; // well WTF, I guess this is the right thing to do???
+
+        // Probably no need to go whacko mode and overoptimize... but meh I already wrote this code so no point in undoing it
+        CancellationTokenSource? cts, timeoutSource = null;
+        if (cancellationToken.CanBeCanceled) {
+            timeoutSource = new CancellationTokenSource(timeoutMilliseconds);
+            cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
+        }
+        else {
+            cts = new CancellationTokenSource(timeoutMilliseconds);
+        }
+
+        try {
+            token = await this.InternalBeginOperationLoop(cts.Token);
+        }
+        finally {
+            // should this be disposed before or after cts?
+            timeoutSource?.Dispose();
+            cts.Dispose();
         }
 
         return token;
@@ -417,6 +424,52 @@ public class MemoryEngine {
         return default;
     }
 
+    private async Task<IDisposable?> InternalBeginOperationLoop(CancellationToken cancellationToken) {
+        IDisposable? token;
+
+        do {
+            LinkedListNode<CancellableTaskCompletionSource>? tcs = this.EnqueueAsyncWaiter(cancellationToken);
+            if (tcs == null) {
+                if (this.busyCount != 0) {
+                    // connectionLock is acquired on another thread and the busy token is still taken,
+                    // so the only thing we can do is just wait some time.
+                    try {
+                        await Task.Delay(10, cancellationToken);
+                    }
+                    catch (OperationCanceledException) {
+                        return null;
+                    }
+                }
+            }
+            else {
+                try {
+                    await tcs.Value.Task;
+                }
+                catch (OperationCanceledException) {
+                    if (tcs.List != null) {
+                        lock (this.connectionLock) {
+                            // Possible race condition between OCE handled on one thread, and the busy token disposed on another thread.
+                            // It's fine if we win the race since we'd remove the node before OnTokenDisposedUnderLock() clears
+                            // the list. But if that method wins, the list gets cleared under lock and tcs.List is null below
+                            if (tcs.List != null) {
+                                // We only need to remove on cancelled, because when it
+                                // completes normally, the list gets cleared anyway
+                                tcs.List!.Remove(tcs);
+                                tcs.Value.Dispose();
+                            }
+                        }
+                    }
+
+                    return null;
+                }
+            }
+            // stoopid IDE, using the async overload could cause stack overflow if we get really unlucky in lock taking
+            // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+        } while ((token = this.BeginBusyOperation()) == null);
+
+        return token;
+    }
+
     public void CheckConnection(ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection) {
         // CheckConnection is just a helpful method to clear connection if it's 
         // disconnected internally, therefore, we don't need over the top synchronization,
@@ -459,7 +512,7 @@ public class MemoryEngine {
         this.SetConnection(token, 0, null, cause);
         return true;
     }
-    
+
     private void ValidateToken(IDisposable token) {
         if (token == null)
             throw new ArgumentNullException(nameof(token), "Token is null");
@@ -475,7 +528,7 @@ public class MemoryEngine {
         if (this.activeToken != busy)
             throw new ArgumentException(this.busyCount == 0 ? "No tokens are currently in use" : "Token is not the current token");
     }
-    
+
     private LinkedListNode<CancellableTaskCompletionSource>? EnqueueAsyncWaiter(CancellationToken token) {
         bool lockTaken = false;
         try {
@@ -495,7 +548,7 @@ public class MemoryEngine {
                 Monitor.Exit(this.connectionLock);
         }
     }
-    
+
     private void OnTokenCreatedUnderLock() {
         if (Interlocked.Increment(ref this.busyCount) == 1) {
             try {
@@ -506,7 +559,7 @@ public class MemoryEngine {
             }
         }
     }
-    
+
     private void OnTokenDisposedUnderLock() {
         this.activeToken = null;
         if (Interlocked.Decrement(ref this.busyCount) == 0) {
@@ -517,7 +570,7 @@ public class MemoryEngine {
                 Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
             }
         }
-        
+
         foreach (CancellableTaskCompletionSource tcs in this.busyLockAsyncWaiters) {
             try {
                 tcs.TrySetResult();
@@ -529,7 +582,7 @@ public class MemoryEngine {
 
         this.busyLockAsyncWaiters.Clear();
     }
-    
+
     /// <summary>
     /// Reads a data value from the console
     /// </summary>

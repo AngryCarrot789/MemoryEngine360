@@ -16,9 +16,18 @@
         </Border>
         <TabControl SelectedIndex="1" Margin="3,0,3,3">
             <TabItem Header="Scanning Results">
-                <ListBox x:Name="PART_ScanResults" Margin="3"/>
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="The first part of a result is 'AddressableBase + OffsetFromBase'"/>
+                        <TextBlock Text="Then each offset is specified by '->[offset to add to last resolved pointer]'"/>
+                        <TextBlock Text="For example, A result may look like '82000000+12AD->[40]->[94C]', which for example involves these jumps:"/>
+                        <TextBlock Text="820012AD->83F0FFEC+40->82CC00FE+94C, which results in the address you scanned for"/>
+                        <TextBlock Text="Note: 820012AD points to 83F0FFEC. We add 40 then dereference to get 82CC00FE, then adding 94C and deref gets the seach address"/>
+                    </StackPanel>
+                    <ListBox x:Name="PART_ScanResults" Margin="3"/>
+                </DockPanel>
             </TabItem>
-        
+
             <TabItem Header="Setup">
                 <StackPanel Margin="3" Spacing="3">
                     <TextBlock Text="Addressable Base"/>

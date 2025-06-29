@@ -25,8 +25,11 @@ namespace MemEngine360.Commands.ATM;
 
 public class CopyAddressToClipboardCommand : BaseCopyAddressTableEntryCommand {
     protected override async Task Copy(IAddressTableEntryUI entry, IClipboardService clipboard) {
-        uint address = (entry.Entry as AddressTableEntry)?.Address ?? ((AddressTableGroupEntry) entry.Entry).GroupAddress;
-        string addrText = address.ToString("X8");
+        if (!(entry.Entry is AddressTableEntry ate)) {
+            return;
+        }
+
+        string addrText = ate.MemoryAddress.ToString()!;
         try {
             await clipboard.SetTextAsync(addrText);
         }
