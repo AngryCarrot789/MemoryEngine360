@@ -20,6 +20,7 @@
 using System.Globalization;
 using MemEngine360.BaseFrontEnd.TaskSequencing.DataHandlers;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Bindings;
@@ -34,6 +35,16 @@ public record struct DataValueState(IDataValue Value, bool ParseIntAsHex);
 /// A helper class for binders. This provides reusable parsing logic, typically for <see cref="TextBoxToEventPropertyBinder{TModel}"/>
 /// </summary>
 public static class BinderParsingUtils {
+    public static async Task<bool> TryParseAddressEx<T>(string text, IBinder<T> binder, Action<IBinder<T>, IMemoryAddress> update) where T : class {
+        if (MemoryAddressUtils.TryParse(text, out IMemoryAddress? address, out string? errorMessage)) {
+            update(binder, address);
+            return true;
+        }
+
+        await IMessageDialogService.Instance.ShowMessage("Invalid memory address", errorMessage!, defaultButton: MessageBoxResult.OK);
+        return false;
+    }
+
     public static async Task<bool> TryParseAddress<T>(string text, IBinder<T> binder, Action<IBinder<T>, uint> update, string tooLongMessage = "Address is too long. It can only be 4 bytes", string invalidValueMessage = "Start address is invalid") where T : class {
         if (uint.TryParse(text, NumberStyles.HexNumber, null, out uint value)) {
             update(binder, value);

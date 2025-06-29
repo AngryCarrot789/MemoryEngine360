@@ -22,6 +22,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MemEngine360.Configs;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.ValueAbstraction;
@@ -37,7 +38,7 @@ public delegate void SetVariableOperationDataValueProviderChangedEventHandler(Se
 /// An operation that sets a value on the console
 /// </summary>
 public class SetMemoryOperation : BaseSequenceOperation {
-    private uint address;
+    private IMemoryAddress address;
     private DataValueProvider? dataValueProvider;
     private uint iterateCount = 1;
     private SetMemoryWriteMode writeMode;
@@ -50,9 +51,12 @@ public class SetMemoryOperation : BaseSequenceOperation {
     /// <summary>
     /// Gets or sets the address we write at
     /// </summary>
-    public uint Address {
+    public IMemoryAddress Address {
         get => this.address;
-        set => PropertyHelper.SetAndRaiseINE(ref this.address, value, this, static t => t.AddressChanged?.Invoke(t));
+        set {
+            ArgumentNullException.ThrowIfNull(value);
+            PropertyHelper.SetAndRaiseINE(ref this.address, value, this, static t => t.AddressChanged?.Invoke(t));
+        }
     }
 
     /// <summary>
@@ -122,64 +126,68 @@ public class SetMemoryOperation : BaseSequenceOperation {
             }
         }
 
-        uint addr = this.address;
-        if (this.writeMode != SetMemoryWriteMode.Set && value is BaseNumericDataValue numVal) {
-            BaseNumericDataValue consoleVal = (BaseNumericDataValue) await MemoryEngine.ReadDataValue(ctx.Connection, addr, numVal);
-            if (numVal.DataType.IsFloatingPoint()) {
-                double dval;
-                switch (this.writeMode) {
-                    case SetMemoryWriteMode.Add:      dval = consoleVal.ToDouble() + numVal.ToDouble(); break;
-                    case SetMemoryWriteMode.Multiply: dval = consoleVal.ToDouble() * numVal.ToDouble(); break;
-                    case SetMemoryWriteMode.Divide:
-                        double d = numVal.ToDouble();
-                        dval = d != 0.0 ? consoleVal.ToDouble() / d : consoleVal.ToDouble();
-                        break;
-                    default:
-                        Debug.Fail("Error");
-                        return;
-                }
-
-                // protect against NaN or Inf, since it can cause some games to completely freak out and crash the console 
-                if ((double.IsNaN(dval) || double.IsInfinity(dval)) && BasicApplicationConfiguration.Instance.UseNaNInfProtection) {
-                    dval = 0.0;
-                }
-
-                value = numVal.DataType == DataType.Float ? new DataValueFloat((float) dval) : new DataValueDouble(dval);
-            }
-            else {
-                long lval;
-                switch (this.writeMode) {
-                    case SetMemoryWriteMode.Add:      lval = consoleVal.ToLong() + numVal.ToLong(); break;
-                    case SetMemoryWriteMode.Multiply: lval = consoleVal.ToLong() * numVal.ToLong(); break;
-                    case SetMemoryWriteMode.Divide:
-                        long l = numVal.ToLong();
-                        lval = l != 0 ? consoleVal.ToLong() / l : consoleVal.ToLong();
-                        break;
-                    default:
-                        Debug.Fail("Error");
-                        return;
-                }
-
-                switch (numVal.DataType) {
-                    case DataType.Byte:  value = new DataValueByte((byte) lval); break;
-                    case DataType.Int16: value = new DataValueInt16((short) lval); break;
-                    case DataType.Int32: value = new DataValueInt32((int) lval); break;
-                    case DataType.Int64: value = new DataValueInt64(lval); break;
-                    default:
-                        Debug.Fail("Error");
-                        return;
-                }
-            }
-        }
-
         try {
+            uint resolvedAddress = await this.address.TryResolveAddress(ctx.Connection) ?? 0;
+            if (resolvedAddress == 0) {
+                return;
+            }
+
+            if (this.writeMode != SetMemoryWriteMode.Set && value is BaseNumericDataValue numVal) {
+                BaseNumericDataValue consoleVal = (BaseNumericDataValue) await MemoryEngine.ReadDataValue(ctx.Connection, resolvedAddress, numVal);
+                if (numVal.DataType.IsFloatingPoint()) {
+                    double dval;
+                    switch (this.writeMode) {
+                        case SetMemoryWriteMode.Add:      dval = consoleVal.ToDouble() + numVal.ToDouble(); break;
+                        case SetMemoryWriteMode.Multiply: dval = consoleVal.ToDouble() * numVal.ToDouble(); break;
+                        case SetMemoryWriteMode.Divide:
+                            double d = numVal.ToDouble();
+                            dval = d != 0.0 ? consoleVal.ToDouble() / d : consoleVal.ToDouble();
+                            break;
+                        default:
+                            Debug.Fail("Error");
+                            return;
+                    }
+
+                    // protect against NaN or Inf, since it can cause some games to completely freak out and crash the console 
+                    if ((double.IsNaN(dval) || double.IsInfinity(dval)) && BasicApplicationConfiguration.Instance.UseNaNInfProtection) {
+                        dval = 0.0;
+                    }
+
+                    value = numVal.DataType == DataType.Float ? new DataValueFloat((float) dval) : new DataValueDouble(dval);
+                }
+                else {
+                    long lval;
+                    switch (this.writeMode) {
+                        case SetMemoryWriteMode.Add:      lval = consoleVal.ToLong() + numVal.ToLong(); break;
+                        case SetMemoryWriteMode.Multiply: lval = consoleVal.ToLong() * numVal.ToLong(); break;
+                        case SetMemoryWriteMode.Divide:
+                            long l = numVal.ToLong();
+                            lval = l != 0 ? consoleVal.ToLong() / l : consoleVal.ToLong();
+                            break;
+                        default:
+                            Debug.Fail("Error");
+                            return;
+                    }
+
+                    switch (numVal.DataType) {
+                        case DataType.Byte:  value = new DataValueByte((byte) lval); break;
+                        case DataType.Int16: value = new DataValueInt16((short) lval); break;
+                        case DataType.Int32: value = new DataValueInt32((int) lval); break;
+                        case DataType.Int64: value = new DataValueInt64(lval); break;
+                        default:
+                            Debug.Fail("Error");
+                            return;
+                    }
+                }
+            }
+
             ctx.Progress.Text = "Setting memory";
             byte[]? buffer = GetDataBuffer(ctx.Connection.IsLittleEndian, value, provider.AppendNullCharToString, this.iterateCount);
             if (buffer != null) {
                 // Note for test connection, when a sequence repeats forever and has no delay, only sets memory,
                 // this method is extremely laggy when a debugger is attached, probably because of the
                 // timeout exceptions being thrown, and the IDE tries to intercept them
-                await ctx.Connection.WriteBytes(addr, buffer);
+                await ctx.Connection.WriteBytes(resolvedAddress, buffer);
             }
         }
         finally {

@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Addressing;
 using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
@@ -71,7 +72,7 @@ public class TaskSequencerManager {
                 // }
             };
 
-            sequence.AddOperation(new SetMemoryOperation() { Address = 0x8303AA08, DataValueProvider = new ConstantDataProvider(IDataValue.CreateNumeric((int) 25)) });
+            sequence.AddOperation(new SetMemoryOperation() { Address = new StaticAddress(0x8303AA08), DataValueProvider = new ConstantDataProvider(IDataValue.CreateNumeric((int) 25)) });
             this.AddSequence(sequence);
         }
 

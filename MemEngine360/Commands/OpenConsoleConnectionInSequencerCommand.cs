@@ -29,7 +29,7 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
     private IOpenConnectionView? myDialog;
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
+        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui) || !ui.IsValid) {
             return Executability.Invalid;
         }
 

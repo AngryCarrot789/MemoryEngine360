@@ -22,6 +22,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Addressing;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.DataProviders;
@@ -57,6 +58,8 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
         get => this.GetValue(TaskSequencerManagerProperty);
         set => this.SetValue(TaskSequencerManagerProperty, value);
     }
+
+    public bool IsValid => this.TaskSequencerManager != null;
 
     public TaskSequencerManager Manager => this.TaskSequencerManager ?? throw new Exception("Window Closed");
 
@@ -227,7 +230,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
 
     private void Button_InsertSetMemory(object? sender, RoutedEventArgs e) {
         if (this.PrimarySelectedSequence != null && !this.PrimarySelectedSequence.TaskSequence.IsRunning)
-            this.PrimarySelectedSequence.TaskSequence.AddOperation(new SetMemoryOperation() { Address = 0x82600000, DataValueProvider = new ConstantDataProvider(new DataValueInt32(125)) });
+            this.PrimarySelectedSequence.TaskSequence.AddOperation(new SetMemoryOperation() { Address = new StaticAddress(0x82600000), DataValueProvider = new ConstantDataProvider(new DataValueInt32(125)) });
     }
 
     private void Button_OnClick(object? sender, RoutedEventArgs e) {

@@ -44,6 +44,7 @@ using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Testing;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Modes;
@@ -263,7 +264,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
         XmlTaskSequenceSerialization.RegisterOperation("SetMemory", typeof(SetMemoryOperation), (document, element, _op) => {
             SetMemoryOperation op = (SetMemoryOperation) _op;
-            element.SetAttribute("Address", op.Address.ToString("X8"));
+            element.SetAttribute("Address", op.Address.ToString());
             element.SetAttribute("IterateCount", op.IterateCount.ToString());
             element.SetAttribute("WriteMode", op.WriteMode.ToString());
             if (op.DataValueProvider is ConstantDataProvider constProvider) {
@@ -286,7 +287,10 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             }
         }, (element, _op) => {
             SetMemoryOperation op = (SetMemoryOperation) _op;
-            op.Address = GetRequiredAttribute(element, "Address", s => uint.Parse(s, NumberStyles.HexNumber));
+            if (!MemoryAddressUtils.TryParse(GetRequiredAttribute(element, "Address", false), out IMemoryAddress? addr, out string? errMsg))
+                throw new Exception("Invalid memory address. " + errMsg);
+            
+            op.Address = addr;
             op.IterateCount = GetOptionalAttribute(element, "IterateCount", uint.Parse, op.IterateCount);
             op.WriteMode = GetOptionalAttribute(element, "WriteMode", s => Enum.Parse<SetMemoryWriteMode>(s, true), op.WriteMode);
 
@@ -393,6 +397,22 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         }
         catch (Exception e) {
             throw new Exception($"Failed to parse attribute '{attributeName}' as {typeof(T).Name}", e);
+        }
+    }
+    
+    private static string GetRequiredAttribute(XmlElement srcElement, string attributeName, bool canBeWhitespaces) {
+        XmlAttribute? node = srcElement.GetAttributeNode(attributeName);
+        if (node == null)
+            throw new Exception($"Missing required attribute '{attributeName}'");
+
+        if (!canBeWhitespaces && string.IsNullOrWhiteSpace(node.Value))
+            throw new Exception($"Attribute '{attributeName}' cannot be an empty string or consist of only whitespaces");
+        
+        try {
+            return node.Value;
+        }
+        catch (Exception e) {
+            throw new Exception($"Failed to parse attribute '{attributeName}' as {nameof(String)}", e);
         }
     }
 }

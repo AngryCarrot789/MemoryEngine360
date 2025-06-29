@@ -25,6 +25,8 @@ namespace MemEngine360.Sequencing;
 public interface ITaskSequenceManagerUI {
     public static readonly DataKey<ITaskSequenceManagerUI> DataKey = DataKey<ITaskSequenceManagerUI>.Create(nameof(ITaskSequenceManagerUI));
 
+    bool IsValid { get; }
+
     /// <summary>
     /// Gets the task sequence manager
     /// </summary>
