@@ -20,6 +20,7 @@
 using System.Collections.ObjectModel;
 using MemEngine360.Engine;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Commands;
 
@@ -36,7 +37,7 @@ public class DeleteSelectedScanResultsCommand : Command {
             return;
         }
 
-        ObservableCollection<ScanResultViewModel> items = engine.MemoryEngine.ScanningProcessor.ScanResults;
+        ObservableList<ScanResultViewModel> items = engine.MemoryEngine.ScanningProcessor.ScanResults;
         if (engine.ScanResultSelectionManager.Count == items.Count) {
             items.Clear();
         }

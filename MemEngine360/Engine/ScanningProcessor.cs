@@ -76,7 +76,7 @@ public sealed class UnknownDataTypeOptions {
         get => this.canSearchForString;
         set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForString, value, this, static t => t.CanSearchForStringChanged?.Invoke(t));
     }
-    
+
     public bool CanRunNextScanForByteArray {
         get => this.canRunNextScanForByteArray;
         set => PropertyHelper.SetAndRaiseINE(ref this.canRunNextScanForByteArray, value, this, static t => t.CanRunNextScanForByteArrayChanged?.Invoke(t));
@@ -95,7 +95,7 @@ public sealed class UnknownDataTypeOptions {
             new ScanningOrderModel(DataType.Int64),
         };
     }
-    
+
     /// <summary>
     /// The order in which we scan integer types. Default order is int32, int16 , byte and finally int64.
     /// This order is used because int32 is the most common data type, next to int16 and then byte. int64 is uncommon hence it's last. 
@@ -341,7 +341,7 @@ public class ScanningProcessor {
     /// <summary>
     /// Gets the visible scan results in the UI
     /// </summary>
-    public ObservableCollection<ScanResultViewModel> ScanResults { get; } = new ObservableCollection<ScanResultViewModel>();
+    public ObservableList<ScanResultViewModel> ScanResults { get; } = [];
 
     /// <summary>
     /// Returns the actual amount of results (visible and hidden). The user may choose to cancel the
@@ -406,9 +406,11 @@ public class ScanningProcessor {
         };
 
         this.rldaMoveBufferIntoResultList = RateLimitedDispatchActionBase.ForDispatcherSync(() => {
-            for (int i = 0; i < 10 && this.resultBuffer.TryDequeue(out ScanResultViewModel? result); i++) {
-                this.ScanResults.Add(result);
-            }
+            List<ScanResultViewModel> list = new List<ScanResultViewModel>(20);
+            for (int i = 0; i < 20 && this.resultBuffer.TryDequeue(out ScanResultViewModel? result); i++)
+                list.Add(result);
+
+            this.ScanResults.AddRange(list);
         }, TimeSpan.FromMilliseconds(100), DispatchPriority.Normal);
 
         this.rldaRefreshSavedAddressList = RateLimitedDispatchActionBase.ForDispatcherAsync(this.RefreshSavedAddressesAsync, TimeSpan.FromMilliseconds(100));
@@ -469,7 +471,7 @@ public class ScanningProcessor {
             this.resultBuffer.Clear();
         return list;
     }
-    
+
     public async Task ScanFirstOrNext() {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
 
@@ -497,7 +499,7 @@ public class ScanningProcessor {
                 scanForAnything
                     ? new AnyTypeScanningContext(this)
                     : new DataTypedScanningContext(this);
-            
+
             if (!await context.Setup(connection)) {
                 return;
             }
@@ -540,7 +542,7 @@ public class ScanningProcessor {
                                 if (!await context.CanRunNextScan(items)) {
                                     return null;
                                 }
-                                
+
                                 this.ScanResults.Clear();
                                 this.resultBuffer.Clear();
                                 return items;
@@ -636,9 +638,11 @@ public class ScanningProcessor {
                         using PopCompletionStateRangeToken x = progress.CompletionState.PushCompletionRange(0.0, 1.0 / range);
                         updateListTask = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
                             while (!this.resultBuffer.IsEmpty) {
-                                for (int i = 0; i < chunkSize && this.resultBuffer.TryDequeue(out ScanResultViewModel? scanResult); i++) {
-                                    this.ScanResults.Add(scanResult);
-                                }
+                                List<ScanResultViewModel> list = new List<ScanResultViewModel>();
+                                for (int i = 0; i < chunkSize && this.resultBuffer.TryDequeue(out ScanResultViewModel? scanResult); i++)
+                                    list.Add(scanResult);
+
+                                this.ScanResults.AddRange(list);
 
                                 progress.CompletionState.OnProgress(1.0);
                                 try {
@@ -648,7 +652,7 @@ public class ScanningProcessor {
                                     return;
                                 }
                             }
-                        });
+                        }, token: CancellationToken.None);
                     }
 
                     if (context.HasConnectionError) {
@@ -729,6 +733,10 @@ public class ScanningProcessor {
             throw new InvalidOperationException("Already refreshing");
         }
 
+        if (this.MemoryEngine.IsShuttingDown) {
+            return;
+        }
+        
         IConsoleConnection connection = this.MemoryEngine.Connection ?? throw new InvalidOperationException("No connection present");
 
         uint max = BasicApplicationConfiguration.Instance.MaxRowsBeforeDisableAutoRefresh;

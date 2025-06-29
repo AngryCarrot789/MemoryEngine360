@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -460,10 +461,7 @@ public partial class EngineView : UserControl, IEngineUI {
                                 engine.ScanningProcessor.NumericScanType = NumericScanType.Between;
                                 engine.ScanningProcessor.InputA = (p1_x - radius).ToString("F4");
                                 engine.ScanningProcessor.InputB = (p1_x + radius).ToString("F4");
-                                foreach ((uint addr, float val) in results) {
-                                    engine.ScanningProcessor.ScanResults.Add(new ScanResultViewModel(engine.ScanningProcessor, addr, DataType.Float, NumericDisplayType.Normal, StringType.ASCII, new DataValueFloat(val)));
-                                }
-
+                                engine.ScanningProcessor.ScanResults.AddRange(results.Select(x => new ScanResultViewModel(engine.ScanningProcessor, x.Item1, DataType.Float, NumericDisplayType.Normal, StringType.ASCII, new DataValueFloat(x.Item2))));
                                 engine.ScanningProcessor.HasDoneFirstScan = true;
                             }
                             else {
