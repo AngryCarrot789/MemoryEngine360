@@ -44,6 +44,7 @@ using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
+using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
@@ -329,22 +330,25 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     }
 
     private void OnDataInspectorNumericTextBoxKeyDown(object? sender, KeyEventArgs e) {
-        if (e.Key != Key.Enter) {
+        TextBox tb = (TextBox) sender!;
+        if (e.Key == Key.Escape) {
+            VisualTreeUtils.TryMoveFocusUpwards(tb);
             return;
         }
-
-        TextBox tb = (TextBox) sender!;
-        switch (tb.Name) {
-            case nameof(this.PART_Int8):   this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Byte, false)); break;
-            case nameof(this.PART_UInt8):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Byte, true)); break;
-            case nameof(this.PART_Int16):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int16, false)); break;
-            case nameof(this.PART_UInt16): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int16, true)); break;
-            case nameof(this.PART_Int32):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int32, false)); break;
-            case nameof(this.PART_UInt32): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int32, true)); break;
-            case nameof(this.PART_Int64):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int64, false)); break;
-            case nameof(this.PART_UInt64): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int64, true)); break;
-            case nameof(this.PART_Float):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Float, false)); break;
-            case nameof(this.PART_Double): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Double, false)); break;
+        
+        if (e.Key == Key.Enter) {
+            switch (tb.Name) {
+                case nameof(this.PART_Int8):   this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Byte, false)); break;
+                case nameof(this.PART_UInt8):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Byte, true)); break;
+                case nameof(this.PART_Int16):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int16, false)); break;
+                case nameof(this.PART_UInt16): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int16, true)); break;
+                case nameof(this.PART_Int32):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int32, false)); break;
+                case nameof(this.PART_UInt32): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int32, true)); break;
+                case nameof(this.PART_Int64):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int64, false)); break;
+                case nameof(this.PART_UInt64): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int64, true)); break;
+                case nameof(this.PART_Float):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Float, false)); break;
+                case nameof(this.PART_Double): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Double, false)); break;
+            }
         }
     }
 
@@ -400,12 +404,12 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                         if (this.PART_ToggleShowChanges.IsChecked == true)
                             this.changeManager.ProcessChanges((uint) caretIndex, buffer, buffer.Length);
                         this.myDocument!.WriteBytes((uint) caretIndex, buffer);
-
-                        this.UpdateDataInspector();
                     }
                 }
             }
         });
+
+        this.UpdateDataInspector();
     }
 
     private async Task PerformOperationBetweenAutoRefresh(Func<Task> operation) {
@@ -497,7 +501,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 // Update initial text
                 completion.OnCompletionValueChanged();
                 byte[] buffer = new byte[info.Length];
-                
+
                 try {
                     await c.ReadBytes(info.StartAddress, buffer, 0, buffer.Length, 0x10000, completion, task.CancellationToken);
                 }
@@ -507,7 +511,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 }
 
                 task.Progress.Text = "Unfreezing console...";
-                
+
                 try {
                     if (c is IHaveIceCubes)
                         await ((IHaveIceCubes) c).DebugUnFreeze();
