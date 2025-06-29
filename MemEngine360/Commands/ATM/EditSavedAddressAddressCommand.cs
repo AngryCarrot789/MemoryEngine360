@@ -51,7 +51,7 @@ public class EditSavedAddressAddressCommand : Command {
                 if (!MemoryAddressUtils.TryParse(a.Input, out _, out string? err))
                     a.Errors.Add(err!);
             },
-            Footer = "Pointer format is Base->[Offset1]->[Offset N]"
+            Footer = "Pointer format is Base->Offset 1->Offset N"
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) == true) {

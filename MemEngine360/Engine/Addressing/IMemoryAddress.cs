@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using MemEngine360.Connections;
@@ -42,17 +41,13 @@ public static class MemoryAddressUtils {
 
         // 820002CD
         // 820002CD->25C->40->118
-        uint baseAddress;
         ReadOnlySpan<char> span;
         List<int> offsets = new List<int>();
         int firstOffset = input.IndexOf("->", StringComparison.Ordinal);
-        if (firstOffset == -1) {
-            if (!uint.TryParse(input, NumberStyles.HexNumber, null, out baseAddress))
-                return (null, "Invalid base address: " + input);
-            return (new DynamicAddress(baseAddress, []), null);
-        }
+        if (firstOffset == -1)
+            return (null, "Missing dereference tokens \"->\"" + input);
         
-        if (!uint.TryParse(span = input.AsSpan(0, firstOffset), NumberStyles.HexNumber, null, out baseAddress))
+        if (!uint.TryParse(span = input.AsSpan(0, firstOffset), NumberStyles.HexNumber, null, out uint baseAddress))
             return (null, "Invalid base address: " + span.ToString());
         
         int idxPtrToken, idxBeginLastOffset = firstOffset + 2, offset;
