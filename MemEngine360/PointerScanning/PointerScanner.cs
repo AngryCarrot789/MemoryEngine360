@@ -284,9 +284,11 @@ public class PointerScanner {
                         List<KeyValuePair<uint, uint>> subList = this.basePointers.Skip(idx - 1).Take(count).ToList();
                         tasks.Add(Task.Factory.StartNew(() => {
                             foreach (KeyValuePair<uint, uint> entry in subList) {
+#if DEBUG
                                 try {
+#endif
                                     activity.CheckCancelled();
-                                    
+
                                     PointerPrivate pBase = new PointerPrivate(this.baseAddress, entry.Key - this.baseAddress, entry.Value);
                                     // if (pBase.offset > this.maximumOffset) {
                                     //     continue;
@@ -301,8 +303,8 @@ public class PointerScanner {
                                     }
 
                                     activity.Progress.CompletionState.OnProgress(1);
-                                }
 #if DEBUG
+                                }
                                 catch (OperationCanceledException) {
                                     throw;
                                 }
