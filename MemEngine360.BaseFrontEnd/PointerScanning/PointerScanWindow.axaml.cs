@@ -25,7 +25,10 @@ using Avalonia.Controls;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.PointerScanning;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.ToolTips;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
@@ -33,21 +36,24 @@ using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Commands;
-using Pointer = MemEngine360.PointerScanning.Pointer;
 
 namespace MemEngine360.BaseFrontEnd.PointerScanning;
 
 public partial class PointerScanWindow : DesktopWindow {
+    public static readonly DataKey<PointerScanner> PointerScannerDataKey = DataKey<PointerScanner>.Create(nameof(PointerScanner));
+    
     public static readonly StyledProperty<PointerScanner?> PointerScannerProperty = AvaloniaProperty.Register<PointerScanWindow, PointerScanner?>(nameof(PointerScanner));
     
     private readonly IBinder<PointerScanner> binder_AddressableBase = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.AddressableBaseChanged), b => b.Model.AddressableBase.ToString("X8"), (b, t) => ParseUIntHelper(b, t, "Invalid Base Address", (string s, out uint value) => uint.TryParse(s, NumberStyles.HexNumber, null, out value), (m, v) => m.AddressableBase = v));
     private readonly IBinder<PointerScanner> binder_AddressableLength = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.AddressableLengthChanged), b => b.Model.AddressableLength.ToString("X8"), (b, t) => ParseUIntHelper(b, t, "Invalid Length", (string s, out uint value) => uint.TryParse(s, NumberStyles.HexNumber, null, out value), (m, v) => m.AddressableLength = v));
     private readonly IBinder<PointerScanner> binder_MaxDepth = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.MaxDepthChanged), b => b.Model.MaxDepth.ToString(), (b, t) => ParseUIntHelper(b, t, "Invalid Max Depth", (string s, out byte value) => byte.TryParse(s, out value), (m, v) => m.MaxDepth = v));
-    private readonly IBinder<PointerScanner> binder_MaximumOffset = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.MaximumOffsetChanged), b => b.Model.MaximumOffset.ToString("X8"), (b, t) => ParseUIntHelper(b, t, "Invalid Maximum Offset", (string s, out uint value) => uint.TryParse(s, NumberStyles.HexNumber, null, out value), (m, v) => m.MaximumOffset = v));
+    private readonly IBinder<PointerScanner> binder_MinimumOffset = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.MinimumOffsetChanged), b => b.Model.MinimumOffset.ToString("X8"), (b, t) => ParseUIntHelper(b, t, "Invalid Offset", (string s, out uint value) => uint.TryParse(s, NumberStyles.HexNumber, null, out value), (m, v) => m.MinimumOffset = v));
+    private readonly IBinder<PointerScanner> binder_PrimaryMaximumOffset = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.PrimaryMaximumOffsetChanged), b => b.Model.PrimaryMaximumOffset.ToString("X8"), (b, t) => ParseUIntHelper(b, t, "Invalid Offset", (string s, out uint value) => uint.TryParse(s, NumberStyles.HexNumber, null, out value), (m, v) => m.PrimaryMaximumOffset = v));
+    private readonly IBinder<PointerScanner> binder_SecondaryMaximumOffset = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.SecondaryMaximumOffsetChanged), b => b.Model.SecondaryMaximumOffset.ToString("X8"), (b, t) => ParseUIntHelper(b, t, "Invalid Offset", (string s, out uint value) => uint.TryParse(s, NumberStyles.HexNumber, null, out value), (m, v) => m.SecondaryMaximumOffset = v));
     private readonly IBinder<PointerScanner> binder_SearchAddress = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.SearchAddressChanged), b => b.Model.SearchAddress.ToString("X8"), (b, t) => ParseUIntHelper(b, t, "Invalid Search Address", (string s, out uint value) => uint.TryParse(s, NumberStyles.HexNumber, null, out value), (m, v) => m.SearchAddress = v));
     private readonly IBinder<PointerScanner> binder_Alignment = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.AlignmentChanged), b => b.Model.Alignment.ToString(), (b, t) => ParseUIntHelper<uint>(b, t, "Invalid Alignment", uint.TryParse, (m, v) => m.Alignment = v));
     private readonly IBinder<PointerScanner> binder_StatusBar = new EventUpdateBinder<PointerScanner>(nameof(PointerScanner.HasPointerMapChanged), b => ((TextBlock) b.Control).Text = b.Model.HasPointerMap ? $"Pointer map loaded with {b.Model.PointerMap.Count}" : "No pointer map loaded");
-    private ObservableItemProcessorIndexing<ImmutableArray<Pointer>>? listObservable;
+    private ObservableItemProcessorIndexing<DynamicAddress>? listObservable;
 
     private delegate bool TryParseDelegate<T>(string input, [NotNullWhen(true)] out T? value);
     
@@ -68,11 +74,12 @@ public partial class PointerScanWindow : DesktopWindow {
     
     public PointerScanWindow() {
         this.InitializeComponent();
-
         this.binder_AddressableBase.AttachControl(this.PART_AddressableBase);
         this.binder_AddressableLength.AttachControl(this.PART_AddressableLength);
         this.binder_MaxDepth.AttachControl(this.PART_MaxDepth);
-        this.binder_MaximumOffset.AttachControl(this.PART_MaximumOffset);
+        this.binder_MinimumOffset.AttachControl(this.PART_MinimumOffset);
+        this.binder_PrimaryMaximumOffset.AttachControl(this.PART_PrimaryMaximumOffset);
+        this.binder_SecondaryMaximumOffset.AttachControl(this.PART_SecondaryMaximumOffset);
         this.binder_SearchAddress.AttachControl(this.PART_SearchAddress);
         this.binder_Alignment.AttachControl(this.PART_Alignment);
         this.binder_StatusBar.AttachControl(this.PART_StatusBar);
@@ -123,9 +130,11 @@ public partial class PointerScanWindow : DesktopWindow {
         
         this.PART_RunScan.Command = new AsyncRelayCommand(() => {
             PointerScanner? scanner = this.PointerScanner;
-            if (scanner == null) {
+            if (scanner == null)
                 return Task.CompletedTask;
-            }
+
+            if (!scanner.HasPointerMap)
+                return IMessageDialogService.Instance.ShowMessage("Not ready", "Memory Dump file not loaded.");
 
             return scanner.Run();
         });
@@ -139,26 +148,30 @@ public partial class PointerScanWindow : DesktopWindow {
         this.binder_AddressableBase.SwitchModel(newValue);
         this.binder_AddressableLength.SwitchModel(newValue);
         this.binder_MaxDepth.SwitchModel(newValue);
-        this.binder_MaximumOffset.SwitchModel(newValue);
+        this.binder_MinimumOffset.SwitchModel(newValue);
+        this.binder_PrimaryMaximumOffset.SwitchModel(newValue);
+        this.binder_SecondaryMaximumOffset.SwitchModel(newValue);
         this.binder_SearchAddress.SwitchModel(newValue);
         this.binder_Alignment.SwitchModel(newValue);
         this.binder_StatusBar.SwitchModel(newValue);
         this.listObservable?.Dispose();
         this.listObservable = null;
-
+        
         if (newValue != null)
             this.listObservable = ObservableItemProcessor.MakeIndexable(newValue.PointerChain, this.OnItemAdded, this.OnItemRemoved, this.OnItemMoved);
+        
+        DataManager.GetContextData(this).Set(PointerScannerDataKey, newValue);
     }
 
-    private void OnItemAdded(object sender, int index, ImmutableArray<Pointer> ptrs) {
-        this.PART_ScanResults.Items.Add(new ListBoxItem() { Content = new DynamicAddress(ptrs[0].Address, ptrs.Select(x => (int) x.Offset)) });
+    private void OnItemAdded(object sender, int index, DynamicAddress ptrs) {
+        this.PART_ScanResults.Items.Add(new ListBoxItem() { Content = ptrs, [ToolTipEx.TipTypeProperty] = typeof(PointerScanResultToolTip) });
     }
     
-    private void OnItemRemoved(object sender, int index, ImmutableArray<Pointer> item) {
+    private void OnItemRemoved(object sender, int index, DynamicAddress item) {
         this.PART_ScanResults.Items.RemoveAt(index);
     }
     
-    private void OnItemMoved(object sender, int oldindex, int newindex, ImmutableArray<Pointer> item) {
+    private void OnItemMoved(object sender, int oldindex, int newindex, DynamicAddress item) {
         if (newindex < 0 || newindex >= this.PART_ScanResults.Items.Count)
             throw new IndexOutOfRangeException($"{nameof(newindex)} is not within range: {(newindex < 0 ? "less than zero" : "greater than list length")} ({newindex})");
         

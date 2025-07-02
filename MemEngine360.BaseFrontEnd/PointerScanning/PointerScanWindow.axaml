@@ -28,8 +28,12 @@
                     <TextBox x:Name="PART_AddressableLength" Padding="4,2" tt:ToolTipEx.Tip="The amount of bytes, relative to addressable base, that contains the region that can be pointed to"/>
                     <TextBlock Text="Max Depth"/>
                     <TextBox x:Name="PART_MaxDepth" Padding="4,2" tt:ToolTipEx.Tip="The maximum number of pointer hops"/>
-                    <TextBlock Text="Maximum Offset"/>
-                    <TextBox x:Name="PART_MaximumOffset" Padding="4,2" tt:ToolTipEx.Tip="The maximum (positive) distance from a pointer the offset (that locates a pointer) can be"/>
+                    <TextBlock Text="Minimum Offset (from base pointer)"/>
+                    <TextBox x:Name="PART_MinimumOffset" Padding="4,2" tt:ToolTipEx.Tip="The minimum (positive) distance from a pointer the offset (that locates a pointer) has to be from the current base pointer"/>
+                    <TextBlock Text="Maximum Offset (current depth &lt; 2)"/>
+                    <TextBox x:Name="PART_PrimaryMaximumOffset" Padding="4,2" tt:ToolTipEx.Tip="The maximum (positive) distance from a pointer the offset (that locates a pointer) can be, when the current scanning depth is less than 2"/>
+                    <TextBlock Text="Maximum Offset (current depth &gt;= 2)"/>
+                    <TextBox x:Name="PART_SecondaryMaximumOffset" Padding="4,2" tt:ToolTipEx.Tip="The maximum (positive) distance from a pointer the offset (that locates a pointer) can be, when the current scanning depth is greater or equal to 2"/>
                     <TextBlock Text="Search Address"/>
                     <TextBox x:Name="PART_SearchAddress" Padding="4,2" tt:ToolTipEx.Tip="The address that we search for"/>
                     <TextBlock Text="Alignment (pointer size)"/>

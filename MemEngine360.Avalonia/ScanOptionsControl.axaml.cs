@@ -59,9 +59,9 @@ public partial class ScanOptionsControl : UserControl {
         view.PART_TabItemInteger.IsEnabled = !scanAny;
         view.PART_TabItemFloat.IsEnabled = !scanAny;
         view.PART_TabItemString.IsEnabled = !scanAny;
-        view.PART_UseFirstValue.IsEnabled = b.Model.HasDoneFirstScan;
-        view.PART_UsePreviousValue.IsEnabled = b.Model.HasDoneFirstScan;
-        view.PART_ToggleUnknownDataType.IsEnabled = !b.Model.HasDoneFirstScan || b.Model.FirstScanWasUnknownDataType;
+        view.PART_UseFirstValue.IsEnabled = !scanAny && b.Model.HasDoneFirstScan;
+        view.PART_UsePreviousValue.IsEnabled = !scanAny && b.Model.HasDoneFirstScan;
+        view.PART_ToggleUnknownDataType.IsEnabled = !b.Model.HasDoneFirstScan;
     });
 
     private DataType lastIntegerDataType = DataType.Int32, lastFloatDataType = DataType.Float;
@@ -240,8 +240,9 @@ public partial class ScanOptionsControl : UserControl {
         ScanningProcessor sp = engine.ScanningProcessor;
         bool isNumeric = sp.DataType.IsNumeric();
         bool isBetween = sp.NumericScanType.IsBetween();
+        bool isAny = sp.ScanForAnyDataType;
 
-        if (isBetween && isNumeric) {
+        if (isBetween && isNumeric && !isAny) {
             this.PART_Input_Value1.IsVisible = false;
             this.PART_Grid_Input_Between.IsVisible = true;
             this.PART_ValueOrBetweenTextBlock.Text = "Between";
@@ -258,7 +259,7 @@ public partial class ScanOptionsControl : UserControl {
             this.PART_Input_Value1.IsVisible = true;
             this.PART_Grid_Input_Between.IsVisible = false;
             this.PART_ValueOrBetweenTextBlock.Text = "Value";
-            this.PART_UseFirstOrPrevButtonGrid.IsVisible = isNumeric;
+            this.PART_UseFirstOrPrevButtonGrid.IsVisible = !isAny && isNumeric;
 
             if (this.inputBetweenABinder.IsFullyAttached)
                 this.inputBetweenABinder.Detach();

@@ -18,7 +18,8 @@
 // 
 
 using System.Buffers.Binary;
-using System.Collections.Immutable;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Engine;
@@ -34,11 +35,15 @@ namespace MemEngine360.PointerScanning;
 public delegate void PointerScannerEventHandler(PointerScanner sender);
 
 public class PointerScanner {
+    private readonly object DummyNonNull = new object();
+
     private uint addressableBase;
     private uint addressableLength;
     private uint addressableEnd;
     private byte maxDepth = 6;
-    private uint maximumOffset = 0x2000; // 8192 -- most structs in most games and programs probably won't exceed this
+    private uint minimumOffset = 4; // using 4 might help with avoiding linked lists 
+    private uint primaryMaximumOffset = 0x4000; // most structs/classes won't exceed 16KB 
+    private uint secondaryMaximumOffset = 0x4000;
     private uint searchAddress;
     private uint alignment = 4;
     private bool hasPointerMap;
@@ -80,19 +85,35 @@ public class PointerScanner {
     }
 
     /// <summary>
+    /// Same as <see cref="PrimaryMaximumOffset"/> but for depths of >= 2
+    /// </summary>
+    public uint MinimumOffset {
+        get => this.minimumOffset;
+        set => PropertyHelper.SetAndRaiseINE(ref this.minimumOffset, value, this, static t => t.MinimumOffsetChanged?.Invoke(t));
+    }
+
+    /// <summary>
     /// Gets or sets the maximum offset from a pointer that another pointer can be. Default value is 0x2000 (8192).
     /// <para>
     /// For example, say the actual pointer chain of a value you're interested in is <c><![CDATA[ 0x8262AA00 + 0xFC -> +0x24 ]]></c>,
     /// and the maximum offset is FF, this value can be discovered by the pointer scan. But If the pointer chain is
-    /// say <c><![CDATA[ 0x8262AA00 +0xFc -> +0xEF2 ]]></c>, then it cannot be discovered, because 0xEF2 exceeds <see cref="MaximumOffset"/>
+    /// say <c><![CDATA[ 0x8262AA00 +0xFc -> +0xEF2 ]]></c>, then it cannot be discovered, because 0xEF2 exceeds <see cref="PrimaryMaximumOffset"/>
     /// </para>
     /// <para>
     /// Therefore, ideally this value should be pretty big but not so big that the scanning takes the rest of the universe's lifetime to complete
     /// </para>
     /// </summary>
-    public uint MaximumOffset {
-        get => this.maximumOffset;
-        set => PropertyHelper.SetAndRaiseINE(ref this.maximumOffset, value, this, static t => t.MaximumOffsetChanged?.Invoke(t));
+    public uint PrimaryMaximumOffset {
+        get => this.primaryMaximumOffset;
+        set => PropertyHelper.SetAndRaiseINE(ref this.primaryMaximumOffset, value, this, static t => t.PrimaryMaximumOffsetChanged?.Invoke(t));
+    }
+
+    /// <summary>
+    /// Same as <see cref="PrimaryMaximumOffset"/> but for depths of >= 2
+    /// </summary>
+    public uint SecondaryMaximumOffset {
+        get => this.secondaryMaximumOffset;
+        set => PropertyHelper.SetAndRaiseINE(ref this.secondaryMaximumOffset, value, this, static t => t.SecondaryMaximumOffsetChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -121,7 +142,9 @@ public class PointerScanner {
     public event PointerScannerEventHandler? AddressableBaseChanged;
     public event PointerScannerEventHandler? AddressableLengthChanged;
     public event PointerScannerEventHandler? MaxDepthChanged;
-    public event PointerScannerEventHandler? MaximumOffsetChanged;
+    public event PointerScannerEventHandler? MinimumOffsetChanged;
+    public event PointerScannerEventHandler? PrimaryMaximumOffsetChanged;
+    public event PointerScannerEventHandler? SecondaryMaximumOffsetChanged;
     public event PointerScannerEventHandler? SearchAddressChanged;
     public event PointerScannerEventHandler? AlignmentChanged;
     public event PointerScannerEventHandler? HasPointerMapChanged;
@@ -129,12 +152,14 @@ public class PointerScanner {
     private IntPtr hMemoryDump;
     private IntPtr cbMemoryDump;
     private readonly SortedList<uint, uint> basePointers; // (base+offset) -> addr
-    private readonly HashSet<uint> nonPointers; // a set of pointers that do not resolve to the 
-    private readonly HashSet<uint> visitedPointers; // a set of pointers that have already been resolved 
+
+    private readonly ConcurrentDictionary<uint, object> nonPointers; // a set of pointers that do not resolve to the 
+
+    // private readonly ConcurrentDictionary<uint, object> visitedPointers; // a set of pointers that have already been resolved 
     private bool isMemoryLittleEndian;
     private uint baseAddress;
 
-    public ObservableList<ImmutableArray<Pointer>> PointerChain { get; } = new ObservableList<ImmutableArray<Pointer>>();
+    public ObservableList<DynamicAddress> PointerChain { get; } = new ObservableList<DynamicAddress>();
 
     public MemoryEngine MemoryEngine { get; }
 
@@ -157,8 +182,8 @@ public class PointerScanner {
     public PointerScanner(MemoryEngine memoryEngine) {
         this.MemoryEngine = memoryEngine;
         this.basePointers = new SortedList<uint, uint>(100000);
-        this.nonPointers = new HashSet<uint>(400000);
-        this.visitedPointers = new HashSet<uint>(100000);
+        this.nonPointers = new ConcurrentDictionary<uint, object>(Environment.ProcessorCount, 400000);
+        // this.visitedPointers = new ConcurrentDictionary<uint, object>(Environment.ProcessorCount, 100000);
     }
 
     public async Task Run() {
@@ -169,6 +194,8 @@ public class PointerScanner {
         if (!this.HasPointerMap) {
             throw new InvalidOperationException("No pointer map loaded");
         }
+
+        this.PointerChain.Clear();
 
         using CancellationTokenSource cts = new CancellationTokenSource();
 
@@ -189,17 +216,30 @@ public class PointerScanner {
                 return;
             }
 
-            Task task = tcs.Task;
-            while (!task.IsCompleted) {
-                StringBuilder sb = new StringBuilder(64);
-                (List<PointerPrivate> list, int depth)? currChain = options.currentChain;
-                if (currChain.HasValue) {
-                    List<PointerPrivate> chain = currChain.Value.list;
-                    DynamicAddress address = new DynamicAddress(chain[0].addr, chain.Select(x => (int) x.offset));
-                    options.ActivityTask.Progress.Text = $"{address} ({currChain.Value.depth} deep)";
-                }
+            try {
+                while (!tcs.Task.IsCompleted) {
+                    (List<PointerPrivate> list, int depth)? currChain = options.currentChain;
+                    if (currChain.HasValue) {
+                        List<PointerPrivate> chain = currChain.Value.list;
+                        if (chain.Count > 1) {
+                            DynamicAddress address = new DynamicAddress(chain[0].addr + chain[0].offset, chain.Skip(1).Select(x => (int) x.offset));
+                            options.ActivityTask.Progress.Text = $"{address} ({currChain.Value.depth} deep)";
+                        }
+                        else if (chain.Count > 0) {
+                            options.ActivityTask.Progress.Text = $"{(chain[0].addr + chain[0].offset):X8} ({currChain.Value.depth} deep)";
+                        }
+                        else {
+                            options.ActivityTask.Progress.Text = $"Idle...";
+                        }
+                    }
 
-                await Task.Delay(100);
+                    await Task.Delay(100, cts.Token);
+                }
+            }
+            catch (OperationCanceledException) {
+            }
+            catch (Exception e) { // oops...
+                Debugger.Break();
             }
 
             try {
@@ -211,7 +251,7 @@ public class PointerScanner {
             catch (Exception e) {
                 await IMessageDialogService.Instance.ShowMessage("Scan Error", "Error encountered while scanning", e.GetToString());
             }
-        }, new DefaultProgressTracker(DispatchPriority.Background), cts, TaskCreationOptions.LongRunning);
+        }, new DefaultProgressTracker(DispatchPriority.Background), cts);
     }
 
     private sealed class PointerScanThreadOptions {
@@ -232,55 +272,70 @@ public class PointerScanner {
         activity.Progress.Text = "Running full pointer scan...";
 
         try {
+            this.nonPointers.Clear();
             if (this.basePointers.Count > 0) {
                 using (activity.Progress.CompletionState.PushCompletionRange(0, 1.0 / this.basePointers.Count)) {
                     List<Task> tasks = new List<Task>();
 
-                    int split = (this.basePointers.Count / 10) + 1 /* CPU count */;
+                    int split = (this.basePointers.Count / (Environment.ProcessorCount / 2)) + 1 /* CPU count / 2 */;
                     for (int i = 0; i < this.basePointers.Count; i += split) {
                         int idx = i, endIdx = Math.Min(i + split, this.basePointers.Count);
                         int count = endIdx - i;
                         List<KeyValuePair<uint, uint>> subList = this.basePointers.Skip(idx - 1).Take(count).ToList();
-                        tasks.Add(Task.Run(() => {
+                        tasks.Add(Task.Factory.StartNew(() => {
                             foreach (KeyValuePair<uint, uint> entry in subList) {
-                                activity.CheckCancelled();
+                                try {
+                                    activity.CheckCancelled();
+                                    
+                                    PointerPrivate pBase = new PointerPrivate(this.baseAddress, entry.Key - this.baseAddress, entry.Value);
+                                    // if (pBase.offset > this.maximumOffset) {
+                                    //     continue;
+                                    // }
 
-                                PointerPrivate pBase = new PointerPrivate(this.baseAddress, entry.Key - this.baseAddress, entry.Value);
-                                // if (pBase.offset > this.maximumOffset) {
-                                //     continue;
-                                // }
+                                    List<PointerPrivate> chain = new List<PointerPrivate>() { pBase };
+                                    if (pBase.value == this.searchAddress) {
+                                        this.AddPointerResult(new DynamicAddress(chain[0].addr + chain[0].offset, chain.Skip(1).Select(x => (int) x.offset)));
+                                    }
+                                    else if (0 < this.maxDepth) {
+                                        this.FindNearbyPointers(chain, 1, this.primaryMaximumOffset, options);
+                                    }
 
-                                List<PointerPrivate> chain = new List<PointerPrivate>() { pBase };
-                                if (pBase.value == this.searchAddress) {
-                                    this.AddPointerResult(chain.Select(x => new Pointer(x.addr, x.offset)).ToImmutableArray());
+                                    activity.Progress.CompletionState.OnProgress(1);
                                 }
-                                else if (0 < this.maxDepth) {
-                                    this.FindNearbyPointers(chain, 1, options);
+#if DEBUG
+                                catch (OperationCanceledException) {
+                                    throw;
                                 }
-
-                                activity.Progress.CompletionState.OnProgress(1);
+                                catch (Exception e) {
+                                    Debugger.Break();
+                                    throw;
+                                }
+#endif
                             }
-                        }));
+                        }, TaskCreationOptions.LongRunning));
                     }
 
                     Task.WhenAll(tasks).Wait();
                 }
             }
 
-            options.completion.SetResult();
+            options.completion.TrySetResult();
         }
         catch (AggregateException e) when (e.InnerExceptions.All(x => x is OperationCanceledException)) {
-            options.completion.SetCanceled(((OperationCanceledException) e.InnerExceptions.First()).CancellationToken);
+            options.completion.TrySetCanceled(((OperationCanceledException) e.InnerExceptions.First()).CancellationToken);
+            activity.TryCancel();
         }
         catch (OperationCanceledException e) {
-            options.completion.SetCanceled(e.CancellationToken);
+            options.completion.TrySetCanceled(e.CancellationToken);
+            activity.TryCancel();
         }
         catch (Exception e) {
-            options.completion.SetException(e);
+            options.completion.TrySetException(e);
+            activity.TryCancel();
         }
     }
 
-    private void FindNearbyPointers(List<PointerPrivate> chain, byte currDepth, PointerScanThreadOptions options) {
+    private void FindNearbyPointers(List<PointerPrivate> chain, byte currDepth, uint maxOffset, PointerScanThreadOptions options) {
         options.ActivityTask.CheckCancelled();
         PointerPrivate basePtr = chain[chain.Count - 1];
 
@@ -289,66 +344,43 @@ public class PointerScanner {
         }
 
         uint align = this.alignment;
-        for (uint offset = 0; offset <= this.maximumOffset; offset += align) {
-            // lock (this.nonPointers) {
-            //     for (int i = chain.Count - 1; i >= 0; i--) {
-            //         if (this.nonPointers.Contains(chain[i].value)) {
-            //             return;
-            //         }
-            //     }   
-            // }
+        for (uint offset = this.minimumOffset; offset <= maxOffset; offset += align) {
+            for (int i = chain.Count - 1; i >= 0; i--) {
+                if (this.nonPointers.ContainsKey(chain[i].value)) {
+                    return;
+                }
+            }
 
             uint srcAddress = basePtr.value + offset;
             if (srcAddress == this.searchAddress) {
-                this.AddPointerResult(new List<PointerPrivate>(chain) {
-                                          new PointerPrivate(basePtr.value, offset, this.TryReadU32(srcAddress, out uint value) ? value : 0)
-                                      }.
-                                      Select(x => new Pointer(x.addr, x.offset)).
-                                      ToImmutableArray());
+                this.AddPointerResult(new DynamicAddress(chain[0].addr + chain[0].offset, chain.Skip(1).Select(x => (int) x.offset).Append((int) offset)));
             }
             else {
-                lock (this.nonPointers) {
-                    if (this.nonPointers.Contains(srcAddress)) {
-                        continue;
-                    }   
+                if (this.nonPointers.ContainsKey(srcAddress)) {
+                    continue;
                 }
 
                 if (this.basePointers.TryGetValue(srcAddress, out uint dstAddress /* the address pointed to by srcAddress */)) {
                     PointerPrivate dstPtr = new PointerPrivate(basePtr.value, offset, dstAddress);
                     if (dstAddress == this.searchAddress) {
-                        this.AddPointerResult(new List<PointerPrivate>(chain) { dstPtr }.
-                                              Select(x => new Pointer(x.addr, x.offset)).
-                                              ToImmutableArray());
+                        this.AddPointerResult(new DynamicAddress(chain[0].addr + chain[0].offset, chain.Skip(1).Select(x => (int) x.offset).Append((int) dstPtr.offset)));
                     }
-                    else {
-                        if (currDepth < this.maxDepth) {
-                            bool state = true;
-                            lock (this.nonPointers) {
-                                if (this.nonPointers.Contains(dstAddress)) {
-                                    state = false;
-                                }
-                            }
-
-                            if (state) {
-                                // if (this.visitedPointers.Add(srcAddress)) {
-                                chain.Add(dstPtr);
-                                this.FindNearbyPointers(chain, (byte) (currDepth + 1), options);
-                                chain.RemoveAt(chain.Count - 1); // backtrack
-                                // }
-                            }
+                    else if (currDepth < this.maxDepth) {
+                        if (!this.nonPointers.ContainsKey(dstAddress)) {
+                            chain.Add(dstPtr);
+                            this.FindNearbyPointers(chain, (byte) (currDepth + 1), currDepth == 1 ? this.secondaryMaximumOffset : this.primaryMaximumOffset, options);
+                            chain.RemoveAt(chain.Count - 1); // backtrack
                         }
                     }
                 }
                 else {
-                    lock (this.nonPointers) {
-                        this.nonPointers.Add(srcAddress);
-                    }
+                    this.nonPointers[srcAddress] = this.DummyNonNull;
                 }
             }
         }
     }
 
-    private void AddPointerResult(ImmutableArray<Pointer> result) {
+    private void AddPointerResult(DynamicAddress result) {
         ApplicationPFX.Instance.Dispatcher.Invoke(() => this.PointerChain.Add(result));
     }
 
@@ -470,7 +502,7 @@ public class PointerScanner {
     public void Clear() {
         this.basePointers.Clear();
         this.nonPointers.Clear();
-        this.visitedPointers.Clear();
+        // this.visitedPointers.Clear();
         this.PointerChain.Clear();
     }
 }

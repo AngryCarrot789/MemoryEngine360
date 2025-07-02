@@ -24,7 +24,18 @@ using MemEngine360.Connections;
 namespace MemEngine360.Engine.Addressing;
 
 /// <summary>
-/// A memory address that is resolved from a list of pointer offsets
+/// A memory address that is resolved from a list of pointer offsets. The string representation of a dynamic address
+/// looks something like <c>8200FC24->FF4C->144->2C</c>.
+/// <para>
+/// To resolve the pointer, we must first read a U32 at the base <c>8200FC24</c> which gets us A.
+/// We then add <c>FF4C</c> to A and read a U32 at that value, which gets us B.
+/// We then add <c>144</c> to B and read a U32 at that value, which gets us C.
+/// We then add <c>2C</c> to C and that results in the final address which points to the data we want.
+/// </para>
+/// <para>
+/// Or to put is in as little words as possible: Read U32 at base address, then continually add the
+/// offsets and read U32s, until the last offset in which case just add it to the last read value
+/// </para>
 /// </summary>
 public sealed class DynamicAddress : IMemoryAddress, IEquatable<DynamicAddress> {
     /// <summary>

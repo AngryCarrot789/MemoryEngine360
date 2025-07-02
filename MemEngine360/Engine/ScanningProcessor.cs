@@ -495,7 +495,7 @@ public class ScanningProcessor {
             bool pauseDuringScan = this.pauseConsoleDuringScan;
             bool scanForAnything = this.ScanForAnyDataType;
             ScanningContext context =
-                scanForAnything
+                (this.hasDoneFirstScan ? this.FirstScanWasUnknownDataType : scanForAnything)
                     ? new AnyTypeScanningContext(this)
                     : new DataTypedScanningContext(this);
 
