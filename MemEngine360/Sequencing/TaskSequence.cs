@@ -19,7 +19,6 @@
 
 using System.Diagnostics;
 using MemEngine360.Connections;
-using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
@@ -277,7 +276,7 @@ public sealed class TaskSequence {
     }
 
     private async Task<bool> CanRunForConditions(CancellationToken token) {
-        Dictionary<TypedAddress, IDataValue> cache = new Dictionary<TypedAddress, IDataValue>();
+        CachedConditionData cache = new CachedConditionData();
         bool isConditionMet = true;
         foreach (BaseSequenceCondition condition in this.Conditions) {
             if (condition.IsEnabled) {

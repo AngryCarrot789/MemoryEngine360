@@ -29,6 +29,8 @@ public interface IMemoryAddress {
     /// Gets whether this address is static and can therefore be resolved without needing to be connected to a console
     /// </summary>
     bool IsStatic { get; }
+
+    string ToString();
 }
 
 public static class MemoryAddressUtils {

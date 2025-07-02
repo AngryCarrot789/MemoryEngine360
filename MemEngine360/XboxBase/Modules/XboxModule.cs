@@ -31,7 +31,7 @@ public class XboxModule {
     private uint moduleSize;
     private uint originalModuleSize;
     private uint entryPoint;
-    private string peModuleName;
+    private string peModuleName = "";
 
     /// <summary>
     /// Gets or sets the shorthand name, typically the file name (e.g. default.xex). When set to an empty value

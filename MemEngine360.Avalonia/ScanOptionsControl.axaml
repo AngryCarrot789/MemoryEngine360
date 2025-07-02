@@ -55,7 +55,7 @@
                   Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.ScanTypeComboBox.Background}"
                   BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.ScanTypeComboBox.Border}"
                   Padding="4,1" VerticalContentAlignment="Center"
-                  ToolTip.Tip="Toggles scanning for any data type (aka 'unknown' data type). For example, if searching for 24, it might find an integer, float or string with a value of 24"/>
+                  ToolTip.Tip="Specified the type of data to search for"/>
         <ToggleButton x:Name="PART_ToggleUnknownDataType" 
                 Grid.Column="3" Grid.Row="2" 
                 Margin="3,0,0,0" 

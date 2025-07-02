@@ -17,7 +17,7 @@
         <TextBlock Padding="1,2" Text="Wait per chance"/>
         <TextBox x:Name="PART_WaitTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" Watermark="No waiting">
             <ToolTip.Tip>
-                <TextBlock>
+                <TextBlock TextWrapping="Wrap">
                     <Run Text="The amount of time to wait between tries to run. Default is nothing, meaning we do not run."/>
                     <LineBreak/>
                     <Run Text="If we don't get lucky. When set to a time however, we will keep trying until we get lucky"/>
@@ -27,7 +27,7 @@
         <TextBlock Padding="1,2" Text="Minimum tries"/>
         <TextBox x:Name="PART_MinimumTriesTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" VerticalContentAlignment="Center">
             <ToolTip.Tip>
-                <TextBlock>
+                <TextBlock TextWrapping="Wrap">
                     <Run Text="The minimum number of tries that must be attempted after a successful trigger before we can try to trigger again"/>
                     <LineBreak/>
                     <LineBreak/>

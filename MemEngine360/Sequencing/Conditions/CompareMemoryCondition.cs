@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Utils;
@@ -31,7 +32,7 @@ public delegate void CompareMemoryConditionEventHandler(CompareMemoryCondition s
 /// A sequencer condition that reads a value from the console and compares it to a constant value.
 /// </summary>
 public class CompareMemoryCondition : BaseSequenceCondition {
-    private uint address;
+    private IMemoryAddress address = StaticAddress.Zero;
     private CompareType compareType;
     private IDataValue? compareTo;
     private bool parseIntAsHex;
@@ -39,7 +40,7 @@ public class CompareMemoryCondition : BaseSequenceCondition {
     /// <summary>
     /// Gets or sets the address we read the value from
     /// </summary>
-    public uint Address {
+    public IMemoryAddress Address {
         get => this.address;
         set => PropertyHelper.SetAndRaiseINE(ref this.address, value, this, static t => t.AddressChanged?.Invoke(t));
     }
@@ -87,7 +88,7 @@ public class CompareMemoryCondition : BaseSequenceCondition {
     public CompareMemoryCondition() {
     }
 
-    protected override async Task<bool> IsConditionMetCore(SequenceExecutionContext ctx, Dictionary<TypedAddress, IDataValue> dataValues, CancellationToken token) {
+    protected override async Task<bool> IsConditionMetCore(SequenceExecutionContext ctx, CachedConditionData cache, CancellationToken token) {
         // store in local variable since IsConditonMet runs in a BGT, not main thread
         IDataValue? cmpVal = this.CompareTo;
         if (cmpVal == null) {
@@ -95,11 +96,16 @@ public class CompareMemoryCondition : BaseSequenceCondition {
             return true;
         }
 
-        uint addr = this.Address;
-        if (dataValues.TryGetValue(new TypedAddress(cmpVal.DataType, addr), out IDataValue? consoleValue)) {
-            
+        IMemoryAddress addr = this.Address;
+        if (!cache.TryGetAddress(addr, out uint actualAddress)) {
+            uint? resolved = await addr.TryResolveAddress(ctx.Connection);
+            if (!resolved.HasValue) 
+                return false; // Address is unresolvable, maybe pointer chain is invalid or wrong game or whatever.
+
+            actualAddress = resolved.Value;
         }
-        else {
+
+        if (!cache.TryGetDataValue(new TypedAddress(cmpVal.DataType, actualAddress), out IDataValue? consoleValue)) {
             IDisposable? busyToken = ctx.BusyToken;
             if (busyToken == null && !ctx.IsConnectionDedicated) {
                 ctx.Progress.Text = "Waiting for busy operations...";
@@ -112,8 +118,8 @@ public class CompareMemoryCondition : BaseSequenceCondition {
             }
 
             try {
-                consoleValue = await MemoryEngine.ReadDataValue(ctx.Connection, addr, cmpVal);
-                dataValues[new TypedAddress(consoleValue.DataType, addr)] = consoleValue;
+                consoleValue = await MemoryEngine.ReadDataValue(ctx.Connection, actualAddress, cmpVal);
+                cache[new TypedAddress(consoleValue.DataType, actualAddress)] = consoleValue;
             }
             // Do not catch Timeout/IO exceptions, instead, let task sequence handle it
             finally {

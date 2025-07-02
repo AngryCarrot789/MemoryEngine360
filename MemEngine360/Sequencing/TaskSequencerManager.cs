@@ -92,14 +92,14 @@ public class TaskSequencerManager {
 
             sequence.AddOperation(new DelayOperation(100));
             
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.WhileMet, Address = 0x8303A82A, CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.WhileNotMet, Address = 0x8303A82A, CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.ChangeToMet, Address = 0x8303A82A, CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.ChangeToNotMet, Address = 0x8303A82A, CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.WhileMetOnce, Address = 0x8303A82A, CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.WhileNotMetOnce, Address = 0x8303A82A, CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.ChangeToMetOnce, Address = 0x8303A82A, CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.ChangeToNotMetOnce, Address = 0x8303A82A, CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
+            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.WhileMet, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
+            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.WhileNotMet, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
+            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.ChangeToMet, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
+            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.ChangeToNotMet, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
+            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.WhileMetOnce, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
+            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.WhileNotMetOnce, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
+            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.ChangeToMetOnce, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
+            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.ChangeToNotMetOnce, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
             this.AddSequence(sequence);
         }
     }

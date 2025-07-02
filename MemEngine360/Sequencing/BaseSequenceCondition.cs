@@ -18,7 +18,6 @@
 // 
 
 using System.Diagnostics;
-using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing;
@@ -88,8 +87,8 @@ public abstract class BaseSequenceCondition {
         this.IsCurrentlyMet = false;
     }
 
-    public async Task<bool> IsConditionMet(SequenceExecutionContext ctx, Dictionary<TypedAddress, IDataValue> dataValues, CancellationToken token) {
-        bool isMet = await this.IsConditionMetCore(ctx, dataValues, token);
+    public async Task<bool> IsConditionMet(SequenceExecutionContext ctx, CachedConditionData cache, CancellationToken token) {
+        bool isMet = await this.IsConditionMetCore(ctx, cache, token);
         bool isMetFinal;
         lock (this.lockObject) {
             bool lastIsMet = this.lastMetState;
@@ -140,13 +139,10 @@ public abstract class BaseSequenceCondition {
     /// Checks if the condition is currently met for the current running state of the task sequence
     /// </summary>
     /// <param name="ctx">The execution context for the sequence</param>
-    /// <param name="dataValues">
-    ///     A dictionary of cached data values, keyed by a data type and address. This prevents having to re-reading
-    ///     the same value from the console, however, this dictionary can be ignored for maximum safety
-    /// </param>
+    /// <param name="cache">The cache of resolved dynamic memory addresses and data values</param>
     /// <param name="token">A token which becomes cancelled when the sequence is stopped</param>
     /// <returns>True if the sequence can run (other conditions may stop it running if they return false obviously)</returns>
-    protected abstract Task<bool> IsConditionMetCore(SequenceExecutionContext ctx, Dictionary<TypedAddress, IDataValue> dataValues, CancellationToken token);
+    protected abstract Task<bool> IsConditionMetCore(SequenceExecutionContext ctx, CachedConditionData cache, CancellationToken token);
 
     internal static void InternalSetSequence(BaseSequenceCondition condition, TaskSequence? sequence) => condition.TaskSequence = sequence;
 

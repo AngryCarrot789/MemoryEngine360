@@ -51,7 +51,7 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
         return false;
     });
 
-    private readonly IBinder<CompareMemoryCondition> addressBinder = new TextBoxToEventPropertyBinder<CompareMemoryCondition>(nameof(CompareMemoryCondition.AddressChanged), (b) => b.Model.Address.ToString("X8"), (b, text) => BinderParsingUtils.TryParseAddress(text, b, (a, v) => a.Model.Address = v));
+    private readonly IBinder<CompareMemoryCondition> addressBinder = new TextBoxToEventPropertyBinder<CompareMemoryCondition>(nameof(CompareMemoryCondition.AddressChanged), (b) => b.Model.Address.ToString(), (b, text) => BinderParsingUtils.TryParseAddressEx(text, b, (a, v) => a.Model.Address = v));
     private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(CompareMemoryConditionListContent), nameof(DataTypeChanged), (x) => ((CompareMemoryConditionListContent) x).DataType, (x, y) => ((CompareMemoryConditionListContent) x).DataType = y);
 
     public DataType DataType {

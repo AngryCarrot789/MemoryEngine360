@@ -37,7 +37,8 @@
             <!--     <Separator Theme="{StaticResource VerticalSeparatorTheme}" Grid.Column="5" Margin="2,2" VerticalAlignment="Stretch"/> -->
             <!-- </Grid> -->
             <DockPanel>
-                <TextBlock DockPanel.Dock="Left" x:Name="PART_LatestActivity" Padding="2,0" VerticalAlignment="Center" ToolTip.Tip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
+                <TextBlock DockPanel.Dock="Left" x:Name="PART_LatestActivity" Padding="2,0" VerticalAlignment="Center" 
+                           ToolTip.Tip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
                 <Separator DockPanel.Dock="Left" Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,2" VerticalAlignment="Stretch"/>
                 <TextBlock DockPanel.Dock="Right" x:Name="PART_ConnectedHostName" Padding="2,0" VerticalAlignment="Center"/>
                 <Separator DockPanel.Dock="Right" Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,2" VerticalAlignment="Stretch"/>

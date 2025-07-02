@@ -23,6 +23,7 @@ using Avalonia.Metadata;
 using MemEngine360.Connections;
 using PFXToolKitUI.Avalonia.AvControls;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.ToolTips;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Interactivity.Contexts;
 
@@ -60,7 +61,8 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
         this.iconBinder.AttachModel(type);
         this.displayNameBinder.AttachModel(type);
         this.footerBinder.AttachModel(type);
-        ToolTip.SetTip(this, type.RegisteredId);
+        // ToolTip.SetTip(this, type.RegisteredId);
+        ToolTipEx.SetTipType(this, typeof(ConsoleTypeToolTip));
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {

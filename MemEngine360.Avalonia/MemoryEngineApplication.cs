@@ -231,7 +231,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
     private static void RegisterTaskSequencerSerialization() {
         XmlTaskSequenceSerialization.RegisterCondition("CompareMemory", typeof(CompareMemoryCondition), (document, element, _cond) => {
             CompareMemoryCondition condition = (CompareMemoryCondition) _cond;
-            element.SetAttribute("Address", condition.Address.ToString("X8"));
+            element.SetAttribute("Address", condition.Address.ToString());
             element.SetAttribute("CompareType", condition.CompareType.ToString());
             element.SetAttribute("ParseIntInputAsHex", condition.ParseIntAsHex ? "true" : "false");
             if (condition.CompareTo != null) {
@@ -239,12 +239,13 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             }
         }, (element, _cond) => {
             CompareMemoryCondition condition = (CompareMemoryCondition) _cond;
-            if (!uint.TryParse(element.GetAttribute("Address"), NumberStyles.HexNumber, null, out uint address))
-                throw new Exception("Invalid uint for address: " + element.GetAttribute("Address"));
+            if (!MemoryAddressUtils.TryParse(element.GetAttribute("Address"), out IMemoryAddress? address, out string? error))
+                throw new Exception("Invalid address' " + element.GetAttribute("Address") + "': " + error!);
             if (!Enum.TryParse(element.GetAttribute("CompareType"), true, out CompareType compareType))
                 throw new Exception("Invalid CompareType: " + element.GetAttribute("CompareType"));
             if (!bool.TryParse(element.GetAttribute("ParseIntInputAsHex"), out bool parseIntAsHex))
                 throw new Exception("Invalid bool for ParseIntInputAsHex: " + element.GetAttribute("ParseIntInputAsHex"));
+            
             condition.Address = address;
             condition.CompareType = compareType;
             condition.ParseIntAsHex = parseIntAsHex;

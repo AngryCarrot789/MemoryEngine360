@@ -38,7 +38,7 @@ public delegate void SetVariableOperationDataValueProviderChangedEventHandler(Se
 /// An operation that sets a value on the console
 /// </summary>
 public class SetMemoryOperation : BaseSequenceOperation {
-    private IMemoryAddress address;
+    private IMemoryAddress address = StaticAddress.Zero;
     private DataValueProvider? dataValueProvider;
     private uint iterateCount = 1;
     private SetMemoryWriteMode writeMode;

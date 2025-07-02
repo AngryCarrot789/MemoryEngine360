@@ -30,7 +30,7 @@ public delegate void AddressTableEntryMemoryAddressChangedEventHandler(AddressTa
 
 public class AddressTableEntry : BaseAddressTableEntry {
     private bool isAutoRefreshEnabled = true;
-    private IMemoryAddress memoryAddress;
+    private IMemoryAddress memoryAddress = StaticAddress.Zero;
     private IDataValue? value;
     private DataType dataType = DataType.Byte;
     private StringType stringType = StringType.ASCII;
