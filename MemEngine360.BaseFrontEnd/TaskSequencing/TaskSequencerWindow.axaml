@@ -5,7 +5,6 @@
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
                  xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing"
-                 xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:act="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
                  xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd"
@@ -15,6 +14,8 @@
                  xmlns:ops="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations"
                  xmlns:ctain="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.Containers"
                  xmlns:cond="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Conditions"
+                 xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                  mc:Ignorable="d"
                  d:DesignHeight="400" d:DesignWidth="800"
                  MinWidth="640" MinHeight="400"
@@ -36,30 +37,65 @@
                         sav:UIInputManager.FocusPath="SequencerWindow/SequenceList">
                 <c:GroupBox.Header>
                     <DockPanel HorizontalSpacing="2">
-                        <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
-                                       ToolTip.Tip="Clears all sequences" DockPanel.Dock="Right"
-                                       Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"
-                                       cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.ClearSequencesCommand"/>
+                        <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                                        DockPanel.Dock="Right"
+                                        Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"
+                                        cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.ClearSequencesCommand">
+                            <tt:ToolTipEx.Tip>
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <TextBlock Text="Clears all sequences" VerticalAlignment="Center"/>
+                                    <avc:ShortcutLabel CommandId="commands.sequencer.ClearSequencesCommand"/>
+                                </StackPanel>
+                            </tt:ToolTipEx.Tip>
+                        </avc:IconButton>
 
-                        <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
-                                       ToolTip.Tip="Add a new sequence" DockPanel.Dock="Right"
-                                       Icon="{x:Static cb:SimpleIcons.GreenPlusIcon}"
-                                       cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.NewSequenceCommand"/>
+                        <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                                        DockPanel.Dock="Right"
+                                        Icon="{x:Static cb:SimpleIcons.GreenPlusIcon}"
+                                        cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.NewSequenceCommand">
+                            <tt:ToolTipEx.Tip>
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <TextBlock Text="Add a new sequence" VerticalAlignment="Center"/>
+                                    <avc:ShortcutLabel CommandId="commands.sequencer.NewSequenceCommand"/>
+                                </StackPanel>
+                            </tt:ToolTipEx.Tip>
+                        </avc:IconButton>
 
-                        <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
-                                       ToolTip.Tip="Open connection for the memory engine" DockPanel.Dock="Right"
-                                       Icon="{x:Static cb:SimpleIcons.ConnectToConsoleIcon}"
-                                       cu:CommandUsageManager.UsageClassType="{x:Type cmd:OpenConsoleConnectionInSequencerCommandUsage}"/>
-                        
-                        <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
-                                       ToolTip.Tip="Open an XML file containing task sequences" DockPanel.Dock="Right"
-                                       Icon="{x:Static cb:SimpleIcons.OpenFileXMLIcon}"
-                                       cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.LoadTaskSequencesCommand"/>
-                        <av:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
-                                       ToolTip.Tip="Save the selected sequences to an XML file" DockPanel.Dock="Right"
-                                       Icon="{x:Static cb:SimpleIcons.SaveFileIcon}"
-                                       cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.SaveTaskSequencesCommand"/>
-                        
+                        <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                                        DockPanel.Dock="Right"
+                                        Icon="{x:Static cb:SimpleIcons.ConnectToConsoleIcon}"
+                                        cu:CommandUsageManager.UsageClassType="{x:Type cmd:OpenConsoleConnectionInSequencerCommandUsage}">
+                            <tt:ToolTipEx.Tip>
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <TextBlock Text="Open connection for the memory engine" VerticalAlignment="Center"/>
+                                    <avc:ShortcutLabel CommandId="commands.memengine.OpenConsoleConnectionInSequencerCommand"/>
+                                </StackPanel>
+                            </tt:ToolTipEx.Tip>
+                        </avc:IconButton>
+
+                        <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                                        DockPanel.Dock="Right"
+                                        Icon="{x:Static cb:SimpleIcons.OpenFileXMLIcon}"
+                                        cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.LoadTaskSequencesCommand">
+                            <tt:ToolTipEx.Tip>
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <TextBlock Text="Open an XML file containing task sequences" VerticalAlignment="Center"/>
+                                    <avc:ShortcutLabel CommandId="commands.sequencer.LoadTaskSequencesCommand"/>
+                                </StackPanel>
+                            </tt:ToolTipEx.Tip>
+                        </avc:IconButton>
+                        <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                                        DockPanel.Dock="Right"
+                                        Icon="{x:Static cb:SimpleIcons.SaveFileIcon}"
+                                        cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.SaveTaskSequencesCommand">
+                            <tt:ToolTipEx.Tip>
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <TextBlock Text="Save the selected sequences to an XML file" VerticalAlignment="Center"/>
+                                    <avc:ShortcutLabel CommandId="commands.sequencer.SaveTaskSequencesCommand"/>
+                                </StackPanel>
+                            </tt:ToolTipEx.Tip>
+                        </avc:IconButton>
+
                         <TextBlock Text="Sequences" VerticalAlignment="Center"/>
                     </DockPanel>
                 </c:GroupBox.Header>
@@ -92,17 +128,17 @@
                                         <DockPanel>
                                             <DockPanel DockPanel.Dock="Bottom" Margin="2,0">
                                                 <Border x:Name="PART_DragGrip" Background="Transparent" Width="16" DockPanel.Dock="Right"
-                                                        ToolTip.Tip="Click and drag this grip to move the sequence around.">
-                                                    <av:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
+                                                        tt:ToolTipEx.Tip="Click and drag this grip to move the sequence around.">
+                                                    <avc:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Orientation="Horizontal" Spacing="3" Margin="0,1,0,2">
                                                     <TextBlock Text="Run Count" VerticalAlignment="Center"/>
                                                     <TextBox x:Name="PART_RunCountTextBox" Padding="3,1" VerticalContentAlignment="Center" MinWidth="50"
-                                                             ToolTip.Tip="The amount of times to run the sequence. Default is 1. This lets you repeat the operations"
+                                                             tt:ToolTipEx.Tip="The amount of times to run the sequence. Default is 1. This lets you repeat the operations"
                                                              Background="{DynamicResource ABrush.Tone1.Background.Static}"/>
                                                 </StackPanel>
                                                 <CheckBox x:Name="PART_ToggleBusyExclusive" DockPanel.Dock="Right" Content="Busy Priority">
-                                                    <ToolTip.Tip>
+                                                    <tt:ToolTipEx.Tip>
                                                         <TextBlock>
                                                             <Run Text="Makes this sequence take the busy lock before starting. By doing this, it means the sequence can run without interruption"/>
                                                             <LineBreak/>
@@ -111,36 +147,55 @@
                                                             <LineBreak/>
                                                             <Run Text="You also won't be able to run other busy priority sequences at the same time; they'll just sit there waiting for the first one to finish"/>
                                                         </TextBlock>
-                                                    </ToolTip.Tip>
+                                                    </tt:ToolTipEx.Tip>
                                                 </CheckBox>
                                                 <Border Background="Transparent"/>
                                             </DockPanel>
 
-                                            <av:IconButton x:Name="PART_CancelActivityButton"
-                                                           DockPanel.Dock="Right" VerticalAlignment="Top"
-                                                           Width="16" Height="16"
-                                                           Padding="4,1" Margin="0,2,2,0"
-                                                           BorderThickness="0"
-                                                           CornerRadius="2"
-                                                           ToolTip.Tip="Stop the sequence"
-                                                           Icon="{x:Static act:ActivityStatusBarControl.CancelIcon}"
-                                                           IconMaxHeight="12" IconMaxWidth="12"
-                                                           VerticalContentAlignment="Center"
-                                                           HorizontalContentAlignment="Center"
-                                                           cu:CommandUsageManager.UsageClassType="{x:Type cmd:StopSequenceCommandUsage}"/>
+                                            <!-- 
+                                                StopSpecificSequenceCommand: Only stops the contextual sequence, as in, the one gathered from the button press. 
+                                                                             We don't want to stop all selected ones when we click any stop button!
+                                                
+                                                StopSelectedSequencesCommand: Does what it says on the tin
+                                             -->
+                                            <avc:IconButton x:Name="PART_CancelActivityButton"
+                                                            DockPanel.Dock="Right" VerticalAlignment="Top"
+                                                            Width="16" Height="16"
+                                                            Padding="4,1" Margin="0,2,2,0"
+                                                            BorderThickness="0"
+                                                            CornerRadius="2"
+                                                            Icon="{x:Static act:ActivityStatusBarControl.CancelIcon}"
+                                                            IconMaxHeight="12" IconMaxWidth="12"
+                                                            VerticalContentAlignment="Center"
+                                                            HorizontalContentAlignment="Center"
+                                                            cu:CommandUsageManager.UsageClassType="{x:Type cmd:StopSpecificSequenceCommandUsage}">
+                                                <tt:ToolTipEx.Tip>
+                                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                                        <TextBlock Text="Stop the sequence" VerticalAlignment="Center"/>
+                                                        <!-- StopSpecificSequenceCommand does not have a shortcut and ideally it shouldn't -->
+                                                        <avc:ShortcutLabel CommandId="commands.sequencer.StopSelectedSequencesCommand"/>
+                                                    </StackPanel>
+                                                </tt:ToolTipEx.Tip>
+                                            </avc:IconButton>
 
-                                            <av:IconButton x:Name="PART_RunButton"
-                                                           DockPanel.Dock="Right" VerticalAlignment="Top"
-                                                           Width="16" Height="16"
-                                                           Padding="4,1" Margin="0,2,2,0"
-                                                           BorderThickness="0"
-                                                           CornerRadius="2"
-                                                           ToolTip.Tip="Starts this sequence"
-                                                           Icon="{x:Static act:ActivityStatusBarControl.ContinueActivityIcon}"
-                                                           IconMaxHeight="12" IconMaxWidth="12"
-                                                           VerticalContentAlignment="Center"
-                                                           HorizontalContentAlignment="Center"
-                                                           cu:CommandUsageManager.UsageClassType="{x:Type cmd:RunSequenceCommandUsage}"/>
+                                            <avc:IconButton x:Name="PART_RunButton"
+                                                            DockPanel.Dock="Right" VerticalAlignment="Top"
+                                                            Width="16" Height="16"
+                                                            Padding="4,1" Margin="0,2,2,0"
+                                                            BorderThickness="0"
+                                                            CornerRadius="2"
+                                                            Icon="{x:Static act:ActivityStatusBarControl.ContinueActivityIcon}"
+                                                            IconMaxHeight="12" IconMaxWidth="12"
+                                                            VerticalContentAlignment="Center"
+                                                            HorizontalContentAlignment="Center"
+                                                            cu:CommandUsageManager.UsageClassType="{x:Type cmd:RunSequenceCommandUsage}">
+                                                <tt:ToolTipEx.Tip>
+                                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                                        <TextBlock Text="Starts this sequence" VerticalAlignment="Center"/>
+                                                        <avc:ShortcutLabel CommandId="commands.sequencer.RunSequenceCommand"/>
+                                                    </StackPanel>
+                                                </tt:ToolTipEx.Tip>
+                                            </avc:IconButton>
 
                                             <TextBlock x:Name="PART_HeaderText"
                                                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -178,7 +233,7 @@
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="3">
                             <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}"
                                     BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
-                                    ToolTip.Tip="Adds an operation that sets memory (e.g. an integer or string) at an address"
+                                    tt:ToolTipEx.Tip="Adds an operation that sets memory (e.g. an integer or string) at an address"
                                     Click="Button_InsertSetMemory">
                                 <DockPanel HorizontalSpacing="4">
                                     <TextBlock Text="Set Memory"/>
@@ -186,13 +241,13 @@
                             </Button>
                             <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}"
                                     BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
-                                    Content="Delay" ToolTip.Tip="Adds a pause into the operation"
+                                    Content="Delay" tt:ToolTipEx.Tip="Adds a pause into the sequence"
                                     Click="Button_InsertDelay"/>
                             <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,1"/>
-                            <av:IconButton Padding="2" Width="24" BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
-                                           ToolTip.Tip="Clears all operations"
-                                           Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"
-                                           Click="PART_ClearOperationsClick"/>
+                            <avc:IconButton Padding="2" Width="24" BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
+                                            tt:ToolTipEx.Tip="Clears all operations"
+                                            Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"
+                                            Click="PART_ClearOperationsClick"/>
                         </StackPanel>
                         <TextBlock x:Name="PART_SelectedSequenceTextBlock" Text="Current Operation"
                                    FontFamily="{StaticResource FontOxanium}"
@@ -209,14 +264,14 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <ops:OperationListBox x:Name="PART_OperationListBox"
-                                                 Grid.Row="0"
-                                                 BorderThickness="0"
-                                                 FontFamily="{StaticResource FontOxanium}"
-                                                 Background="{DynamicResource ABrush.Tone1.Background.Static}"
-                                                 SelectionMode="Multiple"
-                                                 CanDragItemPosition="True"
-                                                 ScrollViewer.VerticalScrollBarVisibility="Visible"
-                                                 sav:UIInputManager.FocusPath="SequencerWindow/OperationList">
+                                          Grid.Row="0"
+                                          BorderThickness="0"
+                                          FontFamily="{StaticResource FontOxanium}"
+                                          Background="{DynamicResource ABrush.Tone1.Background.Static}"
+                                          SelectionMode="Multiple"
+                                          CanDragItemPosition="True"
+                                          ScrollViewer.VerticalScrollBarVisibility="Visible"
+                                          sav:UIInputManager.FocusPath="SequencerWindow/OperationList">
                         <ListBox.Theme>
                             <ControlTheme TargetType="{x:Type ops:OperationListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
                         </ListBox.Theme>
@@ -240,8 +295,8 @@
                                                 x:Name="PART_RootBorder">
                                             <DockPanel>
                                                 <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right"
-                                                        ToolTip.Tip="Click and drag this grip to move the operation around. This cannot be done while the sequence is running.">
-                                                    <av:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
+                                                        tt:ToolTipEx.Tip="Click and drag this grip to move the operation around. This cannot be done while the sequence is running.">
+                                                    <avc:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
                                                 </Border>
                                                 <ContentPresenter x:Name="PART_ContentPresenter"
                                                                   HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -286,7 +341,7 @@
                                 TabStripPlacement="Top"
                                 BorderBrush="{DynamicResource PanelBorderBrush}"
                                 BorderThickness="0,1,0,1">
-                        <TabItem Header="Operation Editors">
+                        <TabItem Header="Operation Editors" tt:ToolTipEx.Tip="Information about the selected operation">
                             <DockPanel Background="{DynamicResource ABrush.Tone2.Background.Static}">
                                 <Border DockPanel.Dock="Top"
                                         Background="{DynamicResource ABrush.Tone6.Background.Static}"
@@ -298,7 +353,7 @@
                                         <TextBlock x:Name="PART_PrimarySelectedOperationText" VerticalAlignment="Center"/>
                                     </DockPanel>
                                 </Border>
-                                <ctain:OperationEditorContentContainerListBox x:Name="PART_OperationEditorControlsListBox" 
+                                <ctain:OperationEditorContentContainerListBox x:Name="PART_OperationEditorControlsListBox"
                                                                               Background="Transparent" BorderThickness="0"
                                                                               FontFamily="{StaticResource FontOxanium}">
                                     <ListBox.Theme>
@@ -359,7 +414,7 @@
                                 </ctain:OperationEditorContentContainerListBox>
                             </DockPanel>
                         </TabItem>
-                        <TabItem Header="Conditions">
+                        <TabItem Header="Conditions" tt:ToolTipEx.Tip="Information about the sequence's conditions">
                             <DockPanel Background="{DynamicResource ABrush.Tone2.Background.Static}"
                                        sav:UIInputManager.FocusPath="SequencerWindow/ConditionList">
                                 <Border DockPanel.Dock="Top"
@@ -370,22 +425,17 @@
                                         <TextBlock Text="Conditions Panel" VerticalAlignment="Center" Padding="4,0,0,0"/>
                                         <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="5,3"/>
                                         <TextBlock x:Name="PART_PrimarySelectedConditionText" VerticalAlignment="Center"/>
-                                        <Border DockPanel.Dock="Right"
-                                                Background="{DynamicResource PanelBorderBrush}"
-                                                BorderBrush="{DynamicResource PanelBorderBrush}"
-                                                BorderThickness="1,0,0,0">
-                                            <StackPanel Orientation="Horizontal" Spacing="1">
-                                                <Button Padding="5,2" BorderThickness="0"
-                                                        Background="{DynamicResource ABrush.Tone7.Background.Static}"
-                                                        BorderBrush="{DynamicResource PanelBorderBrush}"
-                                                        Click="Button_OnClick"
-                                                        Content="Memory Compare"/>
-                                            </StackPanel>
-                                        </Border>
+                                        <StackPanel Orientation="Horizontal" Spacing="1" Margin="1" DockPanel.Dock="Right">
+                                            <Button Padding="3,0" BorderThickness="1"
+                                                    Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                                                    Click="Button_OnClick"
+                                                    Content="Memory Compare"/>
+                                        </StackPanel>
                                     </DockPanel>
                                 </Border>
-                                <cond:ConditionsListBox x:Name="PART_ConditionsListBox" 
-                                                        Background="Transparent" 
+                                <cond:ConditionsListBox x:Name="PART_ConditionsListBox"
+                                                        Background="Transparent"
                                                         BorderThickness="0" SelectionMode="Multiple"
                                                         FontFamily="{StaticResource FontOxanium}">
                                     <ListBox.Theme>
@@ -411,8 +461,8 @@
                                                             x:Name="PART_RootBorder">
                                                         <DockPanel>
                                                             <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right"
-                                                                    ToolTip.Tip="Click and drag this grip to move the condition around. This cannot be done while the sequence is running.">
-                                                                <av:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
+                                                                    tt:ToolTipEx.Tip="Click and drag this grip to move the condition around. This cannot be done while the sequence is running.">
+                                                                <avc:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
                                                             </Border>
                                                             <ContentPresenter x:Name="PART_ContentPresenter"
                                                                               HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -445,12 +495,12 @@
                     </TabControl>
                     <Border Grid.Row="3" BorderThickness="0" BorderBrush="{DynamicResource PanelBorderBrush}">
                         <DockPanel HorizontalSpacing="3" LastChildFill="False">
-                            <av:IconButton Padding="2" Width="24" Height="24"
-                                           IconMaxWidth="16" IconMaxHeight="16"
-                                           Background="Transparent" BorderThickness="0"
-                                           ToolTip.Tip="Open a dedicated connection"
-                                           Icon="{x:Static cb:SimpleIcons.ConnectToConsoleDedicatedIcon}"
-                                           cu:CommandUsageManager.UsageClassType="{x:Type cmd:ConnectToDedicatedConsoleCommandUsage}"/>
+                            <avc:IconButton Padding="2" Width="24" Height="24"
+                                            IconMaxWidth="16" IconMaxHeight="16"
+                                            Background="Transparent" BorderThickness="0"
+                                            tt:ToolTipEx.Tip="Open a dedicated connection"
+                                            Icon="{x:Static cb:SimpleIcons.ConnectToConsoleDedicatedIcon}"
+                                            cu:CommandUsageManager.UsageClassType="{x:Type cmd:ConnectToDedicatedConsoleCommandUsage}"/>
                             <Border Background="{DynamicResource ABrush.Tone4.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                                     BorderThickness="1"
@@ -462,13 +512,13 @@
                                            Padding="2,1"/>
                             </Border>
                             <CheckBox x:Name="PART_UseDedicatedConnection" Content="Use Dedicated Connection">
-                                <ToolTip.Tip>
+                                <tt:ToolTipEx.Tip>
                                     <TextBlock>
                                         <Run Text="Toggle using a dedicated connection instead of the memory engine's connection"/>
                                         <LineBreak/>
                                         <Run Text="Note: if you use the engine connection, the engine cannot do anything (scanning, refreshing, editing values, etc.)"/>
                                     </TextBlock>
-                                </ToolTip.Tip>
+                                </tt:ToolTipEx.Tip>
                             </CheckBox>
                             <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="1,3"/>
                             <TextBlock x:Name="PART_ActivityStatusText"

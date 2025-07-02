@@ -2,8 +2,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
              xmlns:conn="clr-namespace:MemEngine360.BaseFrontEnd.Services.Connectivity"
+             xmlns:avControls="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MemEngine360.BaseFrontEnd.Services.Connectivity.OpenConnectionView">
     <DockPanel x:Name="PART_DockPanelRoot" Background="{DynamicResource ABrush.Tone2.Background.Static}">
@@ -93,15 +94,14 @@
                                 VerticalAlignment="Center"
                                 Margin="3,0" CornerRadius="3"
                                 Background="{DynamicResource ABrush.Tone7.Background.Static}">
-                            <TextBlock Text="?" Padding="5,1">
-                                <ToolTip.Tip>
-                                    <TextBlock>
-                                        <Run Text="Console types are added via plugins."/>
-                                        <LineBreak/>
-                                        <Run Text="For example, the Xbox360-XBDM plugin adds a connection to an xbox 360 running xbdm."/>
-                                    </TextBlock>
-                                </ToolTip.Tip>
-                            </TextBlock>
+                            <tt:ToolTipEx.Tip>
+                                <TextBlock>
+                                    <Run Text="Console types are added via plugins."/>
+                                    <LineBreak/>
+                                    <Run Text="For example, the Xbox360-XBDM plugin adds a connection to an xbox 360 running xbdm."/>
+                                </TextBlock>
+                            </tt:ToolTipEx.Tip>
+                            <TextBlock Text="?" Padding="5,1"/>
                         </Border>
                         <TextBlock Text="Supported Consoles" Padding="5,4"
                                    VerticalAlignment="Center" HorizontalAlignment="Center"
@@ -134,7 +134,7 @@
                                             BorderThickness="{TemplateBinding BorderThickness}"
                                             CornerRadius="{TemplateBinding CornerRadius}">
                                         <Grid ColumnDefinitions="Auto,*">
-                                            <avc:IconControl x:Name="PART_IconControl" Width="24" Height="24" Margin="3,3,5,3" VerticalAlignment="Center"/>
+                                            <avControls:IconControl x:Name="PART_IconControl" Width="24" Height="24" Margin="3,3,5,3" VerticalAlignment="Center"/>
                                             <StackPanel Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
                                                 <TextBlock x:Name="PART_DisplayName" Padding="3,2"/>
                                                 <TextBlock x:Name="PART_FooterText" Padding="3,1" FontSize="9" Foreground="{DynamicResource ABrush.Foreground.Disabled}"/>

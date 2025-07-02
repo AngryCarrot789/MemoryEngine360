@@ -19,7 +19,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml;
@@ -144,7 +143,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.DuplicateConditionsCommand", new DuplicateConditionsCommand());
         manager.Register("commands.sequencer.EditConditionOutputModeCommand", new EditConditionOutputModeCommand());
         manager.Register("commands.sequencer.RenameSequenceCommand", new RenameSequenceCommand());
-        manager.Register("commands.sequencer.StopSequenceCommand", new StopSequenceCommand());
+        manager.Register("commands.sequencer.StopSpecificSequenceCommand", new StopSpecificSequenceCommand());
         manager.Register("commands.sequencer.StopSelectedSequencesCommand", new StopSelectedSequencesCommand());
         manager.Register("commands.sequencer.RunSequenceCommand", new RunSequenceCommand());
         manager.Register("commands.sequencer.ToggleOperationEnabledCommand", new ToggleOperationEnabledCommand());
@@ -245,7 +244,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 throw new Exception("Invalid CompareType: " + element.GetAttribute("CompareType"));
             if (!bool.TryParse(element.GetAttribute("ParseIntInputAsHex"), out bool parseIntAsHex))
                 throw new Exception("Invalid bool for ParseIntInputAsHex: " + element.GetAttribute("ParseIntInputAsHex"));
-            
+
             condition.Address = address;
             condition.CompareType = compareType;
             condition.ParseIntAsHex = parseIntAsHex;
@@ -290,7 +289,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             SetMemoryOperation op = (SetMemoryOperation) _op;
             if (!MemoryAddressUtils.TryParse(GetRequiredAttribute(element, "Address", false), out IMemoryAddress? addr, out string? errMsg))
                 throw new Exception("Invalid memory address. " + errMsg);
-            
+
             op.Address = addr;
             op.IterateCount = GetOptionalAttribute(element, "IterateCount", uint.Parse, op.IterateCount);
             op.WriteMode = GetOptionalAttribute(element, "WriteMode", s => Enum.Parse<SetMemoryWriteMode>(s, true), op.WriteMode);
@@ -337,13 +336,52 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             await progress.ProgressAndSynchroniseAsync("Startup completed. Loading engine window...", 1.0);
             if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
                 system.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-                
+
                 EngineWindow view = new EngineWindow();
                 (progress as SplashScreenWindow)?.Close();
-                
+
                 system.ShutdownMode = ShutdownMode.OnMainWindowClose;
                 system.Register(view, true);
                 view.Show();
+
+                // ScrollViewer scrollViewer = new ScrollViewer() {
+                //     Content = new Border() {
+                //         Height = 25000
+                //     }
+                // };
+                // TextBlock fuckYou1 = new TextBlock();
+                // TextBlock fuckYou2 = new TextBlock();
+                // TextBlock fuckYou3 = new TextBlock();
+                // TextBlock fuckYou4 = new TextBlock();
+                // TextBlock fuckYou5 = new TextBlock();
+                // TextBlock fuckYou6 = new TextBlock();
+                // 
+                // scrollViewer.GetObservable(ScrollViewer.ExtentProperty).Subscribe(new AnonymousObserver<Size>(s =>             fuckYou1.Text = $"Extent:            {s.ToString()}"));
+                // scrollViewer.GetObservable(ScrollViewer.OffsetProperty).Subscribe(new AnonymousObserver<Vector>(s =>           fuckYou2.Text = $"Offset:            {s.ToString()}"));
+                // scrollViewer.GetObservable(ScrollViewer.ViewportProperty).Subscribe(new AnonymousObserver<Size>(s =>           fuckYou3.Text = $"Viewport:          {s.ToString()}"));
+                // scrollViewer.GetObservable(ScrollViewer.LargeChangeProperty).Subscribe(new AnonymousObserver<Size>(s =>        fuckYou4.Text = $"Large Change:      {s.ToString()}"));
+                // scrollViewer.GetObservable(ScrollViewer.SmallChangeProperty).Subscribe(new AnonymousObserver<Size>(s =>        fuckYou5.Text = $"Small Change:      {s.ToString()}"));
+                // scrollViewer.GetObservable(ScrollViewer.ScrollBarMaximumProperty).Subscribe(new AnonymousObserver<Vector>(s => fuckYou6.Text = $"ScrollBar Maximum: {s.ToString()}"));
+                // 
+                // new Window() {
+                //     FontFamily = "Consolas",
+                //     Content = new DockPanel() {
+                //         Children = {
+                //             new StackPanel() {
+                //                 [DockPanel.DockProperty] = Dock.Top,
+                //                 Children = {
+                //                     fuckYou1,
+                //                     fuckYou2,
+                //                     fuckYou3,
+                //                     fuckYou4,
+                //                     fuckYou5,
+                //                     fuckYou6,
+                //                 }
+                //             },
+                //             scrollViewer
+                //         }
+                //     }
+                // }.Show();
 
                 // using IDisposable? token = await view.MemoryEngine.BeginBusyOperationActivityAsync();
                 // if (token != null) {
@@ -400,7 +438,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             throw new Exception($"Failed to parse attribute '{attributeName}' as {typeof(T).Name}", e);
         }
     }
-    
+
     private static string GetRequiredAttribute(XmlElement srcElement, string attributeName, bool canBeWhitespaces) {
         XmlAttribute? node = srcElement.GetAttributeNode(attributeName);
         if (node == null)
@@ -408,7 +446,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
         if (!canBeWhitespaces && string.IsNullOrWhiteSpace(node.Value))
             throw new Exception($"Attribute '{attributeName}' cannot be an empty string or consist of only whitespaces");
-        
+
         try {
             return node.Value;
         }

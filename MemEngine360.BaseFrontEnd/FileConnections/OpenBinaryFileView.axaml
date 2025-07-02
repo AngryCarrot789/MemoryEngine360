@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MemEngine360.BaseFrontEnd.FileConnections.OpenBinaryFileView">
     <StackPanel Margin="10" Spacing="3">
@@ -25,15 +26,15 @@
                  Background="{DynamicResource ABrush.Tone3.Border.Static}"
                  Text="Text Here"
                  ScrollViewer.VerticalScrollBarVisibility="Auto"
-                 ToolTip.Tip="For example, if you do a memory dump starting at C0000000, then set this field to that exact value"/>
+                 tt:ToolTipEx.Tip="For example, if you do a memory dump starting at C0000000, then set this field to that exact value"/>
         <CheckBox x:Name="PART_CanResizeFile" Content="Allow Resizing File">
-            <ToolTip.Tip>
+            <tt:ToolTipEx.Tip>
                 <TextBlock>
                     <Run Text="When enabled, this connection can resize the file"/>
                     <LineBreak/>
                     <Run Text="If you edit a value at a huge address, the file becomes sized to fit that address and value"/>
                 </TextBlock>
-            </ToolTip.Tip>
+            </tt:ToolTipEx.Tip>
         </CheckBox>
     </StackPanel>
 </UserControl>

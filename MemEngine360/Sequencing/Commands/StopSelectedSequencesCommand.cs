@@ -26,7 +26,10 @@ public class StopSelectedSequencesCommand : Command {
         if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui))
             return Executability.Invalid;
 
-        return Executability.Valid;
+        if (ui.SequenceSelectionManager.SelectedItemList.Any(x => x.TaskSequence.IsRunning))
+            return Executability.Valid;
+
+        return Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {

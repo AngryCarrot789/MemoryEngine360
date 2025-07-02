@@ -3,6 +3,7 @@
                              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                              xmlns:listContent="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent"
+                             xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="24"
                              x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent.SetMemoryOperationListContent">
     <StackPanel Orientation="Horizontal">
@@ -10,7 +11,7 @@
         <TextBox x:Name="PART_AddressTextBox" VerticalContentAlignment="Center" 
                  Padding="4,2" Width="105"
                  VerticalAlignment="Center"
-                 ToolTip.Tip="The address to write at"
+                 tt:ToolTipEx.Tip="The address to write at. This may also be a pointer (e.g. 8200->FF->3C)"
                  Background="{DynamicResource ABrush.Tone1.Background.Static}">
             <TextBox.InnerLeftContent>
                 <TextBlock Text="0x" Opacity="0.7"/>
@@ -20,7 +21,7 @@
             <TextBlock Text="To Value" FontFamily="{StaticResource FontOxanium}" FontWeight="Medium" VerticalAlignment="Center" Padding="4,0"/>
             <TextBox x:Name="PART_ValueTextBox" VerticalContentAlignment="Center"
                      Padding="4,2" MinWidth="150" 
-                     ToolTip.Tip="The value to write. Prefix with '0x' to write the integer as hex"
+                     tt:ToolTipEx.Tip="The value to write. Prefix with '0x' to write the integer as hex"
                      Background="{DynamicResource ABrush.Tone1.Background.Static}">
             </TextBox>
             <ComboBox x:Name="PART_DataTypeComboBox" Margin="3,0,0,0" Width="65" 
@@ -31,7 +32,7 @@
         <TextBox x:Name="PART_IterateCountTextBox" VerticalContentAlignment="Center"  VerticalAlignment="Center"
                  Padding="4,2" Width="60" 
                  Background="{DynamicResource ABrush.Tone1.Background.Static}">
-            <ToolTip.Tip>
+            <tt:ToolTipEx.Tip>
                 <TextBlock>
                     <Run Text="The amount of times to write the value, offsetting the address by the data type size each iteration"/>
                     <LineBreak/>
@@ -39,7 +40,7 @@
                     <LineBreak/>
                     <Run Text="If you set this to 3 and the value is an Int32 and address is 3A24, we write the value at 3A24, 0x3A28 and 3A2C."/>
                 </TextBlock>
-            </ToolTip.Tip>
+            </tt:ToolTipEx.Tip>
         </TextBox>
     </StackPanel>
 </listContent:BaseOperationListContent>

@@ -505,6 +505,8 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 try {
                     await c.ReadBytes(info.StartAddress, buffer, 0, buffer.Length, 0x10000, completion, task.CancellationToken);
                 }
+                catch (OperationCanceledException) {
+                }
                 catch (Exception e) when (e is TimeoutException || e is IOException) {
                     await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + e.Message);
                     return null;

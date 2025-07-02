@@ -3,6 +3,7 @@
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                  mc:Ignorable="d" Width="260" Height="290"
                  x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Conditions.EditConditionOutputModeWindow"
                  Title="Edit output mode">
@@ -46,69 +47,14 @@
             </StackPanel>
         </Border>
         <StackPanel Spacing="4" Margin="8,5">
-            <RadioButton x:Name="PART_WhileMet" Content="While Met">
-                <ToolTip.Tip>
-                    <TextBlock>
-                        <Run Text="Output true while condition is met"/>
-                    </TextBlock>
-                </ToolTip.Tip>
-            </RadioButton>
-
-            <RadioButton x:Name="PART_WhileNotMet" Content="While Not Met">
-                <ToolTip.Tip>
-                    <TextBlock>
-                        <Run Text="Output true while condition is not met"/>
-                    </TextBlock>
-                </ToolTip.Tip>
-            </RadioButton>
-
-            <RadioButton x:Name="PART_ChangeToMet" Content="On change to Met">
-                <ToolTip.Tip>
-                    <TextBlock>
-                        <Run Text="Pulses true when condition changes to met. Then outputs false until we change to Not Met and Met again"/>
-                    </TextBlock>
-                </ToolTip.Tip>
-            </RadioButton>
-
-            <RadioButton x:Name="PART_ChangeToNotMet" Content="On change to Not Met">
-                <ToolTip.Tip>
-                    <TextBlock>
-                        <Run Text="Pulses true when condition changes to not met (if condition not met first run, it pulses true). Then outputs false until we change to Met and Not Met again"/>
-                    </TextBlock>
-                </ToolTip.Tip>
-            </RadioButton>
-
-            <RadioButton x:Name="PART_WhileMetOnce" Content="While Met (Once)">
-                <ToolTip.Tip>
-                    <TextBlock>
-                        <Run Text="Same as 'While Met', except can only output true once, then cannot do it again until the sequence is restarted"/>
-                    </TextBlock>
-                </ToolTip.Tip>
-            </RadioButton>
-
-            <RadioButton x:Name="PART_WhileNotMetOnce" Content="While Not Met (Once)">
-                <ToolTip.Tip>
-                    <TextBlock>
-                        <Run Text="Same as 'While Not Met', except can only output true once, then cannot do it again until the sequence is restarted"/>
-                    </TextBlock>
-                </ToolTip.Tip>
-            </RadioButton>
-
-            <RadioButton x:Name="PART_ChangeToMetOnce" Content="On changed to Met (Once)">
-                <ToolTip.Tip>
-                    <TextBlock>
-                        <Run Text="Same as 'On change to Met', except can only output (pulse) true once, then cannot do it again until the sequence is restarted"/>
-                    </TextBlock>
-                </ToolTip.Tip>
-            </RadioButton>
-
-            <RadioButton x:Name="PART_ChangeToNotMetOnce" Content="On changed to Not Met (Once)">
-                <ToolTip.Tip>
-                    <TextBlock>
-                        <Run Text="Same as 'On change to Not Met', except can only output (pulse) true once, then cannot do it again until the sequence is restarted"/>
-                    </TextBlock>
-                </ToolTip.Tip>
-            </RadioButton>
+            <RadioButton x:Name="PART_WhileMet" Content="While Met" tt:ToolTipEx.Tip="Output true while condition is met"/>
+            <RadioButton x:Name="PART_WhileNotMet" Content="While Not Met" tt:ToolTipEx.Tip="Output true while condition is not met"/>
+            <RadioButton x:Name="PART_ChangeToMet" Content="On change to Met" tt:ToolTipEx.Tip="Pulses true when condition changes to met. Then outputs false until we change to Not Met and Met again"/>
+            <RadioButton x:Name="PART_ChangeToNotMet" Content="On change to Not Met" tt:ToolTipEx.Tip="Pulses true when condition changes to not met (if condition not met first run, it pulses true). Then outputs false until we change to Met and Not Met again"/>
+            <RadioButton x:Name="PART_WhileMetOnce" Content="While Met (Once)" tt:ToolTipEx.Tip="Same as 'While Met', except can only output true once, then cannot do it again until the sequence is restarted"/>
+            <RadioButton x:Name="PART_WhileNotMetOnce" Content="While Not Met (Once)" tt:ToolTipEx.Tip="Same as 'While Not Met', except can only output true once, then cannot do it again until the sequence is restarted"/>
+            <RadioButton x:Name="PART_ChangeToMetOnce" Content="On changed to Met (Once)" tt:ToolTipEx.Tip="Same as 'On change to Met', except can only output (pulse) true once, then cannot do it again until the sequence is restarted"/>
+            <RadioButton x:Name="PART_ChangeToNotMetOnce" Content="On changed to Not Met (Once)" tt:ToolTipEx.Tip="Same as 'On change to Not Met', except can only output (pulse) true once, then cannot do it again until the sequence is restarted"/>
         </StackPanel>
     </DockPanel>
 </w:DesktopWindow>

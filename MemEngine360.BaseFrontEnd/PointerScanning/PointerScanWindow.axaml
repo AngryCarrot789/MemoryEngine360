@@ -3,6 +3,7 @@
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.BaseFrontEnd.PointerScanning.PointerScanWindow"
                  Title="PointerScanWindow">
@@ -22,17 +23,17 @@
             <TabItem Header="Setup">
                 <StackPanel Margin="3" Spacing="3">
                     <TextBlock Text="Addressable Base"/>
-                    <TextBox x:Name="PART_AddressableBase" Padding="4,2" ToolTip.Tip="The minimum boundry of the addressable pointer range"/>
+                    <TextBox x:Name="PART_AddressableBase" Padding="4,2" tt:ToolTipEx.Tip="The minimum boundry of the addressable pointer range"/>
                     <TextBlock Text="Addressable Length"/>
-                    <TextBox x:Name="PART_AddressableLength" Padding="4,2" ToolTip.Tip="The amount of bytes, relative to addressable base, that contains the region that can be pointed to"/>
+                    <TextBox x:Name="PART_AddressableLength" Padding="4,2" tt:ToolTipEx.Tip="The amount of bytes, relative to addressable base, that contains the region that can be pointed to"/>
                     <TextBlock Text="Max Depth"/>
-                    <TextBox x:Name="PART_MaxDepth" Padding="4,2" ToolTip.Tip="The maximum number of pointer hops"/>
+                    <TextBox x:Name="PART_MaxDepth" Padding="4,2" tt:ToolTipEx.Tip="The maximum number of pointer hops"/>
                     <TextBlock Text="Maximum Offset"/>
-                    <TextBox x:Name="PART_MaximumOffset" Padding="4,2" ToolTip.Tip="The maximum (positive) distance from a pointer the offset (that locates a pointer) can be"/>
+                    <TextBox x:Name="PART_MaximumOffset" Padding="4,2" tt:ToolTipEx.Tip="The maximum (positive) distance from a pointer the offset (that locates a pointer) can be"/>
                     <TextBlock Text="Search Address"/>
-                    <TextBox x:Name="PART_SearchAddress" Padding="4,2" ToolTip.Tip="The address that we search for"/>
+                    <TextBox x:Name="PART_SearchAddress" Padding="4,2" tt:ToolTipEx.Tip="The address that we search for"/>
                     <TextBlock Text="Alignment (pointer size)"/>
-                    <TextBox x:Name="PART_Alignment" Padding="4,2" ToolTip.Tip="The pointer size"/>
+                    <TextBox x:Name="PART_Alignment" Padding="4,2" tt:ToolTipEx.Tip="The pointer size"/>
                 </StackPanel>
             </TabItem>
         </TabControl>

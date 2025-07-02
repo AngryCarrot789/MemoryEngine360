@@ -297,18 +297,8 @@
         <xs:attribute type="xs:string" name="Description"/>
         <xs:attribute type="xs:string" name="DisplayName"/>
     </xs:complexType>
-    <xs:complexType name="Shortcut.ContextType">
-        <xs:choice minOccurs="0" maxOccurs="unbounded">
-            <xs:element type="FlagType" name="Flag"/>
-            <xs:element type="FlagsType" name="Flags"/>
-            <xs:element type="EntryType" name="Entry"/>
-            <xs:element type="FloatEntryType" name="FloatEntry"/>
-            <xs:element type="IntEntryType" name="IntEntry"/>
-        </xs:choice>
-    </xs:complexType>
     <xs:complexType name="ShortcutType">
         <xs:choice minOccurs="0" maxOccurs="unbounded">
-            <xs:element type="Shortcut.ContextType" name="Shortcut.Context"/>
             <xs:element type="KeyStrokeType" name="KeyStroke"/>
             <xs:element type="MouseStrokeType" name="MouseStroke"/>
         </xs:choice>
@@ -345,44 +335,6 @@
                 </xs:documentation>
             </xs:annotation>
         </xs:attribute>
-    </xs:complexType>
-
-    <xs:complexType name="FlagType">
-        <xs:simpleContent>
-            <xs:extension base="xs:boolean">
-                <xs:attribute type="xs:string" name="Key"/>
-                <xs:attribute type="xs:boolean" name="Value"/>
-            </xs:extension>
-        </xs:simpleContent>
-    </xs:complexType>
-    <xs:complexType name="FlagsType">
-        <xs:simpleContent>
-            <xs:extension base="xs:string"/>
-        </xs:simpleContent>
-    </xs:complexType>
-    <xs:complexType name="EntryType">
-        <xs:simpleContent>
-            <xs:extension base="xs:string">
-                <xs:attribute type="xs:string" name="Key"/>
-                <xs:attribute type="xs:string" name="Value"/>
-            </xs:extension>
-        </xs:simpleContent>
-    </xs:complexType>
-    <xs:complexType name="FloatEntryType">
-        <xs:simpleContent>
-            <xs:extension base="xs:double">
-                <xs:attribute type="xs:string" name="Key"/>
-                <xs:attribute type="xs:double" name="Value"/>
-            </xs:extension>
-        </xs:simpleContent>
-    </xs:complexType>
-    <xs:complexType name="IntEntryType">
-        <xs:simpleContent>
-            <xs:extension base="xs:long">
-                <xs:attribute type="xs:string" name="Key"/>
-                <xs:attribute type="xs:long" name="Value"/>
-            </xs:extension>
-        </xs:simpleContent>
     </xs:complexType>
     <xs:complexType name="KeyMapType">
         <xs:choice minOccurs="0" maxOccurs="unbounded">

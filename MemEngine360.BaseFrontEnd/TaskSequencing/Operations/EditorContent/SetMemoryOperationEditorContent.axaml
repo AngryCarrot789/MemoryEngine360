@@ -3,6 +3,7 @@
                                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                                xmlns:editorContent="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent"
+                               xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                                mc:Ignorable="d" d:DesignHeight="200"
                                x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.SetMemoryOperationEditorContent"
                                Width="175">
@@ -26,13 +27,13 @@
                     <DockPanel>
                         <TextBox x:Name="PART_RangedValueATextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" 
                                  Padding="2,2" VerticalContentAlignment="Center"
-                                 ToolTip.Tip="Sets the minimum value that can be generated"/>
+                                 tt:ToolTipEx.Tip="Sets the minimum value that can be generated"/>
                     </DockPanel>
                     <TextBlock Padding="1,2" Text="Set the maximum"/>
                     <DockPanel>
                         <TextBox x:Name="PART_RangedValueBTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" 
                                  Padding="2,2" VerticalContentAlignment="Center"
-                                 ToolTip.Tip="Sets the maximum value that can be generated. (meaning this value is inclusive, as is the minimum value)"/>
+                                 tt:ToolTipEx.Tip="Sets the maximum value that can be generated. (meaning this value is inclusive, as is the minimum value)"/>
                     </DockPanel>
                 </StackPanel>
             </TabItem>
@@ -46,10 +47,10 @@
             <TabItem Header="Strings">
                 <StackPanel Margin="1">
                     <Grid RowDefinitions="Auto,3,Auto" ColumnDefinitions="Auto,5,Auto">
-                        <RadioButton Grid.Row="0" Grid.Column="0" x:Name="PART_DTString_ASCII" Content="ASCII" ToolTip.Tip="Search for text using ASCII encoding (default)"/>
-                        <RadioButton Grid.Row="0" Grid.Column="2" x:Name="PART_DTString_UTF8" Content="UTF8" ToolTip.Tip="Search for text using UTF8 encoding"/>
-                        <RadioButton Grid.Row="2" Grid.Column="0" x:Name="PART_DTString_UTF16" Content="UTF16" ToolTip.Tip="Search for text using UTF16 aka Unicode encoding"/>
-                        <RadioButton Grid.Row="2" Grid.Column="2" x:Name="PART_DTString_UTF32" Content="UTF32" ToolTip.Tip="Search for text using UTF32 encoding"/>
+                        <RadioButton Grid.Row="0" Grid.Column="0" x:Name="PART_DTString_ASCII" Content="ASCII" tt:ToolTipEx.Tip="Search for text using ASCII encoding (default)"/>
+                        <RadioButton Grid.Row="0" Grid.Column="2" x:Name="PART_DTString_UTF8" Content="UTF8" tt:ToolTipEx.Tip="Search for text using UTF8 encoding"/>
+                        <RadioButton Grid.Row="2" Grid.Column="0" x:Name="PART_DTString_UTF16" Content="UTF16" tt:ToolTipEx.Tip="Search for text using UTF16 aka Unicode encoding"/>
+                        <RadioButton Grid.Row="2" Grid.Column="2" x:Name="PART_DTString_UTF32" Content="UTF32" tt:ToolTipEx.Tip="Search for text using UTF32 encoding"/>
                     </Grid>
                 </StackPanel>
             </TabItem>

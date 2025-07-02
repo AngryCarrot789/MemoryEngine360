@@ -5,11 +5,12 @@
                  xmlns:ah="clr-namespace:AvaloniaHex;assembly=AvaloniaHex"
                  xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
                  xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:icons="clr-namespace:MemEngine360.BaseFrontEnd"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
                  xmlns:hexEditing="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexEditing"
+                 xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
                  x:Class="MemEngine360.BaseFrontEnd.Services.HexEditing.HexEditorWindow"
                  BorderBrush="DodgerBlue"
@@ -22,7 +23,7 @@
             <ColumnDefinition Width="5"/>
             <ColumnDefinition Width="250" MinWidth="200"/>
         </Grid.ColumnDefinitions>
-        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" 
+        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"
                 Background="{DynamicResource ABrush.Tone4.Background.Static}"
                 BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}"
                 BorderThickness="0,1,0,0">
@@ -81,7 +82,7 @@
                     <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_AddressTextBox" Grid.Column="2"
                              Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                             ToolTip.Tip="The start address in hex. E.g. 80000000">
+                             tt:ToolTipEx.Tip="The start address in hex. E.g. 80000000">
                         <TextBox.InnerLeftContent>
                             <TextBlock Text="0x" Opacity="0.7"/>
                         </TextBox.InnerLeftContent>
@@ -92,42 +93,39 @@
                     <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_LengthTextBox" Grid.Column="5"
                              Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                             ToolTip.Tip="The amount of bytes to read. E.g. 10000 (64K)">
+                             tt:ToolTipEx.Tip="The amount of bytes to read. E.g. 10000 (64K)">
                         <TextBox.InnerLeftContent>
                             <TextBlock Text="0x" Opacity="0.7"/>
                         </TextBox.InnerLeftContent>
                     </TextBox>
 
-                    <TextBox Grid.Column="7" x:Name="PART_BytesPerRowTextBox" ToolTip.Tip="Bytes per row. Default is 32"
+                    <TextBox Grid.Column="7" x:Name="PART_BytesPerRowTextBox" tt:ToolTipEx.Tip="Bytes per row. Default is 32"
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
                              Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"/>
 
                     <Button Grid.Column="9" x:Name="PART_Read" Content="Read All">
-                        <ToolTip.Tip>
-                            <TextBlock>
-                                <Run Text="Read the entire range from the console"/>
-                                <LineBreak/>
-                                <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/ReadAll}"/>
-                            </TextBlock>
-                        </ToolTip.Tip>
+                        <tt:ToolTipEx.Tip>
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="Read the entire range from the console" VerticalAlignment="Center"/>
+                                <avc:ShortcutLabel CommandId="commands.hexeditor.ReadAllFromConsoleCommand"/>
+                            </StackPanel>
+                        </tt:ToolTipEx.Tip>
                     </Button>
                     <Button Grid.Column="11" x:Name="PART_Refresh" Content="Refresh Selection">
-                        <ToolTip.Tip>
-                            <TextBlock>
-                                <Run Text="Read data from the console that is within your selection, rather than the entire set memory range"/>
-                                <LineBreak/>
-                                <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/HexEditor/RefreshValues}"/>
-                            </TextBlock>
-                        </ToolTip.Tip>
+                        <tt:ToolTipEx.Tip>
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="Read data from the console that is within your selection, rather than the entire set memory range" VerticalAlignment="Center"/>
+                                <avc:ShortcutLabel CommandId="commands.hexeditor.ReloadSelectionFromConsole"/>
+                            </StackPanel>
+                        </tt:ToolTipEx.Tip>
                     </Button>
                     <Button Grid.Column="13" x:Name="PART_Upload" Content="Upload Selection">
-                        <ToolTip.Tip>
-                            <TextBlock>
-                                <Run Text="Uploads your selection to the console"/>
-                                <LineBreak/>
-                                <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/HexEditor/UploadSelection}"/>
-                            </TextBlock>
-                        </ToolTip.Tip>
+                        <tt:ToolTipEx.Tip>
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="Uploads your selection to the console" VerticalAlignment="Center"/>
+                                <avc:ShortcutLabel CommandId="commands.hexeditor.UploadSelectionToConsoleCommand"/>
+                            </StackPanel>
+                        </tt:ToolTipEx.Tip>
                     </Button>
                     <Border Grid.Column="14" Width="3" Background="Transparent"/>
                     <!-- <Separator Grid.Column="14" Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,2"/> -->
@@ -153,24 +151,24 @@
                     <avc:IconButton Grid.Column="6" x:Name="PART_SetAutoRefreshRangeAsSelection"
                                     Icon="{x:Static icons:SimpleIcons.CopyHexSelectionToRefreshRangeIcon}"
                                     cu:CommandUsageManager.SimpleButtonCommandId="commands.hexeditor.SetAutoScanRangeAsSelectionCommand">
-                        <ToolTip.Tip>
-                            <TextBlock>
-                                <Run Text="Set as current selection. Saves typing out by hand"/>
-                                <LineBreak/>
-                                <Run Text="{avalonia:DynamicShortcutToGesture ShortcutId=HexDisplayWindow/HexEditor/SetSelectionAsAutoRefreshRange}"/>
-                            </TextBlock>
-                        </ToolTip.Tip>
+                        <tt:ToolTipEx.Tip>
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="Set as current selection. Saves typing out by hand" VerticalAlignment="Center"/>
+                                <avc:ShortcutLabel CommandId="commands.hexeditor.SetAutoScanRangeAsSelectionCommand"/>
+                            </StackPanel>
+                        </tt:ToolTipEx.Tip>
                     </avc:IconButton>
                     <avc:IconButton Grid.Column="8" x:Name="PART_ClearAutoRefreshRange"
                                     Icon="{x:Static icons:SimpleIcons.ClearHexRefreshRangeIcon}"
                                     cu:CommandUsageManager.SimpleButtonCommandId="commands.hexeditor.ClearAutoScanRangeCommand">
-                        <ToolTip.Tip>
-                            <TextBlock>
-                                <Run Text="Clears these two fields for the auto refresh"/>
-                            </TextBlock>
-                        </ToolTip.Tip>
+                        <tt:ToolTipEx.Tip>
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="Clears these two fields for the auto refresh" VerticalAlignment="Center"/>
+                                <avc:ShortcutLabel CommandId="commands.hexeditor.ClearAutoScanRangeCommand"/>
+                            </StackPanel>
+                        </tt:ToolTipEx.Tip>
                     </avc:IconButton>
-                    <CheckBox Grid.Column="10" x:Name="PART_ToggleShowChanges" IsChecked="True" Content="Show Changes" ToolTip.Tip="Shows an outline of changes in bytes. This works during both auto-refresh and manual refresh"/>
+                    <CheckBox Grid.Column="10" x:Name="PART_ToggleShowChanges" IsChecked="True" Content="Show Changes" tt:ToolTipEx.Tip="Shows an outline of changes in bytes. This works during both auto-refresh and manual refresh"/>
                 </Grid>
             </StackPanel>
         </Border>
@@ -185,7 +183,7 @@
         </Border>
         <GridSplitter Grid.Column="1" Grid.Row="1" Background="{DynamicResource ABrush.Tone4.Background.Static}" Focusable="False"/>
         <ScrollViewer Grid.Column="2" Grid.Row="1" DockPanel.Dock="Right" Background="{DynamicResource PanelBackground4}" MinWidth="200">
-            <Grid RowDefinitions="Auto,20,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,*" 
+            <Grid RowDefinitions="Auto,20,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,*"
                   ColumnDefinitions="0,75,1,*,5"
                   Background="Transparent" Focusable="True">
                 <!-- Make grid focusable so the user can click anywhere in it to unfocus the text boxes -->
@@ -197,9 +195,9 @@
 
                 <Grid ColumnDefinitions="Auto,5,Auto" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3">
                     <RadioButton Grid.Column="0" x:Name="PART_LittleEndian" Content="Little Endian"
-                                 ToolTip.Tip="Interpret the data in the editor as Little Endian"/>
+                                 tt:ToolTipEx.Tip="Interpret the data in the editor as Little Endian"/>
                     <RadioButton Grid.Column="2" x:Name="PART_BigEndian" Content="Big Endian"
-                                 ToolTip.Tip="Interpret the data in the editor as Big Endian. This is the default for most consoles"/>
+                                 tt:ToolTipEx.Tip="Interpret the data in the editor as Big Endian. This is the default for most consoles"/>
                 </Grid>
 
                 <TextBlock Text="Binary8" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center"/>
@@ -237,15 +235,15 @@
                 <Border Grid.Row="13" Grid.Column="1" VerticalAlignment="Stretch" Background="{DynamicResource ABrush.Tone5.Border.Static}" HorizontalAlignment="Right" Margin="0,0,-1,0" Width="43"/>
                 <Border Grid.Row="17" Grid.Column="1" VerticalAlignment="Stretch" Background="{DynamicResource ABrush.Tone5.Border.Static}" HorizontalAlignment="Right" Margin="0,0,-1,0" Width="43"/>
 
-                <Button Focusable="False" x:Name="PART_BtnFwdInt8" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Move forwards 1 byte" Grid.Row="5" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&gt;"/>
-                <Button Focusable="False" x:Name="PART_BtnFwdInt16" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Move forwards 2 bytes" Grid.Row="9" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&gt;"/>
-                <Button Focusable="False" x:Name="PART_BtnFwdInt32" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Move forwards 4 bytes" Grid.Row="13" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&gt;"/>
-                <Button Focusable="False" x:Name="PART_BtnFwdInt64" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Move forwards 8 bytes" Grid.Row="17" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&gt;"/>
-                <Button Focusable="False" x:Name="PART_BtnBackInt8" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Move backwards 1 byte" Grid.Row="5" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
-                <Button Focusable="False" x:Name="PART_BtnBackInt16" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Move backwards 2 bytes" Grid.Row="9" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
-                <Button Focusable="False" x:Name="PART_BtnBackInt32" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Move backwards 4 bytes" Grid.Row="13" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
-                <Button Focusable="False" x:Name="PART_BtnBackInt64" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Move backwards 8 bytes" Grid.Row="17" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
-                <Button Focusable="False" x:Name="PART_BtnGoToPointerInt32" FontFamily="{StaticResource FontOxanium}" ToolTip.Tip="Treat this value as a memory address, and go to it" Grid.Row="13" Grid.Column="3" BorderThickness="1" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="16" Content="*" Padding="0,0,0,-1"/>
+                <Button Focusable="False" x:Name="PART_BtnFwdInt8" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move forwards 1 byte" Grid.Row="5" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&gt;"/>
+                <Button Focusable="False" x:Name="PART_BtnFwdInt16" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move forwards 2 bytes" Grid.Row="9" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&gt;"/>
+                <Button Focusable="False" x:Name="PART_BtnFwdInt32" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move forwards 4 bytes" Grid.Row="13" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&gt;"/>
+                <Button Focusable="False" x:Name="PART_BtnFwdInt64" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move forwards 8 bytes" Grid.Row="17" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&gt;"/>
+                <Button Focusable="False" x:Name="PART_BtnBackInt8" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move backwards 1 byte" Grid.Row="5" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
+                <Button Focusable="False" x:Name="PART_BtnBackInt16" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move backwards 2 bytes" Grid.Row="9" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
+                <Button Focusable="False" x:Name="PART_BtnBackInt32" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move backwards 4 bytes" Grid.Row="13" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
+                <Button Focusable="False" x:Name="PART_BtnBackInt64" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move backwards 8 bytes" Grid.Row="17" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
+                <Button Focusable="False" x:Name="PART_BtnGoToPointerInt32" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Treat this value as a memory address, and go to it" Grid.Row="13" Grid.Column="3" BorderThickness="1" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="16" Content="*" Padding="0,0,0,-1"/>
 
                 <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"/>
                 <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"/>
@@ -268,13 +266,13 @@
                               Content="Display Integers as Hex"
                               DockPanel.Dock="Bottom"
                               Padding="2,2">
-                        <ToolTip.Tip>
+                        <tt:ToolTipEx.Tip>
                             <TextBlock Padding="4">
                                 <Run Text="Displays the integers as hexadecimal. "/>
                                 <LineBreak/>
                                 <Run Text="Floats remain displayed as floating point, since their hex representation is the exact same as integers"/>
                             </TextBlock>
-                        </ToolTip.Tip>
+                        </tt:ToolTipEx.Tip>
                     </CheckBox>
                     <Border Background="Transparent"/>
                 </DockPanel>

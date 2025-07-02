@@ -24,6 +24,7 @@ using Avalonia.Markup.Xaml.MarkupExtensions;
 using MemEngine360.Configs;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Configurations.Pages;
+using PFXToolKitUI.Avalonia.ToolTips;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.BaseFrontEnd;
@@ -76,11 +77,11 @@ public class MemoryEngineConfigurationPageControlV2 : BaseConfigurationPageContr
     private readonly CheckBox? PART_ToggleRefreshEnabled;
 
     public MemoryEngineConfigurationPageControlV2() {
-        this.PART_RefreshRateTextBox = new TextBox() { Padding = new Thickness(4, 2), VerticalContentAlignment = VerticalAlignment.Center, [ToolTip.TipProperty] = "Default is 250 milliseconds" };
+        this.PART_RefreshRateTextBox = new TextBox() { Padding = new Thickness(4, 2), VerticalContentAlignment = VerticalAlignment.Center, [ToolTipEx.TipProperty] = "Default is 250 milliseconds" };
         this.PART_AutoRefreshPerSecTextBox = new TextBox() { Padding = new Thickness(4, 2) };
         this.PART_UpdateCountLimit = new TextBox() { Padding = new Thickness(4, 2) };
         this.PART_FloatingEpsilonTextBox = new TextBox() { Padding = new Thickness(4, 2) };
-        this.PART_ToggleRefreshEnabled = new CheckBox() { [DockPanel.DockProperty] = Dock.Left, [ToolTip.TipProperty] = "Toggles whether auto-refreshing saved addresses and scan results is enabled", Content = "Is Enabled", VerticalAlignment = VerticalAlignment.Center, Padding = new Thickness(4, 1) };
+        this.PART_ToggleRefreshEnabled = new CheckBox() { [DockPanel.DockProperty] = Dock.Left, [ToolTipEx.TipProperty] = "Toggles whether auto-refreshing saved addresses and scan results is enabled", Content = "Is Enabled", VerticalAlignment = VerticalAlignment.Center, Padding = new Thickness(4, 1) };
 
         StackPanel stackPanel;
         this.LogicalChildren.Add(stackPanel = new StackPanel() {

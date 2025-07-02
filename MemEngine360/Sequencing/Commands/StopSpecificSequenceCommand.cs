@@ -21,7 +21,7 @@ using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Sequencing.Commands;
 
-public class StopSequenceCommand : Command {
+public class StopSpecificSequenceCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         if (!ITaskSequenceEntryUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceEntryUI? sequence))
             return Executability.Invalid;

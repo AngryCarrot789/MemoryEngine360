@@ -28,7 +28,19 @@ public static class TaskSequenceContextRegistry {
         FixedContextGroup actions = Registry.GetFixedGroup("operations");
         actions.AddHeader("General");
         actions.AddCommand("commands.sequencer.RunSequenceCommand", "Run");
-        actions.AddCommand("commands.sequencer.StopSequenceCommand", "Cancel");
+        
+        actions.AddDynamicSubGroup((group, ctx, items) => {
+            if (ITaskSequenceManagerUI.DataKey.TryGetContext(ctx, out ITaskSequenceManagerUI? ui)) {
+                if (ui.SequenceSelectionManager.Count == 1) {
+                    items.Add(new CommandContextEntry("commands.sequencer.StopSpecificSequenceCommand", "Cancel"));
+                }
+                else {
+                    items.Add(new CommandContextEntry("commands.sequencer.StopSpecificSequenceCommand", "Cancel"));
+                    items.Add(new SeparatorEntry());
+                    items.Add(new CommandContextEntry("commands.sequencer.StopSelectedSequencesCommand", "Cancel All"));
+                }
+            }
+        });
 
         FixedContextGroup edit = Registry.GetFixedGroup("general");
         edit.AddHeader("Edit");

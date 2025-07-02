@@ -5,12 +5,12 @@
                  xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
                  xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd;assembly=MemEngine360.BaseFrontEnd"
                  xmlns:memRegions="clr-namespace:MemEngine360.BaseFrontEnd.MemRegions;assembly=MemEngine360.BaseFrontEnd"
                  xmlns:modules="clr-namespace:MemEngine360.BaseFrontEnd.XboxBase.Modules"
                  xmlns:models="clr-namespace:MemEngine360.XboxBase.Modules;assembly=MemEngine360"
+                 xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.BaseFrontEnd.XboxBase.Modules.ModuleViewerWindow"
                  Title="Module Viewer"
@@ -68,13 +68,13 @@
                                                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                                        FontFamily="{StaticResource FontOxanium}"
                                                        TextWrapping="Wrap" Padding="3,1">
-                                                <ToolTip.Tip>
+                                                <tt:ToolTipEx.Tip>
                                                     <TextBlock>
                                                         <Run Text="The 'Name' property of the module"/>
                                                         <LineBreak/>
                                                         <Run Text="{Binding Text, ElementName=PART_HeaderText}"/>
                                                     </TextBlock>
-                                                </ToolTip.Tip>
+                                                </tt:ToolTipEx.Tip>
                                             </TextBlock>
                                             <TextBlock x:Name="PART_FooterText"
                                                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -82,13 +82,13 @@
                                                        FontFamily="{StaticResource FontOxanium}"
                                                        TextWrapping="NoWrap" TextTrimming="PrefixCharacterEllipsis" Padding="3,1"
                                                        FontSize="10" Foreground="{DynamicResource ABrush.Foreground.Disabled}">
-                                                <ToolTip.Tip>
+                                                <tt:ToolTipEx.Tip>
                                                     <TextBlock>
                                                         <Run Text="The 'FullName' property of the module"/>
                                                         <LineBreak/>
                                                         <Run Text="{Binding Text, ElementName=PART_FooterText}"/>
                                                     </TextBlock>
-                                                </ToolTip.Tip>
+                                                </tt:ToolTipEx.Tip>
                                             </TextBlock>
                                         </StackPanel>
                                     </Border>

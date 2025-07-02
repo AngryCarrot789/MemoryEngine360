@@ -40,7 +40,7 @@ public abstract class BaseSequenceIsRunningDependentCommandUsage : BaseSequenceC
     }
 }
 
-public class StopSequenceCommandUsage() : BaseSequenceIsRunningDependentCommandUsage("commands.sequencer.StopSequenceCommand");
+public class StopSpecificSequenceCommandUsage() : BaseSequenceIsRunningDependentCommandUsage("commands.sequencer.StopSpecificSequenceCommand");
 
 public class RunSequenceCommandUsage : BaseSequenceIsRunningDependentCommandUsage {
     public RunSequenceCommandUsage() : base("commands.sequencer.RunSequenceCommand") {
