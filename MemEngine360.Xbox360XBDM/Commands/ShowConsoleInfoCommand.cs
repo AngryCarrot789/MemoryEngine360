@@ -49,7 +49,7 @@ public class ShowConsoleInfoCommand : BaseRemoteConsoleCommand {
             sb.Append("Current Title IP: ").Append(currTitleAddr).AppendLine();
             sb.Append("Current Process ID: ").Append(currProcId.ToString("X8")).AppendLine();
             sb.AppendLine("Named Threads below");
-            foreach (ConsoleThread info in await xbox.GetThreadDump()) {
+            foreach (XboxThread info in await xbox.GetThreadDump()) {
                 if (!string.IsNullOrEmpty(info.readableName)) {
                     sb.AppendLine(info.ToString());
                 }

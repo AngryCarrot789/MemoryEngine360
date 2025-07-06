@@ -402,9 +402,12 @@ public class MemoryEngine {
     /// <param name="action">The callback to invoke when we have the token</param>
     /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
     public async Task BeginBusyOperationActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
+        if (this.connection == null) return; // short path -- save creating an activity
+        
         using IDisposable? token = await this.BeginBusyOperationActivityAsync(caption, message);
-        if (token != null && this.connection != null) {
-            await action(token, this.connection!);
+        IConsoleConnection theConn; // save double volatile read
+        if (token != null && (theConn = this.connection) != null) {
+            await action(token, theConn);
         }
     }
 
@@ -416,9 +419,12 @@ public class MemoryEngine {
     /// <typeparam name="TResult">The result of the callback task</typeparam>
     /// <returns>The task containing the result of action, or default if we couldn't get the token or connection was null</returns>
     public async Task<TResult?> BeginBusyOperationActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
+        if (this.connection == null) return default; // short path -- save creating an activity
+        
         using IDisposable? token = await this.BeginBusyOperationActivityAsync(caption, message);
-        if (token != null && this.connection != null) {
-            return await action(token, this.connection!);
+        IConsoleConnection theConn; // save double volatile read
+        if (token != null && (theConn = this.connection) != null) {
+            return await action(token, theConn);
         }
 
         return default;

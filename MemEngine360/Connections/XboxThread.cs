@@ -17,9 +17,9 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
+namespace MemEngine360.Connections;
 
-public struct ConsoleThread {
+public struct XboxThread {
     public uint id;
     public uint suspendCount; // "suspend"
     public uint priority; // "priority"

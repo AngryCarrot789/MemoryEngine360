@@ -32,7 +32,7 @@ public interface IXbdmConnection : INetworkConsoleConnection, IHaveMemoryRegions
     /// Gets all the threads running on this console
     /// </summary>
     /// <returns></returns>
-    Task<List<ConsoleThread>> GetThreadDump();
+    Task<List<XboxThread>> GetThreadDump();
 
     /// <summary>
     /// Sends the eject command to toggle the disk tray

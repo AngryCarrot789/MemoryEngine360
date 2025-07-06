@@ -1,0 +1,26 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MemEngine360.BaseFrontEnd.EventViewing.XbdmEvents.ConsoleEventArgsInfoControlXbdmEventDebugString"
+             FontFamily="{StaticResource FontOxanium}">
+    <StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="Debug String Event" Padding="4,2" FontSize="20"/>
+            <CheckBox IsEnabled="False" x:Name="PART_IsThreadStop" Content="Is Thread Stop" Padding="4,2"/>
+        </StackPanel>
+        <Separator/>
+        <DockPanel>
+            <TextBlock Text="Thread" Padding="4,2"/>
+            <Button x:Name="PART_ReadThreadInfo" Content="Read Name" Padding="6,1"/>
+            <Separator Margin="3,0,0,0"/>
+        </DockPanel>
+        <TextBlock x:Name="PART_Thread" Padding="4,2"/>
+        <DockPanel>
+            <TextBlock Text="Debug String" Padding="4,2"/>
+            <Separator Margin="3,0,0,0"/>
+        </DockPanel>
+        <TextBlock x:Name="PART_String" Padding="4,2"/>
+    </StackPanel>
+</UserControl>

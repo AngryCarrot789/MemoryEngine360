@@ -38,7 +38,7 @@ namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 // Rewrite with fixes and performance improvements, based on:
 // https://github.com/XeClutch/Cheat-Engine-For-Xbox-360/blob/master/Cheat%20Engine%20for%20Xbox%20360/PhantomRTM.cs
 
-public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHavePowerFunctions, IXboxDebuggable, IHaveSystemEvents {
+public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHavePowerFunctions, IXboxDebuggable, IHaveSystemEvents, IHaveXboxThreadInfo {
     private static int NextReaderID = 1;
 
     private readonly byte[] sharedTwoByteArray = new byte[2];
@@ -204,12 +204,41 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 split == -1 ? "" : x.AsSpan(split + 1).Trim().ToString());
         }).ToList();
     }
+    
+    private static void ParseThreadInfo(string text, ref XboxThread tdInfo) {
+        ReadOnlySpan<char> ros = text.AsSpan();
+        ParamUtils.GetDwParam(ros, "suspend", true, out tdInfo.suspendCount);
+        ParamUtils.GetDwParam(ros, "priority", true, out tdInfo.priority);
+        ParamUtils.GetDwParam(ros, "tlsbase", true, out tdInfo.tlsBaseAddress);
+        ParamUtils.GetDwParam(ros, "base", true, out tdInfo.baseAddress);
+        ParamUtils.GetDwParam(ros, "limit", true, out tdInfo.limit);
+        ParamUtils.GetDwParam(ros, "slack", true, out tdInfo.slack);
+        ParamUtils.GetDwParam(ros, "nameaddr", true, out tdInfo.nameAddress);
+        ParamUtils.GetDwParam(ros, "namelen", true, out tdInfo.nameLength);
+        ParamUtils.GetDwParam(ros, "proc", true, out tdInfo.currentProcessor);
+        ParamUtils.GetDwParam(ros, "lasterr", true, out tdInfo.lastError);
+    }
+    
+    public async Task<XboxThread> GetThreadInfo(uint threadId) {
+        XboxThread tdInfo = new XboxThread {
+            id = threadId
+        };
 
-    public async Task<List<ConsoleThread>> GetThreadDump() {
+        List<string> info = await this.SendCommandAndReceiveLines($"threadinfo thread=0x{tdInfo.id:X8}");
+        Debug.Assert(info.Count > 0, "Info should have at least 1 line since it will be a multi-line response");
+        if (info.Count != 1) {
+            Debugger.Break(); // interesting... more than 1 line of info. Let's explore!
+        }
+
+        ParseThreadInfo(info[0], ref tdInfo);
+        return tdInfo;
+    }
+
+    public async Task<List<XboxThread>> GetThreadDump() {
         List<string> list = await this.SendCommandAndReceiveLines("threads");
-        List<ConsoleThread> threads = new List<ConsoleThread>(list.Count);
+        List<XboxThread> threads = new List<XboxThread>(list.Count);
         foreach (string threadId in list) {
-            ConsoleThread tdInfo = new ConsoleThread {
+            XboxThread tdInfo = new XboxThread {
                 id = (uint) int.Parse(threadId)
             };
 
@@ -219,12 +248,12 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 Debugger.Break(); // interesting... more than 1 line of info. Let's explore!
             }
 
-            ParseData(info[0], ref tdInfo);
+            ParseThreadInfo(info[0], ref tdInfo);
             threads.Add(tdInfo);
         }
 
         for (int i = 0; i < threads.Count; i++) {
-            ConsoleThread tdInfo = threads[i];
+            XboxThread tdInfo = threads[i];
             if (tdInfo.nameAddress != 0 && tdInfo.nameLength != 0 && tdInfo.nameLength < int.MaxValue) {
                 tdInfo.readableName = await this.ReadStringASCII(tdInfo.nameAddress, (int) tdInfo.nameLength);
                 threads[i] = tdInfo;
@@ -232,21 +261,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         }
 
         return threads;
-
-        // get fucked C#, can't use ROS in async my ass >:)
-        static void ParseData(string text, ref ConsoleThread tdInfo) {
-            ReadOnlySpan<char> ros = text.AsSpan();
-            ParamUtils.GetDwParam(ros, "suspend", true, out tdInfo.suspendCount);
-            ParamUtils.GetDwParam(ros, "priority", true, out tdInfo.priority);
-            ParamUtils.GetDwParam(ros, "tlsbase", true, out tdInfo.tlsBaseAddress);
-            ParamUtils.GetDwParam(ros, "base", true, out tdInfo.baseAddress);
-            ParamUtils.GetDwParam(ros, "limit", true, out tdInfo.limit);
-            ParamUtils.GetDwParam(ros, "slack", true, out tdInfo.slack);
-            ParamUtils.GetDwParam(ros, "nameaddr", true, out tdInfo.nameAddress);
-            ParamUtils.GetDwParam(ros, "namelen", true, out tdInfo.nameLength);
-            ParamUtils.GetDwParam(ros, "proc", true, out tdInfo.currentProcessor);
-            ParamUtils.GetDwParam(ros, "lasterr", true, out tdInfo.lastError);
-        }
     }
 
     public async Task RebootConsole(bool cold = true) {
@@ -974,11 +988,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 }
             }
 
-            string line = delegateConnection.ReadLineFromStream().AsTask().GetAwaiter().GetResult();
-            if (line != "execution started") {
-                throw new Exception("wut");
-            }
-
             while (delegateConnection.IsConnected) {
                 lock (this.systemEventThreadLock) {
                     if (this.systemEventMode == EnumEventThreadMode.Stopping) {
@@ -986,12 +995,15 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                     }
                 }
 
+                string line;
                 try {
                     line = delegateConnection.ReadLineFromStream().AsTask().GetAwaiter().GetResult();
+                    if (line == "execution started") continue;
                 }
                 catch (Exception) {
                     continue;
                 }
+                
 
                 Debug.Assert(line != null);
                 XbdmEventArgs e = XbdmEventUtils.ParseSpecial(line) ?? new XbdmEventArgs(line);
