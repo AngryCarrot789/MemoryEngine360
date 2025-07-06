@@ -17,43 +17,40 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Xbox360XBDM.StandardEvents;
+namespace MemEngine360.Engine.Events.XbdmEvents;
 
-public class StdEventBreakpoint : StdEventNotification {
+public class XbdmEventArgsException : XbdmEventArgsNotification {
     /// <summary>
-    /// Gets the address we are at
+    /// Gets the flags associated with the exception
     /// </summary>
-    public uint Address { get; init; }
+    public ExceptionFlags Flags { get; init; }
+
+    public uint Code { get; init; }
 
     /// <summary>
-    /// Gets the ID of the thread we are on
+    /// Gets the calling thread
     /// </summary>
     public uint Thread { get; init; }
 
-    public StdEventBreakpoint(string rawMessage, NotificationType notificationType) : base(rawMessage, notificationType) {
+    public uint Address { get; init; }
+
+    /// <summary>
+    /// Gets the address that was attempted to be read from or written to that caused the exception
+    /// </summary>
+    public uint ReadOrWriteAddress { get; init; }
+
+    /// <summary>
+    /// Gets whether the exception was caused by a write operation
+    /// </summary>
+    public bool IsOnWrite { get; init; }
+
+    public XbdmEventArgsException(string rawMessage) : base(rawMessage, NotificationType.Exception) {
     }
 }
 
-public class StdEventDataBreakpoint : StdEventBreakpoint {
-    /// <summary>
-    /// Gets the type of break type
-    /// </summary>
-    public BreakType BreakType { get; }
-
-    /// <summary>
-    /// Gets the address of the data... I assume?
-    /// </summary>
-    public uint DataAddress { get; }
-
-    public StdEventDataBreakpoint(string rawMessage, BreakType breakType, uint dataAddress) : base(rawMessage, NotificationType.Data) {
-        this.BreakType = breakType;
-        this.DataAddress = dataAddress;
-    }
-}
-
-public enum BreakType {
-    None,
-    Write,
-    Read,
-    Execute
+[Flags]
+public enum ExceptionFlags {
+    None = 0,
+    FirstChance = 1,
+    NonContinuable = 2
 }

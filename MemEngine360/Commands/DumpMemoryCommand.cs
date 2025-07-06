@@ -22,6 +22,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Traits;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Scanners;

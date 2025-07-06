@@ -17,20 +17,14 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Xbox360XBDM.StandardEvents;
+using MemEngine360.Connections.Utils;
 
-public class StdEventDebugString : StdEvent {
-    public string DebugString { get; }
+namespace MemEngine360.Engine.Events.XbdmEvents;
 
-    public uint Thread { get; init; }
+public class XbdmEventArgsExecutionState : XbdmEventArgs {
+    public XbdmExecutionState ExecutionState { get; }
 
-    public bool IsThreadStop { get; init; }
-
-    public StdEventDebugString(string rawMessage, string debugString) : base(rawMessage) {
-        this.DebugString = debugString;
-    }
-
-    public override string ToString() {
-        return $"{this.GetType().Name} {{ Thread = 0x{this.Thread:X8}, IsThreadStop = {this.IsThreadStop}, String = \"{this.DebugString}\" }} [[[RAW = {this.RawMessage})]]]";
+    public XbdmEventArgsExecutionState(string rawMessage, XbdmExecutionState executionState) : base(rawMessage) {
+        this.ExecutionState = executionState;
     }
 }

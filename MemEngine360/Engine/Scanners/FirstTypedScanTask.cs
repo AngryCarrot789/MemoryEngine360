@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Traits;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Tasks.Pausable;
 

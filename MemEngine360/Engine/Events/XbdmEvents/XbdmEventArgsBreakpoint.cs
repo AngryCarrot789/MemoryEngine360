@@ -17,40 +17,43 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Xbox360XBDM.StandardEvents;
+namespace MemEngine360.Engine.Events.XbdmEvents;
 
-public class StdEventException : StdEventNotification {
+public class XbdmEventArgsBreakpoint : XbdmEventArgsNotification {
     /// <summary>
-    /// Gets the flags associated with the exception
+    /// Gets the address we are at
     /// </summary>
-    public ExceptionFlags Flags { get; init; }
-
-    public uint Code { get; init; }
-
-    /// <summary>
-    /// Gets the calling thread
-    /// </summary>
-    public uint Thread { get; init; }
-
     public uint Address { get; init; }
 
     /// <summary>
-    /// Gets the address that was attempted to be read from or written to that caused the exception
+    /// Gets the ID of the thread we are on
     /// </summary>
-    public uint ReadOrWriteAddress { get; init; }
+    public uint Thread { get; init; }
 
-    /// <summary>
-    /// Gets whether the exception was caused by a write operation
-    /// </summary>
-    public bool IsOnWrite { get; init; }
-
-    public StdEventException(string rawMessage) : base(rawMessage, NotificationType.Exception) {
+    public XbdmEventArgsBreakpoint(string rawMessage, NotificationType notificationType) : base(rawMessage, notificationType) {
     }
 }
 
-[Flags]
-public enum ExceptionFlags {
-    None = 0,
-    FirstChance = 1,
-    NonContinuable = 2
+public class XbdmEventArgsDataBreakpoint : XbdmEventArgsBreakpoint {
+    /// <summary>
+    /// Gets the type of break type
+    /// </summary>
+    public BreakType BreakType { get; }
+
+    /// <summary>
+    /// Gets the address of the data... I assume?
+    /// </summary>
+    public uint DataAddress { get; }
+
+    public XbdmEventArgsDataBreakpoint(string rawMessage, BreakType breakType, uint dataAddress) : base(rawMessage, NotificationType.Data) {
+        this.BreakType = breakType;
+        this.DataAddress = dataAddress;
+    }
+}
+
+public enum BreakType {
+    None,
+    Write,
+    Read,
+    Execute
 }

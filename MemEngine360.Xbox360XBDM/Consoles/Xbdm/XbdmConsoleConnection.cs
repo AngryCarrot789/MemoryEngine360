@@ -27,6 +27,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Traits;
+using MemEngine360.Connections.Utils;
+using MemEngine360.Engine.Events.XbdmEvents;
 using MemEngine360.XboxBase;
 using PFXToolKitUI.Utils;
 
@@ -35,7 +38,7 @@ namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 // Rewrite with fixes and performance improvements, based on:
 // https://github.com/XeClutch/Cheat-Engine-For-Xbox-360/blob/master/Cheat%20Engine%20for%20Xbox%20360/PhantomRTM.cs
 
-public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHavePowerFunctions, IXboxDebuggable {
+public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHavePowerFunctions, IXboxDebuggable, IHaveSystemEvents {
     private static int NextReaderID = 1;
 
     private readonly byte[] sharedTwoByteArray = new byte[2];
@@ -45,6 +48,19 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     private readonly StringBuilder sbLineBuffer = new StringBuilder(400);
     private readonly TcpClient client;
 
+    private enum EnumEventThreadMode {
+        Inactive, // Thread not running
+        Starting, // Thread starting
+        Running, // (SET BY THREAD) Loop running
+        Stopping // Notify thread loop to stop
+    }
+
+    private volatile int systemEventSubscribeCount;
+    private readonly object systemEventThreadLock = new object();
+    private EnumEventThreadMode systemEventMode = EnumEventThreadMode.Inactive;
+    private Thread? systemEventThread;
+    private readonly List<ConsoleSystemEventHandler> systemEventHandlers = new List<ConsoleSystemEventHandler>();
+
     private bool isWaitingForNewLine;
     private int idxBeginLnBuf, idxEndLnBuf;
 
@@ -52,6 +68,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     private volatile int readType;
     private BinaryReadInfo readInfo_binary;
     private StringLineReadInfo readInfo_string;
+    private readonly string originalConnectionAddress;
 
     private readonly struct BinaryReadInfo(byte[] dstBuffer, int offset, int count, TaskCompletionSource completion, CancellationToken cancellation) {
         public readonly byte[] dstBuffer = dstBuffer;
@@ -76,8 +93,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
 
-    public XbdmConsoleConnection(TcpClient client) {
+    public XbdmConsoleConnection(TcpClient client, string originalConnectionAddress) {
         this.client = client;
+        this.originalConnectionAddress = originalConnectionAddress;
 
         "setmem addr=0x"u8.CopyTo(new Span<byte>(this.sharedSetMemCommandBuffer, 0, 14));
         " data="u8.CopyTo(new Span<byte>(this.sharedSetMemCommandBuffer, 22, 6));
@@ -311,16 +329,16 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         return newList;
     }
 
-    public async Task<ExecutionState> GetExecutionState() {
+    public async Task<XbdmExecutionState> GetExecutionState() {
         string str = (await this.SendCommand("getexecstate").ConfigureAwait(false)).Message;
         switch (str) {
-            case "pending":       return ExecutionState.Pending;
-            case "reboot":        return ExecutionState.Reboot;
-            case "start":         return ExecutionState.Start;
-            case "stop":          return ExecutionState.Stop;
-            case "pending_title": return ExecutionState.TitlePending;
-            case "reboot_title":  return ExecutionState.TitleReboot;
-            default:              return ExecutionState.Unknown;
+            case "pending":       return XbdmExecutionState.Pending;
+            case "reboot":        return XbdmExecutionState.Reboot;
+            case "start":         return XbdmExecutionState.Start;
+            case "stop":          return XbdmExecutionState.Stop;
+            case "pending_title": return XbdmExecutionState.TitlePending;
+            case "reboot_title":  return XbdmExecutionState.TitleReboot;
+            default:              return XbdmExecutionState.Unknown;
         }
     }
 
@@ -917,6 +935,137 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     private static void VerifyResponse(string commandName, ResponseType actual, ResponseType expected) {
         if (actual != expected) {
             throw new UnexpectedResponseException(commandName, actual, expected);
+        }
+    }
+
+    private void EventListenerThreadMain() {
+        try {
+            lock (this.systemEventThreadLock) {
+                Debug.WriteLine("Event Listener Thread Started");
+                this.systemEventMode = EnumEventThreadMode.Running;
+            }
+
+            using TcpClient theClient = new TcpClient();
+            theClient.ReceiveTimeout = 0;
+            theClient.Connect(this.originalConnectionAddress, 730);
+
+            using StreamReader cmdReader = new StreamReader(theClient.GetStream(), Encoding.ASCII);
+            string? strresponse = cmdReader.ReadLine()?.ToLower();
+            if (strresponse != "201- connected") {
+                throw new Exception("Borken");
+            }
+
+            XbdmConsoleConnection delegateConnection = new XbdmConsoleConnection(theClient, this.originalConnectionAddress);
+
+            ConsoleResponse response = delegateConnection.SendCommand($"debugger connect override name=\"{Environment.MachineName}\" user=\"MemoryEngine360\"").GetAwaiter().GetResult();
+            if (response.ResponseType != ResponseType.SingleResponse) {
+                throw new Exception($"Failed to enable debugger. Response = {response.ToString()}");
+            }
+
+            // no idea what reconnectport does, surely it's not the port it tries to reconnect on
+            response = delegateConnection.SendCommand($"notify reconnectport=12345").GetAwaiter().GetResult();
+            if (response.ResponseType != ResponseType.DedicatedConnection) {
+                throw new Exception($"Failed to setup notifications. Response type is not {nameof(ResponseType.DedicatedConnection)}: {response.RawMessage}");
+            }
+
+            lock (this.systemEventThreadLock) {
+                if (this.systemEventMode == EnumEventThreadMode.Stopping) {
+                    goto CloseConnection;
+                }
+            }
+
+            string line = delegateConnection.ReadLineFromStream().AsTask().GetAwaiter().GetResult();
+            if (line != "execution started") {
+                throw new Exception("wut");
+            }
+
+            while (delegateConnection.IsConnected) {
+                lock (this.systemEventThreadLock) {
+                    if (this.systemEventMode == EnumEventThreadMode.Stopping) {
+                        goto CloseConnection;
+                    }
+                }
+
+                try {
+                    line = delegateConnection.ReadLineFromStream().AsTask().GetAwaiter().GetResult();
+                }
+                catch (Exception) {
+                    continue;
+                }
+
+                Debug.Assert(line != null);
+                XbdmEventArgs e = XbdmEventUtils.ParseSpecial(line) ?? new XbdmEventArgs(line);
+
+                List<ConsoleSystemEventHandler> list;
+                lock (this.systemEventHandlers) {
+                    list = this.systemEventHandlers.ToList();
+                }
+
+                foreach (ConsoleSystemEventHandler handler in list) {
+                    handler(this, e);
+                }
+                
+                Debug.WriteLine(line);
+            }
+
+            CloseConnection:
+            Debug.WriteLine("Stopping Event Listener Thread");
+            theClient.Close();
+        }
+        catch (Exception e) {
+            Debug.WriteLine("Exception in " + Thread.CurrentThread.Name);
+            Debug.WriteLine(e.GetToString());
+        }
+    }
+
+    public IDisposable SubscribeToEvents(ConsoleSystemEventHandler handler) {
+        ArgumentNullException.ThrowIfNull(handler);
+        if (Interlocked.Increment(ref this.systemEventSubscribeCount) == 1) {
+            lock (this.systemEventThreadLock) {
+                switch (this.systemEventMode) {
+                    case EnumEventThreadMode.Inactive:
+                    case EnumEventThreadMode.Stopping: {
+                        this.systemEventMode = EnumEventThreadMode.Starting;
+                        this.systemEventThread = new Thread(this.EventListenerThreadMain) {
+                            IsBackground = true, Name = "Xbdm Event Listener Thread"
+                        };
+
+                        this.systemEventThread.Start();
+                        break;
+                    }
+                }
+            }
+        }
+
+        lock (this.systemEventHandlers) {
+            this.systemEventHandlers.Add(handler);
+        }
+
+        return new EventSubscriber(this, handler);
+    }
+
+    private void UnsubscribeFromEvents(ConsoleSystemEventHandler handler) {
+        lock (this.systemEventHandlers) {
+            this.systemEventHandlers.Remove(handler);
+        }
+
+        if (Interlocked.Decrement(ref this.systemEventSubscribeCount) == 0) {
+            this.systemEventMode = EnumEventThreadMode.Stopping;
+        }
+    }
+
+    private class EventSubscriber : IDisposable {
+        private volatile XbdmConsoleConnection? connection;
+        private readonly ConsoleSystemEventHandler handler;
+
+        public EventSubscriber(XbdmConsoleConnection connection, ConsoleSystemEventHandler handler) {
+            this.connection = connection;
+            this.handler = handler;
+        }
+
+        public void Dispose() {
+            XbdmConsoleConnection? conn = Interlocked.Exchange(ref this.connection, null);
+            conn?.UnsubscribeFromEvents(this.handler);
         }
     }
 }

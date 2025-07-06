@@ -21,6 +21,7 @@ using System.Net;
 using System.Text;
 using MemEngine360.Commands;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Utils;
 using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI.CommandSystem;
@@ -38,7 +39,7 @@ public class ShowConsoleInfoCommand : BaseRemoteConsoleCommand {
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         if (connection is IXbdmConnection xbox) {
             string debugName = await xbox.GetDebugName();
-            ExecutionState execState = await xbox.GetExecutionState();
+            XbdmExecutionState execState = await xbox.GetExecutionState();
             IPAddress currTitleAddr = await xbox.GetTitleIPAddress();
             uint currProcId = await xbox.GetProcessID();
 

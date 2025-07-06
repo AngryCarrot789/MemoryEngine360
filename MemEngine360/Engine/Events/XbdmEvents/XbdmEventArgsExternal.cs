@@ -17,22 +17,12 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Xbox360XBDM.StandardEvents;
+namespace MemEngine360.Engine.Events.XbdmEvents;
 
 /// <summary>
-/// A standard event sent from the xbox 360
+/// Represents an external notification event
 /// </summary>
-public abstract class StdEvent {
-    /// <summary>
-    /// Gets the raw message string the data was parsed from
-    /// </summary>
-    public string RawMessage { get; }
-
-    protected StdEvent(string rawMessage) {
-        this.RawMessage = rawMessage;
-    }
-
-    public override string ToString() {
-        return $"{this.GetType().Name} ({this.RawMessage})";
+public sealed class XbdmEventArgsExternal : XbdmEventArgs {
+    public XbdmEventArgsExternal(string rawMessage) : base(rawMessage) {
     }
 }

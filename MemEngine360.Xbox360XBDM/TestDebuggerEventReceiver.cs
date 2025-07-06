@@ -20,8 +20,9 @@
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
+using MemEngine360.Connections.Utils;
+using MemEngine360.Engine.Events.XbdmEvents;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
-using MemEngine360.Xbox360XBDM.StandardEvents;
 
 namespace MemEngine360.Xbox360XBDM;
 
@@ -30,7 +31,7 @@ public class TestDebuggerEventReceiver {
         Task.Run(async () => {
             // 1. Start listening for the Xbox to connect
             using TcpClient client = new TcpClient() {
-                ReceiveTimeout = 5000
+                ReceiveTimeout = 0
             };
             await client.ConnectAsync("192.168.1.202", 730);
 
@@ -40,7 +41,7 @@ public class TestDebuggerEventReceiver {
                 throw new Exception("Borken");
             }
 
-            XbdmConsoleConnection connection = new XbdmConsoleConnection(client);
+            XbdmConsoleConnection connection = new XbdmConsoleConnection(client, "192.168.1.202");
 
             ConsoleResponse response = await connection.SendCommand($"debugger connect override name=\"{Environment.MachineName}\" user=\"MemoryEngine360\"");
             if (response.ResponseType != ResponseType.SingleResponse) {
@@ -69,7 +70,7 @@ public class TestDebuggerEventReceiver {
 
                     Debug.Assert(line != null);
 
-                    StdEvent? e = Parse(line);
+                    XbdmEventArgs? e = XbdmEventUtils. ParseSpecial(line);
                     if (e != null) {
                         Debug.WriteLine(e);
                     }
@@ -85,127 +86,5 @@ public class TestDebuggerEventReceiver {
                 await Task.Delay(500);
             }
         }).Wait();
-    }
-
-    private static StdEvent? Parse(string text) {
-        uint addr, thread, dataAddr, code, rwAddr;
-        int cmdLen = text.IndexOf(' ');
-        if (cmdLen == -1) {
-            return null;
-        }
-
-        string cmd = text.Substring(0, cmdLen).ToLower();
-        if (cmd.Contains('!')) {
-            return new StdEventExternal(text);
-        }
-
-        ReadOnlySpan<char> textRos = text.AsSpan();
-        switch (cmd) {
-            case "break":
-            case "singlestep":
-            case "data": {
-                ParamUtils.GetDwParam(textRos, "addr", false, out addr);
-                ParamUtils.GetDwParam(textRos, "thread", false, out thread);
-                if (cmd != "data") {
-                    return new StdEventBreakpoint(text, cmd == "break" ? NotificationType.Break : NotificationType.SingleStep) {
-                        Address = addr, Thread = thread
-                    };
-                }
-                else {
-                    BreakType bType;
-                    if (ParamUtils.GetDwParam(textRos, "write", false, out dataAddr))
-                        bType = BreakType.Write;
-                    else if (ParamUtils.GetDwParam(textRos, "read", false, out dataAddr))
-                        bType = BreakType.Read;
-                    else if (ParamUtils.GetDwParam(textRos, "execute", false, out dataAddr))
-                        bType = BreakType.Execute;
-                    else
-                        bType = BreakType.None;
-
-                    return new StdEventDataBreakpoint(text, bType, dataAddr) {
-                        Address = addr, Thread = thread
-                    };
-                }
-            }
-
-            case "exception": {
-                if (!ParamUtils.GetDwParam(textRos, "code", false, out code))
-                    return null;
-
-                ParamUtils.GetDwParam(textRos, "thread", false, out thread);
-                ParamUtils.GetDwParam(textRos, "address", false, out addr);
-
-                ExceptionFlags flags = ExceptionFlags.None;
-                if (ParamUtils.GetOffsetToValue(textRos, "first", false, false) != -1)
-                    flags |= ExceptionFlags.FirstChance;
-                else if (ParamUtils.GetOffsetToValue(textRos, "noncont", false, false) != -1)
-                    flags |= ExceptionFlags.NonContinuable;
-
-                bool isWrite = !ParamUtils.GetDwParam(textRos, "read", false, out rwAddr);
-                if (isWrite) // not read so try parse write addr
-                    isWrite = ParamUtils.GetDwParam(textRos, "write", false, out rwAddr);
-
-                return new StdEventException(text) {
-                    Flags = flags, IsOnWrite = isWrite,
-                    Address = addr, Thread = thread,
-                    Code = code, ReadOrWriteAddress = rwAddr
-                };
-            }
-            case "rip": {
-                ParamUtils.GetDwParam(textRos, "thread", false, out thread);
-                return new StdEventRip(text, NotificationType.Rip) {
-                    Thread = thread
-                };
-            }
-            case "assert": {
-                if (!ParamUtils.GetDwParam(textRos, "thread", false, out thread))
-                    return null;
-
-                string? str = null;
-                bool isPrompt = false;
-                int idxStrVal = ParamUtils.GetOffsetToValue(textRos, "string", true, false);
-                if (idxStrVal != -1) {
-                    // assume the string spans the remainder of szCmd
-                    str = textRos.Slice(idxStrVal).ToString();
-                }
-                else if (ParamUtils.GetOffsetToValue(textRos, "prompt", false, false) != -1) {
-                    isPrompt = true;
-                }
-
-                return new StdEventAssert(text) {
-                    Thread = thread, IsPrompt = isPrompt,
-                    String = str
-                };
-            }
-            case "execution": {
-                ExecutionState state = ExecutionState.Unknown;
-                if (ParamUtils.GetOffsetToValue(textRos, "started", false, false) != -1)
-                    state = ExecutionState.Start;
-                else if (ParamUtils.GetOffsetToValue(textRos, "stopped", false, false) != -1)
-                    state = ExecutionState.Stop;
-                else if (ParamUtils.GetOffsetToValue(textRos, "pending", false, false) != -1)
-                    state = ExecutionState.Pending;
-                else if (ParamUtils.GetOffsetToValue(textRos, "rebooting", false, false) != -1)
-                    state = ExecutionState.Reboot;
-
-                return new StdEventExecutionState(text, state);
-            }
-            case "debugstr": {
-                string str = "";
-                int offset = ParamUtils.GetOffsetToValue(textRos, "string", true, false);
-                if (offset != -1) {
-                    str = textRos.Slice(offset).ToString();
-                }
-
-                ParamUtils.GetDwParam(textRos, "thread", false, out thread);
-                bool isStop = ParamUtils.GetOffsetToValue(textRos, "stop", false, false) != -1;
-
-                return new StdEventDebugString(text, str) {
-                    Thread = thread, IsThreadStop = isStop
-                };
-            }
-        }
-
-        return null;
     }
 }

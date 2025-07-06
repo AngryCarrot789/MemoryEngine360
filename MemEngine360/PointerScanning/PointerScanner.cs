@@ -336,7 +336,7 @@ public class PointerScanner {
             activity.TryCancel();
         }
     }
-
+    
     private void FindNearbyPointers(List<PointerPrivate> chain, byte currDepth, uint maxOffset, PointerScanThreadOptions options) {
         options.ActivityTask.CheckCancelled();
         PointerPrivate basePtr = chain[chain.Count - 1];

@@ -57,7 +57,7 @@ public class MemoryEngine {
     private readonly LinkedList<CancellableTaskCompletionSource> busyLockAsyncWaiters;
 
     /// <summary>
-    /// Gets or sets the current console connection
+    /// Gets the current console connection. This can only change on the main thread
     /// <para>
     /// It's crucial that when using any command that requires sending/receiving data from the console that
     /// it is synchronized with <see cref="BeginBusyOperation"/> or any of the async overloads, because,

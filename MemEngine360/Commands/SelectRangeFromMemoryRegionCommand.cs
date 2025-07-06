@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Connections;
+using MemEngine360.Connections.Traits;
 using MemEngine360.Engine;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI.CommandSystem;

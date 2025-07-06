@@ -26,6 +26,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using MemEngine360.BaseFrontEnd;
+using MemEngine360.BaseFrontEnd.EventViewing;
 using MemEngine360.BaseFrontEnd.FileConnections;
 using MemEngine360.BaseFrontEnd.MemRegions;
 using MemEngine360.BaseFrontEnd.PointerScanning;
@@ -78,6 +79,14 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
     public MemoryEngineApplication(Application application) : base(application) {
     }
 
+    static MemoryEngineApplication() {
+        TaskScheduler.UnobservedTaskException += TaskSchedulerOnUnobservedTaskException;
+    }
+
+    private static void TaskSchedulerOnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) {
+        Instance.Dispatcher.Post(() => throw new Exception("Unobserved task exception", e.Exception), DispatchPriority.Send);
+    }
+
     protected override void RegisterCommands(CommandManager manager) {
         base.RegisterCommands(manager);
 
@@ -112,6 +121,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.ToggleSavedAddressAutoRefreshCommand", new ToggleSavedAddressAutoRefreshCommand());
         manager.Register("commands.memengine.ShowModulesCommand", new ShowModulesCommand());
         manager.Register("commands.memengine.PointerScanCommand", new PointerScanCommand());
+        manager.Register("commands.memengine.ShowConsoleEventViewerCommand", new ShowConsoleEventViewerCommand());
         manager.Register("commands.moduleviewer.ShowModuleSectionInfoInDialogCommand", new ShowModuleSectionInfoInDialogCommand());
 
         // Remote commands
@@ -169,6 +179,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.RegisterConstant<MemoryEngineManager>(new MemoryEngineManagerImpl());
         manager.RegisterConstant<IEditConditionOutputModeService>(new EditConditionOutputModeServiceImpl());
         manager.RegisterConstant<IPointerScanService>(new PointerScanServiceImpl());
+        manager.RegisterConstant<IConsoleEventViewerService>(new ConsoleEventViewerServiceImpl());
 
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }

@@ -17,7 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections;
+namespace MemEngine360.Connections.Traits;
 
 /// <summary>
 /// A trait for a <see cref="IConsoleConnection"/> which can provide memory regions

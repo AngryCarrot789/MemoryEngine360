@@ -17,15 +17,15 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Xbox360XBDM.StandardEvents;
+namespace MemEngine360.Engine.Events.XbdmEvents;
 
-public class StdEventAssert : StdEventNotification {
+public class XbdmEventArgsAssert : XbdmEventArgsNotification {
     public uint Thread { get; init; }
 
     public string? String { get; init; }
 
     public bool IsPrompt { get; init; }
 
-    public StdEventAssert(string rawMessage) : base(rawMessage, NotificationType.Assert) {
+    public XbdmEventArgsAssert(string rawMessage) : base(rawMessage, NotificationType.Assert) {
     }
 }

@@ -17,24 +17,14 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Xbox360XBDM.StandardEvents;
+namespace MemEngine360.Engine.Events.XbdmEvents;
 
-public class StdEventNotification : StdEvent {
+public class XbdmEventArgsRip : XbdmEventArgsNotification {
     /// <summary>
-    /// Gets the type of notification
+    /// Gets the ID of the thread we are on
     /// </summary>
-    public NotificationType NotificationType { get; }
+    public uint Thread { get; init; }
 
-    public StdEventNotification(string rawMessage, NotificationType notificationType) : base(rawMessage) {
-        this.NotificationType = notificationType;
+    public XbdmEventArgsRip(string rawMessage) : base(rawMessage, NotificationType.Rip) {
     }
-}
-
-public enum NotificationType {
-    Break,
-    SingleStep,
-    Data,
-    Exception,
-    Rip,
-    Assert
 }

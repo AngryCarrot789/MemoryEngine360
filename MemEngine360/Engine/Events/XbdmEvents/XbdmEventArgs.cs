@@ -17,14 +17,22 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
+namespace MemEngine360.Engine.Events.XbdmEvents;
 
-public enum ExecutionState {
-    Pending,
-    Reboot,
-    Start,
-    Stop,
-    TitlePending,
-    TitleReboot,
-    Unknown
-};
+/// <summary>
+/// A standard event sent from an xbox 360 via Xbdm
+/// </summary>
+public class XbdmEventArgs : ConsoleSystemEventArgs {
+    /// <summary>
+    /// Gets the raw message string the data was parsed from
+    /// </summary>
+    public string RawMessage { get; }
+
+    public XbdmEventArgs(string rawMessage) {
+        this.RawMessage = rawMessage;
+    }
+
+    public override string ToString() {
+        return $"{this.GetType().Name} ({this.RawMessage})";
+    }
+}

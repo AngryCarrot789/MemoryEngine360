@@ -20,6 +20,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Traits;
 using XDevkit;
 
 namespace MemEngine360.Xbox360XDevkit;

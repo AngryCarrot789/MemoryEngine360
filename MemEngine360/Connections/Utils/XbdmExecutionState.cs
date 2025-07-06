@@ -17,14 +17,14 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
+namespace MemEngine360.Connections.Utils;
 
-namespace MemEngine360.Xbox360XBDM.StandardEvents;
-
-public class StdEventExecutionState : StdEvent {
-    public ExecutionState ExecutionState { get; }
-
-    public StdEventExecutionState(string rawMessage, ExecutionState executionState) : base(rawMessage) {
-        this.ExecutionState = executionState;
-    }
-}
+public enum XbdmExecutionState {
+    Pending,
+    Reboot,
+    Start,
+    Stop,
+    TitlePending,
+    TitleReboot,
+    Unknown
+};

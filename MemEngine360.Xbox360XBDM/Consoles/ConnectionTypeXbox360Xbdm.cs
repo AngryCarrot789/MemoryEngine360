@@ -44,6 +44,8 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
 
     public override Icon? Icon => SimpleIcons.Xbox360Icon;
 
+    public override bool SupportsEvents => true;
+
     private ConnectionTypeXbox360Xbdm() {
     }
 
@@ -108,7 +110,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
                 StreamReader reader = new StreamReader(client.GetStream(), leaveOpen: true);
                 string? response = (await Task.Run(() => reader.ReadLine(), cancellation.Token))?.ToLower();
                 if (response == "201- connected") {
-                    return new XbdmConsoleConnection(client);
+                    return new XbdmConsoleConnection(client, info.IpAddress);
                 }
 
                 await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => IMessageDialogService.Instance.ShowMessage("Error", "Received invalid response from console: " + (response ?? "")));

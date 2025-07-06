@@ -21,9 +21,12 @@ using System.Net.Sockets;
 using System.Numerics;
 using System.Text;
 using MemEngine360.Engine.Addressing;
+using MemEngine360.Engine.Events;
 using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Connections;
+
+public delegate void ConsoleSystemEventHandler(IConsoleConnection sender, ConsoleSystemEventArgs e);
 
 /// <summary>
 /// Represents a connection to a console. Reading/writing operations may

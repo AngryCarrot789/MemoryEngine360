@@ -19,6 +19,8 @@
 
 using System.Net;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Traits;
+using MemEngine360.Connections.Utils;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
@@ -75,7 +77,7 @@ public interface IXbdmConnection : INetworkConsoleConnection, IHaveMemoryRegions
     /// <summary>
     /// Gets the current state of the console
     /// </summary>
-    Task<ExecutionState> GetExecutionState();
+    Task<XbdmExecutionState> GetExecutionState();
 
     /// <summary>
     /// Gets the hardware information

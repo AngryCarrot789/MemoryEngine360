@@ -29,8 +29,9 @@ using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing;
 
-public delegate void TaskSequencerManagerSelectedSequenceChangedEventHandler(TaskSequencerManager sender, TaskSequence? oldSelectedSequence, TaskSequence? newSelectedSequence);
-
+/// <summary>
+/// Manages all of the task sequences
+/// </summary>
 public class TaskSequencerManager {
     private readonly ObservableList<TaskSequence> sequences, activeSequences;
 

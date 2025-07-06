@@ -32,6 +32,7 @@ using AvaloniaHex.Editing;
 using AvaloniaHex.Rendering;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Traits;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.Modes;

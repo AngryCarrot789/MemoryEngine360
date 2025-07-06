@@ -17,20 +17,20 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections;
+namespace MemEngine360.Engine.Events.XbdmEvents;
 
-/// <summary>
-/// A trait for a console with power functions, such as power off and reboot
-/// </summary>
-public interface IHavePowerFunctions {
-    /// <summary>
-    /// Sends the cold reboot command to restart the console
-    /// </summary>
-    /// <param name="cold">True to fully reboot console, False to only reboot title</param>
-    Task RebootConsole(bool cold = true);
-    
-    /// <summary>
-    /// Sends the shutdown command to the console
-    /// </summary>
-    Task ShutdownConsole();
+public class XbdmEventArgsDebugString : XbdmEventArgs {
+    public string DebugString { get; }
+
+    public uint Thread { get; init; }
+
+    public bool IsThreadStop { get; init; }
+
+    public XbdmEventArgsDebugString(string rawMessage, string debugString) : base(rawMessage) {
+        this.DebugString = debugString;
+    }
+
+    public override string ToString() {
+        return $"{this.GetType().Name} {{ Thread = 0x{this.Thread:X8}, IsThreadStop = {this.IsThreadStop}, String = \"{this.DebugString}\" }} [[[RAW = {this.RawMessage})]]]";
+    }
 }

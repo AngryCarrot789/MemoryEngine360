@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Traits;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;

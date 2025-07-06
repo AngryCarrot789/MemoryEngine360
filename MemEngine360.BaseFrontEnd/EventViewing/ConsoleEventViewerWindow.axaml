@@ -1,0 +1,31 @@
+﻿<w:DesktopWindow xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                 x:Class="MemEngine360.BaseFrontEnd.EventViewing.ConsoleEventViewerWindow"
+                 Title="ConsoleEventViewerWindow">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" 
+                BorderThickness="0,0,0,1" 
+                BorderBrush="{DynamicResource PanelBorderBrush}"
+                Height="21">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+                <CheckBox x:Name="PART_AutoScroll" Content="Auto Scroll" IsChecked="True" 
+                          tt:ToolTipEx.Tip="Only actually auto scrolls when scrolled to the bottom of the screen."/>
+            </StackPanel>
+        </Border>
+        <ScrollViewer x:Name="PART_ScrollViewer">
+            <StackPanel x:Name="PART_List">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="FontFamily" Value="{StaticResource FontOxanium}"/>
+                        <Setter Property="Padding" Value="3,2"/>
+                    </Style>
+                </StackPanel.Styles>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</w:DesktopWindow>

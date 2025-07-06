@@ -17,12 +17,23 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Xbox360XBDM.StandardEvents;
+using MemEngine360.Connections.Traits;
+using MemEngine360.Engine;
+using PFXToolKitUI;
+using PFXToolKitUI.CommandSystem;
 
-/// <summary>
-/// Represents an external notification event
-/// </summary>
-public sealed class StdEventExternal : StdEvent {
-    public StdEventExternal(string rawMessage) : base(rawMessage) {
+namespace MemEngine360.Commands;
+
+public class ShowConsoleEventViewerCommand : BaseMemoryEngineCommand {
+    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+        return engine.Connection is IHaveSystemEvents ? Executability.Valid : Executability.ValidButCannotExecute;
+    }
+
+    protected override Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+        if (engine.Connection is IHaveSystemEvents) {
+            return ApplicationPFX.Instance.ServiceManager.GetService<IConsoleEventViewerService>().ShowOrFocus(engine);
+        }
+
+        return Task.CompletedTask;
     }
 }

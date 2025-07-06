@@ -68,6 +68,11 @@ public abstract class RegisteredConnectionType {
     /// </summary>
     public virtual Icon? Icon => null;
 
+    /// <summary>
+    /// Returns true when connections returned by <see cref="OpenConnection"/> implement <see cref="MemEngine360.Connections.Traits.IHaveSystemEvents"/>
+    /// </summary>
+    public virtual bool SupportsEvents => false;
+
     // TODO: Coming soon, connection limiting. Xbox has no limit AFAIK, so no need to implement it yet
     // /// <summary>
     // /// Gets whether this connection type 

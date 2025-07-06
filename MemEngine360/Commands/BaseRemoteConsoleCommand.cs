@@ -19,6 +19,7 @@
 
 using System.Collections.ObjectModel;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Traits;
 using MemEngine360.Engine;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;

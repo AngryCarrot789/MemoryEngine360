@@ -43,7 +43,7 @@ public class EditSavedAddressAddressCommand : Command {
         }
 
         SingleUserInputInfo input = new SingleUserInputInfo(entry.MemoryAddress.ToString()) {
-            Caption = "Dump memory region",
+            Caption = "Edit address",
             Message = "Change the address of this saved address table entry",
             DefaultButton = true,
             Label = "Address (hex)",

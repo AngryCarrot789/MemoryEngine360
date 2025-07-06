@@ -17,14 +17,20 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Xbox360XBDM.StandardEvents;
+namespace MemEngine360.Connections.Traits;
 
-public class StdEventRip : StdEventNotification {
+/// <summary>
+/// A trait for a console with power functions, such as power off and reboot
+/// </summary>
+public interface IHavePowerFunctions {
     /// <summary>
-    /// Gets the ID of the thread we are on
+    /// Sends the cold reboot command to restart the console
     /// </summary>
-    public uint Thread { get; init; }
-
-    public StdEventRip(string rawMessage, NotificationType notificationType) : base(rawMessage, notificationType) {
-    }
+    /// <param name="cold">True to fully reboot console, False to only reboot title</param>
+    Task RebootConsole(bool cold = true);
+    
+    /// <summary>
+    /// Sends the shutdown command to the console
+    /// </summary>
+    Task ShutdownConsole();
 }

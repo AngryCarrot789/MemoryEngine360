@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -34,6 +35,7 @@ using Avalonia.Interactivity;
 using MemEngine360.BaseFrontEnd;
 using MemEngine360.Commands;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Traits;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
@@ -341,11 +343,21 @@ public partial class EngineView : UserControl, IEngineUI {
         {
             ContextEntryGroup entry = new ContextEntryGroup("Tools") {
                 Items = {
-                    new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Open Sequencer"),
-                    new CommandContextEntry("commands.memengine.ShowModulesCommand", "Show Modules"),
-                    new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Show Memory Regions"),
-                    new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Open debugger"),
+                    new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Task Sequencer"),
+                    new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Viewer"),
+                    new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Viewer"),
+                    new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
                     new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scanner"),
+                    new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer").
+                        AddSimpleContextUpdate(MemoryEngine.EngineDataKey, (entry, engine) => {
+                            // Maybe this should be shown via a popup instead of changing the actual menu entry
+                            if (engine?.Connection != null && !(engine.Connection is IHaveSystemEvents)) {
+                                entry.DisplayName = "Event Viewer (console unsupported)";
+                            }
+                            else {
+                                entry.DisplayName = "Event Viewer";
+                            }
+                        }),
                 }
             };
 
@@ -378,16 +390,26 @@ public partial class EngineView : UserControl, IEngineUI {
                             float radius = float.Parse(info.Text);
 
                             // BO1 stores positions as X Z Y. Or maybe they treat Z as up/down.
-                            // I'm too used to the OpenGL/Minecraft coordinate system lmao
                             const uint addr_p1_x = 0x82DC184C;
-                            float p1_x = await c.ReadValue<float>(addr_p1_x);
-                            float p1_z = await c.ReadValue<float>(addr_p1_x + 0x4);
-                            float p1_y = await c.ReadValue<float>(addr_p1_x + 0x8);
+                            
+                            float p1_x;
+                            float p1_z;
+                            float p1_y;
+
+                            try {
+                                p1_x = await c.ReadValue<float>(addr_p1_x);
+                                p1_z = await c.ReadValue<float>(addr_p1_x + 0x4);
+                                p1_y = await c.ReadValue<float>(addr_p1_x + 0x8);
+                            }
+                            catch (Exception e) when (e is TimeoutException || e is IOException) {
+                                await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + e.Message);
+                                return;
+                            }
 
                             AddressRange range = new AddressRange(engine.ScanningProcessor.StartAddress, engine.ScanningProcessor.ScanLength);
                             List<(uint, float)> results = new List<(uint, float)>();
                             using CancellationTokenSource cts = new CancellationTokenSource();
-                            await ActivityManager.Instance.RunTask(async () => {
+                            ActivityTask task = ActivityManager.Instance.RunTask(async () => {
                                 ActivityTask activity = ActivityManager.Instance.CurrentTask;
                                 IActivityProgress prog = activity.Progress;
 
@@ -452,6 +474,11 @@ public partial class EngineView : UserControl, IEngineUI {
                                     return value;
                                 }
                             }, cts);
+
+                            await task;
+                            if  (task.Exception is TimeoutException || task.Exception is IOException) {
+                                await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + task.Exception.Message);
+                            }
 
                             if (results.Count > 0) {
                                 engine.ScanningProcessor.ResetScan();
