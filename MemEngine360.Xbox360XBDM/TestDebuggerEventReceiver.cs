@@ -20,7 +20,6 @@
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
-using MemEngine360.Connections.Utils;
 using MemEngine360.Engine.Events.XbdmEvents;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
@@ -70,7 +69,7 @@ public class TestDebuggerEventReceiver {
 
                     Debug.Assert(line != null);
 
-                    XbdmEventArgs? e = XbdmEventUtils. ParseSpecial(line);
+                    XbdmEventArgs? e = XbdmEventUtils.ParseSpecial(line);
                     if (e != null) {
                         Debug.WriteLine(e);
                     }

@@ -23,6 +23,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Threading;
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.AdvancedMenuService;
@@ -83,6 +84,8 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     BaseAddressTableEntry IAddressTableEntryUI.Entry => this.EntryObject ?? throw new Exception("Not connected to an entry");
 
     bool IAddressTableEntryUI.IsValid => this.EntryObject != null;
+
+    private DispatcherTimer? expandForDragOverTimer;
 
     public AddressTableTreeViewItem() {
         DataManager.GetContextData(this).Set(IAddressTableEntryUI.DataKey, this);
@@ -421,6 +424,16 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     }
 
     private void OnDragEnter(DragEventArgs e) {
+        if (this.IsFolderItem) {
+            this.expandForDragOverTimer?.Stop();
+            this.expandForDragOverTimer ??= new DispatcherTimer(TimeSpan.FromSeconds(0.5), DispatcherPriority.Normal, (sender, args) => {
+                this.IsExpanded = true;
+                this.expandForDragOverTimer?.Stop();
+            });
+            
+            this.expandForDragOverTimer.Start();
+        }
+
         this.OnDragOver(e);
     }
 
@@ -473,6 +486,8 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
             this.IsDroppableTargetOver = false;
             this.PART_DragDropMoveBorder!.BorderThickness = default;
         }
+        
+        this.expandForDragOverTimer?.Stop();
     }
 
     private async void OnDrop(DragEventArgs e) {

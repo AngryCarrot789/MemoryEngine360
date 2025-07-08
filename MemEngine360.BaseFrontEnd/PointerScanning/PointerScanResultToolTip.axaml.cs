@@ -29,7 +29,7 @@ namespace MemEngine360.BaseFrontEnd.PointerScanning;
 
 public partial class PointerScanResultToolTip : UserControl, IToolTipControl {
     public PointerScanResultToolTip() {
-        InitializeComponent();
+        this.InitializeComponent();
     }
 
     public void OnOpened(Control owner, IContextData data) {

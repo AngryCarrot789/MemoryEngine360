@@ -61,11 +61,18 @@ public sealed class AddressTableTreeView : TreeView {
         set => this.SetValue(ColumnSeparatorBrushProperty, value);
     }
 
+    private ScrollViewer? PART_ScrollViewer;
+
     public AddressTableTreeView() {
         this.itemMap = new ModelControlDictionary<BaseAddressTableEntry, AddressTableTreeViewItem>();
         this.itemCache = new Stack<AddressTableTreeViewItem>();
         this.SelectedItems = this.selectedItemsList = new AvaloniaList<AddressTableTreeViewItem>();
         DragDrop.SetAllowDrop(this, true);
+    }
+
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
+        base.OnApplyTemplate(e);
+        this.PART_ScrollViewer = e.NameScope.GetTemplateChild<ScrollViewer>(nameof(this.PART_ScrollViewer));
     }
 
     public static void MarkContainerSelected(Control container, bool selected) {
@@ -74,12 +81,25 @@ public sealed class AddressTableTreeView : TreeView {
 
     static AddressTableTreeView() {
         AddressTableManagerProperty.Changed.AddClassHandler<AddressTableTreeView, AddressTableManager?>((o, e) => o.OnATMChanged(e));
+        DragDrop.DragOverEvent.AddClassHandler<AddressTableTreeView>((s, e) => s.OnDragOver(e), handledEventsToo: true /* required */);
+    }
+
+    private void OnDragOver(DragEventArgs e) {
+        Point mPos = e.GetPosition(this);
+        const double DragBorderThickness = 15;
+
+        if (mPos.Y < DragBorderThickness) { // scroll up
+            this.PART_ScrollViewer?.LineUp();
+        }
+        else if ((this.Bounds.Height - mPos.Y) < DragBorderThickness) { // scroll down
+            this.PART_ScrollViewer?.LineDown();
+        }
     }
 
     public AddressTableTreeViewItem GetNodeAt(int index) {
         return (AddressTableTreeViewItem) this.Items[index]!;
     }
-
+    
     public void InsertNode(BaseAddressTableEntry item, int index) {
         this.InsertNode(this.GetCachedItemOrNew(), item, index);
     }

@@ -31,6 +31,7 @@ using MemEngine360.Connections.Traits;
 using MemEngine360.Connections.Utils;
 using MemEngine360.Engine.Events.XbdmEvents;
 using MemEngine360.XboxBase;
+using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
@@ -792,7 +793,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                     this.CloseAndDispose();
                     return;
                 case 0:
-                    Debug.WriteLine("Reader thread woke up for nothing");
+                    AppLogger.Instance.WriteLine("Reader thread woke up for nothing");
                     this.readType = 0;
                     break;
                 case 1: this.ReadStringData(); break;

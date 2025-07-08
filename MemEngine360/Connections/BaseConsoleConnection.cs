@@ -24,6 +24,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Engine.Addressing;
+using PFXToolKitUI.Logging;
 using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Connections;
@@ -59,7 +60,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
 
     ~BaseConsoleConnection() {
         if (!this.isClosed)
-            Debug.WriteLine("Destructor called on " + nameof(BaseConsoleConnection) + " when still open");
+            AppLogger.Instance.WriteLine("Destructor called on " + nameof(BaseConsoleConnection) + " when still open");
     }
 
     public abstract Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);

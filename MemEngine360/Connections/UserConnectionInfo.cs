@@ -53,8 +53,6 @@ public abstract class UserConnectionInfo : ITransferableData {
             throw new InvalidOperationException("Already shown");
         info.isBeingViewed = true;
         info.OnShown();
-        
-        Debug.WriteLine("Shown: " + info.GetType());
     }
     
     public static void InternalOnHidden(UserConnectionInfo info) {
@@ -62,8 +60,6 @@ public abstract class UserConnectionInfo : ITransferableData {
             throw new InvalidOperationException("Not shown");
         info.isBeingViewed = false;
         info.OnHidden();
-        
-        Debug.WriteLine("Hidden: " + info.GetType());
     }
 
     public static bool InternalIsShown(UserConnectionInfo info) => info.isBeingViewed;

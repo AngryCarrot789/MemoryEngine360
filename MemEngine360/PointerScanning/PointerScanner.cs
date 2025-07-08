@@ -21,7 +21,6 @@ using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
 using PFXToolKitUI;

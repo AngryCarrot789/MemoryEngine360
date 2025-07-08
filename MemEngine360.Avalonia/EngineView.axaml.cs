@@ -505,7 +505,13 @@ public partial class EngineView : UserControl, IEngineUI {
         this.TopLevelMenuRegistry.Items.Add(this.themesSubList);
 
         {
-            ContextEntryGroup entry = new ContextEntryGroup("About");
+            ContextEntryGroup entry = new ContextEntryGroup("Help");
+            entry.Items.Add(new CommandContextEntry("commands.application.ShowLogsCommand", "Show Logs"));
+            entry.Items.Add(new SeparatorEntry());
+            entry.Items.Add(new CustomLambdaContextEntry("Open Wiki", (c) => {
+                const string url = "https://github.com/AngryCarrot789/MemoryEngine360/wiki#quick-start";
+                return TopLevel.GetTopLevel(this /* EngineView */)?.Launcher.LaunchUriAsync(new Uri(url)) ?? Task.FromResult(false);
+            }, (c) => TopLevel.GetTopLevel(this) != null));
             entry.Items.Add(new CommandContextEntry("commands.application.AboutApplicationCommand", "About MemoryEngine360"));
             this.TopLevelMenuRegistry.Items.Add(entry);
         }
