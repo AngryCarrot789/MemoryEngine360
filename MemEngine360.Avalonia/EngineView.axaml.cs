@@ -344,22 +344,23 @@ public partial class EngineView : UserControl, IEngineUI {
             ContextEntryGroup entry = new ContextEntryGroup("Tools") {
                 Items = {
                     new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Task Sequencer"),
-                    new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Viewer"),
+                    new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Viewer").
+                        AddCanExecuteChangeUpdaterForEvent(MemoryEngine.EngineDataKey, nameof(this.MemoryEngine.ConnectionChanged)),
                     new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Viewer"),
                     new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
                     new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scanner"),
                     new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer").
-                        AddSimpleContextUpdate(MemoryEngine.EngineDataKey, (entry, engine) => {
+                        AddContextValueChangeHandlerWithEvent(MemoryEngine.EngineDataKey, nameof(this.MemoryEngine.ConnectionChanged), (entry, engine) => {
                             // Maybe this should be shown via a popup instead of changing the actual menu entry
-                            if (engine?.Connection != null && !(engine.Connection is IHaveSystemEvents)) {
-                                entry.DisplayName = "Event Viewer (console unsupported)";
-                            }
-                            else {
-                                entry.DisplayName = "Event Viewer";
-                            }
+                            entry.DisplayName = engine?.Connection != null && !(engine.Connection is IHaveSystemEvents) 
+                                ? "Event Viewer (console unsupported)" 
+                                : "Event Viewer";
+                            entry.RaiseCanExecuteChanged();
                         }),
                 }
             };
+
+            entry.AddCanExecuteChangeUpdaterForEvent(MemoryEngine.EngineDataKey, nameof(this.MemoryEngine.ConnectionChanged));
 
             entry.Items.Add(new ContextEntryGroup("Cool Utils") {
                 Items = {
@@ -391,7 +392,7 @@ public partial class EngineView : UserControl, IEngineUI {
 
                             // BO1 stores positions as X Z Y. Or maybe they treat Z as up/down.
                             const uint addr_p1_x = 0x82DC184C;
-                            
+
                             float p1_x;
                             float p1_z;
                             float p1_y;
@@ -476,7 +477,7 @@ public partial class EngineView : UserControl, IEngineUI {
                             }, cts);
 
                             await task;
-                            if  (task.Exception is TimeoutException || task.Exception is IOException) {
+                            if (task.Exception is TimeoutException || task.Exception is IOException) {
                                 await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + task.Exception.Message);
                             }
 

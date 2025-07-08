@@ -22,6 +22,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
+using Avalonia.Threading;
 using MemEngine360.BaseFrontEnd.EventViewing.XbdmEvents;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Traits;
@@ -30,6 +32,7 @@ using MemEngine360.Engine.Events;
 using MemEngine360.Engine.Events.XbdmEvents;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Themes.BrushFactories;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils.RDA;
 
@@ -57,6 +60,12 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
     private readonly Dictionary<Type, Control> eventDisplayControlCache;
     private readonly Stack<TextBlock> cachedTextBlocks;
 
+    private DispatcherTimer? flashingTextTimer;
+    private int flashingIndex = -1;
+    private readonly DynamicAvaloniaColourBrush PFXForegroundBrush;
+    private IDisposable? foregroundSubscription;
+    private int lastStatusMessageType = -1;
+
     static ConsoleEventViewerWindow() {
         EventTypeToDisplayControlRegistry = new ModelTypeControlRegistry<Control>();
         EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgs), () => new ConsoleEventArgsInfoControlXbdmEvent());
@@ -80,11 +89,50 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
         this.pendingInsertionEx = new Queue<ConsoleSystemEventArgs>(1024);
         this.eventDisplayControlCache = new Dictionary<Type, Control>();
         this.cachedTextBlocks = new Stack<TextBlock>(510);
+        this.PFXForegroundBrush = (DynamicAvaloniaColourBrush) SimpleIcons.DynamicForegroundBrush;
+
         TextBlock testMemoryLeakTB = new TextBlock();
         testMemoryLeakTB.PointerPressed += this.OnTextBlockPressed;
         this.debugWeakRefTestMemoryLeak = new WeakReference(testMemoryLeakTB);
 
         this.rldaInsertEvents = new RateLimitedDispatchAction(this.OnTickInsertEventsCallback, TimeSpan.FromMilliseconds(50)) { DebugName = nameof(ConsoleEventViewerWindow) };
+    }
+
+    private void SetStatusText(string? text, bool isWarning) {
+        ApplicationPFX.Instance.Dispatcher.VerifyAccess();
+
+        this.PART_Status.Text = text;
+        if (!string.IsNullOrWhiteSpace(text) /* no need to flash when invisible */ && isWarning) {
+            if (this.flashingTextTimer == null || !this.flashingTextTimer.IsEnabled) {
+                this.flashingTextTimer ??= new DispatcherTimer(
+                    TimeSpan.FromMilliseconds(250) /* full flash loop every 0.5 secs */,
+                    DispatcherPriority.Normal,
+                    this.OnTickFlashText);
+                this.flashingTextTimer.Start();
+            }
+
+            if (this.flashingIndex == -1)
+                this.flashingIndex = 0;
+
+            this.UpdateStatusTextForeground();
+        }
+        else {
+            this.flashingTextTimer?.Stop();
+            this.flashingIndex = -1;
+            this.UpdateStatusTextForeground();
+        }
+    }
+
+    private void OnTickFlashText(object? sender, EventArgs e) {
+        if (this.flashingIndex != -1) {
+            this.flashingIndex = this.flashingIndex == 0 ? 1 : 0;
+            this.UpdateStatusTextForeground();
+        }
+    }
+
+    private void UpdateStatusTextForeground() {
+        // CurrentBrush is updated by the subscription, added/removed when the window opens/closes
+        this.PART_Status.Foreground = this.flashingIndex > 0 ? Brushes.Red : this.PFXForegroundBrush.CurrentBrush;
     }
 
     private async Task OnTickInsertEventsCallback() {
@@ -106,6 +154,23 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
         }
 
         await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+            int ec = this.pendingInsertionCount;
+            if ((ec + events.Count) >= 50000) {
+                if (this.lastStatusMessageType != 0) {
+                    this.lastStatusMessageType = 0;
+                    this.SetStatusText($"Ignoring incoming events: +50,000 currently queued", true);
+                }
+            }
+            else if ((ec + events.Count) >= 10000) {
+                this.SetStatusText($"More than 10,000 events queued! (+{ec})", false);
+            }
+            else if ((ec + events.Count) < 5000) {
+                if (this.lastStatusMessageType != -1) {
+                    this.lastStatusMessageType = -1;
+                    this.SetStatusText(null, false);
+                }
+            }
+
             List<TextBlock> items = new List<TextBlock>(events.Count);
             foreach (ConsoleSystemEventArgs eventArgs in events) {
                 if (!this.cachedTextBlocks.TryPop(out TextBlock? tb)) {
@@ -120,7 +185,7 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
                 if ((string.IsNullOrWhiteSpace(tbMsg) && !string.IsNullOrWhiteSpace(msg)) || msg != tbMsg) {
                     tb.Text = msg;
                 }
-                
+
                 tb.Tag = eventArgs;
                 items.Add(tb);
             }
@@ -209,7 +274,11 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
         if (this.Engine.Connection is IHaveSystemEvents events) {
             this.subscription = events.SubscribeToEvents(this.OnEvent);
         }
+
+        this.foregroundSubscription = this.PFXForegroundBrush.Subscribe(this.OnPFXForegroundBrushChanged);
     }
+
+    private void OnPFXForegroundBrushChanged(IBrush? obj) => this.UpdateStatusTextForeground();
 
     protected override void OnClosed(EventArgs e) {
         base.OnClosed(e);
@@ -217,6 +286,8 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
 
         this.Engine.ConnectionChanged -= this.OnEngineConnectionChanged;
         this.subscription?.Dispose();
+
+        this.foregroundSubscription?.Dispose();
 
         this.PART_List.Children.Clear();
         if (this.selectedLine != null) {
