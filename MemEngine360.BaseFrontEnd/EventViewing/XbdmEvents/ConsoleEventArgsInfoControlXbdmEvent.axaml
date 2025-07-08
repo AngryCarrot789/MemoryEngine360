@@ -7,7 +7,6 @@
              FontFamily="{StaticResource FontOxanium}">
     <StackPanel>
         <TextBlock Text="XBDM Event" Padding="4,2" FontSize="20"/>
-        <Separator/>
-        <TextBlock x:Name="PART_RawText" Padding="4,2"/>
+        <TextBox x:Name="PART_RawText" Padding="4,2" IsReadOnly="True"/>
     </StackPanel>
 </UserControl>

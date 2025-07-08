@@ -61,7 +61,7 @@ public class TestDebuggerEventReceiver {
 
                 while (connection.IsConnected) {
                     try {
-                        line = connection.ReadLineFromStream().AsTask().GetAwaiter().GetResult();
+                        line = connection.ReadLineFromStream().GetAwaiter().GetResult();
                     }
                     catch (Exception) {
                         continue;

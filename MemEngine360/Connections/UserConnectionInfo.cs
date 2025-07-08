@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Diagnostics;
 using PFXToolKitUI.DataTransfer;
 
 namespace MemEngine360.Connections;

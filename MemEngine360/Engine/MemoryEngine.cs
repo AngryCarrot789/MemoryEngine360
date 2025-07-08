@@ -18,6 +18,7 @@
 // 
 
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
@@ -221,7 +222,7 @@ public class MemoryEngine {
                         // ignored
                     }
                     catch (Exception ex) {
-                        ApplicationPFX.Instance.Dispatcher.Post(() => throw ex, DispatchPriority.Send);
+                        ApplicationPFX.Instance.Dispatcher.Post(() => ExceptionDispatchInfo.Throw(ex), DispatchPriority.Send);
                     }
                 });
             }

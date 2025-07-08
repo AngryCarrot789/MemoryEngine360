@@ -16,11 +16,11 @@
             <Button x:Name="PART_ReadThreadInfo" Content="Read Name" Padding="6,1"/>
             <Separator Margin="3,0,0,0"/>
         </DockPanel>
-        <TextBlock x:Name="PART_Thread" Padding="4,2"/>
+        <TextBox x:Name="PART_Thread" Padding="4,2" IsReadOnly="True"/>
         <DockPanel>
             <TextBlock Text="Debug String" Padding="4,2"/>
             <Separator Margin="3,0,0,0"/>
         </DockPanel>
-        <TextBlock x:Name="PART_String" Padding="4,2"/>
+        <TextBox x:Name="PART_String" Padding="4,2" IsReadOnly="True"/>
     </StackPanel>
 </UserControl>

@@ -22,17 +22,27 @@ namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 /// <summary>
 /// An IO exception thrown when the console responds with an invalid response to a command.
 /// </summary>
-public class UnexpectedResponseException : IOException {
-    public string CommandName { get; }
-
+public class InvalidResponseException : IOException {
     public ResponseType Actual { get; }
 
     public ResponseType Expected { get; }
 
-    public UnexpectedResponseException(string commandName, ResponseType actual, ResponseType expected) :
-        base($"Xbox responded to {commandName} with {actual} instead of {expected}, which is unexpected") {
-        this.CommandName = commandName;
+    private InvalidResponseException(ResponseType actual, ResponseType expected, string message) : base(message) {
         this.Actual = actual;
         this.Expected = expected;
+    }
+
+    public static InvalidResponseException ForCommand(string commandName, ResponseType actual, ResponseType expected) {
+        int idx = commandName.IndexOf(' ');
+        commandName = idx == -1 ? commandName : commandName.Substring(0, idx);
+        return new InvalidResponseException(actual, expected, $"Xbox responded to command '{commandName}' with {actual} instead of {expected}, which is unexpected");
+    }
+    
+    public static InvalidResponseException WithMessage(string message, ResponseType actual, ResponseType expected) {
+        return new InvalidResponseException(actual, expected, message);
+    }
+    
+    public static InvalidResponseException WithResponseTypes(ResponseType actual, ResponseType expected) {
+        return new InvalidResponseException(actual, expected, $"Xbox responded with {actual} instead of {expected}, which is unexpected");
     }
 }

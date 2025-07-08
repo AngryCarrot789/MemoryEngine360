@@ -30,13 +30,9 @@ public partial class ConsoleEventArgsInfoControlXbdmEvent : UserControl, IConsol
     }
 
     public void Connect(MemoryEngine engine, ConsoleSystemEventArgs args) {
-        this.PART_RawText.Text = ToMultiLine((XbdmEventArgs) args);
+        this.PART_RawText.Text = ((XbdmEventArgs) args).RawMessage;
     }
 
     public void Disconnect() {
-    }
-
-    public static string ToMultiLine(XbdmEventArgs args) {
-        return string.Join(Environment.NewLine, args.RawMessage.Split(' '));
     }
 }

@@ -122,11 +122,32 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         return await this.SendCommandAndGetResponse(command).ConfigureAwait(false);
     }
 
-    public async ValueTask<string> ReadLineFromStream(CancellationToken token = default) {
+    public async Task<ConsoleResponse[]> SendMultipleCommands(string[] commands) {
         this.EnsureNotDisposed();
         using BusyToken x = this.CreateBusyToken();
 
-        return await this.InternalReadLineFromStreamThreaded(token);
+        Task[] tasks = new Task[commands.Length];
+        for (int i = 0; i < tasks.Length; i++) {
+            tasks[i] = this.InternalWriteCommand(commands[i]).AsTask();
+        }
+
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+
+        ConsoleResponse[] responses = new ConsoleResponse[commands.Length];
+        for (int i = 0; i < responses.Length; i++) {
+            responses[i] = await this.InternalReadResponseOld().ConfigureAwait(false);
+        }
+
+        return responses;
+    }
+
+    public Task<ConsoleResponse[]> SendMultipleCommands(IEnumerable<string> commands) => this.SendMultipleCommands(commands.ToArray());
+
+    public async Task<string> ReadLineFromStream(CancellationToken token = default) {
+        this.EnsureNotDisposed();
+        using BusyToken x = this.CreateBusyToken();
+
+        return await this.InternalReadLine_Threaded(token);
     }
 
     /// <summary>
@@ -140,14 +161,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         using BusyToken x = this.CreateBusyToken();
 
         ConsoleResponse response = await this.SendCommandAndGetResponse(command).ConfigureAwait(false);
-        if (response.ResponseType == ResponseType.UnknownCommand) {
-            throw new Exception("Unknown command: " + command);
-        }
-
-        if (response.ResponseType != ResponseType.MultiResponse) {
-            throw new Exception("Command response is not multi-response: " + command);
-        }
-
+        int idx = command.IndexOf(' ');
+        VerifyResponse(idx == -1 ? command : command.Substring(0, idx), response.ResponseType, ResponseType.MultiResponse);
         return await this.InternalReadMultiLineResponse();
     }
 
@@ -190,7 +205,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         List<string> list = new List<string>();
 
         string line;
-        while ((line = await this.InternalReadLineFromStreamThreaded().ConfigureAwait(false)) != ".") {
+        while ((line = await this.InternalReadLine().ConfigureAwait(false)) != ".") {
             list.Add(line);
         }
 
@@ -205,7 +220,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 split == -1 ? "" : x.AsSpan(split + 1).Trim().ToString());
         }).ToList();
     }
-    
+
     private static void ParseThreadInfo(string text, ref XboxThread tdInfo) {
         ReadOnlySpan<char> ros = text.AsSpan();
         ParamUtils.GetDwParam(ros, "suspend", true, out tdInfo.suspendCount);
@@ -219,18 +234,22 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         ParamUtils.GetDwParam(ros, "proc", true, out tdInfo.currentProcessor);
         ParamUtils.GetDwParam(ros, "lasterr", true, out tdInfo.lastError);
     }
-    
-    public async Task<XboxThread> GetThreadInfo(uint threadId) {
-        XboxThread tdInfo = new XboxThread {
-            id = threadId
-        };
 
-        List<string> info = await this.SendCommandAndReceiveLines($"threadinfo thread=0x{tdInfo.id:X8}");
+    public async Task<XboxThread> GetThreadInfo(uint threadId) {
+        this.EnsureNotDisposed();
+        using BusyToken x = this.CreateBusyToken();
+
+        ConsoleResponse response = await this.SendCommandAndGetResponse($"threadinfo thread=0x{threadId:X8}").ConfigureAwait(false);
+        if (response.ResponseType == ResponseType.NoSuchThread)
+            return default;
+        VerifyResponse("threadinfo", response.ResponseType, ResponseType.MultiResponse);
+        List<string> info = await this.InternalReadMultiLineResponse();
         Debug.Assert(info.Count > 0, "Info should have at least 1 line since it will be a multi-line response");
         if (info.Count != 1) {
             Debugger.Break(); // interesting... more than 1 line of info. Let's explore!
         }
 
+        XboxThread tdInfo = new XboxThread { id = threadId };
         ParseThreadInfo(info[0], ref tdInfo);
         return tdInfo;
     }
@@ -410,11 +429,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
         this.FillGetMemCommandBuffer(address, count);
         await this.InternalWriteBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
-        ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
+        ConsoleResponse response = await this.InternalReadResponseOld().ConfigureAwait(false);
         VerifyResponse("getmem", response.ResponseType, ResponseType.MultiResponse);
 
         string line;
-        while ((line = await this.InternalReadLineFromStreamThreaded().ConfigureAwait(false)) != ".") {
+        while ((line = await this.InternalReadLine().ConfigureAwait(false)) != ".") {
             if (line.Contains('?')) {
                 return true;
             }
@@ -468,26 +487,30 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     protected override async Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
-        if (count <= 128) {
+        if (count < 128) {
             // For some reason, the old string-based reader is faster for small chunks of data.
             // However, once reading 1000s of bytes, the binary based one is twice as fast,
             // since the xbox isn't sending two bytes of ASCII for a single byte of data
-            this.FillGetMemCommandBuffer(address, (uint) count);
-            await this.InternalWriteBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
-            ConsoleResponse response = await this.InternalReadResponseOld().ConfigureAwait(false);
-            VerifyResponse("getmem", response.ResponseType, ResponseType.MultiResponse);
-            int cbRead = 0;
-            string line;
-            while ((line = await this.InternalReadLineFromStreamOld().ConfigureAwait(false)) != ".") {
-                cbRead += DecodeLine(line, dstBuffer, offset, cbRead);
-            }
-
-            if (cbRead != count) {
-                throw new IOException("Incorrect number of bytes read");
-            }
+            await this.OldReadBytes(address, dstBuffer, offset, count);
         }
         else {
             await this.NewReadBytes(address, dstBuffer, offset, count);
+        }
+    }
+
+    private async Task OldReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
+        this.FillGetMemCommandBuffer(address, (uint) count);
+        await this.InternalWriteBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
+        ConsoleResponse response = await this.InternalReadResponseOld().ConfigureAwait(false);
+        VerifyResponse("getmem", response.ResponseType, ResponseType.MultiResponse);
+        int cbRead = 0;
+        string line;
+        while ((line = await this.InternalReadLine().ConfigureAwait(false)) != ".") {
+            cbRead += DecodeLine(line, dstBuffer, offset, cbRead);
+        }
+
+        if (cbRead != count) {
+            throw new IOException("Incorrect number of bytes read");
         }
     }
 
@@ -508,7 +531,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     // Sometimes it works, sometimes it doesn't. And it also doesn't read from the correct address which is odd
-    public async Task NewReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
+    private async Task NewReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
         if (count <= 0) {
             return;
         }
@@ -547,7 +570,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             int cbToWrite = Math.Min(count, 64 /* Fixed Chunk Size */);
             this.FillSetMemCommandBuffer(address + (uint) cbReadTotal, srcBuffer, offset + cbReadTotal, cbToWrite);
             await this.InternalWriteBytes(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, 30 + (cbToWrite << 1))).ConfigureAwait(false);
-            ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
+            ConsoleResponse response = await this.InternalReadResponseOld().ConfigureAwait(false);
             if (response.ResponseType != ResponseType.SingleResponse && response.ResponseType != ResponseType.MemoryNotMapped) {
                 VerifyResponse("setmem", response.ResponseType, ResponseType.SingleResponse);
             }
@@ -566,13 +589,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         return count;
     }
 
-    private async Task<ConsoleResponse> InternalReadResponse() {
-        string responseText = await this.InternalReadLineFromStreamThreaded().ConfigureAwait(false);
-        return ConsoleResponse.FromFirstLine(responseText);
-    }
-
     private async Task<ConsoleResponse> InternalReadResponseOld() {
-        string responseText = await this.InternalReadLineFromStreamOld().ConfigureAwait(false);
+        string responseText = await this.InternalReadLine().ConfigureAwait(false);
         return ConsoleResponse.FromFirstLine(responseText);
     }
 
@@ -596,7 +614,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     private async Task<ConsoleResponse> SendCommandAndGetResponse(string command) {
         await this.InternalWriteCommand(command).ConfigureAwait(false);
-        return await this.InternalReadResponse().ConfigureAwait(false);
+        return await this.InternalReadResponseOld().ConfigureAwait(false);
     }
 
     // Using this over-optimised version of creating the command buffer
@@ -718,7 +736,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         }
     }
 
-    private async Task<string> InternalReadLineFromStreamThreaded(CancellationToken token = default) {
+    private async Task<string> InternalReadLine_Threaded(CancellationToken token = default) {
         await this.ActivateReader(1);
 
         TaskCompletionSource<string> tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -727,7 +745,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         return await tcs.Task.ConfigureAwait(false);
     }
 
-    private async Task<string> InternalReadLineFromStreamOld(CancellationToken token = default) {
+    private async Task<string> InternalReadLine(CancellationToken token = default) {
         // WARNING: very important not to breakpoint anywhere in the loop when debugging, because if the loop
         // times out mid-operation, the connection becomes corrupted and we have to force close it.
 
@@ -767,8 +785,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     private async Task InternalReadBytesFromBufferOrStream(byte[] buffer, int offset, int count, CancellationToken token = default) {
-        // WARNING: very important not to breakpoint anywhere in the loop when debugging, because if the loop
-        // times out mid-operation, the connection becomes corrupted and we have to force close it.
         if (count < 1) {
             return;
         }
@@ -949,11 +965,12 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     private static void VerifyResponse(string commandName, ResponseType actual, ResponseType expected) {
         if (actual != expected) {
-            throw new UnexpectedResponseException(commandName, actual, expected);
+            throw InvalidResponseException.ForCommand(commandName, actual, expected);
         }
     }
 
     private void EventListenerThreadMain() {
+        TcpClient? tcpClient = null;
         try {
             lock (this.systemEventThreadLock) {
                 Debug.WriteLine("Event Listener Thread Started");
@@ -963,6 +980,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             using TcpClient theClient = new TcpClient();
             theClient.ReceiveTimeout = 0;
             theClient.Connect(this.originalConnectionAddress, 730);
+            tcpClient = theClient;
 
             using StreamReader cmdReader = new StreamReader(theClient.GetStream(), Encoding.ASCII);
             string? strresponse = cmdReader.ReadLine()?.ToLower();
@@ -977,9 +995,18 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 throw new Exception($"Failed to enable debugger. Response = {response.ToString()}");
             }
 
-            // no idea what reconnectport does, surely it's not the port it tries to reconnect on
-            response = delegateConnection.SendCommand($"notify reconnectport=12345").GetAwaiter().GetResult();
-            if (response.ResponseType != ResponseType.DedicatedConnection) {
+            // we must repeat this since if the xbox is spewing events, it seems like it does it in the background. So even if we use
+            // delegateConnection.SendMultipleCommands, there's still a chance we get one of the events in the responses.
+            int i = 0;
+            do {
+                try {
+                    // no idea what reconnectport does, surely it's not the port it tries to reconnect on
+                    response = delegateConnection.SendCommand($"notify reconnectport=12345").GetAwaiter().GetResult();
+                }
+                catch { /*ignored*/ }
+            } while (response.ResponseType != ResponseType.DedicatedConnection && (i++ < 20));
+
+            if (i == 20) {
                 throw new Exception($"Failed to setup notifications. Response type is not {nameof(ResponseType.DedicatedConnection)}: {response.RawMessage}");
             }
 
@@ -998,13 +1025,12 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
                 string line;
                 try {
-                    line = delegateConnection.ReadLineFromStream().AsTask().GetAwaiter().GetResult();
+                    line = delegateConnection.ReadLineFromStream().GetAwaiter().GetResult();
                     if (line == "execution started") continue;
                 }
                 catch (Exception) {
                     continue;
                 }
-                
 
                 Debug.Assert(line != null);
                 XbdmEventArgs e = XbdmEventUtils.ParseSpecial(line) ?? new XbdmEventArgs(line);
@@ -1017,8 +1043,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 foreach (ConsoleSystemEventHandler handler in list) {
                     handler(this, e);
                 }
-                
-                Debug.WriteLine(line);
             }
 
             CloseConnection:
@@ -1026,8 +1050,10 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             theClient.Close();
         }
         catch (Exception e) {
-            Debug.WriteLine("Exception in " + Thread.CurrentThread.Name);
-            Debug.WriteLine(e.GetToString());
+            AppLogger.Instance.WriteLine("Exception in " + Thread.CurrentThread.Name);
+            AppLogger.Instance.WriteLine(e.GetToString());
+            tcpClient?.Close();
+            tcpClient?.Dispose();
         }
     }
 
@@ -1040,7 +1066,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                     case EnumEventThreadMode.Stopping: {
                         this.systemEventMode = EnumEventThreadMode.Starting;
                         this.systemEventThread = new Thread(this.EventListenerThreadMain) {
-                            IsBackground = true, Name = "Xbdm Event Listener Thread"
+                            IsBackground = true, Name = "Xbdm Event Listener Thread",
+                            Priority = ThreadPriority.BelowNormal
                         };
 
                         this.systemEventThread.Start();

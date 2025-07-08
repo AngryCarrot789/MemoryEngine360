@@ -32,6 +32,7 @@ public struct XboxThread {
     public uint nameLength; // "namelen";
     public uint currentProcessor; // "proc";
     public uint lastError; // "proc";
+    
     public string readableName;
 
     public override string ToString() {

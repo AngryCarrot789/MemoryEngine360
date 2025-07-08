@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
@@ -29,6 +28,7 @@ using MemEngine360.Connections.Traits;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Events;
 using MemEngine360.Engine.Events.XbdmEvents;
+using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils.RDA;
@@ -43,25 +43,31 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
     public MemoryEngine Engine { get; }
 
     private IDisposable? subscription;
-    private readonly ConcurrentQueue<ConsoleSystemEventArgs> pendingInsertion;
+
+    // Using TryDequeue in a loop while the BG reader thread is going nuts on the events it's receiving (e.g. 1000s of exceptions per second)
+    // actually stalls the UI thread pretty damn heavily. Therefore, we use a queue + lock to take X amount of items, and dispatch to UI thread 
+    // private readonly ConcurrentQueue<ConsoleSystemEventArgs> pendingInsertion;
+    private readonly Queue<ConsoleSystemEventArgs> pendingInsertionEx;
+    private volatile int pendingInsertionCount;
     private readonly RateLimitedDispatchAction rldaInsertEvents;
     private volatile int isClosedState;
 
     private TextBlock? selectedLine;
     private readonly WeakReference debugWeakRefTestMemoryLeak;
     private readonly Dictionary<Type, Control> eventDisplayControlCache;
+    private readonly Stack<TextBlock> cachedTextBlocks;
 
     static ConsoleEventViewerWindow() {
         EventTypeToDisplayControlRegistry = new ModelTypeControlRegistry<Control>();
         EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgs), () => new ConsoleEventArgsInfoControlXbdmEvent());
         EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsAssert), () => new ConsoleEventArgsInfoControlXbdmEventAssert());
-        EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsBreakpoint), () => new TextBlock(){Text = "XbdmEventArgsBreakpoint"});//() => new ConsoleEventArgsInfoControlXbdmEventBreakpoint());
+        EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsBreakpoint), () => new TextBlock() { Text = "XbdmEventArgsBreakpoint" }); //() => new ConsoleEventArgsInfoControlXbdmEventBreakpoint());
         EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsDebugString), () => new ConsoleEventArgsInfoControlXbdmEventDebugString());
-        EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsException), () => new TextBlock(){Text = "XbdmEventArgsException"});//() => new ConsoleEventArgsInfoControlXbdmEventException());
-        EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsExecutionState), () => new TextBlock(){Text = "XbdmEventArgsExecutionState"});//() => new ConsoleEventArgsInfoControlXbdmEventExecutionState());
-        EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsExternal), () => new TextBlock(){Text = "XbdmEventArgsExternal"});//() => new ConsoleEventArgsInfoControlXbdmEventExternal());
-        EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsNotification), () => new TextBlock(){Text = "XbdmEventArgsNotification"});//() => new ConsoleEventArgsInfoControlXbdmEventNotification());
-        EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsRip), () => new TextBlock(){Text = "XbdmEventArgsRip"});//() => new ConsoleEventArgsInfoControlXbdmEventRip());
+        EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsException), () => new TextBlock() { Text = "XbdmEventArgsException" }); //() => new ConsoleEventArgsInfoControlXbdmEventException());
+        EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsExecutionState), () => new TextBlock() { Text = "XbdmEventArgsExecutionState" }); //() => new ConsoleEventArgsInfoControlXbdmEventExecutionState());
+        EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsExternal), () => new TextBlock() { Text = "XbdmEventArgsExternal" }); //() => new ConsoleEventArgsInfoControlXbdmEventExternal());
+        EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsNotification), () => new TextBlock() { Text = "XbdmEventArgsNotification" }); //() => new ConsoleEventArgsInfoControlXbdmEventNotification());
+        EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsRip), () => new TextBlock() { Text = "XbdmEventArgsRip" }); //() => new ConsoleEventArgsInfoControlXbdmEventRip());
     }
 
     [Obsolete("Do not use")]
@@ -71,53 +77,91 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
     public ConsoleEventViewerWindow(MemoryEngine engine) {
         this.InitializeComponent();
         this.Engine = engine;
-        this.pendingInsertion = new ConcurrentQueue<ConsoleSystemEventArgs>();
+        this.pendingInsertionEx = new Queue<ConsoleSystemEventArgs>(1024);
         this.eventDisplayControlCache = new Dictionary<Type, Control>();
+        this.cachedTextBlocks = new Stack<TextBlock>(510);
         TextBlock testMemoryLeakTB = new TextBlock();
         testMemoryLeakTB.PointerPressed += this.OnTextBlockPressed;
         this.debugWeakRefTestMemoryLeak = new WeakReference(testMemoryLeakTB);
 
-        this.rldaInsertEvents = RateLimitedDispatchActionBase.ForDispatcherSync(() => {
-            List<TextBlock> items = new List<TextBlock>(20);
-            for (int i = 0; i < 20 && this.pendingInsertion.TryDequeue(out ConsoleSystemEventArgs? result); i++) {
-                TextBlock tb = new TextBlock() {
-                    Text = (result as XbdmEventArgs)?.RawMessage ?? result.ToString(),
-                    Tag = result
-                };
+        this.rldaInsertEvents = new RateLimitedDispatchAction(this.OnTickInsertEventsCallback, TimeSpan.FromMilliseconds(50)) { DebugName = nameof(ConsoleEventViewerWindow) };
+    }
 
-                tb.PointerPressed += this.OnTextBlockPressed;
-                items.Add(tb);
-            }
-
-            if (items.Count < 1) {
-                return;
-            }
-
-            int count = this.PART_List.Children.Count;
-            if (count + items.Count > 1000) {
-                Debug.Assert(count >= 50);
-                this.PART_List.Children.RemoveRange(0, 50);
-
-                // TODO: maybe move the selection to first item in list instead of clearing?
-                if (this.selectedLine != null && this.selectedLine.GetLogicalParent() == null) {
-                    Debug.Assert(GetIsLineSelected(this.selectedLine));
-                    SetIsLineSelected(this.selectedLine, false);
-                    this.selectedLine = null;
-                    this.OnSelectedLineChanged();
+    private async Task OnTickInsertEventsCallback() {
+        List<ConsoleSystemEventArgs> events = await Task.Run(() => {
+            const int InsertionCount = 20;
+            List<ConsoleSystemEventArgs> list = new List<ConsoleSystemEventArgs>(InsertionCount);
+            lock (this.pendingInsertionEx) {
+                for (int i = 0; i < InsertionCount && this.pendingInsertionEx.TryDequeue(out ConsoleSystemEventArgs? result); i++) {
+                    list.Add(result);
                 }
             }
 
-            this.PART_List.Children.AddRange(items);
+            Interlocked.Add(ref this.pendingInsertionCount, -list.Count);
+            return list;
+        });
+
+        if (events.Count < 1) {
+            return;
+        }
+
+        await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+            List<TextBlock> items = new List<TextBlock>(events.Count);
+            foreach (ConsoleSystemEventArgs eventArgs in events) {
+                if (!this.cachedTextBlocks.TryPop(out TextBlock? tb)) {
+                    tb = new TextBlock();
+                    tb.PointerPressed += this.OnTextBlockPressed;
+                }
+
+                string msg = (eventArgs as XbdmEventArgs)?.RawMessage ?? eventArgs.ToString() ?? "";
+                string? tbMsg = tb.Text;
+
+                // Avoid updating text if it's the same.
+                if ((string.IsNullOrWhiteSpace(tbMsg) && !string.IsNullOrWhiteSpace(msg)) || msg != tbMsg) {
+                    tb.Text = msg;
+                }
+                
+                tb.Tag = eventArgs;
+                items.Add(tb);
+            }
+
+            Controls listTextBlocks = this.PART_List.Children;
+            if ((listTextBlocks.Count + items.Count) > 1000) {
+                const int RemoveAmount = 500;
+                if (this.selectedLine != null) {
+                    // TODO: maybe move the selection to first item in list instead of clearing?
+                    ILogical? parent = this.selectedLine.GetLogicalParent();
+                    Debug.Assert(parent != null);
+
+                    int index = listTextBlocks.IndexOf(this.selectedLine);
+                    Debug.Assert(index >= 0);
+
+                    if (index < RemoveAmount) {
+                        Debug.Assert(GetIsLineSelected(this.selectedLine));
+                        SetIsLineSelected(this.selectedLine, false);
+                        this.selectedLine = null;
+                        this.OnSelectedLineChanged();
+                    }
+                }
+
+                for (int i = 0; i < RemoveAmount; i++) {
+                    this.cachedTextBlocks.Push((TextBlock) listTextBlocks[i]);
+                }
+
+                listTextBlocks.RemoveRange(0, RemoveAmount);
+            }
+
+            listTextBlocks.AddRange(items);
             if (this.PART_AutoScroll.IsChecked == true) {
                 bool isScrolledToBottom = Math.Abs(this.PART_ScrollViewer.Offset.Y - this.PART_ScrollViewer.ScrollBarMaximum.Y) < 0.1D;
                 if (isScrolledToBottom)
                     this.PART_ScrollViewer.ScrollToEnd();
             }
+        }, DispatchPriority.Default);
 
-            if (!this.pendingInsertion.IsEmpty) {
-                this.rldaInsertEvents!.InvokeAsync();
-            }
-        }, TimeSpan.FromMilliseconds(100));
+        if (this.pendingInsertionCount > 0) {
+            this.rldaInsertEvents.InvokeAsync();
+        }
     }
 
     private void OnTextBlockPressed(object? sender, PointerPressedEventArgs e) {
@@ -182,7 +226,10 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
             this.OnSelectedLineChanged();
         }
 
-        this.pendingInsertion.Clear();
+        lock (this.pendingInsertionEx) {
+            this.pendingInsertionCount = 0;
+            this.pendingInsertionEx.Clear();
+        }
     }
 
     private void OnEngineConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
@@ -193,9 +240,16 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
     }
 
     private void OnEvent(IConsoleConnection sender, ConsoleSystemEventArgs e) {
-        if (this.isClosedState == 0) {
-            this.pendingInsertion.Enqueue(e);
-            this.rldaInsertEvents.InvokeAsync();
+        if (this.isClosedState != 0 || this.pendingInsertionCount >= 50000) {
+            return;
+        }
+
+        lock (this.pendingInsertionEx) {
+            if (this.isClosedState == 0 && this.pendingInsertionCount < 50000) {
+                this.pendingInsertionEx.Enqueue(e);
+                this.rldaInsertEvents.InvokeAsync();
+                Interlocked.Increment(ref this.pendingInsertionCount);
+            }
         }
     }
 

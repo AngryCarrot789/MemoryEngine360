@@ -20,5 +20,12 @@
 namespace MemEngine360.Connections.Traits;
 
 public interface IHaveXboxThreadInfo {
+    /// <summary>
+    /// Reads the thread info for a thread ID. The returned value's <see cref="XboxThread.id"/> will be 0 if the thread does not exist.
+    /// </summary>
+    /// <param name="threadId">The ID of the thread to get the info of</param>
+    /// <returns></returns>
+    /// <exception cref="IOException">Response was invalid</exception>
+    /// <exception cref="TimeoutException">Timeout while writing/reading</exception>
     Task<XboxThread> GetThreadInfo(uint threadId);
 }
