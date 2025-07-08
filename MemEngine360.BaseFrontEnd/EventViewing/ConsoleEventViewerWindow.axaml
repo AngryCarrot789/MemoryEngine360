@@ -5,18 +5,19 @@
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
                  xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                  xmlns:eventViewing="clr-namespace:MemEngine360.BaseFrontEnd.EventViewing"
+                 xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.EventViewing.XbdmEvents"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.BaseFrontEnd.EventViewing.ConsoleEventViewerWindow"
                  Title="Event Viewer"
                  Background="{DynamicResource PanelBorderBrush}">
     <Grid RowDefinitions="*,1,150,21">
-        <Border Grid.Row="3" 
-                BorderThickness="0,1,0,0" 
+        <Border Grid.Row="3"
+                BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource PanelBorderBrush}"
                 Background="{DynamicResource ABrush.Tone5.Background.Static}"
                 Height="21">
             <DockPanel>
-                <CheckBox x:Name="PART_AutoScroll" Content="Auto Scroll" IsChecked="True" 
+                <CheckBox x:Name="PART_AutoScroll" Content="Auto Scroll" IsChecked="True"
                           tt:ToolTipEx.Tip="Only actually auto scrolls when scrolled to the bottom of the screen."
                           DockPanel.Dock="Left"/>
                 <TextBlock x:Name="PART_Status" DockPanel.Dock="Right" Padding="4,1"/>
@@ -27,20 +28,7 @@
             <ContentControl x:Name="PART_EventInfoContent"/>
         </Border>
         <GridSplitter Grid.Row="1" Margin="0,-2,0,-9" Background="Transparent"/>
-        <ScrollViewer Grid.Row="0" x:Name="PART_ScrollViewer"
-                      Background="{DynamicResource ABrush.Tone1.Background.Static}">
-            <StackPanel x:Name="PART_List">
-                <StackPanel.Styles>
-                    <Style Selector="TextBlock">
-                        <Setter Property="FontFamily" Value="{StaticResource FontOxanium}"/>
-                        <Setter Property="Padding" Value="3,2"/>
-                        <Setter Property="Background" Value="Transparent"/>
-                    </Style>
-                    <Style Selector="TextBlock[(eventViewing|ConsoleEventViewerWindow.IsLineSelected)=true]">
-                        <Setter Property="Background" Value="{DynamicResource ABrush.AccentTone2.Background.Static}"/>
-                    </Style>
-                </StackPanel.Styles>
-            </StackPanel>
-        </ScrollViewer>
+        <local:ConsoleEventListBox x:Name="PART_EventListBox" Grid.Row="0"
+                                   Background="{DynamicResource ABrush.Tone1.Background.Static}"/>
     </Grid>
 </w:DesktopWindow>

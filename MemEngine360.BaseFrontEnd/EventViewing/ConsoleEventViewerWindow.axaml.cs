@@ -17,13 +17,13 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.LogicalTree;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using MemEngine360.BaseFrontEnd.EventViewing.XbdmEvents;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Traits;
@@ -34,6 +34,7 @@ using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Themes.BrushFactories;
 using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.RDA;
 
 namespace MemEngine360.BaseFrontEnd.EventViewing;
@@ -55,16 +56,17 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
     private readonly RateLimitedDispatchAction rldaInsertEvents;
     private volatile int isClosedState;
 
-    private TextBlock? selectedLine;
     private readonly WeakReference debugWeakRefTestMemoryLeak;
     private readonly Dictionary<Type, Control> eventDisplayControlCache;
-    private readonly Stack<TextBlock> cachedTextBlocks;
+    private readonly ObservableList<ConsoleSystemEventArgs> myEvents;
+    private ScrollViewer? PART_ScrollViewer;
 
     private DispatcherTimer? flashingTextTimer;
     private int flashingIndex = -1;
     private readonly DynamicAvaloniaColourBrush PFXForegroundBrush;
     private IDisposable? foregroundSubscription;
     private int lastStatusMessageType = -1;
+    private bool isScrolledToBottomOfList;
 
     static ConsoleEventViewerWindow() {
         EventTypeToDisplayControlRegistry = new ModelTypeControlRegistry<Control>();
@@ -88,7 +90,8 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
         this.Engine = engine;
         this.pendingInsertionEx = new Queue<ConsoleSystemEventArgs>(1024);
         this.eventDisplayControlCache = new Dictionary<Type, Control>();
-        this.cachedTextBlocks = new Stack<TextBlock>(510);
+        this.myEvents = new ObservableList<ConsoleSystemEventArgs>();
+        this.PART_EventListBox.SetItemsSource(this.myEvents);
         this.PFXForegroundBrush = (DynamicAvaloniaColourBrush) SimpleIcons.DynamicForegroundBrush;
 
         TextBlock testMemoryLeakTB = new TextBlock();
@@ -96,7 +99,42 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
         this.debugWeakRefTestMemoryLeak = new WeakReference(testMemoryLeakTB);
 
         this.rldaInsertEvents = new RateLimitedDispatchAction(this.OnTickInsertEventsCallback, TimeSpan.FromMilliseconds(50)) { DebugName = nameof(ConsoleEventViewerWindow) };
+        this.PART_EventListBox.SelectionChanged += this.OnSelectedItemChanged;
     }
+
+    protected override void OnLoaded(RoutedEventArgs e) {
+        base.OnLoaded(e);
+        this.PART_ScrollViewer = this.PART_EventListBox.FindDescendantOfType<ScrollViewer>();
+        if (this.PART_ScrollViewer != null) {
+            this.PART_ScrollViewer.LayoutUpdated += this.PART_ScrollViewerOnLayoutUpdated;
+            this.PART_ScrollViewer.PropertyChanged += this.PART_ScrollViewerOnPropertyChanged;
+            this.PART_ScrollViewer.ScrollChanged += PART_ScrollViewerOnScrollChanged;
+        }
+    }
+
+    private void PART_ScrollViewerOnPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e) {
+        if (e.Property == ScrollViewer.ExtentProperty) {
+            ScrollViewer sv = (ScrollViewer) sender!;
+            AvaloniaPropertyChangedEventArgs<Size> args = (AvaloniaPropertyChangedEventArgs<Size>) e;
+            Size oldExtent = args.OldValue.HasValue ? args.OldValue.Value : sv.Extent;
+            this.isScrolledToBottomOfList = Math.Abs(sv.Offset.Y - Math.Max(oldExtent.Height - sv.Viewport.Height, 0)) < 20;
+        }
+    }
+
+    private void PART_ScrollViewerOnScrollChanged(object? sender, ScrollChangedEventArgs e) {
+        ScrollViewer sv = (ScrollViewer) sender!;
+        // this.isScrolledToBottomOfList = Math.Abs(sv.Offset.Y - Math.Max(sv.Extent.Height - sv.Viewport.Height, 0)) < 20;
+    }
+
+    private void PART_ScrollViewerOnLayoutUpdated(object? sender, EventArgs e) {
+        ScrollViewer sv = (ScrollViewer) sender!;
+        if (this.isScrolledToBottomOfList && this.PART_AutoScroll.IsEnabled) {
+            // scroll to end, without affecting horizontal offset
+            sv.SetCurrentValue(ScrollViewer.OffsetProperty, new Vector(sv.Offset.X, double.PositiveInfinity));
+        }
+    }
+
+    private void OnSelectedItemChanged(object? sender, SelectionChangedEventArgs e) => this.OnSelectedLineChanged();
 
     private void SetStatusText(string? text, bool isWarning) {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
@@ -137,7 +175,7 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
 
     private async Task OnTickInsertEventsCallback() {
         List<ConsoleSystemEventArgs> events = await Task.Run(() => {
-            const int InsertionCount = 20;
+            const int InsertionCount = 50;
             List<ConsoleSystemEventArgs> list = new List<ConsoleSystemEventArgs>(InsertionCount);
             lock (this.pendingInsertionEx) {
                 for (int i = 0; i < InsertionCount && this.pendingInsertionEx.TryDequeue(out ConsoleSystemEventArgs? result); i++) {
@@ -171,56 +209,20 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
                 }
             }
 
-            List<TextBlock> items = new List<TextBlock>(events.Count);
-            foreach (ConsoleSystemEventArgs eventArgs in events) {
-                if (!this.cachedTextBlocks.TryPop(out TextBlock? tb)) {
-                    tb = new TextBlock();
-                    tb.PointerPressed += this.OnTextBlockPressed;
-                }
-
-                string msg = (eventArgs as XbdmEventArgs)?.RawMessage ?? eventArgs.ToString() ?? "";
-                string? tbMsg = tb.Text;
-
-                // Avoid updating text if it's the same.
-                if ((string.IsNullOrWhiteSpace(tbMsg) && !string.IsNullOrWhiteSpace(msg)) || msg != tbMsg) {
-                    tb.Text = msg;
-                }
-
-                tb.Tag = eventArgs;
-                items.Add(tb);
+            if ((this.myEvents.Count + events.Count) > 10000) {
+                const int RemoveAmount = 5000;
+                this.myEvents.RemoveRange(0, RemoveAmount);
             }
 
-            Controls listTextBlocks = this.PART_List.Children;
-            if ((listTextBlocks.Count + items.Count) > 1000) {
-                const int RemoveAmount = 500;
-                if (this.selectedLine != null) {
-                    // TODO: maybe move the selection to first item in list instead of clearing?
-                    ILogical? parent = this.selectedLine.GetLogicalParent();
-                    Debug.Assert(parent != null);
-
-                    int index = listTextBlocks.IndexOf(this.selectedLine);
-                    Debug.Assert(index >= 0);
-
-                    if (index < RemoveAmount) {
-                        Debug.Assert(GetIsLineSelected(this.selectedLine));
-                        SetIsLineSelected(this.selectedLine, false);
-                        this.selectedLine = null;
-                        this.OnSelectedLineChanged();
-                    }
-                }
-
-                for (int i = 0; i < RemoveAmount; i++) {
-                    this.cachedTextBlocks.Push((TextBlock) listTextBlocks[i]);
-                }
-
-                listTextBlocks.RemoveRange(0, RemoveAmount);
+            this.myEvents.AddRange(events); /* insert items into INotifyCollectionChanged */
+            this.PART_EventListBox.UpdateLayout();
+            if (this.PART_AutoScroll.IsChecked == true && this.isScrolledToBottomOfList) {
+                ScrollViewer sv = this.PART_ScrollViewer!;
+                // scroll to end, without affecting horizontal offset
+                sv.UpdateLayout();
+                sv.SetCurrentValue(ScrollViewer.OffsetProperty, new Vector(sv.Offset.X, double.PositiveInfinity));
             }
-
-            listTextBlocks.AddRange(items);
-            if (this.PART_AutoScroll.IsChecked == true) {
-                bool isScrolledToBottom = Math.Abs(this.PART_ScrollViewer.Offset.Y - this.PART_ScrollViewer.ScrollBarMaximum.Y) < 0.1D;
-                if (isScrolledToBottom)
-                    this.PART_ScrollViewer.ScrollToEnd();
+            else {
             }
         }, DispatchPriority.Default);
 
@@ -230,18 +232,6 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
     }
 
     private void OnTextBlockPressed(object? sender, PointerPressedEventArgs e) {
-        if (this.selectedLine != null) {
-            if (ReferenceEquals(sender, this.selectedLine)) {
-                return; // same line so ignore change
-            }
-
-            Debug.Assert(GetIsLineSelected(this.selectedLine));
-            SetIsLineSelected(this.selectedLine, false);
-        }
-
-        this.selectedLine = (TextBlock) sender!;
-        SetIsLineSelected(this.selectedLine, true);
-        this.OnSelectedLineChanged();
     }
 
     private void OnSelectedLineChanged() {
@@ -250,19 +240,19 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
             oldControl.Disconnect();
         this.PART_EventInfoContent.Content = null;
 
-        if (this.selectedLine != null) {
-            ConsoleSystemEventArgs eventArgs = (ConsoleSystemEventArgs) this.selectedLine.Tag!;
-            if (!this.eventDisplayControlCache.TryGetValue(eventArgs.GetType(), out Control? control)) {
-                if (!EventTypeToDisplayControlRegistry.TryGetNewInstance(eventArgs.GetType(), out control)) {
+        ConsoleSystemEventArgs? selectedLine = this.PART_EventListBox.SelectedModel;
+        if (selectedLine != null) {
+            if (!this.eventDisplayControlCache.TryGetValue(selectedLine.GetType(), out Control? control)) {
+                if (!EventTypeToDisplayControlRegistry.TryGetNewInstance(selectedLine.GetType(), out control)) {
                     return;
                 }
 
-                this.eventDisplayControlCache[eventArgs.GetType()] = control;
+                this.eventDisplayControlCache[selectedLine.GetType()] = control;
             }
 
             this.PART_EventInfoContent.Content = control;
             if (control is IConsoleEventArgsInfoControl newControl) {
-                newControl.Connect(this.Engine, eventArgs);
+                newControl.Connect(this.Engine, selectedLine);
             }
         }
     }
@@ -288,14 +278,7 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
         this.subscription?.Dispose();
 
         this.foregroundSubscription?.Dispose();
-
-        this.PART_List.Children.Clear();
-        if (this.selectedLine != null) {
-            Debug.Assert(GetIsLineSelected(this.selectedLine));
-            SetIsLineSelected(this.selectedLine, false);
-            this.selectedLine = null;
-            this.OnSelectedLineChanged();
-        }
+        this.myEvents.Clear();
 
         lock (this.pendingInsertionEx) {
             this.pendingInsertionCount = 0;
