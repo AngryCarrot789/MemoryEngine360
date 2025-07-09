@@ -260,6 +260,7 @@ public class ConsoleDebugger {
         }
 
         this.ignoreActiveThreadChange = false;
+        this.IsConsoleRunning = null;
         if (newConnection is IHaveSystemEvents events) {
             this.eventSubscription = events.SubscribeToEvents(this.OnConsoleEvent);
         }

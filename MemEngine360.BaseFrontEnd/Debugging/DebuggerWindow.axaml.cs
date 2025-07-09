@@ -42,6 +42,7 @@ public partial class DebuggerWindow : DesktopWindow {
 
     private readonly IBinder<ConsoleDebugger> autoRefreshBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.RefreshRegistersOnThreadChangeChanged), (b) => b.Control.SetValue(ToggleButton.IsCheckedProperty, b.Model.RefreshRegistersOnThreadChange));
     private readonly IBinder<ConsoleDebugger> currentConnectionTypeBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.ConnectionChanged), (b) => ((TextBlock) b.Control).Text = (b.Model.Connection?.ConnectionType.DisplayName ?? "Not Connected"));
+
     private readonly IBinder<ConsoleDebugger> isConsoleRunningBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.IsConsoleRunningChanged), (b) => {
         bool? run = b.Model.IsConsoleRunning;
         ((TextBlock) b.Control).Text = run.HasValue ? run.Value ? "Running" : "Stopped" : "Unknown Exec State";
@@ -68,8 +69,9 @@ public partial class DebuggerWindow : DesktopWindow {
 
     protected override void OnOpenedCore() {
         base.OnOpenedCore();
-        if (this.ConsoleDebugger != null)
+        if (this.ConsoleDebugger != null) {
             this.ConsoleDebugger.IsWindowVisible = true;
+        }
 
         this.timer.EnableTargets();
     }
@@ -85,6 +87,7 @@ public partial class DebuggerWindow : DesktopWindow {
         if (debugger == null)
             return false;
 
+        debugger.IsConsoleRunning = null;
         debugger.IsWindowVisible = false;
         if (reason != WindowCloseReason.WindowClosing) {
             using IDisposable? token = await debugger.BusyLock.BeginBusyOperationAsync(1000);

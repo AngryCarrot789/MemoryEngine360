@@ -23,13 +23,15 @@
                 <StackPanel Orientation="Horizontal" 
                             Margin="2" Spacing="3"
                             DockPanel.Dock="Left">
-                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Run" Padding="5,0"/>
-                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Stop" Padding="5,0"/>
-                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Step" Padding="5,0"/>
+                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Run" Padding="5,0"
+                            cu:CommandUsageManager.UsageClassType="{x:Type local:UnfreezeConsoleCommandCommandUsage}"/>
+                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Stop" Padding="5,0"
+                            cu:CommandUsageManager.UsageClassType="{x:Type local:FreezeConsoleCommandCommandUsage}"/>
+                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Step" Padding="5,0" IsEnabled="False"/>
                     <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,1"/>
                     <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Refresh All" Padding="5,0"
-                            cu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.RefreshAllCommand"/>
-                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="View Breakpoints" Padding="5,0"/>
+                            cu:CommandUsageManager.SimpleButtonCommandId="commands.debugger.RefreshAllCommand"/>
+                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="View Breakpoints" Padding="5,0" IsEnabled="False"/>
                 </StackPanel>
                 <TextBlock x:Name="PART_RunningState" Text="Running" 
                            DockPanel.Dock="Right" 
@@ -72,7 +74,7 @@
                                    Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
                                    BorderBrush="{DynamicResource PanelBorderBrush}"
                                    Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Foreground}"
-                                   cu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.RefreshRegistersCommand"/>
+                                   cu:CommandUsageManager.SimpleButtonCommandId="commands.debugger.RefreshRegistersCommand"/>
                     <ToggleButton Content="Auto Refresh" DockPanel.Dock="Right" IsChecked="True"
                                   BorderBrush="{DynamicResource PanelBorderBrush}" Padding="4,0"
                                   x:Name="PART_AutoRefreshRegistersOnThreadChange"
@@ -93,7 +95,7 @@
                                Background="Transparent" BorderThickness="0"
                                tt:ToolTipEx.Tip="Open a dedicated connection"
                                Icon="{x:Static cb:SimpleIcons.ConnectToConsoleDedicatedIcon}"
-                               cu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenDebuggerConnectionCommand"/>
+                               cu:CommandUsageManager.SimpleButtonCommandId="commands.debugger.OpenDebuggerConnectionCommand"/>
                 <Border Background="{DynamicResource ABrush.Tone4.Background.Static}"
                         BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                         BorderThickness="1"

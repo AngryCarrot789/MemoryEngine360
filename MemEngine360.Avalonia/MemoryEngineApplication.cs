@@ -168,9 +168,11 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         
         // Debugger
         manager.Register("commands.memengine.ShowDebuggerCommand", new ShowDebuggerCommand());
-        manager.Register("commands.memengine.OpenDebuggerConnectionCommand", new OpenDebuggerConnectionCommand());
-        manager.Register("commands.memengine.RefreshRegistersCommand", new RefreshRegistersCommand());
-        manager.Register("commands.memengine.RefreshAllCommand", new RefreshAllCommand());
+        manager.Register("commands.debugger.OpenDebuggerConnectionCommand", new OpenDebuggerConnectionCommand());
+        manager.Register("commands.debugger.RefreshRegistersCommand", new RefreshRegistersCommand());
+        manager.Register("commands.debugger.RefreshAllCommand", new RefreshAllCommand());
+        manager.Register("commands.debugger.FreezeConsoleCommand", new FreezeConsoleCommand());
+        manager.Register("commands.debugger.UnfreezeConsoleCommand", new UnfreezeConsoleCommand());
     }
 
     protected override void RegisterServices(ServiceManager manager) {
