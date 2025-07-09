@@ -17,14 +17,14 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections;
+namespace MemEngine360.Engine.Events.XbdmEvents;
 
-namespace MemEngine360.XboxBase;
+public class XbdmEventArgsTerminateThread : XbdmEventArgs {
+    /// <summary>
+    /// Gets the ID of the thread we are on
+    /// </summary>
+    public uint Thread { get; init; }
 
-public interface IXboxDebuggable : IConsoleConnection {
-    Task AddBreakpoint(uint address);
-    Task AddDataBreakpoint(uint address, XboxBreakpointType type, uint size);
-    
-    Task RemoveBreakpoint(uint address);
-    Task RemoveDataBreakpoint(uint address, XboxBreakpointType type, uint size);
+    public XbdmEventArgsTerminateThread(string rawMessage) : base(rawMessage) {
+    }
 }

@@ -28,4 +28,12 @@ public interface IHaveXboxThreadInfo {
     /// <exception cref="IOException">Response was invalid</exception>
     /// <exception cref="TimeoutException">Timeout while writing/reading</exception>
     Task<XboxThread> GetThreadInfo(uint threadId);
+    
+    /// <summary>
+    /// Gets all the threads running on this console
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="IOException">Response was invalid</exception>
+    /// <exception cref="TimeoutException">Timeout while writing/reading</exception>
+    Task<List<XboxThread>> GetThreadDump();
 }

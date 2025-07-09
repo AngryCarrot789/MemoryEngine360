@@ -1,0 +1,116 @@
+﻿<w:DesktopWindow xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd"
+                 xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.Debugging"
+                 xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:cmd="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Commands"
+                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                 x:Class="MemEngine360.BaseFrontEnd.Debugging.DebuggerWindow"
+                 Title="DebuggerWindow"
+                 Background="{DynamicResource ABrush.Tone2.Background.Static}">
+    <Grid RowDefinitions="27,3,*,26,3" ColumnDefinitions="3,2*,3,5*,3,2*,3">
+        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="7"
+                Background="{DynamicResource ABrush.Tone5.Background.Static}"
+                BorderBrush="{DynamicResource PanelBorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" 
+                            Margin="2" Spacing="3"
+                            DockPanel.Dock="Left">
+                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Run" Padding="5,0"/>
+                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Stop" Padding="5,0"/>
+                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Step" Padding="5,0"/>
+                    <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,1"/>
+                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Refresh All" Padding="5,0"
+                            cu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.RefreshAllCommand"/>
+                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="View Breakpoints" Padding="5,0"/>
+                </StackPanel>
+                <TextBlock x:Name="PART_RunningState" Text="Running" 
+                           DockPanel.Dock="Right" 
+                           Padding="4,2" VerticalAlignment="Center"
+                           FontFamily="{StaticResource FontOxanium}"/>
+                <Border/>
+            </DockPanel>
+        </Border>
+        <c:GroupBox Grid.Row="2" Grid.Column="1"
+                    Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                    HeaderBrush="{DynamicResource ABrush.Tone5.Background.Static}"
+                    BorderThickness="1"
+                    Header="Threads">
+            <local:ThreadEntryListBox x:Name="PART_ThreadListBox"
+                                      BorderThickness="0" Background="Transparent"
+                                      FontFamily="{StaticResource FontOxanium}"/>
+        </c:GroupBox>
+        <c:GroupBox Grid.Row="2" Grid.Column="3"
+                    Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                    HeaderBrush="{DynamicResource ABrush.Tone5.Background.Static}"
+                    BorderThickness="1"
+                    Header="Memory">
+        </c:GroupBox>
+        <c:GroupBox Grid.Row="2" Grid.Column="5"
+                    Background="{DynamicResource ABrush.Tone3.Background.Static}"
+                    BorderBrush="{DynamicResource PanelBorderBrush}"
+                    HeaderBrush="{DynamicResource ABrush.Tone5.Background.Static}"
+                    BorderThickness="1"
+                    VerticalHeaderAlignment="Center" HorizontalHeaderAlignment="Stretch">
+            <c:GroupBox.Header>
+                <DockPanel>
+                    <TextBlock Text="Registers" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                    <av:IconButton DockPanel.Dock="Right"
+                                   Icon="{x:Static cb:SimpleIcons.ResetIcon}"
+                                   Width="20" Height="20"
+                                   IconMaxWidth="12" IconMaxHeight="12"
+                                   Padding="2"
+                                   Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
+                                   BorderBrush="{DynamicResource PanelBorderBrush}"
+                                   Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Foreground}"
+                                   cu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.RefreshRegistersCommand"/>
+                    <ToggleButton Content="Auto Refresh" DockPanel.Dock="Right" IsChecked="True"
+                                  BorderBrush="{DynamicResource PanelBorderBrush}" Padding="4,0"
+                                  x:Name="PART_AutoRefreshRegistersOnThreadChange"
+                                  tt:ToolTipEx.Tip="Refresh registers when the selected thread changes"/>
+                    <Border/>
+                </DockPanel>
+            </c:GroupBox.Header>
+            <local:RegisterEntryListBox x:Name="PART_RegistersListBox"
+                                        BorderThickness="0" Background="Transparent"
+                                        FontFamily="{StaticResource FontOxanium}"/>
+        </c:GroupBox>
+        <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="7" 
+                BorderThickness="0" 
+                BorderBrush="{DynamicResource PanelBorderBrush}">
+            <DockPanel HorizontalSpacing="3" LastChildFill="False">
+                <av:IconButton Padding="2" Width="24" Height="24"
+                               IconMaxWidth="16" IconMaxHeight="16"
+                               Background="Transparent" BorderThickness="0"
+                               tt:ToolTipEx.Tip="Open a dedicated connection"
+                               Icon="{x:Static cb:SimpleIcons.ConnectToConsoleDedicatedIcon}"
+                               cu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenDebuggerConnectionCommand"/>
+                <Border Background="{DynamicResource ABrush.Tone4.Background.Static}"
+                        BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
+                        BorderThickness="1"
+                        VerticalAlignment="Center"
+                        Width="128">
+                    <TextBlock x:Name="PART_ActiveConnectionTextBoxRO"
+                               Text="Error... hm"
+                               ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                               Padding="2,1"/>
+                </Border>
+                <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="1,3"/>
+                <TextBlock x:Name="PART_ActivityStatusText"
+                           Text="Current status"
+                           Padding="4,2" DockPanel.Dock="Right"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</w:DesktopWindow>

@@ -29,6 +29,7 @@ using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Traits;
 using MemEngine360.Connections.Utils;
+using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.Events.XbdmEvents;
 using MemEngine360.XboxBase;
 using PFXToolKitUI.Logging;
@@ -39,7 +40,7 @@ namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 // Rewrite with fixes and performance improvements, based on:
 // https://github.com/XeClutch/Cheat-Engine-For-Xbox-360/blob/master/Cheat%20Engine%20for%20Xbox%20360/PhantomRTM.cs
 
-public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHavePowerFunctions, IXboxDebuggable, IHaveSystemEvents, IHaveXboxThreadInfo {
+public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHavePowerFunctions, IHaveXboxDebugFeatures, IHaveSystemEvents, IHaveXboxThreadInfo {
     private static int NextReaderID = 1;
 
     private readonly byte[] sharedTwoByteArray = new byte[2];
@@ -456,6 +457,36 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     public Task RemoveDataBreakpoint(uint address, XboxBreakpointType type, uint size) {
         return this.SetDataBreakpoint(address, type, size, true);
+    }
+
+    public async Task<List<RegisterEntry>?> GetRegisters(uint threadId) {
+        ConsoleResponse response = await this.SendCommandAndGetResponse($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
+        if (response.ResponseType == ResponseType.NoSuchThread) {
+            return null;
+        }
+        
+        VerifyResponse("getcontext", response.ResponseType, ResponseType.MultiResponse);
+        List<RegisterEntry> registers = new List<RegisterEntry>();
+        List<string> lines = await this.ReadMultiLineResponse();
+        await Task.Run(() => {
+            foreach (string line in lines) {
+                int split = line.IndexOf('=');
+                if (split == -1) continue;
+
+                string name = line.Substring(0, split).ToUpperInvariant();
+                string value = line.Substring(split + 1);
+                if (value.StartsWith("0x")) {
+                    if (uint.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out uint value32))
+                        registers.Add(new RegisterEntry32(name, value32));
+                }
+                else if (value.StartsWith("0q")) {
+                    if (ulong.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out ulong value64))
+                        registers.Add(new RegisterEntry64(name, value64));
+                }
+            }
+        });
+
+        return registers;
     }
 
     public async Task SetBreakpoint(uint address, bool clear) {
@@ -977,6 +1008,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 this.systemEventMode = EnumEventThreadMode.Running;
             }
 
+            // This method is extremely janky and needs a rewrite. We shouldn't use a delegate
+            // XbdmConsoleConnection, but instead make some static methods that take TcpClient that XbdmConsoleConnection use
+            
             using TcpClient theClient = new TcpClient();
             theClient.ReceiveTimeout = 0;
             theClient.Connect(this.originalConnectionAddress, 730);
@@ -990,7 +1024,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
             XbdmConsoleConnection delegateConnection = new XbdmConsoleConnection(theClient, this.originalConnectionAddress);
 
-            ConsoleResponse response = delegateConnection.SendCommand($"debugger connect override name=\"{Environment.MachineName}\" user=\"MemoryEngine360\"").GetAwaiter().GetResult();
+            ConsoleResponse response = delegateConnection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"").GetAwaiter().GetResult();
             if (response.ResponseType != ResponseType.SingleResponse) {
                 throw new Exception($"Failed to enable debugger. Response = {response.ToString()}");
             }
@@ -1001,9 +1035,10 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             do {
                 try {
                     // no idea what reconnectport does, surely it's not the port it tries to reconnect on
-                    response = delegateConnection.SendCommand($"notify reconnectport=12345").GetAwaiter().GetResult();
+                    response = delegateConnection.SendCommand($"notify reconnectport=12345 reverse").GetAwaiter().GetResult();
                 }
-                catch { /*ignored*/ }
+                catch { /*ignored*/
+                }
             } while (response.ResponseType != ResponseType.DedicatedConnection && (i++ < 20));
 
             if (i == 20) {
@@ -1023,10 +1058,17 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                     }
                 }
 
+                if (delegateConnection.client.Available < 1) {
+                    Thread.Sleep(10);
+                }
+
+                if (delegateConnection.client.Available < 1) {
+                    continue;
+                }
+
                 string line;
                 try {
                     line = delegateConnection.ReadLineFromStream().GetAwaiter().GetResult();
-                    if (line == "execution started") continue;
                 }
                 catch (Exception) {
                     continue;

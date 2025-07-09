@@ -42,7 +42,7 @@ public class TestDebuggerEventReceiver {
 
             XbdmConsoleConnection connection = new XbdmConsoleConnection(client, "192.168.1.202");
 
-            ConsoleResponse response = await connection.SendCommand($"debugger connect override name=\"{Environment.MachineName}\" user=\"MemoryEngine360\"");
+            ConsoleResponse response = await connection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"");
             if (response.ResponseType != ResponseType.SingleResponse) {
                 throw new Exception($"Failed to enable debugger. Response = {response.ToString()}");
             }
@@ -54,12 +54,8 @@ public class TestDebuggerEventReceiver {
             }
 
             new Thread(() => {
-                string line = connection.ReadLineFromStream().GetAwaiter().GetResult();
-                if (line != "execution started") {
-                    throw new Exception("wut");
-                }
-
                 while (connection.IsConnected) {
+                    string line;
                     try {
                         line = connection.ReadLineFromStream().GetAwaiter().GetResult();
                     }

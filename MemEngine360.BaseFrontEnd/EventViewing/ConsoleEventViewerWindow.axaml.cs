@@ -22,7 +22,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MemEngine360.BaseFrontEnd.EventViewing.XbdmEvents;
 using MemEngine360.Connections;
@@ -61,12 +60,9 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
     private readonly ObservableList<ConsoleSystemEventArgs> myEvents;
     private ScrollViewer? PART_ScrollViewer;
 
-    private DispatcherTimer? flashingTextTimer;
-    private int flashingIndex = -1;
-    private readonly DynamicAvaloniaColourBrush PFXForegroundBrush;
-    private IDisposable? foregroundSubscription;
     private int lastStatusMessageType = -1;
     private bool isScrolledToBottomOfList;
+    private readonly BrushFlipFlopTimer timer;
 
     static ConsoleEventViewerWindow() {
         EventTypeToDisplayControlRegistry = new ModelTypeControlRegistry<Control>();
@@ -92,7 +88,6 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
         this.eventDisplayControlCache = new Dictionary<Type, Control>();
         this.myEvents = new ObservableList<ConsoleSystemEventArgs>();
         this.PART_EventListBox.SetItemsSource(this.myEvents);
-        this.PFXForegroundBrush = (DynamicAvaloniaColourBrush) SimpleIcons.DynamicForegroundBrush;
 
         TextBlock testMemoryLeakTB = new TextBlock();
         testMemoryLeakTB.PointerPressed += this.OnTextBlockPressed;
@@ -100,6 +95,8 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
 
         this.rldaInsertEvents = new RateLimitedDispatchAction(this.OnTickInsertEventsCallback, TimeSpan.FromMilliseconds(50)) { DebugName = nameof(ConsoleEventViewerWindow) };
         this.PART_EventListBox.SelectionChanged += this.OnSelectedItemChanged;
+
+        this.timer = new BrushFlipFlopTimer(TimeSpan.FromMilliseconds(250), SimpleIcons.DynamicForegroundBrush, new ConstantAvaloniaColourBrush(Brushes.Red));
     }
 
     protected override void OnLoaded(RoutedEventArgs e) {
@@ -140,37 +137,7 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
 
         this.PART_Status.Text = text;
-        if (!string.IsNullOrWhiteSpace(text) /* no need to flash when invisible */ && isWarning) {
-            if (this.flashingTextTimer == null || !this.flashingTextTimer.IsEnabled) {
-                this.flashingTextTimer ??= new DispatcherTimer(
-                    TimeSpan.FromMilliseconds(250) /* full flash loop every 0.5 secs */,
-                    DispatcherPriority.Normal,
-                    this.OnTickFlashText);
-                this.flashingTextTimer.Start();
-            }
-
-            if (this.flashingIndex == -1)
-                this.flashingIndex = 0;
-
-            this.UpdateStatusTextForeground();
-        }
-        else {
-            this.flashingTextTimer?.Stop();
-            this.flashingIndex = -1;
-            this.UpdateStatusTextForeground();
-        }
-    }
-
-    private void OnTickFlashText(object? sender, EventArgs e) {
-        if (this.flashingIndex != -1) {
-            this.flashingIndex = this.flashingIndex == 0 ? 1 : 0;
-            this.UpdateStatusTextForeground();
-        }
-    }
-
-    private void UpdateStatusTextForeground() {
-        // CurrentBrush is updated by the subscription, added/removed when the window opens/closes
-        this.PART_Status.Foreground = this.flashingIndex > 0 ? Brushes.Red : this.PFXForegroundBrush.CurrentBrush;
+        this.timer.IsEnabled = isWarning && !string.IsNullOrWhiteSpace(text);
     }
 
     private async Task OnTickInsertEventsCallback() {
@@ -265,10 +232,8 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
             this.subscription = events.SubscribeToEvents(this.OnEvent);
         }
 
-        this.foregroundSubscription = this.PFXForegroundBrush.Subscribe(this.OnPFXForegroundBrushChanged);
+        this.timer.SetTarget(this.PART_Status, TextBlock.ForegroundProperty);
     }
-
-    private void OnPFXForegroundBrushChanged(IBrush? obj) => this.UpdateStatusTextForeground();
 
     protected override void OnClosed(EventArgs e) {
         base.OnClosed(e);
@@ -277,7 +242,7 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
         this.Engine.ConnectionChanged -= this.OnEngineConnectionChanged;
         this.subscription?.Dispose();
 
-        this.foregroundSubscription?.Dispose();
+        this.timer.ClearTarget();
         this.myEvents.Clear();
 
         lock (this.pendingInsertionEx) {

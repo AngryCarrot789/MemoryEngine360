@@ -100,7 +100,7 @@ public static class ParamUtils {
             }
 
             // When no value is required and no equal sign is present, try to match key
-            if (!isValueRequired && offset < text.Length && text[offset] != '=' && MatchRegion(keyAsSpan, text, j, i)) {
+            if (!isValueRequired && (offset >= text.Length || text[offset] != '=') && MatchRegion(keyAsSpan, text, j, i)) {
                 return offset;
             }
 

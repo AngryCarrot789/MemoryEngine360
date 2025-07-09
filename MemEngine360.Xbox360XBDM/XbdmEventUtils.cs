@@ -140,6 +140,78 @@ public static class XbdmEventUtils {
                     Thread = thread, IsThreadStop = isStop
                 };
             }
+            case "create": {
+                if (!ParamUtils.GetDwParam(textRos, "thread", false, out thread))
+                    return null;
+                uint? startAddress = ParamUtils.GetDwParam(textRos, "start", false, out uint _startAddress) ? _startAddress : null;
+                return new XbdmEventArgsCreateThread(text) {
+                    Thread = thread, StartAddress = startAddress
+                };
+            }
+            case "terminate": {
+                if (!ParamUtils.GetDwParam(textRos, "thread", false, out thread))
+                    return null;
+                return new XbdmEventArgsTerminateThread(text) {
+                    Thread = thread
+                };
+            }
+            case "modload": {
+                if (!ParamUtils.GetStrParam(textRos, "name", false, out string? modName)) return null;
+                if (!ParamUtils.GetDwParam(textRos, "base", false, out uint modBaseAddr)) return null;
+                if (!ParamUtils.GetDwParam(textRos, "size", false, out uint modSize)) return null;
+
+                ParamUtils.GetDwParam(textRos, "timestamp", false, out uint timestamp);
+                ParamUtils.GetDwParam(textRos, "checksum", false, out uint checksum);
+
+                ModLoadFlags flags = ModLoadFlags.None;
+                if (ParamUtils.GetOffsetToValue(textRos, "tls", false, true) != -1)
+                    flags |= ModLoadFlags.DMN_MODFLAG_TLS;
+                if (ParamUtils.GetOffsetToValue(textRos, "xbe", false, true) != -1)
+                    flags |= ModLoadFlags.DMN_MODFLAG_XBE;
+
+                return new XbdmEventArgsModuleLoad(text) {
+                    ModuleName = modName,
+                    BaseAddress = modBaseAddr,
+                    ModuleSize = modSize,
+                    TimeStamp = timestamp,
+                    CheckSum = checksum,
+                    Flags = flags,
+                };
+            }
+            case "sectload":
+            case "sectunload": {
+                if (!ParamUtils.GetStrParam(textRos, "name", false, out string? sectName)) return null;
+                if (!ParamUtils.GetDwParam(textRos, "base", false, out uint baseAddr)) return null;
+                if (!ParamUtils.GetDwParam(textRos, "size", false, out uint size)) return null;
+
+                uint? index = ParamUtils.GetDwParam(textRos, "index", false, out uint _index) ? _index : null;
+                uint? flags = ParamUtils.GetDwParam(textRos, "flags", false, out uint _flags) ? _flags : null;
+
+                XbdmEventArgsSection args = cmd == "sectload" ? new XbdmEventArgsSectionLoad(text) : new XbdmEventArgsSectionUnload(text);
+                args.Name = sectName;
+                args.BaseAddress = baseAddr;
+                args.Size = size;
+                args.Index = index;
+                args.Flags = flags;
+                return args;
+            }
+            case "fiber": {
+                if (!ParamUtils.GetDwParam(textRos, "id", false, out uint fiberId)) 
+                    return null;
+
+                uint? startAddress = null;
+                if (ParamUtils.GetDwParam(textRos, "start", false, out uint _startAddress)) {
+                    startAddress = _startAddress;
+                }
+                else if (ParamUtils.GetOffsetToValue(textRos, "delete", false, true) == -1) {
+                    return null;
+                }
+
+                return new XbdmEventArgsFiber(text) {
+                    FiberId = fiberId,
+                    StartAddress = startAddress,
+                };
+            }
         }
 
         return null;

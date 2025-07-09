@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
+using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.PointerScanning;
@@ -42,20 +43,14 @@ public delegate void MemoryEngineConnectionChangedEventHandler(MemoryEngine send
 /// <summary>
 /// The main manager class for a the memory engine window. Also provides utilities for reading/writing data values
 /// </summary>
-[DebuggerDisplay("ActiveToken = {activeToken}, Connection = {Connection}")]
+[DebuggerDisplay("IsBusy = {IsConnectionBusy}, Connection = {Connection}")]
 public class MemoryEngine {
     public static readonly DataKey<MemoryEngine> EngineDataKey = DataKey<MemoryEngine>.Create("MemoryEngine");
 
     private volatile IConsoleConnection? connection; // our connection object -- volatile in case JIT plays dirty tricks, i ain't no expert in wtf volatile does though
-    private readonly object connectionLock = new object(); // used to synchronize busy token creation and also connection change
-    private volatile int busyCount; // this is a boolean. 0 = no token, 1 = token acquired. any other value is invalid
-    private volatile BusyToken? activeToken;
     private bool isShuttingDown;
     private ulong currentConnectionAboutToChangeFrame;
-
-    // A list of TCSes that are signal when the busy lock becomes available.
-    // They are custom in that they also support a CancellationToken to signal them too
-    private readonly LinkedList<CancellableTaskCompletionSource> busyLockAsyncWaiters;
+    private readonly BusyLock busyLocker;
 
     /// <summary>
     /// Gets the current console connection. This can only change on the main thread
@@ -96,7 +91,7 @@ public class MemoryEngine {
     /// Gets or sets if the memory engine is currently busy, e.g. reading or writing data.
     /// This will never be true when <see cref="Connection"/> is null
     /// </summary>
-    public bool IsConnectionBusy => this.busyCount > 0;
+    public bool IsConnectionBusy => this.busyLocker.IsBusy;
 
     public ScanningProcessor ScanningProcessor { get; }
 
@@ -106,6 +101,8 @@ public class MemoryEngine {
 
     public PointerScanner PointerScanner { get; }
 
+    public ConsoleDebugger ConsoleDebugger { get; }
+    
     /// <summary>
     /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working
     /// </summary>
@@ -159,11 +156,14 @@ public class MemoryEngine {
     public event MemoryEngineEventHandler? IsBusyChanged;
 
     public MemoryEngine() {
+        this.busyLocker = new BusyLock();
+        this.busyLocker.IsBusyChanged += e => this.IsBusyChanged?.Invoke(this);
         this.ScanningProcessor = new ScanningProcessor(this);
         this.AddressTableManager = new AddressTableManager(this);
         this.TaskSequencerManager = new TaskSequencerManager(this);
         this.PointerScanner = new PointerScanner(this);
-        this.busyLockAsyncWaiters = new LinkedList<CancellableTaskCompletionSource>();
+        this.ConsoleDebugger = new ConsoleDebugger(this);
+        
         Task.Factory.StartNew(async () => {
             long timeSinceRefreshedAddresses = DateTime.Now.Ticks;
             BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
@@ -197,7 +197,7 @@ public class MemoryEngine {
     /// <returns>The current connection</returns>
     /// <exception cref="InvalidOperationException">Token is invalid in some way</exception>
     public IConsoleConnection? GetConnection(IDisposable token) {
-        this.ValidateToken(token);
+        this.busyLocker.ValidateToken(token);
         return this.connection;
     }
 
@@ -242,7 +242,7 @@ public class MemoryEngine {
     /// <exception cref="ArgumentException">New connection is non-null when cause is <see cref="ConnectionChangeCause.LostConnection"/></exception>
     public void SetConnection(IDisposable busyToken, ulong frame, IConsoleConnection? newConnection, ConnectionChangeCause cause, UserConnectionInfo? userConnectionInfo = null) {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-        this.ValidateToken(busyToken);
+        this.busyLocker.ValidateToken(busyToken);
         if (newConnection != null && (cause == ConnectionChangeCause.LostConnection || cause == ConnectionChangeCause.ConnectionError))
             throw new ArgumentException($"Cause cannot be {cause} when setting connection to a non-null value");
 
@@ -250,7 +250,7 @@ public class MemoryEngine {
             throw new ArgumentException(nameof(userConnectionInfo) + " is non-null when " + nameof(newConnection) + " is null");
 
         // ConnectionChanged is invoked under the lock to enforce busy operation rules
-        lock (this.connectionLock) {
+        lock (this.busyLocker.CriticalLock) {
             // we don't necessarily need to access connection under lock since if we have
             // a valid busy token then nothing can modify it, but better be safe than sorry
             IConsoleConnection? oldConnection = this.connection;
@@ -293,23 +293,8 @@ public class MemoryEngine {
     /// </para>
     /// </summary>
     /// <returns>A token to dispose when the operation is completed. Returns null if currently busy</returns>
-    /// <exception cref="InvalidOperationException">No connection is present</exception>
     public IDisposable? BeginBusyOperation() {
-        bool lockTaken = false;
-        try {
-            Monitor.TryEnter(this.connectionLock, 0, ref lockTaken);
-            if (!lockTaken)
-                return null;
-
-            if (this.busyCount == 0)
-                return this.activeToken = new BusyToken(this);
-
-            return null;
-        }
-        finally {
-            if (lockTaken)
-                Monitor.Exit(this.connectionLock);
-        }
+        return this.busyLocker.BeginBusyOperation();
     }
 
     /// <summary>
@@ -319,12 +304,7 @@ public class MemoryEngine {
     /// <param name="timeoutMilliseconds">An optional timeout value. When the amount of time elapses, we return null</param>
     /// <returns>The acquired token, or null if the task was cancelled</returns>
     public Task<IDisposable?> BeginBusyOperationAsync(CancellationToken cancellationToken) {
-        IDisposable? token = this.BeginBusyOperation();
-        if (token != null) {
-            return Task.FromResult<IDisposable?>(token);
-        }
-
-        return this.InternalBeginOperationLoop(cancellationToken);
+        return this.busyLocker.BeginBusyOperationAsync(cancellationToken);
     }
 
     /// <summary>
@@ -333,41 +313,8 @@ public class MemoryEngine {
     /// <param name="timeoutMilliseconds">The maximum amount of time to wait to try and begin the operations</param>
     /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
     /// <returns></returns>
-    public async Task<IDisposable?> BeginBusyOperationAsync(int timeoutMilliseconds, CancellationToken cancellationToken = default) {
-        if (timeoutMilliseconds < -1)
-            throw new ArgumentOutOfRangeException(nameof(timeoutMilliseconds), "Timeout milliseconds cannot be below -1");
-
-        IDisposable? token = this.BeginBusyOperation();
-        if (token != null) {
-            return token;
-        }
-
-        if (timeoutMilliseconds == -1) // we'll wait infinitely.
-            return await this.InternalBeginOperationLoop(cancellationToken);
-
-        if (timeoutMilliseconds == 0)
-            return null; // well WTF, I guess this is the right thing to do???
-
-        // Probably no need to go whacko mode and overoptimize... but meh I already wrote this code so no point in undoing it
-        CancellationTokenSource? cts, timeoutSource = null;
-        if (cancellationToken.CanBeCanceled) {
-            timeoutSource = new CancellationTokenSource(timeoutMilliseconds);
-            cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
-        }
-        else {
-            cts = new CancellationTokenSource(timeoutMilliseconds);
-        }
-
-        try {
-            token = await this.InternalBeginOperationLoop(cts.Token);
-        }
-        finally {
-            // should this be disposed before or after cts?
-            timeoutSource?.Dispose();
-            cts.Dispose();
-        }
-
-        return token;
+    public Task<IDisposable?> BeginBusyOperationAsync(int timeoutMilliseconds, CancellationToken cancellationToken = default) {
+        return this.busyLocker.BeginBusyOperationAsync(timeoutMilliseconds, cancellationToken);
     }
 
     /// <summary>
@@ -378,23 +325,13 @@ public class MemoryEngine {
     /// <returns>
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
-    public async Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...", CancellationTokenSource? cancellationTokenSource = null) {
+    public Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...", CancellationTokenSource? cancellationTokenSource = null) {
         IDisposable? token = this.BeginBusyOperation();
-        if (token == null) {
-            CancellationTokenSource cts = cancellationTokenSource ?? new CancellationTokenSource();
-            token = await ActivityManager.Instance.RunTask(() => {
-                ActivityTask task = ActivityManager.Instance.CurrentTask;
-                task.Progress.Caption = caption;
-                task.Progress.Text = message;
-                return this.BeginBusyOperationAsync(task.CancellationToken);
-            }, cts);
+        if (token != null) return Task.FromResult<IDisposable?>(token);
 
-            if (cancellationTokenSource == null) {
-                cts.Dispose();
-            }
-        }
-
-        return token;
+        return this.busyLocker.BeginBusyOperationActivityAsync(new DefaultProgressTracker() {
+            Caption = caption, Text = message
+        }, cancellationTokenSource);
     }
 
     /// <summary>
@@ -404,7 +341,7 @@ public class MemoryEngine {
     /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
     public async Task BeginBusyOperationActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
         if (this.connection == null) return; // short path -- save creating an activity
-        
+
         using IDisposable? token = await this.BeginBusyOperationActivityAsync(caption, message);
         IConsoleConnection theConn; // save double volatile read
         if (token != null && (theConn = this.connection) != null) {
@@ -421,7 +358,7 @@ public class MemoryEngine {
     /// <returns>The task containing the result of action, or default if we couldn't get the token or connection was null</returns>
     public async Task<TResult?> BeginBusyOperationActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
         if (this.connection == null) return default; // short path -- save creating an activity
-        
+
         using IDisposable? token = await this.BeginBusyOperationActivityAsync(caption, message);
         IConsoleConnection theConn; // save double volatile read
         if (token != null && (theConn = this.connection) != null) {
@@ -429,52 +366,6 @@ public class MemoryEngine {
         }
 
         return default;
-    }
-
-    private async Task<IDisposable?> InternalBeginOperationLoop(CancellationToken cancellationToken) {
-        IDisposable? token;
-
-        do {
-            LinkedListNode<CancellableTaskCompletionSource>? tcs = this.EnqueueAsyncWaiter(cancellationToken);
-            if (tcs == null) {
-                if (this.busyCount != 0) {
-                    // connectionLock is acquired on another thread and the busy token is still taken,
-                    // so the only thing we can do is just wait some time.
-                    try {
-                        await Task.Delay(10, cancellationToken);
-                    }
-                    catch (OperationCanceledException) {
-                        return null;
-                    }
-                }
-            }
-            else {
-                try {
-                    await tcs.Value.Task;
-                }
-                catch (OperationCanceledException) {
-                    if (tcs.List != null) {
-                        lock (this.connectionLock) {
-                            // Possible race condition between OCE handled on one thread, and the busy token disposed on another thread.
-                            // It's fine if we win the race since we'd remove the node before OnTokenDisposedUnderLock() clears
-                            // the list. But if that method wins, the list gets cleared under lock and tcs.List is null below
-                            if (tcs.List != null) {
-                                // We only need to remove on cancelled, because when it
-                                // completes normally, the list gets cleared anyway
-                                tcs.List!.Remove(tcs);
-                                tcs.Value.Dispose();
-                            }
-                        }
-                    }
-
-                    return null;
-                }
-            }
-            // stoopid IDE, using the async overload could cause stack overflow if we get really unlucky in lock taking
-            // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-        } while ((token = this.BeginBusyOperation()) == null);
-
-        return token;
     }
 
     public void CheckConnection(ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection) {
@@ -505,7 +396,7 @@ public class MemoryEngine {
     /// </summary>
     /// <param name="token"></param>
     public void CheckConnection(IDisposable token, ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection) {
-        this.ValidateToken(token);
+        this.busyLocker.ValidateToken(token);
         this.TryDisconnectForLostConnection(token, likelyCause);
     }
 
@@ -518,76 +409,6 @@ public class MemoryEngine {
 
         this.SetConnection(token, 0, null, cause);
         return true;
-    }
-
-    private void ValidateToken(IDisposable token) {
-        if (token == null)
-            throw new ArgumentNullException(nameof(token), "Token is null");
-        if (!(token is BusyToken busy))
-            throw new ArgumentException("Argument is not a busy token object");
-
-        // myEngine can be atomically exchanged
-        MemoryEngine? engine = busy.myEngine;
-        if (engine == null)
-            throw new ArgumentException("Token has already been disposed");
-        if (engine != this)
-            throw new ArgumentException("Token is not associated with this engine");
-        if (this.activeToken != busy)
-            throw new ArgumentException(this.busyCount == 0 ? "No tokens are currently in use" : "Token is not the current token");
-    }
-
-    private LinkedListNode<CancellableTaskCompletionSource>? EnqueueAsyncWaiter(CancellationToken token) {
-        bool lockTaken = false;
-        try {
-            Monitor.TryEnter(this.connectionLock, 0, ref lockTaken);
-            if (!lockTaken || this.busyCount == 0) {
-                // When busyCount is 0 at this point, it means we probably lost the lock race.
-                // The caller will notice null and check busyCount anyway so it's fine.
-                // The last thing we want is to return a valid TCS and busyCount is 0, because
-                // it will never become completed until another token is acquired and disposed
-                return null;
-            }
-
-            return this.busyLockAsyncWaiters.AddLast(new CancellableTaskCompletionSource(token));
-        }
-        finally {
-            if (lockTaken)
-                Monitor.Exit(this.connectionLock);
-        }
-    }
-
-    private void OnTokenCreatedUnderLock() {
-        if (Interlocked.Increment(ref this.busyCount) == 1) {
-            try {
-                this.IsBusyChanged?.Invoke(this);
-            }
-            catch {
-                Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
-            }
-        }
-    }
-
-    private void OnTokenDisposedUnderLock() {
-        this.activeToken = null;
-        if (Interlocked.Decrement(ref this.busyCount) == 0) {
-            try {
-                this.IsBusyChanged?.Invoke(this);
-            }
-            catch {
-                Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
-            }
-        }
-
-        foreach (CancellableTaskCompletionSource tcs in this.busyLockAsyncWaiters) {
-            try {
-                tcs.TrySetResult();
-            }
-            finally {
-                tcs.Dispose();
-            }
-        }
-
-        this.busyLockAsyncWaiters.Clear();
     }
 
     /// <summary>
@@ -663,57 +484,6 @@ public class MemoryEngine {
             }
             case DataType.ByteArray: await connection.WriteBytes(address, ((DataValueByteArray) value).Value).ConfigureAwait(false); break;
             default:                 throw new InvalidOperationException("Data value's data type is invalid: " + value.DataType);
-        }
-    }
-
-    // A helper class deriving TCS that allows an external cancellation signal to mark it as completed
-    private class CancellableTaskCompletionSource : TaskCompletionSource, IDisposable {
-        private readonly CancellationToken token;
-        private readonly CancellationTokenRegistration registration;
-
-        public CancellableTaskCompletionSource(CancellationToken token) : base(TaskCreationOptions.RunContinuationsAsynchronously) {
-            this.token = token;
-            if (token.CanBeCanceled)
-                this.registration = token.Register(this.SetCanceledCore);
-        }
-
-        private void SetCanceledCore() {
-            this.TrySetCanceled(this.token);
-        }
-
-        public void Dispose() {
-            Debug.Assert(this.Task.IsCompleted, "Expected task to be completed at this point");
-
-            this.registration.Dispose();
-        }
-    }
-
-    private class BusyToken : IDisposable {
-        public volatile MemoryEngine? myEngine;
-#if DEBUG
-        public readonly string? stackTrace; // debugging stack trace, just in case the app locks up then the source is likely in here 
-#endif
-
-        public BusyToken(MemoryEngine engine) {
-            Debug.Assert(engine.activeToken == null, "Active token already non-null");
-            this.myEngine = engine;
-            engine.OnTokenCreatedUnderLock();
-#if DEBUG
-            this.stackTrace = new StackTrace(true).ToString();
-#endif
-        }
-
-        public void Dispose() {
-            // we're being omega thread safe here
-            MemoryEngine? engine = Interlocked.Exchange(ref this.myEngine, null);
-            if (engine == null) {
-                return;
-            }
-
-            lock (engine.connectionLock) {
-                Debug.Assert(engine.activeToken == this, "Different active token references");
-                engine.OnTokenDisposedUnderLock();
-            }
         }
     }
 }

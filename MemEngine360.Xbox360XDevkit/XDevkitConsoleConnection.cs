@@ -19,6 +19,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Traits;
 using XDevkit;
@@ -45,33 +46,33 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         this.console = console;
         IXboxDebugTarget dbgTarget = this.console.DebugTarget;
         dbgTarget.MemoryCacheEnabled = false;
-        // XboxEvents_OnStdNotifyEventHandler handler = this.OnStdNotify;
-        // this.console.add_OnStdNotify(handler);
-        // this.console.add_OnTextNotify(this.OnTextNotify);
+        XboxEvents_OnStdNotifyEventHandler handler = this.OnStdNotify;
+        this.console.add_OnStdNotify(handler);
+        this.console.add_OnTextNotify(this.OnTextNotify);
         this.isConnectedAsDebugger = true;
 
         // console.DebugTarget.SetDataBreakpoint(0, XboxBreakpointType.OnExecute);
     }
 
-    // private void OnStdNotify(XboxDebugEventType eventcode, IXboxEventInfo eventinfo) {
-    //     XBOX_EVENT_INFO inf = eventinfo.Info;
-    //     StringBuilder sb = new StringBuilder();
-    //     sb.Append($"IsThreadStopped: {inf.IsThreadStopped != 0}, ");
-    //     sb.Append($"ExecState: {inf.ExecState}, ");
-    //     sb.Append($"Message: {inf.Message}, ");
-    //     sb.Append($"Code: {inf.Code}, ");
-    //     sb.Append($"Address: {inf.Address}, ");
-    //     sb.Append($"Flags: {inf.Flags}, ");
-    //     sb.Append($"ParameterCount: {inf.ParameterCount}");
-    //     if (inf.ParameterCount > 0)
-    //         sb.Append($", Parameters: {string.Join(", ", inf.Parameters)}");
-    //     
-    //     System.Console.WriteLine($"[StdNotify] {eventcode} -> {sb.ToString()}");
-    // }
-    //
-    // private void OnTextNotify(string source, string notification) {
-    //     System.Console.WriteLine($"[TextNotify] {source} -> {notification}");
-    // }
+    private void OnStdNotify(XboxDebugEventType eventcode, IXboxEventInfo eventinfo) {
+        XBOX_EVENT_INFO inf = eventinfo.Info;
+        StringBuilder sb = new StringBuilder();
+        sb.Append($"IsThreadStopped: {inf.IsThreadStopped != 0}, ");
+        sb.Append($"ExecState: {inf.ExecState}, ");
+        sb.Append($"Message: {inf.Message}, ");
+        sb.Append($"Code: {inf.Code}, ");
+        sb.Append($"Address: {inf.Address}, ");
+        sb.Append($"Flags: {inf.Flags}, ");
+        sb.Append($"ParameterCount: {inf.ParameterCount}");
+        if (inf.ParameterCount > 0)
+            sb.Append($", Parameters: {string.Join(", ", inf.Parameters)}");
+        
+        System.Console.WriteLine($"[StdNotify] {eventcode} -> {sb.ToString()}");
+    }
+    
+    private void OnTextNotify(string source, string notification) {
+        System.Console.WriteLine($"[TextNotify] {source} -> {notification}");
+    }
 
     public override Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count) {
         return Task.FromResult<bool?>(null);

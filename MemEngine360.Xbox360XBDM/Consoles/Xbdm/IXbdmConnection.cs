@@ -27,13 +27,7 @@ namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 /// <summary>
 /// Represents a connection to an xbox console
 /// </summary>
-public interface IXbdmConnection : INetworkConsoleConnection, IHaveMemoryRegions, IHaveIceCubes {
-    /// <summary>
-    /// Gets all the threads running on this console
-    /// </summary>
-    /// <returns></returns>
-    Task<List<XboxThread>> GetThreadDump();
-
+public interface IXbdmConnection : INetworkConsoleConnection, IHaveMemoryRegions, IHaveIceCubes, IHaveXboxThreadInfo {
     /// <summary>
     /// Sends the eject command to toggle the disk tray
     /// </summary>

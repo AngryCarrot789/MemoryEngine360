@@ -26,6 +26,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using MemEngine360.BaseFrontEnd;
+using MemEngine360.BaseFrontEnd.Debugging;
 using MemEngine360.BaseFrontEnd.EventViewing;
 using MemEngine360.BaseFrontEnd.FileConnections;
 using MemEngine360.BaseFrontEnd.MemRegions;
@@ -45,6 +46,8 @@ using MemEngine360.Connections;
 using MemEngine360.Connections.Testing;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
+using MemEngine360.Engine.Debugging;
+using MemEngine360.Engine.Debugging.Commands;
 using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Modes;
@@ -142,6 +145,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.hexeditor.ClearAutoScanRangeCommand", new ClearAutoScanRangeCommand());
         manager.Register("commands.hexeditor.SaveSelectionAsFileCommand", new SaveSelectionAsFileCommand());
 
+        // Sequencer
         manager.Register("commands.memengine.OpenTaskSequencerCommand", new OpenTaskSequencerCommand());
         manager.Register("commands.sequencer.DeleteSequenceSelectionCommand", new DeleteSequenceSelectionCommand());
         manager.Register("commands.sequencer.DeleteOperationSelectionCommand", new DeleteOperationSelectionCommand());
@@ -161,6 +165,12 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.ToggleConditionEnabledCommand", new ToggleConditionEnabledCommand());
         manager.Register("commands.sequencer.SaveTaskSequencesCommand", new SaveTaskSequencesCommand());
         manager.Register("commands.sequencer.LoadTaskSequencesCommand", new LoadTaskSequencesCommand());
+        
+        // Debugger
+        manager.Register("commands.memengine.ShowDebuggerCommand", new ShowDebuggerCommand());
+        manager.Register("commands.memengine.OpenDebuggerConnectionCommand", new OpenDebuggerConnectionCommand());
+        manager.Register("commands.memengine.RefreshRegistersCommand", new RefreshRegistersCommand());
+        manager.Register("commands.memengine.RefreshAllCommand", new RefreshAllCommand());
     }
 
     protected override void RegisterServices(ServiceManager manager) {
@@ -181,6 +191,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.RegisterConstant<IEditConditionOutputModeService>(new EditConditionOutputModeServiceImpl());
         manager.RegisterConstant<IPointerScanService>(new PointerScanServiceImpl());
         manager.RegisterConstant<IConsoleEventViewerService>(new ConsoleEventViewerServiceImpl());
+        manager.RegisterConstant<IDebuggerViewService>(new DebuggerViewServiceImpl());
 
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }
