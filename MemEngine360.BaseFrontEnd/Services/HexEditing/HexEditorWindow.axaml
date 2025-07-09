@@ -183,7 +183,7 @@
         </Border>
         <GridSplitter Grid.Column="1" Grid.Row="1" Background="{DynamicResource ABrush.Tone4.Background.Static}" Focusable="False"/>
         <ScrollViewer Grid.Column="2" Grid.Row="1" DockPanel.Dock="Right" Background="{DynamicResource PanelBackground4}" MinWidth="200">
-            <Grid RowDefinitions="Auto,20,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,*"
+            <Grid RowDefinitions="Auto,20,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,*"
                   ColumnDefinitions="0,75,1,*,5"
                   Background="Transparent" Focusable="True">
                 <!-- Make grid focusable so the user can click anywhere in it to unfocus the text boxes -->
@@ -197,7 +197,7 @@
                     <RadioButton Grid.Column="0" x:Name="PART_LittleEndian" Content="Little Endian"
                                  tt:ToolTipEx.Tip="Interpret the data in the editor as Little Endian"/>
                     <RadioButton Grid.Column="2" x:Name="PART_BigEndian" Content="Big Endian"
-                                 tt:ToolTipEx.Tip="Interpret the data in the editor as Big Endian. This is the default for most consoles"/>
+                                 tt:ToolTipEx.Tip="Interpret the data in the editor as Big Endian. This is the default for Xbox 360"/>
                 </Grid>
 
                 <TextBlock Text="Binary8" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center"/>
@@ -211,9 +211,11 @@
                 <TextBlock Text="UInt64" Grid.Row="19" Grid.Column="1" VerticalAlignment="Center"/>
                 <TextBlock Text="Float32" Grid.Row="21" Grid.Column="1" VerticalAlignment="Center"/>
                 <TextBlock Text="Double64" Grid.Row="23" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="UTF8" Grid.Row="25" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="UTF16" Grid.Row="27" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="UTF32" Grid.Row="29" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="ASCII" Grid.Row="25" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="UTF16 LE" Grid.Row="27" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="UTF16 BE" Grid.Row="29" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="UTF32 LE" Grid.Row="31" Grid.Column="1" VerticalAlignment="Center"/>
+                <TextBlock Text="UTF32 BE" Grid.Row="33" Grid.Column="1" VerticalAlignment="Center"/>
 
                 <TextBox x:Name="PART_Binary8" FontFamily="{StaticResource FontOxanium}" Grid.Row="3" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
                 <TextBox x:Name="PART_Int8" FontFamily="{StaticResource FontOxanium}" Grid.Row="5" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
@@ -227,8 +229,10 @@
                 <TextBox x:Name="PART_Float" FontFamily="{StaticResource FontOxanium}" Grid.Row="21" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
                 <TextBox x:Name="PART_Double" FontFamily="{StaticResource FontOxanium}" Grid.Row="23" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
                 <TextBox x:Name="PART_CharUTF8" Grid.Row="25" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
-                <TextBox x:Name="PART_CharUTF16" Grid.Row="27" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
-                <TextBox x:Name="PART_CharUTF32" Grid.Row="29" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
+                <TextBox x:Name="PART_CharUTF16LE" Grid.Row="27" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
+                <TextBox x:Name="PART_CharUTF16BE" Grid.Row="29" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
+                <TextBox x:Name="PART_CharUTF32LE" Grid.Row="31" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
+                <TextBox x:Name="PART_CharUTF32BE" Grid.Row="33" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
 
                 <Border Grid.Row="5" Grid.Column="1" VerticalAlignment="Stretch" Background="{DynamicResource ABrush.Tone5.Border.Static}" HorizontalAlignment="Right" Margin="0,0,-1,0" Width="43"/>
                 <Border Grid.Row="9" Grid.Column="1" VerticalAlignment="Stretch" Background="{DynamicResource ABrush.Tone5.Border.Static}" HorizontalAlignment="Right" Margin="0,0,-1,0" Width="43"/>
@@ -260,8 +264,10 @@
                 <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="26" Grid.Column="1" Grid.ColumnSpan="3"/>
                 <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="28" Grid.Column="1" Grid.ColumnSpan="3"/>
                 <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="30" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="32" Grid.Column="1" Grid.ColumnSpan="3"/>
+                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="34" Grid.Column="1" Grid.ColumnSpan="3"/>
 
-                <DockPanel Grid.Row="31" Grid.Column="1" Grid.ColumnSpan="3">
+                <DockPanel Grid.Row="37" Grid.Column="1" Grid.ColumnSpan="3">
                     <CheckBox x:Name="PART_DisplayIntAsHex"
                               Content="Display Integers as Hex"
                               DockPanel.Dock="Bottom"

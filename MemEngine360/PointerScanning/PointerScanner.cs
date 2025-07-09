@@ -46,6 +46,7 @@ public class PointerScanner {
     private uint searchAddress;
     private uint alignment = 4;
     private bool hasPointerMap;
+    private bool isScanRunning;
 
     /// <summary>
     /// Gets the base address of the addressable memory space, as in, the smallest address a pointer can be
@@ -136,6 +137,11 @@ public class PointerScanner {
         private set => PropertyHelper.SetAndRaiseINE(ref this.hasPointerMap, value, this, static t => t.HasPointerMapChanged?.Invoke(t));
     }
 
+    public bool IsScanRunning {
+        get => this.isScanRunning;
+        private set => PropertyHelper.SetAndRaiseINE(ref this.isScanRunning, value, this, static t => t.IsScanRunningChanged?.Invoke(t));
+    }
+
     public IReadOnlyDictionary<uint, uint> PointerMap => this.basePointers;
 
     public event PointerScannerEventHandler? AddressableBaseChanged;
@@ -147,6 +153,7 @@ public class PointerScanner {
     public event PointerScannerEventHandler? SearchAddressChanged;
     public event PointerScannerEventHandler? AlignmentChanged;
     public event PointerScannerEventHandler? HasPointerMapChanged;
+    public event PointerScannerEventHandler? IsScanRunningChanged;
 
     private IntPtr hMemoryDump;
     private IntPtr cbMemoryDump;
@@ -157,6 +164,7 @@ public class PointerScanner {
     // private readonly ConcurrentDictionary<uint, object> visitedPointers; // a set of pointers that have already been resolved 
     private bool isMemoryLittleEndian;
     private uint baseAddress;
+    private CancellationTokenSource? scanCts;
 
     public ObservableList<DynamicAddress> PointerChain { get; } = new ObservableList<DynamicAddress>();
 
@@ -197,7 +205,8 @@ public class PointerScanner {
         this.PointerChain.Clear();
 
         using CancellationTokenSource cts = new CancellationTokenSource();
-
+        this.scanCts = cts;
+        this.IsScanRunning = true;
         await ActivityManager.Instance.RunTask(async () => {
             TaskCompletionSource tcs = new TaskCompletionSource();
             PointerScanThreadOptions options = new PointerScanThreadOptions(ActivityManager.Instance.CurrentTask, tcs);
@@ -219,7 +228,15 @@ public class PointerScanner {
                 while (!tcs.Task.IsCompleted) {
                     (List<PointerPrivate> list, int depth)? currChain = options.currentChain;
                     if (currChain.HasValue) {
-                        List<PointerPrivate> chain = currChain.Value.list;
+                        List<PointerPrivate> chain;
+                        try {
+                            chain = currChain.Value.list.ToList();
+                        }
+                        catch (Exception) {
+                            // possible concurrent modification exception
+                            continue;
+                        }
+
                         if (chain.Count > 1) {
                             DynamicAddress address = new DynamicAddress(chain[0].addr + chain[0].offset, chain.Skip(1).Select(x => (int) x.offset));
                             options.ActivityTask.Progress.Text = $"{address} ({currChain.Value.depth} deep)";
@@ -251,6 +268,17 @@ public class PointerScanner {
                 await IMessageDialogService.Instance.ShowMessage("Scan Error", "Error encountered while scanning", e.GetToString());
             }
         }, new DefaultProgressTracker(DispatchPriority.Background), cts);
+        this.IsScanRunning = false;
+        this.scanCts = cts;
+    }
+
+    public void CancelScan() {
+        try {
+            this.scanCts?.Cancel();
+        }
+        catch (ObjectDisposedException) {
+            // ignored
+        }
     }
 
     private sealed class PointerScanThreadOptions {
@@ -335,7 +363,7 @@ public class PointerScanner {
             activity.TryCancel();
         }
     }
-    
+
     private void FindNearbyPointers(List<PointerPrivate> chain, byte currDepth, uint maxOffset, PointerScanThreadOptions options) {
         options.ActivityTask.CheckCancelled();
         PointerPrivate basePtr = chain[chain.Count - 1];

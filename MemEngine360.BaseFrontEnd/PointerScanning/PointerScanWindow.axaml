@@ -4,6 +4,7 @@
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
                  xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:ps="clr-namespace:MemEngine360.BaseFrontEnd.PointerScanning"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.BaseFrontEnd.PointerScanning.PointerScanWindow"
                  Title="PointerScanWindow">
@@ -11,13 +12,20 @@
         <StackPanel Margin="3" Orientation="Horizontal" DockPanel.Dock="Top" Spacing="3">
             <Button x:Name="PART_OpenFile" Content="Open Memory File..." Padding="4,2"/>
             <Button x:Name="PART_RunScan" Content="Run Scan" Padding="4,2"/>
+            <Button x:Name="PART_StopScan" Content="Stop Scan" Padding="4,2"/>
         </StackPanel>
         <Border DockPanel.Dock="Bottom" Height="22" BorderThickness="0,1,0,0" Background="{DynamicResource ABrush.Tone4.Background.Static}" BorderBrush="{DynamicResource ABrush.Tone5.Border.Static}">
-            <TextBlock x:Name="PART_StatusBar"/>
+            <DockPanel>
+                <TextBlock x:Name="PART_StatusBar" DockPanel.Dock="Left" Padding="4,2"/>
+                <TextBlock Text="Double-click any result to show full pointer chain in dialog" DockPanel.Dock="Right" Padding="4,2"/>
+                <Border/>
+            </DockPanel>
         </Border>
         <TabControl SelectedIndex="1" Margin="3,0,3,3">
-            <TabItem Header="Scanning Results">
-                <ListBox x:Name="PART_ScanResults" Margin="3" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
+            <TabItem Header="Scanning Results" x:Name="PART_TabScanResults">
+                <ps:PointerScanResultListBox x:Name="PART_ScanResults" 
+                                             Margin="3" 
+                                             Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
             </TabItem>
 
             <TabItem Header="Setup">

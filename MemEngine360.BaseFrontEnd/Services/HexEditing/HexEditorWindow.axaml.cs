@@ -696,15 +696,21 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         if (oldData != null) {
             oldData.RestartAutoRefresh -= this.OnRestartAutoRefresh;
             oldData.MemoryEngine.ConnectionAboutToChange -= this.OnConnectionAboutToChange;
+            HexEditorInfo.InspectorEndiannessParameter.RemoveValueChangedHandler(oldData, this.OnEndiannessModeChanged);
             this.endiannessBinder.Detach();
         }
 
         if (newData != null) {
             newData.RestartAutoRefresh += this.OnRestartAutoRefresh;
             newData.MemoryEngine.ConnectionAboutToChange += this.OnConnectionAboutToChange;
+            HexEditorInfo.InspectorEndiannessParameter.AddValueChangedHandler(newData, this.OnEndiannessModeChanged);
             this.endiannessBinder.Attach(newData);
             this.PART_CancelButton.Focus();
         }
+    }
+
+    private void OnEndiannessModeChanged(DataParameter parameter, ITransferableData owner) {
+        this.UpdateDataInspector();
     }
 
     protected override void OnOpenedCore() {
@@ -741,7 +747,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     private void UpdateAutoRefreshRange() {
         HexEditorInfo? info = this.HexDisplayInfo;
         if (info != null) {
-            BitRange range = new BitRange(info.AutoRefreshStartAddress - this.actualStartAddress, (info.AutoRefreshStartAddress + info.AutoRefreshLength) - this.actualStartAddress);
+            BitRange range = new BitRange(info.AutoRefreshStartAddress - this.actualStartAddress, info.AutoRefreshStartAddress + info.AutoRefreshLength - this.actualStartAddress);
             this.autoRefreshLayer.SetRange(range);
         }
     }
@@ -760,16 +766,16 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             this.myDocument.ReadBytes(caretIndex, new Span<byte>(daBuf, 0, (int) Math.Min(8, cbRemaining)));
 
         // The console is big-endian. If we want to display as little endian, we need to reverse the bytes
-        byte val08 = cbRemaining >= 1 ? daBuf[0] : default;
-        ushort val16 = cbRemaining >= 2 ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(daBuf, 0, 2)) : default;
-        uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(daBuf, 0, 4)) : 0;
-        ulong val64 = cbRemaining >= 8 ? MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(daBuf, 0, 8)) : 0;
+        byte val08 = cbRemaining >= 1 ? daBuf[0] : default, raw_val08 = val08;
+        ushort val16 = cbRemaining >= 2 ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(daBuf, 0, 2)) : default, raw_val16 = val16;
+        uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(daBuf, 0, 4)) : 0, raw_val32 = val32;
+        ulong val64 = cbRemaining >= 8 ? MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(daBuf, 0, 8)) : 0, raw_val64 = val64;
 
         // Rather than use something like BinaryPrimitives.ReadUInt32BigEndian, we just
         // reverse the endianness here so that we aren't reversing possibly twice if the user
         // wants to display in LE for some reason
-        bool displayAsLE = info.InspectorEndianness == Endianness.LittleEndian;
-        if (displayAsLE != BitConverter.IsLittleEndian) {
+        bool isDataLE = info.InspectorEndianness == Endianness.LittleEndian;
+        if (isDataLE != BitConverter.IsLittleEndian) {
             val16 = BinaryPrimitives.ReverseEndianness(val16);
             val32 = BinaryPrimitives.ReverseEndianness(val32);
             val64 = BinaryPrimitives.ReverseEndianness(val64);
@@ -778,19 +784,19 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         bool asHex = this.PART_DisplayIntAsHex.IsChecked == true;
         this.PART_Binary8.Text = val08.ToString("B8");
         if (!this.PART_Int8.IsKeyboardFocusWithin)
-            this.PART_Int8.Text = asHex ? ((sbyte) val08).ToString("X2") : ((sbyte) val08).ToString();
+            this.PART_Int8.Text = asHex ? (sbyte) val08 < 0 ? "-" + (-(sbyte) val08).ToString("X2") : ((sbyte) val08).ToString("X2") : ((sbyte) val08).ToString();
         if (!this.PART_UInt8.IsKeyboardFocusWithin)
             this.PART_UInt8.Text = asHex ? val08.ToString("X2") : val08.ToString();
         if (!this.PART_Int16.IsKeyboardFocusWithin)
-            this.PART_Int16.Text = asHex ? ((short) val16).ToString("X4") : ((short) val16).ToString();
+            this.PART_Int16.Text = asHex ? (short) val16 < 0 ? "-" + (-(short) val16).ToString("X4") : ((short) val16).ToString("X4") : ((short) val16).ToString();
         if (!this.PART_UInt16.IsKeyboardFocusWithin)
             this.PART_UInt16.Text = asHex ? val16.ToString("X4") : val16.ToString();
         if (!this.PART_Int32.IsKeyboardFocusWithin)
-            this.PART_Int32.Text = asHex ? ((int) val32).ToString("X8") : ((int) val32).ToString();
+            this.PART_Int32.Text = asHex ? (int) val32 < 0 ? "-" + (-(int) val32).ToString("X8") : ((int) val32).ToString("X8") : ((int) val32).ToString();
         if (!this.PART_UInt32.IsKeyboardFocusWithin)
             this.PART_UInt32.Text = asHex ? val32.ToString("X8") : val32.ToString();
         if (!this.PART_Int64.IsKeyboardFocusWithin)
-            this.PART_Int64.Text = asHex ? ((long) val64).ToString("X16") : ((long) val64).ToString();
+            this.PART_Int64.Text = asHex ? (long) val64 < 0 ? "-" + (-(long) val64).ToString("X16") : ((long) val64).ToString("X16") : ((long) val64).ToString();
         if (!this.PART_UInt64.IsKeyboardFocusWithin)
             this.PART_UInt64.Text = asHex ? val64.ToString("X16") : val64.ToString();
         if (!this.PART_Float.IsKeyboardFocusWithin)
@@ -798,8 +804,12 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         if (!this.PART_Double.IsKeyboardFocusWithin)
             this.PART_Double.Text = Unsafe.As<ulong, double>(ref val64).ToString();
         this.PART_CharUTF8.Text = ((char) val08).ToString();
-        this.PART_CharUTF16.Text = ((char) val16).ToString();
-        this.PART_CharUTF32.Text = Encoding.UTF32.GetString(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<uint, byte>(ref val32), 4));
+        this.PART_CharUTF16LE.Text = ((char) raw_val16).ToString();
+        this.PART_CharUTF16BE.Text = ((char) BinaryPrimitives.ReverseEndianness(raw_val16)).ToString();
+        this.PART_CharUTF32LE.Text = Encoding.GetEncoding(12000).GetString(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<uint, byte>(ref raw_val32), 4));
+
+        uint tmpval32 = BinaryPrimitives.ReverseEndianness(raw_val32);
+        this.PART_CharUTF32BE.Text = Encoding.GetEncoding(12001).GetString(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<uint, byte>(ref tmpval32), 4));
         this.PART_BtnGoToPointerInt32.IsEnabled = this.IsPointerInRange(val32);
     }
 

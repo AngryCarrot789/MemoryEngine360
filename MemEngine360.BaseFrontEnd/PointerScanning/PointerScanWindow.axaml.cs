@@ -23,6 +23,7 @@ using Avalonia;
 using Avalonia.Controls;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.PointerScanning;
+using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Services.Windowing;
@@ -52,7 +53,6 @@ public partial class PointerScanWindow : DesktopWindow {
     private readonly IBinder<PointerScanner> binder_SearchAddress = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.SearchAddressChanged), b => b.Model.SearchAddress.ToString("X8"), (b, t) => ParseUIntHelper(b, t, "Invalid Search Address", (string s, out uint value) => uint.TryParse(s, NumberStyles.HexNumber, null, out value), (m, v) => m.SearchAddress = v));
     private readonly IBinder<PointerScanner> binder_Alignment = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.AlignmentChanged), b => b.Model.Alignment.ToString(), (b, t) => ParseUIntHelper<uint>(b, t, "Invalid Alignment", uint.TryParse, (m, v) => m.Alignment = v));
     private readonly IBinder<PointerScanner> binder_StatusBar = new EventUpdateBinder<PointerScanner>(nameof(PointerScanner.HasPointerMapChanged), b => ((TextBlock) b.Control).Text = b.Model.HasPointerMap ? $"Pointer map loaded with {b.Model.PointerMap.Count}" : "No pointer map loaded");
-    private ObservableItemProcessorIndexing<DynamicAddress>? listObservable;
 
     private delegate bool TryParseDelegate<T>(string input, [NotNullWhen(true)] out T? value);
     
@@ -135,8 +135,15 @@ public partial class PointerScanWindow : DesktopWindow {
             if (!scanner.HasPointerMap)
                 return IMessageDialogService.Instance.ShowMessage("Not ready", "Memory Dump file not loaded.");
 
+            // Set selected tab to scan results
+            this.PART_TabScanResults.IsSelected = true;
             return scanner.Run();
-        });
+        }, () => this.PointerScanner != null && !this.PointerScanner.IsScanRunning);
+        
+        this.PART_StopScan.Command = new AsyncRelayCommand(() => {
+            this.PointerScanner?.CancelScan();
+            return Task.CompletedTask;
+        }, () => this.PointerScanner != null && this.PointerScanner.IsScanRunning);
     }
 
     static PointerScanWindow() {
@@ -153,29 +160,16 @@ public partial class PointerScanWindow : DesktopWindow {
         this.binder_SearchAddress.SwitchModel(newValue);
         this.binder_Alignment.SwitchModel(newValue);
         this.binder_StatusBar.SwitchModel(newValue);
-        this.listObservable?.Dispose();
-        this.listObservable = null;
-        
-        if (newValue != null)
-            this.listObservable = ObservableItemProcessor.MakeIndexable(newValue.PointerChain, this.OnItemAdded, this.OnItemRemoved, this.OnItemMoved);
-        
+        this.PART_ScanResults.ItemsSource = newValue?.PointerChain;
         DataManager.GetContextData(this).Set(PointerScannerDataKey, newValue);
+        
+        if (oldValue != null) oldValue.IsScanRunningChanged -= this.OnUpdateStartStopCommands;
+        if (newValue != null) newValue.IsScanRunningChanged += this.OnUpdateStartStopCommands;
+        this.OnUpdateStartStopCommands(null!);
     }
 
-    private void OnItemAdded(object sender, int index, DynamicAddress ptrs) {
-        this.PART_ScanResults.Items.Add(new ListBoxItem() { Content = ptrs, [ToolTipEx.TipTypeProperty] = typeof(PointerScanResultToolTip) });
-    }
-    
-    private void OnItemRemoved(object sender, int index, DynamicAddress item) {
-        this.PART_ScanResults.Items.RemoveAt(index);
-    }
-    
-    private void OnItemMoved(object sender, int oldindex, int newindex, DynamicAddress item) {
-        if (newindex < 0 || newindex >= this.PART_ScanResults.Items.Count)
-            throw new IndexOutOfRangeException($"{nameof(newindex)} is not within range: {(newindex < 0 ? "less than zero" : "greater than list length")} ({newindex})");
-        
-        object? removedItem = this.PART_ScanResults.Items[oldindex];
-        this.PART_ScanResults.Items.RemoveAt(oldindex);
-        this.PART_ScanResults.Items.Insert(newindex, removedItem);
+    private void OnUpdateStartStopCommands(PointerScanner _) {
+        ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => ((AsyncRelayCommand) this.PART_StopScan.Command!).RaiseCanExecuteChanged(), DispatchPriority.Default);
+        ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => ((AsyncRelayCommand) this.PART_RunScan.Command!).RaiseCanExecuteChanged(), DispatchPriority.Default);
     }
 }
