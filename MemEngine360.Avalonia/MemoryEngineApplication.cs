@@ -110,6 +110,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.RefreshSavedAddressesCommand", new RefreshSavedAddressesCommand());
         manager.Register("commands.memengine.AddSelectedScanResultsToSavedAddressListCommand", new AddSelectedScanResultsToSavedAddressListCommand());
         manager.Register("commands.memengine.DeleteSelectedSavedAddressesCommand", new DeleteSelectedSavedAddressesCommand());
+        manager.Register("commands.memengine.DuplicateSelectedSavedAddressesCommand", new DuplicateSelectedSavedAddressesCommand());
         manager.Register("commands.memengine.DeleteSelectedScanResultsCommand", new DeleteSelectedScanResultsCommand());
         manager.Register("commands.memengine.SelectRangeFromMemoryRegionCommand", new SelectRangeFromMemoryRegionCommand());
         manager.Register("commands.memengine.ResetScanOptionsCommand", new ResetScanOptionsCommand());

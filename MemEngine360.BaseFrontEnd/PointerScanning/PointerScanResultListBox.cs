@@ -72,6 +72,9 @@ public class PointerScanResultListBoxItem : VirtualizingModelListBoxItem {
 
         StringBuilder sb = new StringBuilder();
         DynamicAddress address = (DynamicAddress) this.Model;
+        sb.Append(address);
+        sb.AppendLine();
+        
         sb.AppendLine(($"{address.BaseAddress:X8} points to {GetPointerValue(scanner, address.BaseAddress, out uint lastValue)}"));
         ImmutableArray<int> offsets = address.Offsets;
         if (offsets.Length > 0) {

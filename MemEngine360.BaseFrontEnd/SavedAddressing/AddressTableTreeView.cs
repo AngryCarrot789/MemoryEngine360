@@ -192,12 +192,12 @@ public sealed class AddressTableTreeView : TreeView {
                 return (null, DropListResult.DropListIntoSelf);
             }
             
-            if (IsDescendentOf(target, item)) {
+            if (IsParent(target, item)) {
                 return (null, DropListResult.DropListIntoDescendentOfList);
             }
 
             for (int i = roots.Count - 1; i >= 0; i--) {
-                if (IsDescendentOf(roots[i], item) || IsDescendentOf(item, roots[i])) {
+                if (IsParent(roots[i], item) || IsParent(item, roots[i])) {
                     roots.RemoveAt(i);
                 }
             }
@@ -214,9 +214,9 @@ public sealed class AddressTableTreeView : TreeView {
         return (roots, DropListResult.ValidButDropListAlreadyInTarget);
     }
 
-    private static bool IsDescendentOf(AddressTableTreeViewItem self, AddressTableTreeViewItem item) {
-        for (AddressTableTreeViewItem? par = self; par != null; par = par.ParentNode) {
-            if (par == item) {
+    private static bool IsParent(AddressTableTreeViewItem @this, AddressTableTreeViewItem item) {
+        for (AddressTableTreeViewItem? thisOrParent = @this; thisOrParent != null; thisOrParent = thisOrParent.ParentNode) {
+            if (thisOrParent == item) {
                 return true;
             }
         }

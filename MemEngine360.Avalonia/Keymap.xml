@@ -45,6 +45,9 @@
             <Shortcut Name="CopyAbsoluteAddressToClipboard" CommandId="commands.memengine.CopyAbsoluteAddressToClipboardCommand">
                 <KeyStroke Mods="CTRL" Key="C"/>
             </Shortcut>
+            <Shortcut Name="DuplicateSelectedItems" CommandId="commands.memengine.DuplicateSelectedSavedAddressesCommand">
+                <KeyStroke Mods="CTRL" Key="D"/>
+            </Shortcut>
             <Shortcut Name="DeleteSelections" CommandId="commands.memengine.DeleteSelectedSavedAddressesCommand">
                 <KeyStroke Key="Delete"/>
             </Shortcut>

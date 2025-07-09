@@ -652,6 +652,11 @@ public static class AddressTableContextRegistry {
     static AddressTableContextRegistry() {
         FixedContextGroup modEdit = Registry.GetFixedGroup("modify.edit");
         FixedContextGroup modGeneric = Registry.GetFixedGroup("modify.general");
+        modEdit.AddHeader("Modify");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressAddressCommand", "Edit Address");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressValueCommand", "Edit Value");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressDataTypeCommand", "Edit Data Type");
+        modEdit.AddCommand("commands.memengine.EditSavedAddressDescriptionCommand", "Edit Description");
         modGeneric.AddHeader("General");
         modGeneric.AddCommand("commands.memengine.CopyAddressToClipboardCommand", "Copy Address");
         modGeneric.AddCommand("commands.memengine.CopyAbsoluteAddressToClipboardCommand", "Copy Absolute Address");
@@ -660,12 +665,8 @@ public static class AddressTableContextRegistry {
         modGeneric.AddCommand("commands.meengine.ToggleSavedAddressAutoRefreshCommand", "Toggle Enabled");
         modGeneric.AddSeparator();
         modGeneric.AddCommand("commands.memengine.GroupEntriesCommand", "Group");
+        modGeneric.AddCommand("commands.memengine.DuplicateSelectedSavedAddressesCommand", "Duplicate");
+        modGeneric.AddSeparator();
         modGeneric.AddCommand("commands.memengine.DeleteSelectedSavedAddressesCommand", "Delete");
-
-        modEdit.AddHeader("Modify");
-        modEdit.AddCommand("commands.memengine.EditSavedAddressAddressCommand", "Edit Address");
-        modEdit.AddCommand("commands.memengine.EditSavedAddressValueCommand", "Edit Value");
-        modEdit.AddCommand("commands.memengine.EditSavedAddressDataTypeCommand", "Edit Data Type");
-        modEdit.AddCommand("commands.memengine.EditSavedAddressDescriptionCommand", "Edit Description");
     }
 }
