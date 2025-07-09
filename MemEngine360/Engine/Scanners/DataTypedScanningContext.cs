@@ -456,7 +456,9 @@ public sealed class DataTypedScanningContext : ScanningContext {
 
         // We convert everything to doubles when comparing, for higher accuracy.
         // InputA and InputB are parsed as doubles, even when the DataType is Float
-        double valToCmp = GetDoubleFromReadValue(preProcessedValue, this.inputA, this.floatScanOption);
+        
+        string str = this.nextScanUsesFirstValue || this.nextScanUsesPreviousValue ? "0.000000" : this.inputA;
+        double valToCmp = GetDoubleFromReadValue(preProcessedValue, str, this.floatScanOption);
         double valA = Unsafe.As<ulong, double>(ref theInputA);
         double valB;
         switch (this.numericScanType) {

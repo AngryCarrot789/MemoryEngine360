@@ -49,4 +49,6 @@ public interface IOpenConnectionView {
     /// </summary>
     /// <returns></returns>
     Task<IConsoleConnection?> WaitForClose();
+
+    void SetUserInfoForConnectionType(string registeredId, UserConnectionInfo info);
 }

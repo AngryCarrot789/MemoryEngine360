@@ -81,4 +81,8 @@ public partial class OpenConnectionWindow : DesktopWindow, IOpenConnectionView {
         this.tcs ??= new TaskCompletionSource<IConsoleConnection?>();
         return this.tcs.Task;
     }
+
+    public void SetUserInfoForConnectionType(string registeredId, UserConnectionInfo info) {
+        this.PART_ConnectToConsoleView.SetUserInfoForConnectionType(registeredId, info);
+    }
 }

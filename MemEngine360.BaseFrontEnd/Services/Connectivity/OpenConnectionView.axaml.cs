@@ -131,6 +131,22 @@ public partial class OpenConnectionView : UserControl {
         Registry = new ModelControlRegistry<UserConnectionInfo, Control>();
     }
 
+    public void SetUserInfoForConnectionType(string registeredId, UserConnectionInfo info) {
+        foreach (object? lbi in this.PART_ListBox.Items) {
+            ConsoleTypeListBoxItem item = (ConsoleTypeListBoxItem) lbi!;
+            if (item.RegisteredConsoleType.RegisteredId == registeredId) {
+                if (item.IsSelected) {
+                    item.IsSelected = false;
+                    item.SetUserConnectionInfo(info);
+                    item.IsSelected = true;
+                }
+                else {
+                    item.SetUserConnectionInfo(info);
+                }
+            }
+        }
+    }
+
     internal void OnWindowOpened() {
         IContextData context = new ContextData().Set(MemoryEngine.EngineDataKey, this.MemoryEngine);
 
@@ -165,7 +181,7 @@ public partial class OpenConnectionView : UserControl {
 
     private void PART_ListBoxOnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
         Debug.Assert(!this.isConnecting || this.isClosingWindow);
-        
+
         ConsoleTypeListBoxItem? newSelection = this.PART_ListBox.SelectedItem as ConsoleTypeListBoxItem;
         if (ReferenceEquals(this.myCurrentSelection, newSelection)) {
             return;

@@ -65,6 +65,10 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
         ToolTipEx.SetTipType(this, typeof(ConsoleTypeToolTip));
     }
 
+    public void SetUserConnectionInfo(UserConnectionInfo? info) {
+        this.UserConnectionInfo = info;
+    }
+
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
         base.OnApplyTemplate(e);
         this.PART_IconControl = e.NameScope.GetTemplateChild<IconControl>(nameof(this.PART_IconControl));

@@ -411,7 +411,7 @@ public class ScanningProcessor {
                 list.Add(result);
 
             this.ScanResults.AddRange(list);
-        }, TimeSpan.FromMilliseconds(100), DispatchPriority.Normal);
+        }, TimeSpan.FromMilliseconds(100), DispatchPriority.BeforeRender);
 
         this.rldaRefreshSavedAddressList = RateLimitedDispatchActionBase.ForDispatcherAsync(this.RefreshSavedAddressesAsync, TimeSpan.FromMilliseconds(100));
 
