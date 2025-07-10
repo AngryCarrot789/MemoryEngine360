@@ -160,6 +160,8 @@ public class ConsoleDebugger {
             threads = threadList.Select(x => new ThreadEntry(x.id) {
                 ThreadName = x.readableName ?? "",
                 BaseAddress = x.baseAddress,
+                IsSuspended = x.suspendCount > 0,
+                ProcessorNumber = x.currentProcessor
             }).ToList();
         }
         catch (Exception e) when (e is IOException || e is TimeoutException) {

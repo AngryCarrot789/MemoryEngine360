@@ -28,6 +28,10 @@ public sealed class ThreadEntry {
     public string ThreadName { get; init; }
 
     public uint BaseAddress { get; init; }
+    
+    public uint ProcessorNumber { get; init; }
+    
+    public bool IsSuspended { get; init; }
 
     public ThreadEntry(uint threadId) {
         this.ThreadId = threadId;

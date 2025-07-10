@@ -51,7 +51,8 @@ public class ThreadEntryListBoxItem : ModelBasedListBoxItem<ThreadEntry> {
 
     protected override void OnAddedToList() {
         string name = this.Model!.ThreadName;
-        this.Content = $"{this.Model!.ThreadId:X8}{(!string.IsNullOrWhiteSpace(name) ? $" ({name})" : "")} -> {this.Model.BaseAddress:X8}";
+        this.Content = $"[CPU {this.Model!.ProcessorNumber}] {this.Model!.ThreadId:X8}{(!string.IsNullOrWhiteSpace(name) ? $" ({name})" : "")}{Environment.NewLine}" +
+                       $"Base={this.Model.BaseAddress:X8} ({(this.Model.IsSuspended ? "Suspended" : "Running")})";
     }
 
     protected override void OnRemovingFromList() {

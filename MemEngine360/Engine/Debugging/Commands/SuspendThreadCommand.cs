@@ -17,36 +17,39 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections.Traits;
+using MemEngine360.XboxBase;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Engine.Debugging.Commands;
 
-public class FreezeConsoleCommand : BaseDebuggerCommand {
+public class SuspendThreadCommand : BaseDebuggerCommand {
     protected override Executability CanExecuteCore(ConsoleDebugger debugger, CommandEventArgs e) {
         if (debugger.Connection == null) return Executability.ValidButCannotExecute;
+        if (debugger.ActiveThread == null) return Executability.ValidButCannotExecute;
 
-        bool? run = debugger.IsConsoleRunning;
-        return !run.HasValue || run.Value ? Executability.Valid : Executability.ValidButCannotExecute;
+        return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(ConsoleDebugger debugger, CommandEventArgs e) {
         if (debugger.Connection == null) return;
 
-        using IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Freeze Console");
-        if (token != null && debugger.Connection != null && debugger.Connection is IHaveIceCubes iceCubes) {
-            debugger.IsConsoleRunning = false;
-            
-            try {
-                await iceCubes.DebugFreeze();
-            }
-            catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
-                await IMessageDialogService.Instance.ShowMessage("Network error", ex.Message);
-            }
-            catch (Exception ex) {
-                await IMessageDialogService.Instance.ShowMessage("Error", ex.Message);
+        using (IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Unfreeze Console")) {
+            if (token != null && debugger.Connection != null) {
+                if (debugger.ActiveThread == null) return;
+
+                try {
+                    await ((IHaveXboxDebugFeatures) debugger.Connection).SuspendThread(debugger.ActiveThread.ThreadId);
+                }
+                catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                    await IMessageDialogService.Instance.ShowMessage("Network error", ex.Message);
+                }
+                catch (Exception ex) {
+                    await IMessageDialogService.Instance.ShowMessage("Error", ex.Message);
+                }
             }
         }
+        
+        await debugger.UpdateAllThreads(CancellationToken.None);
     }
 }

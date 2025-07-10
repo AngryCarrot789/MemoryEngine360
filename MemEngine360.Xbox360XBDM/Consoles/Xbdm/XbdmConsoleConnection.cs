@@ -464,7 +464,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         if (response.ResponseType == ResponseType.NoSuchThread) {
             return null;
         }
-        
+
         VerifyResponse("getcontext", response.ResponseType, ResponseType.MultiResponse);
         List<RegisterEntry> registers = new List<RegisterEntry>();
         List<string> lines = await this.ReadMultiLineResponse();
@@ -489,6 +489,10 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         return registers;
     }
 
+    public Task SuspendThread(uint threadId) => this.SendCommand($"suspend thread=0x{threadId:X8}");
+
+    public Task ResumeThread(uint threadId) => this.SendCommand($"resume thread=0x{threadId:X8}");
+
     public async Task SetBreakpoint(uint address, bool clear) {
         this.EnsureNotDisposed();
         using BusyToken token = this.CreateBusyToken();
@@ -506,7 +510,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             case XboxBreakpointType.OnWrite:
                 strType = "write";
                 break;
-            case XboxBreakpointType.OnRead: strType = "read"; break;
+            case XboxBreakpointType.OnReadWrite: strType = "read"; break;
             case XboxBreakpointType.OnExecuteHW:
             case XboxBreakpointType.OnExecute:
                 strType = "execute";
@@ -570,7 +574,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         ConsoleResponse response = await this.SendCommandAndGetResponse($"getmemex addr=0x{address:X8} length=0x{count:X8}").ConfigureAwait(false);
         VerifyResponse("getmemex", response.ResponseType, ResponseType.BinaryResponse);
 
-        int header, chunkSize, statusFlag = 0, cbReadTotal = 0;
+        int statusFlag = 0, cbReadTotal = 0;
         do {
             if (statusFlag != 0) { // Most likely reading invalid/protected memory
                 dstBuffer.AsSpan(offset + cbReadTotal, count).Clear();
@@ -579,8 +583,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
             await this.ReadFromBufferOrStreamAsync(this.sharedTwoByteArray, 0, 2);
 
-            header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(this.sharedTwoByteArray, 0, 2));
-            chunkSize = header & 0x7FFF;
+            int header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(this.sharedTwoByteArray, 0, 2));
+            int chunkSize = header & 0x7FFF;
             statusFlag = header & 0x8000;
             if (count < chunkSize) {
                 throw new IOException("Received more bytes than expected or invalid data");
@@ -589,10 +593,29 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             if (chunkSize > 0)
                 await this.ReadFromBufferOrStreamAsync(dstBuffer, offset + cbReadTotal, chunkSize);
 
-            address += 0x400;
             cbReadTotal += chunkSize;
             count -= chunkSize;
         } while (count > 0);
+    }
+
+    public async Task<byte[]> ReceiveBinaryData() {
+        using MemoryStream memoryStream = new MemoryStream(1024);
+        byte[] tmpBuffer = new byte[1024];
+
+        int statusFlag;
+        do {
+            await this.ReadFromBufferOrStreamAsync(this.sharedTwoByteArray, 0, 2);
+
+            int header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(this.sharedTwoByteArray, 0, 2));
+            int chunkSize = header & 0x7FFF;
+            statusFlag = header & 0x8000;
+            if (chunkSize <= 0) break;
+            for (int count = chunkSize; count > 0; count -= tmpBuffer.Length) {
+                await this.ReadFromBufferOrStreamAsync(tmpBuffer, 0, Math.Min(count, tmpBuffer.Length));
+            }
+        } while (statusFlag == 0);
+
+        return memoryStream.ToArray();
     }
 
     protected override async Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
@@ -1010,7 +1033,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
             // This method is extremely janky and needs a rewrite. We shouldn't use a delegate
             // XbdmConsoleConnection, but instead make some static methods that take TcpClient that XbdmConsoleConnection use
-            
+
             using TcpClient theClient = new TcpClient();
             theClient.ReceiveTimeout = 0;
             theClient.Connect(this.originalConnectionAddress, 730);

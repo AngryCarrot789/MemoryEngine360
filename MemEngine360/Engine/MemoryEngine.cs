@@ -53,6 +53,11 @@ public class MemoryEngine {
     private readonly BusyLock busyLocker;
 
     /// <summary>
+    /// Gets this engine's busy lock, which is used to synchronize our connection
+    /// </summary>
+    public BusyLock BusyLocker => this.busyLocker;
+    
+    /// <summary>
     /// Gets the current console connection. This can only change on the main thread
     /// <para>
     /// It's crucial that when using any command that requires sending/receiving data from the console that

@@ -17,12 +17,14 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Text;
 using MemEngine360.Commands;
 using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Xbox360XBDM.Commands;
 
@@ -42,7 +44,7 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
         }
 
         SingleUserInputInfo info = new SingleUserInputInfo("Send command", "Specify command to send", this.lastCommand) {
-            Footer = $"Please be careful what you send. Binary responses (e.g. GETMEMEX) cannot be handled.",
+            Footer = $"Please be careful what you send!",
             Validate = (b) => {
                 if (string.IsNullOrWhiteSpace(b.Input))
                     b.Errors.Add("Command text cannot be an empty string");
@@ -75,7 +77,15 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
                         break;
                     case ResponseType.Connected:                         await IMessageDialogService.Instance.ShowMessage($"Connected ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
                     case ResponseType.MultiResponse:                     await IMessageDialogService.Instance.ShowMessage("Multi-Response", string.Join(Environment.NewLine, await xbdm.ReadMultiLineResponse()), defaultButton: MessageBoxResult.OK); break;
-                    case ResponseType.BinaryResponse:                    await IMessageDialogService.Instance.ShowMessage($"Binary Response ({crt})", "(Cannot received data! Command line may now be broken)", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.BinaryResponse:
+                        byte[] array = await xbdm.ReceiveBinaryData();
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < array.Length; i += 32) {
+                            sb.AppendLine(NumberUtils.BytesToHexAscii(array.AsSpan(i, Math.Min(array.Length - i, 32))));
+                        }
+                        
+                        await IMessageDialogService.Instance.ShowMessage($"Binary Response ({crt})", command.Message, sb.ToString(), defaultButton: MessageBoxResult.OK); 
+                        break;
                     case ResponseType.ReadyForBinary:                    await IMessageDialogService.Instance.ShowMessage($"Ready For Binary ({crt})", "(Cannot received data! Command line may now be broken)", command.Message, defaultButton: MessageBoxResult.OK); break;
                     case ResponseType.DedicatedConnection:               await IMessageDialogService.Instance.ShowMessage($"Dedicated Connection ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
                     case ResponseType.NoError:                           await IMessageDialogService.Instance.ShowMessage($"No Error ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;

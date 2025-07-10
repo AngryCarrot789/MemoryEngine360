@@ -45,6 +45,7 @@ public abstract class DebuggerCommandUsage : SimpleButtonCommandUsage {
     }
 
     protected virtual void OnDebuggerChanged(ConsoleDebugger? oldDebugger, ConsoleDebugger? newDebugger) {
+        this.UpdateCanExecuteLater();
     }
 }
 
@@ -75,6 +76,26 @@ public abstract class DebuggerConsoleExecStateCommandUsage : DebuggerCommandUsag
     }
 }
 
+public abstract class DebugThreadCommandUsage : DebuggerCommandUsage {
+    protected DebugThreadCommandUsage(string commandId) : base(commandId) {
+    }
+
+    protected override void OnDebuggerChanged(ConsoleDebugger? oldDebugger, ConsoleDebugger? newDebugger) {
+        base.OnDebuggerChanged(oldDebugger, newDebugger);
+        
+        if (oldDebugger != null) oldDebugger.ActiveThreadChanged -= this.OnActiveThreadChanged;
+        if (newDebugger != null) newDebugger.ActiveThreadChanged += this.OnActiveThreadChanged;
+    }
+
+    private void OnActiveThreadChanged(ConsoleDebugger sender, ThreadEntry? oldactivethread, ThreadEntry? newactivethread) {
+        this.UpdateCanExecuteLater();
+    }
+}
+
 public class FreezeConsoleCommandCommandUsage() : DebuggerConsoleExecStateCommandUsage("commands.debugger.FreezeConsoleCommand");
 
 public class UnfreezeConsoleCommandCommandUsage() : DebuggerConsoleExecStateCommandUsage("commands.debugger.UnfreezeConsoleCommand");
+
+public class SuspendThreadCommandCommandUsage() : DebugThreadCommandUsage("commands.debugger.SuspendThreadCommand");
+
+public class ResumeThreadCommandCommandUsage() : DebugThreadCommandUsage("commands.debugger.ResumeThreadCommand");

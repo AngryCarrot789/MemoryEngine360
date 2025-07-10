@@ -59,7 +59,21 @@
                         BorderBrush="{DynamicResource PanelBorderBrush}"
                         HeaderBrush="{DynamicResource ABrush.Tone5.Background.Static}"
                         BorderThickness="1"
-                        Header="Memory">
+                        Header="Thread Memory">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" 
+                            Background="{DynamicResource ABrush.Tone5.Background.Static}" 
+                            BorderBrush="{DynamicResource PanelBorderBrush}" 
+                            BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal" Spacing="2" Margin="2">
+                            <Button Content="Resume" Padding="5,1" BorderBrush="{DynamicResource PanelBorderBrush}" 
+                                    cu:CommandUsageManager.UsageClassType="{x:Type local:ResumeThreadCommandCommandUsage}"/>
+                            <Button Content="Suspend" Padding="5,1" BorderBrush="{DynamicResource PanelBorderBrush}" 
+                                    cu:CommandUsageManager.UsageClassType="{x:Type local:SuspendThreadCommandCommandUsage}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border/>
+                </DockPanel>
             </c:GroupBox>
             <ev:ConsoleEventViewerView Grid.Row="2" x:Name="PART_EventViewer"/>
             <GridSplitter Grid.Row="1" Background="Transparent" Margin="0,-3"/>

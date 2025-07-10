@@ -21,8 +21,8 @@ namespace MemEngine360.XboxBase;
 
 public enum XboxBreakpointType {
     None,
-    OnWrite,
-    OnRead,
-    OnExecuteHW,
-    OnExecute,
+    OnWrite,     // DMBREAK_WRITE
+    OnReadWrite, // DMBREAK_READWRITE
+    OnExecuteHW, // DMBREAK_EXECUTE
+    OnExecute,   // DMBREAK_FIXED
 }

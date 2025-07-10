@@ -25,7 +25,7 @@ namespace MemEngine360.XboxBase;
 /// <summary>
 /// A trait for an xbox debuggable console. For now, only xbox is supported. But soon we will move to an abstract debugger to support multiple platforms
 /// </summary>
-public interface IHaveXboxDebugFeatures : IHaveXboxThreadInfo, IHaveSystemEvents {
+public interface IHaveXboxDebugFeatures : IHaveXboxThreadInfo, IHaveSystemEvents, IHaveIceCubes {
     Task AddBreakpoint(uint address);
     Task AddDataBreakpoint(uint address, XboxBreakpointType type, uint size);
     
@@ -37,4 +37,7 @@ public interface IHaveXboxDebugFeatures : IHaveXboxThreadInfo, IHaveSystemEvents
     /// </summary>
     /// <param name="threadId"></param>
     Task<List<RegisterEntry>?> GetRegisters(uint threadId);
+
+    Task SuspendThread(uint threadId);
+    Task ResumeThread(uint threadId);
 }
