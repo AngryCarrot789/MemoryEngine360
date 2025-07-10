@@ -10,25 +10,5 @@
                  x:Class="MemEngine360.BaseFrontEnd.EventViewing.ConsoleEventViewerWindow"
                  Title="Event Viewer"
                  Background="{DynamicResource PanelBorderBrush}">
-    <Grid RowDefinitions="*,1,150,21">
-        <Border Grid.Row="3"
-                BorderThickness="0,1,0,0"
-                BorderBrush="{DynamicResource PanelBorderBrush}"
-                Background="{DynamicResource ABrush.Tone5.Background.Static}"
-                Height="21">
-            <DockPanel>
-                <CheckBox x:Name="PART_AutoScroll" Content="Auto Scroll" IsChecked="True"
-                          tt:ToolTipEx.Tip="Only actually auto scrolls when scrolled to the bottom of the screen."
-                          DockPanel.Dock="Left"/>
-                <TextBlock x:Name="PART_Status" DockPanel.Dock="Right" Padding="4,1"/>
-                <Border Background="Transparent"/>
-            </DockPanel>
-        </Border>
-        <Border Grid.Row="2" Background="{DynamicResource ABrush.Tone3.Background.Static}">
-            <ContentControl x:Name="PART_EventInfoContent"/>
-        </Border>
-        <GridSplitter Grid.Row="1" Margin="0,-2,0,-9" Background="Transparent"/>
-        <local:ConsoleEventListBox x:Name="PART_EventListBox" Grid.Row="0"
-                                   Background="{DynamicResource ABrush.Tone1.Background.Static}"/>
-    </Grid>
+    <eventViewing:ConsoleEventViewerView x:Name="PART_EventViewer"/>
 </w:DesktopWindow>

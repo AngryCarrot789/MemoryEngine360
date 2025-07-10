@@ -268,20 +268,20 @@ public class ConsoleDebugger {
 
     private void OnConsoleEvent(IConsoleConnection sender, ConsoleSystemEventArgs e) {
         if (e is XbdmEventArgsExecutionState stateChanged) {
-            bool newState;
+            bool? newRunState;
             switch (stateChanged.ExecutionState) {
-                case XbdmExecutionState.Pending:      newState = true; break;
-                case XbdmExecutionState.Reboot:       newState = false; break;
-                case XbdmExecutionState.Start:        newState = true; break;
-                case XbdmExecutionState.Stop:         newState = false; break;
-                case XbdmExecutionState.TitlePending: newState = true; break;
-                case XbdmExecutionState.TitleReboot:  newState = true; break;
-                case XbdmExecutionState.Unknown:      newState = false; break;
-                default:                              throw new ArgumentOutOfRangeException();
+                case XbdmExecutionState.Pending:
+                case XbdmExecutionState.Reboot: newRunState = null; break;
+                case XbdmExecutionState.Start: newRunState = true; break;
+                case XbdmExecutionState.Stop:  newRunState = false; break;
+                case XbdmExecutionState.TitlePending:
+                case XbdmExecutionState.TitleReboot:
+                case XbdmExecutionState.Unknown: newRunState = null; break;
+                default: throw new ArgumentOutOfRangeException();
             }
 
             ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                this.IsConsoleRunning = newState;
+                this.IsConsoleRunning = newRunState;
             }, DispatchPriority.Background);
         }
     }

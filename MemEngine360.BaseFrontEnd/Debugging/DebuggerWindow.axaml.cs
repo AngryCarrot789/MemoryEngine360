@@ -71,6 +71,7 @@ public partial class DebuggerWindow : DesktopWindow {
         base.OnOpenedCore();
         if (this.ConsoleDebugger != null) {
             this.ConsoleDebugger.IsWindowVisible = true;
+            this.PART_EventViewer.MemoryEngine = this.ConsoleDebugger.Engine;
         }
 
         this.timer.EnableTargets();
@@ -87,6 +88,7 @@ public partial class DebuggerWindow : DesktopWindow {
         if (debugger == null)
             return false;
 
+        this.PART_EventViewer.MemoryEngine = null;
         debugger.IsConsoleRunning = null;
         debugger.IsWindowVisible = false;
         if (reason != WindowCloseReason.WindowClosing) {
@@ -136,6 +138,10 @@ public partial class DebuggerWindow : DesktopWindow {
         this.PART_ThreadListBox.ConsoleDebugger = newValue;
 
         DataManager.GetContextData(this).Set(ConsoleDebugger.DataKey, newValue);
+
+        if (this.IsOpen) {
+            this.PART_EventViewer.MemoryEngine = newValue?.Engine;
+        }
     }
 
     private void OnIsConsoleRunningChanged(ConsoleDebugger sender) {

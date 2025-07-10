@@ -20,19 +20,22 @@
 using Avalonia.Controls;
 using MemEngine360.Engine.Events;
 using MemEngine360.Engine.Events.XbdmEvents;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes.Virtualizing;
+using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 
 namespace MemEngine360.BaseFrontEnd.EventViewing.XbdmEvents;
 
-public class ConsoleEventListBox : VirtualizingModelListBox<ConsoleSystemEventArgs> {
+public class ConsoleEventListBox : ModelBasedListBox<ConsoleSystemEventArgs> {
     protected override Type StyleKeyOverride => typeof(ListBox);
 
-    protected override VirtualizingModelListBoxItem<ConsoleSystemEventArgs> CreateListBoxItemGeneric() {
+    public ConsoleEventListBox() : base(1020) {
+    }
+
+    protected override ModelBasedListBoxItem<ConsoleSystemEventArgs> CreateItem() {
         return new ConsoleEventListBoxItem();
     }
 }
 
-public class ConsoleEventListBoxItem : VirtualizingModelListBoxItem<ConsoleSystemEventArgs> {
+public class ConsoleEventListBoxItem : ModelBasedListBoxItem<ConsoleSystemEventArgs> {
     private readonly TextBlock tb;
     
     protected override Type StyleKeyOverride => typeof(ListBoxItem);
