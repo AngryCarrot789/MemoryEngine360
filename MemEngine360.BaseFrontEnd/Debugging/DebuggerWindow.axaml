@@ -29,9 +29,11 @@
                             cu:CommandUsageManager.UsageClassType="{x:Type local:UnfreezeConsoleCommandCommandUsage}"/>
                     <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Stop" Padding="5,0"
                             cu:CommandUsageManager.UsageClassType="{x:Type local:FreezeConsoleCommandCommandUsage}"/>
+                    
+                    <!-- cu:CommandUsageManager.SimpleButtonCommandId="commands.debugger.DebugStepCommand" -->
                     <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Step" Padding="5,0"
-                            cu:CommandUsageManager.SimpleButtonCommandId="commands.debugger.DebugStepCommand"
                             IsEnabled="False"/>
+                    
                     <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,1"/>
                     <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Refresh All" Padding="5,0"
                             cu:CommandUsageManager.SimpleButtonCommandId="commands.debugger.RefreshAllCommand"/>

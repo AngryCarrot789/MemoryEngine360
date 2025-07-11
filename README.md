@@ -3,6 +3,12 @@ This is a remake of Cheat Engine, but for consoles (so far only Xbox 360). This 
 
 ![](MemoryEngine360_2025-06-30_00.22.07.png)
 
+### Additional Features (via Tools menu)
+- Task Sequencer
+- Debugger (WIP)
+- Pointer Scanner
+- Memory Viewer (in a hex editor)
+
 > Please take care when changing ('poking') values on your console. 
 > You may break things, maybe even permanently if you change the wrong things.
 
