@@ -41,12 +41,22 @@ public readonly struct ConsoleResponse {
         this.ResponseType = responseType;
     }
 
-    public static ConsoleResponse FromFirstLine(string line) {
+    public static ConsoleResponse FromLine(string line) {
         if (line.Length > 4 && int.TryParse(line.AsSpan(0, 3), out int responseType)) {
             return new ConsoleResponse(line, (ResponseType) responseType, line.Substring(5));
         }
 
-        throw new Exception("Invalid response: " + line);
+        throw new IOException("Invalid response: " + line);
+    }
+
+    public static bool TryParseFromLine(string line, out ConsoleResponse consoleResponse) {
+        if (line.Length > 4 && int.TryParse(line.AsSpan(0, 3), out int responseType)) {
+            consoleResponse = new ConsoleResponse(line, (ResponseType) responseType, line.Substring(5));
+            return true;
+        }
+
+        consoleResponse = default;
+        return false;
     }
 
     public override string ToString() {

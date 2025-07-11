@@ -83,7 +83,9 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
                 progress.Caption = "XBDM Connection";
                 progress.Text = "Connecting to console...";
                 progress.IsIndeterminate = true;
-                TcpClient client = new TcpClient();
+                TcpClient client = new TcpClient() {
+                    ReceiveTimeout = 4000
+                };
 
                 try {
                     await client.ConnectAsync(info.IpAddress, 730, cancellation.Token);

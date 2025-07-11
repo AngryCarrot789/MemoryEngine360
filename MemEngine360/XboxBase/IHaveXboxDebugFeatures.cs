@@ -37,7 +37,18 @@ public interface IHaveXboxDebugFeatures : IHaveXboxThreadInfo, IHaveSystemEvents
     /// </summary>
     /// <param name="threadId"></param>
     Task<List<RegisterEntry>?> GetRegisters(uint threadId);
+    
+    /// <summary>
+    /// Reads the register value
+    /// </summary>
+    /// <param name="threadId"></param>
+    /// <param name="registerName"></param>
+    /// <returns>The value, or null, if the thread or register doesn't exist</returns>
+    Task<RegisterEntry?> ReadRegisterValue(uint threadId, string registerName);
 
     Task SuspendThread(uint threadId);
+    
     Task ResumeThread(uint threadId);
+    
+    Task StepThread(uint threadId);
 }

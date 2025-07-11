@@ -40,7 +40,8 @@ public partial class DebuggerWindow : DesktopWindow {
         set => this.SetValue(ConsoleDebuggerProperty, value);
     }
 
-    private readonly IBinder<ConsoleDebugger> autoRefreshBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.RefreshRegistersOnThreadChangeChanged), (b) => b.Control.SetValue(ToggleButton.IsCheckedProperty, b.Model.RefreshRegistersOnThreadChange));
+    private readonly IBinder<ConsoleDebugger> autoRefreshBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.RefreshRegistersOnActiveThreadChangeChanged), (b) => b.Control.SetValue(ToggleButton.IsCheckedProperty, b.Model.RefreshRegistersOnActiveThreadChange));
+    private readonly IBinder<ConsoleDebugger> autoAddRemoveThreadsBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.AutoAddOrRemoveThreadsChanged), (b) => b.Control.SetValue(CheckBox.IsCheckedProperty, b.Model.AutoAddOrRemoveThreads));
     private readonly IBinder<ConsoleDebugger> currentConnectionTypeBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.ConnectionChanged), (b) => ((TextBlock) b.Control).Text = (b.Model.Connection?.ConnectionType.DisplayName ?? "Not Connected"));
 
     private readonly IBinder<ConsoleDebugger> isConsoleRunningBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.IsConsoleRunningChanged), (b) => {
@@ -49,10 +50,12 @@ public partial class DebuggerWindow : DesktopWindow {
     });
 
     private readonly MultiBrushFlipFlopTimer timer;
+    private bool isUpdatingSelectedLBI;
 
     public DebuggerWindow() {
         this.InitializeComponent();
         this.autoRefreshBinder.AttachControl(this.PART_AutoRefreshRegistersOnThreadChange);
+        this.autoAddRemoveThreadsBinder.AttachControl(this.PART_ToggleAutoAddRemoveThreads);
         this.currentConnectionTypeBinder.AttachControl(this.PART_ActiveConnectionTextBoxRO);
         this.isConsoleRunningBinder.AttachControl(this.PART_RunningState);
         this.PART_ThreadListBox.SelectionChanged += this.OnThreadListBoxSelectionChanged;
@@ -71,7 +74,8 @@ public partial class DebuggerWindow : DesktopWindow {
         base.OnOpenedCore();
         if (this.ConsoleDebugger != null) {
             this.ConsoleDebugger.IsWindowVisible = true;
-            this.PART_EventViewer.MemoryEngine = this.ConsoleDebugger.Engine;
+            this.PART_EventViewer.BusyLock = this.ConsoleDebugger.BusyLock;
+            this.PART_EventViewer.ConsoleConnection = this.ConsoleDebugger.Connection;
         }
 
         this.timer.EnableTargets();
@@ -88,7 +92,8 @@ public partial class DebuggerWindow : DesktopWindow {
         if (debugger == null)
             return false;
 
-        this.PART_EventViewer.MemoryEngine = null;
+        this.PART_EventViewer.ConsoleConnection = null;
+        this.PART_EventViewer.BusyLock = null;
         debugger.IsConsoleRunning = null;
         debugger.IsWindowVisible = false;
         if (reason != WindowCloseReason.WindowClosing) {
@@ -115,11 +120,13 @@ public partial class DebuggerWindow : DesktopWindow {
 
     private void OnConsoleDebuggerChanged(ConsoleDebugger? oldValue, ConsoleDebugger? newValue) {
         if (oldValue != null) {
+            oldValue.ConnectionChanged -= this.OnConsoleConnectionChanged;
             oldValue.ActiveThreadChanged -= this.OnActiveThreadChanged;
             oldValue.IsConsoleRunningChanged -= this.OnIsConsoleRunningChanged;
         }
 
         if (newValue != null) {
+            newValue.ConnectionChanged += this.OnConsoleConnectionChanged;
             newValue.ActiveThreadChanged += this.OnActiveThreadChanged;
             newValue.IsConsoleRunningChanged += this.OnIsConsoleRunningChanged;
         }
@@ -130,6 +137,7 @@ public partial class DebuggerWindow : DesktopWindow {
         this.PART_RegistersListBox.SetItemsSource(newValue?.RegisterEntries);
 
         this.autoRefreshBinder.SwitchModel(newValue);
+        this.autoAddRemoveThreadsBinder.SwitchModel(newValue);
         this.currentConnectionTypeBinder.SwitchModel(newValue);
         this.isConsoleRunningBinder.SwitchModel(newValue);
 
@@ -140,7 +148,14 @@ public partial class DebuggerWindow : DesktopWindow {
         DataManager.GetContextData(this).Set(ConsoleDebugger.DataKey, newValue);
 
         if (this.IsOpen) {
-            this.PART_EventViewer.MemoryEngine = newValue?.Engine;
+            this.PART_EventViewer.BusyLock = newValue?.BusyLock;
+            this.PART_EventViewer.ConsoleConnection = newValue?.Connection;
+        }
+    }
+
+    private void OnConsoleConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection) {
+        if (this.IsOpen) {
+            this.PART_EventViewer.ConsoleConnection = newconnection;
         }
     }
 
@@ -149,11 +164,13 @@ public partial class DebuggerWindow : DesktopWindow {
     }
 
     private void OnActiveThreadChanged(ConsoleDebugger sender, ThreadEntry? oldThread, ThreadEntry? newThread) {
-        this.PART_ThreadListBox.SelectedItem = this.PART_ThreadListBox.Items.FirstOrDefault(x => ((ThreadEntryListBoxItem) x!).Model == newThread);
+        this.isUpdatingSelectedLBI = true;
+        this.PART_ThreadListBox.SelectedModel = newThread;
+        this.isUpdatingSelectedLBI = false;
     }
 
     private void OnThreadListBoxSelectionChanged(object? sender, SelectionChangedEventArgs e) {
-        if (this.ConsoleDebugger != null)
-            this.ConsoleDebugger.ActiveThread = ((ThreadEntryListBoxItem?) this.PART_ThreadListBox.SelectedItem)?.Model;
+        if (!this.isUpdatingSelectedLBI && this.ConsoleDebugger != null)
+            this.ConsoleDebugger.ActiveThread = this.PART_ThreadListBox.SelectedModel;
     }
 }

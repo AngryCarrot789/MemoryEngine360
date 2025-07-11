@@ -23,10 +23,10 @@ using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Engine.Debugging.Commands;
 
-public class ResumeThreadCommand : BaseDebuggerCommand {
+public class DebugStepCommand : BaseDebuggerCommand {
     protected override Executability CanExecuteCore(ConsoleDebugger debugger, CommandEventArgs e) {
-        if (debugger.Connection == null) return Executability.ValidButCannotExecute;
-        if (debugger.ActiveThread == null) return Executability.ValidButCannotExecute;
+        // if (debugger.Connection == null) return Executability.ValidButCannotExecute;
+        // if (debugger.ActiveThread == null) return Executability.ValidButCannotExecute;
 
         return Executability.Valid;
     }
@@ -39,8 +39,9 @@ public class ResumeThreadCommand : BaseDebuggerCommand {
             if (debugger.ActiveThread == null) return;
 
             try {
-                await ((IHaveXboxDebugFeatures) debugger.Connection).ResumeThread(debugger.ActiveThread.ThreadId);
+                await ((IHaveXboxDebugFeatures) debugger.Connection).StepThread(debugger.ActiveThread.ThreadId);
                 await debugger.UpdateThread(token, debugger.ActiveThread.ThreadId);
+                await debugger.UpdateRegistersForActiveThread(token);
             }
             catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
                 await IMessageDialogService.Instance.ShowMessage("Network error", ex.Message);

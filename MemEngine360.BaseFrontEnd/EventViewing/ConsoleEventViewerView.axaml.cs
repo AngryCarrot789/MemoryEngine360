@@ -42,14 +42,21 @@ namespace MemEngine360.BaseFrontEnd.EventViewing;
 public partial class ConsoleEventViewerView : UserControl {
     public static readonly ModelTypeControlRegistry<Control> EventTypeToDisplayControlRegistry;
 
-    public static readonly StyledProperty<MemoryEngine?> MemoryEngineProperty = AvaloniaProperty.Register<ConsoleEventViewerView, MemoryEngine?>(nameof(MemoryEngine));
+    public static readonly StyledProperty<IConsoleConnection?> ConsoleConnectionProperty = AvaloniaProperty.Register<ConsoleEventViewerView, IConsoleConnection?>(nameof(ConsoleConnection));
+    public static readonly StyledProperty<BusyLock?> BusyLockProperty = AvaloniaProperty.Register<ConsoleEventViewerView, BusyLock?>(nameof(BusyLock));
 
-    public MemoryEngine? MemoryEngine {
-        get => this.GetValue(MemoryEngineProperty);
-        set => this.SetValue(MemoryEngineProperty, value);
+    public IConsoleConnection? ConsoleConnection {
+        get => this.GetValue(ConsoleConnectionProperty);
+        set => this.SetValue(ConsoleConnectionProperty, value);
+    }
+    
+    public BusyLock? BusyLock {
+        get => this.GetValue(BusyLockProperty);
+        set => this.SetValue(BusyLockProperty, value);
     }
 
     private IDisposable? subscription;
+    private readonly LambdaConnectionLockPair connectionLockPair;
 
     // Using TryDequeue in a loop while the BG reader thread is going nuts on the events it's receiving (e.g. 1000s of exceptions per second)
     // actually stalls the UI thread pretty damn heavily. Therefore, we use a queue + lock to take X amount of items, and dispatch to UI thread 
@@ -79,11 +86,12 @@ public partial class ConsoleEventViewerView : UserControl {
         EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsExternal), () => new TextBlock() { Text = "XbdmEventArgsExternal" }); //() => new ConsoleEventArgsInfoControlXbdmEventExternal());
         EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsNotification), () => new TextBlock() { Text = "XbdmEventArgsNotification" }); //() => new ConsoleEventArgsInfoControlXbdmEventNotification());
         EventTypeToDisplayControlRegistry.RegisterType(typeof(XbdmEventArgsRip), () => new TextBlock() { Text = "XbdmEventArgsRip" }); //() => new ConsoleEventArgsInfoControlXbdmEventRip());
-        MemoryEngineProperty.Changed.AddClassHandler<ConsoleEventViewerView, MemoryEngine?>((s, e) => s.OnMemoryEngineChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+        ConsoleConnectionProperty.Changed.AddClassHandler<ConsoleEventViewerView, IConsoleConnection?>((s, e) => s.OnConsoleConnectionChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
-
+    
     public ConsoleEventViewerView() {
         this.InitializeComponent();
+        this.connectionLockPair = new LambdaConnectionLockPair(() => this.BusyLock ?? throw new InvalidOperationException("Not ready yet"), () => this.ConsoleConnection);
         this.pendingInsertionEx = new Queue<ConsoleSystemEventArgs>(1024);
         this.eventDisplayControlCache = new Dictionary<Type, Control>();
         this.myEvents = new ObservableList<ConsoleSystemEventArgs>();
@@ -99,13 +107,9 @@ public partial class ConsoleEventViewerView : UserControl {
         this.timer = new BrushFlipFlopTimer(TimeSpan.FromMilliseconds(250), SimpleIcons.DynamicForegroundBrush, new ConstantAvaloniaColourBrush(Brushes.Red));
     }
     
-    private void OnMemoryEngineChanged(MemoryEngine? oldValue, MemoryEngine? newValue) {
+    private void OnConsoleConnectionChanged(IConsoleConnection? oldConnection, IConsoleConnection? newConnection) {
         DisposableUtils.Dispose(ref this.subscription);
-        
-        if (oldValue != null) oldValue.ConnectionChanged -= this.OnEngineConnectionChanged;
-        if (newValue != null) newValue.ConnectionChanged += this.OnEngineConnectionChanged;
-        
-        if (newValue?.Connection is IHaveSystemEvents events) {
+        if (newConnection is IHaveSystemEvents events) {
             this.subscription = events.SubscribeToEvents(this.OnEvent);
         }
     }
@@ -126,7 +130,7 @@ public partial class ConsoleEventViewerView : UserControl {
         base.OnUnloaded(e);
 
         this.PART_EventListBox.SelectedItem = null;
-        
+
         this.isUnloadedState = 1;
         DisposableUtils.Dispose(ref this.subscription);
         this.timer.ClearTarget();
@@ -228,7 +232,6 @@ public partial class ConsoleEventViewerView : UserControl {
     }
 
     private void OnTextBlockPressed(object? sender, PointerPressedEventArgs e) {
-        
     }
 
     private void OnSelectedLineChanged() {
@@ -239,8 +242,8 @@ public partial class ConsoleEventViewerView : UserControl {
 
         ConsoleSystemEventArgs? selectedLine = this.PART_EventListBox.SelectedModel;
         if (selectedLine != null) {
-            Debug.Assert(this.MemoryEngine != null);
-            
+            Debug.Assert(this.ConsoleConnection != null && this.BusyLock != null);
+
             if (!this.eventDisplayControlCache.TryGetValue(selectedLine.GetType(), out Control? control)) {
                 if (!EventTypeToDisplayControlRegistry.TryGetNewInstance(selectedLine.GetType(), out control)) {
                     return;
@@ -251,15 +254,8 @@ public partial class ConsoleEventViewerView : UserControl {
 
             this.PART_EventInfoContent.Content = control;
             if (control is IConsoleEventArgsInfoControl newControl) {
-                newControl.Connect(this.MemoryEngine!, selectedLine);
+                newControl.Connect(this.connectionLockPair, selectedLine);
             }
-        }
-    }
-
-    private void OnEngineConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
-        this.subscription?.Dispose();
-        if (newConn is IHaveSystemEvents events) {
-            this.subscription = events.SubscribeToEvents(this.OnEvent);
         }
     }
 

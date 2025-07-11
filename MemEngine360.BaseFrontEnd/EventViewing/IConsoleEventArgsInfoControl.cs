@@ -17,7 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
+using MemEngine360.Connections;
 using MemEngine360.Engine.Events;
 
 namespace MemEngine360.BaseFrontEnd.EventViewing;
@@ -26,7 +26,7 @@ public interface IConsoleEventArgsInfoControl {
     /// <summary>
     /// Invoked when the control is now being viewed
     /// </summary>
-    void Connect(MemoryEngine engine, ConsoleSystemEventArgs args);
+    void Connect(IConnectionLockPair connection, ConsoleSystemEventArgs args);
 
     /// <summary>
     /// Invoked when the control is no longer being viewed

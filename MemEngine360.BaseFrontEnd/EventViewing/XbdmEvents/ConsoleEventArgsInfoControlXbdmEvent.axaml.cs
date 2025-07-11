@@ -18,7 +18,7 @@
 // 
 
 using Avalonia.Controls;
-using MemEngine360.Engine;
+using MemEngine360.Connections;
 using MemEngine360.Engine.Events;
 using MemEngine360.Engine.Events.XbdmEvents;
 
@@ -29,7 +29,7 @@ public partial class ConsoleEventArgsInfoControlXbdmEvent : UserControl, IConsol
         this.InitializeComponent();
     }
 
-    public void Connect(MemoryEngine engine, ConsoleSystemEventArgs args) {
+    public void Connect(IConnectionLockPair connection, ConsoleSystemEventArgs args) {
         this.PART_RawText.Text = ((XbdmEventArgs) args).RawMessage;
     }
 

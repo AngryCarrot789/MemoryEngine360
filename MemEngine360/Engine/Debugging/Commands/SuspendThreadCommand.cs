@@ -34,22 +34,20 @@ public class SuspendThreadCommand : BaseDebuggerCommand {
     protected override async Task ExecuteCommandAsync(ConsoleDebugger debugger, CommandEventArgs e) {
         if (debugger.Connection == null) return;
 
-        using (IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Unfreeze Console")) {
-            if (token != null && debugger.Connection != null) {
-                if (debugger.ActiveThread == null) return;
+        using IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Unfreeze Console");
+        if (token != null && debugger.Connection != null) {
+            if (debugger.ActiveThread == null) return;
 
-                try {
-                    await ((IHaveXboxDebugFeatures) debugger.Connection).SuspendThread(debugger.ActiveThread.ThreadId);
-                }
-                catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
-                    await IMessageDialogService.Instance.ShowMessage("Network error", ex.Message);
-                }
-                catch (Exception ex) {
-                    await IMessageDialogService.Instance.ShowMessage("Error", ex.Message);
-                }
+            try {
+                await ((IHaveXboxDebugFeatures) debugger.Connection).SuspendThread(debugger.ActiveThread.ThreadId);
+                await debugger.UpdateThread(token, debugger.ActiveThread.ThreadId);
+            }
+            catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                await IMessageDialogService.Instance.ShowMessage("Network error", ex.Message);
+            }
+            catch (Exception ex) {
+                await IMessageDialogService.Instance.ShowMessage("Error", ex.Message);
             }
         }
-        
-        await debugger.UpdateAllThreads(CancellationToken.None);
     }
 }

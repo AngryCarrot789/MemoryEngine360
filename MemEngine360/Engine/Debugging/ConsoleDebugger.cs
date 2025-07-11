@@ -48,7 +48,8 @@ public class ConsoleDebugger {
 
     private readonly BusyLock busyLocker;
     private ThreadEntry? activeThread;
-    private bool refreshRegistersOnThreadChange = true;
+    private bool refreshRegistersOnActiveThreadChange = true;
+    private bool autoAddOrRemoveThreads = true;
     private bool isWindowVisible;
     private bool? isConsoleRunning;
 
@@ -73,9 +74,20 @@ public class ConsoleDebugger {
         }
     }
 
-    public bool RefreshRegistersOnThreadChange {
-        get => this.refreshRegistersOnThreadChange;
-        set => PropertyHelper.SetAndRaiseINE(ref this.refreshRegistersOnThreadChange, value, this, static t => t.RefreshRegistersOnThreadChangeChanged?.Invoke(t));
+    /// <summary>
+    /// Gets or sets if the registers should be re-queried when the active thread changes
+    /// </summary>
+    public bool RefreshRegistersOnActiveThreadChange {
+        get => this.refreshRegistersOnActiveThreadChange;
+        set => PropertyHelper.SetAndRaiseINE(ref this.refreshRegistersOnActiveThreadChange, value, this, static t => t.RefreshRegistersOnActiveThreadChangeChanged?.Invoke(t));
+    }
+
+    /// <summary>
+    /// Gets or sets if threads should be added to or removed from the threads list when we receive thread create/terminate events
+    /// </summary>
+    public bool AutoAddOrRemoveThreads {
+        get => this.autoAddOrRemoveThreads;
+        set => PropertyHelper.SetAndRaiseINE(ref this.autoAddOrRemoveThreads, value, this, static t => t.AutoAddOrRemoveThreadsChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -104,7 +116,8 @@ public class ConsoleDebugger {
 
     public event ConsoleDebuggerConnectionChangedEventHandler? ConnectionChanged;
     public event ConsoleDebuggerActiveThreadChangedEventHandler? ActiveThreadChanged;
-    public event ConsoleDebuggerEventHandler? RefreshRegistersOnThreadChangeChanged;
+    public event ConsoleDebuggerEventHandler? RefreshRegistersOnActiveThreadChangeChanged;
+    public event ConsoleDebuggerEventHandler? AutoAddOrRemoveThreadsChanged;
     public event ConsoleDebuggerEventHandler? IsConsoleRunningChanged;
     public event ConsoleDebuggerEventHandler? IsWindowVisibleChanged;
 
@@ -132,7 +145,7 @@ public class ConsoleDebugger {
     }
 
     private Task OnUpdateForActiveThreadChanged() {
-        if (this.RefreshRegistersOnThreadChange && this.IsWindowVisible) {
+        if (this.RefreshRegistersOnActiveThreadChange && this.IsWindowVisible) {
             return this.UpdateRegistersForActiveThread(CancellationToken.None);
         }
 
@@ -188,18 +201,79 @@ public class ConsoleDebugger {
         }, DispatchPriority.Default, token: CancellationToken.None);
     }
 
+    public async Task<ThreadEntry?> UpdateThread(uint threadId, bool createIfDoesntExist = true) {
+        if (this.Connection == null || !this.Connection.IsConnected) return null;
+
+        using IDisposable? token = await this.busyLocker.BeginBusyOperationActivityAsync("Read Info on Newly Created Thread");
+        if (token == null) {
+            return null;
+        }
+
+        return await this.UpdateThread(token, threadId, createIfDoesntExist);
+    }
+
+    public async Task<ThreadEntry?> UpdateThread(IDisposable token, uint threadId, bool createIfDoesntExist = true) {
+        int idx = this.ThreadEntries.FindIndex(x => x.ThreadId == threadId);
+        if (idx == -1 && !createIfDoesntExist) {
+            return null;
+        }
+
+        IConsoleConnection? connection = this.Connection;
+        if (connection == null || !connection.IsConnected) {
+            return null;
+        }
+
+        XboxThread thread = await ((IHaveXboxDebugFeatures) connection).GetThreadInfo(threadId);
+        if (idx == -1) {
+            if (thread.id == 0) {
+                return null;
+            }
+
+            this.ThreadEntries.Add(new ThreadEntry(thread.id) {
+                ThreadName = thread.readableName ?? "",
+                BaseAddress = thread.baseAddress,
+                IsSuspended = thread.suspendCount > 0,
+                ProcessorNumber = thread.currentProcessor
+            });
+        }
+        else {
+            if (thread.id == 0) {
+                this.ThreadEntries.RemoveAt(idx);
+                return null;
+            }
+
+            ThreadEntry newThread = new ThreadEntry(thread.id) {
+                ThreadName = thread.readableName ?? "",
+                BaseAddress = thread.baseAddress,
+                IsSuspended = thread.suspendCount > 0,
+                ProcessorNumber = thread.currentProcessor
+            };
+            
+            this.ignoreActiveThreadChange = true;
+            this.ActiveThread = this.ThreadEntries[idx] = newThread;
+            this.ignoreActiveThreadChange = false;
+            return newThread;
+        }
+
+        return null;
+    }
+
     /// <summary>
     /// Updates the registers for the currently active thread. This has a 1-second timeout,
     /// so the cancellation token isn't required to be cancellable
     /// </summary>
     public async Task UpdateRegistersForActiveThread(CancellationToken busyCancellationToken) {
+        if (this.Connection == null || !this.Connection.IsConnected) return;
+
+        using IDisposable? token = await this.busyLocker.BeginBusyOperationAsync(500, busyCancellationToken);
+        if (token != null && !this.ignoreActiveThreadChange) {
+            await this.UpdateRegistersForActiveThread(token);
+        }
+    }
+
+    public async Task UpdateRegistersForActiveThread(IDisposable token) {
         ThreadEntry? thread = Volatile.Read(ref this.activeThread); /* just incase caller is not on AMT */
         if (thread == null || this.Connection == null || this.ignoreActiveThreadChange) {
-            return;
-        }
-
-        using IDisposable? token = await this.busyLocker.BeginBusyOperationAsync(1000, busyCancellationToken);
-        if (token == null || this.ignoreActiveThreadChange) {
             return;
         }
 
@@ -284,6 +358,36 @@ public class ConsoleDebugger {
 
             ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                 this.IsConsoleRunning = newRunState;
+            }, DispatchPriority.Background);
+        }
+
+        if (this.autoAddOrRemoveThreads && e is XbdmEventArgsThreadLife threadEvent) {
+            bool isCreated = e is XbdmEventArgsCreateThread;
+            ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+                if (isCreated) {
+                    using IDisposable? token = await this.busyLocker.BeginBusyOperationActivityAsync("Read Info on Newly Created Thread");
+                    if (token == null) return;
+
+                    IConsoleConnection? connection = this.Connection;
+                    if (connection != null && connection.IsConnected) {
+                        XboxThread tdInfo = await ((IHaveXboxDebugFeatures) connection).GetThreadInfo(threadEvent.Thread);
+                        if (tdInfo.id != 0) {
+                            this.ThreadEntries.Add(new ThreadEntry(tdInfo.id) {
+                                ThreadName = tdInfo.readableName ?? "",
+                                BaseAddress = tdInfo.baseAddress,
+                                IsSuspended = tdInfo.suspendCount > 0,
+                                ProcessorNumber = tdInfo.currentProcessor
+                            });
+                        }
+                    }
+                }
+                else {
+                    ObservableList<ThreadEntry> list = this.ThreadEntries;
+                    for (int i = list.Count - 1; i >= 0; i--) {
+                        if (list[i].ThreadId == threadEvent.Thread)
+                            list.RemoveAt(i);
+                    }
+                }
             }, DispatchPriority.Background);
         }
     }

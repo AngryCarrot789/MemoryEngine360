@@ -19,12 +19,7 @@
 
 namespace MemEngine360.Engine.Events.XbdmEvents;
 
-public class XbdmEventArgsTerminateThread : XbdmEventArgs {
-    /// <summary>
-    /// Gets the ID of the thread we are on
-    /// </summary>
-    public uint Thread { get; init; }
-
+public class XbdmEventArgsTerminateThread : XbdmEventArgsThreadLife {
     public XbdmEventArgsTerminateThread(string rawMessage) : base(rawMessage) {
     }
 }

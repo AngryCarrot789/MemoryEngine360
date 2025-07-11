@@ -20,7 +20,6 @@
 using Avalonia.Controls;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Traits;
-using MemEngine360.Engine;
 using MemEngine360.Engine.Events;
 using MemEngine360.Engine.Events.XbdmEvents;
 using PFXToolKitUI.Utils.Commands;
@@ -28,14 +27,14 @@ using PFXToolKitUI.Utils.Commands;
 namespace MemEngine360.BaseFrontEnd.EventViewing.XbdmEvents;
 
 public partial class ConsoleEventArgsInfoControlXbdmEventAssert : UserControl, IConsoleEventArgsInfoControl {
-    private MemoryEngine? engine;
+    private IConnectionLockPair? myConnection;
     private XbdmEventArgsAssert? args;
 
     public ConsoleEventArgsInfoControlXbdmEventAssert() {
         this.InitializeComponent();
         this.PART_ReadThreadInfo.Command = new AsyncRelayCommand(async () => {
-            if (this.engine != null && !this.engine.IsConnectionBusy) {
-                await this.engine.BeginBusyOperationActivityAsync(async (tok, con) => {
+            if (this.myConnection?.Connection != null && !this.myConnection!.BusyLock.IsBusy) {
+                await this.myConnection!.BeginBusyOperationActivityAsync(async (tok, con) => {
                     XbdmEventArgsAssert? e = this.args;
                     if (e == null || !(con is IHaveXboxThreadInfo xbdm)) 
                         return;
@@ -53,8 +52,8 @@ public partial class ConsoleEventArgsInfoControlXbdmEventAssert : UserControl, I
         });
     }
 
-    public void Connect(MemoryEngine _engine, ConsoleSystemEventArgs _args) {
-        this.engine = _engine;
+    public void Connect(IConnectionLockPair _connection, ConsoleSystemEventArgs _args) {
+        this.myConnection = _connection;
         this.args = (XbdmEventArgsAssert) _args; 
         this.PART_Thread.Text = this.args.Thread.ToString("X8");
         this.PART_String.Text = this.args.String;
@@ -62,7 +61,7 @@ public partial class ConsoleEventArgsInfoControlXbdmEventAssert : UserControl, I
     }
 
     public void Disconnect() {
-        this.engine = null;
+        this.myConnection = null;
         this.args = null;
     }
 }

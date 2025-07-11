@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using MemEngine360.Commands;
 using MemEngine360.Connections;
+using MemEngine360.XboxBase;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
@@ -65,6 +66,8 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
                 token?.Dispose();
             }
         }
+        
+        await debugger.UpdateAllThreads(CancellationToken.None);
     }
 
     public static async Task<bool> DisconnectInActivity(ConsoleDebugger debugger) {
@@ -133,6 +136,12 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
 
                 return token;
             }
+        }
+
+        if (!(newConnection is IHaveXboxDebugFeatures)) {
+            token.Dispose();
+            await IMessageDialogService.Instance.ShowMessage("Incompatible connection", "Connection does not support debug features", MessageBoxButton.OK, MessageBoxResult.OK);
+            return null;
         }
 
         debugger.SetConnection(token, newConnection);

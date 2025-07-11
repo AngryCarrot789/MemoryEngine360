@@ -29,7 +29,9 @@
                             cu:CommandUsageManager.UsageClassType="{x:Type local:UnfreezeConsoleCommandCommandUsage}"/>
                     <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Stop" Padding="5,0"
                             cu:CommandUsageManager.UsageClassType="{x:Type local:FreezeConsoleCommandCommandUsage}"/>
-                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Step" Padding="5,0" IsEnabled="False"/>
+                    <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Step" Padding="5,0"
+                            cu:CommandUsageManager.SimpleButtonCommandId="commands.debugger.DebugStepCommand"
+                            IsEnabled="False"/>
                     <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,1"/>
                     <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Refresh All" Padding="5,0"
                             cu:CommandUsageManager.SimpleButtonCommandId="commands.debugger.RefreshAllCommand"/>
@@ -48,9 +50,15 @@
                     HeaderBrush="{DynamicResource ABrush.Tone5.Background.Static}"
                     BorderThickness="1"
                     Header="Threads">
-            <local:ThreadEntryListBox x:Name="PART_ThreadListBox"
-                                      BorderThickness="0" Background="Transparent"
-                                      FontFamily="{StaticResource FontOxanium}"/>
+            <DockPanel>
+                <WrapPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
+                    <CheckBox x:Name="PART_ToggleAutoAddRemoveThreads" Content="Auto add/remove" 
+                              tt:ToolTipEx.Tip="Add or removed threads when we receive XBDM Create/Terminate events. Disabling this requires clicking 'Refresh All' to re-query threads"/>
+                </WrapPanel>
+                <local:ThreadEntryListBox x:Name="PART_ThreadListBox"
+                                          BorderThickness="0" Background="Transparent"
+                                          FontFamily="{StaticResource FontOxanium}"/>
+            </DockPanel>
         </c:GroupBox>
         <Grid Grid.Row="2" Grid.Column="3"
               RowDefinitions="*,3,*">

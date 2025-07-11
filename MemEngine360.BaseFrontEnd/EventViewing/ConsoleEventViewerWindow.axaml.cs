@@ -18,6 +18,7 @@
 // 
 
 using Avalonia;
+using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 
@@ -40,19 +41,32 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
     }
 
     private void OnMemoryEngineChanged(MemoryEngine? oldValue, MemoryEngine? newValue) {
+        if (oldValue != null) oldValue.ConnectionChanged -= this.OnConsoleConnectionChanged;
+        if (newValue != null) newValue.ConnectionChanged += this.OnConsoleConnectionChanged;
+
         if (this.IsOpen) {
-            this.PART_EventViewer.MemoryEngine = newValue;
+            this.PART_EventViewer.BusyLock = newValue?.BusyLocker;
+            this.PART_EventViewer.ConsoleConnection = newValue?.Connection;
+        }
+    }
+
+    private void OnConsoleConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
+        if (this.IsOpen) {
+            this.PART_EventViewer.ConsoleConnection = newconnection;
         }
     }
 
     protected override void OnOpenedCore() {
         base.OnOpenedCore();
-        this.PART_EventViewer.MemoryEngine = this.MemoryEngine;
+
+        this.PART_EventViewer.BusyLock = this.MemoryEngine?.BusyLocker;
+        this.PART_EventViewer.ConsoleConnection = this.MemoryEngine?.Connection;
     }
 
     protected override void OnClosed(EventArgs e) {
         base.OnClosed(e);
-        this.PART_EventViewer.MemoryEngine = null;
+        this.PART_EventViewer.ConsoleConnection = null;
+        this.PART_EventViewer.BusyLock = null;
         this.MemoryEngine = null;
     }
 }

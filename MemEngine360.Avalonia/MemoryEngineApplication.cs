@@ -171,6 +171,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.debugger.OpenDebuggerConnectionCommand", new OpenDebuggerConnectionCommand());
         manager.Register("commands.debugger.RefreshRegistersCommand", new RefreshRegistersCommand());
         manager.Register("commands.debugger.RefreshAllCommand", new RefreshAllCommand());
+        manager.Register("commands.debugger.DebugStepCommand", new DebugStepCommand());
         manager.Register("commands.debugger.FreezeConsoleCommand", new FreezeConsoleCommand());
         manager.Register("commands.debugger.UnfreezeConsoleCommand", new UnfreezeConsoleCommand());
         manager.Register("commands.debugger.SuspendThreadCommand", new SuspendThreadCommand());

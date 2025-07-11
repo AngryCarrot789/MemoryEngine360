@@ -19,9 +19,12 @@
 
 namespace MemEngine360.Engine.Events.XbdmEvents;
 
-public class XbdmEventArgsCreateThread : XbdmEventArgsThreadLife {
-    public uint? StartAddress { get; init; }
-
-    public XbdmEventArgsCreateThread(string rawMessage) : base(rawMessage) {
+public class XbdmEventArgsThreadLife : XbdmEventArgs {
+    /// <summary>
+    /// Gets the ID of the thread we are on
+    /// </summary>
+    public uint Thread { get; init; }
+    
+    public XbdmEventArgsThreadLife(string rawMessage) : base(rawMessage) {
     }
 }
