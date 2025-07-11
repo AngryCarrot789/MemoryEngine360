@@ -37,6 +37,7 @@ public class UnfreezeConsoleCommand : BaseDebuggerCommand {
         using IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Unfreeze Console");
         if (token != null && debugger.Connection != null && debugger.Connection is IHaveIceCubes iceCubes) {
             debugger.IsConsoleRunning = true;
+            debugger.ConsoleExecutionState = null;
             
             try {
                 await iceCubes.DebugUnFreeze();

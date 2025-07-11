@@ -258,26 +258,33 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         ParamUtils.GetDwParam(ros, "lasterr", true, out tdInfo.lastError);
     }
 
-    public async Task<XboxThread> GetThreadInfo(uint threadId) {
+    public async Task<XboxThread> GetThreadInfo(uint threadId, bool requireName = true) {
         this.EnsureNotDisposed();
-        using BusyToken x = this.CreateBusyToken();
 
-        ConsoleResponse response = await this.SendCommandAndGetResponse($"threadinfo thread=0x{threadId:X8}").ConfigureAwait(false);
-        if (response.ResponseType == ResponseType.NoSuchThread)
-            return default;
-        VerifyResponse("threadinfo", response.ResponseType, ResponseType.MultiResponse);
-        List<string> info = await this.InternalReadMultiLineResponse();
-        Debug.Assert(info.Count > 0, "Info should have at least 1 line since it will be a multi-line response");
-        if (info.Count != 1) {
-            Debugger.Break(); // interesting... more than 1 line of info. Let's explore!
+        XboxThread tdInfo;
+        using (this.CreateBusyToken()) {
+            ConsoleResponse response = await this.SendCommandAndGetResponse($"threadinfo thread=0x{threadId:X8}").ConfigureAwait(false);
+            if (response.ResponseType == ResponseType.NoSuchThread)
+                return default;
+            VerifyResponse("threadinfo", response.ResponseType, ResponseType.MultiResponse);
+            List<string> info = await this.InternalReadMultiLineResponse();
+            Debug.Assert(info.Count > 0, "Info should have at least 1 line since it will be a multi-line response");
+            if (info.Count != 1) {
+                Debugger.Break(); // interesting... more than 1 line of info. Let's explore!
+            }
+            
+            tdInfo = new XboxThread { id = threadId };
+            ParseThreadInfo(info[0], ref tdInfo);
+        }
+        
+        if (requireName && tdInfo.nameAddress != 0 && tdInfo.nameLength != 0 && tdInfo.nameLength < int.MaxValue) {
+            tdInfo.readableName = await this.ReadStringASCII(tdInfo.nameAddress, (int) tdInfo.nameLength);
         }
 
-        XboxThread tdInfo = new XboxThread { id = threadId };
-        ParseThreadInfo(info[0], ref tdInfo);
         return tdInfo;
     }
 
-    public async Task<List<XboxThread>> GetThreadDump() {
+    public async Task<List<XboxThread>> GetThreadDump(bool requireNames = true) {
         List<string> list = await this.SendCommandAndReceiveLines("threads");
         List<XboxThread> threads = new List<XboxThread>(list.Count);
         foreach (string threadId in list) {
@@ -295,11 +302,13 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             threads.Add(tdInfo);
         }
 
-        for (int i = 0; i < threads.Count; i++) {
-            XboxThread tdInfo = threads[i];
-            if (tdInfo.nameAddress != 0 && tdInfo.nameLength != 0 && tdInfo.nameLength < int.MaxValue) {
-                tdInfo.readableName = await this.ReadStringASCII(tdInfo.nameAddress, (int) tdInfo.nameLength);
-                threads[i] = tdInfo;
+        if (requireNames) {
+            for (int i = 0; i < threads.Count; i++) {
+                XboxThread tdInfo = threads[i];
+                if (tdInfo.nameAddress != 0 && tdInfo.nameLength != 0 && tdInfo.nameLength < int.MaxValue) {
+                    tdInfo.readableName = await this.ReadStringASCII(tdInfo.nameAddress, (int) tdInfo.nameLength);
+                    threads[i] = tdInfo;
+                }
             }
         }
 

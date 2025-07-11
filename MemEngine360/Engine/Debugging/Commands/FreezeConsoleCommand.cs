@@ -37,6 +37,7 @@ public class FreezeConsoleCommand : BaseDebuggerCommand {
         using IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Freeze Console");
         if (token != null && debugger.Connection != null && debugger.Connection is IHaveIceCubes iceCubes) {
             debugger.IsConsoleRunning = false;
+            debugger.ConsoleExecutionState = null;
             
             try {
                 await iceCubes.DebugFreeze();

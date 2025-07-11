@@ -123,6 +123,10 @@ public static class XbdmEventUtils {
                     state = XbdmExecutionState.Pending;
                 else if (ParamUtils.GetOffsetToValue(textRos, "rebooting", false, false) != -1)
                     state = XbdmExecutionState.Reboot;
+                else if (ParamUtils.GetOffsetToValue(textRos, "reboot_title", false, false) != -1)
+                    state = XbdmExecutionState.TitleReboot;
+                else if (ParamUtils.GetOffsetToValue(textRos, "pending_title", false, false) != -1)
+                    state = XbdmExecutionState.TitlePending;
 
                 return new XbdmEventArgsExecutionState(text, state);
             }

@@ -20,11 +20,11 @@
 namespace MemEngine360.Connections.Utils;
 
 public enum XbdmExecutionState {
-    Pending,
-    Reboot,
-    Start,
     Stop,
-    TitlePending,
+    Start,
+    Reboot,
+    Pending,
     TitleReboot,
+    TitlePending,
     Unknown
 };

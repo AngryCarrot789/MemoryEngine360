@@ -22,6 +22,10 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
 using MemEngine360.Engine.Debugging;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 
@@ -49,9 +53,22 @@ public class RegisterEntryListBoxItem : ModelBasedListBoxItem<RegisterEntry> {
     protected override Type StyleKeyOverride => typeof(ListBoxItem);
 
     public RegisterEntryListBoxItem() {
+        this.Padding = default;
         this.Content = new TextBox() {
-            Padding = new Thickness(3, 0)
+            Padding = new Thickness(3, 0),
+            Background = Brushes.Transparent,
+            BorderThickness = default,
+            IsReadOnly = true,
+            HorizontalAlignment = HorizontalAlignment.Left
         };
+        
+        this.HorizontalContentAlignment = HorizontalAlignment.Left;
+        
+        ((TextBox) this.Content).AddHandler(PointerPressedEvent, this.OnPointerPressed, RoutingStrategies.Tunnel);
+    }
+
+    private void OnPointerPressed(object? sender, PointerPressedEventArgs e) {
+        this.IsSelected = true;
     }
 
     protected override void OnAddingToList() {

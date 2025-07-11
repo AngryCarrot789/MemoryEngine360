@@ -25,7 +25,7 @@ namespace MemEngine360.Engine.Debugging;
 public sealed class ThreadEntry {
     public uint ThreadId { get; }
 
-    public string ThreadName { get; init; }
+    public string? ThreadName { get; init; }
 
     public uint BaseAddress { get; init; }
     

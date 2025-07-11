@@ -20,6 +20,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Media;
 using MemEngine360.Engine.Debugging;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 
@@ -46,13 +48,45 @@ public class ThreadEntryListBox : ModelBasedListBox<ThreadEntry> {
 public class ThreadEntryListBoxItem : ModelBasedListBoxItem<ThreadEntry> {
     protected override Type StyleKeyOverride => typeof(ListBoxItem);
 
+    private readonly TextBlock tbThreadName;
+    private readonly TextBlock tbThreadId;
+    private readonly TextBlock tbFooter;
+
+    public ThreadEntryListBoxItem() {
+        this.tbThreadName = new TextBlock() { TextDecorations = TextDecorations.Underline };
+        this.tbThreadId = new TextBlock();
+        this.tbFooter = new TextBlock();
+
+        this.Content = new StackPanel() {
+            Children = {
+                new StackPanel() {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 3,
+                    Children = {
+                        this.tbThreadId,
+                        this.tbThreadName
+                    }
+                },
+                this.tbFooter
+            }
+        };
+
+        this.HorizontalContentAlignment = HorizontalAlignment.Left;
+    }
+
     protected override void OnAddingToList() {
     }
 
     protected override void OnAddedToList() {
-        string name = this.Model!.ThreadName;
-        this.Content = $"[CPU {this.Model!.ProcessorNumber}] {this.Model!.ThreadId:X8}{(!string.IsNullOrWhiteSpace(name) ? $" ({name})" : "")}{Environment.NewLine}" +
-                       $"Base={this.Model.BaseAddress:X8} ({(this.Model.IsSuspended ? "Suspended" : "Running")})";
+        string? name = this.Model!.ThreadName;
+        this.tbThreadName.Text = !string.IsNullOrWhiteSpace(name) ? name : null;
+        this.tbThreadName.Opacity = string.IsNullOrWhiteSpace(name) ? 0 : 0.6;
+        this.tbThreadId.Text = this.Model!.ThreadId.ToString("X8");
+
+        this.tbFooter.Text = $"Base={this.Model.BaseAddress:X8} ({(this.Model.IsSuspended ? "Suspended" : "Running")})"; 
+        
+        // this.Content = $"[CPU {this.Model!.ProcessorNumber}] {this.Model!.ThreadId:X8}{(!string.IsNullOrWhiteSpace(name) ? $" ({name})" : "")}{Environment.NewLine}" +
+        //                $"Base={this.Model.BaseAddress:X8} ({(this.Model.IsSuspended ? "Suspended" : "Running")})";
     }
 
     protected override void OnRemovingFromList() {

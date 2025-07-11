@@ -44,9 +44,14 @@ public partial class DebuggerWindow : DesktopWindow {
     private readonly IBinder<ConsoleDebugger> autoAddRemoveThreadsBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.AutoAddOrRemoveThreadsChanged), (b) => b.Control.SetValue(CheckBox.IsCheckedProperty, b.Model.AutoAddOrRemoveThreads));
     private readonly IBinder<ConsoleDebugger> currentConnectionTypeBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.ConnectionChanged), (b) => ((TextBlock) b.Control).Text = (b.Model.Connection?.ConnectionType.DisplayName ?? "Not Connected"));
 
-    private readonly IBinder<ConsoleDebugger> isConsoleRunningBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.IsConsoleRunningChanged), (b) => {
-        bool? run = b.Model.IsConsoleRunning;
-        ((TextBlock) b.Control).Text = run.HasValue ? run.Value ? "Running" : "Stopped" : "Unknown Exec State";
+    private readonly IBinder<ConsoleDebugger> isConsoleRunningBinder = new MultiEventUpdateBinder<ConsoleDebugger>([nameof(ConsoleDebugger.IsConsoleRunningChanged), nameof(ConsoleDebugger.ConsoleExecutionStateChanged)], (b) => {
+        string? text = b.Model.ConsoleExecutionState;
+        if (string.IsNullOrWhiteSpace(text)) {
+            bool? run = b.Model.IsConsoleRunning;
+            text = run.HasValue ? run.Value ? "Running" : "Stopped" : "Unknown Exec State";   
+        }
+
+        ((TextBlock) b.Control).Text = text;
     });
 
     private readonly MultiBrushFlipFlopTimer timer;
@@ -95,6 +100,7 @@ public partial class DebuggerWindow : DesktopWindow {
         this.PART_EventViewer.ConsoleConnection = null;
         this.PART_EventViewer.BusyLock = null;
         debugger.IsConsoleRunning = null;
+        debugger.ConsoleExecutionState = null;
         debugger.IsWindowVisible = false;
         if (reason != WindowCloseReason.WindowClosing) {
             using IDisposable? token = await debugger.BusyLock.BeginBusyOperationAsync(1000);

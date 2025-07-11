@@ -52,6 +52,7 @@ public class ConsoleDebugger {
     private bool autoAddOrRemoveThreads = true;
     private bool isWindowVisible;
     private bool? isConsoleRunning;
+    private string? consoleExecutionState;
 
     public BusyLock BusyLock => this.busyLocker;
 
@@ -99,6 +100,14 @@ public class ConsoleDebugger {
     }
 
     /// <summary>
+    /// Gets or sets the readable execution state of the console.
+    /// </summary>
+    public string? ConsoleExecutionState {
+        get => this.consoleExecutionState;
+        set => PropertyHelper.SetAndRaiseINE(ref this.consoleExecutionState, value, this, static t => t.ConsoleExecutionStateChanged?.Invoke(t));
+    }
+
+    /// <summary>
     /// Gets or sets if the debugger view is currently visible
     /// </summary>
     public bool IsWindowVisible {
@@ -119,6 +128,7 @@ public class ConsoleDebugger {
     public event ConsoleDebuggerEventHandler? RefreshRegistersOnActiveThreadChangeChanged;
     public event ConsoleDebuggerEventHandler? AutoAddOrRemoveThreadsChanged;
     public event ConsoleDebuggerEventHandler? IsConsoleRunningChanged;
+    public event ConsoleDebuggerEventHandler? ConsoleExecutionStateChanged;
     public event ConsoleDebuggerEventHandler? IsWindowVisibleChanged;
 
     private readonly RateLimitedDispatchAction rldaUpdateForThreadChanged;
@@ -248,7 +258,7 @@ public class ConsoleDebugger {
                 IsSuspended = thread.suspendCount > 0,
                 ProcessorNumber = thread.currentProcessor
             };
-            
+
             this.ignoreActiveThreadChange = true;
             this.ActiveThread = this.ThreadEntries[idx] = newThread;
             this.ignoreActiveThreadChange = false;
@@ -337,6 +347,7 @@ public class ConsoleDebugger {
 
         this.ignoreActiveThreadChange = false;
         this.IsConsoleRunning = null;
+        this.ConsoleExecutionState = null;
         if (newConnection is IHaveSystemEvents events) {
             this.eventSubscription = events.SubscribeToEvents(this.OnConsoleEvent);
         }
@@ -345,18 +356,41 @@ public class ConsoleDebugger {
     private void OnConsoleEvent(IConsoleConnection sender, ConsoleSystemEventArgs e) {
         if (e is XbdmEventArgsExecutionState stateChanged) {
             bool? newRunState;
+            string? stateName;
             switch (stateChanged.ExecutionState) {
                 case XbdmExecutionState.Pending:
-                case XbdmExecutionState.Reboot: newRunState = null; break;
-                case XbdmExecutionState.Start: newRunState = true; break;
-                case XbdmExecutionState.Stop:  newRunState = false; break;
+                    newRunState = null;
+                    stateName = "Pending";
+                    break;
+                case XbdmExecutionState.Reboot:
+                    newRunState = null;
+                    stateName = "Rebooting";
+                    break;
+                case XbdmExecutionState.Start:
+                    newRunState = true;
+                    stateName = "Running";
+                    break;
+                case XbdmExecutionState.Stop:
+                    newRunState = false;
+                    stateName = "Stopped";
+                    break;
                 case XbdmExecutionState.TitlePending:
+                    newRunState = null;
+                    stateName = "Title Pending";
+                    break;
                 case XbdmExecutionState.TitleReboot:
-                case XbdmExecutionState.Unknown: newRunState = null; break;
+                    newRunState = null;
+                    stateName = "Title Rebooting";
+                    break;
+                case XbdmExecutionState.Unknown:
+                    newRunState = null;
+                    stateName = null;
+                    break;
                 default: throw new ArgumentOutOfRangeException();
             }
 
             ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                this.ConsoleExecutionState = stateName;
                 this.IsConsoleRunning = newRunState;
             }, DispatchPriority.Background);
         }
