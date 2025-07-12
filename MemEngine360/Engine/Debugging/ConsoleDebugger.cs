@@ -223,6 +223,8 @@ public class ConsoleDebugger {
     }
 
     public async Task<ThreadEntry?> UpdateThread(IDisposable token, uint threadId, bool createIfDoesntExist = true) {
+        this.busyLocker.ValidateToken(token);
+        
         int idx = this.ThreadEntries.FindIndex(x => x.ThreadId == threadId);
         if (idx == -1 && !createIfDoesntExist) {
             return null;
@@ -282,6 +284,8 @@ public class ConsoleDebugger {
     }
 
     public async Task UpdateRegistersForActiveThread(IDisposable token) {
+        this.busyLocker.ValidateToken(token);
+        
         ThreadEntry? thread = Volatile.Read(ref this.activeThread); /* just incase caller is not on AMT */
         if (thread == null || this.Connection == null || this.ignoreActiveThreadChange) {
             return;
@@ -355,74 +359,94 @@ public class ConsoleDebugger {
 
     private void OnConsoleEvent(IConsoleConnection sender, ConsoleSystemEventArgs e) {
         if (e is XbdmEventArgsExecutionState stateChanged) {
-            bool? newRunState;
-            string? stateName;
-            switch (stateChanged.ExecutionState) {
-                case XbdmExecutionState.Pending:
-                    newRunState = null;
-                    stateName = "Pending";
-                    break;
-                case XbdmExecutionState.Reboot:
-                    newRunState = null;
-                    stateName = "Rebooting";
-                    break;
-                case XbdmExecutionState.Start:
-                    newRunState = true;
-                    stateName = "Running";
-                    break;
-                case XbdmExecutionState.Stop:
-                    newRunState = false;
-                    stateName = "Stopped";
-                    break;
-                case XbdmExecutionState.TitlePending:
-                    newRunState = null;
-                    stateName = "Title Pending";
-                    break;
-                case XbdmExecutionState.TitleReboot:
-                    newRunState = null;
-                    stateName = "Title Rebooting";
-                    break;
-                case XbdmExecutionState.Unknown:
-                    newRunState = null;
-                    stateName = null;
-                    break;
-                default: throw new ArgumentOutOfRangeException();
-            }
-
-            ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                this.ConsoleExecutionState = stateName;
-                this.IsConsoleRunning = newRunState;
-            }, DispatchPriority.Background);
+            this.OnHandleStateChange(stateChanged);
         }
 
         if (this.autoAddOrRemoveThreads && e is XbdmEventArgsThreadLife threadEvent) {
-            bool isCreated = e is XbdmEventArgsCreateThread;
-            ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-                if (isCreated) {
-                    using IDisposable? token = await this.busyLocker.BeginBusyOperationActivityAsync("Read Info on Newly Created Thread");
-                    if (token == null) return;
-
-                    IConsoleConnection? connection = this.Connection;
-                    if (connection != null && connection.IsConnected) {
-                        XboxThread tdInfo = await ((IHaveXboxDebugFeatures) connection).GetThreadInfo(threadEvent.Thread);
-                        if (tdInfo.id != 0) {
-                            this.ThreadEntries.Add(new ThreadEntry(tdInfo.id) {
-                                ThreadName = tdInfo.readableName ?? "",
-                                BaseAddress = tdInfo.baseAddress,
-                                IsSuspended = tdInfo.suspendCount > 0,
-                                ProcessorNumber = tdInfo.currentProcessor
-                            });
-                        }
-                    }
-                }
-                else {
-                    ObservableList<ThreadEntry> list = this.ThreadEntries;
-                    for (int i = list.Count - 1; i >= 0; i--) {
-                        if (list[i].ThreadId == threadEvent.Thread)
-                            list.RemoveAt(i);
-                    }
-                }
-            }, DispatchPriority.Background);
+            this.OnHandleThreadEvent(e, threadEvent);
         }
+
+        // For some reason breakpoints never seem to hit, not even data breakpoints...
+        // Maybe there's another debugger command required to activate breaking?
+        if (e is XbdmEventArgsBreakpoint) {
+            
+        }
+        
+        if (e is XbdmEventArgsDataBreakpoint) {
+            
+        }
+    }
+    
+    
+
+    private void OnHandleThreadEvent(ConsoleSystemEventArgs e, XbdmEventArgsThreadLife threadEvent) {
+        bool isCreated = e is XbdmEventArgsCreateThread;
+        ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+            if (isCreated) {
+                using IDisposable? token = await this.busyLocker.BeginBusyOperationActivityAsync("Read Info on Newly Created Thread");
+                if (token == null) return;
+
+                IConsoleConnection? connection = this.Connection;
+                if (connection != null && connection.IsConnected) {
+                    XboxThread tdInfo = await ((IHaveXboxDebugFeatures) connection).GetThreadInfo(threadEvent.Thread);
+                    if (tdInfo.id != 0) {
+                        this.ThreadEntries.Add(new ThreadEntry(tdInfo.id) {
+                            ThreadName = tdInfo.readableName ?? "",
+                            BaseAddress = tdInfo.baseAddress,
+                            IsSuspended = tdInfo.suspendCount > 0,
+                            ProcessorNumber = tdInfo.currentProcessor
+                        });
+                    }
+                }
+            }
+            else {
+                ObservableList<ThreadEntry> list = this.ThreadEntries;
+                for (int i = list.Count - 1; i >= 0; i--) {
+                    if (list[i].ThreadId == threadEvent.Thread)
+                        list.RemoveAt(i);
+                }
+            }
+        }, DispatchPriority.Background);
+    }
+
+    private void OnHandleStateChange(XbdmEventArgsExecutionState stateChanged) {
+        bool? newRunState;
+        string? stateName;
+        switch (stateChanged.ExecutionState) {
+            case XbdmExecutionState.Pending:
+                newRunState = null;
+                stateName = "Pending";
+                break;
+            case XbdmExecutionState.Reboot:
+                newRunState = null;
+                stateName = "Rebooting";
+                break;
+            case XbdmExecutionState.Start:
+                newRunState = true;
+                stateName = "Running";
+                break;
+            case XbdmExecutionState.Stop:
+                newRunState = false;
+                stateName = "Stopped";
+                break;
+            case XbdmExecutionState.TitlePending:
+                newRunState = null;
+                stateName = "Title Pending";
+                break;
+            case XbdmExecutionState.TitleReboot:
+                newRunState = null;
+                stateName = "Title Rebooting";
+                break;
+            case XbdmExecutionState.Unknown:
+                newRunState = null;
+                stateName = null;
+                break;
+            default: throw new ArgumentOutOfRangeException();
+        }
+
+        ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+            this.ConsoleExecutionState = stateName;
+            this.IsConsoleRunning = newRunState;
+        }, DispatchPriority.Background);
     }
 }

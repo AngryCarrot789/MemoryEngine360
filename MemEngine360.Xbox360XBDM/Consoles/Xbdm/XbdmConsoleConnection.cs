@@ -491,7 +491,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     public async Task<List<RegisterEntry>?> GetRegisters(uint threadId) {
-        ConsoleResponse response = await this.SendCommandAndGetResponse($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
+        ConsoleResponse response = await this.SendCommand($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
         if (response.ResponseType == ResponseType.NoSuchThread) {
             return null;
         }
@@ -521,7 +521,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     public async Task<RegisterEntry?> ReadRegisterValue(uint threadId, string registerName) {
-        ConsoleResponse response = await this.SendCommandAndGetResponse($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
+        ConsoleResponse response = await this.SendCommand($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
         if (response.ResponseType == ResponseType.NoSuchThread) {
             return null;
         }

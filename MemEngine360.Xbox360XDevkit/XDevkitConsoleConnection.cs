@@ -126,14 +126,12 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         return Task.Run(() => {
             IXboxDebugTarget target = this.console.DebugTarget;
             target.GetMemory_cpp(address, (uint) count, ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dstBuffer), offset), out uint cbRead);
-            return (int) cbRead;
         });
     }
 
     protected override Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
         return Task.Run(() => {
             this.console.DebugTarget.SetMemory_cpp(address, (uint) count, ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(srcBuffer), offset), out uint cbWritten);
-            return cbWritten;
         });
     }
 }

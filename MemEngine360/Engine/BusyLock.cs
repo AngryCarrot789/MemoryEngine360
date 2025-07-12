@@ -201,8 +201,9 @@ public sealed class BusyLock {
             LinkedListNode<CancellableTaskCompletionSource>? tcs = this.EnqueueAsyncWaiter(cancellationToken);
             if (tcs == null) {
                 if (this.busyCount != 0) {
-                    // CriticalLock is acquired on another thread and the busy token is still taken,
-                    // so the only thing we can do is just wait some time. Yield first, since the
+                    // Either CriticalLock is acquired on another thread and the busy token is still taken,
+                    // or we lost the race condition between busyCount being 0 in EnqueueAsyncWaiter.
+                    // So the only thing we can do is just wait some time. Yield first, since the
                     // lock will most likely be released once the continuation is executed, unless
                     // an external user is using CriticalLock
                     if (waitState == 0) {
@@ -256,6 +257,12 @@ public sealed class BusyLock {
         return token;
     }
 
+    /// <summary>
+    /// Ensures the token is a valid busy token and is our currently taken token (and is not someone elses)
+    /// </summary>
+    /// <param name="token">The token to validate</param>
+    /// <exception cref="ArgumentNullException">Token is null</exception>
+    /// <exception cref="ArgumentException">Object is not a token or is disposed, not associated with this lock or not the taken token</exception>
     public void ValidateToken(IDisposable token) {
         if (token == null) 
             throw new ArgumentNullException(nameof(token), "Token is null");
@@ -272,12 +279,17 @@ public sealed class BusyLock {
             throw new ArgumentException(this.busyCount == 0 ? "No tokens are currently in use" : "Token is not the current token");
     }
 
+    /// <summary>
+    /// Same as <see cref="ValidateToken"/> except does not throw, but instead returns a boolean
+    /// </summary>
+    /// <param name="token">The token to validate</param>
+    /// <returns>True when valid for use, otherwise false</returns>
     public bool CheckToken(IDisposable? token) {
         if (!(token is BusyToken busy)) return false;
 
         // myLock can be atomically exchanged
         BusyLock? theLock = busy.myLock;
-        return theLock != null && theLock == this && this.activeToken == busy;
+        return theLock == this && this.activeToken == busy;
     }
 
     private LinkedListNode<CancellableTaskCompletionSource>? EnqueueAsyncWaiter(CancellationToken token) {

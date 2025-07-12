@@ -11,6 +11,8 @@
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cmd="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Commands"
                  xmlns:ev="clr-namespace:MemEngine360.BaseFrontEnd.EventViewing"
+                 xmlns:r="clr-namespace:AvaloniaHex.Rendering;assembly=AvaloniaHex"
+                 xmlns:av2="clr-namespace:AvaloniaHex;assembly=AvaloniaHex"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.BaseFrontEnd.Debugging.DebuggerWindow"
                  Title="DebuggerWindow"
@@ -29,11 +31,11 @@
                             cu:CommandUsageManager.UsageClassType="{x:Type local:UnfreezeConsoleCommandCommandUsage}"/>
                     <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Stop" Padding="5,0"
                             cu:CommandUsageManager.UsageClassType="{x:Type local:FreezeConsoleCommandCommandUsage}"/>
-                    
+
                     <!-- cu:CommandUsageManager.SimpleButtonCommandId="commands.debugger.DebugStepCommand" -->
                     <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Step" Padding="5,0"
                             IsEnabled="False"/>
-                    
+
                     <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,1"/>
                     <Button BorderBrush="{DynamicResource PanelBorderBrush}" Content="Refresh All" Padding="5,0"
                             cu:CommandUsageManager.SimpleButtonCommandId="commands.debugger.RefreshAllCommand"/>
@@ -54,7 +56,7 @@
                     Header="Threads">
             <DockPanel>
                 <WrapPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
-                    <CheckBox x:Name="PART_ToggleAutoAddRemoveThreads" Content="Auto add/remove" 
+                    <CheckBox x:Name="PART_ToggleAutoAddRemoveThreads" Content="Auto add/remove"
                               tt:ToolTipEx.Tip="Add or removed threads when we receive XBDM Create/Terminate events. Disabling this requires clicking 'Refresh All' to re-query threads"/>
                 </WrapPanel>
                 <local:ThreadEntryListBox x:Name="PART_ThreadListBox"
@@ -69,20 +71,44 @@
                         BorderBrush="{DynamicResource PanelBorderBrush}"
                         HeaderBrush="{DynamicResource ABrush.Tone5.Background.Static}"
                         BorderThickness="1"
-                        Header="Thread Memory">
-                <DockPanel>
-                    <Border DockPanel.Dock="Top" 
-                            Background="{DynamicResource ABrush.Tone5.Background.Static}" 
-                            BorderBrush="{DynamicResource PanelBorderBrush}" 
-                            BorderThickness="0,0,0,1">
-                        <StackPanel Orientation="Horizontal" Spacing="2" Margin="2">
-                            <Button Content="Resume" Padding="5,1" BorderBrush="{DynamicResource PanelBorderBrush}" 
+                        HorizontalHeaderAlignment="Stretch">
+                <c:GroupBox.Header>
+                    <DockPanel>
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                            <TextBlock Text="Memory" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                            <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="5,2"/>
+                            <TextBox x:Name="PART_GotoTextBox" DockPanel.Dock="Left" 
+                                     VerticalAlignment="Center" 
+                                     Width="80" Padding="2,2">
+                                <TextBox.InnerLeftContent>
+                                    <TextBlock Text="0x" Opacity="0.7"/>
+                                </TextBox.InnerLeftContent>
+                            </TextBox>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="2" Margin="2" DockPanel.Dock="Right" VerticalAlignment="Center">
+                            <Button Content="Resume" Padding="5,1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                     cu:CommandUsageManager.UsageClassType="{x:Type local:ResumeThreadCommandCommandUsage}"/>
-                            <Button Content="Suspend" Padding="5,1" BorderBrush="{DynamicResource PanelBorderBrush}" 
+                            <Button Content="Suspend" Padding="5,1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                     cu:CommandUsageManager.UsageClassType="{x:Type local:SuspendThreadCommandCommandUsage}"/>
                         </StackPanel>
+                        <Border/>
+                    </DockPanel>
+                </c:GroupBox.Header>
+                <DockPanel>
+                    <Border DockPanel.Dock="Top"
+                            Background="{DynamicResource ABrush.Tone5.Background.Static}"
+                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                            BorderThickness="0,0,0,1">
+
                     </Border>
-                    <Border/>
+                    <Border>
+                        <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto"
+                                      x:Name="PART_HexEditorScrollViewer">
+                            <av2:HexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
+                                           Background="{DynamicResource ABrush.Tone2.Background.Static}"
+                                           BorderThickness="0"/>
+                        </ScrollViewer>
+                    </Border>
                 </DockPanel>
             </c:GroupBox>
             <ev:ConsoleEventViewerView Grid.Row="2" x:Name="PART_EventViewer"/>
