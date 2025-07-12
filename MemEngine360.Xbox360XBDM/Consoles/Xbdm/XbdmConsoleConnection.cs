@@ -19,7 +19,6 @@
 
 using System.Buffers.Binary;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
@@ -34,6 +33,7 @@ using MemEngine360.Engine.Events.XbdmEvents;
 using MemEngine360.XboxBase;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Destroying;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
@@ -49,6 +49,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     private readonly byte[] localReadBuffer = new byte[4096];
     private readonly StringBuilder sbLineBuffer = new StringBuilder(400);
     private readonly TcpClient client;
+    private readonly CancellationTokenSource ctsCheckClosed;
 
     private enum EnumEventThreadMode {
         Inactive, // Thread not running
@@ -109,29 +110,67 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             Name = $"XBDM Reader Thread #{NextReaderID++}",
             IsBackground = true
         }.Start();
+
+        this.ctsCheckClosed = new CancellationTokenSource();
+        CancellationToken token = this.ctsCheckClosed.Token;
+        
+        Task.Run(async () => {
+            while (!token.IsCancellationRequested) {
+                await Task.Delay(2000, token);
+                if (!this.client.Connected) {
+                    this.Close();
+                    return;
+                }
+            }
+        }, token);
     }
 
-    protected override Task CloseCore() {
-        this.CloseAndDispose();
-        return Task.CompletedTask;
+    protected override void CloseOverride() {
+        try {
+            DisposableUtils.DisposeAfter(this.ctsCheckClosed, x => x.Cancel());
+        }
+        catch {
+            // ignored
+        }
+
+        try {
+            Socket? socket = this.client.Client;
+
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (socket != null && socket.Connected) {
+                try {
+                    this.client.Client.Send("bye\r\n"u8);
+                }
+                catch (Exception) {
+                    // ignored
+                }
+            }
+
+            socket?.Dispose();
+            this.client.Dispose();
+        }
+        catch (Exception e) {
+            AppLogger.Instance.WriteLine("Exception while closing " + nameof(XbdmConsoleConnection));
+            AppLogger.Instance.WriteLine(e.GetToString());
+        }
     }
 
     public async Task SendCommandOnly(string command) {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         await this.InternalWriteCommand(command).ConfigureAwait(false);
     }
 
     public async Task<ConsoleResponse> GetResponseOnly() {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         return await this.InternalReadResponse_Threaded().ConfigureAwait(false);
     }
 
     private async Task<string> GetResponseAsTextOnly() {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         string responseText = await this.InternalReadLine_Threaded().ConfigureAwait(false);
@@ -139,14 +178,14 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     public async Task<ConsoleResponse> SendCommand(string command) {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         return await this.SendCommandAndGetResponse(command).ConfigureAwait(false);
     }
 
     public async Task<ConsoleResponse[]> SendMultipleCommands(string[] commands) {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         Task[] tasks = new Task[commands.Length];
@@ -167,7 +206,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     public Task<ConsoleResponse[]> SendMultipleCommands(IEnumerable<string> commands) => this.SendMultipleCommands(commands.ToArray());
 
     public async Task<string> ReadLineFromStream(CancellationToken token = default) {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         return await this.InternalReadLine_Threaded(token);
@@ -180,7 +219,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     /// <returns></returns>
     /// <exception cref="Exception">No such command or response was not a multi-line response</exception>
     public async Task<List<string>> SendCommandAndReceiveLines(string command) {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         ConsoleResponse response = await this.SendCommandAndGetResponse(command).ConfigureAwait(false);
@@ -190,38 +229,10 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     public async Task<List<string>> ReadMultiLineResponse() {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         return await this.InternalReadMultiLineResponse();
-    }
-
-    [SuppressMessage("ReSharper", "ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract")]
-    private void CloseAndDispose() {
-        if (this.isClosed) {
-            return;
-        }
-
-        try {
-            Socket? socket = this.client.Client;
-            if (socket != null && socket.Connected) {
-                try {
-                    this.client.Client.Send("bye\r\n"u8);
-                }
-                catch (SocketException) {
-                    // ignored
-                }
-            }
-
-            socket?.Dispose();
-            this.client.Dispose();
-        }
-        catch {
-            // ignored
-        }
-        finally {
-            this.isClosed = true;
-        }
     }
 
     private async Task<List<string>> InternalReadMultiLineResponse() {
@@ -259,7 +270,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     public async Task<XboxThread> GetThreadInfo(uint threadId, bool requireName = true) {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
 
         XboxThread tdInfo;
         using (this.CreateBusyToken()) {
@@ -272,11 +283,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             if (info.Count != 1) {
                 Debugger.Break(); // interesting... more than 1 line of info. Let's explore!
             }
-            
+
             tdInfo = new XboxThread { id = threadId };
             ParseThreadInfo(info[0], ref tdInfo);
         }
-        
+
         if (requireName && tdInfo.nameAddress != 0 && tdInfo.nameLength != 0 && tdInfo.nameLength < int.MaxValue) {
             tdInfo.readableName = await this.ReadStringASCII(tdInfo.nameAddress, (int) tdInfo.nameLength);
         }
@@ -317,12 +328,12 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     public async Task RebootConsole(bool cold = true) {
         await this.SendCommand("magicboot" + (cold ? " cold" : ""));
-        await this.Close();
+        this.Close();
     }
 
     public async Task ShutdownConsole() {
         await this.InternalWriteCommand("shutdown");
-        await this.Close();
+        this.Close();
     }
 
     public Task OpenDiskTray() => this.SendCommand("dvdeject");
@@ -452,7 +463,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     public override async Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count) {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         if (count == 0) {
@@ -535,7 +546,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             if (!line.AsSpan(0, split).Equals(registerName, StringComparison.OrdinalIgnoreCase)) {
                 continue;
             }
-            
+
             string value = line.Substring(split + 1);
             if (value.StartsWith("0x")) {
                 if (uint.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out uint value32))
@@ -725,7 +736,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             await this.client.GetStream().WriteAsync(buffer).ConfigureAwait(false);
         }
         catch (IOException) {
-            this.CloseAndDispose();
+            this.Close();
             throw;
         }
     }
@@ -850,7 +861,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     private async ValueTask ActivateReader(int mode) {
         int currMode;
         while ((currMode = Interlocked.CompareExchange(ref this.readType, mode, 0)) != 0) {
-            if (this.isClosed)
+            if (this.IsClosed)
                 throw new IOException("Connection closed"); // maybe use a field to specify if closed due to timeout?
             await Task.Yield();
         }
@@ -894,7 +905,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             }
         } while ((hadAnyAction ? (lastReadTime = Time.GetSystemTicks()) : Time.GetSystemTicks()) < endTicks);
 
-        this.CloseAndDispose();
+        this.Close();
         throw new TimeoutException("Timeout while reading line");
     }
 
@@ -918,7 +929,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     private void ReaderThreadMain() {
-        while (!this.isClosed) {
+        while (!this.IsClosed) {
             this.readEvent.WaitOne();
 
             // -1 means locked (busy or connection closed)
@@ -926,7 +937,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             switch (mode) {
                 case -1:
                     Debugger.Break();
-                    this.CloseAndDispose();
+                    this.Close();
                     return;
                 case 0:
                     AppLogger.Instance.WriteLine("Reader thread woke up for nothing");
@@ -946,7 +957,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         }
 
         if (info.cancellation.IsCancellationRequested) {
-            this.CloseAndDispose();
+            this.Close();
             info.completion.SetException(new TimeoutException("Timeout while reading line"));
             this.readType = -1;
             return;
@@ -963,7 +974,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 hadAnyAction = this.ReadChars(out line, true);
             }
             catch (Exception e) {
-                this.CloseAndDispose();
+                this.Close();
                 info.completion.SetException(e);
                 this.readType = -1;
                 break;
@@ -988,7 +999,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             }
 
             if (info.cancellation.IsCancellationRequested || (hadAnyAction ? (lastReadTime = Time.GetSystemTicks()) : Time.GetSystemTicks()) >= endTicks) {
-                this.CloseAndDispose();
+                this.Close();
                 info.completion.SetException(new TimeoutException("Timeout while reading line"));
                 this.readType = -1;
                 break;
@@ -1012,7 +1023,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         // Most likely reading data after sending a command, so by cancelling
         // it, there's no option other than to shut down connection
         if (info.cancellation.IsCancellationRequested) {
-            this.CloseAndDispose();
+            this.Close();
             info.completion.SetException(new TimeoutException("Timeout while reading data"));
             this.readType = -1;
             return;
@@ -1030,7 +1041,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                         cbReadTcp = this.client.GetStream().Read(info.dstBuffer, offset + cbRead, readCount - cbRead);
                     }
                     catch (Exception e) {
-                        this.CloseAndDispose();
+                        this.Close();
                         info.completion.SetException(e);
                         this.readType = -1;
                         break;
@@ -1065,7 +1076,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             }
 
             if (info.cancellation.IsCancellationRequested || (cbRead > 0 ? (lastReadTime = Time.GetSystemTicks()) : Time.GetSystemTicks()) >= endTicks) {
-                this.CloseAndDispose();
+                this.Close();
                 info.completion.SetException(new TimeoutException("Timeout while reading line"));
                 this.readType = -1;
                 break;

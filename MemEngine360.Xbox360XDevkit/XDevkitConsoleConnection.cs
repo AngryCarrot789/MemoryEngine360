@@ -78,31 +78,29 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         return Task.FromResult<bool?>(null);
     }
 
-    protected override Task CloseCore() {
+    protected override void CloseOverride() {
         if (this.isConnectedAsDebugger) {
             this.isConnectedAsDebugger = false;
             // this.console.remove_OnStdNotify(this.OnStdNotify);
             // this.console.remove_OnTextNotify(this.OnTextNotify);
             this.console.DebugTarget.DisconnectAsDebugger();
         }
-
-        return Task.CompletedTask;
     }
 
     public async Task DebugFreeze() {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
         await Task.Run(() => this.console.DebugTarget.Stop(out bool isAlreadyStopped)).ConfigureAwait(false);
     }
 
     public async Task DebugUnFreeze() {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
         await Task.Run(() => this.console.DebugTarget.Go(out bool isAlreadyGoing)).ConfigureAwait(false);
     }
 
     public async Task<List<MemoryRegion>> GetMemoryRegions(bool willRead, bool willWrite) {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         List<MemoryRegion> regionList = new List<MemoryRegion>();

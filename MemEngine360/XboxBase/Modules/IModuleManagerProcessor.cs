@@ -17,11 +17,12 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.XboxBase.Modules;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using MemEngine360.Connections;
+using MemEngine360.Engine;
 
-namespace MemEngine360.BaseFrontEnd.XboxBase.Modules;
+namespace MemEngine360.XboxBase.Modules;
 
-public class ModuleListBox : ModelBasedListBox<ConsoleModule> {
-    protected override ModelBasedListBoxItem<ConsoleModule> CreateItem() => new ModuleListBoxItem();
+public interface IModuleManagerProcessor {
+    Task RefreshAll(ModuleViewer viewer, MemoryEngine engine, IConsoleConnection connection);
+    Task RefreshModule(ConsoleModule module, MemoryEngine engine, IConsoleConnection connection);
 }

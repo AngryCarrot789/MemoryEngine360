@@ -95,7 +95,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
                 IConsoleConnection? oldConnection = seq.DedicatedConnection;
                 if (oldConnection != null) {
                     seq.DedicatedConnection = null;
-                    await oldConnection.Close();
+                    oldConnection.Close();
                 }
 
                 seq.UseEngineConnection = true;

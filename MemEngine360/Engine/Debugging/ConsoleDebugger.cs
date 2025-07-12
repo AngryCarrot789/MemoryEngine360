@@ -224,7 +224,7 @@ public class ConsoleDebugger {
 
     public async Task<ThreadEntry?> UpdateThread(IDisposable token, uint threadId, bool createIfDoesntExist = true) {
         this.busyLocker.ValidateToken(token);
-        
+
         int idx = this.ThreadEntries.FindIndex(x => x.ThreadId == threadId);
         if (idx == -1 && !createIfDoesntExist) {
             return null;
@@ -285,7 +285,7 @@ public class ConsoleDebugger {
 
     public async Task UpdateRegistersForActiveThread(IDisposable token) {
         this.busyLocker.ValidateToken(token);
-        
+
         ThreadEntry? thread = Volatile.Read(ref this.activeThread); /* just incase caller is not on AMT */
         if (thread == null || this.Connection == null || this.ignoreActiveThreadChange) {
             return;
@@ -340,6 +340,9 @@ public class ConsoleDebugger {
         this.RegisterEntries.Clear();
         DisposableUtils.Dispose(ref this.eventSubscription);
 
+        if (oldConnection != null) oldConnection.Closed -= this.OnConnectionClosed;
+        if (newConnection != null) newConnection.Closed += this.OnConnectionClosed;
+        
         // ConnectionChanged is invoked under the lock to enforce busy operation rules
         object theLock = this.busyLocker.CriticalLock;
         lock (theLock) {
@@ -357,6 +360,40 @@ public class ConsoleDebugger {
         }
     }
 
+    public void CheckConnection() {
+        IConsoleConnection? conn = this.Connection;
+        if (conn != null && !conn.IsConnected) {
+            using (IDisposable? token1 = this.BusyLock.BeginBusyOperation()) {
+                if (token1 != null && this.TryDisconnectForLostConnection(token1)) {
+                    return;
+                }
+            }
+
+            ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                using IDisposable? token2 = this.BusyLock.BeginBusyOperation();
+                if (token2 != null)
+                    this.TryDisconnectForLostConnection(token2);
+            }, DispatchPriority.Background);
+        }
+    }
+    
+    private bool TryDisconnectForLostConnection(IDisposable token) {
+        IConsoleConnection? conn = this.Connection;
+        if (conn == null)
+            return true;
+        if (conn.IsConnected)
+            return false;
+
+        this.SetConnection(token, null);
+        return true;
+    }
+
+    private void OnConnectionClosed(IConsoleConnection sender) {
+        if (sender == this.Connection) {
+            this.CheckConnection();
+        }
+    }
+
     private void OnConsoleEvent(IConsoleConnection sender, ConsoleSystemEventArgs e) {
         if (e is XbdmEventArgsExecutionState stateChanged) {
             this.OnHandleStateChange(stateChanged);
@@ -369,15 +406,12 @@ public class ConsoleDebugger {
         // For some reason breakpoints never seem to hit, not even data breakpoints...
         // Maybe there's another debugger command required to activate breaking?
         if (e is XbdmEventArgsBreakpoint) {
-            
         }
-        
+
         if (e is XbdmEventArgsDataBreakpoint) {
-            
         }
     }
-    
-    
+
 
     private void OnHandleThreadEvent(ConsoleSystemEventArgs e, XbdmEventArgsThreadLife threadEvent) {
         bool isCreated = e is XbdmEventArgsCreateThread;

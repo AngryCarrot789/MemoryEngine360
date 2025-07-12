@@ -53,12 +53,22 @@ public class PluginXbox360XDevkit : Plugin {
         ConsoleConnectionManager manager = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
         manager.Register(ConnectionTypeXbox360XDevkit.TheID, ConnectionTypeXbox360XDevkit.Instance);
 
-        XboxModuleManager.RegisterHandlerForConnectionType<XDevkitConsoleConnection>(FillModuleManager);
+        ModuleViewer.RegisterHandlerForConnectionType<XDevkitConsoleConnection>(new XDevkitModuleViewerProcessor());
 
         return Task.CompletedTask;
     }
+    
+    private class XDevkitModuleViewerProcessor : IModuleManagerProcessor {
+        public Task RefreshAll(ModuleViewer viewer, MemoryEngine engine, IConsoleConnection connection) {
+            return FillModuleManager(engine, (XDevkitConsoleConnection) connection, viewer);
+        }
 
-    private static async Task FillModuleManager(MemoryEngine arg1, XDevkitConsoleConnection connection, XboxModuleManager manager) {
+        public Task RefreshModule(ConsoleModule module, MemoryEngine engine, IConsoleConnection connection) {
+            return Task.CompletedTask;
+        }
+    }
+
+    private static async Task FillModuleManager(MemoryEngine arg1, XDevkitConsoleConnection connection, ModuleViewer viewer) {
         ActivityTask task = ActivityManager.Instance.CurrentTask;
         task.Progress.Caption = "Reading Modules";
         task.Progress.Text = "Reading modules...";
@@ -73,7 +83,7 @@ public class PluginXbox360XDevkit : Plugin {
             uint entryPoint = module.GetEntryPointAddress();
 
             string? fullName = info.FullName;
-            XboxModule xboxModule = new XboxModule() {
+            ConsoleModule consoleModule = new ConsoleModule() {
                 Name = info.Name,
                 FullName = Equals(info.Name, fullName) ? null : fullName,
                 BaseAddress = info.BaseAddress,
@@ -83,17 +93,17 @@ public class PluginXbox360XDevkit : Plugin {
             };
 
             try {
-                xboxModule.PEModuleName = module.Executable.GetPEModuleName();
+                consoleModule.PEModuleName = module.Executable.GetPEModuleName();
             }
             catch (COMException ex) {
-                xboxModule.PEModuleName = $"<COMException: {ex.Message}>";
+                consoleModule.PEModuleName = $"<COMException: {ex.Message}>";
             }
 
             foreach (IXboxSection section in module.Sections) {
                 task.CheckCancelled();
 
                 XBOX_SECTION_INFO secInf = section.SectionInfo;
-                xboxModule.Sections.Add(new XboxModuleSection() {
+                consoleModule.Sections.Add(new ConsoleModuleSection() {
                     Name = string.IsNullOrWhiteSpace(secInf.Name) ? null : secInf.Name,
                     BaseAddress = secInf.BaseAddress,
                     Size = secInf.Size,
@@ -102,7 +112,7 @@ public class PluginXbox360XDevkit : Plugin {
                 });
             }
 
-            manager.Modules.Add(xboxModule);
+            viewer.Modules.Add(consoleModule);
         }
     }
 }

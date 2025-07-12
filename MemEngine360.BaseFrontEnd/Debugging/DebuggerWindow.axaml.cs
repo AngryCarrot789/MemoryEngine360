@@ -192,7 +192,7 @@ public partial class DebuggerWindow : DesktopWindow {
             if (connection != null) {
                 debugger.SetConnection(token, null);
                 try {
-                    await connection.Close();
+                    connection.Close();
                 }
                 catch {
                     // ignored

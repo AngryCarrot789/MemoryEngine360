@@ -63,7 +63,7 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
                     // do anything else with the connection since the user cancelled the operation
                     token = await OpenConsoleConnectionDialogCommand.SetEngineConnectionAndHandleProblemsAsync(engine, connection, frame);
                     if (token == null) {
-                        await connection.Close();
+                        connection.Close();
                     }
                 }
             }

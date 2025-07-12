@@ -54,12 +54,12 @@ public class ShowModulesCommand : Command {
         }
 
         using CancellationTokenSource cts = new CancellationTokenSource();
-        XboxModuleManager manager = new XboxModuleManager();
+        ModuleViewer viewer = new ModuleViewer();
         
-        bool result = await ActivityManager.Instance.RunTask(async () => await XboxModuleManager.TryFillModuleManager(engine, connection, manager), cts);
+        bool result = await ActivityManager.Instance.RunTask(async () => await ModuleViewer.TryFillModuleManager(engine, connection, viewer), cts);
         if (result) { // may be null when cancelled
             ModuleViewerWindow window = new ModuleViewerWindow() {
-                XboxModuleManager = manager
+                XboxModuleManager = viewer
             };
 
             system.Register(window).Show();

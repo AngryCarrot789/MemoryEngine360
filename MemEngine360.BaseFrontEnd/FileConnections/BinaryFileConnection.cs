@@ -65,7 +65,7 @@ public sealed class BinaryFileConnection : BaseConsoleConnection {
         return Task.FromResult<bool?>(null);
     }
 
-    protected override Task CloseCore() {
+    protected override void CloseOverride() {
         try {
             this.myFileStream?.Close();
             this.myFileStream?.Dispose();
@@ -73,8 +73,6 @@ public sealed class BinaryFileConnection : BaseConsoleConnection {
         finally {
             this.myFileStream = null;
         }
-
-        return Task.CompletedTask;
     }
 
     protected override async Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
@@ -101,6 +99,13 @@ public sealed class BinaryFileConnection : BaseConsoleConnection {
             try {
                 this.myFileStream.Seek(seekTo, SeekOrigin.Begin);
                 read = await this.myFileStream.ReadAsync(memory);
+            }
+            catch (IOException) {
+                throw;
+            }
+            catch (ObjectDisposedException) {
+                this.Close();
+                throw new IOException("File stream closed");
             }
             catch {
                 // ignored
@@ -138,6 +143,13 @@ public sealed class BinaryFileConnection : BaseConsoleConnection {
 
                 await this.myFileStream.WriteAsync(new ReadOnlyMemory<byte>(srcBuffer, offset, count));
                 await this.myFileStream.FlushAsync();
+            }
+            catch (IOException) {
+                throw;
+            }
+            catch (ObjectDisposedException) {
+                this.Close();
+                throw new IOException("File stream closed");
             }
             catch {
                 // ignored

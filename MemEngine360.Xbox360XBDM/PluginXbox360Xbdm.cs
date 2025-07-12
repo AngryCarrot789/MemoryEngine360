@@ -52,12 +52,22 @@ public class PluginXbox360Xbdm : Plugin {
         ConsoleConnectionManager manager = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
         manager.Register(ConnectionTypeXbox360Xbdm.TheID, ConnectionTypeXbox360Xbdm.Instance);
 
-        XboxModuleManager.RegisterHandlerForConnectionType<XbdmConsoleConnection>(FillModuleManager);
+        ModuleViewer.RegisterHandlerForConnectionType<XbdmConsoleConnection>(new XbdmModuleViewerProcessor());
 
         return Task.CompletedTask;
     }
 
-    private static async Task FillModuleManager(MemoryEngine engine, XbdmConsoleConnection connection, XboxModuleManager manager) {
+    private class XbdmModuleViewerProcessor : IModuleManagerProcessor {
+        public Task RefreshAll(ModuleViewer viewer, MemoryEngine engine, IConsoleConnection connection) {
+            return FillModuleManager(engine, (XbdmConsoleConnection) connection, viewer);
+        }
+
+        public Task RefreshModule(ConsoleModule module, MemoryEngine engine, IConsoleConnection connection) {
+            return Task.CompletedTask;
+        }
+    }
+
+    private static async Task FillModuleManager(MemoryEngine engine, XbdmConsoleConnection connection, ModuleViewer viewer) {
         ActivityTask task = ActivityManager.Instance.CurrentTask;
         task.Progress.Caption = "Reading Modules";
         task.Progress.Text = "Reading modules...";
@@ -79,7 +89,7 @@ public class PluginXbox360Xbdm : Plugin {
 
             task.Progress.Text = "Processing " + name;
 
-            XboxModule xboxModule = new XboxModule() {
+            ConsoleModule consoleModule = new ConsoleModule() {
                 Name = name,
                 FullName = null, // unavailable until I can figure out how to get xbeinfo to work
                 BaseAddress = modBase,
@@ -97,7 +107,7 @@ public class PluginXbox360Xbdm : Plugin {
             if (entryPointResponse.ResponseType == ResponseType.MultiResponse) {
                 List<string> lines = await connection.ReadMultiLineResponse();
                 if (lines.Count == 2 && uint.TryParse(lines[1], NumberStyles.HexNumber, null, out uint entryPoint)) {
-                    xboxModule.EntryPoint = entryPoint;
+                    consoleModule.EntryPoint = entryPoint;
                 }
             }
 
@@ -113,7 +123,7 @@ public class PluginXbox360Xbdm : Plugin {
                     ParamUtils.GetDwParam(sectionLine, "index", true, out uint sec_index);
                     ParamUtils.GetDwParam(sectionLine, "flags", true, out uint sec_flags);
 
-                    xboxModule.Sections.Add(new XboxModuleSection() {
+                    consoleModule.Sections.Add(new ConsoleModuleSection() {
                         Name = string.IsNullOrWhiteSpace(sec_name) ? null : sec_name,
                         BaseAddress = sec_base,
                         Size = sec_size,
@@ -122,7 +132,7 @@ public class PluginXbox360Xbdm : Plugin {
                     });
                 }
 
-                manager.Modules.Add(xboxModule);
+                viewer.Modules.Add(consoleModule);
             }
         }
     }

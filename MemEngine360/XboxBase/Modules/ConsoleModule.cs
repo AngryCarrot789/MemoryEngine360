@@ -22,9 +22,9 @@ using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.XboxBase.Modules;
 
-public delegate void XboxModuleEventHandler(XboxModule sender);
+public delegate void ConsoleModuleEventHandler(ConsoleModule sender);
 
-public class XboxModule {
+public class ConsoleModule {
     private string? name = null;
     private string? fullName = null;
     private uint baseAddress;
@@ -101,23 +101,23 @@ public class XboxModule {
         set => PropertyHelper.SetAndRaiseINE(ref this.peModuleName, value, this, static t => t.PEModuleNameChanged?.Invoke(t));
     }
 
-    public ObservableList<XboxModuleSection> Sections { get; }
+    public ObservableList<ConsoleModuleSection> Sections { get; }
 
     /// <summary>
     /// Gets the manager this module exists in
     /// </summary>
-    public XboxModuleManager? Manager { get; internal set; }
+    public ModuleViewer? Viewer { get; internal set; }
 
-    public event XboxModuleEventHandler? NameChanged;
-    public event XboxModuleEventHandler? FullNameChanged;
-    public event XboxModuleEventHandler? BaseAddressChanged;
-    public event XboxModuleEventHandler? ModuleSizeChanged;
-    public event XboxModuleEventHandler? OriginalModuleSizeChanged;
-    public event XboxModuleEventHandler? EntryPointChanged;
-    public event XboxModuleEventHandler? PEModuleNameChanged;
+    public event ConsoleModuleEventHandler? NameChanged;
+    public event ConsoleModuleEventHandler? FullNameChanged;
+    public event ConsoleModuleEventHandler? BaseAddressChanged;
+    public event ConsoleModuleEventHandler? ModuleSizeChanged;
+    public event ConsoleModuleEventHandler? OriginalModuleSizeChanged;
+    public event ConsoleModuleEventHandler? EntryPointChanged;
+    public event ConsoleModuleEventHandler? PEModuleNameChanged;
 
-    public XboxModule() {
-        this.Sections = new ObservableList<XboxModuleSection>();
+    public ConsoleModule() {
+        this.Sections = new ObservableList<ConsoleModuleSection>();
         ObservableItemProcessor.MakeSimple(this.Sections, s => s.Module = this, s => s.Module = null);
     }
 }

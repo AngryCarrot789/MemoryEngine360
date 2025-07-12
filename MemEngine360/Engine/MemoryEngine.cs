@@ -56,7 +56,7 @@ public class MemoryEngine {
     /// Gets this engine's busy lock, which is used to synchronize our connection
     /// </summary>
     public BusyLock BusyLocker => this.busyLocker;
-    
+
     /// <summary>
     /// Gets the current console connection. This can only change on the main thread
     /// <para>
@@ -107,7 +107,7 @@ public class MemoryEngine {
     public PointerScanner PointerScanner { get; }
 
     public ConsoleDebugger ConsoleDebugger { get; }
-    
+
     /// <summary>
     /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working
     /// </summary>
@@ -168,7 +168,7 @@ public class MemoryEngine {
         this.TaskSequencerManager = new TaskSequencerManager(this);
         this.PointerScanner = new PointerScanner(this);
         this.ConsoleDebugger = new ConsoleDebugger(this);
-        
+
         Task.Factory.StartNew(async () => {
             long timeSinceRefreshedAddresses = DateTime.Now.Ticks;
             BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
@@ -254,18 +254,21 @@ public class MemoryEngine {
         if (newConnection == null && userConnectionInfo != null)
             throw new ArgumentException(nameof(userConnectionInfo) + " is non-null when " + nameof(newConnection) + " is null");
 
+        // we don't necessarily need to access connection under lock since if
+        // we have a valid busy token then nothing can modify it
+        IConsoleConnection? oldConnection = this.connection;
+        if (ReferenceEquals(oldConnection, newConnection))
+            throw new ArgumentException("Cannot set the connection to the same value");
+
+        if (oldConnection != null) oldConnection.Closed -= this.OnConnectionClosed;
+        if (newConnection != null) newConnection.Closed += this.OnConnectionClosed;
+
         // ConnectionChanged is invoked under the lock to enforce busy operation rules
         lock (this.busyLocker.CriticalLock) {
-            // we don't necessarily need to access connection under lock since if we have
-            // a valid busy token then nothing can modify it, but better be safe than sorry
-            IConsoleConnection? oldConnection = this.connection;
-            if (ReferenceEquals(oldConnection, newConnection)) {
-                throw new ArgumentException("Cannot set the connection to the same value");
-            }
-
             this.connection = newConnection;
             if (newConnection != null)
                 this.LastUserConnectionInfo = userConnectionInfo;
+
             this.ConnectionChanged?.Invoke(this, frame, oldConnection, newConnection, cause);
         }
     }
@@ -394,6 +397,12 @@ public class MemoryEngine {
             if (token2 != null)
                 this.TryDisconnectForLostConnection(token2, likelyCause);
         }, DispatchPriority.Background);
+    }
+
+    private void OnConnectionClosed(IConsoleConnection sender) {
+        if (sender == this.connection) {
+           this.CheckConnection(); 
+        }
     }
 
     /// <summary>

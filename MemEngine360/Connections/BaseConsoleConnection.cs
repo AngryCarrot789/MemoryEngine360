@@ -21,6 +21,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Engine.Addressing;
@@ -35,13 +36,13 @@ namespace MemEngine360.Connections;
 public abstract class BaseConsoleConnection : IConsoleConnection {
     protected readonly byte[] sharedOneByteArray = new byte[1];
     private volatile int busyStack;
-    protected volatile bool isClosed;
+    private volatile int isClosedState;
 
     public abstract RegisteredConnectionType ConnectionType { get; }
 
-    public bool IsConnected => !this.isClosed && this.IsConnectedCore;
+    public bool IsConnected => this.isClosedState == 0 && this.IsConnectedCore;
 
-    public bool IsClosed => this.isClosed;
+    public bool IsClosed => this.isClosedState != 0;
 
     protected abstract bool IsConnectedCore { get; }
 
@@ -55,42 +56,70 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// </summary>
     public abstract AddressRange AddressableRange { get; }
 
+    public event ConsoleConnectionEventHandler? Closed;
+
     protected BaseConsoleConnection() {
     }
 
     ~BaseConsoleConnection() {
-        if (!this.isClosed)
+        if (this.isClosedState == 0)
             AppLogger.Instance.WriteLine("Destructor called on " + nameof(BaseConsoleConnection) + " when still open");
     }
 
     public abstract Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);
 
-    public async Task Close() {
-        if (!this.isClosed) {
-            using BusyToken x = this.CreateBusyToken();
-            try {
-                await this.CloseCore();
-            }
-            finally {
-                this.isClosed = true;
-            }
+    public void Close() {
+        if (Interlocked.CompareExchange(ref this.isClosedState, 1, 0) != 0) {
+            return; // already closed
+        }
+
+        ExceptionDispatchInfo? closeException = null, eventException = null;
+        try {
+            this.CloseOverride();
+        }
+        catch (Exception e) {
+            closeException = ExceptionDispatchInfo.Capture(e);
+        }
+
+        try {
+            this.Closed?.Invoke(this);
+        }
+        catch (Exception e) {
+            eventException = ExceptionDispatchInfo.Capture(e);
+        }
+
+        if (closeException != null) {
+            if (eventException != null)
+                throw new AggregateException("Exception occurred while closing connection and also raising " + nameof(this.Closed) + " event", closeException.SourceException, eventException.SourceException);
+            
+            closeException.Throw();
+        }
+        else if (eventException != null) {
+            eventException.Throw();
         }
     }
 
-    protected abstract Task CloseCore();
+    protected virtual void CloseOverride() {
+    }
 
     public async Task ReadBytes(uint address, byte[] buffer, int offset, int count) {
-        if (count < 0)
+        if (count < 0) 
             throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
-        if (offset < 0)
+        if (offset < 0) 
             throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
-        if (count == 0)
+        if (count == 0) 
             return;
 
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        await this.ReadBytesCore(address, buffer, offset, count).ConfigureAwait(false);
+        try {
+            await this.ReadBytesCore(address, buffer, offset, count).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            this.Close();
+            throw;
+        }
     }
 
     public async Task ReadBytes(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
@@ -101,10 +130,16 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         if (offset < 0)
             throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
 
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        await this.ReadBytesInChunksUnderBusyLock(address, buffer, offset, count, chunkSize, completion, cancellationToken);
+        try {
+            await this.ReadBytesInChunksUnderBusyLock(address, buffer, offset, count, chunkSize, completion, cancellationToken);
+        }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            this.Close();
+            throw;
+        }
     }
 
     public async Task<byte[]> ReadBytes(uint address, int count) {
@@ -114,10 +149,17 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public async Task<byte> ReadByte(uint address) {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        await this.ReadBytesCore(address, this.sharedOneByteArray, 0, 1).ConfigureAwait(false);
+        try {
+            await this.ReadBytesCore(address, this.sharedOneByteArray, 0, 1).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            this.Close();
+            throw;
+        }
+
         return this.sharedOneByteArray[0];
     }
 
@@ -126,11 +168,19 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public async Task<char> ReadChar(uint address) => (char) await this.ReadByte(address).ConfigureAwait(false);
 
     public async Task<T> ReadValue<T>(uint address) where T : unmanaged {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
-        await this.ReadBytesCore(address, buffer, 0, buffer.Length).ConfigureAwait(false);
+        
+        try {
+            await this.ReadBytesCore(address, buffer, 0, buffer.Length).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            this.Close();
+            throw;
+        }
+
         if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
             Array.Reverse(buffer);
         }
@@ -139,21 +189,29 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public async Task<T> ReadStruct<T>(uint address, params int[] fields) where T : unmanaged {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         int offset = 0;
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
-        foreach (int cbField in fields) {
-            Debug.Assert(cbField >= 0, "Field was negative");
 
-            await this.ReadBytesCore((uint) (address + offset), buffer, offset, cbField).ConfigureAwait(false);
-            if (BitConverter.IsLittleEndian != this.IsLittleEndian)
-                Array.Reverse(buffer, offset, cbField);
+        try {
+            foreach (int cbField in fields) {
+                Debug.Assert(cbField >= 0, "Field was negative");
 
-            offset += cbField;
+                this.EnsureNotClosed();
+                await this.ReadBytesCore((uint) (address + offset), buffer, offset, cbField).ConfigureAwait(false);
+                if (BitConverter.IsLittleEndian != this.IsLittleEndian)
+                    Array.Reverse(buffer, offset, cbField);
 
-            Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadStruct));
+                offset += cbField;
+
+                Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadStruct));
+            }
+        }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            this.Close();
+            throw;
         }
 
         if (offset > buffer.Length) {
@@ -198,10 +256,16 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public async Task WriteBytes(uint address, byte[] buffer) {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        await this.WriteBytesCore(address, buffer, 0, buffer.Length).ConfigureAwait(false);
+        try {
+            await this.WriteBytesCore(address, buffer, 0, buffer.Length).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            this.Close();
+            throw;
+        }
     }
 
     public async Task WriteBytes(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
@@ -212,14 +276,14 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         if (count == 0)
             return;
 
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         await this.WriteBytesInChunksUnderBusyLock(address, buffer, offset, count, chunkSize, completion, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task WriteByte(uint address, byte value) {
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         this.sharedOneByteArray[0] = value;
@@ -241,6 +305,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public async Task WriteStruct<T>(uint address, T value, params int[] fields) where T : unmanaged {
+        this.EnsureNotClosed();
+
         int offset = 0;
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
         foreach (int cbField in fields) {
@@ -275,17 +341,18 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     // since reading from the console takes a long time, relative to 
     public async Task<uint?> ResolvePointer(DynamicAddress address) {
         // Even if Offsets.Length is zero, still check disposed and take busy token to try and catch unsynchronized access
-        this.EnsureNotDisposed();
+        this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
-        
+
         long ptr = address.BaseAddress;
         ImmutableArray<int> offsets = address.Offsets;
-        
+
         if (offsets.Length > 0) {
             byte[] buffer = new byte[sizeof(uint)];
             bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
 
             foreach (int offset in offsets) {
+                this.EnsureNotClosed();
                 await this.ReadBytesCore((uint) ptr, buffer, 0, buffer.Length).ConfigureAwait(false);
                 if (reverse)
                     Array.Reverse(buffer);
@@ -308,9 +375,9 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return new BusyToken(this);
     }
 
-    protected void EnsureNotDisposed() {
-        if (this.isClosed) {
-            throw new ObjectDisposedException(nameof(BaseConsoleConnection), "Connection is disposed");
+    protected void EnsureNotClosed() {
+        if (this.isClosedState != 0) {
+            throw new IOException("Connection is closed");
         }
     }
 
@@ -326,34 +393,50 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         Debug.Assert(count >= 0);
         cancellationToken.ThrowIfCancellationRequested();
         using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
-        do {
-            cancellationToken.ThrowIfCancellationRequested();
-            int cbRead = (int) Math.Min((uint) count, chunkSize);
-            await this.ReadBytesCore(address, buffer, offset, cbRead).ConfigureAwait(false);
 
-            address += (uint) cbRead;
-            offset += cbRead;
-            count -= cbRead;
+        try {
+            do {
+                this.EnsureNotClosed();
+                cancellationToken.ThrowIfCancellationRequested();
+                int cbRead = (int) Math.Min((uint) count, chunkSize);
+                await this.ReadBytesCore(address, buffer, offset, cbRead).ConfigureAwait(false);
 
-            completion?.OnProgress(cbRead);
-        } while (count > 0);
+                address += (uint) cbRead;
+                offset += cbRead;
+                count -= cbRead;
+
+                completion?.OnProgress(cbRead);
+            } while (count > 0);
+        }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            this.Close();
+            throw;
+        }
     }
 
     protected async Task WriteBytesInChunksUnderBusyLock(uint address, byte[] bytes, int offset, int count, uint chunkSize, CompletionState? completion, CancellationToken cancellationToken) {
         Debug.Assert(count >= 0);
         cancellationToken.ThrowIfCancellationRequested();
         using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
-        do {
-            cancellationToken.ThrowIfCancellationRequested();
-            int cbWrite = (int) Math.Min((uint) count, chunkSize);
-            await this.WriteBytesCore(address, bytes, offset, cbWrite).ConfigureAwait(false);
 
-            address += (uint) cbWrite;
-            offset += cbWrite;
-            count -= cbWrite;
+        try {
+            do {
+                this.EnsureNotClosed();
+                cancellationToken.ThrowIfCancellationRequested();
+                int cbWrite = (int) Math.Min((uint) count, chunkSize);
+                await this.WriteBytesCore(address, bytes, offset, cbWrite).ConfigureAwait(false);
 
-            completion?.OnProgress(cbWrite);
-        } while (count > 0);
+                address += (uint) cbWrite;
+                offset += cbWrite;
+                count -= cbWrite;
+
+                completion?.OnProgress(cbWrite);
+            } while (count > 0);
+        }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            this.Close();
+            throw;
+        }
     }
 
     /// <summary>

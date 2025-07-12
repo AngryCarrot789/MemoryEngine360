@@ -57,7 +57,7 @@ public class ConnectToDedicatedConsoleCommand : Command {
             
             // just in case it changes between dialog which is possible
             if ((oldConnection = seq.DedicatedConnection) != null) {
-                await oldConnection.Close();
+                oldConnection.Close();
                 seq.DedicatedConnection = null;
             }
         }
@@ -70,7 +70,7 @@ public class ConnectToDedicatedConsoleCommand : Command {
         
         // just in case it somehow starts running, quickly escape
         if (seq.IsRunning) {
-            await newConnection.Close();
+            newConnection.Close();
             return;
         }
 
@@ -78,7 +78,7 @@ public class ConnectToDedicatedConsoleCommand : Command {
         seq.UseEngineConnection = false;
         seq.DedicatedConnection = newConnection;
         if (oldConnection != null) {
-            await oldConnection.Close();
+            oldConnection.Close();
         }
     }
 }

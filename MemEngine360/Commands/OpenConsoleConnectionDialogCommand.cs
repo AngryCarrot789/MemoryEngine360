@@ -77,7 +77,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
                     if ((token = await SetEngineConnectionAndHandleProblemsAsync(memUi.MemoryEngine, connection, frame, this.myDialog.UserConnectionInfoForConnection)) == null) {
-                        await connection.Close();
+                        connection.Close();
                     }
                 }
             }
@@ -120,7 +120,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
                 });
 
                 try {
-                    await existingConnection.Close();
+                    existingConnection.Close();
                 }
                 catch (Exception) {
                     // ignored
@@ -163,7 +163,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName:AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 try {
-                    await newConnection.Close();
+                    newConnection.Close();
                 }
                 catch (Exception) {
                     // ignored
@@ -177,7 +177,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
         if (oldConnection != null) {
             // Always close AFTER changing, just in case a listener wants to send data or whatever
             try {
-                await oldConnection.Close();
+                oldConnection.Close();
             }
             catch (Exception) {
                 // ignored

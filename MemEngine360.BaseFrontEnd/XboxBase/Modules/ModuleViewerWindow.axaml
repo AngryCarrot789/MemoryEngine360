@@ -16,7 +16,7 @@
                  Title="Module Viewer"
                  MinWidth="640" MinHeight="400"
                  Width="960" Height="640"
-                 avalonia:UIInputManager.FocusPath="SequencerWindow"
+                 avalonia:UIInputManager.FocusPath="ModuleViewerWindow"
                  TitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
         <Grid>
@@ -29,7 +29,7 @@
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
-                        avalonia:UIInputManager.FocusPath="SequencerWindow/SequenceList">
+                        avalonia:UIInputManager.FocusPath="ModuleViewer/ModuleList">
                 <c:GroupBox.Header>
                     <DockPanel HorizontalSpacing="2">
                         <!-- <Button Content="Refresh" DockPanel.Dock="Right" Padding="4,0" BorderBrush="{DynamicResource PanelBorderBrush}" Click="Button_Refresh_OnClick"/> -->
@@ -166,29 +166,29 @@
                         <c:GroupBox Header="Sections">
                             <DataGrid x:Name="PART_SectionsDataGrid" Background="Transparent" BorderThickness="0" CanUserResizeColumns="True">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn x:DataType="{x:Type models:XboxModuleSection}" Width="40"
+                                    <DataGridTextColumn x:DataType="{x:Type models:ConsoleModuleSection}" Width="40"
                                                         Header="Index" CanUserResize="False" IsReadOnly="True"
                                                         Binding="{Binding Index, Mode=OneWay}"/>
 
-                                    <cb:DataGridTextColumnEx x:DataType="{x:Type models:XboxModuleSection}" Width="125"
+                                    <cb:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="125"
                                                              Header="Name" CanUserResize="True" IsReadOnly="True"
                                                              Binding="{Binding Name, Mode=OneWay, Converter={x:Static modules:EmptyStringToTextConverter.Instance}, ConverterParameter='Unavailable'}"
-                                                             CellDataKeyForDC="{x:Static models:XboxModuleSection.DataKey}"
+                                                             CellDataKeyForDC="{x:Static models:ConsoleModuleSection.DataKey}"
                                                              DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
 
-                                    <cb:DataGridTextColumnEx x:DataType="{x:Type models:XboxModuleSection}" Width="100"
+                                    <cb:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="100"
                                                              Header="Base Address" CanUserResize="False" IsReadOnly="True"
                                                              Binding="{Binding BaseAddress, Mode=OneWay, StringFormat=X8}"
-                                                             CellDataKeyForDC="{x:Static models:XboxModuleSection.DataKey}"
+                                                             CellDataKeyForDC="{x:Static models:ConsoleModuleSection.DataKey}"
                                                              DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
 
-                                    <cb:DataGridTextColumnEx x:DataType="{x:Type models:XboxModuleSection}" Width="150"
+                                    <cb:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="150"
                                                              Header="Section Size" CanUserResize="False" IsReadOnly="True"
                                                              Binding="{Binding Size, Mode=OneWay, Converter={x:Static memRegions:USizeToTextConverter.Instance}}"
-                                                             CellDataKeyForDC="{x:Static models:XboxModuleSection.DataKey}"
+                                                             CellDataKeyForDC="{x:Static models:ConsoleModuleSection.DataKey}"
                                                              DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
 
-                                    <DataGridTextColumn x:DataType="{x:Type models:XboxModuleSection}" Width="150"
+                                    <DataGridTextColumn x:DataType="{x:Type models:ConsoleModuleSection}" Width="150"
                                                         Header="Flags" CanUserResize="True" IsReadOnly="True"
                                                         Binding="{Binding Flags, Mode=OneWay}"/>
                                 </DataGrid.Columns>

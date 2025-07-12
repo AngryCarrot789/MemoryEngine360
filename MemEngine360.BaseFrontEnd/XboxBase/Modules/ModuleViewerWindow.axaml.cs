@@ -27,21 +27,21 @@ using PFXToolKitUI.Avalonia.Services.Windowing;
 namespace MemEngine360.BaseFrontEnd.XboxBase.Modules;
 
 public partial class ModuleViewerWindow : DesktopWindow {
-    public static readonly StyledProperty<XboxModuleManager?> XboxModuleManagerProperty = AvaloniaProperty.Register<ModuleViewerWindow, XboxModuleManager?>(nameof(XboxModuleManager));
-    private readonly IBinder<XboxModule> shortNameBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.NameChanged), (b) => ((TextBox) b.Control).Text = b.Model.Name);
-    private readonly IBinder<XboxModule> fullNameBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.FullNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.FullName);
-    private readonly IBinder<XboxModule> peModuleNameBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.PEModuleNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.PEModuleName);
-    private readonly IBinder<XboxModule> baseAddressBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.BaseAddressChanged), (b) => ((TextBox) b.Control).Text = b.Model.BaseAddress.ToString("X8"));
-    private readonly IBinder<XboxModule> entryPointBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.EntryPointChanged), (b) => ((TextBox) b.Control).Text = b.Model.EntryPoint.ToString("X8"));
-    private readonly IBinder<XboxModule> moduleSizeBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.ModuleSizeChanged), (b) => ((TextBox) b.Control).Text = b.Model.ModuleSize.ToString("X8"));
-    private readonly IBinder<XboxModule> originalSizeBinder = new EventUpdateBinder<XboxModule>(nameof(XboxModule.OriginalModuleSizeChanged), (b) => ((TextBox) b.Control).Text = b.Model.OriginalModuleSize.ToString("X8"));
+    public static readonly StyledProperty<ModuleViewer?> XboxModuleManagerProperty = AvaloniaProperty.Register<ModuleViewerWindow, ModuleViewer?>(nameof(XboxModuleManager));
+    private readonly IBinder<ConsoleModule> shortNameBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.NameChanged), (b) => ((TextBox) b.Control).Text = b.Model.Name);
+    private readonly IBinder<ConsoleModule> fullNameBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.FullNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.FullName);
+    private readonly IBinder<ConsoleModule> peModuleNameBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.PEModuleNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.PEModuleName);
+    private readonly IBinder<ConsoleModule> baseAddressBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.BaseAddressChanged), (b) => ((TextBox) b.Control).Text = b.Model.BaseAddress.ToString("X8"));
+    private readonly IBinder<ConsoleModule> entryPointBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.EntryPointChanged), (b) => ((TextBox) b.Control).Text = b.Model.EntryPoint.ToString("X8"));
+    private readonly IBinder<ConsoleModule> moduleSizeBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.ModuleSizeChanged), (b) => ((TextBox) b.Control).Text = b.Model.ModuleSize.ToString("X8"));
+    private readonly IBinder<ConsoleModule> originalSizeBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.OriginalModuleSizeChanged), (b) => ((TextBox) b.Control).Text = b.Model.OriginalModuleSize.ToString("X8"));
     
-    public XboxModuleManager? XboxModuleManager {
+    public ModuleViewer? XboxModuleManager {
         get => this.GetValue(XboxModuleManagerProperty);
         set => this.SetValue(XboxModuleManagerProperty, value);
     }
 
-    private XboxModule? selectedModule;
+    private ConsoleModule? selectedModule;
 
     public ModuleViewerWindow() {
         this.InitializeComponent();
@@ -56,9 +56,9 @@ public partial class ModuleViewerWindow : DesktopWindow {
         this.originalSizeBinder.AttachControl(this.PART_TB_OriginalSize);
 
         if (Design.IsDesignMode) {
-            this.XboxModuleManager = new XboxModuleManager() {
+            this.XboxModuleManager = new ModuleViewer() {
                 Modules = {
-                    new XboxModule() {
+                    new ConsoleModule() {
                         Name = "redacted.xex",
                         FullName = @"HDD:\MyGames\DONOTGOINHERE\sexsimulator.xex",
                         BaseAddress = 0x2169420,
@@ -67,12 +67,12 @@ public partial class ModuleViewerWindow : DesktopWindow {
                         PEModuleName = "Not really sure",
                         OriginalModuleSize = 0x2000,
                         Sections = {
-                            new XboxModuleSection() { BaseAddress = 0x2169420, Index = 0, Size = 0x1000, Flags = XboxSectionInfoFlags.Readable | XboxSectionInfoFlags.Writeable },
-                            new XboxModuleSection() { BaseAddress = 0x216A420, Index = 1, Size = 0x4000, Flags = XboxSectionInfoFlags.Readable | XboxSectionInfoFlags.Writeable },
-                            new XboxModuleSection() { BaseAddress = 0x216D420, Index = 2, Size = 0x8000, Flags = XboxSectionInfoFlags.Executable },
+                            new ConsoleModuleSection() { BaseAddress = 0x2169420, Index = 0, Size = 0x1000, Flags = XboxSectionInfoFlags.Readable | XboxSectionInfoFlags.Writeable },
+                            new ConsoleModuleSection() { BaseAddress = 0x216A420, Index = 1, Size = 0x4000, Flags = XboxSectionInfoFlags.Readable | XboxSectionInfoFlags.Writeable },
+                            new ConsoleModuleSection() { BaseAddress = 0x216D420, Index = 2, Size = 0x8000, Flags = XboxSectionInfoFlags.Executable },
                         }
                     },
-                    new XboxModule() {
+                    new ConsoleModule() {
                         Name = "default.xex",
                         FullName = @"HDD:\MyGames\BlackOps1\default.xex",
                         BaseAddress = 0x82600000,
@@ -81,9 +81,9 @@ public partial class ModuleViewerWindow : DesktopWindow {
                         PEModuleName = "Black ops 1 maybe",
                         OriginalModuleSize = 0x10000,
                         Sections = {
-                            new XboxModuleSection() { BaseAddress = 0x8269420, Index = 0, Size = 0x1000, Flags = XboxSectionInfoFlags.Readable | XboxSectionInfoFlags.Writeable },
-                            new XboxModuleSection() { BaseAddress = 0x826A420, Index = 1, Size = 0x4000, Flags = XboxSectionInfoFlags.Readable | XboxSectionInfoFlags.Writeable },
-                            new XboxModuleSection() { BaseAddress = 0x826D420, Index = 2, Size = 0x8000, Flags = XboxSectionInfoFlags.Executable },
+                            new ConsoleModuleSection() { BaseAddress = 0x8269420, Index = 0, Size = 0x1000, Flags = XboxSectionInfoFlags.Readable | XboxSectionInfoFlags.Writeable },
+                            new ConsoleModuleSection() { BaseAddress = 0x826A420, Index = 1, Size = 0x4000, Flags = XboxSectionInfoFlags.Readable | XboxSectionInfoFlags.Writeable },
+                            new ConsoleModuleSection() { BaseAddress = 0x826D420, Index = 2, Size = 0x8000, Flags = XboxSectionInfoFlags.Executable },
                         }
                     }
                 }
@@ -92,18 +92,18 @@ public partial class ModuleViewerWindow : DesktopWindow {
     }
 
     static ModuleViewerWindow() {
-        XboxModuleManagerProperty.Changed.AddClassHandler<ModuleViewerWindow, XboxModuleManager?>((o, e) => o.OnManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+        XboxModuleManagerProperty.Changed.AddClassHandler<ModuleViewerWindow, ModuleViewer?>((o, e) => o.OnManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
-        XboxModule? item = this.PART_ModuleListBox.SelectedModel;
+        ConsoleModule? item = this.PART_ModuleListBox.SelectedModel;
         if (this.selectedModule != item) {
             this.OnSelectionChanged(this.selectedModule, item);
             this.selectedModule = item;
         }
     }
 
-    private void OnSelectionChanged(XboxModule? oldModule, XboxModule? newModule) {
+    private void OnSelectionChanged(ConsoleModule? oldModule, ConsoleModule? newModule) {
         // TODO: need to map between ObservableList and ObservableCollection
         this.PART_SectionsDataGrid.ItemsSource = newModule?.Sections;
         
@@ -113,7 +113,7 @@ public partial class ModuleViewerWindow : DesktopWindow {
             Binders.AttachModels(newModule, this.shortNameBinder, this.fullNameBinder, this.peModuleNameBinder, this.baseAddressBinder, this.entryPointBinder, this.moduleSizeBinder, this.originalSizeBinder);
     }
 
-    private void OnManagerChanged(XboxModuleManager? oldManager, XboxModuleManager? newManager) {
+    private void OnManagerChanged(ModuleViewer? oldManager, ModuleViewer? newManager) {
         this.PART_ModuleListBox.SetItemsSource(newManager?.Modules);
         if (newManager != null && newManager.Modules.Count > 0) {
             this.PART_ModuleListBox.SelectedModel = newManager.Modules[0];

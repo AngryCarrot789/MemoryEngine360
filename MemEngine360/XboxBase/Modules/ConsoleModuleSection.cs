@@ -22,10 +22,10 @@ using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.XboxBase.Modules;
 
-public delegate void XboxModuleSectionEventHandler(XboxModuleSection sender);
+public delegate void ConsoleModuleSectionEventHandler(ConsoleModuleSection sender);
 
-public class XboxModuleSection : INotifyPropertyChanged {
-    public static readonly DataKey<XboxModuleSection> DataKey = DataKey<XboxModuleSection>.Create("XboxModuleSection");
+public class ConsoleModuleSection : INotifyPropertyChanged {
+    public static readonly DataKey<ConsoleModuleSection> DataKey = DataKey<ConsoleModuleSection>.Create("XboxModuleSection");
 
     private string? name;
     private uint baseAddress;
@@ -102,16 +102,16 @@ public class XboxModuleSection : INotifyPropertyChanged {
     public bool IsExecutable => (this.flags & XboxSectionInfoFlags.Executable) != 0;
     public bool IsUninitialized => (this.flags & XboxSectionInfoFlags.Uninitialized) != 0;
 
-    public event XboxModuleSectionEventHandler? NameChanged;
-    public event XboxModuleSectionEventHandler? BaseAddressChanged;
-    public event XboxModuleSectionEventHandler? SizeChanged;
-    public event XboxModuleSectionEventHandler? IndexChanged;
-    public event XboxModuleSectionEventHandler? FlagsChanged;
+    public event ConsoleModuleSectionEventHandler? NameChanged;
+    public event ConsoleModuleSectionEventHandler? BaseAddressChanged;
+    public event ConsoleModuleSectionEventHandler? SizeChanged;
+    public event ConsoleModuleSectionEventHandler? IndexChanged;
+    public event ConsoleModuleSectionEventHandler? FlagsChanged;
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public XboxModule? Module { get; internal set; }
+    public ConsoleModule? Module { get; internal set; }
 
-    public XboxModuleSection() {
+    public ConsoleModuleSection() {
     }
 
     protected virtual void OnPropertyChanged(string? propertyName = null) {

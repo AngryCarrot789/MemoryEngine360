@@ -42,7 +42,7 @@ public class ShowDebuggerCommand : Command {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
                     if ((token = await OpenDebuggerConnectionCommand.SetConnectionAndHandleProblemsAsync(debugger, connection)) == null) {
-                        await connection.Close();
+                        connection.Close();
                     }
                 }
             }

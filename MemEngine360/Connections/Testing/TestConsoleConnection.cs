@@ -42,8 +42,7 @@ public class TestConsoleConnection : BaseConsoleConnection {
         };
     }
 
-    protected override Task CloseCore() {
-        return Task.CompletedTask;
+    protected override void CloseOverride() {
     }
 
     protected override Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) => this.GetTask();

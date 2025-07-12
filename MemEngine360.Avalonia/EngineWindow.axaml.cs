@@ -120,7 +120,7 @@ public partial class EngineWindow : DesktopWindow {
         try {
             if (connection != null) {
                 engine.SetConnection(token, frame, null, ConnectionChangeCause.User);
-                await connection.Close();
+                connection.Close();
             }
         }
         finally {

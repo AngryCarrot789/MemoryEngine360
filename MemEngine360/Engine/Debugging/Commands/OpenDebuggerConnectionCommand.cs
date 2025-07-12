@@ -57,7 +57,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
                     if ((token = await SetConnectionAndHandleProblemsAsync(debugger, connection)) == null) {
-                        await connection.Close();
+                        connection.Close();
                     }
                 }
             }
@@ -92,7 +92,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
                     }, token: CancellationToken.None);
 
                     try {
-                        await oldConnection.Close();
+                        oldConnection.Close();
                     }
                     catch (Exception) {
                         // ignored
@@ -128,7 +128,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 try {
-                    await newConnection.Close();
+                    newConnection.Close();
                 }
                 catch (Exception) {
                     // ignored
@@ -148,7 +148,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
         if (oldConnection != null) {
             // Always close AFTER changing, just in case a listener wants to send data or whatever
             try {
-                await oldConnection.Close();
+                oldConnection.Close();
             }
             catch (Exception) {
                 // ignored
