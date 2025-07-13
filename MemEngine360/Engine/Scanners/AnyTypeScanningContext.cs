@@ -110,7 +110,7 @@ public class AnyTypeScanningContext : ScanningContext {
 
         // ReSharper disable once AssignmentInConditionalExpression
         if (this.canSearchForString = udto.CanSearchForString) {
-            Encoding encoding = this.stringType.ToEncoding();
+            Encoding encoding = this.stringType.ToEncoding(this.isConnectionLittleEndian);
             int cbInputA = encoding.GetMaxByteCount(this.inputA.Length);
             if (cbInputA > DataTypedScanningContext.ChunkSize) {
                 await IMessageDialogService.Instance.ShowMessage("Invalid input", $"Input is too long. We read data in chunks of {DataTypedScanningContext.ChunkSize / 1024}K, therefore, the string cannot contain more than that many bytes.");
@@ -204,10 +204,10 @@ public class AnyTypeScanningContext : ScanningContext {
                             goto LoopEnd;
                         }
                         // else if ((buffer.Length - sizeof(float)) >= sizeof(float) && (value = this.CompareIntFromFloat<int>(BinaryPrimitives.ReadSingleBigEndian(buffer.Slice((int) i, sizeof(float))), Unsafe.As<int, ulong>(ref val), 0)) != null) {
-                        //     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int32, intNdt, this.stringType, value));
+                        //     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int32, intNdt, this.StringType, value));
                         // }
                         // else if ((buffer.Length - sizeof(double)) >= sizeof(double) && (value = this.CompareIntFromDouble<int>(BinaryPrimitives.ReadDoubleBigEndian(buffer.Slice((int) i, sizeof(double))), Unsafe.As<int, ulong>(ref val), 0)) != null) {
-                        //     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int32, intNdt, this.stringType, value));
+                        //     this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, DataType.Int32, intNdt, this.StringType, value));
                         // }
 
                         break;
@@ -355,7 +355,7 @@ public class AnyTypeScanningContext : ScanningContext {
                 }
                 else if (res.DataType == DataType.String) {
                     using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
-                        Encoding encoding = this.stringType.ToEncoding();
+                        Encoding encoding = this.stringType.ToEncoding(this.isConnectionLittleEndian);
                         int cbSearchTerm = encoding.GetMaxByteCount(this.inputA.Length);
                         byte[] dstByteBuffer = new byte[cbSearchTerm];
                         char[] dstCharBuffer = new char[encoding.GetMaxCharCount(cbSearchTerm)];

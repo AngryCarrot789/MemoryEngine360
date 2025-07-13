@@ -526,7 +526,7 @@ public class ScanningProcessor {
                 }, token: CancellationToken.None);
 
                 bool result = false;
-                if (this.isScanning && connection.IsConnected) {
+                if (this.IsScanning && connection.IsConnected) {
                     thisTask.CancellationToken.ThrowIfCancellationRequested();
                     try {
                         context.ResultFound += (sender, model) => {

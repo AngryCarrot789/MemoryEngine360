@@ -19,10 +19,11 @@
 
 namespace MemEngine360.Engine.Addressing;
 
+/// <summary>
+/// An address whose underlying address value never changes
+/// </summary>
 public sealed class StaticAddress : IMemoryAddress, IEquatable<StaticAddress> {
     public static readonly StaticAddress Zero = new StaticAddress(0);
-    
-    bool IMemoryAddress.IsStatic => true;
     
     public uint Address { get; }
 

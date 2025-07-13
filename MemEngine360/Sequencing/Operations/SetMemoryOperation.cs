@@ -153,7 +153,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
                         dval = 0.0;
                     }
 
-                    value = numVal.DataType == DataType.Float ? new DataValueFloat((float) dval) : new DataValueDouble(dval);
+                    value = numVal.DataType == DataType.Float ? new DataValueFloat((float) Math.Clamp(dval, float.MinValue, float.MaxValue)) : new DataValueDouble(dval);
                 }
                 else {
                     long lval;
@@ -170,9 +170,9 @@ public class SetMemoryOperation : BaseSequenceOperation {
                     }
 
                     switch (numVal.DataType) {
-                        case DataType.Byte:  value = new DataValueByte((byte) lval); break;
-                        case DataType.Int16: value = new DataValueInt16((short) lval); break;
-                        case DataType.Int32: value = new DataValueInt32((int) lval); break;
+                        case DataType.Byte:  value = new DataValueByte((byte) Math.Clamp(lval, byte.MinValue, byte.MaxValue)); break;
+                        case DataType.Int16: value = new DataValueInt16((short) Math.Clamp(lval, short.MinValue, short.MaxValue)); break;
+                        case DataType.Int32: value = new DataValueInt32((int) Math.Clamp(lval, int.MinValue, int.MaxValue)); break;
                         case DataType.Int64: value = new DataValueInt64(lval); break;
                         default:
                             Debug.Fail("Error");
@@ -214,11 +214,8 @@ public class SetMemoryOperation : BaseSequenceOperation {
         }
 
         Span<byte> bytes = stackalloc byte[(int) byteCount];
-        value.GetBytes(bytes);
-        if (value.DataType.IsEndiannessSensitive() && BitConverter.IsLittleEndian != littleEndian) {
-            bytes.Reverse();
-        }
-
+        value.GetBytes(bytes, littleEndian);
+        
         bool appendNullChar = value.DataType == DataType.String && shouldAppendNullChar;
         byte[] buffer = new byte[bytes.Length * iterate + (appendNullChar ? 1 : 0)];
         ref byte bufferAddress = ref MemoryMarshal.GetArrayDataReference(buffer);

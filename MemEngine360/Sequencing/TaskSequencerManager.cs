@@ -108,8 +108,9 @@ public class TaskSequencerManager {
     private async Task OnMemoryEngineConnectionAboutToChange(MemoryEngine sender, ulong frame) {
         List<TaskSequence> items = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.ActiveSequences.ToList());
         if (items.Count > 0) {
+            bool isShuttingDown = sender.IsShuttingDown;
             foreach (TaskSequence sequence in items) {
-                if (sequence.UseEngineConnection)
+                if (sequence.UseEngineConnection || isShuttingDown)
                     sequence.RequestCancellation();
             }
 

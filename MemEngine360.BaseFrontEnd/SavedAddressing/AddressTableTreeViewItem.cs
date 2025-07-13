@@ -100,7 +100,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         DragDrop.DragLeaveEvent.AddClassHandler<AddressTableTreeViewItem>((o, e) => o.OnDragLeave(e));
         DragDrop.DropEvent.AddClassHandler<AddressTableTreeViewItem>((o, e) => o.OnDrop(e));
     }
-
+    
     public void Focus() => base.Focus();
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {

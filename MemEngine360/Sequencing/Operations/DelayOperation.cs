@@ -52,9 +52,16 @@ public class DelayOperation : BaseSequenceOperation {
         this.delay = TimeSpan.FromMilliseconds(delayMillis);
     }
 
-    protected override Task RunOperation(SequenceExecutionContext ctx, CancellationToken token) {
-        ctx.Progress.Text = $"Waiting {Math.Round(this.delay.TotalMilliseconds, 2)} ms";
-        return Task.Delay(this.Delay, token);
+    protected override async Task RunOperation(SequenceExecutionContext ctx, CancellationToken token) {
+        double totalms = this.Delay.TotalMilliseconds;
+        ctx.Progress.Text = $"Waiting {Math.Round(totalms, 2)} ms";
+
+        if (DoubleUtils.GreaterThanOrClose(totalms, 20.0)) {
+            await Task.Delay(this.Delay, token);
+        }
+        else {
+            await Time.DelayForAsync(this.Delay, token);
+        }
     }
 
     public override BaseSequenceOperation CreateClone() {

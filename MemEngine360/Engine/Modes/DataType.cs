@@ -17,8 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections;
-
 namespace MemEngine360.Engine.Modes;
 
 /// <summary>
@@ -109,29 +107,6 @@ public static class DataTypeExtensions {
         }
     }
     
-    /// <summary>
-    /// Returns true when the data type requires reversing the array of bytes used to represent the value.
-    /// So far, this is only true for short, int, long, float and double.
-    /// <para>
-    /// This method is only required when dealing with word-based values greater than 1 byte as a sequence of bytes.
-    /// Most IO operations involving the native value types (e.g. <see cref="IConsoleConnection.WriteValue{T}"/>)
-    /// handle endianness reversal automatically
-    /// </para>
-    /// </summary>
-    /// <param name="dataType"></param>
-    /// <returns></returns>
-    public static bool IsEndiannessSensitive(this DataType dataType) {
-        switch (dataType) {
-            case DataType.Int16:
-            case DataType.Int32:
-            case DataType.Int64:
-            case DataType.Float:
-            case DataType.Double:
-                return true;
-            default: return false;
-        }
-    }
-
     /// <summary>
     /// Returns the data type size (ONLY FOR NUMERIC PRIMITIVES)
     /// </summary>

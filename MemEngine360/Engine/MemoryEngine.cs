@@ -444,7 +444,7 @@ public class MemoryEngine {
             case DataType.Int64:     return new DataValueInt64(await connection.ReadValue<long>(address).ConfigureAwait(false));
             case DataType.Float:     return new DataValueFloat(await connection.ReadValue<float>(address).ConfigureAwait(false));
             case DataType.Double:    return new DataValueDouble(await connection.ReadValue<double>(address).ConfigureAwait(false));
-            case DataType.String:    return new DataValueString(await connection.ReadString(address, strlen, stringType.ToEncoding()).ConfigureAwait(false), stringType);
+            case DataType.String:    return new DataValueString(await connection.ReadString(address, strlen, stringType.ToEncoding(connection.IsLittleEndian)).ConfigureAwait(false), stringType);
             case DataType.ByteArray: return new DataValueByteArray(await connection.ReadBytes(address, arrlen).ConfigureAwait(false));
             default:                 throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
         }
@@ -468,7 +468,9 @@ public class MemoryEngine {
             case DataType.Int64:     return new DataValueInt64(await connection.ReadValue<long>(address).ConfigureAwait(false));
             case DataType.Float:     return new DataValueFloat(await connection.ReadValue<float>(address).ConfigureAwait(false));
             case DataType.Double:    return new DataValueDouble(await connection.ReadValue<double>(address).ConfigureAwait(false));
-            case DataType.String:    return new DataValueString(await connection.ReadString(address, ((DataValueString) value).Value.Length, ((DataValueString) value).StringType.ToEncoding()).ConfigureAwait(false), ((DataValueString) value).StringType);
+            case DataType.String:
+                StringType sType = ((DataValueString) value).StringType;
+                return new DataValueString(await connection.ReadString(address, ((DataValueString) value).Value.Length, sType.ToEncoding(connection.IsLittleEndian)).ConfigureAwait(false), sType);
             case DataType.ByteArray: return new DataValueByteArray(await connection.ReadBytes(address, ((DataValueByteArray) value).Value.Length).ConfigureAwait(false));
             default:                 throw new Exception("Value contains an invalid data type");
         }
@@ -492,7 +494,7 @@ public class MemoryEngine {
             case DataType.Double: await connection.WriteValue(address, ((DataValueDouble) value).Value).ConfigureAwait(false); break;
             case DataType.String: {
                 byte[] array = new byte[value.ByteCount + (appendNullCharForString ? 1 : 0)];
-                value.GetBytes(array);
+                ((DataValueString) value).GetBytes(array, connection.IsLittleEndian);
                 await connection.WriteBytes(address, array).ConfigureAwait(false);
                 break;
             }

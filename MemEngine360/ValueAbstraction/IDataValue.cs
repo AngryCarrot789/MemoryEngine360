@@ -56,16 +56,21 @@ public interface IDataValue : IEquatable<IDataValue> {
     /// </para>
     /// </summary>
     /// <param name="buffer">The dst buffer</param>
-    void GetBytes(Span<byte> buffer);
+    /// <param name="littleEndian">
+    /// True to specify the data must be written as little endian relative to the system endianness.
+    /// May be ignored for data types where endianness isn't applicable (e.g. byte array or byte)
+    /// </param>
+    void GetBytes(Span<byte> buffer, bool littleEndian);
 
     /// <summary>
     /// A helper method for getting the bytes of this data value as an array. This creates an array
     /// of <see cref="ByteCount"/> length and passes it to <see cref="GetBytes(System.Span{byte})"/>.
     /// </summary>
+    /// <param name="littleEndian">True to specify the data must be written as little endian relative to the system endianness</param>
     /// <returns>An array containing <see cref="ByteCount"/> elements representing the underlying value this object stores</returns>
-    byte[] GetBytes() {
+    byte[] GetBytes(bool littleEndian) {
         byte[] buffer = new byte[this.ByteCount];
-        this.GetBytes(buffer.AsSpan());
+        this.GetBytes(buffer.AsSpan(), littleEndian);
         return buffer;
     }
 

@@ -23,35 +23,38 @@ namespace MemEngine360.Engine.Modes;
 
 public enum StringType {
     /// <summary>
-    /// ASCII chars, basically the same as UTF8, one byte per character
+    /// Fixed single-byte encoding, 1 byte, only first 7-bits are used
     /// </summary>
     ASCII,
+
     /// <summary>
-    /// UTF8 chars, basically the same as ASCII, one byte per character
+    /// Variable length encoding, 1 to 4 bytes.
     /// </summary>
     UTF8,
+
     /// <summary>
-    /// Unicode chars, two bytes per character
+    /// Variable length encoding, 2 or 4 bytes. Endianness is relative to connection
     /// </summary>
     UTF16,
+
     /// <summary>
-    /// UTF32 chars, four bytes per character
+    /// Fixed length encoding of 4 bytes.
     /// </summary>
     UTF32
 }
 
 public static class StringTypeExtensions {
-    public static Encoding ToEncoding(this StringType stringType) {
+    public static Encoding ToEncoding(this StringType stringType, bool isLittleEndian) {
         switch (stringType) {
             case StringType.ASCII: return Encoding.ASCII;
             case StringType.UTF8:  return Encoding.UTF8;
-            case StringType.UTF16: return Encoding.Unicode;
+            case StringType.UTF16: return isLittleEndian ? Encoding.Unicode : Encoding.BigEndianUnicode;
             case StringType.UTF32: return Encoding.UTF32;
             default:               throw new ArgumentOutOfRangeException(nameof(stringType), stringType, null);
         }
     }
-    
-    public static uint GetByteCount(this StringType stringType, string value) {
-        return (uint) stringType.ToEncoding().GetByteCount(value);
+
+    public static uint GetByteCount(this StringType stringType, string value, bool isLittleEndian) {
+        return (uint) stringType.ToEncoding(isLittleEndian).GetByteCount(value);
     }
 }

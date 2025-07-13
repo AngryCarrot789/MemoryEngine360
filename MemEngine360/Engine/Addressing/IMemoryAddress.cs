@@ -25,33 +25,28 @@ using MemEngine360.Engine.SavedAddressing;
 namespace MemEngine360.Engine.Addressing;
 
 public interface IMemoryAddress {
-    /// <summary>
-    /// Gets whether this address is static and can therefore be resolved without needing to be connected to a console
-    /// </summary>
-    bool IsStatic { get; }
-
     string ToString();
 }
 
 public static class MemoryAddressUtils {
-    // Remove requirement for base pointer offset
     private static (IMemoryAddress?, string?) TryParseInternal(string? input) {
         if (string.IsNullOrWhiteSpace(input))
-            return (null, "Input cannot be an empty string");
+            return (null, "Input string is empty");
+        
+        // 820002CD
         if (uint.TryParse(input, NumberStyles.HexNumber, null, out uint staticAddress))
             return (new StaticAddress(staticAddress), null);
 
-        // 820002CD
         // 820002CD->25C->40->118
-        ReadOnlySpan<char> span;
-        List<int> offsets = new List<int>();
         int firstOffset = input.IndexOf("->", StringComparison.Ordinal);
         if (firstOffset == -1)
-            return (null, "Missing dereference tokens \"->\"" + input);
+            return (null, "Missing dereference token(s) \"->\"" + input);
         
-        if (!uint.TryParse(span = input.AsSpan(0, firstOffset), NumberStyles.HexNumber, null, out uint baseAddress))
+        ReadOnlySpan<char> span = input.AsSpan(0, firstOffset);
+        if (!uint.TryParse(span, NumberStyles.HexNumber, null, out uint baseAddress))
             return (null, "Invalid base address: " + span.ToString());
         
+        List<int> offsets = new List<int>();
         int idxPtrToken, idxBeginLastOffset = firstOffset + 2, offset;
         while ((idxPtrToken = input.IndexOf("->", idxBeginLastOffset, StringComparison.Ordinal)) != -1) {
             span = input.AsSpan(idxBeginLastOffset, idxPtrToken - idxBeginLastOffset);
@@ -64,8 +59,8 @@ public static class MemoryAddressUtils {
 
         if (!int.TryParse(span = input.AsSpan(idxBeginLastOffset), NumberStyles.HexNumber, null, out offset))
             return (null, "Invalid offset: " + span.ToString());
+        
         offsets.Add(offset);
-
         return (new DynamicAddress(baseAddress, offsets), null);
     }
 
@@ -81,8 +76,8 @@ public static class MemoryAddressUtils {
     }
 
     public static async Task<uint?> TryResolveAddressFromATE(AddressTableEntry entry) {
-        if (entry.MemoryAddress.IsStatic) {
-            return ((StaticAddress) entry.MemoryAddress).Address;
+        if (entry.MemoryAddress is StaticAddress staticAddress) {
+            return staticAddress.Address;
         }
 
         IDisposable? token;

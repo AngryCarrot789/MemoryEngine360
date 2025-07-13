@@ -105,7 +105,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
             case DataType.Float:  this.cbDataType = sizeof(float); break;
             case DataType.Double: this.cbDataType = sizeof(double); break;
             case DataType.String: {
-                Encoding encoding = this.stringType.ToEncoding();
+                Encoding encoding = this.stringType.ToEncoding(this.isConnectionLittleEndian);
                 int cbInputA = encoding.GetMaxByteCount(this.inputA.Length);
                 if (cbInputA > ChunkSize) {
                     await IMessageDialogService.Instance.ShowMessage("Invalid input", $"Input is too long. We read data in chunks of {ChunkSize / 1024}K, therefore, the string cannot contain more than that many bytes.");
@@ -340,7 +340,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
         else if (this.dataType == DataType.String) {
             using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
-                Encoding encoding = this.stringType.ToEncoding();
+                Encoding encoding = this.stringType.ToEncoding(this.isConnectionLittleEndian);
                 bool useInputValue = !this.nextScanUsesFirstValue && !this.nextScanUsesPreviousValue;
                 int cbInputValue = useInputValue ? encoding.GetMaxByteCount(this.inputA.Length) : 0;
                 byte[]? inputByteBuffer = useInputValue ? new byte[cbInputValue] : null;
@@ -375,7 +375,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                         dstCharBuffer = new char[encoding.GetMaxCharCount(cbSearchTerm)];
                     }
 
-                    // int cchBuffer = this.stringType.ToEncoding().GetChars(memory, this.charBuffer.AsSpan());
+                    // int cchBuffer = this.StringType.ToEncoding().GetChars(memory, this.charBuffer.AsSpan());
 
                     await connection.ReadBytes(res.Address, dstByteBuffer, 0, cbSearchTerm);
                     if (encoding.TryGetChars(dstByteBuffer, dstCharBuffer, out int cchRead)) {

@@ -3,10 +3,12 @@
                              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                              xmlns:listContent="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent"
+                             xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                              mc:Ignorable="d" d:DesignWidth="250" d:DesignHeight="24"
                              x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent.DelayOperationListContent">
     <StackPanel Orientation="Horizontal">
-        <TextBlock Text="Delay for" FontFamily="{StaticResource FontOxanium}" FontWeight="Medium" VerticalAlignment="Center" Padding="4,0"/>
+        <TextBlock Text="Delay for" FontFamily="{StaticResource FontOxanium}" FontWeight="Medium" VerticalAlignment="Center" Padding="4,0"
+                   tt:ToolTipEx.Tip="Delay time. Note, less than 20 milliseconds will use high-precision timing, which increases CPU usage"/>
         <TextBox x:Name="PART_DelayTextBox" 
                  VerticalContentAlignment="Center" VerticalAlignment="Center"
                  Padding="2,2"

@@ -42,22 +42,20 @@ public sealed class DynamicAddress : IMemoryAddress, IEquatable<DynamicAddress> 
     /// Gets the base address of this memory address.
     /// </summary>
     public uint BaseAddress { get; }
-    
+
     /// <summary>
     /// Gets the list of one or more offsets for pointer resolution
     /// </summary>
     public ImmutableArray<int> Offsets { get; }
 
-    bool IMemoryAddress.IsStatic => false;
-    
     public DynamicAddress(uint baseAddress, ImmutableArray<int> offsets) {
         if (offsets.IsEmpty)
             throw new ArgumentException("Offsets cannot be empty.", nameof(offsets));
-        
+
         this.BaseAddress = baseAddress;
         this.Offsets = offsets;
     }
-    
+
     public DynamicAddress(uint baseAddress, IEnumerable<int> offsets) : this(baseAddress, offsets.ToImmutableArray()) {
     }
 
@@ -90,6 +88,6 @@ public sealed class DynamicAddress : IMemoryAddress, IEquatable<DynamicAddress> 
             sb.Append("->").Append(offset.ToString("X"));
         }
 
-        return sb.ToString(); 
+        return sb.ToString();
     }
 }

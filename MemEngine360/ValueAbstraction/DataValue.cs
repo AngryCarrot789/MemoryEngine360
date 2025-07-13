@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using MemEngine360.Engine.Modes;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.ValueAbstraction;
 
@@ -42,8 +43,7 @@ public abstract class BaseNumericDataValue : IDataValue, IComparable<BaseNumeric
     public abstract float ToFloat();
     public abstract double ToDouble();
 
-
-    public abstract void GetBytes(Span<byte> buffer);
+    public abstract void GetBytes(Span<byte> buffer, bool littleEndian);
 
     public abstract bool Equals(IDataValue? other);
 
@@ -57,14 +57,14 @@ public abstract class BaseNumericDataValue : IDataValue, IComparable<BaseNumeric
             return 0;
         if (ReferenceEquals(null, other))
             return 1;
-        
+
         if (this.DataType.IsInteger() && other.DataType.IsInteger())
             return this.ToLong().CompareTo(other.ToLong());
-        
+
         Debug.Assert(this.DataType.IsFloatingPoint() || other.DataType.IsFloatingPoint());
         if (this.DataType == DataType.Float && other.DataType == DataType.Float)
             return this.ToFloat().CompareTo(other.ToFloat());
-        
+
         return this.ToDouble().CompareTo(other.ToDouble());
     }
 }
@@ -161,12 +161,15 @@ public abstract class BaseNumericDataValue<T> : BaseNumericDataValue where T : u
         return Math.Clamp(Convert.ToDouble(value), double.MinValue, double.MaxValue);
     }
 
-    public override void GetBytes(Span<byte> buffer) {
+    public override void GetBytes(Span<byte> buffer, bool littleEndian) {
         if (buffer.Length < TypeSize) {
             throw new ArgumentException($"Buffer is too small ({buffer.Length} < {TypeSize})");
         }
 
         Unsafe.As<byte, T>(ref buffer.GetPinnableReference()) = this.Value;
+        if (BitConverter.IsLittleEndian != littleEndian) {
+            buffer.Reverse();
+        }
     }
 
     protected bool Equals(BaseNumericDataValue<T> other) {
@@ -219,24 +222,16 @@ public class DataValueString : IDataValue {
 
     public object BoxedValue => this.Value;
 
-    public uint ByteCount => this.StringType.GetByteCount(this.Value);
+    public uint ByteCount => this.StringType.GetByteCount(this.Value, false); // Endianness doesn't necessarily matter here, i think
 
     public DataValueString(string value, StringType stringType) {
+        EnumUtils.Validate(stringType);
         this.Value = value;
         this.StringType = stringType;
-
-        switch (this.StringType) {
-            case StringType.ASCII:
-            case StringType.UTF8:
-            case StringType.UTF16:
-            case StringType.UTF32:
-                break;
-            default: throw new ArgumentOutOfRangeException();
-        }
     }
 
-    public void GetBytes(Span<byte> buffer) {
-        this.StringType.ToEncoding().GetBytes(this.Value, buffer);
+    public void GetBytes(Span<byte> buffer, bool littleEndian) {
+        this.StringType.ToEncoding(littleEndian).GetBytes(this.Value, buffer);
     }
 
     protected bool Equals(DataValueString other) {
@@ -271,7 +266,7 @@ public class DataValueByteArray : IDataValue {
         this.Value = value;
     }
 
-    public void GetBytes(Span<byte> buffer) {
+    public void GetBytes(Span<byte> buffer, bool littleEndian) {
         this.Value.CopyTo(buffer);
     }
 
