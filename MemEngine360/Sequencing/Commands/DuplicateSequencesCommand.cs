@@ -43,7 +43,7 @@ public class DuplicateSequencesCommand : Command {
         int offset = 0;
         foreach ((TaskSequence Seq, int Idx) item in clones) {
             item.Seq.DisplayName = TextIncrement.GetNextText(ui.Manager.Sequences.Select(x => x.DisplayName).ToList(), item.Seq.DisplayName, false);
-            ui.Manager.InsertSequence(offset + item.Idx + 1, item.Seq); // +1 to add after the existing item
+            ui.Manager.Sequences.Insert(offset + item.Idx + 1, item.Seq); // +1 to add after the existing item
             offset++;
         }
 

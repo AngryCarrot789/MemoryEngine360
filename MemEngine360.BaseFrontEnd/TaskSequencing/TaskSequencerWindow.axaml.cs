@@ -220,17 +220,17 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
 
     private void PART_ClearOperationsClick(object? sender, RoutedEventArgs e) {
         if (this.PrimarySelectedSequence != null && !this.PrimarySelectedSequence.TaskSequence.IsRunning)
-            this.PrimarySelectedSequence.TaskSequence.ClearOperations();
+            this.PrimarySelectedSequence.TaskSequence.Operations.Clear();
     }
 
     private void Button_InsertDelay(object? sender, RoutedEventArgs e) {
         if (this.PrimarySelectedSequence != null && !this.PrimarySelectedSequence.TaskSequence.IsRunning)
-            this.PrimarySelectedSequence.TaskSequence.AddOperation(new DelayOperation(500));
+            this.PrimarySelectedSequence.TaskSequence.Operations.Add(new DelayOperation(500));
     }
 
     private void Button_InsertSetMemory(object? sender, RoutedEventArgs e) {
         if (this.PrimarySelectedSequence != null && !this.PrimarySelectedSequence.TaskSequence.IsRunning)
-            this.PrimarySelectedSequence.TaskSequence.AddOperation(new SetMemoryOperation() { Address = new StaticAddress(0x82600000), DataValueProvider = new ConstantDataProvider(new DataValueInt32(125)) });
+            this.PrimarySelectedSequence.TaskSequence.Operations.Add(new SetMemoryOperation() { Address = new StaticAddress(0x82600000), DataValueProvider = new ConstantDataProvider(new DataValueInt32(125)) });
     }
 
     private void Button_OnClick(object? sender, RoutedEventArgs e) {

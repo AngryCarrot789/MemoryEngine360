@@ -53,11 +53,7 @@ public class ConditionsListBox : ModelBasedListBox<BaseSequenceCondition> {
     }
 
     protected override void MoveItemIndex(int oldIndex, int newIndex) {
-        if (this.TaskSequence is TaskSequence seq) {
-            BaseSequenceCondition entry = seq.Conditions[oldIndex];
-            seq.Conditions.RemoveAt(oldIndex);
-            seq.Conditions.Insert(newIndex, entry);
-        }
+        this.TaskSequence?.Conditions.Move(oldIndex, newIndex);
     }
 
     private void OnTaskSequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {

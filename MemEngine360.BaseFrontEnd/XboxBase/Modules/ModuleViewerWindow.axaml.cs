@@ -104,7 +104,6 @@ public partial class ModuleViewerWindow : DesktopWindow {
     }
 
     private void OnSelectionChanged(ConsoleModule? oldModule, ConsoleModule? newModule) {
-        // TODO: need to map between ObservableList and ObservableCollection
         this.PART_SectionsDataGrid.ItemsSource = newModule?.Sections;
         
         if (oldModule != null)

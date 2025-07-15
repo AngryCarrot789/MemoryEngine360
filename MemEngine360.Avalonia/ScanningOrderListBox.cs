@@ -43,9 +43,7 @@ public class ScanningOrderListBox : ModelBasedListBox<ScanningOrderModel> {
     protected override ModelBasedListBoxItem<ScanningOrderModel> CreateItem() => new ScanningOrderListBoxItem();
 
     protected override void MoveItemIndex(int oldIndex, int newIndex) {
-        ScanningOrderModel entry = this.options!.Orders[oldIndex];
-        this.options.Orders.RemoveAt(oldIndex);
-        this.options.Orders.Insert(newIndex, entry);
+        this.options!.Orders.Move(oldIndex, newIndex);
     }
 }
 

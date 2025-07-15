@@ -48,7 +48,7 @@ public class DuplicateOperationsCommand : Command {
                                                                      OrderBy(x => x.Idx).ToList();
         int offset = 1; // +1 to add after the existing item
         foreach ((BaseSequenceOperation Operation, int Idx) item in clones) {
-            sequence.TaskSequence.InsertOperation(offset + item.Idx, item.Operation);
+            sequence.TaskSequence.Operations.Insert(offset + item.Idx, item.Operation);
             offset++;
         }
         

@@ -140,7 +140,7 @@ public class XmlTaskSequenceSerialization {
         
         if (element.GetElementsByTagName("OperationList").OfType<XmlElement>().FirstOrDefault() is XmlElement operationListElement) {
             foreach (XmlElement operationElement in operationListElement.GetElementsByTagName("Operation").OfType<XmlElement>()) {
-                sequence.AddOperation(DeserializeOperation(operationElement));
+                sequence.Operations.Add(DeserializeOperation(operationElement));
             }
         }
         

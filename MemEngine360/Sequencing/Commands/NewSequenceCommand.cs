@@ -42,7 +42,7 @@ public class NewSequenceCommand : Command {
                 DisplayName = info.Text
             };
             
-            ui.Manager.AddSequence(sequence);
+            ui.Manager.Sequences.Add(sequence);
             ui.SequenceSelectionManager.SetSelection(ui.GetSequenceControl(sequence));
         }
     }

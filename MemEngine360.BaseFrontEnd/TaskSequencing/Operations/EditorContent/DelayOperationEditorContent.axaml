@@ -8,9 +8,9 @@
                                x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.DelayOperationEditorContent"
                                Width="100">
     <StackPanel Margin="2">
-        <TextBlock Padding="1,2" Text="Delay for" tt:ToolTipEx.Tip="Delay time. Note, less than 20 milliseconds will use high-precision timing, which increases CPU usage"/>
+        <TextBlock Padding="1,2" Text="Delay for"/>
         <TextBox x:Name="PART_DelayTextBox" Padding="2,2" VerticalContentAlignment="Center"
-                 tt:ToolTipEx.Tip="The chance of the operation running. When set to 1, it has a 100% chance of running. Cannot be 0"
+                 tt:ToolTipEx.Tip="Delay time. Note, less than 20 milliseconds will use high-precision timing, which increases CPU usage"
                  Background="{DynamicResource ABrush.Tone1.Background.Static}"/>
     </StackPanel>
 </editorContent:BaseOperationEditorContent>

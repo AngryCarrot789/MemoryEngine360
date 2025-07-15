@@ -572,7 +572,7 @@ public class ScanningProcessor {
                                         token = await context.PerformNextScan(connection, srcList, token);
                                     }
                                     catch (OperationCanceledException) {
-                                        // ignored
+                                        Debugger.Break(); // OCE should not be thrown
                                     }
                                     catch (Exception e) when (e is IOException || e is TimeoutException) {
                                         await IMessageDialogService.Instance.ShowMessage("Connection error", e is IOException ? "IO Error running next scan" : "Timeout while running next scan", e.ToString());
@@ -610,7 +610,7 @@ public class ScanningProcessor {
                                 token = await context.PerformFirstScan(connection, token);
                             }
                             catch (OperationCanceledException) {
-                                // ignored
+                                Debugger.Break(); // OCE should not be thrown
                             }
                             catch (Exception e) when (e is IOException || e is TimeoutException) {
                                 await IMessageDialogService.Instance.ShowMessage("Connection error", e is IOException ? "IO Error performing first scan" : "Timeout while performing first scan", e.ToString());
@@ -667,7 +667,7 @@ public class ScanningProcessor {
                     this.HasDoneFirstScan = result;
                     this.IsScanning = false;
                     if (!this.MemoryEngine.IsShuttingDown) { // another race condition i suppose
-                        if (token != null) {
+                        if (this.MemoryEngine.BusyLocker.IsTokenValid(token)) {
                             this.MemoryEngine.CheckConnection(token);
                         }
                         else {
@@ -714,6 +714,10 @@ public class ScanningProcessor {
             return; // concurrent operations are dangerous and can corrupt the communication pipe until restarting connection
         }
 
+        if (this.resultBuffer.IsEmpty && this.ScanResults.Count < 1 && this.MemoryEngine.AddressTableManager.RootEntry.Items.Count < 1) {
+            return; // nothing to update so do nothing
+        }
+
         using IDisposable? token = this.MemoryEngine.BeginBusyOperation();
         if (token == null) {
             return; // do not read while connection busy
@@ -736,7 +740,7 @@ public class ScanningProcessor {
         if (this.MemoryEngine.IsShuttingDown) {
             return;
         }
-        
+
         IConsoleConnection connection = this.MemoryEngine.Connection ?? throw new InvalidOperationException("No connection present");
 
         uint max = BasicApplicationConfiguration.Instance.MaxRowsBeforeDisableAutoRefresh;

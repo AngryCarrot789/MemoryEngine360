@@ -34,8 +34,6 @@ public delegate void TaskSequenceDedicatedConnectionChangedEventHandler(TaskSequ
 /// A sequence that contains a list of operations
 /// </summary>
 public sealed class TaskSequence {
-    private readonly ObservableList<BaseSequenceOperation> operations;
-    private readonly LinkedList<TaskCompletionSource> completionNotifications = [];
     internal TaskSequencerManager? myManager;
     private string displayName = "Empty Sequence";
     private int runCount = 1;
@@ -44,16 +42,22 @@ public sealed class TaskSequence {
     private IConsoleConnection? dedicatedConnection;
 
     // Running info
-    private bool isRunning;
+    private volatile int isRunning;
     private CancellationTokenSource? myCts;
+    private TaskCompletionSource? myTcs;
     private SequenceExecutionContext? myContext;
 
     /// <summary>
     /// Gets whether this sequence is currently running. This only changes on the main thread
     /// </summary>
     public bool IsRunning {
-        get => this.isRunning;
-        private set => PropertyHelper.SetAndRaiseINE(ref this.isRunning, value, this, static t => t.IsRunningChanged?.Invoke(t));
+        get => this.isRunning != 0;
+        private set {
+            int newState = value ? 1 : 0;
+            if (Interlocked.Exchange(ref this.isRunning, newState) != newState) {
+                this.IsRunningChanged?.Invoke(this);
+            }
+        }
     }
 
     public string DisplayName {
@@ -102,21 +106,21 @@ public sealed class TaskSequence {
             PropertyHelper.SetAndRaiseINE(ref this.dedicatedConnection, value, this, static (t, a, b) => t.DedicatedConnectionChanged?.Invoke(t, a, b));
         }
     }
-    
+
     /// <summary>
     /// Gets the <see cref="TaskSequencerManager"/> that this sequence exists in
     /// </summary>
     public TaskSequencerManager? Manager => this.myManager;
-    
+
     /// <summary>
     /// Gets the exception encountered while executing an operation in this sequence. This is set before <see cref="IsRunning"/> is changed
     /// </summary>
     public Exception? LastException { get; private set; }
-    
+
     /// <summary>
     /// Gets our operations
     /// </summary>
-    public ReadOnlyObservableList<BaseSequenceOperation> Operations { get; }
+    public ObservableList<BaseSequenceOperation> Operations { get; }
 
     /// <summary>
     /// Gets the list of conditions that must be met for this sequence to run.
@@ -124,16 +128,17 @@ public sealed class TaskSequence {
     public ObservableList<BaseSequenceCondition> Conditions { get; }
 
     public IActivityProgress Progress { get; }
-    
+
     /// <summary>
     /// An event fired when our running state changes. When this fires, the first operation will not have run yet.
     /// </summary>
     public event TaskSequenceEventHandler? IsRunningChanged;
+
     public event TaskSequenceEventHandler? DisplayNameChanged;
     public event TaskSequenceEventHandler? RunCountChanged;
     public event TaskSequenceEventHandler? HasBusyLockPriorityChanged;
     public event TaskSequenceEventHandler? UseEngineConnectionChanged;
-    
+
     /// <summary>
     /// Raised when <see cref="DedicatedConnection"/> changes. When <see cref="UseEngineConnection"/> is being set to true,
     /// the dedicated connection is closed and set to null, in which case, this event fires BEFORE <see cref="UseEngineConnection"/> is set to true
@@ -141,8 +146,32 @@ public sealed class TaskSequence {
     public event TaskSequenceDedicatedConnectionChangedEventHandler? DedicatedConnectionChanged;
 
     public TaskSequence() {
-        this.operations = new ObservableList<BaseSequenceOperation>();
-        this.Operations = new ReadOnlyObservableList<BaseSequenceOperation>(this.operations);
+        this.Operations = new ObservableList<BaseSequenceOperation>();
+        this.Operations.BeforeItemAdded += (list, index, item) => {
+            if (item == null)
+                throw new ArgumentNullException(nameof(item), "Cannot add a null operation");
+            if (item.Sequence == this)
+                throw new InvalidOperationException("Operation already exists in this operation. It must be removed first");
+            if (item.Sequence != null)
+                throw new InvalidOperationException("Operation already exists in another container. It must be removed first");
+            this.CheckNotRunning("Cannot modify sequence list while running");
+        };
+
+        this.Operations.BeforeItemsRemoved += (list, index, count) => this.CheckNotRunning("Cannot modify sequence list while running");
+        this.Operations.BeforeItemMoved += (list, oldIdx, newIdx, item) => this.CheckNotRunning("Cannot modify sequence list while running");
+        this.Operations.BeforeItemReplace += (list, index, oldItem, newItem) => {
+            if (newItem == null)
+                throw new ArgumentNullException(nameof(newItem), "Cannot replace operation with null");
+            this.CheckNotRunning("Cannot modify sequence list while running");
+        };
+
+        this.Operations.ItemsAdded += (list, index, items) => items.ForEach(this, BaseSequenceOperation.InternalSetSequence);
+        this.Operations.ItemsRemoved += (list, index, items) => items.ForEach((TaskSequence?) null, BaseSequenceOperation.InternalSetSequence);
+        this.Operations.ItemReplaced += (list, index, oldItem, newItem) => {
+            BaseSequenceOperation.InternalSetSequence(oldItem, null);
+            BaseSequenceOperation.InternalSetSequence(newItem, this);
+        };
+
         this.Conditions = new ObservableList<BaseSequenceCondition>();
         this.Conditions.BeforeItemAdded += (list, i, item) => {
             this.CheckNotRunning("Cannot add conditions while running");
@@ -154,8 +183,18 @@ public sealed class TaskSequence {
 
         this.Conditions.BeforeItemsRemoved += (list, index, count) => this.CheckNotRunning($"Cannot remove condition{Lang.S(count)} while running");
         this.Conditions.BeforeItemMoved += (list, oldIdx, newIdx, item) => this.CheckNotRunning("Cannot move conditions while running");
-        this.Conditions.BeforeItemReplace += (list, index, a, b) => this.CheckNotRunning("Cannot replace condition while running");
-        ObservableItemProcessor.MakeSimple(this.Conditions, c => BaseSequenceCondition.InternalSetSequence(c, this), c => BaseSequenceCondition.InternalSetSequence(c, null));
+        this.Conditions.BeforeItemReplace += (list, index, oldItem, newItem) => {
+            if (newItem == null)
+                throw new ArgumentNullException(nameof(newItem), "Cannot replace condition with null");
+            this.CheckNotRunning("Cannot replace condition while running");
+        };
+
+        this.Conditions.ItemsAdded += (list, index, items) => items.ForEach(this, BaseSequenceCondition.InternalSetSequence);
+        this.Conditions.ItemsRemoved += (list, index, items) => items.ForEach((TaskSequence?) null, BaseSequenceCondition.InternalSetSequence);
+        this.Conditions.ItemReplaced += (list, index, oldItem, newItem) => {
+            BaseSequenceCondition.InternalSetSequence(oldItem, null);
+            BaseSequenceCondition.InternalSetSequence(newItem, this);
+        };
 
         this.Progress = new DefaultProgressTracker();
         this.Progress.Text = "Sequence not running";
@@ -174,9 +213,9 @@ public sealed class TaskSequence {
 
         foreach (BaseSequenceCondition condition in this.Conditions)
             sequence.Conditions.Add(condition.CreateClone());
-        
-        foreach (BaseSequenceOperation operation in this.operations)
-            sequence.AddOperation(operation.CreateClone());
+
+        foreach (BaseSequenceOperation operation in this.Operations)
+            sequence.Operations.Add(operation.CreateClone());
 
         return sequence;
     }
@@ -187,10 +226,11 @@ public sealed class TaskSequence {
         if (this.myManager == null)
             throw new InvalidOperationException("Cannot run standalone without a " + nameof(TaskSequencerManager));
 
-        Debug.Assert(this.myCts == null);
+        Debug.Assert(this.myCts == null && this.myTcs == null);
         Debug.Assert(this.myContext == null);
         Debug.Assert(isConnectionDedicated == !this.UseEngineConnection);
         using CancellationTokenSource cts = this.myCts = new CancellationTokenSource();
+        this.myTcs = new TaskCompletionSource();
         this.myContext = new SequenceExecutionContext(this, this.Progress, connection, busyToken, isConnectionDedicated);
         this.LastException = null;
         TaskSequencerManager.InternalSetIsRunning(this.myManager!, this, true);
@@ -199,27 +239,26 @@ public sealed class TaskSequence {
         this.Progress.Text = "Running sequence";
         this.Progress.IsIndeterminate = true;
 
-        List<BaseSequenceOperation> ops = this.operations.ToList();
-        foreach (BaseSequenceOperation operation in ops)
+        List<BaseSequenceOperation> operations = this.Operations.ToList();
+        List<BaseSequenceCondition> conditions = this.Conditions.ToList();
+        foreach (BaseSequenceOperation operation in operations)
             operation.OnSequenceStarted();
-        foreach (BaseSequenceCondition condition in this.Conditions)
+        foreach (BaseSequenceCondition condition in conditions)
             condition.OnSequenceStarted();
 
         CancellationToken token = this.myCts.Token;
-        await ActivityManager.Instance.RunTask(async () => {
-            for (int count = this.runCount; (count < 0 || count != 0) && !token.IsCancellationRequested; --count) {
-                if (this.Conditions.Count > 0) {
+        Task task = Task.Run(async () => {
+            int remainingRunCount = this.runCount;
+            while ((remainingRunCount < 0 || remainingRunCount != 0) && !token.IsCancellationRequested) {
+                if (conditions.Count > 0) {
                     this.Progress.Text = "Checking conditions...";
                     this.Progress.IsIndeterminate = true;
-                    
+
                     try {
-                        Task<bool> task = this.CanRunForConditions(token);
-                        bool wasCompletedSync = task.IsCompleted;
-                        bool result = await task;
-                        if (!result) {
-                            if (wasCompletedSync)
-                                // try save some CPU between iterations
-                                await Task.Yield();
+                        Task<bool> updateTask = this.UpdateConditionsAndCheckCanRun(conditions, token);
+                        bool canRun = await updateTask;
+                        if (!canRun) {
+                            await Task.Delay(10, token);
                             continue;
                         }
                     }
@@ -230,19 +269,24 @@ public sealed class TaskSequence {
                         this.LastException = e;
                         return;
                     }
-                    
+
                     this.Progress.IsIndeterminate = false;
+
+                    // Even though there's no operations to run, the user may want to just
+                    // see a condition's output. We add a delay to save some CPU cycles
+                    if (!operations.Any(x => x.IsEnabled)) {
+                        await Task.Delay(10, token);
+                    }
+                }
+                else if (operations.Count < 1) {
+                    // No reason to keep the task running; no operations to run and no conditions to update
+                    this.RequestCancellation();
+                    break;
                 }
 
-                this.Progress.Text = "Running operation(s)";
-                
-                // Save some CPU cycles
-                if (ops.Count < 1) {
-                    await Task.Delay(25, token);
-                }
-                
-                foreach (BaseSequenceOperation operation in ops) {
-                    if (operation.IsEnabled) {
+                if (operations.Count > 0) {
+                    this.Progress.Text = "Running operation(s)";
+                    foreach (BaseSequenceOperation operation in operations) {
                         try {
                             await operation.Run(this.myContext, token);
                         }
@@ -255,12 +299,27 @@ public sealed class TaskSequence {
                         }
                     }
                 }
-            }
-        }, this.Progress, this.myCts);
 
-        foreach (BaseSequenceOperation operation in ops)
+                // Do not decrease when runCount is negative, since it may underflow to positive MaxValue
+                if (remainingRunCount > 0) --remainingRunCount;
+            }
+        }, CancellationToken.None);
+
+        try {
+            await task;
+        }
+        catch (OperationCanceledException) {
+            // ignored
+        }
+        catch (Exception e) {
+            // An unexpected exception, maybe property change event handler threw
+            Debugger.Break();
+            this.LastException = e;
+        }
+
+        foreach (BaseSequenceOperation operation in operations)
             operation.OnSequenceStopped();
-        foreach (BaseSequenceCondition condition in this.Conditions)
+        foreach (BaseSequenceCondition condition in conditions)
             condition.OnSequenceStopped();
 
         this.Progress.Text = "Sequence finished";
@@ -268,142 +327,46 @@ public sealed class TaskSequence {
         this.myContext = null;
         TaskSequencerManager.InternalSetIsRunning(this.myManager!, this, false);
         this.IsRunning = false;
-
-        List<TaskCompletionSource> completions = CollectionUtils.AtomicGetAndClear(this.completionNotifications, this.completionNotifications);
-        foreach (TaskCompletionSource tcs in completions) {
-            tcs.TrySetResult();
-        }
+        this.myTcs.TrySetResult();
+        this.myTcs = null;
     }
 
-    private async Task<bool> CanRunForConditions(CancellationToken token) {
+    private async Task<bool> UpdateConditionsAndCheckCanRun(List<BaseSequenceCondition> conditions, CancellationToken cancellationToken) {
         CachedConditionData cache = new CachedConditionData();
         bool isConditionMet = true;
-        foreach (BaseSequenceCondition condition in this.Conditions) {
-            if (condition.IsEnabled) {
-                isConditionMet &= await condition.IsConditionMet(this.myContext!, cache, token);
-            }
+        foreach (BaseSequenceCondition condition in conditions) {
+            await condition.UpdateCondition(this.myContext!, cache, cancellationToken);
+            isConditionMet &= condition.IsCurrentlyMet;
         }
 
         return isConditionMet;
     }
 
     public async Task WaitForCompletion() {
-        if (!this.isRunning) {
-            return;
-        }
-
-        LinkedListNode<TaskCompletionSource> node;
-        lock (this.completionNotifications) {
-            if (!this.isRunning) {
-                return;
-            }
-
-            node = this.completionNotifications.AddLast(new TaskCompletionSource());
-        }
-
-        await node.Value.Task.ConfigureAwait(false);
+        await (this.myTcs?.Task ?? Task.CompletedTask).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Requests this sequence stop as soon as possible
     /// </summary>
-    /// <returns></returns>
+    /// <returns>True when signalled to stop. False when not running or in the final process of stopping</returns>
     public bool RequestCancellation() {
-        if (this.myCts == null) {
-            return false;
-        }
-
-        try {
-            this.myCts.Cancel();
-        }
-        catch (ObjectDisposedException) {
-            // ignored
-        }
-
+        if (this.myCts == null) return false;
+        this.myCts.Cancel();
         return true;
     }
 
     public void CheckNotRunning(string message) {
-        if (this.isRunning)
+        if (this.IsRunning)
             throw new InvalidOperationException(message);
     }
 
-    public void AddOperation(BaseSequenceOperation entry) => this.InsertOperation(this.operations.Count, entry);
-
-    public void InsertOperation(int index, BaseSequenceOperation entry) {
-        this.CheckNotRunning("Cannot modify sequence list while running");
-        if (index < 0)
-            throw new ArgumentOutOfRangeException(nameof(index), "Negative indices not allowed");
-        if (index > this.operations.Count)
-            throw new ArgumentOutOfRangeException(nameof(index), $"Index is beyond the range of this list: {index} > count({this.operations.Count})");
-
-        if (entry == null)
-            throw new ArgumentNullException(nameof(entry), "Cannot add a null entry");
-        if (entry.Sequence == this)
-            throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
-        if (entry.Sequence != null)
-            throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
-
-        BaseSequenceOperation.InternalSetSequence(entry, this);
-        this.operations.Insert(index, entry);
-    }
-
-    public void AddOperations(IEnumerable<BaseSequenceOperation> layers) {
-        this.CheckNotRunning("Cannot modify sequence list while running");
-        foreach (BaseSequenceOperation entry in layers) {
-            this.AddOperation(entry);
-        }
-    }
-
-    public bool RemoveOperation(BaseSequenceOperation entry) {
-        this.CheckNotRunning("Cannot modify sequence list while running");
-        if (!ReferenceEquals(entry.Sequence, this)) {
-            return false;
-        }
-
-        int idx = this.IndexOf(entry);
-        Debug.Assert(idx != -1);
-        this.RemoveOperationAt(idx);
-
-        Debug.Assert(entry.Sequence != this, "Entry parent not updated, still ourself");
-        Debug.Assert(entry.Sequence == null, "Entry parent not updated to null");
-        return true;
-    }
-
-    public void RemoveOperationAt(int index) {
-        this.CheckNotRunning("Cannot modify sequence list while running");
-        BaseSequenceOperation entry = this.operations[index];
-        try {
-            this.operations.RemoveAt(index);
-        }
-        finally {
-            // not that we really need try finally since exceptions would crash
-            // the app... don't judge me I like safety during catastrophes
-            BaseSequenceOperation.InternalSetSequence(entry, null);
-        }
-    }
-
-    public void RemoveOperations(IEnumerable<BaseSequenceOperation> entries) {
-        this.CheckNotRunning("Cannot modify sequence list while running");
-        foreach (BaseSequenceOperation entry in entries) {
-            this.RemoveOperation(entry);
-        }
-    }
-
-    public void ClearOperations() {
-        this.CheckNotRunning("Cannot modify sequence list while running");
-        foreach (BaseSequenceOperation t in this.operations) {
-            BaseSequenceOperation.InternalSetSequence(t, null);
-        }
-
-        this.operations.Clear();
-    }
-
     public int IndexOf(BaseSequenceOperation entry) {
-        return ReferenceEquals(entry.Sequence, this) ? this.operations.IndexOf(entry) : -1;
+        if (!ReferenceEquals(entry.Sequence, this)) return -1;
+        int idx = this.Operations.IndexOf(entry);
+        Debug.Assert(idx != -1);
+        return idx;
     }
 
-    public bool Contains(BaseSequenceOperation entry) {
-        return this.IndexOf(entry) != -1;
-    }
+    public bool Contains(BaseSequenceOperation entry) => this.IndexOf(entry) != -1;
 }

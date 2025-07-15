@@ -26,6 +26,7 @@ using System.Text;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
+using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
@@ -265,7 +266,13 @@ public sealed class DataTypedScanningContext : ScanningContext {
 
     internal override async Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken) {
         FirstTypedScanTask task = new FirstTypedScanTask(this, connection, busyToken);
-        await task.RunWithCurrentActivity();
+        try {
+            await task.RunWithCurrentActivity();
+        }
+        catch (OperationCanceledException) {
+            // ignored
+        }
+
         return task.BusyToken;
     }
 
@@ -300,7 +307,9 @@ public sealed class DataTypedScanningContext : ScanningContext {
             using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
                 byte[] buffer = new byte[this.cbDataType];
                 for (int i = 0; i < srcList.Count; i++) {
-                    task.CheckCancelled();
+                    if (task.IsCancellationRequested) 
+                        return busyToken;
+                    
                     task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
                     task.Progress.CompletionState.OnProgress(1.0);
 
@@ -346,7 +355,9 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 byte[]? inputByteBuffer = useInputValue ? new byte[cbInputValue] : null;
                 char[]? inputCharBuffer = useInputValue ? new char[encoding.GetMaxCharCount(cbInputValue)] : null;
                 for (int i = 0; i < srcList.Count; i++) {
-                    task.CheckCancelled();
+                    if (task.IsCancellationRequested) 
+                        return busyToken;
+                    
                     task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
                     task.Progress.CompletionState.OnProgress(1.0);
 
@@ -391,7 +402,9 @@ public sealed class DataTypedScanningContext : ScanningContext {
         else if (this.dataType == DataType.ByteArray) {
             using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
                 for (int i = 0; i < srcList.Count; i++) {
-                    task.CheckCancelled();
+                    if (task.IsCancellationRequested) 
+                        return busyToken;
+                    
                     task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
                     task.Progress.CompletionState.OnProgress(1.0);
 

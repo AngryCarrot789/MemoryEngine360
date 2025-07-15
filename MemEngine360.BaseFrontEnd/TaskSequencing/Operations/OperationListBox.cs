@@ -60,11 +60,7 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
     }
 
     protected override void MoveItemIndex(int oldIndex, int newIndex) {
-        if (this.TaskSequence is TaskSequence seq) {
-            BaseSequenceOperation entry = seq.Operations[oldIndex];
-            seq.RemoveOperationAt(oldIndex);
-            seq.InsertOperation(newIndex, entry);
-        }
+        this.TaskSequence?.Operations.Move(oldIndex, newIndex);
     }
 
     private void OnTaskSequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {

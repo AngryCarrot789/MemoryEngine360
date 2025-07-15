@@ -18,6 +18,7 @@
 // 
 
 using System.Diagnostics;
+using System.Reflection.Metadata;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Sequencing.Conditions;
@@ -33,12 +34,9 @@ namespace MemEngine360.Sequencing;
 /// Manages all of the task sequences
 /// </summary>
 public class TaskSequencerManager {
-    private readonly ObservableList<TaskSequence> sequences, activeSequences;
+    private readonly ObservableList<TaskSequence> activeSequences;
 
-    /// <summary>
-    /// Gets our operations
-    /// </summary>
-    public ReadOnlyObservableList<TaskSequence> Sequences { get; }
+    public ObservableList<TaskSequence> Sequences { get; }
 
     /// <summary>
     /// Gets a list of sequences that are currently running. Note that items are added to/remove
@@ -53,8 +51,46 @@ public class TaskSequencerManager {
 
     public TaskSequencerManager(MemoryEngine engine) {
         this.MemoryEngine = engine ?? throw new ArgumentNullException(nameof(engine));
-        this.sequences = new ObservableList<TaskSequence>();
-        this.Sequences = new ReadOnlyObservableList<TaskSequence>(this.sequences);
+        this.Sequences = new ObservableList<TaskSequence>();
+        this.Sequences.BeforeItemAdded += (list, index, item) => {
+            if (item == null)
+                throw new ArgumentNullException(nameof(item), "Cannot add a null entry");
+            if (item.Manager == this)
+                throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
+            if (item.Manager != null)
+                throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
+
+            // It shouldn't be able to run without a manager set anyway
+            item.CheckNotRunning("Cannot add entry while it is running");
+        };
+
+        this.Sequences.BeforeItemsRemoved += (list, index, count) => {
+            for (int i = 0; i < count; i++)
+                list[index + i].CheckNotRunning("Cannot remove sequence while it's running");
+        };
+
+        this.Sequences.BeforeItemMoved += (list, oldIdx, newIdx, item) => item.CheckNotRunning("Cannot move sequence while it's running");
+        this.Sequences.BeforeItemReplace += (list, index, oldItem, newItem) => {
+            if (newItem == null)
+                throw new ArgumentNullException(nameof(newItem), "Cannot replace sequence with null");
+            
+            oldItem.CheckNotRunning("Cannot replace item while it's running");
+            newItem.CheckNotRunning("Replacement item cannot be running");
+        };
+
+        this.Sequences.ItemsAdded += (list, index, items) => {
+            foreach (TaskSequence item in items) item.myManager = this;
+        };
+
+        this.Sequences.ItemsRemoved += (list, index, items) => {
+            foreach (TaskSequence item in items) item.myManager = null;
+        };
+
+        this.Sequences.ItemReplaced += (list, index, oldItem, newItem) => {
+            oldItem.myManager = null;
+            newItem.myManager = this;
+        };
+
         this.activeSequences = new ObservableList<TaskSequence>();
         this.ActiveSequences = new ReadOnlyObservableList<TaskSequence>(this.activeSequences);
 
@@ -73,8 +109,8 @@ public class TaskSequencerManager {
                 // }
             };
 
-            sequence.AddOperation(new SetMemoryOperation() { Address = new StaticAddress(0x8303AA08), DataValueProvider = new ConstantDataProvider(IDataValue.CreateNumeric((int) 25)) });
-            this.AddSequence(sequence);
+            sequence.Operations.Add(new SetMemoryOperation() { Address = new StaticAddress(0x8303AA08), DataValueProvider = new ConstantDataProvider(IDataValue.CreateNumeric((int) 25)) });
+            this.Sequences.Add(sequence);
         }
 
         {
@@ -82,8 +118,8 @@ public class TaskSequencerManager {
                 DisplayName = "Literally sleep for 1s"
             };
 
-            sequence.AddOperation(new DelayOperation(1000));
-            this.AddSequence(sequence);
+            sequence.Operations.Add(new DelayOperation(1000));
+            this.Sequences.Add(sequence);
         }
 
         if (Debugger.IsAttached) {
@@ -91,17 +127,17 @@ public class TaskSequencerManager {
                 DisplayName = "Test Conditions | Shooting BO1 Sniper"
             };
 
-            sequence.AddOperation(new DelayOperation(100));
-            
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.WhileMet, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.WhileNotMet, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.ChangeToMet, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.ChangeToNotMet, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.WhileMetOnce, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.WhileNotMetOnce, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.ChangeToMetOnce, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            sequence.Conditions.Add(new CompareMemoryCondition() {OutputMode = ConditionOutputMode.ChangeToNotMetOnce, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0)});
-            this.AddSequence(sequence);
+            sequence.Operations.Add(new DelayOperation(100));
+
+            sequence.Conditions.Add(new CompareMemoryCondition() { OutputMode = ConditionOutputMode.WhileMet, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0) });
+            sequence.Conditions.Add(new CompareMemoryCondition() { OutputMode = ConditionOutputMode.WhileNotMet, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0) });
+            sequence.Conditions.Add(new CompareMemoryCondition() { OutputMode = ConditionOutputMode.ChangeToMet, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0) });
+            sequence.Conditions.Add(new CompareMemoryCondition() { OutputMode = ConditionOutputMode.ChangeToNotMet, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0) });
+            sequence.Conditions.Add(new CompareMemoryCondition() { OutputMode = ConditionOutputMode.WhileMetOnce, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0) });
+            sequence.Conditions.Add(new CompareMemoryCondition() { OutputMode = ConditionOutputMode.WhileNotMetOnce, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0) });
+            sequence.Conditions.Add(new CompareMemoryCondition() { OutputMode = ConditionOutputMode.ChangeToMetOnce, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0) });
+            sequence.Conditions.Add(new CompareMemoryCondition() { OutputMode = ConditionOutputMode.ChangeToNotMetOnce, Address = new StaticAddress(0x8303A82A), CompareType = CompareType.NotEquals, CompareTo = new DataValueInt32(0) });
+            this.Sequences.Add(sequence);
         }
     }
 
@@ -118,76 +154,14 @@ public class TaskSequencerManager {
         }
     }
 
-    public void AddSequence(TaskSequence entry) => this.InsertSequence(this.sequences.Count, entry);
-
-    public void InsertSequence(int index, TaskSequence entry) {
-        if (index < 0)
-            throw new ArgumentOutOfRangeException(nameof(index), "Negative indices not allowed");
-        if (index > this.sequences.Count)
-            throw new ArgumentOutOfRangeException(nameof(index), $"Index is beyond the range of this list: {index} > count({this.sequences.Count})");
-        if (entry == null)
-            throw new ArgumentNullException(nameof(entry), "Cannot add a null entry");
-        if (entry.Manager == this)
-            throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
-        if (entry.Manager != null)
-            throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
-
-        // It shouldn't be able to run without a manager set anyway
-        entry.CheckNotRunning("Cannot add entry while it is running");
-
-        entry.myManager = this;
-        this.sequences.Insert(index, entry);
-    }
-
-    public bool RemoveSequence(TaskSequence entry) {
-        if (!ReferenceEquals(entry.Manager, this)) {
-            return false;
-        }
-
-        int idx = this.IndexOf(entry);
-        Debug.Assert(idx != -1);
-        this.RemoveSequenceAt(idx);
-
-        Debug.Assert(entry.Manager != this, "Entry parent not updated, still ourself");
-        Debug.Assert(entry.Manager == null, "Entry parent not updated to null");
-        return true;
-    }
-
-    public void RemoveSequenceAt(int index) {
-        TaskSequence entry = this.sequences[index];
-        entry.CheckNotRunning("Cannot remove sequence while it's running");
-
-        try {
-            this.sequences.RemoveAt(index);
-        }
-        finally {
-            entry.myManager = null;
-        }
-    }
-
-    public void ClearSequences() {
-        List<TaskSequence> list = this.sequences.ToList();
-        foreach (TaskSequence t in list) {
-            t.CheckNotRunning("Cannot clear sequences because a sequence is running");
-        }
-
-        try {
-            this.sequences.Clear();
-        }
-        finally {
-            foreach (TaskSequence t in list) {
-                t.myManager = null;
-            }
-        }
-    }
-
     public int IndexOf(TaskSequence entry) {
-        return ReferenceEquals(entry.Manager, this) ? this.sequences.IndexOf(entry) : -1;
+        if (!ReferenceEquals(entry.Manager, this)) return -1;
+        int idx = this.Sequences.IndexOf(entry);
+        Debug.Assert(idx != -1);
+        return idx;
     }
 
-    public bool Contains(TaskSequence entry) {
-        return this.IndexOf(entry) != -1;
-    }
+    public bool Contains(TaskSequence entry) => this.IndexOf(entry) != -1;
 
     internal static void InternalSetIsRunning(TaskSequencerManager tsm, TaskSequence sequence, bool isRunning) {
         if (isRunning) {

@@ -1124,6 +1124,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
             XbdmConsoleConnection delegateConnection = new XbdmConsoleConnection(theClient, this.originalConnectionAddress);
 
+            // DEBUGGER CONNECT PORT=0x<PORT_HERE> override user=<COMPUTER_NAME_HERE> name="MemEngine360"
             ConsoleResponse response = delegateConnection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"").GetAwaiter().GetResult();
             if (response.ResponseType != ResponseType.SingleResponse) {
                 throw new Exception($"Failed to enable debugger. Response = {response.ToString()}");

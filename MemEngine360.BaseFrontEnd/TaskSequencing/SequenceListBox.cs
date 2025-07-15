@@ -48,11 +48,7 @@ public class SequenceListBox : ModelBasedListBox<TaskSequence> {
     }
 
     protected override void MoveItemIndex(int oldIndex, int newIndex) {
-        if (this.TaskSequencerManager is TaskSequencerManager manager) {
-            TaskSequence entry = manager.Sequences[oldIndex];
-            manager.RemoveSequenceAt(oldIndex);
-            manager.InsertSequence(newIndex, entry);
-        }
+        this.TaskSequencerManager?.Sequences.Move(oldIndex, newIndex);
     }
     
     private void OnTaskSequencerManagerChanged(TaskSequencerManager? oldManager, TaskSequencerManager? newManager) {

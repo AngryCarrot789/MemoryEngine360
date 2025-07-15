@@ -41,7 +41,7 @@ public class DeleteSequenceSelectionCommand : Command {
         if (await TryStopSequences(items.Where(x => x.IsRunning), "Sequence(s) still running", items.Count == 1 ? "This sequence is running. Do you want to stop it and then delete?" : "Some of these sequences are still running. Do you want to stop them and then delete?")) {
             ui.SequenceSelectionManager.Clear();
             foreach (TaskSequence seq in items) {
-                ui.Manager.RemoveSequence(seq);
+                ui.Manager.Sequences.Remove(seq);
             }
         }
     }

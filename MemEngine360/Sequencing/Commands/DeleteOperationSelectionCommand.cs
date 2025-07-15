@@ -37,27 +37,27 @@ public class DeleteOperationSelectionCommand : Command {
             return;
         }
 
-        if (ui.PrimarySelectedSequence == null) {
+        TaskSequence? task = ui.PrimarySelectedSequence?.TaskSequence;
+        if (task == null) {
             return;
         }
 
-        if (ui.PrimarySelectedSequence.TaskSequence.IsRunning) {
+        if (task.IsRunning) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Cannot delete operations", "The sequence is still running, operations cannot be removed. Do you want to stop them and then delete?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
             if (result != MessageBoxResult.OK) {
                 return;
             }
 
-            TaskSequence task = ui.PrimarySelectedSequence.TaskSequence;
             task.RequestCancellation();
             await task.WaitForCompletion();
-
-            Debug.Assert(!task.IsRunning);
         }
 
         List<IOperationItemUI> items = ui.OperationSelectionManager.SelectedItems.ToList();
+        Debug.Assert(items.All(x => x.Operation.Sequence == task));
+        
         ui.OperationSelectionManager.Clear();
         foreach (IOperationItemUI item in items) {
-            bool removed = item.Operation.Sequence!.RemoveOperation(item.Operation);
+            bool removed = item.Operation.Sequence!.Operations.Remove(item.Operation);
             Debug.Assert(removed);
         }
     }

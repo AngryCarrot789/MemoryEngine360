@@ -64,7 +64,7 @@ public class LoadTaskSequencesCommand : Command {
         }
 
         foreach (TaskSequence seq in list) {
-            ui.Manager.AddSequence(seq);
+            ui.Manager.Sequences.Add(seq);
         }
     }
 }

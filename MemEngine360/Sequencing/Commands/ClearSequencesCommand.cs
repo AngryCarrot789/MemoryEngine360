@@ -36,7 +36,7 @@ public class ClearSequencesCommand : Command {
         }
 
         if (await DeleteSequenceSelectionCommand.TryStopActiveSequences(ui)) {
-            ui.Manager.ClearSequences();
+            ui.Manager.Sequences.Clear();
         }
     }
 }

@@ -88,7 +88,7 @@ public class CompareMemoryCondition : BaseSequenceCondition {
     public CompareMemoryCondition() {
     }
 
-    protected override async Task<bool> IsConditionMetCore(SequenceExecutionContext ctx, CachedConditionData cache, CancellationToken token) {
+    protected override async Task<bool> IsConditionMetCore(SequenceExecutionContext ctx, CachedConditionData cache, CancellationToken cancellationToken) {
         // store in local variable since IsConditonMet runs in a BGT, not main thread
         IDataValue? cmpVal = this.CompareTo;
         if (cmpVal == null) {
@@ -109,10 +109,10 @@ public class CompareMemoryCondition : BaseSequenceCondition {
             IDisposable? busyToken = ctx.BusyToken;
             if (busyToken == null && !ctx.IsConnectionDedicated) {
                 ctx.Progress.Text = "Waiting for busy operations...";
-                if ((busyToken = await ctx.Sequence.Manager!.MemoryEngine.BeginBusyOperationAsync(token)) == null) {
+                if ((busyToken = await ctx.Sequence.Manager!.MemoryEngine.BeginBusyOperationAsync(cancellationToken)) == null) {
                     // only reached if token is cancelled
-                    Debug.Assert(token.IsCancellationRequested);
-                    token.ThrowIfCancellationRequested();
+                    Debug.Assert(cancellationToken.IsCancellationRequested);
+                    cancellationToken.ThrowIfCancellationRequested();
                     return false;
                 }
             }

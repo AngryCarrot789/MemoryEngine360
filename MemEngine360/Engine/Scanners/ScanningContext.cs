@@ -67,7 +67,7 @@ public abstract class ScanningContext {
     internal abstract Task<bool> SetupCore(IConsoleConnection connection);
 
     /// <summary>
-    /// Performs the first scan. 
+    /// Performs the first scan. The task must not throw <see cref="OperationCanceledException"/>, because the return value (new token) is required
     /// </summary>
     /// <param name="connection">The connection to read values from</param>
     /// <param name="busyToken">The busy token</param>
@@ -85,6 +85,9 @@ public abstract class ScanningContext {
     /// <summary>
     /// Performs a next scan. Requirements: the src list's items are guaranteed to have the
     /// same data types, and it equals our internal scanning data type
+    /// <para>
+    /// The task must not throw <see cref="OperationCanceledException"/>, because the return value (new token) is required
+    /// </para>
     /// </summary>
     /// <param name="connection">The connection to read values from</param>
     /// <param name="srcList">The source list of items</param>

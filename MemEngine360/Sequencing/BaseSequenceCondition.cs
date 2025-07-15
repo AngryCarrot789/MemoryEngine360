@@ -87,8 +87,19 @@ public abstract class BaseSequenceCondition {
         this.IsCurrentlyMet = false;
     }
 
-    public async Task<bool> IsConditionMet(SequenceExecutionContext ctx, CachedConditionData cache, CancellationToken token) {
-        bool isMet = await this.IsConditionMetCore(ctx, cache, token);
+    /// <summary>
+    /// Updates the effective state of <see cref="IsCurrentlyMet"/> based on the enabled state, output mode and the result of <see cref="IsConditionMetCore"/>
+    /// </summary>
+    /// <param name="ctx"></param>
+    /// <param name="cache"></param>
+    /// <param name="cancellationToken"></param>
+    public async Task UpdateCondition(SequenceExecutionContext ctx, CachedConditionData cache, CancellationToken cancellationToken) {
+        if (!this.IsEnabled) {
+            this.IsCurrentlyMet = false;
+            return;
+        }
+        
+        bool isMet = await this.IsConditionMetCore(ctx, cache, cancellationToken);
         bool isMetFinal;
         lock (this.lockObject) {
             bool lastIsMet = this.lastMetState;
@@ -100,7 +111,7 @@ public abstract class BaseSequenceCondition {
         //     Debug.WriteLine($"({this.OutputMode}) {nameof(this.IsCurrentlyMet)} changed from {this.IsCurrentlyMet} to {isMetFinal}");
         // }
 
-        return this.IsCurrentlyMet = isMetFinal;
+        this.IsCurrentlyMet = isMetFinal;
     }
 
     private static bool ProcessIsConditionMet(bool isMet, bool lastIsMet, ConditionOutputMode mode, ref bool? isLocked) {
@@ -140,9 +151,9 @@ public abstract class BaseSequenceCondition {
     /// </summary>
     /// <param name="ctx">The execution context for the sequence</param>
     /// <param name="cache">The cache of resolved dynamic memory addresses and data values</param>
-    /// <param name="token">A token which becomes cancelled when the sequence is stopped</param>
+    /// <param name="cancellationToken">A token which becomes cancelled when the task sequence is trying to be stopped</param>
     /// <returns>True if the sequence can run (other conditions may stop it running if they return false obviously)</returns>
-    protected abstract Task<bool> IsConditionMetCore(SequenceExecutionContext ctx, CachedConditionData cache, CancellationToken token);
+    protected abstract Task<bool> IsConditionMetCore(SequenceExecutionContext ctx, CachedConditionData cache, CancellationToken cancellationToken);
 
     internal static void InternalSetSequence(BaseSequenceCondition condition, TaskSequence? sequence) => condition.TaskSequence = sequence;
 

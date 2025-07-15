@@ -135,7 +135,7 @@ public class AnyTypeScanningContext : ScanningContext {
         // align      = 1
         // overlap    = 7 (8-1)
         // bufferSize = 39 (32+7)
-        
+
         // say sizeOfType == sizeof(byte) (1)
         //   when idx = 31 (last byte in non-overlap):
         //     39 - (7 - sizeof(byte)) - 31 = 2 -> 2 > sizeof(byte) == true
@@ -313,7 +313,13 @@ public class AnyTypeScanningContext : ScanningContext {
 
     internal override async Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken) {
         FirstTypedScanTask task = new FirstTypedScanTask(this, connection, busyToken);
-        await task.RunWithCurrentActivity();
+        try {
+            await task.RunWithCurrentActivity();
+        }
+        catch (OperationCanceledException) {
+            // ignored
+        }
+
         return task.BusyToken;
     }
 
@@ -332,8 +338,11 @@ public class AnyTypeScanningContext : ScanningContext {
         ActivityTask task = ActivityManager.Instance.CurrentTask;
         using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
             for (int i = 0; i < srcList.Count; i++) {
+                if (task.IsCancellationRequested) {
+                    return busyToken;
+                }
+
                 ScanResultViewModel res = srcList[i];
-                task.CheckCancelled();
                 task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
                 task.Progress.CompletionState.OnProgress(1.0);
 

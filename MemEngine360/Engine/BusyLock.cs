@@ -18,6 +18,7 @@
 // 
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Engine;
@@ -284,7 +285,7 @@ public sealed class BusyLock {
     /// </summary>
     /// <param name="token">The token to validate</param>
     /// <returns>True when valid for use, otherwise false</returns>
-    public bool CheckToken(IDisposable? token) {
+    public bool IsTokenValid([NotNullWhen(true)] IDisposable? token) {
         if (!(token is BusyToken busy)) return false;
 
         // myLock can be atomically exchanged
@@ -373,7 +374,9 @@ public sealed class BusyLock {
     private class BusyToken : IDisposable {
         public volatile BusyLock? myLock;
 #if DEBUG
-        public readonly string? stackTrace; // debugging stack trace, just in case the app locks up then the source is likely in here 
+        // debugging stack trace, just in case the app locks up then the source is likely in here
+        public readonly string? creationTrace;
+        public string? disposalTrace;
 #endif
 
         public BusyToken(BusyLock theLock) {
@@ -381,7 +384,7 @@ public sealed class BusyLock {
             this.myLock = theLock;
             theLock.OnTokenCreatedUnderLock();
 #if DEBUG
-            this.stackTrace = new StackTrace(true).ToString();
+            this.creationTrace = new StackTrace(true).ToString();
 #endif
         }
 
@@ -389,9 +392,14 @@ public sealed class BusyLock {
             // we're being omega thread safe here
             BusyLock? theLock = Interlocked.Exchange(ref this.myLock, null);
             if (theLock == null) {
-                return;
+                return; // already disposed...
             }
 
+#if DEBUG
+            string? oldDisposalTrace = this.disposalTrace;
+            this.disposalTrace = new StackTrace(true).ToString();
+#endif
+            
             lock (theLock.CriticalLock) {
                 Debug.Assert(theLock.activeToken == this, "Different active token references");
                 theLock.OnTokenDisposedUnderLock();
