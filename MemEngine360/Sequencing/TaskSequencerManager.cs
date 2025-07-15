@@ -18,7 +18,6 @@
 // 
 
 using System.Diagnostics;
-using System.Reflection.Metadata;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Sequencing.Conditions;
@@ -73,17 +72,19 @@ public class TaskSequencerManager {
         this.Sequences.BeforeItemReplace += (list, index, oldItem, newItem) => {
             if (newItem == null)
                 throw new ArgumentNullException(nameof(newItem), "Cannot replace sequence with null");
-            
+
             oldItem.CheckNotRunning("Cannot replace item while it's running");
             newItem.CheckNotRunning("Replacement item cannot be running");
         };
 
         this.Sequences.ItemsAdded += (list, index, items) => {
-            foreach (TaskSequence item in items) item.myManager = this;
+            foreach (TaskSequence item in items)
+                item.myManager = this;
         };
 
         this.Sequences.ItemsRemoved += (list, index, items) => {
-            foreach (TaskSequence item in items) item.myManager = null;
+            foreach (TaskSequence item in items)
+                item.myManager = null;
         };
 
         this.Sequences.ItemReplaced += (list, index, oldItem, newItem) => {
@@ -155,7 +156,8 @@ public class TaskSequencerManager {
     }
 
     public int IndexOf(TaskSequence entry) {
-        if (!ReferenceEquals(entry.Manager, this)) return -1;
+        if (!ReferenceEquals(entry.Manager, this))
+            return -1;
         int idx = this.Sequences.IndexOf(entry);
         Debug.Assert(idx != -1);
         return idx;

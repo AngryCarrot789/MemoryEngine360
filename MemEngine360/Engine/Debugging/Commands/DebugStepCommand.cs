@@ -32,11 +32,13 @@ public class DebugStepCommand : BaseDebuggerCommand {
     }
 
     protected override async Task ExecuteCommandAsync(ConsoleDebugger debugger, CommandEventArgs e) {
-        if (debugger.Connection == null) return;
+        if (debugger.Connection == null)
+            return;
 
         using IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Unfreeze Console");
         if (token != null && debugger.Connection != null) {
-            if (debugger.ActiveThread == null) return;
+            if (debugger.ActiveThread == null)
+                return;
 
             try {
                 await ((IHaveXboxDebugFeatures) debugger.Connection).StepThread(debugger.ActiveThread.ThreadId);

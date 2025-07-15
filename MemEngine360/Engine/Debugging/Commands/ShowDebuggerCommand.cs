@@ -25,15 +25,17 @@ namespace MemEngine360.Engine.Debugging.Commands;
 
 public class ShowDebuggerCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine)) return;
+        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine))
+            return;
 
         ConsoleDebugger debugger = engine.MemoryEngine.ConsoleDebugger;
         IDebuggerViewService service = ApplicationPFX.Instance.ServiceManager.GetService<IDebuggerViewService>();
         await service.ShowDebugger(debugger);
         if (debugger.Connection == null) {
             IOpenConnectionView? dialog = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(debugger.Engine);
-            if (dialog == null) return;
-            
+            if (dialog == null)
+                return;
+
             IDisposable? token = null;
 
             try {

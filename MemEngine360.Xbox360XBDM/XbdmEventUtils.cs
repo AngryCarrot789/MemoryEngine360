@@ -160,9 +160,12 @@ public static class XbdmEventUtils {
                 };
             }
             case "modload": {
-                if (!ParamUtils.GetStrParam(textRos, "name", false, out string? modName)) return null;
-                if (!ParamUtils.GetDwParam(textRos, "base", false, out uint modBaseAddr)) return null;
-                if (!ParamUtils.GetDwParam(textRos, "size", false, out uint modSize)) return null;
+                if (!ParamUtils.GetStrParam(textRos, "name", false, out string? modName))
+                    return null;
+                if (!ParamUtils.GetDwParam(textRos, "base", false, out uint modBaseAddr))
+                    return null;
+                if (!ParamUtils.GetDwParam(textRos, "size", false, out uint modSize))
+                    return null;
 
                 ParamUtils.GetDwParam(textRos, "timestamp", false, out uint timestamp);
                 ParamUtils.GetDwParam(textRos, "checksum", false, out uint checksum);
@@ -184,9 +187,12 @@ public static class XbdmEventUtils {
             }
             case "sectload":
             case "sectunload": {
-                if (!ParamUtils.GetStrParam(textRos, "name", false, out string? sectName)) return null;
-                if (!ParamUtils.GetDwParam(textRos, "base", false, out uint baseAddr)) return null;
-                if (!ParamUtils.GetDwParam(textRos, "size", false, out uint size)) return null;
+                if (!ParamUtils.GetStrParam(textRos, "name", false, out string? sectName))
+                    return null;
+                if (!ParamUtils.GetDwParam(textRos, "base", false, out uint baseAddr))
+                    return null;
+                if (!ParamUtils.GetDwParam(textRos, "size", false, out uint size))
+                    return null;
 
                 uint? index = ParamUtils.GetDwParam(textRos, "index", false, out uint _index) ? _index : null;
                 uint? flags = ParamUtils.GetDwParam(textRos, "flags", false, out uint _flags) ? _flags : null;
@@ -200,7 +206,7 @@ public static class XbdmEventUtils {
                 return args;
             }
             case "fiber": {
-                if (!ParamUtils.GetDwParam(textRos, "id", false, out uint fiberId)) 
+                if (!ParamUtils.GetDwParam(textRos, "id", false, out uint fiberId))
                     return null;
 
                 uint? startAddress = null;

@@ -212,7 +212,8 @@ public class ConsoleDebugger {
     }
 
     public async Task<ThreadEntry?> UpdateThread(uint threadId, bool createIfDoesntExist = true) {
-        if (this.Connection == null || !this.Connection.IsConnected) return null;
+        if (this.Connection == null || !this.Connection.IsConnected)
+            return null;
 
         using IDisposable? token = await this.busyLocker.BeginBusyOperationActivityAsync("Read Info on Newly Created Thread");
         if (token == null) {
@@ -275,7 +276,8 @@ public class ConsoleDebugger {
     /// so the cancellation token isn't required to be cancellable
     /// </summary>
     public async Task UpdateRegistersForActiveThread(CancellationToken busyCancellationToken) {
-        if (this.Connection == null || !this.Connection.IsConnected) return;
+        if (this.Connection == null || !this.Connection.IsConnected)
+            return;
 
         using IDisposable? token = await this.busyLocker.BeginBusyOperationAsync(500, busyCancellationToken);
         if (token != null && !this.ignoreActiveThreadChange) {
@@ -340,9 +342,11 @@ public class ConsoleDebugger {
         this.RegisterEntries.Clear();
         DisposableUtils.Dispose(ref this.eventSubscription);
 
-        if (oldConnection != null) oldConnection.Closed -= this.OnConnectionClosed;
-        if (newConnection != null) newConnection.Closed += this.OnConnectionClosed;
-        
+        if (oldConnection != null)
+            oldConnection.Closed -= this.OnConnectionClosed;
+        if (newConnection != null)
+            newConnection.Closed += this.OnConnectionClosed;
+
         // ConnectionChanged is invoked under the lock to enforce busy operation rules
         object theLock = this.busyLocker.CriticalLock;
         lock (theLock) {
@@ -376,7 +380,7 @@ public class ConsoleDebugger {
             }, DispatchPriority.Background);
         }
     }
-    
+
     private bool TryDisconnectForLostConnection(IDisposable token) {
         IConsoleConnection? conn = this.Connection;
         if (conn == null)
@@ -418,7 +422,8 @@ public class ConsoleDebugger {
         ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
             if (isCreated) {
                 using IDisposable? token = await this.busyLocker.BeginBusyOperationActivityAsync("Read Info on Newly Created Thread");
-                if (token == null) return;
+                if (token == null)
+                    return;
 
                 IConsoleConnection? connection = this.Connection;
                 if (connection != null && connection.IsConnected) {

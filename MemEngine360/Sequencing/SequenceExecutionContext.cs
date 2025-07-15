@@ -34,7 +34,7 @@ public sealed class SequenceExecutionContext {
     /// <summary>
     /// The activity progress used to track what's currently going on with the sequence
     /// </summary>
-    public IActivityProgress Progress { get; }
+    public IActivityProgress Progress => this.Sequence.Progress;
     
     /// <summary>
     /// Gets the connection being used by this sequence
@@ -51,9 +51,8 @@ public sealed class SequenceExecutionContext {
     /// </summary>
     public bool IsConnectionDedicated { get; }
 
-    public SequenceExecutionContext(TaskSequence sequence, IActivityProgress progress, IConsoleConnection connection, IDisposable? busyToken, bool isConnectionDedicated) {
+    public SequenceExecutionContext(TaskSequence sequence, IConsoleConnection connection, IDisposable? busyToken, bool isConnectionDedicated) {
         this.Sequence = sequence;
-        this.Progress = progress;
         this.Connection = connection;
         this.BusyToken = busyToken;
         this.IsConnectionDedicated = isConnectionDedicated;

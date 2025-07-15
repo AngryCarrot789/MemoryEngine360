@@ -231,7 +231,7 @@ public sealed class TaskSequence {
         Debug.Assert(isConnectionDedicated == !this.UseEngineConnection);
         using CancellationTokenSource cts = this.myCts = new CancellationTokenSource();
         this.myTcs = new TaskCompletionSource();
-        this.myContext = new SequenceExecutionContext(this, this.Progress, connection, busyToken, isConnectionDedicated);
+        this.myContext = new SequenceExecutionContext(this, connection, busyToken, isConnectionDedicated);
         this.LastException = null;
         TaskSequencerManager.InternalSetIsRunning(this.myManager!, this, true);
         this.IsRunning = true;
@@ -301,7 +301,8 @@ public sealed class TaskSequence {
                 }
 
                 // Do not decrease when runCount is negative, since it may underflow to positive MaxValue
-                if (remainingRunCount > 0) --remainingRunCount;
+                if (remainingRunCount > 0)
+                    --remainingRunCount;
             }
         }, CancellationToken.None);
 
@@ -351,7 +352,8 @@ public sealed class TaskSequence {
     /// </summary>
     /// <returns>True when signalled to stop. False when not running or in the final process of stopping</returns>
     public bool RequestCancellation() {
-        if (this.myCts == null) return false;
+        if (this.myCts == null)
+            return false;
         this.myCts.Cancel();
         return true;
     }
@@ -362,7 +364,8 @@ public sealed class TaskSequence {
     }
 
     public int IndexOf(BaseSequenceOperation entry) {
-        if (!ReferenceEquals(entry.Sequence, this)) return -1;
+        if (!ReferenceEquals(entry.Sequence, this))
+            return -1;
         int idx = this.Operations.IndexOf(entry);
         Debug.Assert(idx != -1);
         return idx;

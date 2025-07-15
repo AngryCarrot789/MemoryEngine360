@@ -31,17 +31,18 @@ public sealed class CachedConditionData {
         get {
             if (address is StaticAddress staticAddress)
                 return staticAddress.Address;
-            
-            if (this.resolvedAddresses == null) return null;
-            if (!this.resolvedAddresses.TryGetValue(address, out uint addr)) 
+
+            if (this.resolvedAddresses == null)
+                return null;
+            if (!this.resolvedAddresses.TryGetValue(address, out uint addr))
                 return null;
 
             return addr;
         }
         set {
-            if (address is StaticAddress) 
+            if (address is StaticAddress)
                 return;
-            
+
             this.resolvedAddresses ??= new Dictionary<IMemoryAddress, uint>();
             if (value.HasValue)
                 this.resolvedAddresses[address] = value.Value;
@@ -49,7 +50,7 @@ public sealed class CachedConditionData {
                 this.resolvedAddresses.Remove(address);
         }
     }
-    
+
     public IDataValue? this[TypedAddress address] {
         get => this.dataValues?.GetValueOrDefault(address);
         set {
@@ -74,7 +75,7 @@ public sealed class CachedConditionData {
             value = 0;
             return false;
         }
-        
+
         return this.resolvedAddresses.TryGetValue(key, out value);
     }
 
@@ -83,7 +84,7 @@ public sealed class CachedConditionData {
             value = null;
             return false;
         }
-        
+
         return this.dataValues.TryGetValue(key, out value);
     }
 }

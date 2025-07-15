@@ -30,13 +30,13 @@ namespace MemEngine360.Engine.Debugging.Commands;
 
 public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
     private IOpenConnectionView? myDialog;
-    
+
     protected override async Task ExecuteCommandAsync(ConsoleDebugger debugger, CommandEventArgs e) {
         if (this.myDialog != null && !this.myDialog.IsClosed) {
             this.myDialog.Activate();
             return;
         }
-        
+
         if (debugger.Connection != null) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
@@ -47,7 +47,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
                 return;
             }
         }
-        
+
         this.myDialog = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(debugger.Engine);
         if (this.myDialog != null) {
             IDisposable? token = null;
@@ -66,7 +66,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
                 token?.Dispose();
             }
         }
-        
+
         await debugger.UpdateAllThreads(CancellationToken.None);
     }
 
@@ -116,7 +116,9 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
         ArgumentNullException.ThrowIfNull(newConnection);
 
         IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Change connection");
-        if (token == null) return null;
+        if (token == null) {
+            return null;
+        }
 
         IConsoleConnection? oldConnection = debugger.Connection;
         Debug.Assert(oldConnection != newConnection);

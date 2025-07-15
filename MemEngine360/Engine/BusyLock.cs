@@ -73,7 +73,7 @@ public sealed class BusyLock {
     public IDisposable? BeginBusyOperation() {
         bool lockTaken = false;
         object lockObj = this.CriticalLock;
-        
+
         try {
             Monitor.TryEnter(lockObj, ref lockTaken);
             if (!lockTaken)
@@ -100,7 +100,8 @@ public sealed class BusyLock {
     /// <returns>The acquired token, or null if the task was cancelled</returns>
     public async Task<IDisposable?> BeginBusyOperationAsync(CancellationToken cancellationToken) {
         IDisposable? token = this.BeginBusyOperation();
-        if (token != null) return token;
+        if (token != null)
+            return token;
 
         return await this.InternalBeginOperationLoop(cancellationToken).ConfigureAwait(false);
     }
@@ -115,11 +116,12 @@ public sealed class BusyLock {
     /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
     /// <returns></returns>
     public async Task<IDisposable?> BeginBusyOperationAsync(int timeoutMilliseconds, CancellationToken cancellationToken = default) {
-        if (timeoutMilliseconds < -1) 
+        if (timeoutMilliseconds < -1)
             throw new ArgumentOutOfRangeException(nameof(timeoutMilliseconds), "Timeout milliseconds cannot be below -1");
 
         IDisposable? token = this.BeginBusyOperation();
-        if (token != null) return token;
+        if (token != null)
+            return token;
 
         if (timeoutMilliseconds == -1) // we'll wait infinitely.
             return await this.InternalBeginOperationLoop(cancellationToken).ConfigureAwait(false);
@@ -167,6 +169,7 @@ public sealed class BusyLock {
 
         return token;
     }
+
     /// <summary>
     /// Tries to begin a busy operation. If we could not get the token immediately, we start
     /// a new activity and try to get it asynchronously, passing the given progress to the activity
@@ -218,14 +221,12 @@ public sealed class BusyLock {
                                     waitState = 2;
                                     await Task.Delay(1, cancellationToken);
                                     break;
-                                case 2:
-                                    await Task.Delay(10, cancellationToken);
-                                    break;
-                            }   
+                                case 2: await Task.Delay(10, cancellationToken); break;
+                            }
                         }
                         catch (OperationCanceledException) {
                             return null;
-                        }  
+                        }
                     }
                 }
             }
@@ -265,9 +266,9 @@ public sealed class BusyLock {
     /// <exception cref="ArgumentNullException">Token is null</exception>
     /// <exception cref="ArgumentException">Object is not a token or is disposed, not associated with this lock or not the taken token</exception>
     public void ValidateToken(IDisposable token) {
-        if (token == null) 
+        if (token == null)
             throw new ArgumentNullException(nameof(token), "Token is null");
-        if (!(token is BusyToken busy)) 
+        if (!(token is BusyToken busy))
             throw new ArgumentException("Argument is not a busy token object");
 
         // myLock can be atomically exchanged
@@ -286,7 +287,8 @@ public sealed class BusyLock {
     /// <param name="token">The token to validate</param>
     /// <returns>True when valid for use, otherwise false</returns>
     public bool IsTokenValid([NotNullWhen(true)] IDisposable? token) {
-        if (!(token is BusyToken busy)) return false;
+        if (!(token is BusyToken busy))
+            return false;
 
         // myLock can be atomically exchanged
         BusyLock? theLock = busy.myLock;
@@ -296,7 +298,7 @@ public sealed class BusyLock {
     private LinkedListNode<CancellableTaskCompletionSource>? EnqueueAsyncWaiter(CancellationToken token) {
         bool lockTaken = false;
         object lockObj = this.CriticalLock;
-        
+
         try {
             Monitor.TryEnter(lockObj, ref lockTaken);
             if (!lockTaken || this.busyCount == 0) {
@@ -399,7 +401,7 @@ public sealed class BusyLock {
             string? oldDisposalTrace = this.disposalTrace;
             this.disposalTrace = new StackTrace(true).ToString();
 #endif
-            
+
             lock (theLock.CriticalLock) {
                 Debug.Assert(theLock.activeToken == this, "Different active token references");
                 theLock.OnTokenDisposedUnderLock();

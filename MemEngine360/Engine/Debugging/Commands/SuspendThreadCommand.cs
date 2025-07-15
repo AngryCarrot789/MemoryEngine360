@@ -25,18 +25,22 @@ namespace MemEngine360.Engine.Debugging.Commands;
 
 public class SuspendThreadCommand : BaseDebuggerCommand {
     protected override Executability CanExecuteCore(ConsoleDebugger debugger, CommandEventArgs e) {
-        if (debugger.Connection == null) return Executability.ValidButCannotExecute;
-        if (debugger.ActiveThread == null) return Executability.ValidButCannotExecute;
+        if (debugger.Connection == null)
+            return Executability.ValidButCannotExecute;
+        if (debugger.ActiveThread == null)
+            return Executability.ValidButCannotExecute;
 
         return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(ConsoleDebugger debugger, CommandEventArgs e) {
-        if (debugger.Connection == null) return;
+        if (debugger.Connection == null)
+            return;
 
         using IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Unfreeze Console");
         if (token != null && debugger.Connection != null) {
-            if (debugger.ActiveThread == null) return;
+            if (debugger.ActiveThread == null)
+                return;
 
             try {
                 await ((IHaveXboxDebugFeatures) debugger.Connection).SuspendThread(debugger.ActiveThread.ThreadId);

@@ -118,4 +118,9 @@ public partial class ModuleViewerWindow : DesktopWindow {
             this.PART_ModuleListBox.SelectedModel = newManager.Modules[0];
         }
     }
+
+    protected override void OnClosed(EventArgs e) {
+        this.XboxModuleManager = null;
+        base.OnClosed(e);
+    }
 }

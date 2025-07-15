@@ -344,8 +344,7 @@ public partial class EngineView : UserControl, IEngineUI {
             ContextEntryGroup entry = new ContextEntryGroup("Tools") {
                 Items = {
                     new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Task Sequencer"),
-                    new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Viewer").
-                        AddCanExecuteChangeUpdaterForEvent(MemoryEngine.EngineDataKey, nameof(this.MemoryEngine.ConnectionChanged)),
+                    new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Viewer"),
                     new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Viewer"),
                     new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
                     new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scanner"),

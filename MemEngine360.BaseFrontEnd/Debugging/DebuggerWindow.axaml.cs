@@ -84,7 +84,7 @@ public partial class DebuggerWindow : DesktopWindow {
         this.PART_ThreadListBox.SelectionChanged += this.OnThreadListBoxSelectionChanged;
         this.PART_HexEditor.EffectiveViewportChanged += this.OnHexEditorViewportChanged;
         this.PART_HexEditor.AddHandler(PointerWheelChangedEvent, this.OnHexEditorMouseWheel, RoutingStrategies.Tunnel);
-        
+
         this.PART_GotoTextBox.KeyDown += this.PART_GotoTextBoxOnKeyDown;
         this.PART_GotoTextBox.AcceptsReturn = false;
         this.PART_GotoTextBox.AcceptsTab = false;
@@ -108,7 +108,7 @@ public partial class DebuggerWindow : DesktopWindow {
 
         this.myOffsetColumn.AdditionalOffset = 0x8303AA10;
         this.PART_GotoTextBox.Text = "8303AA10";
-        
+
         this.rldaUpdateMemoryDocument.InvokeAsync();
     }
 
@@ -126,24 +126,25 @@ public partial class DebuggerWindow : DesktopWindow {
     }
 
     private void PART_GotoTextBoxOnKeyDown(object? sender, KeyEventArgs e) {
-        if (e.Key != Key.Enter) return;
+        if (e.Key != Key.Enter)
+            return;
 
         string? text = ((TextBox) sender!).Text;
         if (text != null && text.StartsWith("0x")) {
             text = text.Substring(2);
         }
-        
+
         if (uint.TryParse(text, NumberStyles.HexNumber, null, out uint address)) {
             uint mod = address % 16;
             this.myOffsetColumn.AdditionalOffset = address - mod;
             this.DoUpdateDocumentNow();
-            
+
             this.PART_HexEditor.ResetCursorAnchor();
             this.PART_HexEditor.Selection.Range = default;
             this.PART_HexEditor.Caret.Location = new BitLocation(mod);
             this.PART_HexEditor.Selection.Range = new BitRange(new BitLocation(mod), new BitLocation(mod + 1));
         }
-        
+
         ((TextBox) sender).Text = this.myOffsetColumn.AdditionalOffset.ToString("X8");
     }
 
@@ -163,7 +164,8 @@ public partial class DebuggerWindow : DesktopWindow {
     }
 
     protected sealed override async Task<bool> OnClosingAsync(WindowCloseReason reason) {
-        if (await base.OnClosingAsync(reason)) return true;
+        if (await base.OnClosingAsync(reason))
+            return true;
 
         this.timer.ClearTarget();
 
@@ -175,7 +177,7 @@ public partial class DebuggerWindow : DesktopWindow {
 
         this.autoRefresh?.Dispose();
         this.autoRefresh = null;
-        
+
         this.PART_EventViewer.ConsoleConnection = null;
         this.PART_EventViewer.BusyLock = null;
         debugger.IsConsoleRunning = null;
@@ -236,7 +238,7 @@ public partial class DebuggerWindow : DesktopWindow {
             this.PART_EventViewer.BusyLock = newValue?.BusyLock;
             this.PART_EventViewer.ConsoleConnection = newValue?.Connection;
         }
-        
+
         this.RestartAutoRefresh();
     }
 
@@ -250,7 +252,7 @@ public partial class DebuggerWindow : DesktopWindow {
     private void RestartAutoRefresh() {
         this.autoRefresh?.Dispose();
         this.autoRefresh = null;
-        
+
         if (this.ConsoleDebugger != null && this.ConsoleDebugger.Connection != null) {
             this.autoRefresh = new ThreadMemoryAutoRefresh(this.ConsoleDebugger, this);
             this.UpdateAutoRefreshSpan((uint) this.myOffsetColumn.AdditionalOffset);
@@ -318,7 +320,8 @@ public partial class DebuggerWindow : DesktopWindow {
     }
 
     public void UpdateMemoryBuffer(ThreadMemoryAutoRefresh autoRefresher, byte[] buffer, uint addr, uint len) {
-        if (this.autoRefresh != autoRefresher) return;
+        if (this.autoRefresh != autoRefresher)
+            return;
 
         MemoryBinaryDocument document = (MemoryBinaryDocument) this.PART_HexEditor.Document!;
 

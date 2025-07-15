@@ -36,7 +36,8 @@ public interface IConnectionLockPair {
     IConsoleConnection? Connection { get; }
 
     public async Task BeginBusyOperationActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
-        if (this.Connection == null) return; // short path -- save creating an activity
+        if (this.Connection == null)
+            return; // short path -- save creating an activity
 
         using IDisposable? token = await this.BusyLock.BeginBusyOperationActivityAsync(caption, message);
         IConsoleConnection theConn; // save double volatile read
@@ -46,7 +47,8 @@ public interface IConnectionLockPair {
     }
 
     public async Task<TResult?> BeginBusyOperationActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
-        if (this.Connection == null) return default; // short path -- save creating an activity
+        if (this.Connection == null)
+            return default; // short path -- save creating an activity
 
         using IDisposable? token = await this.BusyLock.BeginBusyOperationActivityAsync(caption, message);
         IConsoleConnection theConn; // save double volatile read

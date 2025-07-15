@@ -106,7 +106,7 @@ public static class DataTypeExtensions {
             default: return false;
         }
     }
-    
+
     /// <summary>
     /// Returns the data type size (ONLY FOR NUMERIC PRIMITIVES)
     /// </summary>

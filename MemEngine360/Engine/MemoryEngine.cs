@@ -260,8 +260,10 @@ public class MemoryEngine {
         if (ReferenceEquals(oldConnection, newConnection))
             throw new ArgumentException("Cannot set the connection to the same value");
 
-        if (oldConnection != null) oldConnection.Closed -= this.OnConnectionClosed;
-        if (newConnection != null) newConnection.Closed += this.OnConnectionClosed;
+        if (oldConnection != null)
+            oldConnection.Closed -= this.OnConnectionClosed;
+        if (newConnection != null)
+            newConnection.Closed += this.OnConnectionClosed;
 
         // ConnectionChanged is invoked under the lock to enforce busy operation rules
         lock (this.busyLocker.CriticalLock) {
@@ -288,7 +290,7 @@ public class MemoryEngine {
         ulong frame;
         do {
             frame = Interlocked.Increment(ref this.currentConnectionAboutToChangeFrame);
-        } while (frame == 0); // should only ever loop twice which is when it's at ulong.MaxValue, some fucking how 
+        } while (frame == 0); // extra safe
 
         return frame;
     }
@@ -335,7 +337,8 @@ public class MemoryEngine {
     /// </returns>
     public Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...", CancellationTokenSource? cancellationTokenSource = null) {
         IDisposable? token = this.BeginBusyOperation();
-        if (token != null) return Task.FromResult<IDisposable?>(token);
+        if (token != null)
+            return Task.FromResult<IDisposable?>(token);
 
         return this.busyLocker.BeginBusyOperationActivityAsync(new DefaultProgressTracker() {
             Caption = caption, Text = message
@@ -348,7 +351,8 @@ public class MemoryEngine {
     /// <param name="action">The callback to invoke when we have the token</param>
     /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
     public async Task BeginBusyOperationActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
-        if (this.connection == null) return; // short path -- save creating an activity
+        if (this.connection == null)
+            return; // short path -- save creating an activity
 
         using IDisposable? token = await this.BeginBusyOperationActivityAsync(caption, message);
         IConsoleConnection theConn; // save double volatile read
@@ -365,7 +369,8 @@ public class MemoryEngine {
     /// <typeparam name="TResult">The result of the callback task</typeparam>
     /// <returns>The task containing the result of action, or default if we couldn't get the token or connection was null</returns>
     public async Task<TResult?> BeginBusyOperationActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
-        if (this.connection == null) return default; // short path -- save creating an activity
+        if (this.connection == null)
+            return default; // short path -- save creating an activity
 
         using IDisposable? token = await this.BeginBusyOperationActivityAsync(caption, message);
         IConsoleConnection theConn; // save double volatile read
@@ -401,7 +406,7 @@ public class MemoryEngine {
 
     private void OnConnectionClosed(IConsoleConnection sender) {
         if (sender == this.connection) {
-           this.CheckConnection(); 
+            this.CheckConnection();
         }
     }
 
@@ -462,12 +467,12 @@ public class MemoryEngine {
     /// <exception cref="Exception">Invalid data type</exception>
     public static async Task<IDataValue> ReadDataValue(IConsoleConnection connection, uint address, IDataValue value) {
         switch (value.DataType) {
-            case DataType.Byte:      return new DataValueByte(await connection.ReadByte(address).ConfigureAwait(false));
-            case DataType.Int16:     return new DataValueInt16(await connection.ReadValue<short>(address).ConfigureAwait(false));
-            case DataType.Int32:     return new DataValueInt32(await connection.ReadValue<int>(address).ConfigureAwait(false));
-            case DataType.Int64:     return new DataValueInt64(await connection.ReadValue<long>(address).ConfigureAwait(false));
-            case DataType.Float:     return new DataValueFloat(await connection.ReadValue<float>(address).ConfigureAwait(false));
-            case DataType.Double:    return new DataValueDouble(await connection.ReadValue<double>(address).ConfigureAwait(false));
+            case DataType.Byte:   return new DataValueByte(await connection.ReadByte(address).ConfigureAwait(false));
+            case DataType.Int16:  return new DataValueInt16(await connection.ReadValue<short>(address).ConfigureAwait(false));
+            case DataType.Int32:  return new DataValueInt32(await connection.ReadValue<int>(address).ConfigureAwait(false));
+            case DataType.Int64:  return new DataValueInt64(await connection.ReadValue<long>(address).ConfigureAwait(false));
+            case DataType.Float:  return new DataValueFloat(await connection.ReadValue<float>(address).ConfigureAwait(false));
+            case DataType.Double: return new DataValueDouble(await connection.ReadValue<double>(address).ConfigureAwait(false));
             case DataType.String:
                 StringType sType = ((DataValueString) value).StringType;
                 return new DataValueString(await connection.ReadString(address, ((DataValueString) value).Value.Length, sType.ToEncoding(connection.IsLittleEndian)).ConfigureAwait(false), sType);

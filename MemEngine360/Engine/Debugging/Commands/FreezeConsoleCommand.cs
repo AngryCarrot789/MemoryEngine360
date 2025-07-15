@@ -25,20 +25,22 @@ namespace MemEngine360.Engine.Debugging.Commands;
 
 public class FreezeConsoleCommand : BaseDebuggerCommand {
     protected override Executability CanExecuteCore(ConsoleDebugger debugger, CommandEventArgs e) {
-        if (debugger.Connection == null) return Executability.ValidButCannotExecute;
+        if (debugger.Connection == null)
+            return Executability.ValidButCannotExecute;
 
         bool? run = debugger.IsConsoleRunning;
         return !run.HasValue || run.Value ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(ConsoleDebugger debugger, CommandEventArgs e) {
-        if (debugger.Connection == null) return;
+        if (debugger.Connection == null)
+            return;
 
         using IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Freeze Console");
         if (token != null && debugger.Connection != null && debugger.Connection is IHaveIceCubes iceCubes) {
             debugger.IsConsoleRunning = false;
             debugger.ConsoleExecutionState = null;
-            
+
             try {
                 await iceCubes.DebugFreeze();
             }

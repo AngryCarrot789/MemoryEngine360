@@ -49,7 +49,8 @@ public class ThreadMemoryAutoRefresh : IDisposable {
 
         this.task = Task.Run(async () => {
             CancellationToken token = this.cts?.Token ?? new CancellationToken(true);
-            if (token.IsCancellationRequested) return;
+            if (token.IsCancellationRequested)
+                return;
 
             while (!token.IsCancellationRequested) {
                 if (this.length > 0) {
@@ -62,7 +63,8 @@ public class ThreadMemoryAutoRefresh : IDisposable {
                     byte[] bytes;
                     uint addr, len;
                     using (IDisposable? t = await this.Debugger.BusyLock.BeginBusyOperationAsync(500, token)) {
-                        if (t == null) continue;
+                        if (t == null)
+                            continue;
 
                         if ((connection = this.Debugger.Connection) == null || !connection.IsConnected) {
                             this.Dispose();

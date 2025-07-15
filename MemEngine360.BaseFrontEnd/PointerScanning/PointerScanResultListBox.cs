@@ -62,8 +62,9 @@ public class PointerScanResultListBoxItem : VirtualizingModelListBoxItem {
     }
 
     private async Task ShowPointerChainInDialog() {
-        if (this.Model == null) return;
-        
+        if (this.Model == null)
+            return;
+
         IContextData data = DataManager.GetFullContextData(this);
         if (!PointerScanWindow.PointerScannerDataKey.TryGetContext(data, out PointerScanner? scanner)) {
             // I mean we could just access the PointerScannerWindow via TopLevel.GetTopLevel(this)...
@@ -74,12 +75,12 @@ public class PointerScanResultListBoxItem : VirtualizingModelListBoxItem {
         DynamicAddress address = (DynamicAddress) this.Model;
         sb.Append(address);
         sb.AppendLine();
-        
+
         sb.AppendLine(($"{address.BaseAddress:X8} points to {GetPointerValue(scanner, address.BaseAddress, out uint lastValue)}"));
         ImmutableArray<int> offsets = address.Offsets;
         if (offsets.Length > 0) {
             sb.AppendLine();
-            
+
             for (int i = 0; i < offsets.Length - 1; i++) {
                 uint actualAddress = (uint) (lastValue + offsets[i]);
                 sb.AppendLine(($"{lastValue:X8} + {offsets[i]:X5} (={actualAddress:X8}) points to {GetPointerValue(scanner, actualAddress, out lastValue)}"));
@@ -98,13 +99,13 @@ public class PointerScanResultListBoxItem : VirtualizingModelListBoxItem {
         if (scanner.PointerMap.TryGetValue(address, out lastValue)) {
             return lastValue.ToString("X8");
         }
-        
+
         if (address == scanner.SearchAddress)
             return address.ToString("X8");
-        
+
         return "???";
     }
-    
+
     protected override void OnAddingToList() {
     }
 
