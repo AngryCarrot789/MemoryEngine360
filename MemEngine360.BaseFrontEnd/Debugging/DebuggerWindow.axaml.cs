@@ -222,6 +222,7 @@ public partial class DebuggerWindow : DesktopWindow {
 
         this.PART_ThreadListBox.SetItemsSource(newValue?.ThreadEntries);
         this.PART_RegistersListBox.SetItemsSource(newValue?.RegisterEntries);
+        this.PART_FunctionCallFrame.SetItemsSource(newValue?.FunctionCallEntries);
 
         this.autoRefreshBinder.SwitchModel(newValue);
         this.autoAddRemoveThreadsBinder.SwitchModel(newValue);

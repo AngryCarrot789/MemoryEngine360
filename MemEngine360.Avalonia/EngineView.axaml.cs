@@ -413,7 +413,7 @@ public partial class EngineView : UserControl, IEngineUI {
                                 ActivityTask activity = ActivityManager.Instance.CurrentTask;
                                 IActivityProgress prog = activity.Progress;
 
-                                if (c is IHaveIceCubes)
+                                if (c is IHaveIceCubes && engine.ScanningProcessor.PauseConsoleDuringScan)
                                     await ((IHaveIceCubes) c).DebugFreeze();
 
                                 if (engine.ScanningProcessor.HasDoneFirstScan) {
@@ -461,7 +461,7 @@ public partial class EngineView : UserControl, IEngineUI {
                                 }
 
 
-                                if (c is IHaveIceCubes)
+                                if (c is IHaveIceCubes && engine.ScanningProcessor.PauseConsoleDuringScan)
                                     await ((IHaveIceCubes) c).DebugUnFreeze();
                                 return;
 

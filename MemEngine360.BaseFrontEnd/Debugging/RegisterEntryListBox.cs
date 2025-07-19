@@ -79,8 +79,11 @@ public class RegisterEntryListBoxItem : ModelBasedListBoxItem<RegisterEntry> {
         sb.Append(this.Model!.Name);
 
         switch (this.Model) {
-            case RegisterEntry32 e32: sb.Append(" = (0x) ").Append(e32.Value.ToString("X8")); break;
-            case RegisterEntry64 e64: sb.Append(" = (0x) ").Append(e64.Value.ToString("X16")); break;
+            case RegisterEntry32 e32: sb.Append(" = ").Append(e32.Value.ToString("X8")); break;
+            case RegisterEntry64 e64:
+                ulong val64 = e64.Value;
+                sb.Append(" = ").Append((val64 >> 32 & uint.MaxValue).ToString("X8")).Append((val64 & uint.MaxValue).ToString("X8")); 
+                break;
             case RegisterEntryDouble eDouble:
                 bool isLittleEndian = ((RegisterEntryListBox?) this.ListBox)?.ConsoleDebugger?.Connection?.IsLittleEndian ?? true;
 
@@ -88,9 +91,9 @@ public class RegisterEntryListBoxItem : ModelBasedListBoxItem<RegisterEntry> {
                 if (!isLittleEndian)
                     value = BinaryPrimitives.ReverseEndianness(value);
 
-                sb.Append(" = (0x) ").Append(eDouble.Value.ToString("X16")).Append(" (").Append(Unsafe.As<ulong, double>(ref value));
+                sb.Append(" = ").Append(eDouble.Value.ToString("X16")).Append(" (").Append(Unsafe.As<ulong, double>(ref value));
                 break;
-            case RegisterEntryVector eVector: sb.Append(" = (0x) ").Append(eVector.Value1.ToString("X16")).Append(", ").Append(eVector.Value2.ToString("X16")); break;
+            case RegisterEntryVector eVector: sb.Append(" = ").Append(eVector.Value1.ToString("X16")).Append(", ").Append(eVector.Value2.ToString("X16")); break;
         }
 
         ((TextBox) this.Content!).Text = sb.ToString();

@@ -51,4 +51,11 @@ public interface IHaveXboxDebugFeatures : IHaveXboxThreadInfo, IHaveSystemEvents
     Task ResumeThread(uint threadId);
     
     Task StepThread(uint threadId);
+
+    // TODO: StackWalk64
+    
+    /// <summary>
+    /// Tries to find functions using the given instruction address
+    /// </summary>
+    Task<FunctionCallEntry?[]> FindFunctions(uint[] iar);
 }

@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -38,7 +39,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
     protected override bool IsConnectedCore => this.isConnectedAsDebugger;
 
     public override bool IsLittleEndian => false;
-    
+
     public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
 
     public XDevkitConsoleConnection(XboxManager manager, XboxConsole console) {
@@ -66,10 +67,10 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         sb.Append($"ParameterCount: {inf.ParameterCount}");
         if (inf.ParameterCount > 0)
             sb.Append($", Parameters: {string.Join(", ", inf.Parameters)}");
-        
+
         System.Console.WriteLine($"[StdNotify] {eventcode} -> {sb.ToString()}");
     }
-    
+
     private void OnTextNotify(string source, string notification) {
         System.Console.WriteLine($"[TextNotify] {source} -> {notification}");
     }
@@ -102,6 +103,19 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
     public async Task<List<MemoryRegion>> GetMemoryRegions(bool willRead, bool willWrite) {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
+
+        // Debug testing
+        // foreach (IXboxThread thread in this.console.DebugTarget.Threads) {
+        //     if (thread.ThreadId != 0xF900002C)
+        //         continue;
+        //     
+        //     for (IXboxStackFrame? stack = thread.TopOfStack; stack != null; stack = stack.NextStackFrame) {
+        //         XBOX_FUNCTION_INFO FunctionInfo = stack.FunctionInfo;
+        //         uint StackPointer = stack.StackPointer;
+        //         uint ReturnAddress = stack.ReturnAddress;
+        //         Debug.WriteLine(stack);
+        //     }
+        // }
 
         List<MemoryRegion> regionList = new List<MemoryRegion>();
         IXboxMemoryRegions regions = await Task.Run(() => {

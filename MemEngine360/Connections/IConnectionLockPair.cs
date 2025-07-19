@@ -60,17 +60,9 @@ public interface IConnectionLockPair {
     }
 }
 
-public sealed class LambdaConnectionLockPair : IConnectionLockPair {
-    private readonly Func<BusyLock> busyLockProvider;
-    private readonly Func<IConsoleConnection?> connectionProvider;
-
-    public BusyLock BusyLock => this.busyLockProvider();
-    public IConsoleConnection? Connection => this.connectionProvider();
-
-    public LambdaConnectionLockPair(Func<BusyLock> busyLockProvider, Func<IConsoleConnection?> connectionProvider) {
-        this.busyLockProvider = busyLockProvider;
-        this.connectionProvider = connectionProvider;
-    }
+public sealed class LambdaConnectionLockPair(Func<BusyLock> busyLockProvider, Func<IConsoleConnection?> connectionProvider) : IConnectionLockPair {
+    public BusyLock BusyLock => busyLockProvider();
+    public IConsoleConnection? Connection => connectionProvider();
 }
 
 public sealed class ConnectionLockPair(BusyLock busyLock, IConsoleConnection? connection) : IConnectionLockPair {

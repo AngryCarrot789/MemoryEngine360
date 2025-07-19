@@ -482,11 +482,12 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             return await ActivityManager.Instance.RunTask(async () => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Read data for Hex Editor";
-                task.Progress.Text = "Freezing console...";
 
                 try {
-                    if (c is IHaveIceCubes)
+                    if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
+                        task.Progress.Text = "Freezing console...";
                         await ((IHaveIceCubes) c).DebugFreeze();
+                    }
                 }
                 catch (Exception e) when (e is TimeoutException || e is IOException) {
                     await IMessageDialogService.Instance.ShowMessage("Network error", "Error while freezing console: " + e.Message);
@@ -513,11 +514,12 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                     return null;
                 }
 
-                task.Progress.Text = "Unfreezing console...";
 
                 try {
-                    if (c is IHaveIceCubes)
+                    if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
+                        task.Progress.Text = "Unfreezing console...";
                         await ((IHaveIceCubes) c).DebugUnFreeze();
+                    }
                 }
                 catch {
                     // might as well ignore
@@ -578,10 +580,10 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             return await ActivityManager.Instance.RunTask(async () => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Refresh data for Hex Editor";
-                task.Progress.Text = "Freezing console...";
-
-                if (c is IHaveIceCubes)
+                if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
+                    task.Progress.Text = "Freezing console...";
                     await ((IHaveIceCubes) c).DebugFreeze();
+                }
 
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
@@ -594,9 +596,10 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 byte[] buffer = new byte[length];
                 await c.ReadBytes(this.actualStartAddress + startRel2Doc, buffer, 0, length, 0x10000, completion, task.CancellationToken);
 
-                task.Progress.Text = "Unfreezing console...";
-                if (c is IHaveIceCubes)
+                if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
+                    task.Progress.Text = "Unfreezing console...";
                     await ((IHaveIceCubes) c).DebugUnFreeze();
+                }
                 return buffer;
             }, cts);
         }, "Read data for Hex Editor");
@@ -632,9 +635,10 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             await ActivityManager.Instance.RunTask(async () => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Write data from Hex Editor";
-                task.Progress.Text = "Freezing console...";
-                if (c is IHaveIceCubes)
+                if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan){
+                    task.Progress.Text = "Freezing console...";
                     await ((IHaveIceCubes) c).DebugFreeze();
+                }
 
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
@@ -649,9 +653,10 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 this.myDocument!.ReadBytes(start, buffer);
                 await c.WriteBytes(this.actualStartAddress + start, buffer, 0, count, 0x10000, completion, task.CancellationToken);
 
-                task.Progress.Text = "Unfreezing console...";
-                if (c is IHaveIceCubes)
+                if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan){
+                    task.Progress.Text = "Unfreezing console...";
                     await ((IHaveIceCubes) c).DebugUnFreeze();
+                }
             }, cts);
         }, "Write Hex Editor Data");
 

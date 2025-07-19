@@ -113,7 +113,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
         this.ctsCheckClosed = new CancellationTokenSource();
         CancellationToken token = this.ctsCheckClosed.Token;
-        
+
         Task.Run(async () => {
             while (!token.IsCancellationRequested) {
                 await Task.Delay(2000, token);
@@ -513,7 +513,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         await Task.Run(() => {
             foreach (string line in lines) {
                 int split = line.IndexOf('=');
-                if (split == -1) continue;
+                if (split == -1)
+                    continue;
 
                 string name = line.Substring(0, split).ToUpperInvariant();
                 string value = line.Substring(split + 1);
@@ -541,7 +542,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         List<string> lines = await this.ReadMultiLineResponse();
         foreach (string line in lines) {
             int split = line.IndexOf('=');
-            if (split == -1) continue;
+            if (split == -1)
+                continue;
 
             if (!line.AsSpan(0, split).Equals(registerName, StringComparison.OrdinalIgnoreCase)) {
                 continue;
@@ -567,6 +569,84 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     public async Task StepThread(uint threadId) {
         // todo
+    }
+
+    public async Task<FunctionCallEntry?[]> FindFunctions(uint[] iar) {
+        if (iar.Length < 1) {
+            return [];
+        }
+
+        int resolvedCount = 0;
+        FunctionCallEntry?[] entries = new FunctionCallEntry?[iar.Length];
+
+        List<string> modules = await this.SendCommandAndReceiveLines("modules");
+        foreach (string moduleLine in modules) {
+            if (!ParamUtils.GetStrParam(moduleLine, "name", true, out string? modName)) {
+                continue;
+            }
+
+            ConsoleResponse response = await this.SendCommand($"modsections name=\"{modName}\"");
+            if (response.ResponseType == ResponseType.FileNotFound) {
+                continue;
+            }
+
+            List<string> sections = await this.ReadMultiLineResponse();
+            foreach (string sectionLine in sections) {
+                ParamUtils.GetStrParam(sectionLine, "name", true, out string? sec_name);
+                if (sec_name != ".pdata") {
+                    continue;
+                }
+
+                ParamUtils.GetDwParam(sectionLine, "base", true, out uint sec_base);
+                ParamUtils.GetDwParam(sectionLine, "size", true, out uint sec_size);
+                byte[] buffer = await this.ReadBytes(sec_base, (int) sec_size);
+                ReadOnlySpan<byte> rosBuffer = new ReadOnlySpan<byte>(buffer);
+                
+                int functionCount = (int) (sec_size / 16);
+                
+                uint startAddress = BinaryPrimitives.ReadUInt32BigEndian(rosBuffer);
+                for (int j = 0, offset = 8; j < functionCount; j++, offset += 16) {
+                    uint endAddress = BinaryPrimitives.ReadUInt32BigEndian(rosBuffer.Slice(offset, 4));
+                    RUNTIME_FUNCTION_PPC function = new RUNTIME_FUNCTION_PPC {
+                        BeginAddress = startAddress,
+                        EndAddress = endAddress
+                    };
+
+                    for (int k = 0; k < iar.Length; k++) {
+                        if (entries[k] == null && function.Contains(iar[k])) {
+                            entries[k] = new FunctionCallEntry(modName, function.BeginAddress, function.EndAddress - function.BeginAddress);
+                            resolvedCount++;
+                        }
+                    }
+
+                    if (resolvedCount == iar.Length) {
+                        return entries;
+                    }
+                    
+                    startAddress = endAddress;
+                }
+
+                break;
+            }
+        }
+
+        return entries;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct RUNTIME_FUNCTION_PPC {
+        [FieldOffset(0)] public uint BeginAddress;
+        [FieldOffset(4)] public uint Padding1;
+        [FieldOffset(8)] public uint EndAddress;
+        [FieldOffset(12)] public uint Padding2;
+
+        public readonly bool Contains(uint address) {
+            return address >= this.BeginAddress && address < this.EndAddress;
+        }
+
+        public override string ToString() {
+            return $"{this.BeginAddress:X8} -> {this.EndAddress:X8} (Length: {(this.EndAddress - this.BeginAddress):X})";
+        }
     }
 
     public async Task SetBreakpoint(uint address, bool clear) {
@@ -679,7 +759,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             int header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(this.sharedTwoByteArray, 0, 2));
             int chunkSize = header & 0x7FFF;
             statusFlag = header & 0x8000;
-            if (chunkSize <= 0) break;
+            if (chunkSize <= 0)
+                break;
             for (int count = chunkSize; count > 0; count -= tmpBuffer.Length) {
                 await this.ReadFromBufferOrStreamAsync(tmpBuffer, 0, Math.Min(count, tmpBuffer.Length));
             }

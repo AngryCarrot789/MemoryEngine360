@@ -20,7 +20,6 @@
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.VisualTree;
@@ -66,7 +65,6 @@ public partial class ConsoleEventViewerView : UserControl {
     private readonly RateLimitedDispatchAction rldaInsertEvents;
     private volatile int isUnloadedState;
 
-    private readonly WeakReference debugWeakRefTestMemoryLeak;
     private readonly Dictionary<Type, Control> eventDisplayControlCache;
     private readonly ObservableList<ConsoleSystemEventArgs> myEvents;
     private ScrollViewer? PART_ScrollViewer;
@@ -97,10 +95,6 @@ public partial class ConsoleEventViewerView : UserControl {
         this.myEvents = new ObservableList<ConsoleSystemEventArgs>();
         this.PART_EventListBox.SetItemsSource(this.myEvents);
 
-        TextBlock testMemoryLeakTB = new TextBlock();
-        testMemoryLeakTB.PointerPressed += this.OnTextBlockPressed;
-        this.debugWeakRefTestMemoryLeak = new WeakReference(testMemoryLeakTB);
-
         this.rldaInsertEvents = new RateLimitedDispatchAction(this.OnTickInsertEventsCallback, TimeSpan.FromMilliseconds(50)) { DebugName = nameof(ConsoleEventViewerView) };
         this.PART_EventListBox.SelectionChanged += this.OnSelectedItemChanged;
 
@@ -116,14 +110,21 @@ public partial class ConsoleEventViewerView : UserControl {
     
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
-        this.PART_ScrollViewer = this.PART_EventListBox.FindDescendantOfType<ScrollViewer>();
-        if (this.PART_ScrollViewer != null) {
-            this.PART_ScrollViewer.LayoutUpdated += this.PART_ScrollViewerOnLayoutUpdated;
-            this.PART_ScrollViewer.PropertyChanged += this.PART_ScrollViewerOnPropertyChanged;
-            this.PART_ScrollViewer.ScrollChanged += this.PART_ScrollViewerOnScrollChanged;
+        if (this.PART_ScrollViewer == null) {
+            this.PART_ScrollViewer = this.PART_EventListBox.FindDescendantOfType<ScrollViewer>();
+            if (this.PART_ScrollViewer != null) {
+                this.PART_ScrollViewer.LayoutUpdated += this.PART_ScrollViewerOnLayoutUpdated;
+                this.PART_ScrollViewer.PropertyChanged += this.PART_ScrollViewerOnPropertyChanged;
+                this.PART_ScrollViewer.ScrollChanged += this.PART_ScrollViewerOnScrollChanged;
+            }
         }
 
         this.timer.SetTarget(this.PART_Status, TextBlock.ForegroundProperty);
+        
+        // ConsoleConnection may change after OnLoaded
+        if (this.subscription == null && this.ConsoleConnection is IHaveSystemEvents events) {
+            this.subscription = events.SubscribeToEvents(this.OnEvent);
+        }
     }
 
     protected override void OnUnloaded(RoutedEventArgs e) {
@@ -229,9 +230,6 @@ public partial class ConsoleEventViewerView : UserControl {
         if (this.pendingInsertionCount > 0) {
             this.rldaInsertEvents.InvokeAsync();
         }
-    }
-
-    private void OnTextBlockPressed(object? sender, PointerPressedEventArgs e) {
     }
 
     private void OnSelectedLineChanged() {

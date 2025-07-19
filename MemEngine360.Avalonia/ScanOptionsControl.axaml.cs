@@ -61,7 +61,7 @@ public partial class ScanOptionsControl : UserControl {
         view.PART_TabItemString.IsEnabled = !scanAny;
         view.PART_UseFirstValue.IsEnabled = !scanAny && b.Model.HasDoneFirstScan;
         view.PART_UsePreviousValue.IsEnabled = !scanAny && b.Model.HasDoneFirstScan;
-        view.PART_ToggleUnknownDataType.IsEnabled = !b.Model.HasDoneFirstScan;
+        view.PART_ToggleUnknownDataType.IsEnabled = !b.Model.HasDoneFirstScan || scanAny;
     });
 
     private DataType lastIntegerDataType = DataType.Int32, lastFloatDataType = DataType.Float;

@@ -60,6 +60,8 @@ public class ConsoleDebugger {
 
     public ObservableList<ThreadEntry> ThreadEntries { get; }
 
+    public ObservableList<FunctionCallEntry> FunctionCallEntries { get; }
+
     /// <summary>
     /// Gets or sets the thread currently selected in the thread entry list
     /// </summary>
@@ -70,8 +72,10 @@ public class ConsoleDebugger {
                 throw new InvalidOperationException("Attempt to select a thread that wasn't in our thread entries list");
             PropertyHelper.SetAndRaiseINE(ref this.activeThread, value, this, static (t, o, n) => t.ActiveThreadChanged?.Invoke(t, o, n));
 
-            if (!this.ignoreActiveThreadChange)
+            if (!this.ignoreActiveThreadChange) {
                 this.rldaUpdateForThreadChanged.InvokeAsync();
+                this.rldaUpdateCallFrame.InvokeAsync();
+            }
         }
     }
 
@@ -132,6 +136,7 @@ public class ConsoleDebugger {
     public event ConsoleDebuggerEventHandler? IsWindowVisibleChanged;
 
     private readonly RateLimitedDispatchAction rldaUpdateForThreadChanged;
+    private readonly RateLimitedDispatchAction rldaUpdateCallFrame;
     private bool ignoreActiveThreadChange; // prevent RLDA getting fired
     private IDisposable? eventSubscription;
 
@@ -145,9 +150,37 @@ public class ConsoleDebugger {
             }
         };
 
+        this.FunctionCallEntries = new ObservableList<FunctionCallEntry>();
+
         this.RegisterEntries = new ObservableList<RegisterEntry>();
 
         this.rldaUpdateForThreadChanged = new RateLimitedDispatchAction(this.OnUpdateForActiveThreadChanged, TimeSpan.FromMilliseconds(100));
+        this.rldaUpdateCallFrame = new RateLimitedDispatchAction(this.OnUpdateCallFrameForIsRunningChanged, TimeSpan.FromMilliseconds(500));
+        this.IsConsoleRunningChanged += sender => this.rldaUpdateCallFrame.InvokeAsync();
+    }
+
+    private async Task OnUpdateCallFrameForIsRunningChanged() {
+        if (!this.RefreshRegistersOnActiveThreadChange || !this.IsWindowVisible) {
+            return;
+        }
+
+        if (this.Connection == null || !this.Connection.IsConnected) {
+            return;
+        }
+
+        using IDisposable? token = await this.busyLocker.BeginBusyOperationAsync(500);
+        if (token != null && !this.ignoreActiveThreadChange) {
+            ThreadEntry? thread = Volatile.Read(ref this.activeThread);
+            IConsoleConnection? connection = this.Connection;
+            if (thread != null && connection != null && connection.IsConnected) {
+                if (thread.IsSuspended || this.IsConsoleRunning == false) {
+                    await this.UpdateCallFrame(connection, thread, null);
+                }
+                else {
+                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.FunctionCallEntries.Clear(), DispatchPriority.Default, token: CancellationToken.None);
+                }
+            }
+        }
     }
 
     public void UpdateLaterForSelectedThreadChanged() {
@@ -248,6 +281,8 @@ public class ConsoleDebugger {
                 IsSuspended = thread.suspendCount > 0,
                 ProcessorNumber = thread.currentProcessor
             });
+            
+            this.rldaUpdateCallFrame.InvokeAsync();
         }
         else {
             if (thread.id == 0) {
@@ -265,6 +300,7 @@ public class ConsoleDebugger {
             this.ignoreActiveThreadChange = true;
             this.ActiveThread = this.ThreadEntries[idx] = newThread;
             this.ignoreActiveThreadChange = false;
+            this.rldaUpdateCallFrame.InvokeAsync();
             return newThread;
         }
 
@@ -318,7 +354,59 @@ public class ConsoleDebugger {
                     this.RegisterEntries.AddRange(registers);
                 }, DispatchPriority.Default, token: CancellationToken.None);
             }
+
+            this.rldaUpdateCallFrame.InvokeAsync();
         }
+    }
+
+    private async Task UpdateCallFrame(IConsoleConnection connection, ThreadEntry thread, List<RegisterEntry>? registers) {
+        if (registers == null) {
+            try {
+                registers = await ((IHaveXboxDebugFeatures) connection).GetRegisters(thread.ThreadId);
+            }
+            catch (Exception e) when (e is IOException || e is TimeoutException) {
+                await IMessageDialogService.Instance.ShowMessage("Network error", e.Message);
+                return;
+            }
+            catch (Exception e) {
+                await IMessageDialogService.Instance.ShowMessage("Error", e.Message);
+                return;
+            }
+
+            if (registers == null) {
+                return;
+            }
+        }
+
+        RegisterEntry32? iar = registers.FirstOrDefault(x => x.Name.EqualsIgnoreCase("iar")) as RegisterEntry32;
+        if (iar == null) {
+            return;
+        }
+
+        RegisterEntry32? lr = registers.FirstOrDefault(x => x.Name.EqualsIgnoreCase("lr")) as RegisterEntry32;
+        if (lr == null) {
+            return;
+        }
+
+        FunctionCallEntry?[] functions;
+        try {
+            functions = await ((IHaveXboxDebugFeatures) connection).FindFunctions([iar.Value, lr.Value]);
+        }
+        catch (Exception e) when (e is IOException || e is TimeoutException) {
+            await IMessageDialogService.Instance.ShowMessage("Network error", e.Message);
+            return;
+        }
+        catch (Exception e) {
+            await IMessageDialogService.Instance.ShowMessage("Error", e.Message);
+            return;
+        }
+
+        await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+            this.FunctionCallEntries.Clear();
+            foreach (FunctionCallEntry? entry in functions) {
+                this.FunctionCallEntries.Add(new FunctionCallEntry(entry?.ModuleName ?? "<unknown>", entry?.Address ?? 0, entry?.Size ?? 0));
+            }
+        }, DispatchPriority.Default, token: CancellationToken.None);
     }
 
     public void SetConnection(IDisposable busyToken, IConsoleConnection? newConnection) {

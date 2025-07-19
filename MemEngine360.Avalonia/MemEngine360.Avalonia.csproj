@@ -11,6 +11,12 @@
         <PlatformTarget>x64</PlatformTarget>
         <PublishSingleFile>true</PublishSingleFile>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <Deterministic>True</Deterministic>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+      <Deterministic>True</Deterministic>
+    </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Avalonia" Version="11.3.1" />
