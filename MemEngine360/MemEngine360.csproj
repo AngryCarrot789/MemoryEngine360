@@ -16,7 +16,7 @@
     </PropertyGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\AvaloniaHex\src\AvaloniaHex.Core\AvaloniaHex.Core.csproj" />
+	  <ProjectReference Include="..\AvaloniaHex\src\AvaloniaHex.Base\AvaloniaHex.Base.csproj" />
 	  <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj" />
 	</ItemGroup>
 

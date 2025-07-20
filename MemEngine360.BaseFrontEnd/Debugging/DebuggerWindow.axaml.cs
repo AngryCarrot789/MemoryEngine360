@@ -25,7 +25,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using AvaloniaHex.Core.Document;
+using AvaloniaHex.Base.Document;
 using AvaloniaHex.Rendering;
 using MemEngine360.BaseFrontEnd.Services.HexEditing;
 using MemEngine360.Connections;
@@ -115,7 +115,7 @@ public partial class DebuggerWindow : DesktopWindow {
     private void DoUpdateDocumentNow() {
         int bytesPerLine = this.PART_HexEditor.HexView.ActualBytesPerLine;
         // int lineCount = this.PART_HexEditor.HexView.VisualLines.Count;
-        int lineCount = (int) Math.Ceiling(this.PART_HexEditor.Bounds.Height / 14.0);
+        int lineCount = (int) Math.Ceiling((this.PART_HexEditor.Bounds.Height + 22.0) / 14.0);
         int byteCount = bytesPerLine * lineCount;
 
         this.isDocumentFreshForChangeManager = true;
@@ -139,7 +139,7 @@ public partial class DebuggerWindow : DesktopWindow {
             this.myOffsetColumn.AdditionalOffset = address - mod;
             this.DoUpdateDocumentNow();
 
-            this.PART_HexEditor.ResetCursorAnchor();
+            this.PART_HexEditor.ResetSelection();
             this.PART_HexEditor.Selection.Range = default;
             this.PART_HexEditor.Caret.Location = new BitLocation(mod);
             this.PART_HexEditor.Selection.Range = new BitRange(new BitLocation(mod), new BitLocation(mod + 1));
@@ -309,7 +309,7 @@ public partial class DebuggerWindow : DesktopWindow {
     private void UpdateAutoRefreshSpan(uint startAddress) {
         if (this.autoRefresh != null) {
             int bytesPerLine = this.PART_HexEditor.HexView.ActualBytesPerLine;
-            int lineCount = (int) Math.Ceiling(this.PART_HexEditor.Bounds.Height / 14.0);
+            int lineCount = (int) Math.Ceiling((this.PART_HexEditor.Bounds.Height + 22.0) / 14.0);
             int byteCount = bytesPerLine * lineCount;
 
             this.autoRefresh.UpdateReadSpan(startAddress, (uint) byteCount);

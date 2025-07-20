@@ -19,7 +19,7 @@
 
 using Avalonia;
 using Avalonia.Media;
-using AvaloniaHex.Core.Document;
+using AvaloniaHex.Base.Document;
 using AvaloniaHex.Editing;
 using AvaloniaHex.Rendering;
 

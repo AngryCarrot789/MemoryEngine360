@@ -17,7 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using AvaloniaHex.Core.Document;
+using AvaloniaHex.Base.Document;
 using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Engine.HexEditing;

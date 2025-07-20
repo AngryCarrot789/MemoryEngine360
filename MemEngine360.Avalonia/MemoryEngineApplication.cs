@@ -25,6 +25,7 @@ using System.Xml;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Styling;
 using MemEngine360.BaseFrontEnd;
 using MemEngine360.BaseFrontEnd.Debugging;
 using MemEngine360.BaseFrontEnd.EventViewing;
@@ -371,6 +372,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 system.ShutdownMode = ShutdownMode.OnMainWindowClose;
                 system.Register(view, true);
                 view.Show();
+
+                Application.Current!.Resources.TryGetResource("FontOxanium", ThemeVariant.Default, out object? font);
 
                 // ScrollViewer scrollViewer = new ScrollViewer() {
                 //     Content = new Border() {

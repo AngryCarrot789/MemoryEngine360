@@ -18,28 +18,25 @@
 // 
 
 using AvaloniaHex;
-using AvaloniaHex.Core.Document;
+using AvaloniaHex.Base.Document;
 using AvaloniaHex.Rendering;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
 public class HexEditorChangeManager {
-    private readonly HexEditor editor;
-    private readonly HexView view;
-    private MemoryBinaryDocument document;
     private readonly Stack<ChangedRegionLayer> layerCache;
     private readonly List<ChangedRegionLayer> myLayers;
     private const int MaxCache = 128;
 
-    public HexEditor Editor => this.editor;
+    public HexEditor Editor { get; }
 
-    public HexView View => this.view;
+    public HexView View { get; }
 
-    public MemoryBinaryDocument Document => this.document;
+    public IBinaryDocument Document { get; private set; }
 
     public HexEditorChangeManager(HexEditor editor) {
-        this.editor = editor;
-        this.view = editor.HexView;
+        this.Editor = editor;
+        this.View = editor.HexView;
         this.layerCache = new Stack<ChangedRegionLayer>(MaxCache);
         this.myLayers = new List<ChangedRegionLayer>(32);
     }
@@ -76,13 +73,13 @@ public class HexEditorChangeManager {
         return ranges;
     }
 
-    public void OnDocumentChanged(MemoryBinaryDocument newDocument) {
-        this.document = newDocument;
+    public void OnDocumentChanged(IBinaryDocument newDocument) {
+        this.Document = newDocument;
     }
 
     public void ProcessChanges(uint baseAddress, byte[] newData, int count) {
-        byte[] oldBytes = new byte[Math.Min(count, (uint) this.document.Length)];
-        this.document.ReadBytes(baseAddress, oldBytes);
+        byte[] oldBytes = new byte[Math.Min(count, (uint) this.Document.Length)];
+        this.Document.ReadBytes(baseAddress, oldBytes);
         
         List<BitRange> newRanges = GetChangedRanges(baseAddress, oldBytes, newData, oldBytes.Length);
         foreach (BitRange newRange in newRanges) {
@@ -109,14 +106,14 @@ public class HexEditorChangeManager {
         ChangedRegionLayer newLayer = this.GetCachedLayerOrNew();
         newLayer.SetRange(newRange);
         this.myLayers.Add(newLayer);
-        this.view.Layers.Add(newLayer);
+        this.View.Layers.Add(newLayer);
     }
 
     private void CleanupInvalidatedRanges() {
         for (int i = this.myLayers.Count - 1; i >= 0; i--) {
             ChangedRegionLayer theLayer = this.myLayers[i];
             if ((DateTime.Now - theLayer.LastUpdatedTime).Milliseconds >= 1500) {
-                this.view.Layers.Remove(theLayer);
+                this.View.Layers.Remove(theLayer);
                 this.myLayers.RemoveAt(i);
             }
         }
@@ -127,7 +124,7 @@ public class HexEditorChangeManager {
             ChangedRegionLayer theLayer = this.myLayers[i];
             if (theLayer == layer) {
                 this.myLayers.RemoveAt(i);   
-                this.view.Layers.Remove(theLayer);
+                this.View.Layers.Remove(theLayer);
                 break;
             }
         }

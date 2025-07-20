@@ -32,7 +32,7 @@ public static class MemoryAddressUtils {
     private static (IMemoryAddress?, string?) TryParseInternal(string? input) {
         if (string.IsNullOrWhiteSpace(input))
             return (null, "Input string is empty");
-        
+
         // 820002CD
         if (uint.TryParse(input, NumberStyles.HexNumber, null, out uint staticAddress))
             return (new StaticAddress(staticAddress), null);
@@ -41,25 +41,25 @@ public static class MemoryAddressUtils {
         int firstOffset = input.IndexOf("->", StringComparison.Ordinal);
         if (firstOffset == -1)
             return (null, "Missing dereference token(s) \"->\"" + input);
-        
+
         ReadOnlySpan<char> span = input.AsSpan(0, firstOffset);
-        if (!uint.TryParse(span, NumberStyles.HexNumber, null, out uint baseAddress))
+        if (!TryParseHexUInt32(span, out uint baseAddress))
             return (null, "Invalid base address: " + span.ToString());
-        
+
         List<int> offsets = new List<int>();
         int idxPtrToken, idxBeginLastOffset = firstOffset + 2, offset;
         while ((idxPtrToken = input.IndexOf("->", idxBeginLastOffset, StringComparison.Ordinal)) != -1) {
             span = input.AsSpan(idxBeginLastOffset, idxPtrToken - idxBeginLastOffset);
-            if (!int.TryParse(span, NumberStyles.HexNumber, null, out offset))
+            if (!TryParseHexInt32(span, out offset))
                 return (null, "Invalid offset: " + span.ToString());
 
             offsets.Add(offset);
             idxBeginLastOffset = idxPtrToken + 2;
         }
 
-        if (!int.TryParse(span = input.AsSpan(idxBeginLastOffset), NumberStyles.HexNumber, null, out offset))
+        if (!TryParseHexInt32(span = input.AsSpan(idxBeginLastOffset), out offset))
             return (null, "Invalid offset: " + span.ToString());
-        
+
         offsets.Add(offset);
         return (new DynamicAddress(baseAddress, offsets), null);
     }
@@ -109,5 +109,28 @@ public static class MemoryAddressUtils {
             return ((DynamicAddress) address).TryResolve(connection);
 
         throw new ArgumentException("Unknown memory address type");
+    }
+
+    public static bool TryParseHexUInt32(string? input, out uint result) {
+        return TryParseHexUInt32(input.AsSpan(), out result);
+    }
+
+    public static bool TryParseHexUInt32(ReadOnlySpan<char> input, out uint result) {
+        if (input.StartsWith("0x", StringComparison.Ordinal))
+            input = input.Slice(2);
+        return uint.TryParse(input, NumberStyles.HexNumber, null, out result);
+    }
+    
+    public static bool TryParseHexInt32(string? input, out int result) {
+        return TryParseHexInt32(input.AsSpan(), out result);
+    }
+
+    public static bool TryParseHexInt32(ReadOnlySpan<char> input, out int result) {
+        if (input.StartsWith("-0x", StringComparison.Ordinal))
+            input = input.Slice(3);
+        else if (input.StartsWith("0x", StringComparison.Ordinal))
+            input = input.Slice(2);
+        
+        return int.TryParse(input, NumberStyles.HexNumber, null, out result);
     }
 }

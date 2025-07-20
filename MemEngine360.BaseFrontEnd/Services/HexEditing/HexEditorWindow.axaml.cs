@@ -27,7 +27,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using AvaloniaHex.Core.Document;
+using AvaloniaHex.Base.Document;
 using AvaloniaHex.Editing;
 using AvaloniaHex.Rendering;
 using MemEngine360.Configs;
@@ -66,7 +66,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     public BitLocation CaretLocation {
         get => this.PART_HexEditor.Caret.Location;
         set {
-            this.PART_HexEditor.ResetCursorAnchor();
+            this.PART_HexEditor.ResetSelection();
             this.PART_HexEditor.Caret.Location = value;
         }
     }
@@ -74,7 +74,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     public BitRange SelectionRange {
         get => this.PART_HexEditor.Selection.Range;
         set {
-            this.PART_HexEditor.ResetCursorAnchor();
+            this.PART_HexEditor.ResetSelection();
             this.PART_HexEditor.Selection.Range = value;
         }
     }
@@ -151,7 +151,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     private AutoRefreshTask? autoRefreshTask;
     private bool flagRestartAutoRefresh;
 
-    private MemoryBinaryDocument? myDocument;
+    private IBinaryDocument? myDocument;
 
     private readonly AutoRefreshLayer autoRefreshLayer;
     private readonly HexEditorChangeManager changeManager;
@@ -541,6 +541,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 this.changeManager.ProcessChanges(0, bytes, bytes.Length);
 
             this.PART_HexEditor.Document = info.Document = this.myDocument = new MemoryBinaryDocument(bytes, info.IsReadOnly);
+            // this.PART_HexEditor.Document = info.Document = this.myDocument = new AsyncInfiniteDocument(new LambdaConnectionLockPair(() => info.MemoryEngine.BusyLocker, () => info.MemoryEngine.Connection));
             this.changeManager.OnDocumentChanged(this.myDocument);
             await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                 this.PART_HexEditor.HexView.ScrollOffset = scroll;
@@ -839,7 +840,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         private readonly HexEditorInfo? info;
         private IDisposable? busyToken;
         private readonly uint startAddress, startAddressInDoc, cbRange;
-        private readonly MemoryBinaryDocument? myDocument;
+        private readonly IBinaryDocument? myDocument;
         private readonly byte[] myBuffer;
         private bool isInvalidOnFirstRun;
 

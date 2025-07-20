@@ -17,7 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using AvaloniaHex.Core.Document;
+using AvaloniaHex.Base.Document;
 using MemEngine360.Connections;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Utils.Accessing;
@@ -89,7 +89,7 @@ public class HexEditorInfo : ITransferableData {
     /// <summary>
     /// Gets the document used by the hex editor control. Do not set this manually, because it will not affect the control
     /// </summary>
-    public MemoryBinaryDocument? Document { get; set; }
+    public IBinaryDocument? Document { get; set; }
     
     /// <summary>
     /// Gets whether the hex editor allows values to be modified and therefore call <see cref="WriteDataAsync"/>
