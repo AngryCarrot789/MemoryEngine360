@@ -4,6 +4,3 @@
 [submodule "AvaloniaHex"]
 	path = AvaloniaHex
 	url = https://github.com/AngryCarrot789/AvaloniaHex
-[submodule "AvaloniaHexAsync"]
-	path = AvaloniaHexAsync
-	url = https://github.com/AngryCarrot789/AvaloniaHexAsync
