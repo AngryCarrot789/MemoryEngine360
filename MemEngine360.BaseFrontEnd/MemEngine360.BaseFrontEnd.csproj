@@ -27,6 +27,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\AvaloniaHexAsync\AvaloniaHexAsync.Controls\AvaloniaHexAsync.Controls.csproj" />
         <ProjectReference Include="..\AvaloniaHex\src\AvaloniaHex\AvaloniaHex.csproj" />
         <ProjectReference Include="..\MemEngine360\MemEngine360.csproj" />
         <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI.Avalonia\PFXToolKitUI.Avalonia.csproj" />

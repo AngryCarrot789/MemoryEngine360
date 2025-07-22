@@ -19,13 +19,18 @@
 
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Styling;
+using AvaloniaHexAsync.Controls;
+using AvaloniaHexAsync.Controls.Rendering;
 using MemEngine360.BaseFrontEnd;
 using MemEngine360.BaseFrontEnd.Debugging;
 using MemEngine360.BaseFrontEnd.EventViewing;
@@ -166,7 +171,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.ToggleConditionEnabledCommand", new ToggleConditionEnabledCommand());
         manager.Register("commands.sequencer.SaveTaskSequencesCommand", new SaveTaskSequencesCommand());
         manager.Register("commands.sequencer.LoadTaskSequencesCommand", new LoadTaskSequencesCommand());
-        
+
         // Debugger
         manager.Register("commands.memengine.ShowDebuggerCommand", new ShowDebuggerCommand());
         manager.Register("commands.debugger.OpenDebuggerConnectionCommand", new OpenDebuggerConnectionCommand());
@@ -374,61 +379,6 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 view.Show();
 
                 Application.Current!.Resources.TryGetResource("FontOxanium", ThemeVariant.Default, out object? font);
-
-                // ScrollViewer scrollViewer = new ScrollViewer() {
-                //     Content = new Border() {
-                //         Height = 25000
-                //     }
-                // };
-                // TextBlock fuckYou1 = new TextBlock();
-                // TextBlock fuckYou2 = new TextBlock();
-                // TextBlock fuckYou3 = new TextBlock();
-                // TextBlock fuckYou4 = new TextBlock();
-                // TextBlock fuckYou5 = new TextBlock();
-                // TextBlock fuckYou6 = new TextBlock();
-                // 
-                // scrollViewer.GetObservable(ScrollViewer.ExtentProperty).Subscribe(new AnonymousObserver<Size>(s =>             fuckYou1.Text = $"Extent:            {s.ToString()}"));
-                // scrollViewer.GetObservable(ScrollViewer.OffsetProperty).Subscribe(new AnonymousObserver<Vector>(s =>           fuckYou2.Text = $"Offset:            {s.ToString()}"));
-                // scrollViewer.GetObservable(ScrollViewer.ViewportProperty).Subscribe(new AnonymousObserver<Size>(s =>           fuckYou3.Text = $"Viewport:          {s.ToString()}"));
-                // scrollViewer.GetObservable(ScrollViewer.LargeChangeProperty).Subscribe(new AnonymousObserver<Size>(s =>        fuckYou4.Text = $"Large Change:      {s.ToString()}"));
-                // scrollViewer.GetObservable(ScrollViewer.SmallChangeProperty).Subscribe(new AnonymousObserver<Size>(s =>        fuckYou5.Text = $"Small Change:      {s.ToString()}"));
-                // scrollViewer.GetObservable(ScrollViewer.ScrollBarMaximumProperty).Subscribe(new AnonymousObserver<Vector>(s => fuckYou6.Text = $"ScrollBar Maximum: {s.ToString()}"));
-                // 
-                // new Window() {
-                //     FontFamily = "Consolas",
-                //     Content = new DockPanel() {
-                //         Children = {
-                //             new StackPanel() {
-                //                 [DockPanel.DockProperty] = Dock.Top,
-                //                 Children = {
-                //                     fuckYou1,
-                //                     fuckYou2,
-                //                     fuckYou3,
-                //                     fuckYou4,
-                //                     fuckYou5,
-                //                     fuckYou6,
-                //                 }
-                //             },
-                //             scrollViewer
-                //         }
-                //     }
-                // }.Show();
-
-                // using IDisposable? token = await view.MemoryEngine.BeginBusyOperationActivityAsync();
-                // if (token != null) {
-                //     using CancellationTokenSource cts = new CancellationTokenSource();
-                //     IConsoleConnection? connection = await ConsoleTypeXbox360Xbdm.Instance.OpenConnection(view.MemoryEngine, new ConnectToXboxInfo(view.MemoryEngine) { IpAddress = "192.168.1.202" }, cts);
-                //     if (connection != null) {
-                //         view.MemoryEngine.SetConnection(token, connection, ConnectionChangeCause.Custom);
-                //
-                //         await ApplicationPFX.Instance.ServiceManager.GetService<IHexDisplayService>().ShowHexEditor(new HexDisplayInfo(view.MemoryEngine) {
-                //             StartAddress = 0x8303A000,
-                //             Length = 0x2000,
-                //             AutoRefreshStartAddress = 0x8303A5C0,
-                //             AutoRefreshLength = 1800,
-                //         });
-                //     }
-                // }
             }
             else {
                 Instance.Dispatcher.InvokeShutdown();

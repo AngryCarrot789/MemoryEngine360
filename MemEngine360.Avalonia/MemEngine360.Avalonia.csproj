@@ -32,6 +32,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\AvaloniaHexAsync\AvaloniaHexAsync.Controls\AvaloniaHexAsync.Controls.csproj" />
       <ProjectReference Include="..\AvaloniaHex\src\AvaloniaHex\AvaloniaHex.csproj" />
       <ProjectReference Include="..\MemEngine360.BaseFrontEnd\MemEngine360.BaseFrontEnd.csproj" />
       <ProjectReference Include="..\MemEngine360.Xbox360XBDM\MemEngine360.Xbox360XBDM.csproj" />

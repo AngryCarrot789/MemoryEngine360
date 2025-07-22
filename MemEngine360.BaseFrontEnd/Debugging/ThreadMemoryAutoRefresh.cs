@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using AvaloniaHexAsync.Base;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Debugging;
 using PFXToolKitUI;
@@ -27,7 +28,6 @@ public class ThreadMemoryAutoRefresh : IDisposable {
     private readonly DebuggerWindow window;
     private volatile CancellationTokenSource? cts;
     private Task? task;
-    private uint address, length;
 
     public ConsoleDebugger Debugger { get; }
 
@@ -35,11 +35,6 @@ public class ThreadMemoryAutoRefresh : IDisposable {
         this.Debugger = debugger;
         this.window = window;
         this.cts = new CancellationTokenSource();
-    }
-
-    public void UpdateReadSpan(uint newAddress, uint newLength) {
-        this.address = newAddress;
-        this.length = newLength;
     }
 
     public void Run() {
@@ -53,7 +48,16 @@ public class ThreadMemoryAutoRefresh : IDisposable {
                 return;
 
             while (!token.IsCancellationRequested) {
-                if (this.length > 0) {
+                BitRange visibleRange = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.window.PART_HexEditor.HexView.VisibleRange, token: CancellationToken.None);
+                if (visibleRange.ByteLength > 0) {
+                    if (visibleRange.Start.ByteIndex >= uint.MaxValue) {
+                        await Task.Delay(500, token);
+                        continue;
+                    }
+
+                    uint addr = (uint) visibleRange.Start.ByteIndex;
+                    int len = visibleRange.ByteLength > int.MaxValue ? int.MaxValue : (int) visibleRange.ByteLength;
+
                     IConsoleConnection? connection = this.Debugger.Connection;
                     if (connection == null || !connection.IsConnected) {
                         this.Dispose();
@@ -61,7 +65,6 @@ public class ThreadMemoryAutoRefresh : IDisposable {
                     }
 
                     byte[] bytes;
-                    uint addr, len;
                     using (IDisposable? t = await this.Debugger.BusyLock.BeginBusyOperationAsync(500, token)) {
                         if (t == null)
                             continue;
@@ -72,7 +75,7 @@ public class ThreadMemoryAutoRefresh : IDisposable {
                         }
 
                         try {
-                            bytes = await connection.ReadBytes(addr = this.address, (int) (len = this.length));
+                            bytes = await connection.ReadBytes(addr, len);
                         }
                         catch (Exception) {
                             await Task.Delay(500, token);
@@ -82,7 +85,7 @@ public class ThreadMemoryAutoRefresh : IDisposable {
 
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         if (this.cts != null && !this.cts.IsCancellationRequested) {
-                            this.window.UpdateMemoryBuffer(this, bytes, addr, len);
+                            ((ConsoleHexBinarySource) this.window.PART_HexEditor.BinarySource!).OnAutoRefreshed(bytes, addr, len);
                         }
                     }, token: CancellationToken.None);
                 }

@@ -22,12 +22,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
-using Avalonia.Interactivity;
-using Avalonia.Layout;
 using Avalonia.Media;
-using AvaloniaHex.Base.Document;
-using AvaloniaHex.Rendering;
-using MemEngine360.BaseFrontEnd.Services.HexEditing;
+using AvaloniaHexAsync.Base;
+using AvaloniaHexAsync.Controls.Rendering;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Debugging;
 using PFXToolKitUI.Avalonia.Bindings;
@@ -36,8 +33,6 @@ using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Themes.BrushFactories;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Logging;
-using PFXToolKitUI.Utils;
-using PFXToolKitUI.Utils.RDA;
 
 namespace MemEngine360.BaseFrontEnd.Debugging;
 
@@ -66,14 +61,6 @@ public partial class DebuggerWindow : DesktopWindow {
     private readonly MultiBrushFlipFlopTimer timer;
     private bool isUpdatingSelectedLBI;
     private ThreadMemoryAutoRefresh? autoRefresh;
-    private readonly RateLimitedDispatchAction rldaUpdateMemoryDocument;
-    private readonly OffsetColumn myOffsetColumn;
-    private readonly HexEditorChangeManager changeManager;
-
-    private long newCaretByteIndex;
-    private long newSelectionByteIndex;
-    private bool isDocumentFreshForChangeManager = true;
-    private uint lastUpdateAddress;
 
     public DebuggerWindow() {
         this.InitializeComponent();
@@ -82,47 +69,26 @@ public partial class DebuggerWindow : DesktopWindow {
         this.currentConnectionTypeBinder.AttachControl(this.PART_ActiveConnectionTextBoxRO);
         this.isConsoleRunningBinder.AttachControl(this.PART_RunningState);
         this.PART_ThreadListBox.SelectionChanged += this.OnThreadListBoxSelectionChanged;
-        this.PART_HexEditor.EffectiveViewportChanged += this.OnHexEditorViewportChanged;
-        this.PART_HexEditor.AddHandler(PointerWheelChangedEvent, this.OnHexEditorMouseWheel, RoutingStrategies.Tunnel);
 
         this.PART_GotoTextBox.KeyDown += this.PART_GotoTextBoxOnKeyDown;
         this.PART_GotoTextBox.AcceptsReturn = false;
         this.PART_GotoTextBox.AcceptsTab = false;
 
         this.PART_HexEditor.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
-        HexView view = this.PART_HexEditor.HexView;
-        view.CanVerticallyScroll = false;
+        
+        AsyncHexView view = this.PART_HexEditor.HexView;
         view.BytesPerLine = 16;
-        view.Columns.Add(this.myOffsetColumn = new OffsetColumn());
+        view.Columns.Add(new OffsetColumn());
         view.Columns.Add(new HexColumn());
         view.Columns.Add(new AsciiColumn());
-
-        this.changeManager = new HexEditorChangeManager(this.PART_HexEditor);
-
-        this.rldaUpdateMemoryDocument = RateLimitedDispatchActionBase.ForDispatcherSync(this.DoUpdateDocumentNow, TimeSpan.FromMilliseconds(100));
 
         this.timer = new MultiBrushFlipFlopTimer(TimeSpan.FromMilliseconds(500), [
             new BrushExchange(this.PART_RunningState, ForegroundProperty, SimpleIcons.DynamicForegroundBrush, new ConstantAvaloniaColourBrush(Brushes.Black)),
             new BrushExchange(this.PART_RunningState, BackgroundProperty, SimpleIcons.ConstantTransparentBrush, new ConstantAvaloniaColourBrush(Brushes.Yellow)),
         ]) { LevelChangesToStop = 7 /* stop on HIGH state */, StartHigh = true };
 
-        this.myOffsetColumn.AdditionalOffset = 0x8303AA10;
         this.PART_GotoTextBox.Text = "8303AA10";
-
-        this.rldaUpdateMemoryDocument.InvokeAsync();
-    }
-
-    private void DoUpdateDocumentNow() {
-        int bytesPerLine = this.PART_HexEditor.HexView.ActualBytesPerLine;
-        // int lineCount = this.PART_HexEditor.HexView.VisualLines.Count;
-        int lineCount = (int) Math.Ceiling((this.PART_HexEditor.Bounds.Height + 22.0) / 14.0);
-        int byteCount = bytesPerLine * lineCount;
-
-        this.isDocumentFreshForChangeManager = true;
-        MemoryBinaryDocument document = new MemoryBinaryDocument(new byte[byteCount], false);
-        this.PART_HexEditor.Document = document;
-        this.changeManager.OnDocumentChanged(document);
-        this.UpdateAutoRefreshSpan((uint) this.myOffsetColumn.AdditionalOffset);
+        this.PART_HexEditor.HexView.ScrollOffset = new Vector(0, (double) (0x8303AA10 / 16));
     }
 
     private void PART_GotoTextBoxOnKeyDown(object? sender, KeyEventArgs e) {
@@ -134,18 +100,18 @@ public partial class DebuggerWindow : DesktopWindow {
             text = text.Substring(2);
         }
 
-        if (uint.TryParse(text, NumberStyles.HexNumber, null, out uint address)) {
-            uint mod = address % 16;
-            this.myOffsetColumn.AdditionalOffset = address - mod;
-            this.DoUpdateDocumentNow();
-
+        if (uint.TryParse(text, NumberStyles.HexNumber, null, out uint parsedAddress)) {
+            uint mod = parsedAddress % 16;
+            uint lineStartAddress = parsedAddress - mod;
+            uint offset = lineStartAddress / (uint) this.PART_HexEditor.HexView.ActualBytesPerLine;
+            
+            Vector oldOffset = this.PART_HexEditor.HexView.ScrollOffset;
+            this.PART_HexEditor.HexView.ScrollOffset = new Vector(oldOffset.X, offset);
+            
             this.PART_HexEditor.ResetSelection();
-            this.PART_HexEditor.Selection.Range = default;
-            this.PART_HexEditor.Caret.Location = new BitLocation(mod);
-            this.PART_HexEditor.Selection.Range = new BitRange(new BitLocation(mod), new BitLocation(mod + 1));
+            this.PART_HexEditor.Caret.Location = new BitLocation(parsedAddress);
+            this.PART_HexEditor.Selection.Range = new BitRange(new BitLocation(parsedAddress), new BitLocation(parsedAddress + 1));
         }
-
-        ((TextBox) sender).Text = this.myOffsetColumn.AdditionalOffset.ToString("X8");
     }
 
     static DebuggerWindow() {
@@ -210,12 +176,14 @@ public partial class DebuggerWindow : DesktopWindow {
             oldValue.ConnectionChanged -= this.OnConsoleConnectionChanged;
             oldValue.ActiveThreadChanged -= this.OnActiveThreadChanged;
             oldValue.IsConsoleRunningChanged -= this.OnIsConsoleRunningChanged;
+            this.PART_HexEditor.BinarySource = null;
         }
 
         if (newValue != null) {
             newValue.ConnectionChanged += this.OnConsoleConnectionChanged;
             newValue.ActiveThreadChanged += this.OnActiveThreadChanged;
             newValue.IsConsoleRunningChanged += this.OnIsConsoleRunningChanged;
+            this.PART_HexEditor.BinarySource = new ConsoleHexBinarySource(new ConnectionLockPair(newValue.BusyLock, newValue.Connection));
         }
 
         this.timer.IsEnabled = newValue != null && newValue.IsConsoleRunning != true;
@@ -246,6 +214,7 @@ public partial class DebuggerWindow : DesktopWindow {
     private async void OnConsoleConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection) {
         if (this.IsOpen) {
             this.PART_EventViewer.ConsoleConnection = newconnection;
+            this.PART_HexEditor.BinarySource = new ConsoleHexBinarySource(new ConnectionLockPair(sender.BusyLock, newconnection));
             this.RestartAutoRefresh();
         }
     }
@@ -256,7 +225,6 @@ public partial class DebuggerWindow : DesktopWindow {
 
         if (this.ConsoleDebugger != null && this.ConsoleDebugger.Connection != null) {
             this.autoRefresh = new ThreadMemoryAutoRefresh(this.ConsoleDebugger, this);
-            this.UpdateAutoRefreshSpan((uint) this.myOffsetColumn.AdditionalOffset);
             this.autoRefresh.Run();
         }
     }
@@ -274,77 +242,5 @@ public partial class DebuggerWindow : DesktopWindow {
     private void OnThreadListBoxSelectionChanged(object? sender, SelectionChangedEventArgs e) {
         if (!this.isUpdatingSelectedLBI && this.ConsoleDebugger != null)
             this.ConsoleDebugger.ActiveThread = this.PART_ThreadListBox.SelectedModel;
-    }
-
-    private void OnHexEditorMouseWheel(object? sender, PointerWheelEventArgs e) {
-        if (!DoubleUtils.AreClose(e.Delta.Y, 0.0)) {
-            const int LinesPerScroll = 3;
-            const uint offsetBytes = LinesPerScroll * 16;
-
-            long oldOffset = (long) this.myOffsetColumn.AdditionalOffset;
-            long newOffset = Math.Max(0, oldOffset + (e.Delta.Y > 0 ? -offsetBytes : offsetBytes));
-
-            BitLocation oldPos = this.PART_HexEditor.Caret.Location;
-            this.newCaretByteIndex = (long) oldPos.ByteIndex + (oldOffset - newOffset);
-            this.PART_HexEditor.Caret.Location = this.newCaretByteIndex < 0 ? default : new BitLocation((ulong) this.newCaretByteIndex, oldPos.BitIndex);
-
-            BitRange oldRange = this.PART_HexEditor.Selection.Range;
-            long rangeLength = (long) (oldRange.End.ByteIndex - oldRange.Start.ByteIndex);
-            this.newSelectionByteIndex = (long) oldRange.Start.ByteIndex + (oldOffset - newOffset);
-            this.PART_HexEditor.Selection.Range = new BitRange(
-                new BitLocation((ulong) Math.Max(0, this.newSelectionByteIndex), oldRange.Start.BitIndex),
-                new BitLocation((ulong) Math.Max(0, this.newSelectionByteIndex + rangeLength), oldRange.End.BitIndex));
-
-            this.myOffsetColumn.AdditionalOffset = (ulong) newOffset;
-
-            long change = (newOffset >= oldOffset ? (newOffset - oldOffset) : (oldOffset - newOffset));
-            long byteOffsetChange = change * 16;
-
-            this.UpdateAutoRefreshSpan((uint) newOffset);
-
-            e.Handled = true;
-        }
-    }
-
-    private void UpdateAutoRefreshSpan(uint startAddress) {
-        if (this.autoRefresh != null) {
-            int bytesPerLine = this.PART_HexEditor.HexView.ActualBytesPerLine;
-            int lineCount = (int) Math.Ceiling((this.PART_HexEditor.Bounds.Height + 22.0) / 14.0);
-            int byteCount = bytesPerLine * lineCount;
-
-            this.autoRefresh.UpdateReadSpan(startAddress, (uint) byteCount);
-        }
-    }
-
-    private void OnHexEditorViewportChanged(object? sender, EffectiveViewportChangedEventArgs e) {
-        this.rldaUpdateMemoryDocument.InvokeAsync();
-    }
-
-    public void UpdateMemoryBuffer(ThreadMemoryAutoRefresh autoRefresher, byte[] buffer, uint addr, uint len) {
-        if (this.autoRefresh != autoRefresher)
-            return;
-
-        MemoryBinaryDocument document = (MemoryBinaryDocument) this.PART_HexEditor.Document!;
-
-        // Say we scroll down mid read: Offset = 8000003, addr = 80000000
-        // So we want to show the buffer starting at Offset-addr
-        // uint startAddress = (uint) this.myOffsetColumn.AdditionalOffset;
-        // long offset = startAddress - addr;
-        // if (offset < 0) {
-        //     document.WriteBytes(0, new ReadOnlySpan<byte>(buffer, 0, Math.Min(buffer.Length, (int) document.Length)));
-        // }
-
-        int count = Math.Min(buffer.Length, (int) document.Length);
-        if (this.isDocumentFreshForChangeManager) {
-            this.isDocumentFreshForChangeManager = false;
-        }
-        else if (this.lastUpdateAddress == addr) {
-            // long offset = (long) this.lastUpdateAddress - (long) addr;
-            // this.changeManager.ProcessChanges((uint) Math.Max(offset, 0), buffer, (int) Math.Max(0, (count - offset)));
-            this.changeManager.ProcessChanges(0, buffer, count);
-        }
-
-        document.WriteBytes(0, new ReadOnlySpan<byte>(buffer, 0, count));
-        this.lastUpdateAddress = addr;
     }
 }
