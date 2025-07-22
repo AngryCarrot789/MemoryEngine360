@@ -231,6 +231,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             else {
                 HexEditorInfo? info = this.HexDisplayInfo;
                 if (info == null) {
+                    this.UpdateAutoRefreshButtonsAndTextBoxes();
                     return;
                 }
 
@@ -241,6 +242,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                     if (selection.ByteLength > 0) {
                         MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Auto refresh", "Auto refresh span is empty. Set span as selection and run?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
                         if (result != MessageBoxResult.OK) {
+                            this.UpdateAutoRefreshButtonsAndTextBoxes();
                             return;
                         }
 
@@ -248,14 +250,21 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                         info.AutoRefreshLength = arCountBytes = (uint) selection.ByteLength;
                     }
                     else {
+                        this.UpdateAutoRefreshButtonsAndTextBoxes();
                         await IMessageDialogService.Instance.ShowMessage("Auto refresh", "Auto refresh span is empty", defaultButton: MessageBoxResult.OK);
                         return;
                     }
                 }
 
-                if ((ulong) arStartAddress + arCountBytes > uint.MaxValue) {
-                    await IMessageDialogService.Instance.ShowMessage("Start address", "Auto refresh span is outside the applicable memory range");
+                if (arCountBytes > 1000000) {
                     this.UpdateAutoRefreshButtonsAndTextBoxes();
+                    await IMessageDialogService.Instance.ShowMessage("Range too large", "Auto-refresh range must be less than 1MB. Ideally it shouldn't be any more than 8KB");
+                    return;
+                }
+
+                if ((ulong) arStartAddress + arCountBytes > uint.MaxValue) {
+                    this.UpdateAutoRefreshButtonsAndTextBoxes();
+                    await IMessageDialogService.Instance.ShowMessage("Start address", "Auto refresh span is outside the applicable memory range");
                     return;
                 }
 
@@ -897,7 +906,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 DateTime startTime = DateTime.Now;
                 try {
                     // aprox. 50ms to fully read 1.5k bytes, based on simple benchmark with DateTime.Now
-                    await connection.ReadBytes(this.startAddress, this.myBuffer, 0, (int) Math.Min(this.cbRange, int.MaxValue), 0x10000, null, pauseOrCancelToken);
+                    await connection.ReadBytes(this.startAddress, this.myBuffer, 0, (int) Math.Min(this.cbRange, int.MaxValue), 0x1000, null, pauseOrCancelToken);
 
                     await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         if (this.control.PART_ToggleShowChanges.IsChecked == true) {
