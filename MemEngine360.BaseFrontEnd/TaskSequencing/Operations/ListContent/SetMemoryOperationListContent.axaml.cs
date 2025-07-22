@@ -26,6 +26,7 @@ using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
+using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;

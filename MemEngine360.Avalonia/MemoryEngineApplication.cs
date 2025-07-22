@@ -139,7 +139,6 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
         // Hex editor commands
         manager.Register("commands.hexeditor.ReloadSelectionFromConsole", new ReloadSelectionFromConsole());
-        manager.Register("commands.hexeditor.ReadAllFromConsoleCommand", new ReadAllFromConsoleCommand());
         manager.Register("commands.hexeditor.UploadSelectionToConsoleCommand", new UploadSelectionToConsoleCommand());
         manager.Register("commands.hexeditor.GotoAddressCommand", new GotoAddressCommand());
         manager.Register("commands.hexeditor.SetAutoScanRangeAsSelectionCommand", new SetAutoScanRangeAsSelectionCommand());

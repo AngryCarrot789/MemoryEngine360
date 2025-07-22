@@ -33,8 +33,7 @@ public class ShowMemoryViewCommand : BaseMemoryEngineCommand {
         if (ApplicationPFX.Instance.ServiceManager.TryGetService(out IHexDisplayService? service)) {
             HexEditorInfo info = new HexEditorInfo(engine) {
                 Caption = "Console Memory",
-                StartAddress = engine.ScanningProcessor.StartAddress,
-                Length = engine.ScanningProcessor.ScanLength,
+                Offset = engine.ScanningProcessor.StartAddress,
                 IsReadOnly = false
             };
 

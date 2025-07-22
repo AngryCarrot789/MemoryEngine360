@@ -90,10 +90,6 @@
             </Shortcut>
         </Group>
 
-        <Shortcut Name="ReadAll" CommandId="commands.hexeditor.ReadAllFromConsoleCommand">
-            <KeyStroke Key="F5"/>
-        </Shortcut>
-        
         <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
             <KeyStroke Mods="CTRL+ALT" Key="S"/>
         </Shortcut>

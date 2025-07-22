@@ -22,6 +22,7 @@ using Avalonia.Controls;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;

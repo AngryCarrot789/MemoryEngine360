@@ -20,6 +20,7 @@
 using AvaloniaHex.Base.Document;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Debugging;
+using MemEngine360.Engine.HexEditing;
 using PFXToolKitUI;
 
 namespace MemEngine360.BaseFrontEnd.Debugging;
@@ -85,7 +86,7 @@ public class ThreadMemoryAutoRefresh : IDisposable {
 
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         if (this.cts != null && !this.cts.IsCancellationRequested) {
-                            ((ConsoleHexBinarySource) this.window.PART_HexEditor.BinarySource!).OnAutoRefreshed(bytes, addr, len);
+                            ((ConsoleHexBinarySource) this.window.PART_HexEditor.BinarySource!).WriteBytesToCache(addr, bytes.AsSpan(0, len));
                         }
                     }, token: CancellationToken.None);
                 }

@@ -18,7 +18,7 @@
 // 
 
 using MemEngine360.Sequencing;
-using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 

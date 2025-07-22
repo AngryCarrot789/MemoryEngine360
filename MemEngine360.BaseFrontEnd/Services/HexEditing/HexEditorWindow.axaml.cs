@@ -28,8 +28,8 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using AvaloniaHex.Base.Document;
-using AvaloniaHex.Editing;
-using AvaloniaHex.Rendering;
+using AvaloniaHex.Async.Editing;
+using AvaloniaHex.Async.Rendering;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Traits;
@@ -41,6 +41,7 @@ using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
+using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Services.Windowing;
@@ -51,43 +52,20 @@ using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Tasks.Pausable;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
+using AsciiColumn = AvaloniaHex.Async.Rendering.AsciiColumn;
+using HexColumn = AvaloniaHex.Async.Rendering.HexColumn;
+using OffsetColumn = AvaloniaHex.Async.Rendering.OffsetColumn;
+using TextLayer = AvaloniaHex.Async.Rendering.TextLayer;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
 public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     public static readonly StyledProperty<HexEditorInfo?> HexDisplayInfoProperty = AvaloniaProperty.Register<HexEditorWindow, HexEditorInfo?>("HexDisplayInfo");
-
-    public HexEditorInfo? HexDisplayInfo {
-        get => this.GetValue(HexDisplayInfoProperty);
-        set => this.SetValue(HexDisplayInfoProperty, value);
-    }
-
-    public BitLocation CaretLocation {
-        get => this.PART_HexEditor.Caret.Location;
-        set {
-            this.PART_HexEditor.ResetSelection();
-            this.PART_HexEditor.Caret.Location = value;
-        }
-    }
-
-    public BitRange SelectionRange {
-        get => this.PART_HexEditor.Selection.Range;
-        set {
-            this.PART_HexEditor.ResetSelection();
-            this.PART_HexEditor.Selection.Range = value;
-        }
-    }
-
-    public ulong DocumentLength => this.myDocument?.Length ?? 0;
-
-    public uint CurrentStartOffset => this.actualStartAddress;
-
-    private readonly OffsetColumn myOffsetColumn;
-
     private readonly AvaloniaPropertyToDataParameterAutoBinder<HexEditorInfo> captionBinder = new AvaloniaPropertyToDataParameterAutoBinder<HexEditorInfo>(TitleProperty, HexEditorInfo.CaptionParameter);
 
-    private readonly TextBoxToDataParameterBinder<HexEditorInfo, uint> addrBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.StartAddressParameter, (p) => p!.ToString("X8"), async (t, x) => {
+    private readonly TextBoxToDataParameterBinder<HexEditorInfo, uint> offsetBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.OffsetParameter, (p) => p!.ToString("X8"), async (t, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
             return value;
         }
@@ -99,21 +77,9 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         }
 
         return default;
-    });
-
-    private readonly TextBoxToDataParameterBinder<HexEditorInfo, uint> lenBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.LengthParameter, (p) => p!.ToString("X8"), async (t, x) => {
-        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
-            return value;
-        }
-        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
-        }
-        else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
-        }
-
-        return default;
-    });
+    }) {
+        CanChangeOnLostFocus = false
+    };
 
     private readonly TextBoxToDataParameterBinder<HexEditorInfo, uint> bytesPerRowBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.BytesPerRowParameter, (p) => p!.ToString(), async (t, x) => {
         if (uint.TryParse(x, out uint value)) {
@@ -141,36 +107,65 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
     private readonly DataParameterEnumBinder<Endianness> endiannessBinder = new DataParameterEnumBinder<Endianness>(HexEditorInfo.InspectorEndiannessParameter);
 
-    private readonly AsyncRelayCommand readAllCommand, refreshDataCommand, uploadDataCommand;
+    private readonly AsyncRelayCommand refreshDataCommand, uploadDataCommand;
 
     private readonly record struct UploadTextBoxInfo(TextBox TextBox, DataType DataType, bool IsUnsigned);
 
     private readonly AsyncRelayCommand<UploadTextBoxInfo> parseTextBoxAndUploadCommand;
 
-    private uint actualStartAddress;
     private AutoRefreshTask? autoRefreshTask;
     private bool flagRestartAutoRefresh;
 
-    private IBinaryDocument? myDocument;
+    private ConsoleHexBinarySource? myBinarySource;
 
     private readonly AutoRefreshLayer autoRefreshLayer;
     private readonly HexEditorChangeManager changeManager;
     private readonly AsyncRelayCommand runAutoRefreshCommand;
 
+    public HexEditorInfo? HexDisplayInfo {
+        get => this.GetValue(HexDisplayInfoProperty);
+        set => this.SetValue(HexDisplayInfoProperty, value);
+    }
+
+    public BitLocation CaretLocation {
+        get => this.PART_HexEditor.Caret.Location;
+        set {
+            this.PART_HexEditor.ResetSelection();
+            this.PART_HexEditor.Caret.Location = value;
+        }
+    }
+
+    public BitRange SelectionRange {
+        get => this.PART_HexEditor.Selection.Range;
+        set {
+            this.PART_HexEditor.ResetSelection();
+            this.PART_HexEditor.Selection.Range = value;
+        }
+    }
+
     public HexEditorWindow() {
         this.InitializeComponent();
         this.captionBinder.AttachControl(this);
-        this.addrBinder.AttachControl(this.PART_AddressTextBox);
-        this.lenBinder.AttachControl(this.PART_LengthTextBox);
+        this.offsetBinder.AttachControl(this.PART_AddressTextBox);
+        this.offsetBinder.ValueConfirmed += (b, oldText) => {
+            uint offset = b.Model.Offset;
+            uint bpr = this.HexDisplayInfo!.BytesPerRow;
+            uint mod = offset % bpr;
+            uint firstByte = offset - mod;
+
+            this.PART_HexEditor.HexView.ScrollOffset = this.PART_HexEditor.HexView.ScrollOffset.WithY(firstByte / (double) bpr);
+            this.PART_HexEditor.Caret.Location = new BitLocation(offset);
+            this.PART_HexEditor.Selection.Range = new BitRange(offset, offset + 1);
+        };
 
         this.bytesPerRowBinder.AttachControl(this.PART_BytesPerRowTextBox);
-        this.bytesPerRowBinder.PostUpdateControl += b => {
+        this.bytesPerRowBinder.ControlUpdated += b => {
             this.PART_HexEditor.HexView.BytesPerLine = (int) this.HexDisplayInfo!.BytesPerRow;
         };
 
-        HexView view = this.PART_HexEditor.HexView;
+        AsyncHexView view = this.PART_HexEditor.HexView;
         view.BytesPerLine = 32;
-        view.Columns.Add(this.myOffsetColumn = new OffsetColumn());
+        view.Columns.Add(new OffsetColumn());
         view.Columns.Add(new HexColumn());
         view.Columns.Add(new AsciiColumn());
         view.Layers.InsertBefore<TextLayer>(this.autoRefreshLayer = new AutoRefreshLayer(this.PART_HexEditor.Caret));
@@ -182,35 +177,31 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         this.endiannessBinder.Assign(this.PART_BigEndian, Endianness.BigEndian);
 
         this.PART_CancelButton.Click += this.OnCancelButtonClicked;
-        this.readAllCommand = new AsyncRelayCommand(async () => {
-            await this.ReadAllFromConsoleCommand();
-        }, () => this.autoRefreshTask == null);
-
         this.refreshDataCommand = new AsyncRelayCommand(async () => {
             await this.ReloadSelectionFromConsole();
         }, () => {
-            if (this.autoRefreshTask != null)
+            if (this.autoRefreshTask != null) {
                 return false;
+            }
 
             BitRange selection = this.SelectionRange;
-            return selection.ByteLength > 0 && this.myDocument != null && !this.myDocument!.IsReadOnly;
+            return selection.ByteLength > 0 && this.myBinarySource != null;
         });
 
         this.uploadDataCommand = new AsyncRelayCommand(async () => {
             await this.UploadSelectionToConsoleCommand();
         }, () => {
-            if (this.autoRefreshTask != null)
+            if (this.autoRefreshTask != null) {
                 return false;
+            }
 
             BitRange selection = this.SelectionRange;
-            return selection.ByteLength > 0 && this.myDocument != null && !this.myDocument!.IsReadOnly;
+            return selection.ByteLength > 0 && this.myBinarySource != null;
         });
 
-        this.PART_Read.Command = this.readAllCommand;
         this.PART_Refresh.Command = this.refreshDataCommand;
         this.PART_Upload.Command = this.uploadDataCommand;
         this.PART_HexEditor.Caret.LocationChanged += (sender, args) => this.UpdateCaretText();
-        this.PART_HexEditor.Caret.ModeChanged += (sender, args) => this.UpdateCaretText();
         this.PART_HexEditor.Caret.PrimaryColumnChanged += (sender, args) => this.UpdateCaretText();
         this.PART_HexEditor.Selection.RangeChanged += (sender, args) => this.UpdateSelectionText();
 
@@ -244,12 +235,13 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             }
             else {
                 HexEditorInfo? info = this.HexDisplayInfo;
-                if (info == null)
+                if (info == null) {
                     return;
+                }
 
                 uint arStartAddress = info.AutoRefreshStartAddress;
                 uint arCountBytes = info.AutoRefreshLength;
-                if (arStartAddress == 0 && arCountBytes == 0) {
+                if (arCountBytes == 0) {
                     BitRange selection = this.SelectionRange;
                     if (selection.ByteLength > 0) {
                         MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Auto refresh", "Auto refresh span is empty. Set span as selection and run?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
@@ -257,7 +249,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                             return;
                         }
 
-                        info.AutoRefreshStartAddress = arStartAddress = (uint) selection.Start.ByteIndex + this.actualStartAddress;
+                        info.AutoRefreshStartAddress = arStartAddress = (uint) selection.Start.ByteIndex;
                         info.AutoRefreshLength = arCountBytes = (uint) selection.ByteLength;
                     }
                     else {
@@ -266,29 +258,21 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                     }
                 }
 
-                uint startAddrRel2Doc = arStartAddress - this.actualStartAddress;
-                if (arStartAddress < this.actualStartAddress || (startAddrRel2Doc + arCountBytes) > this.DocumentLength) {
-                    await IMessageDialogService.Instance.ShowMessage("Start address", $"Auto refresh span is out of range. Document contains {this.actualStartAddress:X8} to {(this.actualStartAddress + this.DocumentLength - 1):X8}");
+                if ((ulong) arStartAddress + arCountBytes > uint.MaxValue) {
+                    await IMessageDialogService.Instance.ShowMessage("Start address", "Auto refresh span is outside the applicable memory range");
                     this.UpdateAutoRefreshButtonsAndTextBoxes();
                     return;
                 }
 
-                this.autoRefreshTask = new AutoRefreshTask(this, startAddrRel2Doc, arCountBytes);
+                this.autoRefreshTask = new AutoRefreshTask(this, arStartAddress, arCountBytes);
                 this.autoRefreshTask.Run();
             }
         });
 
         this.autoRefreshAddrBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.AutoRefreshStartAddressParameter, (p) => p.ToString("X8"), async (t, x) => {
             if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint newStartAddress)) {
-                int addrRel2Doc = (int) newStartAddress - (int) this.actualStartAddress;
-                if (addrRel2Doc < 0 || (ulong) addrRel2Doc >= this.DocumentLength) {
-                    await IMessageDialogService.Instance.ShowMessage("Start address", $"Address out of range. Document contains {this.actualStartAddress:X8} to {(this.actualStartAddress + this.DocumentLength - 1):X8}");
-                    return default;
-                }
-
-                uint endAddress = (uint) addrRel2Doc + t.Model.AutoRefreshLength;
-                if (endAddress >= this.DocumentLength) {
-                    await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Address causes scan to exceed document length. Document contains {this.actualStartAddress:X8} to {(this.actualStartAddress + this.DocumentLength - 1):X8}");
+                if ((ulong) newStartAddress + t.Model.AutoRefreshLength > uint.MaxValue) {
+                    await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Address causes scan to exceed applicable memory range");
                     return default;
                 }
 
@@ -306,9 +290,8 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
         this.autoRefreshLenBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.AutoRefreshLengthParameter, (p) => p.ToString("X8"), async (t, x) => {
             if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint newByteCount)) {
-                uint endAddress = (t.Model.AutoRefreshStartAddress - this.actualStartAddress) + newByteCount;
-                if (endAddress >= this.DocumentLength) {
-                    await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Byte count causes scan to exceed document length. Document contains {this.actualStartAddress:X8} to {(this.actualStartAddress + this.DocumentLength - 1):X8}");
+                if ((ulong) t.Model.AutoRefreshStartAddress + newByteCount > uint.MaxValue) {
+                    await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Byte count causes scan to exceed applicable memory range");
                     return default;
                 }
 
@@ -336,7 +319,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             VisualTreeUtils.TryMoveFocusUpwards(tb);
             return;
         }
-        
+
         if (e.Key == Key.Enter) {
             switch (tb.Name) {
                 case nameof(this.PART_Int8):   this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Byte, false)); break;
@@ -387,8 +370,8 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             IConsoleConnection connection;
             using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Upload DI value");
             if (token != null && (connection = engine.Connection) != null && connection.IsConnected) {
-                await MemoryEngine.WriteDataValue(connection, (uint) caretIndex + this.actualStartAddress, value);
-                if (this.PART_ToggleShowChanges.IsChecked == true && this.myDocument != null && !this.myDocument.IsReadOnly) {
+                await MemoryEngine.WriteDataValue(connection, (uint) caretIndex, value);
+                if (this.PART_ToggleShowChanges.IsChecked == true && this.myBinarySource != null) {
                     int dataLength = 0;
                     switch (info.DataType) {
                         case DataType.Byte:   dataLength = 1; break;
@@ -400,11 +383,13 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                     }
 
                     if (dataLength > 0) {
-                        byte[] buffer = await connection.ReadBytes((uint) (this.actualStartAddress + caretIndex), dataLength);
+                        byte[] buffer = await connection.ReadBytes((uint) caretIndex, dataLength);
 
-                        if (this.PART_ToggleShowChanges.IsChecked == true)
+                        if (this.PART_ToggleShowChanges.IsChecked == true) {
                             this.changeManager.ProcessChanges((uint) caretIndex, buffer, buffer.Length);
-                        this.myDocument!.WriteBytes((uint) caretIndex, buffer);
+                        }
+
+                        this.myBinarySource!.WriteBytesToCache((uint) caretIndex, buffer);
                     }
                 }
             }
@@ -423,135 +408,54 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         }
     }
 
-    private bool IsPointerInRange(uint value) {
-        return value >= this.actualStartAddress && value < (this.actualStartAddress + this.DocumentLength);
-    }
+    private bool IsPointerInRange(uint value) => true;
 
     private void NavigateToPointer() {
         HexEditorInfo? info = this.HexDisplayInfo;
-        if (this.myDocument == null || info == null) {
+        if (this.myBinarySource == null || info == null) {
             return;
         }
 
         ulong caretIndex = this.SelectionRange.Start.ByteIndex;
-        int cbRemaining = (int) (this.myDocument.Length - caretIndex);
+        int cbRemaining = (int) (uint.MaxValue - caretIndex);
         if (cbRemaining < 4) {
             return;
         }
 
         Span<byte> buffer = stackalloc byte[4];
-        this.myDocument.ReadBytes(caretIndex, buffer);
-        uint val32 = MemoryMarshal.Read<UInt32>(buffer);
-        bool displayAsLE = info.InspectorEndianness == Endianness.LittleEndian;
-        if (displayAsLE != BitConverter.IsLittleEndian) {
-            val32 = BinaryPrimitives.ReverseEndianness(val32);
-        }
+        int read = this.myBinarySource.ReadAvailableData(caretIndex, buffer);
+        if (read >= 4) {
+            uint val32 = MemoryMarshal.Read<uint>(buffer);
+            bool displayAsLE = info.InspectorEndianness == Endianness.LittleEndian;
+            if (displayAsLE != BitConverter.IsLittleEndian) {
+                val32 = BinaryPrimitives.ReverseEndianness(val32);
+            }
 
-        if (this.IsPointerInRange(val32)) {
-            this.MoveCursor(val32 - this.actualStartAddress, 4);
+            if (this.IsPointerInRange(val32)) {
+                this.MoveCursor(val32, 4);
+            }
         }
     }
 
     private void MoveCursorForDataType(int incr) {
         int len = incr < 0 ? -incr : incr;
         BitLocation caret = this.CaretLocation;
-        this.MoveCursor((long) caret.ByteIndex + incr, len);
+        this.MoveCursor(Maths.SumAndClampOverflow(caret.ByteIndex, incr), len);
     }
 
-    private void MoveCursor(long location, long selectionLength) {
-        BitLocation caret = new BitLocation((ulong) Math.Clamp(location, 0, (long) this.DocumentLength));
+    private void MoveCursor(ulong location, long selectionLength) {
+        BitLocation caret = new BitLocation(location);
         this.CaretLocation = caret;
         this.SelectionRange = new BitRange(caret, caret.AddBytes((ulong) selectionLength));
     }
 
-    public async Task ReadAllFromConsoleCommand() {
-        HexEditorInfo? info = this.HexDisplayInfo;
-        if (info == null || this.autoRefreshTask != null) {
-            return;
-        }
-
-        if (info.Length < 1) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "Length is zero.", defaultButton: MessageBoxResult.OK);
-            return;
-        }
-
-        this.PART_ControlsGrid.IsEnabled = false;
-        BitRange selection = this.SelectionRange;
-        byte[]? bytes = await info.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
-            using CancellationTokenSource cts = new CancellationTokenSource();
-            return await ActivityManager.Instance.RunTask(async () => {
-                ActivityTask task = ActivityManager.Instance.CurrentTask;
-                task.Progress.Caption = "Read data for Hex Editor";
-
-                try {
-                    if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
-                        task.Progress.Text = "Freezing console...";
-                        await ((IHaveIceCubes) c).DebugFreeze();
-                    }
-                }
-                catch (Exception e) when (e is TimeoutException || e is IOException) {
-                    await IMessageDialogService.Instance.ShowMessage("Network error", "Error while freezing console: " + e.Message);
-                    return null;
-                }
-
-                SimpleCompletionState completion = new SimpleCompletionState();
-                completion.CompletionValueChanged += state => {
-                    task.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
-                    task.Progress.Text = $"Reading {ValueScannerUtils.ByteFormatter.ToString(info.Length * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(info.Length, false)}";
-                };
-
-                // Update initial text
-                completion.OnCompletionValueChanged();
-                byte[] buffer = new byte[info.Length];
-
-                try {
-                    await c.ReadBytes(info.StartAddress, buffer, 0, buffer.Length, 0x10000, completion, task.CancellationToken);
-                }
-                catch (OperationCanceledException) {
-                }
-                catch (Exception e) when (e is TimeoutException || e is IOException) {
-                    await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + e.Message);
-                    return null;
-                }
-
-
-                try {
-                    if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
-                        task.Progress.Text = "Unfreezing console...";
-                        await ((IHaveIceCubes) c).DebugUnFreeze();
-                    }
-                }
-                catch {
-                    // might as well ignore
-                }
-
-                return buffer;
-            }, cts);
-        }, "Read data for Hex Editor");
-
-        this.PART_ControlsGrid.IsEnabled = true;
-        if (bytes != null) {
-            Vector scroll = this.PART_HexEditor.HexView.ScrollOffset;
-            BitLocation location = this.CaretLocation;
-
-            this.actualStartAddress = info.StartAddress;
-            this.myOffsetColumn.AdditionalOffset = info.StartAddress;
-
-            if (this.myDocument != null && this.PART_ToggleShowChanges.IsChecked == true)
-                this.changeManager.ProcessChanges(0, bytes, bytes.Length);
-
-            this.PART_HexEditor.Document = info.Document = this.myDocument = new MemoryBinaryDocument(bytes, info.IsReadOnly);
-            // this.PART_HexEditor.Document = info.Document = this.myDocument = new AsyncInfiniteDocument(new LambdaConnectionLockPair(() => info.MemoryEngine.BusyLocker, () => info.MemoryEngine.Connection));
-            this.changeManager.OnDocumentChanged(this.myDocument);
-            await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                this.PART_HexEditor.HexView.ScrollOffset = scroll;
-                this.CaretLocation = location;
-                this.SelectionRange = selection;
-            }, DispatchPriority.Normal);
-
-            this.UpdateSelectionText();
-            this.UpdateCaretText();
-        }
+    public void SetBinarySource(IConnectionLockPair? lockPair) {
+        this.PART_HexEditor.BinarySource = this.myBinarySource = lockPair != null ? new ConsoleHexBinarySource(lockPair) : null;
+        this.changeManager.Clear();
+        this.changeManager.OnBinarySourceChanged(this.myBinarySource);
+        this.UpdateSelectionText();
+        this.UpdateCaretText();
+        this.UpdateDataInspector();
     }
 
     public Task ReloadSelectionFromConsole() {
@@ -561,19 +465,12 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         return this.ReloadSelectionFromConsole(start, count);
     }
 
-    public async Task ReloadSelectionFromConsole(uint startRel2Doc, int length) {
+    public async Task ReloadSelectionFromConsole(uint address, int length) {
         HexEditorInfo? info = this.HexDisplayInfo;
-        if (info == null || this.autoRefreshTask != null) {
+        if (info == null || this.autoRefreshTask != null || length < 1 || this.myBinarySource == null) {
             return;
         }
 
-        if (length < 1 || this.myDocument == null || this.myDocument!.IsReadOnly) {
-            return;
-        }
-
-        if (this.actualStartAddress + startRel2Doc < this.actualStartAddress) {
-            return; // integer overflow
-        }
 
         this.PART_ControlsGrid.IsEnabled = false;
         byte[]? readBuffer = await info.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
@@ -595,21 +492,24 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 // Update initial text
                 completion.OnCompletionValueChanged();
                 byte[] buffer = new byte[length];
-                await c.ReadBytes(this.actualStartAddress + startRel2Doc, buffer, 0, length, 0x10000, completion, task.CancellationToken);
+                await c.ReadBytes(address, buffer, 0, length, 0x10000, completion, task.CancellationToken);
 
                 if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Unfreezing console...";
                     await ((IHaveIceCubes) c).DebugUnFreeze();
                 }
+
                 return buffer;
             }, cts);
         }, "Read data for Hex Editor");
 
         this.PART_ControlsGrid.IsEnabled = true;
         if (readBuffer != null) {
-            if (this.PART_ToggleShowChanges.IsChecked == true)
-                this.changeManager.ProcessChanges(startRel2Doc, readBuffer, readBuffer.Length);
-            this.myDocument!.WriteBytes(startRel2Doc, readBuffer);
+            if (this.PART_ToggleShowChanges.IsChecked == true) {
+                this.changeManager.ProcessChanges(address, readBuffer, readBuffer.Length);
+            }
+
+            this.myBinarySource!.WriteBytesToCache(address, readBuffer);
         }
 
         this.UpdateSelectionText();
@@ -618,7 +518,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
     public async Task UploadSelectionToConsoleCommand() {
         HexEditorInfo? info = this.HexDisplayInfo;
-        if (this.myDocument == null || info == null || this.autoRefreshTask != null) {
+        if (this.myBinarySource == null || info == null || this.autoRefreshTask != null) {
             return;
         }
 
@@ -636,7 +536,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             await ActivityManager.Instance.RunTask(async () => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Write data from Hex Editor";
-                if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan){
+                if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Freezing console...";
                     await ((IHaveIceCubes) c).DebugFreeze();
                 }
@@ -651,10 +551,10 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 completion.OnCompletionValueChanged();
 
                 byte[] buffer = new byte[count];
-                this.myDocument!.ReadBytes(start, buffer);
-                await c.WriteBytes(this.actualStartAddress + start, buffer, 0, count, 0x10000, completion, task.CancellationToken);
+                int read = this.myBinarySource!.ReadAvailableData(start, buffer);
+                await c.WriteBytes(start, buffer, 0, read, 0x10000, completion, task.CancellationToken);
 
-                if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan){
+                if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Unfreezing console...";
                     await ((IHaveIceCubes) c).DebugUnFreeze();
                 }
@@ -662,6 +562,15 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         }, "Write Hex Editor Data");
 
         this.PART_ControlsGrid.IsEnabled = true;
+    }
+
+    public void ScrollToCaret() {
+        BitLocation caret = this.PART_HexEditor.Caret.Location;
+        int bpl = Math.Max(this.PART_HexEditor.HexView.ActualBytesPerLine, 1);
+        ulong caretByte = caret.ByteIndex - (caret.ByteIndex % (ulong) bpl);
+
+        Vector offset = this.PART_HexEditor.HexView.ScrollOffset;
+        this.PART_HexEditor.HexView.ScrollOffset = offset.WithY(caretByte / (double) bpl);
     }
 
     private void UpdateSelectionText() {
@@ -673,7 +582,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             this.PART_SelectionText.Text = "<none>";
         }
         else {
-            this.PART_SelectionText.Text = $"{sel.Range.ByteLength} bytes ({(this.actualStartAddress + sel.Range.Start.ByteIndex):X8} -> {(this.actualStartAddress + sel.Range.End.ByteIndex):X8})";
+            this.PART_SelectionText.Text = $"{sel.Range.ByteLength} bytes ({sel.Range.Start.ByteIndex:X8} -> {sel.Range.End.ByteIndex:X8})";
         }
 
         this.UpdateDataInspector();
@@ -683,7 +592,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     private void UpdateCaretText() {
         Caret caret = this.PART_HexEditor.Caret;
         BitLocation pos = caret.Location;
-        this.PART_CaretText.Text = $"{(this.actualStartAddress + pos.ByteIndex):X8} ({pos.ByteIndex:X} from start)";
+        this.PART_CaretText.Text = $"{pos.ByteIndex:X8} ({pos.ByteIndex:X} from start)";
         this.UpdateDataInspector();
         this.UpdateAutoRefreshSelectionDependentShit();
     }
@@ -694,25 +603,32 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
     private void OnHexDisplayInfoChanged(HexEditorInfo? oldData, HexEditorInfo? newData) {
         this.captionBinder.SwitchModel(newData);
-        this.addrBinder.SwitchModel(newData);
-        this.lenBinder.SwitchModel(newData);
+        this.offsetBinder.SwitchModel(newData);
         this.bytesPerRowBinder.SwitchModel(newData);
         this.autoRefreshAddrBinder.SwitchModel(newData);
         this.autoRefreshLenBinder.SwitchModel(newData);
         if (oldData != null) {
             oldData.RestartAutoRefresh -= this.OnRestartAutoRefresh;
             oldData.MemoryEngine.ConnectionAboutToChange -= this.OnConnectionAboutToChange;
+            oldData.MemoryEngine.ConnectionChanged -= this.OnConnectionChanged;
             HexEditorInfo.InspectorEndiannessParameter.RemoveValueChangedHandler(oldData, this.OnEndiannessModeChanged);
             this.endiannessBinder.Detach();
+            this.SetBinarySource(null);
         }
 
         if (newData != null) {
             newData.RestartAutoRefresh += this.OnRestartAutoRefresh;
             newData.MemoryEngine.ConnectionAboutToChange += this.OnConnectionAboutToChange;
+            newData.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;
             HexEditorInfo.InspectorEndiannessParameter.AddValueChangedHandler(newData, this.OnEndiannessModeChanged);
             this.endiannessBinder.Attach(newData);
             this.PART_CancelButton.Focus();
+            this.SetBinarySource(new ConnectionLockPair(newData.MemoryEngine.BusyLocker, newData.MemoryEngine.Connection));
         }
+    }
+
+    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
+        this.SetBinarySource(this.HexDisplayInfo != null ? new ConnectionLockPair(sender.BusyLocker, newconnection) : null);
     }
 
     private void OnEndiannessModeChanged(DataParameter parameter, ITransferableData owner) {
@@ -753,29 +669,28 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     private void UpdateAutoRefreshRange() {
         HexEditorInfo? info = this.HexDisplayInfo;
         if (info != null) {
-            BitRange range = new BitRange(info.AutoRefreshStartAddress - this.actualStartAddress, info.AutoRefreshStartAddress + info.AutoRefreshLength - this.actualStartAddress);
-            this.autoRefreshLayer.SetRange(range);
+            this.autoRefreshLayer.SetRange(new BitRange(info.AutoRefreshStartAddress, info.AutoRefreshStartAddress + info.AutoRefreshLength));
         }
     }
 
     private void UpdateDataInspector() {
         ulong caretIndex = this.SelectionRange.Start.ByteIndex;
         HexEditorInfo? info = this.HexDisplayInfo;
-        if (this.myDocument == null || info == null) {
+        if (this.myBinarySource == null || info == null) {
             return;
         }
 
-        ulong cbRemaining = this.myDocument.Length - caretIndex;
-
+        ulong cbAvailable = uint.MaxValue - caretIndex;
         byte[] daBuf = new byte[8];
-        if (cbRemaining > 0)
-            this.myDocument.ReadBytes(caretIndex, new Span<byte>(daBuf, 0, (int) Math.Min(8, cbRemaining)));
+        if (cbAvailable > 0) {
+            cbAvailable = (ulong) this.myBinarySource.ReadAvailableData(caretIndex, new Span<byte>(daBuf, 0, (int) Math.Min(8, cbAvailable)));
+        }
 
         // The console is big-endian. If we want to display as little endian, we need to reverse the bytes
-        byte val08 = cbRemaining >= 1 ? daBuf[0] : default, raw_val08 = val08;
-        ushort val16 = cbRemaining >= 2 ? MemoryMarshal.Read<UInt16>(new ReadOnlySpan<byte>(daBuf, 0, 2)) : default, raw_val16 = val16;
-        uint val32 = cbRemaining >= 4 ? MemoryMarshal.Read<UInt32>(new ReadOnlySpan<byte>(daBuf, 0, 4)) : 0, raw_val32 = val32;
-        ulong val64 = cbRemaining >= 8 ? MemoryMarshal.Read<UInt64>(new ReadOnlySpan<byte>(daBuf, 0, 8)) : 0, raw_val64 = val64;
+        byte val08 = cbAvailable >= 1 ? daBuf[0] : default, raw_val08 = val08;
+        ushort val16 = cbAvailable >= 2 ? MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(daBuf, 0, 2)) : default, raw_val16 = val16;
+        uint val32 = cbAvailable >= 4 ? MemoryMarshal.Read<uint>(new ReadOnlySpan<byte>(daBuf, 0, 4)) : 0, raw_val32 = val32;
+        ulong val64 = cbAvailable >= 8 ? MemoryMarshal.Read<ulong>(new ReadOnlySpan<byte>(daBuf, 0, 8)) : 0, raw_val64 = val64;
 
         // Rather than use something like BinaryPrimitives.ReadUInt32BigEndian, we just
         // reverse the endianness here so that we aren't reversing possibly twice if the user
@@ -789,26 +704,58 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
         bool asHex = this.PART_DisplayIntAsHex.IsChecked == true;
         this.PART_Binary8.Text = val08.ToString("B8");
-        if (!this.PART_Int8.IsKeyboardFocusWithin)
-            this.PART_Int8.Text = asHex ? (sbyte) val08 < 0 ? "-" + (-(sbyte) val08).ToString("X2") : ((sbyte) val08).ToString("X2") : ((sbyte) val08).ToString();
-        if (!this.PART_UInt8.IsKeyboardFocusWithin)
+        if (!this.PART_Int8.IsKeyboardFocusWithin) {
+            this.PART_Int8.Text = asHex
+                ? (sbyte) val08 < 0
+                    ? "-" + (-(sbyte) val08).ToString("X2")
+                    : ((sbyte) val08).ToString("X2")
+                : ((sbyte) val08).ToString();
+        }
+
+        if (!this.PART_UInt8.IsKeyboardFocusWithin) {
             this.PART_UInt8.Text = asHex ? val08.ToString("X2") : val08.ToString();
-        if (!this.PART_Int16.IsKeyboardFocusWithin)
-            this.PART_Int16.Text = asHex ? (short) val16 < 0 ? "-" + (-(short) val16).ToString("X4") : ((short) val16).ToString("X4") : ((short) val16).ToString();
-        if (!this.PART_UInt16.IsKeyboardFocusWithin)
+        }
+
+        if (!this.PART_Int16.IsKeyboardFocusWithin) {
+            this.PART_Int16.Text = asHex
+                ? (short) val16 < 0
+                    ? "-" + (-(short) val16).ToString("X4")
+                    : ((short) val16).ToString("X4")
+                : ((short) val16).ToString();
+        }
+
+        if (!this.PART_UInt16.IsKeyboardFocusWithin) {
             this.PART_UInt16.Text = asHex ? val16.ToString("X4") : val16.ToString();
-        if (!this.PART_Int32.IsKeyboardFocusWithin)
-            this.PART_Int32.Text = asHex ? (int) val32 < 0 ? "-" + (-(int) val32).ToString("X8") : ((int) val32).ToString("X8") : ((int) val32).ToString();
-        if (!this.PART_UInt32.IsKeyboardFocusWithin)
+        }
+
+        if (!this.PART_Int32.IsKeyboardFocusWithin) {
+            this.PART_Int32.Text = asHex
+                ? (int) val32 < 0
+                    ? "-" + (-(int) val32).ToString("X8")
+                    : ((int) val32).ToString("X8")
+                : ((int) val32).ToString();
+        }
+
+        if (!this.PART_UInt32.IsKeyboardFocusWithin) {
             this.PART_UInt32.Text = asHex ? val32.ToString("X8") : val32.ToString();
-        if (!this.PART_Int64.IsKeyboardFocusWithin)
+        }
+
+        if (!this.PART_Int64.IsKeyboardFocusWithin) {
             this.PART_Int64.Text = asHex ? (long) val64 < 0 ? "-" + (-(long) val64).ToString("X16") : ((long) val64).ToString("X16") : ((long) val64).ToString();
-        if (!this.PART_UInt64.IsKeyboardFocusWithin)
+        }
+
+        if (!this.PART_UInt64.IsKeyboardFocusWithin) {
             this.PART_UInt64.Text = asHex ? val64.ToString("X16") : val64.ToString();
-        if (!this.PART_Float.IsKeyboardFocusWithin)
+        }
+
+        if (!this.PART_Float.IsKeyboardFocusWithin) {
             this.PART_Float.Text = Unsafe.As<uint, float>(ref val32).ToString();
-        if (!this.PART_Double.IsKeyboardFocusWithin)
+        }
+
+        if (!this.PART_Double.IsKeyboardFocusWithin) {
             this.PART_Double.Text = Unsafe.As<ulong, double>(ref val64).ToString();
+        }
+
         this.PART_CharUTF8.Text = ((char) val08).ToString();
         this.PART_CharUTF16LE.Text = ((char) raw_val16).ToString();
         this.PART_CharUTF16BE.Text = ((char) BinaryPrimitives.ReverseEndianness(raw_val16)).ToString();
@@ -839,18 +786,17 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         private readonly HexEditorWindow control;
         private readonly HexEditorInfo? info;
         private IDisposable? busyToken;
-        private readonly uint startAddress, startAddressInDoc, cbRange;
-        private readonly IBinaryDocument? myDocument;
+        private readonly uint startAddress, cbRange;
+        private readonly ConsoleHexBinarySource? myDocument;
         private readonly byte[] myBuffer;
         private bool isInvalidOnFirstRun;
 
-        public AutoRefreshTask(HexEditorWindow control, uint startAddressInDoc, uint cbRange) : base(true) {
+        public AutoRefreshTask(HexEditorWindow control, uint startAddress, uint cbRange) : base(true) {
             this.control = control;
             this.info = control.HexDisplayInfo;
-            this.startAddressInDoc = startAddressInDoc;
             this.cbRange = cbRange;
-            this.startAddress = startAddressInDoc + control.actualStartAddress;
-            this.myDocument = this.control.myDocument;
+            this.startAddress = startAddress;
+            this.myDocument = this.control.myBinarySource;
             this.myBuffer = new byte[this.cbRange];
         }
 
@@ -866,11 +812,10 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                 this.control.PART_ControlsGrid.IsEnabled = false;
 
-                this.control.autoRefreshLayer.SetRange(new BitRange(this.startAddressInDoc, this.startAddressInDoc + this.cbRange));
+                this.control.autoRefreshLayer.SetRange(new BitRange(this.startAddress, this.startAddress + this.cbRange));
                 this.control.autoRefreshLayer.IsActive = true;
                 this.control.UpdateAutoRefreshButtonsAndTextBoxes();
 
-                this.control.readAllCommand.RaiseCanExecuteChanged();
                 this.control.refreshDataCommand.RaiseCanExecuteChanged();
                 this.control.uploadDataCommand.RaiseCanExecuteChanged();
             });
@@ -923,7 +868,6 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 this.control.autoRefreshTask = null;
                 this.control.UpdateAutoRefreshButtonsAndTextBoxes();
 
-                this.control.readAllCommand.RaiseCanExecuteChanged();
                 this.control.refreshDataCommand.RaiseCanExecuteChanged();
                 this.control.uploadDataCommand.RaiseCanExecuteChanged();
 
@@ -943,7 +887,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                     return;
                 }
 
-                if (this.cbRange < 1 || this.control.myDocument != this.myDocument) {
+                if (this.cbRange < 1 || this.control.myBinarySource != this.myDocument) {
                     return;
                 }
 
@@ -954,12 +898,11 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                     await connection.ReadBytes(this.startAddress, this.myBuffer, 0, (int) Math.Min(this.cbRange, int.MaxValue), 0x10000, null, pauseOrCancelToken);
 
                     await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                        if (this.control.PART_ToggleShowChanges.IsChecked == true)
-                            this.control.changeManager.ProcessChanges(this.startAddressInDoc, this.myBuffer, this.myBuffer.Length);
-
-                        if (!this.control.myDocument!.IsReadOnly) {
-                            this.control.myDocument!.WriteBytes(this.startAddressInDoc, this.myBuffer);
+                        if (this.control.PART_ToggleShowChanges.IsChecked == true) {
+                            this.control.changeManager.ProcessChanges(this.startAddress, this.myBuffer, this.myBuffer.Length);
                         }
+
+                        this.control.myBinarySource!.WriteBytesToCache(this.startAddress, this.myBuffer);
 
                         this.control.UpdateSelectionText();
                         this.control.UpdateCaretText();

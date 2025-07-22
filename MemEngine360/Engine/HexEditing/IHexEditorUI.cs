@@ -41,21 +41,6 @@ public interface IHexEditorUI {
     BitRange SelectionRange { get; set; }
 
     /// <summary>
-    /// Gets the current document's span
-    /// </summary>
-    ulong DocumentLength { get; }
-
-    /// <summary>
-    /// The value of <see cref="HexEditorInfo.StartAddress"/> the last time we <see cref="ReadAllFromConsoleCommand"/>
-    /// </summary>
-    uint CurrentStartOffset { get; }
-
-    /// <summary>
-    /// Reads the entire memory region from the console 
-    /// </summary>
-    Task ReadAllFromConsoleCommand();
-    
-    /// <summary>
     /// Reads only your selection from the console
     /// </summary>
     Task ReloadSelectionFromConsole();
@@ -64,4 +49,6 @@ public interface IHexEditorUI {
     /// Uploads the selection to the console
     /// </summary>
     Task UploadSelectionToConsoleCommand();
+
+    void ScrollToCaret();
 }

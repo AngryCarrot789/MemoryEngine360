@@ -22,6 +22,7 @@ using Avalonia.Data;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 
 namespace MemEngine360.Xbox360XDevkit.Views;
 

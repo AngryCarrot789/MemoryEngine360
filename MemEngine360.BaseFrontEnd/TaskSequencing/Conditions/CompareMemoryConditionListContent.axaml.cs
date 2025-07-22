@@ -27,6 +27,7 @@ using MemEngine360.Sequencing.Conditions;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
+using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;

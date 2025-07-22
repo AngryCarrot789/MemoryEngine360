@@ -23,7 +23,7 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.ValueAbstraction;
-using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.DataHandlers;

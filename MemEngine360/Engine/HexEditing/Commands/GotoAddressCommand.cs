@@ -32,22 +32,21 @@ public class GotoAddressCommand : BaseHexEditorCommand {
     // 8354AA08, Enemy Team Score,     Int32
     
     protected override async Task ExecuteCommandAsync(IHexEditorUI view, HexEditorInfo info, CommandEventArgs e) {
-        SingleUserInputInfo singleInfo = new SingleUserInputInfo("Go to address", "Specify an address to scroll to", "Address (hex)", (view.CaretLocation.ByteIndex + view.CurrentStartOffset).ToString("X8")) {
+        SingleUserInputInfo singleInfo = new SingleUserInputInfo("Go to address", "Specify an address to scroll to", "Address (hex)", (view.CaretLocation.ByteIndex).ToString("X8")) {
             Validate = (a) => {
-                ulong len;
-                if (!uint.TryParse(a.Input, NumberStyles.HexNumber, null, out uint addr))
+                if (!uint.TryParse(a.Input, NumberStyles.HexNumber, null, out uint addr)) {
                     a.Errors.Add("Invalid address");
-                else if (addr >= (view.CurrentStartOffset + (len = view.DocumentLength)) || addr < view.CurrentStartOffset)
-                    a.Errors.Add($"Address out of range. Document contains {view.CurrentStartOffset:X8} to {(view.CurrentStartOffset + len - 1):X8}");
+                }
             }
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(singleInfo) == true) {
-            uint address = uint.Parse(singleInfo.Text, NumberStyles.HexNumber) - view.CurrentStartOffset;
+            uint address = uint.Parse(singleInfo.Text, NumberStyles.HexNumber);
             BitLocation caret = new BitLocation(address, view.CaretLocation.BitIndex);
 
             view.CaretLocation = caret;
             view.SelectionRange = new BitRange(caret, caret.AddBytes(1));
+            view.ScrollToCaret();
         }
     }
 }

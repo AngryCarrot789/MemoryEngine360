@@ -11,6 +11,7 @@
                  xmlns:hexEditing="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexEditing"
                  xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:async="clr-namespace:AvaloniaHex.Async;assembly=AvaloniaHex"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
                  x:Class="MemEngine360.BaseFrontEnd.Services.HexEditing.HexEditorWindow"
                  BorderBrush="DodgerBlue"
@@ -55,7 +56,7 @@
             </DockPanel>
         </Border>
         <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
-                Background="{Binding RelativeSource={RelativeSource AncestorType=hexEditing:HexEditorWindow}, Path=WindowTitleBarBrush}"
+                Background="{Binding RelativeSource={RelativeSource AncestorType=hexEditing:HexEditorWindow}, Path=TitleBarBrush}"
                 BorderThickness="0,0,0,1"
                 BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}">
             <StackPanel Margin="0,3" Spacing="4">
@@ -69,8 +70,8 @@
                         <ColumnDefinition Width="95"/>
                         <ColumnDefinition Width="3"/>
                         <ColumnDefinition Width="40"/>
-                        <ColumnDefinition Width="3"/>
-                        <ColumnDefinition Width="75"/>
+                        <ColumnDefinition Width="0"/>
+                        <ColumnDefinition Width="0"/>
                         <ColumnDefinition Width="3"/>
                         <ColumnDefinition Width="110"/>
                         <ColumnDefinition Width="3"/>
@@ -103,14 +104,6 @@
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
                              Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"/>
 
-                    <Button Grid.Column="9" x:Name="PART_Read" Content="Read All">
-                        <tt:ToolTipEx.Tip>
-                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                <TextBlock Text="Read the entire range from the console" VerticalAlignment="Center"/>
-                                <avc:ShortcutLabel CommandId="commands.hexeditor.ReadAllFromConsoleCommand"/>
-                            </StackPanel>
-                        </tt:ToolTipEx.Tip>
-                    </Button>
                     <Button Grid.Column="11" x:Name="PART_Refresh" Content="Refresh Selection">
                         <tt:ToolTipEx.Tip>
                             <StackPanel Orientation="Horizontal" Spacing="5">
@@ -176,9 +169,9 @@
                 BorderBrush="{DynamicResource PanelBorderBrush}"
                 BorderThickness="0,1,1,1">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                <ah:HexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
-                              Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                              BorderThickness="0"/>
+                <async:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
+                                      Background="{DynamicResource ABrush.Tone2.Background.Static}"
+                                      BorderThickness="0"/>
             </ScrollViewer>
         </Border>
         <GridSplitter Grid.Column="1" Grid.Row="1" Background="{DynamicResource ABrush.Tone4.Background.Static}" Focusable="False"/>

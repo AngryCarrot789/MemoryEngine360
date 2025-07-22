@@ -24,6 +24,7 @@ using Avalonia.Controls;
 using MemEngine360.PointerScanning;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Interactivity.Contexts;

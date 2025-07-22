@@ -27,6 +27,7 @@ using AvaloniaHex.Async.Rendering;
 using AvaloniaHex.Base.Document;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Debugging;
+using MemEngine360.Engine.HexEditing;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Services.Windowing;

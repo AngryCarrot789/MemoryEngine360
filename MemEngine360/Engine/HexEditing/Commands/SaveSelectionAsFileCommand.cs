@@ -35,12 +35,7 @@ public class SaveSelectionAsFileCommand : Command {
         }
 
         HexEditorInfo info = view.HexDisplayInfo!;
-        if (info.Document == null) {
-            return Executability.ValidButCannotExecute;
-        }
-        
-        BitRange selection = view.SelectionRange;
-        if (selection.ByteLength < 1 || selection.Start.ByteIndex >= info.Length) {
+        if (info.BinarySource == null) {
             return Executability.ValidButCannotExecute;
         }
         
@@ -53,31 +48,28 @@ public class SaveSelectionAsFileCommand : Command {
         }
 
         HexEditorInfo info = view.HexDisplayInfo!;
-        if (info.Document == null) {
+        if (info.BinarySource == null) {
             return;
         }
         
         BitRange selection = view.SelectionRange;
-        if (selection.ByteLength < 1 || selection.Start.ByteIndex >= info.Length) {
-            return;
-        }
-
-        string? filePath = await IFilePickDialogService.Instance.SaveFile("Save binary data", BinaryTypeAndAll);
+        string? filePath = await IFilePickDialogService.Instance.SaveFile($"Save binary data ({Math.Round(selection.ByteLength / 1000000.0, 2)} MB)", BinaryTypeAndAll);
         if (filePath == null) {
             return;
         }
         
         byte[] buffer = new byte[selection.ByteLength]; 
-        info.Document.ReadBytes(selection.Start.ByteIndex, buffer);
+        using CancellationTokenSource cts = new CancellationTokenSource(1000);
+        int read = await info.BinarySource.ReadAvailableDataAsync(selection.Start.ByteIndex, buffer, cts.Token);
 
         try {
-            await File.WriteAllBytesAsync(filePath, buffer);
+            await File.WriteAllBytesAsync(filePath, buffer.AsMemory(0, read), CancellationToken.None);
         }
         catch (Exception ex) {
             await IMessageDialogService.Instance.ShowMessage("Error", $"Error writing bytes to {filePath}", ex.GetToString());
             return;
         }
 
-        await IMessageDialogService.Instance.ShowMessage("Bytes written", $"Wrote {buffer.Length} bytes (from {(selection.Start.ByteIndex + view.CurrentStartOffset):X8} to {((selection.End.ByteIndex + view.CurrentStartOffset) - 1):X8}) to {filePath}");
+        await IMessageDialogService.Instance.ShowMessage("Bytes written", $"Wrote {buffer.Length} bytes (from {(selection.Start.ByteIndex):X8} to {((selection.End.ByteIndex) - 1):X8}) to {filePath}");
     }
 }

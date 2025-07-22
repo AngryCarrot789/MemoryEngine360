@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AvaloniaHex.Base.Document;
 using PFXToolKitUI;
@@ -37,8 +38,8 @@ public class TestFileBinarySource : IBinarySource, IDisposable, IAsyncDisposable
     private readonly RateLimitedDispatchAction rldaRead;
     private readonly BitRangeUnion requestedRanges = new BitRangeUnion();
 
-    public IReadOnlyBitRangeUnion ValidRanges { get; } = new ReadOnlyBitRangeUnion(new BitRangeUnion([new BitRange(0, uint.MaxValue)]));
-
+    public BitRange ApplicableRange => new BitRange(0, uint.MaxValue);
+    public IReadOnlyBitRangeUnion AvailableDataRanges { get; } = new BitRangeUnion([new BitRange(0, uint.MaxValue)]);
     public event BinarySourceDataReceivedEventHandler? DataReceived;
 
     public TestFileBinarySource(FileStream fileStream) {
@@ -86,10 +87,15 @@ public class TestFileBinarySource : IBinarySource, IDisposable, IAsyncDisposable
         }
     }
 
-    public int ReadAvailableData(ulong offset, Span<byte> buffer) {
+    public int ReadAvailableData(ulong offset, Span<byte> buffer, BitRangeUnion? affectedRanges) {
         lock (this.cachedMemory) {
+            affectedRanges?.Add(BitRange.FromLength(offset, (ulong) buffer.Length));
             return this.cachedMemory.Read(offset, buffer);
         }
+    }
+
+    public Task<int> ReadAvailableDataAsync(ulong offset, Memory<byte> buffer, CancellationToken cancellation) {
+        return Task.FromResult(0);
     }
 
     public void RequestDataLater(ulong offset, ulong count) {
@@ -100,7 +106,7 @@ public class TestFileBinarySource : IBinarySource, IDisposable, IAsyncDisposable
         this.rldaRead.InvokeAsync();
     }
 
-    public void WriteBytes(ulong offset, byte[] data) {
+    public void WriteBytesForUserInput(ulong offset, byte[] data) {
     }
 
     public void Dispose() {

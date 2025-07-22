@@ -17,9 +17,10 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using AvaloniaHex;
+using AvaloniaHex.Async;
+using AvaloniaHex.Async.Rendering;
 using AvaloniaHex.Base.Document;
-using AvaloniaHex.Rendering;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
@@ -28,13 +29,13 @@ public class HexEditorChangeManager {
     private readonly List<ChangedRegionLayer> myLayers;
     private const int MaxCache = 128;
 
-    public HexEditor Editor { get; }
+    public AsyncHexEditor Editor { get; }
 
-    public HexView View { get; }
+    public AsyncHexView View { get; }
 
-    public IBinaryDocument Document { get; private set; }
+    public IBinarySource? BinarySource { get; private set; }
 
-    public HexEditorChangeManager(HexEditor editor) {
+    public HexEditorChangeManager(AsyncHexEditor editor) {
         this.Editor = editor;
         this.View = editor.HexView;
         this.layerCache = new Stack<ChangedRegionLayer>(MaxCache);
@@ -51,9 +52,9 @@ public class HexEditorChangeManager {
         return this.layerCache.Count > 0 ? this.layerCache.Pop() : new ChangedRegionLayer(this);
     }
 
-    public static List<BitRange> GetChangedRanges(ulong baseAddress, byte[] oldData, byte[] newData, int count) {
+    public static BitRangeUnion GetChangedRanges(ulong baseAddress, byte[] oldData, byte[] newData, int count) {
         int start = -1;
-        List<BitRange> ranges = new List<BitRange>();
+        BitRangeUnion union = new BitRangeUnion();
         for (int i = 0; i < count; i++) {
             if (oldData[i] != newData[i]) {
                 if (start == -1) {
@@ -61,32 +62,45 @@ public class HexEditorChangeManager {
                 }
             }
             else if (start != -1) {
-                ranges.Add(new BitRange(baseAddress + (ulong) start, baseAddress + (ulong) i));
+                union.Add(new BitRange(baseAddress + (ulong) start, baseAddress + (ulong) i));
                 start = -1;
             }
         }
 
         if (start != -1) {
-            ranges.Add(new BitRange(baseAddress + (ulong) start, baseAddress + (ulong) count));
+            union.Add(new BitRange(baseAddress + (ulong) start, baseAddress + (ulong) count));
         }
 
-        return ranges;
+        return union;
     }
 
-    public void OnDocumentChanged(IBinaryDocument newDocument) {
-        this.Document = newDocument;
+    public void OnBinarySourceChanged(IBinarySource? source) {
+        this.BinarySource = source;
     }
 
     public void ProcessChanges(uint baseAddress, byte[] newData, int count) {
-        byte[] oldBytes = new byte[Math.Min(count, (uint) this.Document.Length)];
-        this.Document.ReadBytes(baseAddress, oldBytes);
+        if (this.BinarySource == null) {
+            return;
+        }
         
-        List<BitRange> newRanges = GetChangedRanges(baseAddress, oldBytes, newData, oldBytes.Length);
+        byte[] oldBytes = new byte[count];
+        this.BinarySource.ReadAvailableData(baseAddress, oldBytes, null);
+        
+        BitRangeUnion newRanges = GetChangedRanges(baseAddress, oldBytes, newData, oldBytes.Length);
         foreach (BitRange newRange in newRanges) {
             this.TryMergeOrCreateLayer(newRange);
         }
 
         this.CleanupInvalidatedRanges();
+    }
+    
+    public void Clear() {
+        for (int i = this.myLayers.Count - 1; i >= 0; i--) {
+            ChangedRegionLayer theLayer = this.myLayers[i];
+            this.View.Layers.Remove(theLayer);
+            this.myLayers.RemoveAt(i);
+            this.PushLayerAsCached(theLayer);
+        }
     }
 
     private void TryMergeOrCreateLayer(BitRange newRange) {
@@ -115,6 +129,7 @@ public class HexEditorChangeManager {
             if ((DateTime.Now - theLayer.LastUpdatedTime).Milliseconds >= 1500) {
                 this.View.Layers.Remove(theLayer);
                 this.myLayers.RemoveAt(i);
+                this.PushLayerAsCached(theLayer);
             }
         }
     }
@@ -125,6 +140,7 @@ public class HexEditorChangeManager {
             if (theLayer == layer) {
                 this.myLayers.RemoveAt(i);   
                 this.View.Layers.Remove(theLayer);
+                this.PushLayerAsCached(theLayer);
                 break;
             }
         }

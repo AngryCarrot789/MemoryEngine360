@@ -17,15 +17,17 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Media;
 using Avalonia.Styling;
 using AvaloniaHex.Base.Document;
-using AvaloniaHex.Editing;
-using AvaloniaHex.Rendering;
+using AvaloniaHex.Async.Editing;
+using AvaloniaHex.Async.Rendering;
 using PFXToolKitUI;
+using PFXToolKitUI.Configurations.Shortcuts.Commands;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
@@ -66,10 +68,11 @@ public class ChangedRegionLayer : Layer {
     public HexEditorChangeManager Manager => this.manager;
 
     public DateTime LastUpdatedTime => this.lastUpdatedTime;
-    
+
     /// <inheritdoc />
     public override LayerRenderMoments UpdateMoments => LayerRenderMoments.NoResizeRearrange;
 
+    private readonly Lock ctsLock = new Lock();
     private CancellationTokenSource? cts;
     private readonly HexEditorChangeManager manager;
     private readonly Caret theCaret;
@@ -90,19 +93,21 @@ public class ChangedRegionLayer : Layer {
         this.lastUpdatedTime = DateTime.Now;
         this.theRange = newRange;
         this.InvalidateVisual();
-        if (this.cts != null) {
-            try {
-                this.cts.Cancel();
+        using (this.ctsLock.EnterScope()) {
+            if (Interlocked.Exchange(ref this.cts, null) is CancellationTokenSource oldCts) {
+                try {
+                    oldCts.Cancel();
+                }
+                catch (ObjectDisposedException) {
+                    Debug.Fail("Impossible");
+                }
+                finally {
+                    oldCts.Dispose();
+                }
             }
-            catch (ObjectDisposedException) {
-                // ignored -- probably lost race to dispose on line 137
-            }
-
-            this.cts.Dispose();
-            this.cts = null;
         }
 
-        CancellationTokenSource cancellation = this.cts = new CancellationTokenSource();
+        this.cts = new CancellationTokenSource();
         this.animation ??= new Animation {
             Duration = TimeSpan.FromSeconds(1.5),
             Easing = new SineEaseOut(), FillMode = FillMode.Forward,
@@ -122,7 +127,7 @@ public class ChangedRegionLayer : Layer {
             }
         };
 
-        CancellationToken token = cancellation.Token;
+        CancellationToken token = this.cts.Token;
         this.animation.RunAsync(this, token).ContinueWith(async (t) => {
             try {
                 if (!token.IsCancellationRequested) {
@@ -133,7 +138,19 @@ public class ChangedRegionLayer : Layer {
                 }
             }
             finally {
-                cancellation.Dispose();
+                using (this.ctsLock.EnterScope()) {
+                    if (Interlocked.Exchange(ref this.cts, null) is CancellationTokenSource oldCts) {
+                        try {
+                            oldCts.Cancel();
+                        }
+                        catch (ObjectDisposedException) {
+                            Debug.Fail("Impossible");
+                        }
+                        finally {
+                            oldCts.Dispose();
+                        }
+                    }
+                }
             }
         }, TaskContinuationOptions.ExecuteSynchronously);
     }

@@ -20,8 +20,8 @@
 using Avalonia;
 using Avalonia.Media;
 using AvaloniaHex.Base.Document;
-using AvaloniaHex.Editing;
-using AvaloniaHex.Rendering;
+using AvaloniaHex.Async.Editing;
+using AvaloniaHex.Async.Rendering;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
@@ -91,7 +91,7 @@ public class AutoRefreshLayer : Layer {
     /// <inheritdoc />
     public override LayerRenderMoments UpdateMoments => LayerRenderMoments.NoResizeRearrange;
 
-    public AutoRefreshLayer(Caret theCaret) {
+    public AutoRefreshLayer(AvaloniaHex.Async.Editing.Caret theCaret) {
         this.theCaret = theCaret;
     }
 

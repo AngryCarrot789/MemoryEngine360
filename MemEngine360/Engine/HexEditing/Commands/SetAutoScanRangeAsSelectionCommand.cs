@@ -35,7 +35,7 @@ public class SetAutoScanRangeAsSelectionCommand : Command {
 
         BitRange selection = view.SelectionRange;
 
-        uint startAddr = (uint) (view.CurrentStartOffset + selection.Start.ByteIndex);
+        uint startAddr = (uint) selection.Start.ByteIndex;
         uint length = (uint) selection.ByteLength;
 
         view.HexDisplayInfo!.AutoRefreshStartAddress = startAddr;
