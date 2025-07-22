@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using AvaloniaHex.Async;
 using AvaloniaHex.Base.Document;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Debugging;
@@ -86,7 +87,10 @@ public class ThreadMemoryAutoRefresh : IDisposable {
 
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         if (this.cts != null && !this.cts.IsCancellationRequested) {
-                            ((ConsoleHexBinarySource) this.window.PART_HexEditor.BinarySource!).WriteBytesToCache(addr, bytes.AsSpan(0, len));
+                            Span<byte> span = bytes.AsSpan(0, len);
+                            AsyncHexEditor editor = this.window.PART_HexEditor!;
+                            this.window.changeManager.ProcessChanges(addr, span);
+                            ((ConsoleHexBinarySource) editor.BinarySource!).WriteBytesToCache(addr, span);
                         }
                     }, token: CancellationToken.None);
                 }

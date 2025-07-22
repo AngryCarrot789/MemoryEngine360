@@ -35,19 +35,23 @@ public class ConsoleHexBinarySource : IBinarySource {
 
     public BitRange ApplicableRange => new BitRange(0, uint.MaxValue);
 
+    public bool CanWriteBackInto => true;
+
     public IReadOnlyBitRangeUnion AvailableDataRanges => this.availableRanges;
 
-    public event BinarySourceDataReceivedEventHandler? DataReceived;
+    public event EventHandler<DataReceivedEventArgs>? DataReceived;
 
     public ConsoleHexBinarySource(IConnectionLockPair pair) {
         this.pair = pair;
         this.cachedMemory = new FragmentedMemoryBuffer();
-        this.rldaRead = new RateLimitedDispatchAction(this.ReadFromConsole, TimeSpan.FromSeconds(0.2));
+        this.rldaRead = new RateLimitedDispatchAction(this.ReadFromConsole, TimeSpan.FromSeconds(0.1));
     }
 
     private async Task ReadFromConsole() {
         BusyLock busyLocker = this.pair.BusyLock;
         if (busyLocker.IsBusy) {
+            if (this.requestedRanges.Count > 0)
+                this.rldaRead.InvokeAsync();
             return;
         }
 
@@ -86,7 +90,7 @@ public class ConsoleHexBinarySource : IBinarySource {
 
         await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
             foreach (BitRange range in union) {
-                this.DataReceived?.Invoke(this, range.Start.ByteIndex, range.ByteLength);
+                this.DataReceived?.Invoke(this, new DataReceivedEventArgs(range.Start.ByteIndex, range.ByteLength));
             }
         });
     }
@@ -150,7 +154,10 @@ public class ConsoleHexBinarySource : IBinarySource {
         this.rldaRead.InvokeAsync();
     }
 
-    public void WriteBytesForUserInput(ulong offset, byte[] data) {
+    public void OnUserInput(ulong offset, byte[] data) {
+        using (this.memoryLock.EnterScope()) {
+            this.cachedMemory.Write(offset, data);
+        }
     }
 
     /// <summary>
@@ -169,6 +176,6 @@ public class ConsoleHexBinarySource : IBinarySource {
             }
         }
 
-        this.DataReceived?.Invoke(this, address, (ulong) buffer.Length);
+        this.DataReceived?.Invoke(this, new DataReceivedEventArgs(address, (ulong) buffer.Length));
     }
 }

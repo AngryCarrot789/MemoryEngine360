@@ -22,9 +22,11 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using AvaloniaHex.Async.Rendering;
 using AvaloniaHex.Base.Document;
+using MemEngine360.BaseFrontEnd.Services.HexEditing;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.HexEditing;
@@ -62,6 +64,7 @@ public partial class DebuggerWindow : DesktopWindow {
     private readonly MultiBrushFlipFlopTimer timer;
     private bool isUpdatingSelectedLBI;
     private ThreadMemoryAutoRefresh? autoRefresh;
+    internal readonly HexEditorChangeManager changeManager;
 
     public DebuggerWindow() {
         this.InitializeComponent();
@@ -76,7 +79,8 @@ public partial class DebuggerWindow : DesktopWindow {
         this.PART_GotoTextBox.AcceptsTab = false;
 
         this.PART_HexEditor.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
-        
+        this.changeManager = new HexEditorChangeManager(this.PART_HexEditor);
+
         AsyncHexView view = this.PART_HexEditor.HexView;
         view.BytesPerLine = 16;
         view.Columns.Add(new OffsetColumn());
@@ -88,8 +92,14 @@ public partial class DebuggerWindow : DesktopWindow {
             new BrushExchange(this.PART_RunningState, BackgroundProperty, SimpleIcons.ConstantTransparentBrush, new ConstantAvaloniaColourBrush(Brushes.Yellow)),
         ]) { LevelChangesToStop = 7 /* stop on HIGH state */, StartHigh = true };
 
-        this.PART_GotoTextBox.Text = "8303AA10";
-        this.PART_HexEditor.HexView.ScrollOffset = new Vector(0, (double) (0x8303AA10 / 16));
+        this.PART_GotoTextBox.Text = "82600000";
+    }
+
+    protected override void OnLoaded(RoutedEventArgs e) {
+        base.OnLoaded(e);
+        if (uint.TryParse(this.PART_GotoTextBox.Text, NumberStyles.HexNumber, null, out uint address)) {
+            this.PART_HexEditor.HexView.ScrollToByteOffset(address, out _);
+        }
     }
 
     private void PART_GotoTextBoxOnKeyDown(object? sender, KeyEventArgs e) {
@@ -102,13 +112,7 @@ public partial class DebuggerWindow : DesktopWindow {
         }
 
         if (uint.TryParse(text, NumberStyles.HexNumber, null, out uint parsedAddress)) {
-            uint mod = parsedAddress % 16;
-            uint lineStartAddress = parsedAddress - mod;
-            uint offset = lineStartAddress / (uint) this.PART_HexEditor.HexView.ActualBytesPerLine;
-            
-            Vector oldOffset = this.PART_HexEditor.HexView.ScrollOffset;
-            this.PART_HexEditor.HexView.ScrollOffset = new Vector(oldOffset.X, offset);
-            
+            this.PART_HexEditor.HexView.ScrollToByteOffset(parsedAddress, out ulong scrollOffset);
             this.PART_HexEditor.ResetSelection();
             this.PART_HexEditor.Caret.Location = new BitLocation(parsedAddress);
             this.PART_HexEditor.Selection.Range = new BitRange(new BitLocation(parsedAddress), new BitLocation(parsedAddress + 1));
@@ -178,6 +182,8 @@ public partial class DebuggerWindow : DesktopWindow {
             oldValue.ActiveThreadChanged -= this.OnActiveThreadChanged;
             oldValue.IsConsoleRunningChanged -= this.OnIsConsoleRunningChanged;
             this.PART_HexEditor.BinarySource = null;
+            this.changeManager.Clear();
+            this.changeManager.OnBinarySourceChanged(null);
         }
 
         if (newValue != null) {
@@ -185,6 +191,8 @@ public partial class DebuggerWindow : DesktopWindow {
             newValue.ActiveThreadChanged += this.OnActiveThreadChanged;
             newValue.IsConsoleRunningChanged += this.OnIsConsoleRunningChanged;
             this.PART_HexEditor.BinarySource = new ConsoleHexBinarySource(new ConnectionLockPair(newValue.BusyLock, newValue.Connection));
+            this.changeManager.Clear();
+            this.changeManager.OnBinarySourceChanged(this.PART_HexEditor.BinarySource);
         }
 
         this.timer.IsEnabled = newValue != null && newValue.IsConsoleRunning != true;
@@ -216,6 +224,8 @@ public partial class DebuggerWindow : DesktopWindow {
         if (this.IsOpen) {
             this.PART_EventViewer.ConsoleConnection = newconnection;
             this.PART_HexEditor.BinarySource = new ConsoleHexBinarySource(new ConnectionLockPair(sender.BusyLock, newconnection));
+            this.changeManager.Clear();
+            this.changeManager.OnBinarySourceChanged(this.PART_HexEditor.BinarySource);
             this.RestartAutoRefresh();
         }
     }

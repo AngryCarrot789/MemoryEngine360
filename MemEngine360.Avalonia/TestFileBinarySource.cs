@@ -39,8 +39,10 @@ public class TestFileBinarySource : IBinarySource, IDisposable, IAsyncDisposable
     private readonly BitRangeUnion requestedRanges = new BitRangeUnion();
 
     public BitRange ApplicableRange => new BitRange(0, uint.MaxValue);
-    public IReadOnlyBitRangeUnion AvailableDataRanges { get; } = new BitRangeUnion([new BitRange(0, uint.MaxValue)]);
-    public event BinarySourceDataReceivedEventHandler? DataReceived;
+
+    public bool CanWriteBackInto => false;
+    
+    public event EventHandler<DataReceivedEventArgs>? DataReceived;
 
     public TestFileBinarySource(FileStream fileStream) {
         this.fileStream = fileStream;
@@ -73,7 +75,7 @@ public class TestFileBinarySource : IBinarySource, IDisposable, IAsyncDisposable
 
         await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
             foreach (BitRange range in union) {
-                this.DataReceived?.Invoke(this, range.Start.ByteIndex, range.ByteLength);
+                this.DataReceived?.Invoke(this, new DataReceivedEventArgs(range.Start.ByteIndex, range.ByteLength));
             }
         });
     }
@@ -106,7 +108,7 @@ public class TestFileBinarySource : IBinarySource, IDisposable, IAsyncDisposable
         this.rldaRead.InvokeAsync();
     }
 
-    public void WriteBytesForUserInput(ulong offset, byte[] data) {
+    public void OnUserInput(ulong offset, byte[] data) {
     }
 
     public void Dispose() {

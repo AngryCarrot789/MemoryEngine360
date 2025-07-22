@@ -148,14 +148,9 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         this.captionBinder.AttachControl(this);
         this.offsetBinder.AttachControl(this.PART_AddressTextBox);
         this.offsetBinder.ValueConfirmed += (b, oldText) => {
-            uint offset = b.Model.Offset;
-            uint bpr = this.HexDisplayInfo!.BytesPerRow;
-            uint mod = offset % bpr;
-            uint firstByte = offset - mod;
-
-            this.PART_HexEditor.HexView.ScrollOffset = this.PART_HexEditor.HexView.ScrollOffset.WithY(firstByte / (double) bpr);
-            this.PART_HexEditor.Caret.Location = new BitLocation(offset);
-            this.PART_HexEditor.Selection.Range = new BitRange(offset, offset + 1);
+            this.PART_HexEditor.HexView.ScrollToByteOffset(b.Model.Offset, out _);
+            this.PART_HexEditor.Caret.Location = new BitLocation(b.Model.Offset);
+            this.PART_HexEditor.Selection.Range = new BitRange(b.Model.Offset, b.Model.Offset + 1);
         };
 
         this.bytesPerRowBinder.AttachControl(this.PART_BytesPerRowTextBox);
@@ -311,6 +306,11 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         this.autoRefreshLenBinder.AttachControl(this.PART_AutoRefresh_Count);
 
         this.UpdateAutoRefreshButtonsAndTextBoxes();
+    }
+
+    protected override void OnLoaded(RoutedEventArgs e) {
+        base.OnLoaded(e);
+        this.PART_HexEditor.HexView.ScrollToByteOffset(0x82600000, out _);
     }
 
     private void OnDataInspectorNumericTextBoxKeyDown(object? sender, KeyEventArgs e) {
@@ -471,6 +471,10 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             return;
         }
 
+        if (length > 0x10000) {
+            await IMessageDialogService.Instance.ShowMessage("Selection too large", "Cannot reload " + Math.Round(length / 1000000.0, 2) + " MB. Maximum is 64KB");
+            return;
+        }
 
         this.PART_ControlsGrid.IsEnabled = false;
         byte[]? readBuffer = await info.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
@@ -506,7 +510,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         this.PART_ControlsGrid.IsEnabled = true;
         if (readBuffer != null) {
             if (this.PART_ToggleShowChanges.IsChecked == true) {
-                this.changeManager.ProcessChanges(address, readBuffer, readBuffer.Length);
+                this.changeManager.ProcessChanges(address, readBuffer);
             }
 
             this.myBinarySource!.WriteBytesToCache(address, readBuffer);
@@ -566,11 +570,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
     public void ScrollToCaret() {
         BitLocation caret = this.PART_HexEditor.Caret.Location;
-        int bpl = Math.Max(this.PART_HexEditor.HexView.ActualBytesPerLine, 1);
-        ulong caretByte = caret.ByteIndex - (caret.ByteIndex % (ulong) bpl);
-
-        Vector offset = this.PART_HexEditor.HexView.ScrollOffset;
-        this.PART_HexEditor.HexView.ScrollOffset = offset.WithY(caretByte / (double) bpl);
+        this.PART_HexEditor.HexView.ScrollToByteOffset(caret.ByteIndex, out _);
     }
 
     private void UpdateSelectionText() {
@@ -614,6 +614,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             HexEditorInfo.InspectorEndiannessParameter.RemoveValueChangedHandler(oldData, this.OnEndiannessModeChanged);
             this.endiannessBinder.Detach();
             this.SetBinarySource(null);
+            oldData.BinarySource = null;
         }
 
         if (newData != null) {
@@ -624,6 +625,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             this.endiannessBinder.Attach(newData);
             this.PART_CancelButton.Focus();
             this.SetBinarySource(new ConnectionLockPair(newData.MemoryEngine.BusyLocker, newData.MemoryEngine.Connection));
+            newData.BinarySource = this.myBinarySource;
         }
     }
 

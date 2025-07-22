@@ -27,7 +27,6 @@ using AvaloniaHex.Base.Document;
 using AvaloniaHex.Async.Editing;
 using AvaloniaHex.Async.Rendering;
 using PFXToolKitUI;
-using PFXToolKitUI.Configurations.Shortcuts.Commands;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
