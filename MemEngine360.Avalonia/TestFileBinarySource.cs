@@ -22,7 +22,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using AvaloniaHexAsync.Base;
+using AvaloniaHex.Base.Document;
 using PFXToolKitUI;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.RDA;

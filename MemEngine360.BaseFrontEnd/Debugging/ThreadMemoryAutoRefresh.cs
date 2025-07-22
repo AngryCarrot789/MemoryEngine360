@@ -17,7 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using AvaloniaHexAsync.Base;
+using AvaloniaHex.Base.Document;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Debugging;
 using PFXToolKitUI;

@@ -13,7 +13,7 @@
                  xmlns:ev="clr-namespace:MemEngine360.BaseFrontEnd.EventViewing"
                  xmlns:r="clr-namespace:AvaloniaHex.Rendering;assembly=AvaloniaHex"
                  xmlns:av2="clr-namespace:AvaloniaHex;assembly=AvaloniaHex"
-                 xmlns:c2="clr-namespace:AvaloniaHexAsync.Controls;assembly=AvaloniaHexAsync.Controls"
+                 xmlns:async="clr-namespace:AvaloniaHex.Async;assembly=AvaloniaHex"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.BaseFrontEnd.Debugging.DebuggerWindow"
                  Title="DebuggerWindow"
@@ -102,7 +102,7 @@
                 <Border>
                     <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto"
                                   x:Name="PART_HexEditorScrollViewer">
-                        <c2:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
+                        <async:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
                                            Background="{DynamicResource ABrush.Tone2.Background.Static}"
                                            BorderThickness="0"/>
                     </ScrollViewer>
