@@ -181,7 +181,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        return await this.SendCommandAndGetResponse(command).ConfigureAwait(false);
+        return await this.InternalSendCommand(command).ConfigureAwait(false);
     }
 
     public async Task<ConsoleResponse[]> SendMultipleCommands(string[] commands) {
@@ -222,7 +222,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        ConsoleResponse response = await this.SendCommandAndGetResponse(command).ConfigureAwait(false);
+        ConsoleResponse response = await this.InternalSendCommand(command).ConfigureAwait(false);
         int idx = command.IndexOf(' ');
         VerifyResponse(idx == -1 ? command : command.Substring(0, idx), response.ResponseType, ResponseType.MultiResponse);
         return await this.InternalReadMultiLineResponse();
@@ -274,7 +274,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
         XboxThread tdInfo;
         using (this.CreateBusyToken()) {
-            ConsoleResponse response = await this.SendCommandAndGetResponse($"threadinfo thread=0x{threadId:X8}").ConfigureAwait(false);
+            ConsoleResponse response = await this.InternalSendCommand($"threadinfo thread=0x{threadId:X8}").ConfigureAwait(false);
             if (response.ResponseType == ResponseType.NoSuchThread)
                 return default;
             VerifyResponse("threadinfo", response.ResponseType, ResponseType.MultiResponse);
@@ -502,15 +502,18 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     public async Task<List<RegisterEntry>?> GetRegisters(uint threadId) {
-        ConsoleResponse response = await this.SendCommand($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+        
+        ConsoleResponse response = await this.InternalSendCommand($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
         if (response.ResponseType == ResponseType.NoSuchThread) {
             return null;
         }
 
         VerifyResponse("getcontext", response.ResponseType, ResponseType.MultiResponse);
         List<RegisterEntry> registers = new List<RegisterEntry>();
-        List<string> lines = await this.ReadMultiLineResponse();
-        await Task.Run(() => {
+        await Task.Run(async () => {
+            List<string> lines = await this.InternalReadMultiLineResponse().ConfigureAwait(false);
             foreach (string line in lines) {
                 int split = line.IndexOf('=');
                 if (split == -1)
@@ -721,7 +724,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             return;
         }
 
-        ConsoleResponse response = await this.SendCommandAndGetResponse($"getmemex addr=0x{address:X8} length=0x{count:X8}").ConfigureAwait(false);
+        ConsoleResponse response = await this.InternalSendCommand($"getmemex addr=0x{address:X8} length=0x{count:X8}").ConfigureAwait(false);
         VerifyResponse("getmemex", response.ResponseType, ResponseType.BinaryResponse);
 
         int statusFlag = 0, cbReadTotal = 0;
@@ -822,7 +825,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         }
     }
 
-    private async Task<ConsoleResponse> SendCommandAndGetResponse(string command) {
+    private async Task<ConsoleResponse> InternalSendCommand(string command) {
         await this.InternalWriteCommand(command).ConfigureAwait(false);
         return await this.InternalReadResponse().ConfigureAwait(false);
     }

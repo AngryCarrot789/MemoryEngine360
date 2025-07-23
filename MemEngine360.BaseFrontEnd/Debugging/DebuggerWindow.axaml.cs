@@ -78,7 +78,6 @@ public partial class DebuggerWindow : DesktopWindow {
         this.PART_GotoTextBox.AcceptsReturn = false;
         this.PART_GotoTextBox.AcceptsTab = false;
 
-        this.PART_HexEditor.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
         this.changeManager = new HexEditorChangeManager(this.PART_HexEditor);
 
         AsyncHexView view = this.PART_HexEditor.HexView;

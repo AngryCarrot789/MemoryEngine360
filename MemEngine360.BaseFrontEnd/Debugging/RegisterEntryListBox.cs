@@ -51,23 +51,40 @@ public class RegisterEntryListBox : ModelBasedListBox<RegisterEntry> {
 
 public class RegisterEntryListBoxItem : ModelBasedListBoxItem<RegisterEntry> {
     protected override Type StyleKeyOverride => typeof(ListBoxItem);
+    private readonly TextBlock tbRegisterName;
+    private readonly TextBox tboxRegisterValue;
 
     public RegisterEntryListBoxItem() {
         this.Padding = default;
-        this.Content = new TextBox() {
+        this.tbRegisterName = new TextBlock() {
+            Padding = new Thickness(3, 0),
+            Background = Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            [Grid.ColumnProperty] = 0,
+        };
+
+        this.tboxRegisterValue = new TextBox() {
             Padding = new Thickness(3, 0),
             Background = Brushes.Transparent,
             BorderThickness = default,
             IsReadOnly = true,
-            HorizontalAlignment = HorizontalAlignment.Left
+            HorizontalAlignment = HorizontalAlignment.Left,
+            [Grid.ColumnProperty] = 1,
         };
-        
+
+        this.Content = new Grid() {
+            ColumnDefinitions = new ColumnDefinitions("60,Auto"),
+            Children = {
+                this.tbRegisterName,
+                this.tboxRegisterValue
+            }
+        };
+
         this.HorizontalContentAlignment = HorizontalAlignment.Left;
-        
-        ((TextBox) this.Content).AddHandler(PointerPressedEvent, this.OnPointerPressed, RoutingStrategies.Tunnel);
+        this.AddHandler(PointerPressedEvent, this.OnPreviewPointerPressed, RoutingStrategies.Tunnel);
     }
 
-    private void OnPointerPressed(object? sender, PointerPressedEventArgs e) {
+    private void OnPreviewPointerPressed(object? sender, PointerPressedEventArgs e) {
         this.IsSelected = true;
     }
 
@@ -75,28 +92,24 @@ public class RegisterEntryListBoxItem : ModelBasedListBoxItem<RegisterEntry> {
     }
 
     protected override void OnAddedToList() {
-        StringBuilder sb = new StringBuilder();
-        sb.Append(this.Model!.Name);
-
+        this.tbRegisterName.Text = this.Model!.Name;
+        string textValue;
         switch (this.Model) {
-            case RegisterEntry32 e32: sb.Append(" = ").Append(e32.Value.ToString("X8")); break;
-            case RegisterEntry64 e64:
-                ulong val64 = e64.Value;
-                sb.Append(" = ").Append((val64 >> 32 & uint.MaxValue).ToString("X8")).Append((val64 & uint.MaxValue).ToString("X8")); 
-                break;
+            case RegisterEntry32 e32: textValue = e32.Value.ToString("X8"); break;
+            case RegisterEntry64 e64: textValue = (e64.Value >> 32 & uint.MaxValue).ToString("X8") + (e64.Value & uint.MaxValue).ToString("X8"); break;
             case RegisterEntryDouble eDouble:
                 bool isLittleEndian = ((RegisterEntryListBox?) this.ListBox)?.ConsoleDebugger?.Connection?.IsLittleEndian ?? true;
-
                 ulong value = eDouble.Value;
                 if (!isLittleEndian)
                     value = BinaryPrimitives.ReverseEndianness(value);
 
-                sb.Append(" = ").Append(eDouble.Value.ToString("X16")).Append(" (").Append(Unsafe.As<ulong, double>(ref value));
+                textValue = new StringBuilder().Append(" = ").Append(eDouble.Value.ToString("X16")).Append(" (").Append(Unsafe.As<ulong, double>(ref value)).ToString();
                 break;
-            case RegisterEntryVector eVector: sb.Append(" = ").Append(eVector.Value1.ToString("X16")).Append(", ").Append(eVector.Value2.ToString("X16")); break;
+            case RegisterEntryVector eVector: textValue = new StringBuilder().Append(" = ").Append(eVector.Value1.ToString("X16")).Append(", ").Append(eVector.Value2.ToString("X16")).ToString(); break;
+            default:                          textValue = ""; break;
         }
 
-        ((TextBox) this.Content!).Text = sb.ToString();
+        this.tboxRegisterValue.Text = textValue;
     }
 
     protected override void OnRemovingFromList() {
