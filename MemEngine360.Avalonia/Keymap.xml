@@ -144,6 +144,16 @@
             <KeyStroke Mods="CTRL+ALT" Key="S"/>
         </Shortcut>
     </Group>
+    <Group Name="DebuggerWindow" DisplayName="Debugger Window">
+        <Group Name="MemoryHexEditor" DisplayName="Operation List Box" Description="The list box of operations within a sequence">
+            <Shortcut Name="FocusGoToTextBox" CommandId="commands.debugger.GoToDebugMemoryCommand">
+                <KeyStroke Mods="CTRL" Key="G"/>
+            </Shortcut>
+        </Group>
+        <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
+            <KeyStroke Mods="CTRL+ALT" Key="S"/>
+        </Shortcut>
+    </Group>
     <Group Name="Configuration" DisplayName="Configuration window" Description="The configuration window">
         <Group Name="Tree" DisplayName="The tree of pages">
             <Group Name="TreeItem" DisplayName="A tree item that opens a page">

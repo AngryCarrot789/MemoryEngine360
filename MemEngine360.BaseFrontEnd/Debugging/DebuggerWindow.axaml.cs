@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
@@ -30,6 +31,7 @@ using MemEngine360.BaseFrontEnd.Services.HexEditing;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.HexEditing;
+using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Services.Windowing;
@@ -39,7 +41,7 @@ using PFXToolKitUI.Logging;
 
 namespace MemEngine360.BaseFrontEnd.Debugging;
 
-public partial class DebuggerWindow : DesktopWindow {
+public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
     public static readonly StyledProperty<ConsoleDebugger?> ConsoleDebuggerProperty = AvaloniaProperty.Register<DebuggerWindow, ConsoleDebugger?>(nameof(ConsoleDebugger));
 
     public ConsoleDebugger? ConsoleDebugger {
@@ -92,6 +94,8 @@ public partial class DebuggerWindow : DesktopWindow {
         ]) { LevelChangesToStop = 7 /* stop on HIGH state */, StartHigh = true };
 
         this.PART_GotoTextBox.Text = "82600000";
+
+        DataManager.GetContextData(this).Set(IDebuggerWindow.DataKey, this);
     }
 
     protected override void OnLoaded(RoutedEventArgs e) {
@@ -252,5 +256,70 @@ public partial class DebuggerWindow : DesktopWindow {
     private void OnThreadListBoxSelectionChanged(object? sender, SelectionChangedEventArgs e) {
         if (!this.isUpdatingSelectedLBI && this.ConsoleDebugger != null)
             this.ConsoleDebugger.ActiveThread = this.PART_ThreadListBox.SelectedModel;
+    }
+
+    public void FocusGoToTextBox() {
+        TextBoxFocusTransition.Focus(this.PART_GotoTextBox);
+    }
+}
+
+public class TextBoxFocusTransition {
+    private readonly TextBox targetFocus;
+    private IInputElement? lastFocused;
+
+    private TextBoxFocusTransition(TextBox targetFocus) {
+        this.targetFocus = targetFocus;
+    }
+
+    public static void Focus(TextBox target, bool selectAll = true) {
+        new TextBoxFocusTransition(target).Focus(selectAll);
+    }
+    
+    private void OnTargetOnKeyDown(object? sender, KeyEventArgs e) {
+        Debug.Assert(this.lastFocused != null);
+        
+        if (e.Key == Key.Enter || e.Key == Key.Escape) {
+            e.Handled = true;
+            this.FocusPrevious();
+        }
+    }
+    
+    private void OnTargetLostFocus(object? sender, RoutedEventArgs e) {
+        this.lastFocused = null;
+        this.targetFocus.LostFocus -= this.OnTargetLostFocus;
+        this.targetFocus.KeyDown -= this.OnTargetOnKeyDown;
+    }
+    
+    private void Focus(bool selectAll) {
+        TopLevel? topLevel = TopLevel.GetTopLevel(this.targetFocus);
+        this.lastFocused = topLevel?.FocusManager?.GetFocusedElement();
+        if (ReferenceEquals(this.lastFocused, this.targetFocus)) {
+            // Already focused, so remove handler to prevent leak
+            this.lastFocused = null;
+            return;
+        }
+
+        if (this.targetFocus.Focus() && this.targetFocus.IsFocused) {
+            if (selectAll) {
+                this.targetFocus.SelectAll();
+                BugFix.TextBox_UpdateSelection(this.targetFocus);
+            }
+
+            this.targetFocus.LostFocus += this.OnTargetLostFocus;
+            this.targetFocus.KeyDown += this.OnTargetOnKeyDown;
+        }
+        else {
+            // Could not focus, so remove handler to prevent leak
+            this.lastFocused = null;
+        }
+    }
+
+    private void FocusPrevious() {
+        if (this.lastFocused != null) {
+            this.lastFocused.Focus();
+            
+            // OnTargetLostFocus should get called
+            Debug.Assert(this.lastFocused == null);
+        }
     }
 }

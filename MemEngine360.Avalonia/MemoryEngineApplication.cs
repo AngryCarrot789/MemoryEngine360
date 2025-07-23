@@ -176,6 +176,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.debugger.UnfreezeConsoleCommand", new UnfreezeConsoleCommand());
         manager.Register("commands.debugger.SuspendThreadCommand", new SuspendThreadCommand());
         manager.Register("commands.debugger.ResumeThreadCommand", new ResumeThreadCommand());
+        manager.Register("commands.debugger.GoToDebugMemoryCommand", new GoToDebugMemoryCommand());
     }
 
     protected override void RegisterServices(ServiceManager manager) {

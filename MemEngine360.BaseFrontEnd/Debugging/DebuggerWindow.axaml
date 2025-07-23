@@ -11,10 +11,12 @@
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
                  xmlns:ev="clr-namespace:MemEngine360.BaseFrontEnd.EventViewing"
                  xmlns:async="clr-namespace:AvaloniaHex.Async;assembly=AvaloniaHex"
+                 xmlns:av2="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.BaseFrontEnd.Debugging.DebuggerWindow"
                  Title="DebuggerWindow"
                  Background="{DynamicResource ABrush.Tone2.Background.Static}"
+                 av2:UIInputManager.FocusPath="DebuggerWindow"
                  MinHeight="400" MinWidth="400">
     <Grid RowDefinitions="27,3,*,26,3" ColumnDefinitions="3,2*,3,5*,3,2*,3">
         <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="7"
@@ -51,7 +53,8 @@
                     BorderBrush="{DynamicResource PanelBorderBrush}"
                     HeaderBrush="{DynamicResource ABrush.Tone5.Background.Static}"
                     BorderThickness="1"
-                    Header="Threads">
+                    Header="Threads"
+                    av2:UIInputManager.FocusPath="DebuggerWindow/ThreadList">
             <DockPanel>
                 <WrapPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
                     <CheckBox x:Name="PART_ToggleAutoAddRemoveThreads" Content="Auto add/remove"
@@ -96,7 +99,7 @@
                         <Border/>
                     </DockPanel>
                 </c:GroupBox.Header>
-                <Border>
+                <Border av2:UIInputManager.FocusPath="DebuggerWindow/MemoryHexEditor">
                     <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto"
                                   x:Name="PART_HexEditorScrollViewer">
                         <async:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
@@ -109,7 +112,8 @@
                         Background="{DynamicResource ABrush.Tone3.Background.Static}"
                         BorderBrush="{DynamicResource PanelBorderBrush}">
                 <TabItem Header="Event Viewer">
-                    <ev:ConsoleEventViewerView x:Name="PART_EventViewer"/>
+                    <ev:ConsoleEventViewerView x:Name="PART_EventViewer"
+                                               av2:UIInputManager.FocusPath="DebuggerWindow/EventViewer"/>
                 </TabItem>
                 <TabItem Header="Breakpoints">
 
@@ -122,7 +126,8 @@
                         BorderBrush="{DynamicResource PanelBorderBrush}"
                         HeaderBrush="{DynamicResource ABrush.Tone5.Background.Static}"
                         BorderThickness="1"
-                        VerticalHeaderAlignment="Center" HorizontalHeaderAlignment="Stretch">
+                        VerticalHeaderAlignment="Center" HorizontalHeaderAlignment="Stretch"
+                        av2:UIInputManager.FocusPath="DebuggerWindow/RegisterList">
                 <c:GroupBox.Header>
                     <DockPanel>
                         <TextBlock Text="Registers" DockPanel.Dock="Left" VerticalAlignment="Center"/>
