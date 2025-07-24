@@ -687,6 +687,11 @@ public partial class EngineView : UserControl, IEngineUI {
                     _ => "Disconnected"
                 };
 
+                notification.AlertMode =
+                    cause == ConnectionChangeCause.LostConnection
+                        ? NotificationAlertMode.UntilUserInteraction
+                        : NotificationAlertMode.None;
+
                 notification.Commands.Clear();
                 if (cause == ConnectionChangeCause.LostConnection || cause == ConnectionChangeCause.ConnectionError) {
                     notification.CanAutoHide = false;
