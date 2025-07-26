@@ -171,7 +171,8 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                 <async:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
                                       Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                                      BorderThickness="0"/>
+                                      BorderThickness="0"
+                                      ResetSelectionOnDocumentChange="False"/>
             </ScrollViewer>
         </Border>
         <GridSplitter Grid.Column="1" Grid.Row="1" Background="{DynamicResource ABrush.Tone4.Background.Static}" Focusable="False"/>

@@ -223,7 +223,7 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
         this.RestartAutoRefresh();
     }
 
-    private async void OnConsoleConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection) {
+    private void OnConsoleConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection) {
         if (this.IsOpen) {
             this.PART_EventViewer.ConsoleConnection = newconnection;
             this.PART_HexEditor.BinarySource = new ConsoleHexBinarySource(new ConnectionLockPair(sender.BusyLock, newconnection));

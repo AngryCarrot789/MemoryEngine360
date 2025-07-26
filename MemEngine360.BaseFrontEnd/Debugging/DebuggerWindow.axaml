@@ -104,7 +104,8 @@
                                   x:Name="PART_HexEditorScrollViewer">
                         <async:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
                                               Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                                              BorderThickness="0"/>
+                                              BorderThickness="0"
+                                              ResetSelectionOnDocumentChange="False"/>
                     </ScrollViewer>
                 </Border>
             </c:GroupBox>
