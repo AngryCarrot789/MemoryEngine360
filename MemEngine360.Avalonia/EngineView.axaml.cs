@@ -66,11 +66,6 @@ using PFXToolKitUI.Utils.Commands;
 namespace MemEngine360.Avalonia;
 
 public partial class EngineView : UserControl, IEngineUI {
-    #region BINDERS
-
-    // PFX framework uses binders to simplify "binding" model values to controls
-    // and vice versa. There's a bunch of different binders that exist for us to use.
-
     private readonly IBinder<MemoryEngine> connectedHostNameBinder =
         new EventUpdateBinder<MemoryEngine>(
             nameof(MemoryEngine.ConnectionChanged),
@@ -91,105 +86,12 @@ public partial class EngineView : UserControl, IEngineUI {
                 w.UpdateScanResultCounterText();
             });
 
-    private readonly IBinder<ScanningProcessor> scanAddressBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(
-        nameof(ScanningProcessor.ScanRangeChanged),
-        (b) => $"{b.Model.StartAddress:X8}",
-        async (b, x) => {
-            DataManager.EvaluateContextDataRaw(b.Control);
-
-            if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
-                if (value == b.Model.StartAddress) {
-                    return true;
-                }
-
-                if (value + b.Model.ScanLength < value) {
-                    return await OnAddressOrLengthOutOfRange(b.Model, value, b.Model.ScanLength);
-                }
-                else {
-                    b.Model.SetScanRange(value, b.Model.ScanLength);
-                    return true;
-                }
-            }
-            else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
-                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
-            }
-            else {
-                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
-            }
-
-            return false;
-        });
-
-    private readonly IBinder<ScanningProcessor> scanLengthBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(
-        nameof(ScanningProcessor.ScanRangeChanged),
-        (b) => $"{b.Model.ScanLength:X8}",
-        async (b, x) => {
-            if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
-                if (value == b.Model.ScanLength) {
-                    return true;
-                }
-
-                if (b.Model.StartAddress + value < value) {
-                    return await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
-                }
-                else {
-                    b.Model.SetScanRange(b.Model.StartAddress, value);
-                    return true;
-                }
-            }
-            else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
-                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Scan Length is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
-            }
-            else {
-                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
-            }
-
-            return false;
-        });
-
-    private static async Task<bool> OnAddressOrLengthOutOfRange(ScanningProcessor processor, uint start, uint length) {
-        bool didChangeStart = processor.StartAddress != start;
-        Debug.Assert(didChangeStart || processor.ScanLength != length);
-        ulong overflowAmount = (ulong) start + (ulong) length - uint.MaxValue;
-        MessageBoxInfo info = new MessageBoxInfo() {
-            Caption = $"Invalid {(didChangeStart ? "start address" : "scan length")}",
-            Message = $"Scan Length causes scan to exceed 32 bit address space by 0x{overflowAmount:X8}.{Environment.NewLine}" +
-                      $"Do you want to auto-adjust the {(didChangeStart ? "scan length" : "start address")} to fit?",
-            Buttons = MessageBoxButton.OKCancel, DefaultButton = MessageBoxResult.OK,
-            YesOkText = "Yes"
-        };
-
-        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
-        if (result == MessageBoxResult.Cancel || result == MessageBoxResult.None) {
-            return false;
-        }
-
-        if (didChangeStart) {
-            processor.SetScanRange(start, uint.MaxValue - start);
-        }
-        else {
-            processor.SetScanRange((uint) (start - overflowAmount), length);
-        }
-
-        return true;
-    }
-
+    private readonly IBinder<ScanningProcessor> scanAddressBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanRangeChanged), (b) => $"{b.Model.StartAddress:X8}", ParseAndUpdateScanAddress);
+    private readonly IBinder<ScanningProcessor> scanLengthBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanRangeChanged), (b) => $"{b.Model.ScanLength:X8}", ParseAndUpdateScanLength);
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventUpdateBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((EngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
-
-    // Will reimplement at some point
-    // private readonly IBinder<MemoryEngine> forceLEBinder = new AvaloniaPropertyToEventPropertyBinder<MemoryEngine>(ToggleButton.IsCheckedProperty, nameof(MemoryEngine.IsForcedLittleEndianChanged), (b) => {
-    //     ((ToggleButton) b.Control).IsChecked = b.Model.IsForcedLittleEndian;
-    //     ((ToggleButton) b.Control).Content = b.Model.IsForcedLittleEndian is bool state ? ((state ? "Endianness: Little" : "Endianness: Big") + " (mostly works)") : "Endianness: Automatic";
-    // }, (b) => {
-    //     b.Model.IsForcedLittleEndian = ((ToggleButton) b.Control).IsChecked;
-    //     b.Model.ScanningProcessor.RefreshSavedAddressesLater();
-    // });
-
     private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
     private readonly AsyncRelayCommand editAlignmentCommand;
-
-    #endregion
 
     public MemoryEngine MemoryEngine { get; }
 
@@ -352,8 +254,8 @@ public partial class EngineView : UserControl, IEngineUI {
                     new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer").
                         AddContextValueChangeHandlerWithEvent(MemoryEngine.EngineDataKey, nameof(this.MemoryEngine.ConnectionChanged), (entry, engine) => {
                             // Maybe this should be shown via a popup instead of changing the actual menu entry
-                            entry.DisplayName = engine?.Connection != null && !(engine.Connection is IHaveSystemEvents) 
-                                ? "Event Viewer (console unsupported)" 
+                            entry.DisplayName = engine?.Connection != null && !(engine.Connection is IHaveSystemEvents)
+                                ? "Event Viewer (console unsupported)"
                                 : "Event Viewer";
                             entry.RaiseCanExecuteChanged();
                         }),
@@ -364,138 +266,7 @@ public partial class EngineView : UserControl, IEngineUI {
 
             entry.Items.Add(new ContextEntryGroup("Cool Utils") {
                 Items = {
-                    new CustomLambdaContextEntry("[BO1 SP] Find AI's X pos near camera", async (ctx) => {
-                        if (!IEngineUI.DataKey.TryGetContext(ctx, out var engineUI))
-                            return;
-
-                        // new DynamicAddress(0x82000000, [0x1AD74, 0x1758, 0x18C4, 0x144, 0x118, 0x11C])
-                        // new DynamicAddress(0x82000000, [0x1AD74, 0x1758, 0x18C4, 0x144, 0x1A4, 0x1EC8])
-                        MemoryEngine engine = engineUI.MemoryEngine;
-                        await engine.BeginBusyOperationActivityAsync(async (t, c) => {
-                            if (engine.ScanningProcessor.IsScanning) {
-                                await IMessageDialogService.Instance.ShowMessage("Currently scanning", "Cannot run. Engine is scanning for a value");
-                                return;
-                            }
-
-                            SingleUserInputInfo info = new SingleUserInputInfo("Range", "Input maximum radius from you", "Radius", "100.0") {
-                                Validate = args => {
-                                    if (!float.TryParse(args.Input, out _))
-                                        args.Errors.Add("Invalid float");
-                                }
-                            };
-
-                            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
-                                return;
-                            }
-
-                            float radius = float.Parse(info.Text);
-
-                            // BO1 stores positions as X Z Y. Or maybe they treat Z as up/down.
-                            const uint addr_p1_x = 0x82DC184C;
-
-                            float p1_x;
-                            float p1_z;
-                            float p1_y;
-
-                            try {
-                                p1_x = await c.ReadValue<float>(addr_p1_x);
-                                p1_z = await c.ReadValue<float>(addr_p1_x + 0x4);
-                                p1_y = await c.ReadValue<float>(addr_p1_x + 0x8);
-                            }
-                            catch (Exception e) when (e is TimeoutException || e is IOException) {
-                                await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + e.Message);
-                                return;
-                            }
-
-                            AddressRange range = new AddressRange(engine.ScanningProcessor.StartAddress, engine.ScanningProcessor.ScanLength);
-                            List<(uint, float)> results = new List<(uint, float)>();
-                            using CancellationTokenSource cts = new CancellationTokenSource();
-                            ActivityTask task = ActivityManager.Instance.RunTask(async () => {
-                                ActivityTask activity = ActivityManager.Instance.CurrentTask;
-                                IActivityProgress prog = activity.Progress;
-
-                                if (c is IHaveIceCubes && engine.ScanningProcessor.PauseConsoleDuringScan)
-                                    await ((IHaveIceCubes) c).DebugFreeze();
-
-                                if (engine.ScanningProcessor.HasDoneFirstScan) {
-                                    List<ScanResultViewModel> list = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => engine.ScanningProcessor.GetScanResultsAndQueued());
-                                    using PopCompletionStateRangeToken token = prog.CompletionState.PushCompletionRange(0, 1.0 / list.Count);
-                                    foreach (ScanResultViewModel result in list) {
-                                        activity.CheckCancelled();
-                                        prog.CompletionState.OnProgress(1);
-
-                                        if (!(result.CurrentValue is DataValueFloat floatval)) {
-                                            continue;
-                                        }
-
-                                        DataValueFloat currVal = (DataValueFloat) await MemoryEngine.ReadDataValue(c, result.Address, floatval);
-                                        if (Math.Abs(currVal.Value - p1_x) <= radius) {
-                                            results.Add((result.Address, currVal.Value));
-                                        }
-                                    }
-                                }
-                                else {
-                                    using PopCompletionStateRangeToken token = prog.CompletionState.PushCompletionRange(0, 1.0 / range.Length);
-                                    bool isLE = c.IsLittleEndian;
-                                    byte[] buffer = new byte[0x10008]; // read 8 over for Z and Y axis
-                                    int chunkIdx = 0;
-                                    uint totalChunks = range.Length / 0x10000;
-                                    for (uint addr = range.BaseAddress, end = range.EndAddress; addr < end; addr += 0x10000) {
-                                        activity.CheckCancelled();
-                                        prog.CompletionState.OnProgress(0x10000);
-                                        prog.Text = $"Chunk {++chunkIdx}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(range.Length - (end - addr), false)}/{ValueScannerUtils.ByteFormatter.ToString(range.Length, false)})";
-                                        await c.ReadBytes(addr, buffer, 0, buffer.Length);
-
-                                        float x, z, y;
-                                        for (int offset = 0; offset < (buffer.Length - 0x8) /* X10008-8=65535 */; offset += 4) {
-                                            x = AsFloat(buffer, offset, isLE);
-                                            z = AsFloat(buffer, offset + 4, isLE);
-                                            y = AsFloat(buffer, offset + 8, isLE);
-                                            if (Math.Abs(x - p1_x) <= radius && Math.Abs(z - p1_z) <= radius && Math.Abs(y - p1_y) <= radius) {
-                                                if (!(Math.Abs(x - p1_x) < 0.001F) && !(Math.Abs(z - p1_z) < 0.001F) && !(Math.Abs(y - p1_y) < 0.001F)) {
-                                                    if (addr + (uint) offset != addr_p1_x)
-                                                        results.Add((addr + (uint) offset, x));
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-
-                                if (c is IHaveIceCubes && engine.ScanningProcessor.PauseConsoleDuringScan)
-                                    await ((IHaveIceCubes) c).DebugUnFreeze();
-                                return;
-
-                                static float AsFloat(byte[] buffer, int offset, bool isDataLittleEndian) {
-                                    float value = Unsafe.ReadUnaligned<float>(ref buffer[offset]);
-                                    if (BitConverter.IsLittleEndian != isDataLittleEndian) {
-                                        MemoryMarshal.CreateSpan(ref Unsafe.As<float, byte>(ref value), sizeof(float)).Reverse();
-                                    }
-
-                                    return value;
-                                }
-                            }, cts);
-
-                            await task;
-                            if (task.Exception is TimeoutException || task.Exception is IOException) {
-                                await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + task.Exception.Message);
-                            }
-
-                            if (results.Count > 0) {
-                                engine.ScanningProcessor.ResetScan();
-                                engine.ScanningProcessor.DataType = DataType.Float;
-                                engine.ScanningProcessor.FloatScanOption = FloatScanOption.RoundToQuery;
-                                engine.ScanningProcessor.NumericScanType = NumericScanType.Between;
-                                engine.ScanningProcessor.InputA = (p1_x - radius).ToString("F4");
-                                engine.ScanningProcessor.InputB = (p1_x + radius).ToString("F4");
-                                engine.ScanningProcessor.ScanResults.AddRange(results.Select(x => new ScanResultViewModel(engine.ScanningProcessor, x.Item1, DataType.Float, NumericDisplayType.Normal, StringType.ASCII, new DataValueFloat(x.Item2))));
-                                engine.ScanningProcessor.HasDoneFirstScan = true;
-                            }
-                            else {
-                                await IMessageDialogService.Instance.ShowMessage("No results!", "Did not find anything nearby");
-                            }
-                        });
-                    }, (c) => c.ContainsKey(IEngineUI.DataKey.Id))
+                    new CustomLambdaContextEntry("[BO1 SP] Find AI's X pos near camera", ExecuteFindAINearBO1Camera, (c) => c.ContainsKey(IEngineUI.DataKey.Id))
                 }
             });
 
@@ -766,5 +537,212 @@ public partial class EngineView : UserControl, IEngineUI {
 
     public IAddressTableEntryUI GetATEntryUI(BaseAddressTableEntry entry) {
         return this.PART_SavedAddressTree.ItemMap.GetControl(entry);
+    }
+
+    private static async Task<bool> ParseAndUpdateScanAddress(IBinder<ScanningProcessor> b, string x) {
+        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
+            if (value == b.Model.StartAddress) {
+                return true;
+            }
+
+            if (value + b.Model.ScanLength < value) {
+                return await OnAddressOrLengthOutOfRange(b.Model, value, b.Model.ScanLength);
+            }
+            else {
+                b.Model.SetScanRange(value, b.Model.ScanLength);
+                return true;
+            }
+        }
+        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
+        }
+
+        return false;
+    }
+
+    private static async Task<bool> ParseAndUpdateScanLength(IBinder<ScanningProcessor> b, string x) {
+        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
+            if (value == b.Model.ScanLength) {
+                return true;
+            }
+            else if (b.Model.StartAddress + value < value) {
+                return await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
+            }
+            else {
+                b.Model.SetScanRange(b.Model.StartAddress, value);
+                return true;
+            }
+        }
+        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Scan Length is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
+        }
+
+        return false;
+    }
+
+    private static async Task<bool> OnAddressOrLengthOutOfRange(ScanningProcessor processor, uint start, uint length) {
+        bool didChangeStart = processor.StartAddress != start;
+        Debug.Assert(didChangeStart || processor.ScanLength != length);
+        ulong overflowAmount = (ulong) start + (ulong) length - uint.MaxValue;
+        MessageBoxInfo info = new MessageBoxInfo() {
+            Caption = $"Invalid {(didChangeStart ? "start address" : "scan length")}",
+            Message = $"Scan Length causes scan to exceed 32 bit address space by 0x{overflowAmount:X8}.{Environment.NewLine}" +
+                      $"Do you want to auto-adjust the {(didChangeStart ? "scan length" : "start address")} to fit?",
+            Buttons = MessageBoxButton.OKCancel, DefaultButton = MessageBoxResult.OK,
+            YesOkText = "Yes"
+        };
+
+        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
+        if (result == MessageBoxResult.Cancel || result == MessageBoxResult.None) {
+            return false;
+        }
+
+        if (didChangeStart) {
+            processor.SetScanRange(start, uint.MaxValue - start);
+        }
+        else {
+            processor.SetScanRange((uint) (start - overflowAmount), length);
+        }
+
+        return true;
+    }
+
+    private static async Task ExecuteFindAINearBO1Camera(IContextData ctx) {
+        if (!IEngineUI.DataKey.TryGetContext(ctx, out IEngineUI? engineUI))
+            return;
+
+        // new DynamicAddress(0x82000000, [0x1AD74, 0x1758, 0x18C4, 0x144, 0x118, 0x11C])
+        // new DynamicAddress(0x82000000, [0x1AD74, 0x1758, 0x18C4, 0x144, 0x1A4, 0x1EC8])
+        MemoryEngine engine = engineUI.MemoryEngine;
+        await engine.BeginBusyOperationActivityAsync(async (t, c) => {
+            if (engine.ScanningProcessor.IsScanning) {
+                await IMessageDialogService.Instance.ShowMessage("Currently scanning", "Cannot run. Engine is scanning for a value");
+                return;
+            }
+
+            SingleUserInputInfo info = new SingleUserInputInfo("Range", "Input maximum radius from you", "Radius", "100.0") {
+                Validate = args => {
+                    if (!float.TryParse(args.Input, out _))
+                        args.Errors.Add("Invalid float");
+                }
+            };
+
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
+                return;
+            }
+
+            float radius = float.Parse(info.Text);
+
+            // BO1 stores positions as X Z Y. Or maybe they treat Z as up/down.
+            const uint addr_p1_x = 0x82DC184C;
+
+            float p1_x;
+            float p1_z;
+            float p1_y;
+
+            try {
+                p1_x = await c.ReadValue<float>(addr_p1_x);
+                p1_z = await c.ReadValue<float>(addr_p1_x + 0x4);
+                p1_y = await c.ReadValue<float>(addr_p1_x + 0x8);
+            }
+            catch (Exception e) when (e is TimeoutException || e is IOException) {
+                await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + e.Message);
+                return;
+            }
+
+            AddressRange range = new AddressRange(engine.ScanningProcessor.StartAddress, engine.ScanningProcessor.ScanLength);
+            List<(uint, float)> results = new List<(uint, float)>();
+            using CancellationTokenSource cts = new CancellationTokenSource();
+            ActivityTask task = ActivityManager.Instance.RunTask(async () => {
+                ActivityTask activity = ActivityManager.Instance.CurrentTask;
+                IActivityProgress prog = activity.Progress;
+
+                if (c is IHaveIceCubes && engine.ScanningProcessor.PauseConsoleDuringScan)
+                    await ((IHaveIceCubes) c).DebugFreeze();
+
+                if (engine.ScanningProcessor.HasDoneFirstScan) {
+                    List<ScanResultViewModel> list = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => engine.ScanningProcessor.GetScanResultsAndQueued());
+                    using PopCompletionStateRangeToken token = prog.CompletionState.PushCompletionRange(0, 1.0 / list.Count);
+                    foreach (ScanResultViewModel result in list) {
+                        activity.CheckCancelled();
+                        prog.CompletionState.OnProgress(1);
+
+                        if (!(result.CurrentValue is DataValueFloat floatval)) {
+                            continue;
+                        }
+
+                        DataValueFloat currVal = (DataValueFloat) await MemoryEngine.ReadDataValue(c, result.Address, floatval);
+                        if (Math.Abs(currVal.Value - p1_x) <= radius) {
+                            results.Add((result.Address, currVal.Value));
+                        }
+                    }
+                }
+                else {
+                    using PopCompletionStateRangeToken token = prog.CompletionState.PushCompletionRange(0, 1.0 / range.Length);
+                    bool isLE = c.IsLittleEndian;
+                    byte[] buffer = new byte[0x10008]; // read 8 over for Z and Y axis
+                    int chunkIdx = 0;
+                    uint totalChunks = range.Length / 0x10000;
+                    for (uint addr = range.BaseAddress, end = range.EndAddress; addr < end; addr += 0x10000) {
+                        activity.CheckCancelled();
+                        prog.CompletionState.OnProgress(0x10000);
+                        prog.Text = $"Chunk {++chunkIdx}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(range.Length - (end - addr), false)}/{ValueScannerUtils.ByteFormatter.ToString(range.Length, false)})";
+                        await c.ReadBytes(addr, buffer, 0, buffer.Length);
+
+                        float x, z, y;
+                        for (int offset = 0; offset < (buffer.Length - 0x8) /* X10008-8=65535 */; offset += 4) {
+                            x = AsFloat(buffer, offset, isLE);
+                            z = AsFloat(buffer, offset + 4, isLE);
+                            y = AsFloat(buffer, offset + 8, isLE);
+                            if (Math.Abs(x - p1_x) <= radius && Math.Abs(z - p1_z) <= radius && Math.Abs(y - p1_y) <= radius) {
+                                if (!(Math.Abs(x - p1_x) < 0.001F) && !(Math.Abs(z - p1_z) < 0.001F) && !(Math.Abs(y - p1_y) < 0.001F)) {
+                                    if (addr + (uint) offset != addr_p1_x)
+                                        results.Add((addr + (uint) offset, x));
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+                if (c is IHaveIceCubes && engine.ScanningProcessor.PauseConsoleDuringScan)
+                    await ((IHaveIceCubes) c).DebugUnFreeze();
+                return;
+
+                static float AsFloat(byte[] buffer, int offset, bool isDataLittleEndian) {
+                    float value = Unsafe.ReadUnaligned<float>(ref buffer[offset]);
+                    if (BitConverter.IsLittleEndian != isDataLittleEndian) {
+                        MemoryMarshal.CreateSpan(ref Unsafe.As<float, byte>(ref value), sizeof(float)).Reverse();
+                    }
+
+                    return value;
+                }
+            }, cts);
+
+            await task;
+            if (task.Exception is TimeoutException || task.Exception is IOException) {
+                await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + task.Exception.Message);
+            }
+
+            if (results.Count > 0) {
+                engine.ScanningProcessor.ResetScan();
+                engine.ScanningProcessor.DataType = DataType.Float;
+                engine.ScanningProcessor.FloatScanOption = FloatScanOption.RoundToQuery;
+                engine.ScanningProcessor.NumericScanType = NumericScanType.Between;
+                engine.ScanningProcessor.InputA = (p1_x - radius).ToString("F4");
+                engine.ScanningProcessor.InputB = (p1_x + radius).ToString("F4");
+                engine.ScanningProcessor.ScanResults.AddRange(results.Select(x => new ScanResultViewModel(engine.ScanningProcessor, x.Item1, DataType.Float, NumericDisplayType.Normal, StringType.ASCII, new DataValueFloat(x.Item2))));
+                engine.ScanningProcessor.HasDoneFirstScan = true;
+            }
+            else {
+                await IMessageDialogService.Instance.ShowMessage("No results!", "Did not find anything nearby");
+            }
+        });
     }
 }

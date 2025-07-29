@@ -32,15 +32,15 @@ public class DuplicateConditionsCommand : Command {
             : Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
-            return;
+            return Task.CompletedTask;
         }
 
         // Create list of clones, ordered by their index in the sequence list
         ITaskSequenceEntryUI? sequence = ui.PrimarySelectedSequence;
         if (sequence == null || sequence.TaskSequence.IsRunning) {
-            return;
+            return Task.CompletedTask;
         }
 
         List<(BaseSequenceCondition Cond, int Idx)> clones = ui.ConditionSelectionManager.SelectedItemList.
@@ -55,5 +55,6 @@ public class DuplicateConditionsCommand : Command {
         }
 
         ui.ConditionSelectionManager.SetSelection(clones.Select(x => ui.GetConditionControl(x.Cond)));
+        return Task.CompletedTask;
     }
 }

@@ -26,9 +26,9 @@ public class ToggleOperationEnabledCommand : Command {
         return ITaskSequenceManagerUI.DataKey.GetExecutabilityForPresence(e.ContextData);
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
-            return;
+            return Task.CompletedTask;
         }
 
         List<IOperationItemUI> selection = ui.OperationSelectionManager.SelectedItemList.ToList();
@@ -44,5 +44,7 @@ public class ToggleOperationEnabledCommand : Command {
         foreach (IOperationItemUI entry in selection) {
             entry.Operation.IsEnabled = isEnabled;
         }
+
+        return Task.CompletedTask;
     }
 }

@@ -30,7 +30,7 @@ public abstract class BaseNumericDataValue : IDataValue, IComparable<BaseNumeric
     public abstract object BoxedValue { get; }
     public abstract uint ByteCount { get; }
 
-    protected BaseNumericDataValue(DataType dataType) {
+    internal BaseNumericDataValue(DataType dataType) {
         this.DataType = dataType;
     }
 
@@ -81,7 +81,7 @@ public abstract class BaseNumericDataValue<T> : BaseNumericDataValue where T : u
 
     public override uint ByteCount => (uint) TypeSize;
 
-    protected BaseNumericDataValue(T myValue, DataType dataType) : base(dataType) {
+    internal BaseNumericDataValue(T myValue, DataType dataType) : base(dataType) {
         this.Value = myValue;
     }
 
@@ -179,17 +179,17 @@ public abstract class BaseNumericDataValue<T> : BaseNumericDataValue where T : u
     public override bool Equals(IDataValue? other) {
         if (ReferenceEquals(other, this))
             return true;
-        return other != null && other.DataType == this.DataType && other is BaseNumericDataValue<T> numeric && this.Equals(numeric);
+        return other != null
+               && other.DataType == this.DataType
+               && other is BaseNumericDataValue<T> numeric
+               && this.Equals(numeric);
     }
 
     public override bool Equals(object? obj) {
-        if (obj == null)
-            return false;
         if (ReferenceEquals(this, obj))
             return true;
-        if (!(obj is IDataValue value) || value.DataType != this.DataType)
-            return false;
-        return value is BaseNumericDataValue<T> ? this.Equals((BaseNumericDataValue<T>) obj) : this.Equals(value);
+
+        return obj is BaseNumericDataValue<T> value && this.Equals(value);
     }
 
     public override int GetHashCode() {
@@ -197,23 +197,29 @@ public abstract class BaseNumericDataValue<T> : BaseNumericDataValue where T : u
     }
 }
 
-public abstract class BaseIntegerDataValue<T>(T myValue, DataType dataType) : BaseNumericDataValue<T>(myValue, dataType) where T : unmanaged, IBinaryNumber<T>;
+public abstract class BaseIntegerDataValue<T> : BaseNumericDataValue<T> where T : unmanaged, IBinaryNumber<T> {
+    internal BaseIntegerDataValue(T myValue, DataType dataType) : base(myValue, dataType) {
+    }
+}
 
-public abstract class BaseFloatDataValue<T>(T myValue, DataType dataType) : BaseNumericDataValue<T>(myValue, dataType) where T : unmanaged, IFloatingPoint<T>;
+public abstract class BaseFloatDataValue<T> : BaseNumericDataValue<T> where T : unmanaged, IFloatingPoint<T> {
+    internal BaseFloatDataValue(T myValue, DataType dataType) : base(myValue, dataType) {
+    }
+}
 
-public class DataValueByte(byte myValue) : BaseIntegerDataValue<byte>(myValue, DataType.Byte);
+public sealed class DataValueByte(byte myValue) : BaseIntegerDataValue<byte>(myValue, DataType.Byte);
 
-public class DataValueInt16(short myValue) : BaseIntegerDataValue<short>(myValue, DataType.Int16);
+public sealed class DataValueInt16(short myValue) : BaseIntegerDataValue<short>(myValue, DataType.Int16);
 
-public class DataValueInt32(int myValue) : BaseIntegerDataValue<int>(myValue, DataType.Int32);
+public sealed class DataValueInt32(int myValue) : BaseIntegerDataValue<int>(myValue, DataType.Int32);
 
-public class DataValueInt64(long myValue) : BaseIntegerDataValue<long>(myValue, DataType.Int64);
+public sealed class DataValueInt64(long myValue) : BaseIntegerDataValue<long>(myValue, DataType.Int64);
 
-public class DataValueFloat(float myValue) : BaseFloatDataValue<float>(myValue, DataType.Float);
+public sealed class DataValueFloat(float myValue) : BaseFloatDataValue<float>(myValue, DataType.Float);
 
-public class DataValueDouble(double myValue) : BaseFloatDataValue<double>(myValue, DataType.Double);
+public sealed class DataValueDouble(double myValue) : BaseFloatDataValue<double>(myValue, DataType.Double);
 
-public class DataValueString : IDataValue {
+public sealed class DataValueString : IDataValue {
     public DataType DataType => DataType.String;
 
     public string Value { get; }
@@ -234,8 +240,10 @@ public class DataValueString : IDataValue {
         this.StringType.ToEncoding(littleEndian).GetBytes(this.Value, buffer);
     }
 
-    protected bool Equals(DataValueString other) {
-        return this.DataType == other.DataType && this.Value == other.Value && this.StringType == other.StringType;
+    public bool Equals(DataValueString other) {
+        Debug.Assert(this.DataType == other.DataType);
+        
+        return this.Value == other.Value && this.StringType == other.StringType;
     }
 
     public bool Equals(IDataValue? other) => other is DataValueString str && this.Equals(str);
@@ -253,7 +261,7 @@ public class DataValueString : IDataValue {
     }
 }
 
-public class DataValueByteArray : IDataValue {
+public sealed class DataValueByteArray : IDataValue {
     public DataType DataType => DataType.ByteArray;
 
     public byte[] Value { get; }
@@ -270,8 +278,10 @@ public class DataValueByteArray : IDataValue {
         this.Value.CopyTo(buffer);
     }
 
-    protected bool Equals(DataValueByteArray other) {
-        return this.DataType == other.DataType && this.Value.SequenceEqual(other.Value);
+    public bool Equals(DataValueByteArray other) {
+        Debug.Assert(this.DataType == other.DataType);
+        
+        return this.Value.SequenceEqual(other.Value);
     }
 
     public bool Equals(IDataValue? other) => other is DataValueByteArray str && this.Equals(str);

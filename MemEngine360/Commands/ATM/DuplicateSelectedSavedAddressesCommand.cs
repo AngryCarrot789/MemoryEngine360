@@ -32,9 +32,9 @@ public class DuplicateSelectedSavedAddressesCommand : Command {
         return engine.AddressTableSelectionManager.Count < 1 ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            return;
+            return Task.CompletedTask;
         }
 
         // Create list of clones, ordered by their index in the sequence list
@@ -55,6 +55,7 @@ public class DuplicateSelectedSavedAddressesCommand : Command {
         }
         
         ui.AddressTableSelectionManager.Select(clonedItems.Select(x => ui.GetATEntryUI(x)));
+        return Task.CompletedTask;
     }
 
     public static Dictionary<AddressTableGroupEntry, List<(BaseAddressTableEntry, int)>> GetEffectiveOrderedDuplication(List<BaseAddressTableEntry> source) {

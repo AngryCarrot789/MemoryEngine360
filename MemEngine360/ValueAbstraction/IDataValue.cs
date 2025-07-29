@@ -49,11 +49,6 @@ public interface IDataValue : IEquatable<IDataValue> {
     /// <summary>
     /// Writes this data value into the buffer. Callers must ensure the buffer contains enough bytes.
     /// For all numeric data values, you can safely pass any buffer of at least 8 bytes (obviously...)
-    /// <para>
-    /// This method writes the bytes in the system endianness. Therefore, if you're using this to write a data value to a
-    /// console, you must compare the system endianness to the console endianness and reverse the bytes if they differ
-    /// (and also only do this is necessary. For example, you don't reverse the bytes of a string)
-    /// </para>
     /// </summary>
     /// <param name="buffer">The dst buffer</param>
     /// <param name="littleEndian">

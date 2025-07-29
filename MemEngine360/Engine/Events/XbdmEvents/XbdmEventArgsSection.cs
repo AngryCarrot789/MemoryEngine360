@@ -20,7 +20,7 @@
 namespace MemEngine360.Engine.Events.XbdmEvents;
 
 public abstract class XbdmEventArgsSection : XbdmEventArgs {
-    public string Name { get; set; }
+    public string? Name { get; set; }
     public uint BaseAddress { get; set; }
     public uint Size { get; set; }
     public uint? Index { get; set; }

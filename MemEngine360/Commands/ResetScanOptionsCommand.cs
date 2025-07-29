@@ -28,10 +28,12 @@ public class ResetScanOptionsCommand : BaseMemoryEngineCommand {
         return engine.ScanningProcessor.IsScanning ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
         if (!engine.ScanningProcessor.IsScanning) {
             engine.ScanningProcessor.SetScanRange(BasicApplicationConfiguration.StartAddressProperty.DefaultValue, BasicApplicationConfiguration.ScanLengthProperty.DefaultValue);
             engine.ScanningProcessor.ScanMemoryPages = BasicApplicationConfiguration.ScanMemoryPagesProperty.DefaultValue;
         }
+
+        return Task.CompletedTask;
     }
 }

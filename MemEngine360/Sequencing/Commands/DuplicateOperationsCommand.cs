@@ -32,15 +32,15 @@ public class DuplicateOperationsCommand : Command {
             : Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
-            return;
+            return Task.CompletedTask;
         }
 
         // Create list of clones, ordered by their index in the sequence list
         ITaskSequenceEntryUI? sequence = ui.PrimarySelectedSequence;
         if (sequence == null || sequence.TaskSequence.IsRunning) {
-            return;
+            return Task.CompletedTask;
         }
         
         List<(BaseSequenceOperation Operation, int Idx)> clones = ui.OperationSelectionManager.SelectedItemList.
@@ -55,5 +55,6 @@ public class DuplicateOperationsCommand : Command {
         // virtualization of task sequence list box items not implemented yet, and there's no reason
         // to do it since I doubt anyone will use enough to where it makes a difference
         ui.OperationSelectionManager.SetSelection(clones.Select(x => ui.GetOperationControl(x.Operation)));
+        return Task.CompletedTask;
     }
 }

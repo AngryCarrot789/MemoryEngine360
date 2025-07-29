@@ -54,7 +54,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
     // note: DataType.Float is parsed as double for extra precision
     internal ulong numericInputA, numericInputB;
     internal MemoryPattern memoryPattern;
-    internal Decoder stringDecoder;
+    internal Decoder? stringDecoder;
 
     // number of bytes the data type takes up. for strings, calculates based on StringType and char count
     internal int cbDataType;
@@ -238,7 +238,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 if (isString) {
                     int cchUsed;
                     try {
-                        this.stringDecoder.Convert(memory, this.charBuffer.AsSpan(), true, out _, out cchUsed, out _);
+                        this.stringDecoder!.Convert(memory, this.charBuffer.AsSpan(), true, out _, out cchUsed, out _);
                     }
                     catch {
                         // failed to decode chars so skip

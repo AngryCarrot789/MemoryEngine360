@@ -20,7 +20,7 @@
 namespace MemEngine360.Engine.Events.XbdmEvents;
 
 public class XbdmEventArgsModuleLoad : XbdmEventArgs {
-    public string ModuleName { get; init; }
+    public string? ModuleName { get; init; }
     public uint BaseAddress { get; init; }
     public uint ModuleSize { get; init; }
     public uint TimeStamp { get; init; }

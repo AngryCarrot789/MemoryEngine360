@@ -54,7 +54,7 @@ public class AnyTypeScanningContext : ScanningContext {
     private int cbDataMax;
     private char[]? charBuffer;
     private Decoder? stringDecoder;
-    private DataType[] intOrdering;
+    private DataType[]? intOrdering;
     internal MemoryPattern memoryPattern;
     private uint myOverlap;
 
@@ -178,7 +178,7 @@ public class AnyTypeScanningContext : ScanningContext {
                 // TODO: maybe increment i by the size of data type that was found? or maybe we just stick with += alignment
                 // E.g. If a file is full of a ushort with a hex value of 0x1010, it will
                 // find it 37 times, since alignment is set to 1 
-                switch (this.intOrdering[j]) {
+                switch (this.intOrdering![j]) {
                     case DataType.Byte when this.in_byte.HasValue && this.CanSearchType(sizeof(byte), buffer.Length, i): {
                         byte val = this.in_byte.Value;
                         if ((value = this.CompareInt(ValueScannerUtils.CreateNumberFromBytes<byte>(buffer.Slice((int) i, sizeof(byte)), this.isConnectionLittleEndian), Unsafe.As<byte, ulong>(ref val), 0)) != null) {

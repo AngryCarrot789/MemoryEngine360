@@ -31,9 +31,9 @@ public class DeleteSelectedScanResultsCommand : Command {
         return engine.ScanResultSelectionManager.Count < 1 ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine)) {
-            return;
+            return Task.CompletedTask;
         }
 
         ObservableList<ScanResultViewModel> items = engine.MemoryEngine.ScanningProcessor.ScanResults;
@@ -46,5 +46,7 @@ public class DeleteSelectedScanResultsCommand : Command {
                 items.Remove(address);
             }
         }
+
+        return Task.CompletedTask;
     }
 }

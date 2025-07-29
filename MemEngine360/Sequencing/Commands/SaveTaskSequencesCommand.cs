@@ -47,10 +47,12 @@ public class SaveTaskSequencesCommand : Command {
             return;
         }
         
-        ActivityTask task = ActivityManager.Instance.RunTask(async () => {
+        ActivityTask task = ActivityManager.Instance.RunTask(() => {
+            ActivityManager.Instance.GetCurrentProgressOrEmpty().IsIndeterminate = true;
             XmlDocument document = new XmlDocument();
             XmlTaskSequenceSerialization.SaveToDocument(document, items);
             document.Save(filePath);
+            return Task.CompletedTask;
         });
 
         await task;

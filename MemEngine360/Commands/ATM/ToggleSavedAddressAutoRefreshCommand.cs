@@ -32,14 +32,14 @@ public class ToggleSavedAddressAutoRefreshCommand : Command {
         return Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            return;
+            return Task.CompletedTask;
         }
 
         List<AddressTableEntry> list = ui.AddressTableSelectionManager.SelectedItems.Where(x => x.Entry is AddressTableEntry).Select(x => (AddressTableEntry) x.Entry).ToList();
         if (list.Count < 1) {
-            return;
+            return Task.CompletedTask;
         }
 
         int countDisabled = 0;
@@ -53,5 +53,7 @@ public class ToggleSavedAddressAutoRefreshCommand : Command {
         foreach (AddressTableEntry entry in list) {
             entry.IsAutoRefreshEnabled = isEnabled;
         }
+
+        return Task.CompletedTask;
     }
 }

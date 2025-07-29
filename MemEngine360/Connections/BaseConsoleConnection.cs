@@ -333,8 +333,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return this.WriteBytes(address, encoding.GetBytes(value));
     }
 
-    public async Task<uint?> FindPattern(uint address, uint count, MemoryPattern pattern, CompletionState? completion = null, CancellationToken cancellationToken = default) {
-        return null;
+    public Task<uint?> FindPattern(uint address, uint count, MemoryPattern pattern, CompletionState? completion = null, CancellationToken cancellationToken = default) {
+        return Task.FromResult<uint?>(null);
     }
 
     // Use a dedicated resolve pointer to improve performance as much as possible,

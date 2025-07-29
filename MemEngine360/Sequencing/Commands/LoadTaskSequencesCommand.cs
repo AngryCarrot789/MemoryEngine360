@@ -41,10 +41,11 @@ public class LoadTaskSequencesCommand : Command {
             return;
         }
         
-        ActivityTask<XmlDocument> task = ActivityManager.Instance.RunTask(async () => {
+        ActivityTask<XmlDocument> task = ActivityManager.Instance.RunTask(() => {
+            ActivityManager.Instance.GetCurrentProgressOrEmpty().IsIndeterminate = true;
             XmlDocument document = new XmlDocument();
             document.Load(filePath);
-            return document;
+            return Task.FromResult(document);
         });
 
         XmlDocument? doc = await task;

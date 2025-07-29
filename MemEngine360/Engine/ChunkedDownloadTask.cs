@@ -180,7 +180,7 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
                 while (!pauseOrCancelToken.IsCancellationRequested && this.buffers.TryDequeue(out (byte[] buffer, uint cbBuffer) data)) {
                     try {
                         ReadOnlyMemory<byte> rom = new ReadOnlyMemory<byte>(data.buffer, 0, (int) data.cbBuffer);
-                        await this.fileOutput.WriteAsync(rom, CancellationToken.None);
+                        await this.fileOutput!.WriteAsync(rom, CancellationToken.None);
                     }
                     catch (Exception ex) {
                         this.fileException = ex;

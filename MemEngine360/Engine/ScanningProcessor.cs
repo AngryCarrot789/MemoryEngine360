@@ -662,7 +662,7 @@ public class ScanningProcessor {
                     await updateListTask;
                 }
 
-                await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+                await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     this.FirstScanWasUnknownDataType = scanForAnything;
                     this.HasDoneFirstScan = result;
                     this.IsScanning = false;
@@ -674,7 +674,7 @@ public class ScanningProcessor {
                             this.MemoryEngine.CheckConnection();
                         }
                     }
-                });
+                }, token: CancellationToken.None);
             }, progress, cts);
 
             try {

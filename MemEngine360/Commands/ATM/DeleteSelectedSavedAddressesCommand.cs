@@ -31,9 +31,9 @@ public class DeleteSelectedSavedAddressesCommand : Command {
         return engine.AddressTableSelectionManager.Count < 1 ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine)) {
-            return;
+            return Task.CompletedTask;
         }
 
         List<IAddressTableEntryUI> items = engine.AddressTableSelectionManager.SelectedItems.ToList();
@@ -41,5 +41,7 @@ public class DeleteSelectedSavedAddressesCommand : Command {
             if (entry.IsValid)
                 entry.Entry.Parent?.RemoveEntry(entry.Entry);
         }
+
+        return Task.CompletedTask;
     }
 }
