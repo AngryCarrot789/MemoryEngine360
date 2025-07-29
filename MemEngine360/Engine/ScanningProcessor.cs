@@ -508,7 +508,7 @@ public class ScanningProcessor {
 
             Debug.Assert(this.isScanning == false, "WTF");
 
-            DefaultProgressTracker progress = new DefaultProgressTracker {
+            ConcurrentActivityProgress progress = new ConcurrentActivityProgress {
                 Caption = "Memory Scan", Text = "Beginning scan..."
             };
 
@@ -551,19 +551,21 @@ public class ScanningProcessor {
                             if (srcList != null) {
                                 bool canContinue = false;
                                 progress.Text = "Scanning...";
+                                
+                                bool isAlreadyFrozen = false;
                                 IHaveIceCubes? cubes = pauseDuringScan ? connection as IHaveIceCubes : null;
                                 try {
                                     if (cubes != null && connection.IsConnected) {
-                                        await cubes.DebugFreeze();
+                                        isAlreadyFrozen = await cubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
                                     }
 
                                     canContinue = true;
                                 }
                                 catch (Exception e) when (e is IOException || e is TimeoutException) {
-                                    await IMessageDialogService.Instance.ShowMessage("Connection error", e is IOException ? "IO Error freezing console" : "Timeout while freezing console", e.ToString());
+                                    await IMessageDialogService.Instance.ShowMessage(e is IOException ? "Connection IO Error" : "Connection Timed Out", "Error freezing console", e.Message);
                                 }
                                 catch (Exception e) {
-                                    await IMessageDialogService.Instance.ShowMessage("Error", "Unexpected error while freezing console", e.ToString());
+                                    await LogExceptionHelper.ShowMessageAndPrintToLogs("Unexpected Error", "Unexpected error freezing console.", e);
                                 }
 
                                 if (canContinue) {
@@ -575,25 +577,25 @@ public class ScanningProcessor {
                                         Debugger.Break(); // OCE should not be thrown
                                     }
                                     catch (Exception e) when (e is IOException || e is TimeoutException) {
-                                        await IMessageDialogService.Instance.ShowMessage("Connection error", e is IOException ? "IO Error running next scan" : "Timeout while running next scan", e.ToString());
+                                        await IMessageDialogService.Instance.ShowMessage(e is IOException ? "Connection IO Error" : "Connection Timed Out", "Connection error while performing next scan", e.Message);
                                         result = false;
                                     }
                                     catch (Exception e) {
-                                        await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing next scan", e.ToString());
+                                        await LogExceptionHelper.ShowMessageAndPrintToLogs("Unexpected Error", "Error performing next scan.", e);
                                         result = false;
                                     }
 
                                     try {
-                                        if (cubes != null && connection.IsConnected) {
+                                        if (cubes != null && !isAlreadyFrozen && connection.IsConnected) {
                                             await cubes.DebugUnFreeze();
                                         }
                                     }
                                     catch (Exception e) when (e is IOException || e is TimeoutException) {
-                                        await IMessageDialogService.Instance.ShowMessage("Connection error", e is IOException ? "IO Error unfreezing console" : "Timeout while unfreezing console", e.ToString());
+                                        await IMessageDialogService.Instance.ShowMessage(e is IOException ? "Connection IO Error" : "Connection Timed Out", "Error unfreezing console", e.Message);
                                         result = false;
                                     }
                                     catch (Exception e) {
-                                        await IMessageDialogService.Instance.ShowMessage("Error", "Unexpected error while freezing console", e.ToString());
+                                        await LogExceptionHelper.ShowMessageAndPrintToLogs("Unexpected Error", "Unexpected error unfreezing console.", e);
                                         result = false;
                                     }
                                 }
@@ -613,11 +615,11 @@ public class ScanningProcessor {
                                 Debugger.Break(); // OCE should not be thrown
                             }
                             catch (Exception e) when (e is IOException || e is TimeoutException) {
-                                await IMessageDialogService.Instance.ShowMessage("Connection error", e is IOException ? "IO Error performing first scan" : "Timeout while performing first scan", e.ToString());
+                                await IMessageDialogService.Instance.ShowMessage(e is IOException ? "Connection IO Error" : "Connection Timed Out", "Connection error while performing first scan", e.Message);
                                 result = false;
                             }
                             catch (Exception e) {
-                                await IMessageDialogService.Instance.ShowMessage("Error", "Error while performing first scan", e.ToString());
+                                await LogExceptionHelper.ShowMessageAndPrintToLogs("Unexpected Error", "Error performing first scan.", e);
                                 result = false;
                             }
                         }
@@ -749,7 +751,7 @@ public class ScanningProcessor {
         // May be faster if the console is not debug frozen and we have to update 100s of results...
         List<AddressTableEntry>? savedList = new List<AddressTableEntry>(100);
         foreach (AddressTableEntry saved in this.MemoryEngine.AddressTableManager.GetAllAddressEntries()) {
-            if (saved.IsAutoRefreshEnabled) {
+            if (saved.IsAutoRefreshEnabled && saved.IsVisibleInMainSavedResultList) {
                 if (!bypassLimits && savedList.Count > max) {
                     savedList = null;
                     break;

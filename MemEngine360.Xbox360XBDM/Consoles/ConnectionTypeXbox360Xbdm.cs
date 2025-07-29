@@ -104,7 +104,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
                         default:                             message = e.Message; break;
                     }
 
-                    await IMessageDialogService.Instance.ShowMessage("Error", message, defaultButton: MessageBoxResult.OK);
+                    await IMessageDialogService.Instance.ShowMessage("Socket Error: " + e.SocketErrorCode, message, defaultButton: MessageBoxResult.OK);
                     return null;
                 }
 

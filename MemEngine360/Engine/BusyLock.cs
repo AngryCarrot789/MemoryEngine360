@@ -164,7 +164,7 @@ public sealed class BusyLock {
     public async Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...", CancellationTokenSource? cancellationTokenSource = null) {
         IDisposable? token = this.BeginBusyOperation();
         if (token == null) {
-            return await this.BeginBusyOperationActivityAsync(new DefaultProgressTracker() { Caption = caption, Text = message }, cancellationTokenSource).ConfigureAwait(false);
+            return await this.BeginBusyOperationActivityAsync(new ConcurrentActivityProgress() { Caption = caption, Text = message }, cancellationTokenSource).ConfigureAwait(false);
         }
 
         return token;

@@ -196,7 +196,7 @@ public sealed class TaskSequence {
             BaseSequenceCondition.InternalSetSequence(newItem, this);
         };
 
-        this.Progress = new DefaultProgressTracker();
+        this.Progress = new ConcurrentActivityProgress();
         this.Progress.Text = "Sequence not running";
     }
 

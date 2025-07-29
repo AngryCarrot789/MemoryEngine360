@@ -21,6 +21,8 @@ using Avalonia;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.BaseFrontEnd.EventViewing;
 
@@ -41,8 +43,10 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
     }
 
     private void OnMemoryEngineChanged(MemoryEngine? oldValue, MemoryEngine? newValue) {
-        if (oldValue != null) oldValue.ConnectionChanged -= this.OnConsoleConnectionChanged;
-        if (newValue != null) newValue.ConnectionChanged += this.OnConsoleConnectionChanged;
+        if (oldValue != null)
+            oldValue.ConnectionChanged -= this.OnConsoleConnectionChanged;
+        if (newValue != null)
+            newValue.ConnectionChanged += this.OnConsoleConnectionChanged;
 
         if (this.IsOpen) {
             this.PART_EventViewer.BusyLock = newValue?.BusyLocker;
@@ -72,27 +76,20 @@ public partial class ConsoleEventViewerWindow : DesktopWindow {
 }
 
 public class ConsoleEventViewerServiceImpl : IConsoleEventViewerService {
-    private WeakReference<ConsoleEventViewerWindow>? currentWindow;
+    private static readonly DataKey<SingletonWindow> EventViewerWindowKey = DataKey<SingletonWindow>.Create("EventViewerWindow");
 
     public Task ShowOrFocus(MemoryEngine engine) {
-        if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-            if (this.currentWindow == null || !this.currentWindow.TryGetTarget(out ConsoleEventViewerWindow? existing) || existing.IsClosed) {
-                ConsoleEventViewerWindow window = new ConsoleEventViewerWindow() {
-                    MemoryEngine = engine
-                };
-
-                if (this.currentWindow == null)
-                    this.currentWindow = new WeakReference<ConsoleEventViewerWindow>(window);
-                else
-                    this.currentWindow.SetTarget(window);
-
-                system.Register(window).Show();
-            }
-            else {
-                existing.Activate();
-            }
+        if (!WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
+            return Task.CompletedTask;
         }
 
+        if (!EventViewerWindowKey.TryGetContext(engine.ContextData, out SingletonWindow? window)) {
+            engine.ContextData.Set(EventViewerWindowKey, window = new SingletonWindow(() => new ConsoleEventViewerWindow() {
+                MemoryEngine = engine
+            }));
+        }
+
+        window.ShowOrActivate();
         return Task.CompletedTask;
     }
 }

@@ -26,11 +26,22 @@ public interface IHaveIceCubes {
     /// <summary>
     /// Signals the console to completely freeze
     /// </summary>
-    Task DebugFreeze();
+    /// <returns></returns>
+    Task<FreezeResult> DebugFreeze();
     
     /// <summary>
     /// Signals the console to unfreeze/resume
     /// </summary>
     /// <returns></returns>
-    Task DebugUnFreeze();
+    Task<UnFreezeResult> DebugUnFreeze();
+}
+
+public enum FreezeResult : byte {
+    Success,
+    AlreadyFrozen,
+}
+
+public enum UnFreezeResult : byte {
+    Success,
+    AlreadyUnfrozen
 }

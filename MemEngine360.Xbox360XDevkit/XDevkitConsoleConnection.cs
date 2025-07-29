@@ -81,22 +81,28 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
     protected override void CloseOverride() {
         if (this.isConnectedAsDebugger) {
             this.isConnectedAsDebugger = false;
-            // this.console.remove_OnStdNotify(this.OnStdNotify);
-            // this.console.remove_OnTextNotify(this.OnTextNotify);
+            this.console.remove_OnStdNotify(this.OnStdNotify);
+            this.console.remove_OnTextNotify(this.OnTextNotify);
             this.console.DebugTarget.DisconnectAsDebugger();
         }
     }
 
-    public async Task DebugFreeze() {
+    public async Task<FreezeResult> DebugFreeze() {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
-        await Task.Run(() => this.console.DebugTarget.Stop(out bool isAlreadyStopped)).ConfigureAwait(false);
+        return await Task.Run(() => {
+            this.console.DebugTarget.Stop(out bool isAlreadyStopped);
+            return isAlreadyStopped ? FreezeResult.AlreadyFrozen : FreezeResult.Success;
+        }).ConfigureAwait(false);
     }
 
-    public async Task DebugUnFreeze() {
+    public async Task<UnFreezeResult> DebugUnFreeze() {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
-        await Task.Run(() => this.console.DebugTarget.Go(out bool isAlreadyGoing)).ConfigureAwait(false);
+        return await Task.Run(() => {
+            this.console.DebugTarget.Go(out bool isAlreadyGoing);
+            return isAlreadyGoing ? UnFreezeResult.AlreadyUnfrozen : UnFreezeResult.Success;
+        }).ConfigureAwait(false);
     }
 
     public async Task<List<MemoryRegion>> GetMemoryRegions(bool willRead, bool willWrite) {
@@ -137,6 +143,9 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         return Task.Run(() => {
             IXboxDebugTarget target = this.console.DebugTarget;
             target.GetMemory_cpp(address, (uint) count, ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dstBuffer), offset), out uint cbRead);
+            if (cbRead < count) {
+                dstBuffer.AsSpan((int) cbRead).Clear();
+            }
         });
     }
 

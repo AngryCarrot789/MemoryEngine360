@@ -124,9 +124,10 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
                 return;
             }
 
+            bool isAlreadyFrozen = false;
             if (this.freezeConsole && this.connection is IHaveIceCubes) {
                 try {
-                    await ((IHaveIceCubes) this.connection).DebugFreeze();
+                    isAlreadyFrozen = await ((IHaveIceCubes) this.connection).DebugFreeze() == FreezeResult.AlreadyFrozen;
                 }
                 catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
                     this.connectionException = ex;
@@ -157,7 +158,7 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
                 this.connectionException = ex;
             }
 
-            if (this.freezeConsole && this.connection is IHaveIceCubes) {
+            if (this.freezeConsole && !isAlreadyFrozen && this.connection is IHaveIceCubes) {
                 try {
                     await ((IHaveIceCubes) this.connection).DebugUnFreeze();
                 }

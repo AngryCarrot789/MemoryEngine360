@@ -267,7 +267,7 @@ public class PointerScanner {
             catch (Exception e) {
                 await IMessageDialogService.Instance.ShowMessage("Scan Error", "Error encountered while scanning", e.GetToString());
             }
-        }, new DefaultProgressTracker(DispatchPriority.Background), cts);
+        }, new ConcurrentActivityProgress(DispatchPriority.Background), cts);
         this.IsScanRunning = false;
         this.scanCts = cts;
     }
@@ -368,7 +368,7 @@ public class PointerScanner {
         options.ActivityTask.CheckCancelled();
         PointerPrivate basePtr = chain[chain.Count - 1];
 
-        if (((DefaultProgressTracker) options.ActivityTask.Progress).HasTextUpdated) {
+        if (((ConcurrentActivityProgress) options.ActivityTask.Progress).HasTextUpdated) {
             options.currentChain = (chain, currDepth);
         }
 

@@ -488,12 +488,14 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         this.PART_ControlsGrid.IsEnabled = false;
         byte[]? readBuffer = await info.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
-            return await ActivityManager.Instance.RunTask(async () => {
+            ActivityTask<byte[]> activity = ActivityManager.Instance.RunTask(async () => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Refresh data for Hex Editor";
+
+                bool isAlreadyFrozen = false;
                 if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Freezing console...";
-                    await ((IHaveIceCubes) c).DebugFreeze();
+                    isAlreadyFrozen = await ((IHaveIceCubes) c).DebugFreeze() == FreezeResult.AlreadyFrozen;
                 }
 
                 SimpleCompletionState completion = new SimpleCompletionState();
@@ -507,13 +509,25 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 byte[] buffer = new byte[length];
                 await c.ReadBytes(address, buffer, 0, length, 0x10000, completion, task.CancellationToken);
 
-                if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
+                if (!isAlreadyFrozen && c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Unfreezing console...";
                     await ((IHaveIceCubes) c).DebugUnFreeze();
                 }
 
                 return buffer;
             }, cts);
+            
+            byte[]? buffer = await activity;
+            if (activity.Exception != null) {
+                if (activity.Exception is TimeoutException || activity.Exception is IOException) {
+                    await IMessageDialogService.Instance.ShowMessage(activity.Exception is IOException ? "Connection IO Error" : "Connection Timed Out", "Error uploading selection to console", activity.Exception.Message);
+                }
+                else {
+                    await LogExceptionHelper.ShowMessageAndPrintToLogs("Connection Error", "Error uploading selection to console", activity.Exception);
+                }
+            }
+
+            return buffer;
         }, "Read data for Hex Editor");
 
         this.PART_ControlsGrid.IsEnabled = true;
@@ -546,12 +560,14 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         uint start = (uint) selection.Start.ByteIndex;
         await info.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
-            await ActivityManager.Instance.RunTask(async () => {
+            ActivityTask activity = ActivityManager.Instance.RunTask(async () => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Write data from Hex Editor";
+
+                bool isAlreadyFrozen = false;
                 if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Freezing console...";
-                    await ((IHaveIceCubes) c).DebugFreeze();
+                    isAlreadyFrozen = await ((IHaveIceCubes) c).DebugFreeze() == FreezeResult.AlreadyFrozen;
                 }
 
                 SimpleCompletionState completion = new SimpleCompletionState();
@@ -567,11 +583,21 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 int read = this.myBinarySource!.ReadAvailableData(start, buffer);
                 await c.WriteBytes(start, buffer, 0, read, 0x10000, completion, task.CancellationToken);
 
-                if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
+                if (!isAlreadyFrozen && c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Unfreezing console...";
                     await ((IHaveIceCubes) c).DebugUnFreeze();
                 }
             }, cts);
+
+            await activity;
+            if (activity.Exception != null) {
+                if (activity.Exception is TimeoutException || activity.Exception is IOException) {
+                    await IMessageDialogService.Instance.ShowMessage(activity.Exception is IOException ? "Connection IO Error" : "Connection Timed Out", "Error uploading selection to console", activity.Exception.Message);
+                }
+                else {
+                    await LogExceptionHelper.ShowMessageAndPrintToLogs("Connection Error", "Error uploading selection to console", activity.Exception);
+                }
+            }
         }, "Write Hex Editor Data");
 
         this.PART_ControlsGrid.IsEnabled = true;

@@ -73,13 +73,13 @@ public class CopyScanResultsToClipboardCommand : Command {
                     ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Clipboard", "Copying to clipboard");
                     CancellationToken token = ActivityManager.Instance.CurrentTask.CancellationToken;
                     Task mainTask = topLevel.ClipboardService.SetTextAsync(info.Message);
-                    if (await Task.WhenAny(mainTask, Task.Delay(2000, token)) != mainTask && !token.IsCancellationRequested) {
+                    if (await Task.WhenAny(mainTask, Task.Delay(900, token)) != mainTask && !token.IsCancellationRequested) {
                         await IMessageDialogService.Instance.ShowMessage("Error", "Clipboard busy. Please try again later");
                     }
                 });
             }
             else {
-                await IMessageDialogService.Instance.ShowMessage("Error", "Could not access clipboard. Fucking Avalonia");
+                await IMessageDialogService.Instance.ShowMessage("Error", "Could not access clipboard");
             }
         }
     }

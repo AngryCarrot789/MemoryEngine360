@@ -338,9 +338,23 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     public Task OpenDiskTray() => this.SendCommand("dvdeject");
 
-    public Task DebugFreeze() => this.SendCommand("stop");
+    public async Task<FreezeResult> DebugFreeze() {
+        ConsoleResponse response = await this.SendCommand("stop");
+        if (response.ResponseType == ResponseType.SingleResponse)
+            return FreezeResult.Success;
+        
+        VerifyResponse("stop", response.ResponseType, ResponseType.XBDM_ALREADYSTOPPED);
+        return FreezeResult.AlreadyFrozen;
+    }
 
-    public Task DebugUnFreeze() => this.SendCommand("go");
+    public async Task<UnFreezeResult> DebugUnFreeze() {
+        ConsoleResponse response = await this.SendCommand("go");
+        if (response.ResponseType == ResponseType.SingleResponse)
+            return UnFreezeResult.Success;
+        
+        VerifyResponse("go", response.ResponseType, ResponseType.NotStopped);
+        return UnFreezeResult.AlreadyUnfrozen;
+    }
 
     public async Task DeleteFile(string path) {
         string[] lines = path.Split("\\".ToCharArray());

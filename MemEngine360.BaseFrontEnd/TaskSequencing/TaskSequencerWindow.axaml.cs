@@ -214,8 +214,8 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
             this.currentConnectionTypeBinder.UpdateControl();
     }
 
-    private void OnSequenceProgressTextChanged(IActivityProgress tracker) {
-        this.PART_ActivityStatusText.Text = tracker.Text;
+    private void OnSequenceProgressTextChanged(IActivityProgress? tracker) {
+        this.PART_ActivityStatusText.Text = tracker?.Text ?? "";
     }
 
     private void PART_ClearOperationsClick(object? sender, RoutedEventArgs e) {

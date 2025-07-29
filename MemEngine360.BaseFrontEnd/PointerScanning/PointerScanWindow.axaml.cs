@@ -108,7 +108,7 @@ public partial class PointerScanWindow : DesktopWindow {
                 uint baseAddress = uint.Parse(info.Text, NumberStyles.HexNumber);
                 scanner.DisposeMemoryDump();
                 Task loadDumpTask = scanner.LoadMemoryDump(file, baseAddress, resultIsLE == MessageBoxResult.Yes);
-                DefaultProgressTracker progressTracker = new DefaultProgressTracker();
+                IActivityProgress progressTracker = new ConcurrentActivityProgress();
                 
                 await ActivityManager.Instance.RunTask(async () => {
                     IActivityProgress prog = ActivityManager.Instance.GetCurrentProgressOrEmpty();

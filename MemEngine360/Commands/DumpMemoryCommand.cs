@@ -204,9 +204,11 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                     return;
                 }
 
+                // Do not unfreeze when already frozoned
+                bool isAlreadyFrozen = false;
                 if (this.freezeConsole && connection is IHaveIceCubes) {
                     try {
-                        await ((IHaveIceCubes) connection).DebugFreeze();
+                        isAlreadyFrozen = await ((IHaveIceCubes) connection).DebugFreeze() == FreezeResult.AlreadyFrozen;
                     }
                     catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
                         this.connectionException = ex;
@@ -237,7 +239,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                     this.connectionException = ex;
                 }
 
-                if (this.freezeConsole && connection is IHaveIceCubes) {
+                if (this.freezeConsole && !isAlreadyFrozen && connection is IHaveIceCubes) {
                     try {
                         await ((IHaveIceCubes) connection).DebugUnFreeze();
                     }

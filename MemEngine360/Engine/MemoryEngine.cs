@@ -107,6 +107,11 @@ public class MemoryEngine {
     public PointerScanner PointerScanner { get; }
 
     public ConsoleDebugger ConsoleDebugger { get; }
+    
+    /// <summary>
+    /// Gets custom context data for this engine, which is used to store UI related things
+    /// </summary>
+    public ContextData ContextData { get; } = new ContextData();
 
     /// <summary>
     /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working
@@ -340,7 +345,7 @@ public class MemoryEngine {
         if (token != null)
             return Task.FromResult<IDisposable?>(token);
 
-        return this.busyLocker.BeginBusyOperationActivityAsync(new DefaultProgressTracker() {
+        return this.busyLocker.BeginBusyOperationActivityAsync(new ConcurrentActivityProgress() {
             Caption = caption, Text = message
         }, cancellationTokenSource);
     }

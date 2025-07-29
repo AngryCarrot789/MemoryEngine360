@@ -37,6 +37,9 @@ public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
             MemoryEngine = engine, TypeToFocusOnOpened = focusedTypeId
         };
         
+        if (system.TryGetActiveWindow(out DesktopWindow? active))
+            window.PlaceCenteredTo(active);
+        
         system.Register(window).Show();
         return window;
     }

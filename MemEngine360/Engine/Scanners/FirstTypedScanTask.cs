@@ -44,6 +44,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
     // general variables
     private uint rgBaseOriginalOffset, rgBaseOffset;
     private bool isProcessingCurrentRegion;
+    private bool isAlreadyFrozen;
 
     public IDisposable? BusyToken => this.myBusyToken;
     
@@ -76,42 +77,44 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
     protected override async Task OnPaused(bool isFirst) {
         this.Activity.Progress.Text += " (paused)";
         this.Activity.Progress.CompletionState.TotalCompletion = 0.0;
-        await this.SetFrozenState(false);
+        await this.TrySetUnFrozen();
 
         this.myBusyToken?.Dispose();
         this.myBusyToken = null;
     }
 
     protected override async Task OnCompleted() {
-        await this.SetFrozenState(false);
+        await this.TrySetUnFrozen();
         // do not dispose busy token after completed since the scanner may still need it
     }
 
-    private async Task<bool> SetFrozenState(bool isFrozen) {
-        if (this.ctx.HasConnectionError) {
-            return false;
-        }
-        
-        Debug.Assert(!this.connection.IsClosed);
-        try {
-            if (this.ctx.pauseConsoleDuringScan && this.connection is IHaveIceCubes ice) {
-                await (isFrozen ? ice.DebugFreeze() : ice.DebugUnFreeze());
+    private async Task TrySetUnFrozen() {
+        if (!this.isAlreadyFrozen && this.ctx.pauseConsoleDuringScan && this.connection is IHaveIceCubes) {
+            try {
+                await ((IHaveIceCubes) this.connection).DebugUnFreeze();
+            }
+            catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                this.ctx.ConnectionException = ex;
             }
         }
-        catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
-            this.ctx.ConnectionException = ex;
-            return false;
-        }
-
-        return true;
     }
 
     private async Task RunScan(CancellationToken pauseOrCancelToken) {
-        if (!await this.SetFrozenState(true)) {
-            pauseOrCancelToken.ThrowIfCancellationRequested();
+        if (this.ctx.HasConnectionError || this.connection.IsClosed) {
             return;
         }
 
+        bool freeze = this.ctx.pauseConsoleDuringScan && this.connection is IHaveIceCubes;
+        if (freeze) {
+            try {
+                this.isAlreadyFrozen = await ((IHaveIceCubes) this.connection).DebugFreeze() == FreezeResult.AlreadyFrozen;
+            }
+            catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                this.ctx.ConnectionException = ex;
+                return;
+            }
+        }
+        
         Debug.Assert(!this.connection.IsClosed);
         IActivityProgress progress = ActivityManager.Instance.CurrentTask.Progress;
         

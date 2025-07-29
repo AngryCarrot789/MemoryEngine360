@@ -110,6 +110,7 @@ public partial class ConsoleEventViewerView : UserControl {
     
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
+        this.isUnloadedState = 0;
         if (this.PART_ScrollViewer == null) {
             this.PART_ScrollViewer = this.PART_EventListBox.FindDescendantOfType<ScrollViewer>();
             if (this.PART_ScrollViewer != null) {
