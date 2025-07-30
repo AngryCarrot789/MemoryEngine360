@@ -83,8 +83,8 @@ public class ConsoleEventViewerServiceImpl : IConsoleEventViewerService {
             return Task.CompletedTask;
         }
 
-        if (!EventViewerWindowKey.TryGetContext(engine.ContextData, out SingletonWindow? window)) {
-            engine.ContextData.Set(EventViewerWindowKey, window = new SingletonWindow(() => new ConsoleEventViewerWindow() {
+        if (!EventViewerWindowKey.TryGetContext(engine.UserData, out SingletonWindow? window)) {
+            engine.UserData.Set(EventViewerWindowKey, window = new SingletonWindow(() => new ConsoleEventViewerWindow() {
                 MemoryEngine = engine
             }));
         }

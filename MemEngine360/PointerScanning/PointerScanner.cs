@@ -265,7 +265,7 @@ public class PointerScanner {
                 // ignored
             }
             catch (Exception e) {
-                await IMessageDialogService.Instance.ShowMessage("Scan Error", "Error encountered while scanning", e.GetToString());
+                await LogExceptionHelper.ShowMessageAndPrintToLogs("Pointer Scan Eror", "Error while scanning", e);
             }
         }, new ConcurrentActivityProgress(DispatchPriority.Background), cts);
         this.IsScanRunning = false;

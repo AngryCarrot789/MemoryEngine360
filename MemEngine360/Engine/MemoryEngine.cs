@@ -111,7 +111,7 @@ public class MemoryEngine {
     /// <summary>
     /// Gets custom context data for this engine, which is used to store UI related things
     /// </summary>
-    public ContextData ContextData { get; } = new ContextData();
+    public ContextData UserData { get; } = new ContextData();
 
     /// <summary>
     /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working

@@ -28,6 +28,7 @@ using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.Scanners;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
+using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
@@ -551,7 +552,7 @@ public class ScanningProcessor {
                             if (srcList != null) {
                                 bool canContinue = false;
                                 progress.Text = "Scanning...";
-                                
+
                                 bool isAlreadyFrozen = false;
                                 IHaveIceCubes? cubes = pauseDuringScan ? connection as IHaveIceCubes : null;
                                 try {
@@ -772,7 +773,7 @@ public class ScanningProcessor {
             return;
         }
 
-        bool hasNetworkError = false;
+        int networkErrorType = 0;
         this.IsRefreshingAddresses = true;
         try {
             using CancellationTokenSource cts = new CancellationTokenSource();
@@ -789,7 +790,7 @@ public class ScanningProcessor {
             // all run on a BG task, and if it's been running for over 500ms, then show an activity
             // to let the user cancel it (maybe the connection was disconnected or is slow)
 
-            Task task = Task.Run(async () => {
+            Task readOperationTask = Task.Run(async () => {
                 token.ThrowIfCancellationRequested();
 
                 if (savedList != null) {
@@ -836,37 +837,51 @@ public class ScanningProcessor {
                 }
             }, CancellationToken.None);
 
-            try {
-                await Task.WhenAny(task, Task.Delay(500, token));
-            }
-            catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
-                hasNetworkError = true;
-            }
-            catch (OperationCanceledException) {
-                return;
-            }
+            await Task.WhenAny(readOperationTask, Task.Delay(500, token));
 
-            if (!hasNetworkError && !task.IsCompleted) {
+            if (!readOperationTask.IsCompleted) {
                 await ActivityManager.Instance.RunTask(async () => {
                     IActivityProgress p = ActivityManager.Instance.GetCurrentProgressOrEmpty();
                     p.Caption = "Long refresh";
                     p.Text = $"Refreshing {grandTotalCount} value{Lang.S(grandTotalCount)}...";
                     p.IsIndeterminate = true;
-                    try {
-                        await task;
-                    }
-                    catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
-                        hasNetworkError = true;
-                    }
+                    networkErrorType = await AwaitOperation(readOperationTask);
                 }, cts);
+            }
+            else {
+                // We must always await the task, even if it has completed, so that
+                // the exception can get handled and won't be unobserved which would,
+                // at some point during task finalization, crash the app
+                networkErrorType = await AwaitOperation(readOperationTask);
+            }
+
+            static async Task<int> AwaitOperation(Task task) {
+                try {
+                    await task;
+                    return 0;
+                }
+                catch (IOException) {
+                    return 1;
+                }
+                catch (TimeoutException) {
+                    return 2;
+                }
+                catch (Exception e) {
+                    AppLogger.Instance.WriteLine("Unexpected exception during refresh operation");
+                    AppLogger.Instance.WriteLine(e.GetToString());
+                    return 3;
+                }
             }
         }
         finally {
             this.IsRefreshingAddresses = false;
         }
 
-        if (hasNetworkError) {
-            this.MemoryEngine.CheckConnection(busyOperationToken, ConnectionChangeCause.ConnectionError);
+        if (networkErrorType != 0) {
+            this.MemoryEngine.CheckConnection(busyOperationToken,
+                networkErrorType == 2 // Timeout
+                    ? ConnectionChangeCause.LostConnection
+                    : ConnectionChangeCause.ConnectionError);
         }
     }
 }
