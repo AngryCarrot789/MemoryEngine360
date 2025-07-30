@@ -2,7 +2,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:lc="clr-namespace:PFXToolKitUI.Avalonia.Interactivity;assembly=PFXToolKitUI.Avalonia"
                     xmlns:sc="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
-                    xmlns:layers="clr-namespace:MemEngine360.BaseFrontEnd.SavedAddressing">
+                    xmlns:layers="clr-namespace:MemEngine360.BaseFrontEnd.SavedAddressing"
+                    xmlns:savedAddressing="clr-namespace:MemEngine360.Engine.SavedAddressing;assembly=MemEngine360">
 
     <!--
         Credits to Siemens for SVGs - MIT
@@ -32,6 +33,13 @@
         </Setter>
     </ControlTheme>
 
+    <Design.PreviewWith>
+        <layers:AddressTableTreeView ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Visible"
+                                     Height="80"
+                                     AddressTableManager="{x:Static savedAddressing:AddressTableManager.DummyInstance_UITest}"/>
+    </Design.PreviewWith>
+
     <ControlTheme x:Key="{x:Type layers:AddressTableTreeView}" TargetType="{x:Type layers:AddressTableTreeView}" BasedOn="{StaticResource {x:Type TreeView}}">
         <Setter Property="SelectionMode" Value="Multiple"/>
         <Setter Property="Background" Value="{DynamicResource ABrush.Tone2.Background.Static}"/>
@@ -50,67 +58,69 @@
                 <Border BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="{TemplateBinding CornerRadius}">
-                    <ScrollViewer x:Name="PART_ScrollViewer" 
-                                  AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
-                                  BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}"
-                                  Background="{TemplateBinding Background}"
-                                  HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
-                                  IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
-                                  IsDeferredScrollingEnabled="{TemplateBinding (ScrollViewer.IsDeferredScrollingEnabled)}"
-                                  VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}">
-                        <Panel>
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource ABrush.Tone5.Background.Static}"
-                                        BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,0,0,1" Height="22">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition SharedSizeGroup="ATTV_A" Width="280"/>
-                                            <ColumnDefinition Width="0"/>
-                                            <ColumnDefinition SharedSizeGroup="ATTV_B" Width="80"/>
-                                            <ColumnDefinition Width="0"/>
-                                            <ColumnDefinition SharedSizeGroup="ATTV_C" Width="75"/>
-                                            <ColumnDefinition Width="0"/>
-                                            <ColumnDefinition SharedSizeGroup="ATTV_D" Width="180"/>
-                                            <ColumnDefinition Width="0"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Description" Grid.Column="0" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
-                                        <TextBlock Text="Address" Grid.Column="2" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
-                                        <TextBlock Text="Data Type" Grid.Column="4" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
-                                        <TextBlock Text="Value" Grid.Column="6" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
-                                        <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="1" Width="1"/>
-                                        <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="3" Width="1"/>
-                                        <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="5" Width="1"/>
-                                        <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="7" Width="1"/>
-                                        <GridSplitter ResizeDirection="Columns" Grid.Column="1" Margin="-4,0" Background="Transparent"/>
-                                        <GridSplitter ResizeDirection="Columns" Grid.Column="3" Margin="-4,0" Background="Transparent"/>
-                                        <GridSplitter ResizeDirection="Columns" Grid.Column="5" Margin="-4,0" Background="Transparent"/>
-                                        <GridSplitter ResizeDirection="Columns" Grid.Column="7" Margin="-4,0" Background="Transparent"/>
-                                    </Grid>
-                                </Border>
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top"
+                                Background="{DynamicResource ABrush.Tone5.Background.Static}"
+                                BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
+                                BorderThickness="0,0,0,1" Height="22">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_A" Width="280"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_B" Width="80"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_C" Width="75"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_D" Width="180"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Description" Grid.Column="0" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
+                                <TextBlock Text="Address" Grid.Column="2" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
+                                <TextBlock Text="Data Type" Grid.Column="4" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
+                                <TextBlock Text="Value" Grid.Column="6" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
+                                <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="1" Width="1"/>
+                                <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="3" Width="1"/>
+                                <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="5" Width="1"/>
+                                <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="7" Width="1"/>
+                                <GridSplitter ResizeDirection="Columns" Grid.Column="1" Margin="-4,0" Background="Transparent"/>
+                                <GridSplitter ResizeDirection="Columns" Grid.Column="3" Margin="-4,0" Background="Transparent"/>
+                                <GridSplitter ResizeDirection="Columns" Grid.Column="5" Margin="-4,0" Background="Transparent"/>
+                                <GridSplitter ResizeDirection="Columns" Grid.Column="7" Margin="-4,0" Background="Transparent"/>
+                            </Grid>
+                        </Border>
+                        <ScrollViewer x:Name="PART_ScrollViewer"
+                                      AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
+                                      BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}"
+                                      Background="{TemplateBinding Background}"
+                                      HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                      IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
+                                      IsDeferredScrollingEnabled="{TemplateBinding (ScrollViewer.IsDeferredScrollingEnabled)}"
+                                      VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}">
+                            <Panel>
                                 <ItemsPresenter x:Name="PART_ItemsPresenter"
                                                 Margin="{TemplateBinding Padding}"
                                                 ItemsPanel="{TemplateBinding ItemsPanel}"/>
-                            </DockPanel>
-                            <Grid Margin="0,22,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition SharedSizeGroup="ATTV_A"/>
-                                    <ColumnDefinition Width="0"/>
-                                    <ColumnDefinition SharedSizeGroup="ATTV_B"/>
-                                    <ColumnDefinition Width="0"/>
-                                    <ColumnDefinition SharedSizeGroup="ATTV_C"/>
-                                    <ColumnDefinition Width="0"/>
-                                    <ColumnDefinition SharedSizeGroup="ATTV_D"/>
-                                    <ColumnDefinition Width="0"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Rectangle Grid.Column="1" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
-                                <Rectangle Grid.Column="3" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
-                                <Rectangle Grid.Column="5" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
-                                <Rectangle Grid.Column="7" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
-                            </Grid>
-                        </Panel>
-                    </ScrollViewer>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition SharedSizeGroup="ATTV_A"/>
+                                        <ColumnDefinition Width="1"/>
+                                        <ColumnDefinition SharedSizeGroup="ATTV_B"/>
+                                        <ColumnDefinition Width="1"/>
+                                        <ColumnDefinition SharedSizeGroup="ATTV_C"/>
+                                        <ColumnDefinition Width="1"/>
+                                        <ColumnDefinition SharedSizeGroup="ATTV_D"/>
+                                        <ColumnDefinition Width="1"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Rectangle Grid.Column="1" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+                                    <Rectangle Grid.Column="3" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+                                    <Rectangle Grid.Column="5" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+                                    <Rectangle Grid.Column="7" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+                                </Grid>
+                            </Panel>
+                        </ScrollViewer>
+                    </DockPanel>
                 </Border>
             </ControlTemplate>
         </Setter>
@@ -138,13 +148,13 @@
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition SharedSizeGroup="ATTV_A"/>
-                                    <ColumnDefinition Width="0"/>
+                                    <ColumnDefinition Width="1"/>
                                     <ColumnDefinition SharedSizeGroup="ATTV_B"/>
-                                    <ColumnDefinition Width="0"/>
+                                    <ColumnDefinition Width="1"/>
                                     <ColumnDefinition SharedSizeGroup="ATTV_C"/>
-                                    <ColumnDefinition Width="0"/>
+                                    <ColumnDefinition Width="1"/>
                                     <ColumnDefinition SharedSizeGroup="ATTV_D"/>
-                                    <ColumnDefinition Width="0"/>
+                                    <ColumnDefinition Width="1"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid x:Name="PART_Header" ColumnDefinitions="Auto,0, *"
