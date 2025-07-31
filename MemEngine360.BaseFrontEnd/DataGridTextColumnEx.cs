@@ -80,7 +80,7 @@ public class DataGridTextColumnEx : DataGridTextColumn {
             }
 
             if (CommandManager.Instance.TryFindCommandById(cmdId, out Command? command)) {
-                Task task = CommandManager.Instance.Execute(cmdId, command, DataManager.GetFullContextData(cell));
+                Task task = CommandManager.Instance.Execute(command, DataManager.GetFullContextData(cell));
                 if (!task.IsCompleted) {
                     cell.SetValue(ActiveCommandInfoProperty, new ActiveCommandInfo(command, task));
                 }
