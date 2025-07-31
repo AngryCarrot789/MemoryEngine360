@@ -28,18 +28,21 @@ namespace MemEngine360.Xbox360XBDM.Views;
 
 public partial class OpenXbdmConnectionView : UserControl, IConsoleConnectivityControl {
     private readonly IBinder<ConnectToXboxInfo> ipBinder = new TextBoxToDataParameterBinder<ConnectToXboxInfo, string?>(ConnectToXboxInfo.IpAddressParameter, null, (t, s) => Task.FromResult<Optional<string?>>(s));
-    private ConnectToXboxInfo? myInfo;
+
+    public ConnectToXboxInfo? ConnectionInfo { get; private set; }
 
     public OpenXbdmConnectionView() {
         this.InitializeComponent();
     }
 
     public void OnConnected(OpenConnectionView dialog, UserConnectionInfo info) {
-        this.ipBinder.Attach(this.PART_IpAddressTextBox, this.myInfo = (ConnectToXboxInfo) info);
+        this.ipBinder.Attach(this.PART_IpAddressTextBox, this.ConnectionInfo = (ConnectToXboxInfo) info);
+        this.PART_DiscoveredConsoles.SetItemsSource(this.ConnectionInfo.DiscoveredConsoles);
     }
 
     public void OnDisconnected() {
         this.ipBinder.Detach();
-        this.myInfo = null;
+        this.PART_DiscoveredConsoles.SetItemsSource(null);
+        this.ConnectionInfo = null;
     }
 }
