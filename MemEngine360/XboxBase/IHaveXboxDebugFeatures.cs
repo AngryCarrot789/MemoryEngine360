@@ -37,7 +37,7 @@ public interface IHaveXboxDebugFeatures : IHaveXboxThreadInfo, IHaveSystemEvents
     /// </summary>
     /// <param name="threadId"></param>
     Task<List<RegisterEntry>?> GetRegisters(uint threadId);
-    
+
     /// <summary>
     /// Reads the register value
     /// </summary>

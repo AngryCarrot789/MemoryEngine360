@@ -53,7 +53,7 @@ public class PluginXbox360Xbdm : Plugin {
         manager.Register(ConnectionTypeXbox360Xbdm.TheID, ConnectionTypeXbox360Xbdm.Instance);
 
         ModuleViewer.RegisterHandlerForConnectionType<XbdmConsoleConnection>(new XbdmModuleViewerProcessor());
-
+        
         return Task.CompletedTask;
     }
 

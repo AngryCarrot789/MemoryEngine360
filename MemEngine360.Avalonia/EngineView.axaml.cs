@@ -245,9 +245,8 @@ public partial class EngineView : UserControl, IEngineUI {
         {
             ContextEntryGroup entry = new ContextEntryGroup("Tools") {
                 Items = {
-                    new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Task Sequencer"),
-                    new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Viewer"),
-                    new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Viewer"),
+                    new CommandContextEntry("commands.memengine.ShowMemoryCommand", "Memory View", "Opens the memory viewer/hex editor"),
+                    new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Task Sequencer", "Opens the task sequencer"),
                     new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
                     new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scanner"),
                     new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer").
@@ -258,16 +257,19 @@ public partial class EngineView : UserControl, IEngineUI {
                                 : "Event Viewer";
                             entry.RaiseCanExecuteChanged();
                         }),
+                    new SeparatorEntry(),
+                    new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Explorer", "Opens a window which presents the modules"),
+                    new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),
+                    new SeparatorEntry(),
+                    new ContextEntryGroup("Cool Utils") {
+                        Items = {
+                            new CustomLambdaContextEntry("[BO1 SP] Find AI's X pos near camera", ExecuteFindAINearBO1Camera, (c) => c.ContainsKey(IEngineUI.DataKey.Id))
+                        }
+                    }
                 }
             };
 
             entry.AddCanExecuteChangeUpdaterForEvent(MemoryEngine.EngineDataKey, nameof(this.MemoryEngine.ConnectionChanged));
-
-            entry.Items.Add(new ContextEntryGroup("Cool Utils") {
-                Items = {
-                    new CustomLambdaContextEntry("[BO1 SP] Find AI's X pos near camera", ExecuteFindAINearBO1Camera, (c) => c.ContainsKey(IEngineUI.DataKey.Id))
-                }
-            });
 
             this.TopLevelMenuRegistry.Items.Add(entry);
         }
