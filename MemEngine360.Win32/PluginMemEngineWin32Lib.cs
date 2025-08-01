@@ -17,6 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Engine.Debugging;
+using PFXToolKitUI;
 using PFXToolKitUI.Plugins;
 
 namespace MemEngine360.Win32;
@@ -25,6 +27,7 @@ public class PluginMemEngineWin32Lib : Plugin {
     public override void RegisterServices() {
         base.RegisterServices();
         
+        ApplicationPFX.Instance.ServiceManager.RegisterConstant<IStackWalker>(new StackWalkerServiceImpl());
         // todo: register stack walker service
     }
 }

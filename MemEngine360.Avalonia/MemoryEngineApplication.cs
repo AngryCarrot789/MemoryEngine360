@@ -77,6 +77,7 @@ using PFXToolKitUI.Icons;
 using PFXToolKitUI.Services;
 using PFXToolKitUI.Themes;
 using PFXToolKitUI.Utils;
+using SkiaSharp;
 
 namespace MemEngine360.Avalonia;
 
@@ -219,6 +220,45 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             this.PluginLoader.AddCorePlugin(typeof(PluginXbox360XDevkit));
 
         MemoryEngineBrushLoader.Init();
+        ThemeManagerImpl manager = (ThemeManagerImpl) this.ServiceManager.GetService<ThemeManager>();
+        Theme darkTheme = manager.GetThemeByVariant(ThemeVariant.Dark)!;
+        
+        Theme redTheme = manager.RegisterTheme("Red Theme (Built In)", darkTheme, false);
+        redTheme.SetThemeColour("ABrush.Tone1.Background.Static", SKColor.Parse("ff181818"));
+        redTheme.SetThemeColour("ABrush.Tone2.Background.Static", SKColor.Parse("ff2e0000"));
+        redTheme.SetThemeColour("ABrush.Tone3.Background.Static", SKColor.Parse("ff161616"));
+        redTheme.SetThemeColour("ABrush.Tone4.Background.Static", SKColor.Parse("ff200000"));
+        redTheme.SetThemeColour("ABrush.Tone1.Border.Static", SKColor.Parse("ffff0000"));
+        redTheme.SetThemeColour("ABrush.Tone2.Border.Static", SKColor.Parse("ffff0000"));
+        redTheme.SetThemeColour("ABrush.Tone3.Border.Static", SKColor.Parse("ffff0000"));
+        redTheme.SetThemeColour("ABrush.Tone0.Background.Static", SKColor.Parse("ff141414"));
+        redTheme.SetThemeColour("ABrush.Tone5.Background.Static", SKColor.Parse("ff2d0000"));
+        redTheme.SetThemeColour("ABrush.Tone5.Border.Static", SKColor.Parse("ffff0000"));
+        redTheme.SetThemeColour("ABrush.Tone4.Border.Static", SKColor.Parse("ff810000"));
+        redTheme.SetThemeColour("ABrush.Tone6.Background.Static", SKColor.Parse("ffb60000"));
+        redTheme.SetThemeColour("ABrush.Tone6.Border.Static", SKColor.Parse("ffb80000"));
+        
+        Theme hcTheme = manager.RegisterTheme("High Contrast (Built In)", darkTheme, false);
+        hcTheme.SetThemeColour("ABrush.Foreground.Static", SKColor.Parse("ffededed"));
+        hcTheme.SetThemeColour("ABrush.Tone0.Background.Static", SKColors.Black);
+        hcTheme.SetThemeColour("ABrush.Tone1.Background.Static", SKColors.Black);
+        hcTheme.SetThemeColour("ABrush.Tone2.Background.Static", SKColors.Black);
+        hcTheme.SetThemeColour("ABrush.Tone1.Border.Static", SKColors.White);
+        hcTheme.SetThemeColour("ABrush.Tone0.Border.Static", SKColors.White);
+        hcTheme.SetThemeColour("ABrush.Tone2.Border.Static", SKColors.White);
+        hcTheme.SetThemeColour("ABrush.Tone3.Background.Static", SKColors.Black);
+        hcTheme.SetThemeColour("ABrush.Tone3.Border.Static", SKColors.White);
+        hcTheme.SetThemeColour("ABrush.Tone4.Background.Static", SKColors.Black);
+        hcTheme.SetThemeColour("ABrush.Tone4.Border.Static", SKColors.White);
+        hcTheme.SetThemeColour("ABrush.Tone5.Background.Static", SKColors.Black);
+        hcTheme.SetThemeColour("ABrush.Tone5.Border.Static", SKColors.White);
+        hcTheme.SetThemeColour("ABrush.Tone6.Background.Static", SKColors.Black);
+        hcTheme.SetThemeColour("ABrush.Tone6.Border.Static", SKColors.White);
+        hcTheme.SetThemeColour("ABrush.Tone7.Background.Static", SKColors.Black);
+        hcTheme.SetThemeColour("ABrush.Tone7.Border.Static", SKColors.White);
+        hcTheme.SetThemeColour("ABrush.Tone8.Background.Static", SKColors.Black);
+        hcTheme.SetThemeColour("ABrush.Tone8.Border.Static", SKColors.White);
+        hcTheme.SetThemeColour("ABrush.PFX.StatusBar.Background", SKColors.Black);
     }
 
     protected override void RegisterConfigurations() {
@@ -366,7 +406,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 return;
             }
 
-            await progress.ProgressAndSynchroniseAsync("Startup completed. Loading engine window...", 1.0);
+            await progress.ProgressAndWaitForRender("Startup completed. Loading engine window...", 1.0);
             if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
                 system.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 

@@ -25,7 +25,7 @@ public class ConnectionTypeTest : RegisteredConnectionType {
     public const string TheID = "console.test-donotuse";
     public static readonly RegisteredConnectionType Instance = new ConnectionTypeTest();
     
-    public override string DisplayName => "Test";
+    public override string DisplayName => "Test (debug)";
     
     public override string LongDescription => "Test connection for debugging. Can do nothing or throw timeout or IO exception,in hopes that the program can handle them.";
 

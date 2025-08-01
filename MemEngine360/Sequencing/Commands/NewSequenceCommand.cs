@@ -19,6 +19,8 @@
 
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
+using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing.Commands;
 
@@ -36,14 +38,17 @@ public class NewSequenceCommand : Command {
             return;
         }
 
-        SingleUserInputInfo info = new SingleUserInputInfo("New sequence", "What do you want to call it?", "Sequence " + (ui.Manager.Sequences.Count + 1));
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-            TaskSequence sequence = new TaskSequence() {
-                DisplayName = info.Text
-            };
+        ObservableList<TaskSequence> sequences = ui.Manager.Sequences;
+        TaskSequence sequence = new TaskSequence() {
+            DisplayName = TextIncrement.GetIncrementableString(x => sequences.All(y => y.DisplayName != x), "New Sequence", out string? output, true) ? output : "New Sequence"
+        };
             
-            ui.Manager.Sequences.Add(sequence);
-            ui.SequenceSelectionManager.SetSelection(ui.GetSequenceControl(sequence));
+        sequences.Add(sequence);
+        ui.SequenceSelectionManager.SetSelection(ui.GetSequenceControl(sequence));
+        
+        SingleUserInputInfo info = new SingleUserInputInfo("New sequence", "What do you want to call it?", sequence.DisplayName);
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+            sequence.DisplayName = info.Text;
         }
     }
 }

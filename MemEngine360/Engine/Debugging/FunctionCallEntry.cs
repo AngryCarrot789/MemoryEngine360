@@ -35,9 +35,12 @@ public class FunctionCallEntry {
     /// </summary>
     public uint Size { get; }
 
-    public FunctionCallEntry(string moduleName, uint address, uint size) {
+    public readonly ulong UnwindInfo;
+
+    public FunctionCallEntry(string moduleName, uint address, uint size, ulong UnwindInfo) {
         this.ModuleName = moduleName;
         this.Address = address;
         this.Size = size;
+        this.UnwindInfo = UnwindInfo;
     }
 }

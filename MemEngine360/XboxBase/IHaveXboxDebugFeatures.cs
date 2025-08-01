@@ -19,6 +19,7 @@
 
 using MemEngine360.Connections.Traits;
 using MemEngine360.Engine.Debugging;
+using MemEngine360.XboxBase.Modules;
 
 namespace MemEngine360.XboxBase;
 
@@ -58,4 +59,6 @@ public interface IHaveXboxDebugFeatures : IHaveXboxThreadInfo, IHaveSystemEvents
     /// Tries to find functions using the given instruction address
     /// </summary>
     Task<FunctionCallEntry?[]> FindFunctions(uint[] iar);
+
+    Task<ConsoleModule?> GetModuleForAddress(uint address, bool bNeedSections);
 }

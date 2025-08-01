@@ -31,6 +31,7 @@ using MemEngine360.Connections.Utils;
 using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.Events.XbdmEvents;
 using MemEngine360.XboxBase;
+using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Destroying;
@@ -342,7 +343,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         ConsoleResponse response = await this.SendCommand("stop");
         if (response.ResponseType == ResponseType.SingleResponse)
             return FreezeResult.Success;
-        
+
         VerifyResponse("stop", response.ResponseType, ResponseType.XBDM_ALREADYSTOPPED);
         return FreezeResult.AlreadyFrozen;
     }
@@ -351,7 +352,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         ConsoleResponse response = await this.SendCommand("go");
         if (response.ResponseType == ResponseType.SingleResponse)
             return UnFreezeResult.Success;
-        
+
         VerifyResponse("go", response.ResponseType, ResponseType.NotStopped);
         return UnFreezeResult.AlreadyUnfrozen;
     }
@@ -518,7 +519,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     public async Task<List<RegisterEntry>?> GetRegisters(uint threadId) {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
-        
+
         ConsoleResponse response = await this.InternalSendCommand($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
         if (response.ResponseType == ResponseType.NoSuchThread) {
             return null;
@@ -588,6 +589,73 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         // todo
     }
 
+    public async Task<ConsoleModule?> GetModuleForAddress(uint address, bool bNeedSections) {
+        List<string> modules = await this.SendCommandAndReceiveLines("modules");
+        foreach (string moduleLine in modules) {
+            if (!ParamUtils.GetStrParam(moduleLine, "name", true, out string? name) ||
+                !ParamUtils.GetDwParam(moduleLine, "base", true, out uint modBase) ||
+                !ParamUtils.GetDwParam(moduleLine, "size", true, out uint modSize)) {
+                continue;
+            }
+
+            if (address < modBase || address >= (modBase + modSize)) {
+                continue;
+            }
+
+            // ParamUtils.GetDwParam(moduleLine, "timestamp", true, out uint modTimestamp);
+            // ParamUtils.GetDwParam(moduleLine, "check", true, out uint modChecksum);
+            ParamUtils.GetDwParam(moduleLine, "osize", true, out uint modOriginalSize);
+
+            ConsoleModule consoleModule = new ConsoleModule() {
+                Name = name,
+                FullName = null, // unavailable until I can figure out how to get xbeinfo to work
+                BaseAddress = modBase,
+                ModuleSize = modSize,
+                OriginalModuleSize = modOriginalSize,
+                // EntryPoint = module.GetEntryPointAddress()
+            };
+
+            // 0x10100 = entry point for most things, apart from xboxkrnl.exe
+            // format: 
+            //   fieldsize=0x<size in uint32 hex>
+            //   <value>
+            // may return ResponseType.XexFieldNotFound
+            ConsoleResponse entryPointResponse = await this.SendCommand($"xexfield module=\"{name}\" field=0x10100");
+            if (entryPointResponse.ResponseType == ResponseType.MultiResponse) {
+                List<string> lines = await this.ReadMultiLineResponse();
+                if (lines.Count == 2 && uint.TryParse(lines[1], NumberStyles.HexNumber, null, out uint entryPoint)) {
+                    consoleModule.EntryPoint = entryPoint;
+                }
+            }
+
+            if (bNeedSections) {
+                ConsoleResponse response = await this.SendCommand($"modsections name=\"{name}\"");
+                if (response.ResponseType != ResponseType.FileNotFound) {
+                    List<string> sections = await this.ReadMultiLineResponse();
+                    foreach (string sectionLine in sections) {
+                        ParamUtils.GetStrParam(sectionLine, "name", true, out string? sec_name);
+                        ParamUtils.GetDwParam(sectionLine, "base", true, out uint sec_base);
+                        ParamUtils.GetDwParam(sectionLine, "size", true, out uint sec_size);
+                        ParamUtils.GetDwParam(sectionLine, "index", true, out uint sec_index);
+                        ParamUtils.GetDwParam(sectionLine, "flags", true, out uint sec_flags);
+
+                        consoleModule.Sections.Add(new ConsoleModuleSection() {
+                            Name = string.IsNullOrWhiteSpace(sec_name) ? null : sec_name,
+                            BaseAddress = sec_base,
+                            Size = sec_size,
+                            Index = sec_index,
+                            Flags = (XboxBase.XboxSectionInfoFlags) sec_flags,
+                        });
+                    }
+                }
+            }
+
+            return consoleModule;
+        }
+
+        return null;
+    }
+
     public async Task<FunctionCallEntry?[]> FindFunctions(uint[] iar) {
         if (iar.Length < 1) {
             return [];
@@ -618,9 +686,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 ParamUtils.GetDwParam(sectionLine, "size", true, out uint sec_size);
                 byte[] buffer = await this.ReadBytes(sec_base, (int) sec_size);
                 ReadOnlySpan<byte> rosBuffer = new ReadOnlySpan<byte>(buffer);
-                
+
                 int functionCount = (int) (sec_size / 16);
-                
+
                 uint startAddress = BinaryPrimitives.ReadUInt32BigEndian(rosBuffer);
                 for (int j = 0, offset = 8; j < functionCount; j++, offset += 16) {
                     uint endAddress = BinaryPrimitives.ReadUInt32BigEndian(rosBuffer.Slice(offset, 4));
@@ -631,7 +699,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
                     for (int k = 0; k < iar.Length; k++) {
                         if (entries[k] == null && function.Contains(iar[k])) {
-                            entries[k] = new FunctionCallEntry(modName, function.BeginAddress, function.EndAddress - function.BeginAddress);
+                            entries[k] = new FunctionCallEntry(modName, function.BeginAddress, function.EndAddress - function.BeginAddress, BinaryPrimitives.ReadUInt64BigEndian(rosBuffer.Slice(offset, 8)));
                             resolvedCount++;
                         }
                     }
@@ -639,7 +707,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                     if (resolvedCount == iar.Length) {
                         return entries;
                     }
-                    
+
                     startAddress = endAddress;
                 }
 

@@ -12,9 +12,9 @@
                    FontWeight="Medium"/>
         <Separator/>
         <TextBlock Text="IP/Hostname Address" Padding="0,5"/>
-        <TextBox x:Name="PART_IpAddressTextBox" Padding="5,5" VerticalContentAlignment="Center"
-                 Background="{DynamicResource ABrush.Tone3.Border.Static}"
-                 Text="Text Here"
-                 ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        <TextBox x:Name="PART_IpAddressTextBox" Padding="5,5" 
+                 VerticalContentAlignment="Center"
+                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                 Text="ERROR"/>
     </StackPanel>
 </UserControl>

@@ -15,10 +15,10 @@
         <Separator/>
 
         <TextBlock Text="IP/Hostname Address" Padding="0,5"/>
-        <TextBox x:Name="PART_IpAddressTextBox" Padding="5,5" VerticalContentAlignment="Center"
-                 Background="{DynamicResource ABrush.Tone3.Border.Static}"
-                 Text="Text Here"
-                 ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        <TextBox x:Name="PART_IpAddressTextBox" Padding="5,5" 
+                 VerticalContentAlignment="Center"
+                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                 Text="ERROR"/>
         <Separator Margin="0,5"/>
         <TextBlock Text="Discovered consoles (coming soon)" Padding="0,5"/>
         <views:DiscoveredConsoleListBox x:Name="PART_DiscoveredConsoles"/>

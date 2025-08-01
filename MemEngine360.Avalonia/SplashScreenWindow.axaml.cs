@@ -34,10 +34,8 @@ public partial class SplashScreenWindow : Window, IApplicationStartupProgress {
             if (this.myActionText == value)
                 return;
 
-            ApplicationPFX.Instance.Dispatcher.Invoke(() => {
-                this.myActionText = value;
-                return this.PART_ActivityTextBlock.Text = value;
-            });
+            this.myActionText = value;
+            this.PART_ActivityTextBlock.Text = value;
         }
     }
 
@@ -53,7 +51,7 @@ public partial class SplashScreenWindow : Window, IApplicationStartupProgress {
         this.PART_ProgressBar.Value = this.CompletionState.TotalCompletion;
     }
 
-    public Task ProgressAndSynchroniseAsync(string? action, double? newProgress) {
+    public Task ProgressAndWaitForRender(string? action, double? newProgress) {
         if (action != null)
             this.ActionText = action;
         if (newProgress.HasValue)
@@ -65,8 +63,8 @@ public partial class SplashScreenWindow : Window, IApplicationStartupProgress {
             AppLogger.Instance.WriteLine($"[{comp}%] {action}");
         }
 
-        return this.SynchroniseAsync();
+        return this.WaitForRender();
     }
 
-    public Task SynchroniseAsync() => ApplicationPFX.Instance.Dispatcher.Process(DispatchPriority.AfterRender);
+    public Task WaitForRender() => ApplicationPFX.Instance.Dispatcher.Process(DispatchPriority.Loaded);
 }
