@@ -67,7 +67,7 @@ public class CompareMemoryCondition : BaseSequenceCondition {
                     this.CompareType = CompareType.Equals;
                 }
             }
-            
+
             PropertyHelper.SetAndRaiseINE(ref this.compareTo, value, this, static t => t.CompareToChanged?.Invoke(t));
         }
     }
@@ -96,37 +96,41 @@ public class CompareMemoryCondition : BaseSequenceCondition {
             return true;
         }
 
-        IMemoryAddress addr = this.Address;
-        if (!cache.TryGetAddress(addr, out uint actualAddress)) {
-            uint? resolved = await addr.TryResolveAddress(ctx.Connection);
-            if (!resolved.HasValue) 
-                return false; // Address is unresolvable, maybe pointer chain is invalid or wrong game or whatever.
-
-            actualAddress = resolved.Value;
-        }
-
-        if (!cache.TryGetDataValue(new TypedAddress(cmpVal.DataType, actualAddress), out IDataValue? consoleValue)) {
-            IDisposable? busyToken = ctx.BusyToken;
+        IDataValue? consoleValue;
+        IDisposable? busyToken = ctx.BusyToken;
+        try {
             if (busyToken == null && !ctx.IsConnectionDedicated) {
-                ctx.Progress.Text = "Waiting for busy operations...";
-                if ((busyToken = await ctx.Sequence.Manager!.MemoryEngine.BeginBusyOperationAsync(cancellationToken)) == null) {
-                    // only reached if token is cancelled
-                    Debug.Assert(cancellationToken.IsCancellationRequested);
-                    cancellationToken.ThrowIfCancellationRequested();
-                    return false;
+                BusyLock busyLock = ctx.Sequence.Manager!.MemoryEngine.BusyLocker;
+                if ((busyToken = busyLock.BeginBusyOperation()) == null) {
+                    ctx.Progress.Text = "Waiting for busy operations...";
+                    if ((busyToken = await busyLock.BeginBusyOperationAsync(cancellationToken)) == null) {
+                        // only reached if token is cancelled
+                        Debug.Assert(cancellationToken.IsCancellationRequested);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        return false;
+                    }
                 }
             }
 
-            try {
+            IMemoryAddress addr = this.Address;
+            if (!cache.TryGetAddress(addr, out uint actualAddress)) {
+                uint? resolved = await addr.TryResolveAddress(ctx.Connection);
+                if (!resolved.HasValue)
+                    return false; // Address is unresolvable, maybe pointer chain is invalid or wrong game or whatever.
+
+                actualAddress = resolved.Value;
+            }
+
+            if (!cache.TryGetDataValue(new TypedAddress(cmpVal.DataType, actualAddress), out consoleValue)) {
                 consoleValue = await MemoryEngine.ReadDataValue(ctx.Connection, actualAddress, cmpVal);
                 cache[new TypedAddress(consoleValue.DataType, actualAddress)] = consoleValue;
             }
-            // Do not catch Timeout/IO exceptions, instead, let task sequence handle it
-            finally {
-                // Do not dispose of ctx.BusyToken. That's the priority token!!
-                if (!ctx.IsConnectionDedicated && !busyToken!.Equals(ctx.BusyToken)) {
-                    busyToken.Dispose();
-                }
+        }
+        // Do not catch Timeout/IO exceptions, instead, let task sequence handle it
+        finally {
+            // Do not dispose of ctx.BusyToken. That's the priority token!!
+            if (!ctx.IsConnectionDedicated && !busyToken!.Equals(ctx.BusyToken)) {
+                busyToken.Dispose();
             }
         }
 
