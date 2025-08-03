@@ -45,7 +45,7 @@ public sealed class BusyLock {
     /// Gets the lock used to synchronize taking and returning the busy lock.
     /// This can be used externally to prevent threads taking the busy lock during a critical operation
     /// </summary>
-    public object CriticalLock { get; } = new object();
+    public Lock CriticalLock { get; } = new Lock();
 
     /// <summary>
     /// Returns true when there's a busy token in use
@@ -72,11 +72,10 @@ public sealed class BusyLock {
     /// <returns>A token to dispose when the operation is completed. Returns null if currently busy</returns>
     public IDisposable? BeginBusyOperation() {
         bool lockTaken = false;
-        object lockObj = this.CriticalLock;
+        Lock lockObj = this.CriticalLock;
 
         try {
-            Monitor.TryEnter(lockObj, ref lockTaken);
-            if (!lockTaken)
+            if (!(lockTaken = lockObj.TryEnter()))
                 return null;
 
             if (this.busyCount == 0)
@@ -86,7 +85,7 @@ public sealed class BusyLock {
         }
         finally {
             if (lockTaken)
-                Monitor.Exit(lockObj);
+                lockObj.Exit();
         }
     }
 
@@ -297,11 +296,10 @@ public sealed class BusyLock {
 
     private LinkedListNode<CancellableTaskCompletionSource>? EnqueueAsyncWaiter(CancellationToken token) {
         bool lockTaken = false;
-        object lockObj = this.CriticalLock;
+        Lock lockObj = this.CriticalLock;
 
         try {
-            Monitor.TryEnter(lockObj, ref lockTaken);
-            if (!lockTaken || this.busyCount == 0) {
+            if (!(lockTaken = lockObj.TryEnter()) || this.busyCount == 0) {
                 // When busyCount is 0 at this point, it means we probably lost the lock race.
                 // The caller will notice null and check busyCount anyway so it's fine.
                 // The last thing we want is to return a valid TCS and busyCount is 0, because
@@ -313,7 +311,7 @@ public sealed class BusyLock {
         }
         finally {
             if (lockTaken)
-                Monitor.Exit(lockObj);
+                lockObj.Exit();
         }
     }
 

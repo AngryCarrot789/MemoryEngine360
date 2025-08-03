@@ -30,6 +30,7 @@ public class ConsoleModule {
     private uint baseAddress;
     private uint moduleSize;
     private uint originalModuleSize;
+    private DateTime timestamp;
     private uint entryPoint;
     private string peModuleName = "";
 
@@ -85,6 +86,11 @@ public class ConsoleModule {
         set => PropertyHelper.SetAndRaiseINE(ref this.originalModuleSize, value, this, static t => t.OriginalModuleSizeChanged?.Invoke(t));
     }
 
+    public DateTime Timestamp {
+        get => this.timestamp;
+        set => PropertyHelper.SetAndRaiseINE(ref this.timestamp, value, this, static t => t.TimestampChanged?.Invoke(t));
+    }
+    
     /// <summary>
     /// Gets the memory address of the entry point
     /// </summary>
@@ -100,7 +106,7 @@ public class ConsoleModule {
         get => this.peModuleName;
         set => PropertyHelper.SetAndRaiseINE(ref this.peModuleName, value, this, static t => t.PEModuleNameChanged?.Invoke(t));
     }
-
+    
     public ObservableList<ConsoleModuleSection> Sections { get; }
 
     /// <summary>
@@ -113,6 +119,7 @@ public class ConsoleModule {
     public event ConsoleModuleEventHandler? BaseAddressChanged;
     public event ConsoleModuleEventHandler? ModuleSizeChanged;
     public event ConsoleModuleEventHandler? OriginalModuleSizeChanged;
+    public event ConsoleModuleEventHandler? TimestampChanged;
     public event ConsoleModuleEventHandler? EntryPointChanged;
     public event ConsoleModuleEventHandler? PEModuleNameChanged;
 

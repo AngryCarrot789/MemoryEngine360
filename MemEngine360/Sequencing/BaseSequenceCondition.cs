@@ -31,7 +31,8 @@ public abstract class BaseSequenceCondition {
 
     private bool lastMetState;
     private bool? isOnceModeLocked;
-    private readonly object lockObject = new object();
+
+    private readonly Lock lockObject = new Lock();
 
     public bool IsEnabled {
         get => this.isEnabled;

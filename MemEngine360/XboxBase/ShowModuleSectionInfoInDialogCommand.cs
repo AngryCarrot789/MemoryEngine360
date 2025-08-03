@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Engine.Scanners;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
@@ -26,10 +27,12 @@ namespace MemEngine360.XboxBase;
 public class ShowModuleSectionInfoInDialogCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         if (ConsoleModuleSection.DataKey.TryGetContext(e.ContextData, out ConsoleModuleSection? section)) {
-            await IMessageDialogService.Instance.ShowMessage("Module size", $"Name: {section.Name ?? "(unavailable)"}{Environment.NewLine}" +
-                                                                            $"Base Address: {section.BaseAddress:X8} (hex){Environment.NewLine}" +
-                                                                            $"Section Size: {section.Size:X} (hex){Environment.NewLine}" +
-                                                                            $"Flags: {(uint) section.Flags} ({section.Flags.ToString()})");
+            string sizeKb = ValueScannerUtils.ByteFormatter.ToString(section.Size, false);
+            
+            await IMessageDialogService.Instance.ShowMessage("Section Info", $"Name: {section.Name ?? "(unavailable)"}{Environment.NewLine}" +
+                                                                             $"Base Address: {section.BaseAddress:X8}{Environment.NewLine}" +
+                                                                             $"Section Size: {section.Size:X8} ({sizeKb}){Environment.NewLine}" +
+                                                                             $"Flags: {(uint) section.Flags} ({section.Flags.ToString()})");
         }
     }
 }

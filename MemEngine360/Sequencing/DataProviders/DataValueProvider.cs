@@ -41,7 +41,7 @@ public abstract class DataValueProvider {
     /// Gets a lock that should be acquired when reading/writing properties that may be accessed by multiple threads.
     /// For maximum safety, wrap <see cref="Provide"/> in a lock expression
     /// </summary>
-    public object Lock { get; } = new object();
+    public Lock Lock { get; } = new Lock();
     
     public event DataValueProviderEventHandler? AppendNullCharToStringChanged;
     

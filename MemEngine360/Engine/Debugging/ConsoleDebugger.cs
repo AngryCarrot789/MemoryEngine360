@@ -54,12 +54,24 @@ public class ConsoleDebugger {
     private bool? isConsoleRunning;
     private string? consoleExecutionState;
 
+    /// <summary>
+    /// Gets the busy lock for the debugger. This is used to synchronize access to <see cref="Connection"/>
+    /// </summary>
     public BusyLock BusyLock => this.busyLocker;
 
+    /// <summary>
+    /// Gets the register entries list
+    /// </summary>
     public ObservableList<RegisterEntry> RegisterEntries { get; }
-
+    
+    /// <summary>
+    /// Gets the thread list
+    /// </summary>
     public ObservableList<ThreadEntry> ThreadEntries { get; }
 
+    /// <summary>
+    /// Gets the list of function calls
+    /// </summary>
     public ObservableList<FunctionCallEntry> FunctionCallEntries { get; }
 
     /// <summary>
@@ -125,6 +137,9 @@ public class ConsoleDebugger {
     /// </summary>
     public IConsoleConnection? Connection { get; private set; }
 
+    /// <summary>
+    /// Gets the engine this debugger is associated with
+    /// </summary>
     public MemoryEngine Engine { get; }
 
     public event ConsoleDebuggerConnectionChangedEventHandler? ConnectionChanged;
@@ -436,8 +451,7 @@ public class ConsoleDebugger {
             newConnection.Closed += this.OnConnectionClosed;
 
         // ConnectionChanged is invoked under the lock to enforce busy operation rules
-        object theLock = this.busyLocker.CriticalLock;
-        lock (theLock) {
+        lock (this.busyLocker.CriticalLock) {
             Debug.Assert(this.Connection == oldConnection);
 
             this.Connection = newConnection;

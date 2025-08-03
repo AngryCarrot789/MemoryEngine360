@@ -43,36 +43,39 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
                 return;
             }
 
-            if (!await DisconnectInActivity(debugger)) {
+            if (!await TryDisconnectInActivity(debugger)) {
                 return;
             }
         }
 
         this.myDialog = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(debugger.Engine);
         if (this.myDialog != null) {
-            IDisposable? token = null;
             try {
                 IConsoleConnection? connection = await this.myDialog.WaitForClose();
                 if (connection != null) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
-                    if ((token = await SetConnectionAndHandleProblemsAsync(debugger, connection)) == null) {
+                    if (!await TrySetConnectionAndHandleProblems(debugger, connection)) {
                         connection.Close();
                     }
                 }
             }
             finally {
                 this.myDialog = null;
-                token?.Dispose();
             }
         }
 
         await debugger.UpdateAllThreads(CancellationToken.None);
     }
 
-    public static async Task<bool> DisconnectInActivity(ConsoleDebugger debugger) {
+    /// <summary>
+    /// Attempt to disconnect the debugger's connection
+    /// </summary>
+    /// <param name="debugger"></param>
+    /// <returns>True when disconnected, false when failed to disconnect (could not obtain token)</returns>
+    public static async Task<bool> TryDisconnectInActivity(ConsoleDebugger debugger) {
         using CancellationTokenSource cts = new CancellationTokenSource();
-        bool isOperationCancelled = await ActivityManager.Instance.RunTask(async () => {
+        bool? success = await ActivityManager.Instance.RunTask<bool?>(async () => {
             ActivityTask task = ActivityManager.Instance.CurrentTask;
             task.Progress.Caption = "Disconnect from connection";
             task.Progress.Text = "Stopping all tasks...";
@@ -104,20 +107,25 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             }
 
             debugger.IsWindowVisible = oldIsActive;
-
-            // Doesn't matter if the connection became null in the meantime
-            return false;
+            return debugger.Connection == null;
         }, cts);
-        return isOperationCancelled;
+        
+        return success.HasValue && success.Value;
     }
 
-    public static async Task<IDisposable?> SetConnectionAndHandleProblemsAsync(ConsoleDebugger debugger, IConsoleConnection newConnection) {
+    /// <summary>
+    /// Attempt to set connection to new connection. Returns token on success, returns null on error (could not obtain token, already connected to a console or new connection is unsupported)
+    /// </summary>
+    /// <param name="debugger"></param>
+    /// <param name="newConnection"></param>
+    /// <returns></returns>
+    public static async Task<bool> TrySetConnectionAndHandleProblems(ConsoleDebugger debugger, IConsoleConnection newConnection) {
         ArgumentNullException.ThrowIfNull(debugger);
         ArgumentNullException.ThrowIfNull(newConnection);
 
-        IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Change connection");
+        using IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Change connection");
         if (token == null) {
-            return null;
+            return false;
         }
 
         IConsoleConnection? oldConnection = debugger.Connection;
@@ -129,21 +137,13 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
 
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
-                try {
-                    newConnection.Close();
-                }
-                catch (Exception) {
-                    // ignored
-                }
-
-                return token;
+                return false;
             }
         }
 
         if (!(newConnection is IHaveXboxDebugFeatures)) {
-            token.Dispose();
             await IMessageDialogService.Instance.ShowMessage("Incompatible connection", "Connection does not support debug features", MessageBoxButton.OK, MessageBoxResult.OK);
-            return null;
+            return false;
         }
 
         debugger.SetConnection(token, newConnection);
@@ -157,6 +157,6 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             }
         }
 
-        return token;
+        return true;
     }
 }

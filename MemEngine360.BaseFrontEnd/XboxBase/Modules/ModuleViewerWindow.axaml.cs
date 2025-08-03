@@ -35,6 +35,7 @@ public partial class ModuleViewerWindow : DesktopWindow {
     private readonly IBinder<ConsoleModule> entryPointBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.EntryPointChanged), (b) => ((TextBox) b.Control).Text = b.Model.EntryPoint.ToString("X8"));
     private readonly IBinder<ConsoleModule> moduleSizeBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.ModuleSizeChanged), (b) => ((TextBox) b.Control).Text = b.Model.ModuleSize.ToString("X8"));
     private readonly IBinder<ConsoleModule> originalSizeBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.OriginalModuleSizeChanged), (b) => ((TextBox) b.Control).Text = b.Model.OriginalModuleSize.ToString("X8"));
+    private readonly IBinder<ConsoleModule> timestampBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.TimestampChanged), (b) => ((TextBox) b.Control).Text = b.Model.Timestamp.ToString("g"));
     
     public ModuleViewer? XboxModuleManager {
         get => this.GetValue(XboxModuleManagerProperty);
@@ -54,6 +55,7 @@ public partial class ModuleViewerWindow : DesktopWindow {
         this.entryPointBinder.AttachControl(this.PART_TB_EntryPoint);
         this.moduleSizeBinder.AttachControl(this.PART_TB_ModuleSize);
         this.originalSizeBinder.AttachControl(this.PART_TB_OriginalSize);
+        this.timestampBinder.AttachControl(this.PART_TB_Timestamp);
 
         if (Design.IsDesignMode) {
             this.XboxModuleManager = new ModuleViewer() {
@@ -107,9 +109,9 @@ public partial class ModuleViewerWindow : DesktopWindow {
         this.PART_SectionsDataGrid.ItemsSource = newModule?.Sections;
         
         if (oldModule != null)
-            Binders.DetachModels(this.shortNameBinder, this.fullNameBinder, this.peModuleNameBinder, this.baseAddressBinder, this.entryPointBinder, this.moduleSizeBinder, this.originalSizeBinder);
+            Binders.DetachModels(this.shortNameBinder, this.fullNameBinder, this.peModuleNameBinder, this.baseAddressBinder, this.entryPointBinder, this.moduleSizeBinder, this.originalSizeBinder, this.timestampBinder);
         if (newModule != null)
-            Binders.AttachModels(newModule, this.shortNameBinder, this.fullNameBinder, this.peModuleNameBinder, this.baseAddressBinder, this.entryPointBinder, this.moduleSizeBinder, this.originalSizeBinder);
+            Binders.AttachModels(newModule, this.shortNameBinder, this.fullNameBinder, this.peModuleNameBinder, this.baseAddressBinder, this.entryPointBinder, this.moduleSizeBinder, this.originalSizeBinder, this.timestampBinder);
     }
 
     private void OnManagerChanged(ModuleViewer? oldManager, ModuleViewer? newManager) {

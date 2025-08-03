@@ -31,6 +31,7 @@ using MemEngine360.BaseFrontEnd.Services.HexEditing;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.HexEditing;
+using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
@@ -193,9 +194,7 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
             newValue.ConnectionChanged += this.OnConsoleConnectionChanged;
             newValue.ActiveThreadChanged += this.OnActiveThreadChanged;
             newValue.IsConsoleRunningChanged += this.OnIsConsoleRunningChanged;
-            this.PART_HexEditor.BinarySource = new ConsoleHexBinarySource(new ConnectionLockPair(newValue.BusyLock, newValue.Connection));
-            this.changeManager.Clear();
-            this.changeManager.OnBinarySourceChanged(this.PART_HexEditor.BinarySource);
+            this.SetSourceForConnection(newValue.Connection, restartAutoRefresh: false);
         }
 
         this.timer.IsEnabled = newValue != null && newValue.IsConsoleRunning != true;
@@ -223,13 +222,25 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
         this.RestartAutoRefresh();
     }
 
-    private void OnConsoleConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection) {
-        if (this.IsOpen) {
-            this.PART_EventViewer.ConsoleConnection = newconnection;
-            this.PART_HexEditor.BinarySource = new ConsoleHexBinarySource(new ConnectionLockPair(sender.BusyLock, newconnection));
+    private void OnConsoleConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldConn, IConsoleConnection? newConn) {
+        this.SetSourceForConnection(newConn);
+    }
+
+    private void SetSourceForConnection(IConsoleConnection? connection, bool restartAutoRefresh = false) {
+        ConsoleDebugger? debugger;
+        if (this.IsOpen && (debugger = this.ConsoleDebugger) != null) {
+            this.PART_EventViewer.ConsoleConnection = connection;
+            ConsoleHexBinarySource source = new ConsoleHexBinarySource(new ConnectionLockPair(debugger.BusyLock, connection));
+            this.PART_HexEditor.BinarySource = source;
             this.changeManager.Clear();
-            this.changeManager.OnBinarySourceChanged(this.PART_HexEditor.BinarySource);
-            this.RestartAutoRefresh();
+            this.changeManager.OnBinarySourceChanged(source);
+            if (restartAutoRefresh)
+                this.RestartAutoRefresh();
+
+            ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                source.InvalidateCache(0, ulong.MaxValue);
+                this.PART_HexEditor.HexView.InvalidateVisualLines();
+            }, DispatchPriority.Loaded);
         }
     }
 
@@ -237,8 +248,9 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
         this.autoRefresh?.Dispose();
         this.autoRefresh = null;
 
-        if (this.ConsoleDebugger != null && this.ConsoleDebugger.Connection != null) {
-            this.autoRefresh = new ThreadMemoryAutoRefresh(this.ConsoleDebugger, this);
+        ConsoleDebugger? debugger = this.ConsoleDebugger;
+        if (debugger != null && debugger.Connection != null) {
+            this.autoRefresh = new ThreadMemoryAutoRefresh(debugger, this);
             this.autoRefresh.Run();
         }
     }
@@ -274,22 +286,22 @@ public class TextBoxFocusTransition {
     public static void Focus(TextBox target, bool selectAll = true) {
         new TextBoxFocusTransition(target).Focus(selectAll);
     }
-    
+
     private void OnTargetOnKeyDown(object? sender, KeyEventArgs e) {
         Debug.Assert(this.lastFocused != null);
-        
+
         if (e.Key == Key.Enter || e.Key == Key.Escape) {
             e.Handled = true;
             this.FocusPrevious();
         }
     }
-    
+
     private void OnTargetLostFocus(object? sender, RoutedEventArgs e) {
         this.lastFocused = null;
         this.targetFocus.LostFocus -= this.OnTargetLostFocus;
         this.targetFocus.KeyDown -= this.OnTargetOnKeyDown;
     }
-    
+
     private void Focus(bool selectAll) {
         TopLevel? topLevel = TopLevel.GetTopLevel(this.targetFocus);
         this.lastFocused = topLevel?.FocusManager?.GetFocusedElement();
@@ -317,7 +329,7 @@ public class TextBoxFocusTransition {
     private void FocusPrevious() {
         if (this.lastFocused != null) {
             this.lastFocused.Focus();
-            
+
             // OnTargetLostFocus should get called
             Debug.Assert(this.lastFocused == null);
         }

@@ -32,7 +32,7 @@ public class RandomTriggerHelper {
     private uint chance = 1;
     private uint minimumTriesToTrigger;
     private uint triggerAttemptsRemaining; // this is set to minimumTriesToTrigger on successful trigger 
-    private readonly object triggerDataLock = new object();
+    private readonly Lock triggerDataLock = new Lock();
 
     /// <summary>
     /// Gets or sets how long to sleep in a loop waiting until we trigger. When non-null,

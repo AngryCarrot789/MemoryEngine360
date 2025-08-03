@@ -86,7 +86,7 @@ public class PluginXbox360Xbdm : Plugin {
             // ParamUtils.GetDwParam(moduleLine, "timestamp", true, out uint modTimestamp);
             // ParamUtils.GetDwParam(moduleLine, "check", true, out uint modChecksum);
             ParamUtils.GetDwParam(moduleLine, "osize", true, out uint modOriginalSize);
-
+            ParamUtils.GetDwParam(moduleLine, "timestamp", true, out uint timestamp);
             task.Progress.Text = "Processing " + name;
 
             ConsoleModule consoleModule = new ConsoleModule() {
@@ -95,6 +95,7 @@ public class PluginXbox360Xbdm : Plugin {
                 BaseAddress = modBase,
                 ModuleSize = modSize,
                 OriginalModuleSize = modOriginalSize,
+                Timestamp = DateTimeOffset.FromUnixTimeSeconds(timestamp).DateTime
                 // EntryPoint = module.GetEntryPointAddress()
             };
 

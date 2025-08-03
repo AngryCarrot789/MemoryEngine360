@@ -51,6 +51,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     private readonly StringBuilder sbLineBuffer = new StringBuilder(400);
     private readonly TcpClient client;
     private readonly CancellationTokenSource ctsCheckClosed;
+    private readonly bool isEventConnection;
 
     private enum EnumEventThreadMode {
         Inactive, // Thread not running
@@ -60,7 +61,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     private volatile int systemEventSubscribeCount;
-    private readonly object systemEventThreadLock = new object();
+    private readonly Lock systemEventThreadLock = new Lock();
     private EnumEventThreadMode systemEventMode = EnumEventThreadMode.Inactive;
     private Thread? systemEventThread;
     private readonly List<ConsoleSystemEventHandler> systemEventHandlers = new List<ConsoleSystemEventHandler>();
@@ -73,6 +74,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     private BinaryReadInfo readInfo_binary;
     private StringLineReadInfo readInfo_string;
     private readonly string originalConnectionAddress;
+    private volatile XbdmEventArgsExecutionState? currentState;
 
     private readonly struct BinaryReadInfo(byte[] dstBuffer, int offset, int count, TaskCompletionSource completion, CancellationToken cancellation) {
         public readonly byte[] dstBuffer = dstBuffer;
@@ -97,9 +99,13 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
 
-    public XbdmConsoleConnection(TcpClient client, string originalConnectionAddress) {
+    public XbdmConsoleConnection(TcpClient client, string originalConnectionAddress) : this(client, originalConnectionAddress, false) {
+    }
+    
+    private XbdmConsoleConnection(TcpClient client, string originalConnectionAddress, bool isEventConnection) {
         this.client = client;
         this.originalConnectionAddress = originalConnectionAddress;
+        this.isEventConnection = isEventConnection;
 
         "setmem addr=0x"u8.CopyTo(new Span<byte>(this.sharedSetMemCommandBuffer, 0, 14));
         " data="u8.CopyTo(new Span<byte>(this.sharedSetMemCommandBuffer, 22, 6));
@@ -1298,7 +1304,10 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
             // we must repeat this since if the xbox is spewing events, it seems like it does it in the background. So even if we use
             // delegateConnection.SendMultipleCommands, there's still a chance we get one of the events in the responses.
-            List<XbdmEventArgs> tmpPreRunEvents = new List<XbdmEventArgs>();
+            // 
+            // Also, the xbox sends the current execution state as soon as we connect the debugger,
+            // so this list will most likely contain that event
+            List<XbdmEventArgs> preRunEvents = new List<XbdmEventArgs>();
 
             // no idea what reconnectport does, surely it's not the port it tries to reconnect on
             delegateConnection.SendCommandOnly("notify reconnectport=12345 reverse").GetAwaiter().GetResult();
@@ -1312,7 +1321,12 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                     break;
                 }
 
-                tmpPreRunEvents.Add(XbdmEventUtils.ParseSpecial(responseText) ?? new XbdmEventArgs(responseText));
+                XbdmEventArgs theEvent = XbdmEventUtils.ParseSpecial(responseText) ?? new XbdmEventArgs(responseText);
+                if (theEvent is XbdmEventArgsExecutionState) {
+                    this.currentState = (XbdmEventArgsExecutionState) theEvent;
+                }
+                
+                preRunEvents.Add(theEvent);
             }
 
             lock (this.systemEventThreadLock) {
@@ -1322,13 +1336,15 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             }
 
             List<ConsoleSystemEventHandler> eventHandlerList;
-            lock (this.systemEventHandlers) {
-                eventHandlerList = this.systemEventHandlers.ToList();
-            }
+            if (preRunEvents.Count > 0) {
+                lock (this.systemEventHandlers) {
+                    eventHandlerList = this.systemEventHandlers.ToList();
+                }
 
-            foreach (XbdmEventArgs tmpEvent in tmpPreRunEvents) {
-                foreach (ConsoleSystemEventHandler handler in eventHandlerList) {
-                    handler(this, tmpEvent);
+                foreach (XbdmEventArgs tmpEvent in preRunEvents) {
+                    foreach (ConsoleSystemEventHandler handler in eventHandlerList) {
+                        handler(this, tmpEvent);
+                    }
                 }
             }
 
@@ -1357,6 +1373,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
                 Debug.Assert(line != null);
                 XbdmEventArgs e = XbdmEventUtils.ParseSpecial(line) ?? new XbdmEventArgs(line);
+                if (e is XbdmEventArgsExecutionState) {
+                    this.currentState = (XbdmEventArgsExecutionState) e;
+                }
 
                 lock (this.systemEventHandlers) {
                     eventHandlerList = this.systemEventHandlers.ToList();
@@ -1381,6 +1400,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     public IDisposable SubscribeToEvents(ConsoleSystemEventHandler handler) {
         ArgumentNullException.ThrowIfNull(handler);
+        if (this.isEventConnection)
+            throw new InvalidOperationException("Attempt to subscribe to events on an event connection");
+        
         if (Interlocked.Increment(ref this.systemEventSubscribeCount) == 1) {
             lock (this.systemEventThreadLock) {
                 switch (this.systemEventMode) {
@@ -1401,6 +1423,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
         lock (this.systemEventHandlers) {
             this.systemEventHandlers.Add(handler);
+            if (this.currentState != null) {
+                handler(this, this.currentState);
+            }
         }
 
         return new EventSubscriber(this, handler);

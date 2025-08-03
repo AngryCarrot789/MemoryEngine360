@@ -33,8 +33,9 @@ public class ShowDebuggerCommand : Command {
         await service.ShowDebugger(debugger);
         if (debugger.Connection == null) {
             IOpenConnectionView? dialog = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(debugger.Engine);
-            if (dialog == null)
+            if (dialog == null) {
                 return;
+            }
 
             IDisposable? token = null;
 
@@ -43,7 +44,7 @@ public class ShowDebuggerCommand : Command {
                 if (connection != null) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
-                    if ((token = await OpenDebuggerConnectionCommand.SetConnectionAndHandleProblemsAsync(debugger, connection)) == null) {
+                    if (!await OpenDebuggerConnectionCommand.TrySetConnectionAndHandleProblems(debugger, connection)) {
                         connection.Close();
                     }
                 }
