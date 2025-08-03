@@ -94,7 +94,8 @@ public partial class PointerScanWindow : DesktopWindow {
                     return;
                 }
 
-                SingleUserInputInfo info = new SingleUserInputInfo("Base Address", "What is the base-address of the data? (If you ran a memory dump at 0x82600000, then specify that as the base address)", "00000000") {
+                SingleUserInputInfo info = new SingleUserInputInfo("Base Address", "What is the base-address of the data?", "00000000") {
+                    Footer = "E.g. If you ran a memory dump at 0x82600000, then specify that as the base address",
                     Validate = (a) => {
                         if (!uint.TryParse(a.Input, NumberStyles.HexNumber, null, out _))
                             a.Errors.Add("Invalid address");

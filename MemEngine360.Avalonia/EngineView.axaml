@@ -314,21 +314,6 @@
                         <DockPanel>
                             <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="5" Height="20">
-                                <avc:IconButton Icon="{x:Static cb:SimpleIcons.OpenFileCSVIcon}" Width="20"
-                                                Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
-                                                BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
-                                                Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
-                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenCSVFileCommand"
-                                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                                                Padding="3,3,2,2">
-                                    <tt:ToolTipEx.Tip>
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="(Depreciated) Open a CSV file containing saved addresses. This feature will be removed soon in favour for XML, so that groups can be supported" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.memengine.OpenCSVFileCommand"/>
-                                        </StackPanel>
-                                    </tt:ToolTipEx.Tip>
-                                </avc:IconButton>
-
                                 <avc:IconButton Icon="{x:Static cb:SimpleIcons.OpenFileXMLIcon}" Width="20"
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"

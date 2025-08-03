@@ -839,13 +839,17 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         } while (count > 0);
     }
 
-    public async Task<byte[]> ReceiveBinaryData() {
+    // Rather than potentially lock up the connection, allow cancellation but it might corrupt the connection.
+    public async Task<byte[]> ReceiveBinaryData(CancellationToken cancellation) {
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+        
         using MemoryStream memoryStream = new MemoryStream(1024);
         byte[] tmpBuffer = new byte[1024];
 
         int statusFlag;
         do {
-            await this.ReadFromBufferOrStreamAsync(this.sharedTwoByteArray, 0, 2);
+            await this.ReadFromBufferOrStreamAsync(this.sharedTwoByteArray, 0, 2, cancellation);
 
             int header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(this.sharedTwoByteArray, 0, 2));
             int chunkSize = header & 0x7FFF;
@@ -853,7 +857,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             if (chunkSize <= 0)
                 break;
             for (int count = chunkSize; count > 0; count -= tmpBuffer.Length) {
-                await this.ReadFromBufferOrStreamAsync(tmpBuffer, 0, Math.Min(count, tmpBuffer.Length));
+                int cbRead = Math.Min(count, tmpBuffer.Length);
+                await this.ReadFromBufferOrStreamAsync(tmpBuffer, 0, cbRead, cancellation);
+                memoryStream.Write(tmpBuffer, 0, cbRead);
             }
         } while (statusFlag == 0);
 
@@ -1081,13 +1087,13 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         throw new TimeoutException("Timeout while reading line");
     }
 
-    private async Task ReadFromBufferOrStreamAsync(byte[] buffer, int offset, int count) {
+    private async Task ReadFromBufferOrStreamAsync(byte[] buffer, int offset, int count, CancellationToken cancellation = default) {
         int cbRead = this.ReadLocalBufferOrStream(buffer, offset, count);
         if (cbRead < count)
-            await this.InternalReadBytesFromBufferOrStream(buffer, offset + cbRead, count - cbRead);
+            await this.InternalReadBytesFromBufferOrStream(buffer, offset + cbRead, count - cbRead, cancellation);
     }
 
-    private async Task InternalReadBytesFromBufferOrStream(byte[] buffer, int offset, int count, CancellationToken token = default) {
+    private async Task InternalReadBytesFromBufferOrStream(byte[] buffer, int offset, int count, CancellationToken cancellation = default) {
         if (count < 1) {
             return;
         }
@@ -1095,7 +1101,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         await this.ActivateReader(2);
 
         TaskCompletionSource tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        this.readInfo_binary = new BinaryReadInfo(buffer, offset, count, tcs, token);
+        this.readInfo_binary = new BinaryReadInfo(buffer, offset, count, tcs, cancellation);
         this.readEvent.Set();
         await tcs.Task.ConfigureAwait(false);
     }

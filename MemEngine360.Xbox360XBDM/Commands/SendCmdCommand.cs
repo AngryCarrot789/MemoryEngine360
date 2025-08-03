@@ -17,13 +17,17 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Runtime.InteropServices.Marshalling;
 using System.Text;
+using MemEngine360.BaseFrontEnd.Services.HexEditing;
 using MemEngine360.Commands;
 using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
+using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
+using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Xbox360XBDM.Commands;
@@ -75,18 +79,39 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
                         }
 
                         break;
-                    case ResponseType.Connected:                         await IMessageDialogService.Instance.ShowMessage($"Connected ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
-                    case ResponseType.MultiResponse:                     await IMessageDialogService.Instance.ShowMessage("Multi-Response", string.Join(Environment.NewLine, await xbdm.ReadMultiLineResponse()), defaultButton: MessageBoxResult.OK); break;
-                    case ResponseType.BinaryResponse:
-                        byte[] array = await xbdm.ReceiveBinaryData();
-                        StringBuilder sb = new StringBuilder();
-                        for (int i = 0; i < array.Length; i += 32) {
-                            sb.AppendLine(NumberUtils.BytesToHexAscii(array.AsSpan(i, Math.Min(array.Length - i, 32))));
+                    case ResponseType.Connected:     await IMessageDialogService.Instance.ShowMessage($"Connected ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.MultiResponse: await IMessageDialogService.Instance.ShowMessage("Multi-Response", string.Join(Environment.NewLine, await xbdm.ReadMultiLineResponse()), defaultButton: MessageBoxResult.OK); break;
+                    case ResponseType.BinaryResponse: {
+                        byte[]? data;
+                        using (CancellationTokenSource cts = new CancellationTokenSource()) {
+                            data = await ActivityManager.Instance.RunTask(async () => {
+                                ActivityTask task = ActivityManager.Instance.CurrentTask;
+                                task.Progress.Caption = task.Progress.Text = "Reading binary response";
+                                task.Progress.IsIndeterminate = true;
+
+                                byte[] array = await xbdm.ReceiveBinaryData(task.CancellationToken);
+                                // StringBuilder sb = new StringBuilder();
+                                // for (int i = 0; i < array.Length; i += 32) {
+                                //     sb.AppendLine(NumberUtils.BytesToHexAscii(array.AsSpan(i, Math.Min(array.Length - i, 32))));
+                                // }
+
+                                return array;
+                            }, cts);
                         }
-                        
-                        await IMessageDialogService.Instance.ShowMessage($"Binary Response ({crt})", command.Message, sb.ToString(), defaultButton: MessageBoxResult.OK); 
+
+                        if (data != null && WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
+                            BinaryHexEditorWindow window = new BinaryHexEditorWindow();
+                            if (system.TryGetActiveWindow(out DesktopWindow? activeWindow))
+                                window.PlaceCenteredTo(activeWindow);
+
+                            window.SetBytes(data);
+                            system.Register(window).Show();
+                        }
+
+
                         break;
-                    case ResponseType.ReadyForBinary:                    await IMessageDialogService.Instance.ShowMessage($"Ready For Binary ({crt})", "(Cannot received data! Command line may now be broken)", command.Message, defaultButton: MessageBoxResult.OK); break;
+                    }
+                    case ResponseType.ReadyForBinary:                    await IMessageDialogService.Instance.ShowMessage($"Ready For Binary ({crt})", "(Cannot send data! Command line may now be broken)", command.Message, defaultButton: MessageBoxResult.OK); break;
                     case ResponseType.DedicatedConnection:               await IMessageDialogService.Instance.ShowMessage($"Dedicated Connection ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
                     case ResponseType.NoError:                           await IMessageDialogService.Instance.ShowMessage($"No Error ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;
                     case ResponseType.MaxConnectionsExceeded:            await IMessageDialogService.Instance.ShowMessage($"Max Connections Exceeded ({crt})", command.Message, defaultButton: MessageBoxResult.OK); break;

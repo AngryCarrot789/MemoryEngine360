@@ -94,33 +94,35 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
             new BrushExchange(this.PART_RunningState, BackgroundProperty, SimpleIcons.ConstantTransparentBrush, new ConstantAvaloniaColourBrush(Brushes.Yellow)),
         ]) { LevelChangesToStop = 7 /* stop on HIGH state */, StartHigh = true };
 
-        this.PART_GotoTextBox.Text = "82600000";
-
         DataManager.GetContextData(this).Set(IDebuggerWindow.DataKey, this);
+        this.PART_GotoTextBox.Text = "82600000";
     }
 
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
         if (uint.TryParse(this.PART_GotoTextBox.Text, NumberStyles.HexNumber, null, out uint address)) {
-            this.PART_HexEditor.HexView.ScrollToByteOffset(address, out _);
+            this.ScrollToAddressAndMoveCaret(address, out _);
         }
     }
 
     private void PART_GotoTextBoxOnKeyDown(object? sender, KeyEventArgs e) {
-        if (e.Key != Key.Enter)
-            return;
+        if (e.Key == Key.Enter) {
+            string? text = ((TextBox) sender!).Text;
+            if (text != null && text.StartsWith("0x")) {
+                text = text.Substring(2);
+            }
 
-        string? text = ((TextBox) sender!).Text;
-        if (text != null && text.StartsWith("0x")) {
-            text = text.Substring(2);
+            if (uint.TryParse(text, NumberStyles.HexNumber, null, out uint parsedAddress)) {
+                this.ScrollToAddressAndMoveCaret(parsedAddress, out _);
+            }
         }
+    }
 
-        if (uint.TryParse(text, NumberStyles.HexNumber, null, out uint parsedAddress)) {
-            this.PART_HexEditor.HexView.ScrollToByteOffset(parsedAddress, out ulong scrollOffset);
-            this.PART_HexEditor.ResetSelection();
-            this.PART_HexEditor.Caret.Location = new BitLocation(parsedAddress);
-            this.PART_HexEditor.Selection.Range = new BitRange(new BitLocation(parsedAddress), new BitLocation(parsedAddress + 1));
-        }
+    public void ScrollToAddressAndMoveCaret(uint address, out ulong lineStartOffset) {
+        this.PART_HexEditor.HexView.ScrollToByteOffset(address, out lineStartOffset);
+        this.PART_HexEditor.ResetSelection();
+        this.PART_HexEditor.Caret.Location = new BitLocation(address);
+        this.PART_HexEditor.Selection.Range = new BitRange(new BitLocation(address), new BitLocation(address + 1));
     }
 
     static DebuggerWindow() {
@@ -223,12 +225,13 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
     }
 
     private void OnConsoleConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldConn, IConsoleConnection? newConn) {
-        this.SetSourceForConnection(newConn);
+        if (this.IsOpen)
+            this.SetSourceForConnection(newConn);
     }
 
     private void SetSourceForConnection(IConsoleConnection? connection, bool restartAutoRefresh = false) {
-        ConsoleDebugger? debugger;
-        if (this.IsOpen && (debugger = this.ConsoleDebugger) != null) {
+        ConsoleDebugger? debugger = this.ConsoleDebugger;
+        if (debugger != null) {
             this.PART_EventViewer.ConsoleConnection = connection;
             ConsoleHexBinarySource source = new ConsoleHexBinarySource(new ConnectionLockPair(debugger.BusyLock, connection));
             this.PART_HexEditor.BinarySource = source;
@@ -238,9 +241,8 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
                 this.RestartAutoRefresh();
 
             ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                source.InvalidateCache(0, ulong.MaxValue);
-                this.PART_HexEditor.HexView.InvalidateVisualLines();
-            }, DispatchPriority.Loaded);
+                this.PART_HexEditor.HexView.BringIntoView(this.PART_HexEditor.Caret.Location);
+            }, DispatchPriority.Default);
         }
     }
 

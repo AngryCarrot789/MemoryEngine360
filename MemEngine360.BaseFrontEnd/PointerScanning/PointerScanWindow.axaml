@@ -7,7 +7,7 @@
                  xmlns:ps="clr-namespace:MemEngine360.BaseFrontEnd.PointerScanning"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.BaseFrontEnd.PointerScanning.PointerScanWindow"
-                 Title="PointerScanWindow">
+                 Title="Pointer Scanner">
     <DockPanel>
         <StackPanel Margin="3" Orientation="Horizontal" DockPanel.Dock="Top" Spacing="3">
             <Button x:Name="PART_OpenFile" Content="Open Memory File..." Padding="4,2"/>

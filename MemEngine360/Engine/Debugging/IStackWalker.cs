@@ -3,5 +3,5 @@
 namespace MemEngine360.Engine.Debugging;
 
 public interface IStackWalker {
-    void Walk(IConsoleConnection connection, ThreadContext context);
+    void Walk_NotReadyYet(IConsoleConnection connection, ThreadContext context);
 }

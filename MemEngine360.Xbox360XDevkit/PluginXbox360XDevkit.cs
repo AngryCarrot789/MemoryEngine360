@@ -60,6 +60,8 @@ public class PluginXbox360XDevkit : Plugin {
     
     private class XDevkitModuleViewerProcessor : IModuleManagerProcessor {
         public Task RefreshAll(ModuleViewer viewer, MemoryEngine engine, IConsoleConnection connection) {
+            viewer.Modules.Clear();
+            
             return FillModuleManager(engine, (XDevkitConsoleConnection) connection, viewer);
         }
 
@@ -89,7 +91,8 @@ public class PluginXbox360XDevkit : Plugin {
                 BaseAddress = info.BaseAddress,
                 ModuleSize = info.Size,
                 OriginalModuleSize = module.OriginalSize,
-                EntryPoint = entryPoint
+                EntryPoint = entryPoint,
+                Timestamp = DateTimeOffset.FromUnixTimeSeconds(info.TimeStamp).DateTime,
             };
 
             try {

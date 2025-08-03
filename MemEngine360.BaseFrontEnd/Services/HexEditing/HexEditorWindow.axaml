@@ -65,13 +65,9 @@
                         <ColumnDefinition Width="3"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="0"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="95"/>
                         <ColumnDefinition Width="3"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="40"/>
-                        <ColumnDefinition Width="0"/>
-                        <ColumnDefinition Width="0"/>
                         <ColumnDefinition Width="3"/>
                         <ColumnDefinition Width="110"/>
                         <ColumnDefinition Width="3"/>
@@ -89,22 +85,12 @@
                         </TextBox.InnerLeftContent>
                     </TextBox>
 
-                    <TextBlock Text="Count" Grid.Column="4" VerticalAlignment="Center" Padding="5,0"/>
-
-                    <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_LengthTextBox" Grid.Column="5"
-                             Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"
-                             ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                             tt:ToolTipEx.Tip="The amount of bytes to read. E.g. 10000 (64K)">
-                        <TextBox.InnerLeftContent>
-                            <TextBlock Text="0x" Opacity="0.7"/>
-                        </TextBox.InnerLeftContent>
-                    </TextBox>
-
-                    <TextBox Grid.Column="7" x:Name="PART_BytesPerRowTextBox" tt:ToolTipEx.Tip="Bytes per row. Default is 32"
+                    <TextBlock Text="B/row" Grid.Column="4" VerticalAlignment="Center" Padding="0,0,3,0"/>
+                    <TextBox Grid.Column="5" x:Name="PART_BytesPerRowTextBox" tt:ToolTipEx.Tip="Bytes per row (or column count). Default is 32"
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
                              Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"/>
 
-                    <Button Grid.Column="11" x:Name="PART_Refresh" Content="Refresh Selection">
+                    <Button Grid.Column="7" x:Name="PART_Refresh" Content="Refresh Selection">
                         <tt:ToolTipEx.Tip>
                             <StackPanel Orientation="Horizontal" Spacing="5">
                                 <TextBlock Text="Read data from the console that is within your selection, rather than the entire set memory range" VerticalAlignment="Center"/>
@@ -112,7 +98,7 @@
                             </StackPanel>
                         </tt:ToolTipEx.Tip>
                     </Button>
-                    <Button Grid.Column="13" x:Name="PART_Upload" Content="Upload Selection">
+                    <Button Grid.Column="9" x:Name="PART_Upload" Content="Upload Selection">
                         <tt:ToolTipEx.Tip>
                             <StackPanel Orientation="Horizontal" Spacing="5">
                                 <TextBlock Text="Uploads your selection to the console" VerticalAlignment="Center"/>
@@ -120,7 +106,7 @@
                             </StackPanel>
                         </tt:ToolTipEx.Tip>
                     </Button>
-                    <Border Grid.Column="14" Width="3" Background="Transparent"/>
+                    <Border Grid.Column="10" Width="3" Background="Transparent"/>
                     <!-- <Separator Grid.Column="14" Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,2"/> -->
                 </Grid>
                 <Grid Height="24" ColumnDefinitions="110,3,100,3,95,3,Auto,3,Auto,3,Auto" Margin="3,0">

@@ -59,6 +59,8 @@ public class PluginXbox360Xbdm : Plugin {
 
     private class XbdmModuleViewerProcessor : IModuleManagerProcessor {
         public Task RefreshAll(ModuleViewer viewer, MemoryEngine engine, IConsoleConnection connection) {
+            viewer.Modules.Clear();
+            
             return FillModuleManager(engine, (XbdmConsoleConnection) connection, viewer);
         }
 
@@ -74,6 +76,11 @@ public class PluginXbox360Xbdm : Plugin {
         task.Progress.IsIndeterminate = true;
 
         List<string> modules = await connection.SendCommandAndReceiveLines("modules");
+        task.Progress.IsIndeterminate = false;
+
+        CompletionState completion = task.Progress.CompletionState;
+        using PopCompletionStateRangeToken completionState = completion.PushCompletionRange(0, 1.0 / modules.Count);
+        
         foreach (string moduleLine in modules) {
             task.CheckCancelled();
 
@@ -88,6 +95,7 @@ public class PluginXbox360Xbdm : Plugin {
             ParamUtils.GetDwParam(moduleLine, "osize", true, out uint modOriginalSize);
             ParamUtils.GetDwParam(moduleLine, "timestamp", true, out uint timestamp);
             task.Progress.Text = "Processing " + name;
+            completion.OnProgress(1.0);
 
             ConsoleModule consoleModule = new ConsoleModule() {
                 Name = name,

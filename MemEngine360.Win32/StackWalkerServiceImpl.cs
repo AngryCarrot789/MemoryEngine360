@@ -29,7 +29,7 @@ using static Vanara.PInvoke.DbgHelp;
 namespace MemEngine360.Win32;
 
 public class StackWalkerServiceImpl : IStackWalker {
-    public unsafe void Walk(IConsoleConnection connection, ThreadContext context) {
+    public unsafe void Walk_NotReadyYet(IConsoleConnection connection, ThreadContext context) {
         Task.Run(() => this.Action(connection, context));
     }
 
