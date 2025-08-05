@@ -19,6 +19,7 @@
 
 using Avalonia;
 using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.Conditions;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Interactivity;
 
@@ -26,6 +27,7 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 
 public class ConditionsListBox : ModelBasedListBox<BaseSequenceCondition> {
     public static readonly StyledProperty<TaskSequence?> TaskSequenceProperty = AvaloniaProperty.Register<ConditionsListBox, TaskSequence?>(nameof(TaskSequence));
+    public static readonly StyledProperty<IConditionsHost?> ConditionsHostProperty = AvaloniaProperty.Register<ConditionsListBox, IConditionsHost?>(nameof(ConditionsHost));
 
     private readonly Dictionary<Type, Stack<BaseConditionListContent>> itemContentCacheMap;
 
@@ -34,10 +36,15 @@ public class ConditionsListBox : ModelBasedListBox<BaseSequenceCondition> {
         set => this.SetValue(TaskSequenceProperty, value);
     }
 
-    protected override bool CanDragItemPositionCore => this.TaskSequence != null && !this.TaskSequence.IsRunning;
+    public IConditionsHost? ConditionsHost {
+        get => this.GetValue(ConditionsHostProperty);
+        set => this.SetValue(ConditionsHostProperty, value);
+    }
+
+    protected override bool CanDragItemPositionCore => this.ConditionsHost != null && !this.TaskSequence!.IsRunning;
 
     public IListSelectionManager<IConditionItemUI> ControlSelectionManager { get; }
-    
+
     public ConditionsListBox() : base(2) {
         this.itemContentCacheMap = new Dictionary<Type, Stack<BaseConditionListContent>>();
         this.ControlSelectionManager = new ModelListBoxSelectionManagerForControl<BaseSequenceCondition, IConditionItemUI>(this);
@@ -45,7 +52,7 @@ public class ConditionsListBox : ModelBasedListBox<BaseSequenceCondition> {
     }
 
     static ConditionsListBox() {
-        TaskSequenceProperty.Changed.AddClassHandler<ConditionsListBox, TaskSequence?>((s, e) => s.OnTaskSequenceChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+        ConditionsHostProperty.Changed.AddClassHandler<ConditionsListBox, IConditionsHost?>((s, e) => s.OnTaskSequenceChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     protected override ModelBasedListBoxItem<BaseSequenceCondition> CreateItem() {
@@ -53,13 +60,13 @@ public class ConditionsListBox : ModelBasedListBox<BaseSequenceCondition> {
     }
 
     protected override void MoveItemIndex(int oldIndex, int newIndex) {
-        this.TaskSequence?.Conditions.Move(oldIndex, newIndex);
+        this.ConditionsHost?.Conditions.Move(oldIndex, newIndex);
     }
 
-    private void OnTaskSequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {
-        this.SetItemsSource(newSeq?.Conditions);
+    private void OnTaskSequenceChanged(IConditionsHost? oldHost, IConditionsHost? newHost) {
+        this.SetItemsSource(newHost?.Conditions);
     }
-    
+
     public BaseConditionListContent GetContentObject(BaseSequenceCondition condition) {
         BaseConditionListContent content;
         if (this.itemContentCacheMap.TryGetValue(condition.GetType(), out Stack<BaseConditionListContent>? stack) && stack.Count > 0) {

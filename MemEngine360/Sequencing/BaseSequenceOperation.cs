@@ -17,8 +17,10 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.Conditions;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing;
 
@@ -27,23 +29,24 @@ public delegate void BaseSequenceOperationEventHandler(BaseSequenceOperation sen
 /// <summary>
 /// The base class for a sequencer operation
 /// </summary>
-public abstract class BaseSequenceOperation : ITransferableData {
+public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost {
     private bool isRunning;
     private bool isEnabled = true;
+    private OperationConditionBehaviour conditionBehaviour = OperationConditionBehaviour.Wait;
 
     public TransferableData TransferableData { get; }
 
     /// <summary>
     /// Gets the sequence that owns this operation
     /// </summary>
-    public TaskSequence? Sequence { get; private set; }
+    public TaskSequence? TaskSequence { get; private set; }
 
     /// <summary>
     /// Gets whether this operation is currently running. This may be changed from any thread
     /// </summary>
     public bool IsRunning {
         get => this.isRunning;
-        private set => PropertyHelper.SetAndRaiseINE(ref this.isRunning, value, this, static t => t.IsRunningChanged?.Invoke(t));
+        internal set => PropertyHelper.SetAndRaiseINE(ref this.isRunning, value, this, static t => t.IsRunningChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -52,6 +55,14 @@ public abstract class BaseSequenceOperation : ITransferableData {
     public bool IsEnabled {
         get => this.isEnabled;
         set => PropertyHelper.SetAndRaiseINE(ref this.isEnabled, value, this, static t => t.IsEnabledChanged?.Invoke(t));
+    }
+
+    /// <summary>
+    /// Gets or sets the behaviour for when conditions are not met
+    /// </summary>
+    public OperationConditionBehaviour ConditionBehaviour {
+        get => this.conditionBehaviour;
+        set => PropertyHelper.SetAndRaiseINE(ref this.conditionBehaviour, value, this, static t => t.ConditionBehaviourChanged?.Invoke(t));
     }
 
     /// <summary>
@@ -64,6 +75,10 @@ public abstract class BaseSequenceOperation : ITransferableData {
     /// </summary>
     public RandomTriggerHelper RandomTriggerHelper { get; }
 
+    TaskSequence? IConditionsHost.TaskSequence => this.TaskSequence;
+
+    public ObservableList<BaseSequenceCondition> Conditions { get; }
+
     /// <summary>
     /// Fired when <see cref="IsRunning"/> changes. This may be fired on any thread
     /// </summary>
@@ -71,9 +86,12 @@ public abstract class BaseSequenceOperation : ITransferableData {
 
     public event BaseSequenceOperationEventHandler? IsEnabledChanged;
 
+    public event BaseSequenceOperationEventHandler? ConditionBehaviourChanged;
+
     protected BaseSequenceOperation() {
         this.TransferableData = new TransferableData(this);
         this.RandomTriggerHelper = new RandomTriggerHelper();
+        this.Conditions = new ObservableList<BaseSequenceCondition>();
     }
 
     /// <summary>
@@ -86,48 +104,20 @@ public abstract class BaseSequenceOperation : ITransferableData {
     /// <exception cref="OperationCanceledException">Operation cancelled</exception>
     /// <returns>A task that represents the operation</returns>
     internal async Task Run(SequenceExecutionContext ctx, CancellationToken token) {
-        if (this.IsRunning) {
-            throw new InvalidOperationException("Already running");
-        }
-
         if (!this.IsEnabled || !await this.RandomTriggerHelper.TryTrigger(token)) {
             return;
         }
 
-        this.IsRunning = true;
+        Task task = this.RunOperation(ctx, token);
+        bool wasCompletedSync = task.IsCompleted;
+        await task;
 
-        OperationCanceledException? cancellation = null;
-        using (ErrorList list = new ErrorList("One or more errors occurred", true, true)) {
-            try {
-                Task task = this.RunOperation(ctx, token);
-                bool wasCompletedSync = task.IsCompleted;
-                await task;
-
-                if (wasCompletedSync) {
-                    // Yielding here prevents this operation from running about 1 million times a second,
-                    // which may be battering the UI thread with IsRunning being switched so often.
-                    // Yielding brings it down to about 15,000 times a second.
-                    // Of course, may be different for faster/slower systems than a ryzen 5
-                    await Task.Yield();
-                }
-            }
-            catch (OperationCanceledException e) {
-                cancellation = e;
-            }
-            catch (Exception e) {
-                list.Add(e);
-            }
-
-            try {
-                this.IsRunning = false;
-            }
-            catch (Exception e) {
-                list.Add(e);
-            }
-        }
-
-        if (cancellation != null) {
-            throw cancellation;
+        if (wasCompletedSync) {
+            // Yielding here prevents this operation from running about 1 million times a second,
+            // which may be battering the UI thread with IsRunning being switched so often.
+            // Yielding brings it down to about 15,000 times a second.
+            // Of course, may be different for faster/slower systems than a ryzen 5
+            await Task.Yield();
         }
     }
 
@@ -135,17 +125,15 @@ public abstract class BaseSequenceOperation : ITransferableData {
     /// Invoked on all operations before any operation is run. 
     /// </summary>
     protected internal virtual void OnSequenceStarted() {
-        
     }
-    
+
     /// <summary>
     /// Invoked on all operations after the sequence has finished. <see cref="RunOperation"/> may
     /// not have actually been called (maybe sequence was stopped mid-way or conditions not met)
     /// </summary>
     protected internal virtual void OnSequenceStopped() {
-        
     }
-    
+
     /// <summary>
     /// Runs this operation
     /// </summary>
@@ -154,7 +142,7 @@ public abstract class BaseSequenceOperation : ITransferableData {
     /// <returns>A task that represents the operation</returns>
     protected abstract Task RunOperation(SequenceExecutionContext ctx, CancellationToken token);
 
-    internal static void InternalSetSequence(BaseSequenceOperation operation, TaskSequence? sequence) => operation.Sequence = sequence;
+    internal static void InternalSetSequence(BaseSequenceOperation operation, TaskSequence? sequence) => operation.TaskSequence = sequence;
 
     /// <summary>
     /// Creates a clone of this operation as if the user created it by hand.

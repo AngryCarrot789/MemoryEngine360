@@ -53,11 +53,11 @@ public class DeleteOperationSelectionCommand : Command {
         }
 
         List<IOperationItemUI> items = ui.OperationSelectionManager.SelectedItems.ToList();
-        Debug.Assert(items.All(x => x.Operation.Sequence == task));
+        Debug.Assert(items.All(x => x.Operation.TaskSequence == task));
         
         ui.OperationSelectionManager.Clear();
         foreach (IOperationItemUI item in items) {
-            bool removed = item.Operation.Sequence!.Operations.Remove(item.Operation);
+            bool removed = item.Operation.TaskSequence!.Operations.Remove(item.Operation);
             Debug.Assert(removed);
         }
     }

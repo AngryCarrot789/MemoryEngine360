@@ -95,11 +95,6 @@ public abstract class BaseSequenceCondition {
     /// <param name="cache"></param>
     /// <param name="cancellationToken"></param>
     public async Task UpdateCondition(SequenceExecutionContext ctx, CachedConditionData cache, CancellationToken cancellationToken) {
-        if (!this.IsEnabled) {
-            this.IsCurrentlyMet = false;
-            return;
-        }
-        
         bool isMet = await this.IsConditionMetCore(ctx, cache, cancellationToken);
         bool isMetFinal;
         lock (this.lockObject) {

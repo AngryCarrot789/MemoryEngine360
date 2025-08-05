@@ -19,6 +19,8 @@
 
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.VisualTree;
 using MemEngine360.Engine;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Contexts;
@@ -75,6 +77,14 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
     public SequenceListBoxItem() {
         this.nameBinder.AttachControl(this);
         this.AddBinderForModel(this.nameBinder, this.busyLockPriorityBinder, this.runCountBinder);
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e) {
+        base.OnPointerPressed(e);
+
+        if (e.KeyModifiers == KeyModifiers.None && this.ListBox?.GetVisualRoot() is TaskSequencerWindow window) {
+            window.OnSequenceItemTapped(this);
+        }
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {

@@ -19,6 +19,7 @@
 
 using System.Xml;
 using MemEngine360.Engine.Modes;
+using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Utils;
 
@@ -72,7 +73,7 @@ public class XmlTaskSequenceSerialization {
         operationNameToTypeInfo.Add(uniqueName, typeOfOperation);
         operationTypeToRegistrationInfo.Add(typeOfOperation, new OperationEntry(uniqueName, serializer, deserializer));
     }
-    
+
     public static void SaveToDocument(XmlDocument document, IList<TaskSequence> sequences) {
         XmlElement xmlSequenceList = (XmlElement) document.AppendChild(document.CreateElement("TaskSequenceList"))!;
         foreach (TaskSequence sequence in sequences) {
@@ -85,7 +86,7 @@ public class XmlTaskSequenceSerialization {
             throw new Exception("Missing TaskSequenceList in document");
         return DeserializeSequenceList(listElement);
     }
-    
+
     public static List<TaskSequence> DeserializeSequenceList(XmlElement xmlSequenceList) {
         List<TaskSequence> list = new List<TaskSequence>();
         foreach (XmlElement xmlSequence in xmlSequenceList.GetElementsByTagName("Sequence").OfType<XmlElement>()) {
@@ -106,7 +107,7 @@ public class XmlTaskSequenceSerialization {
                 SaveCondition(document, xmlConditionList, condition);
             }
         }
-        
+
         if (sequence.Operations.Count > 0) {
             XmlElement xmlOperationList = (XmlElement) element.AppendChild(document.CreateElement("OperationList"))!;
             foreach (BaseSequenceOperation operation in sequence.Operations.ToList()) {
@@ -114,7 +115,7 @@ public class XmlTaskSequenceSerialization {
             }
         }
     }
-    
+
     public static TaskSequence DeserializeSequence(XmlElement element) {
         int runCount;
         string runCountText = element.GetAttribute("RunCount");
@@ -122,10 +123,10 @@ public class XmlTaskSequenceSerialization {
             runCount = -1;
         else if (!int.TryParse(runCountText, out runCount))
             throw new Exception("Invalid run count text: " + runCountText);
-        
+
         if (!bool.TryParse(element.GetAttribute("BusyLockPriority"), out bool busyLock))
             throw new Exception("Invalid bool for BusyLockPriority: " + runCountText);
-        
+
         TaskSequence sequence = new TaskSequence() {
             DisplayName = element.GetAttribute("DisplayName"),
             RunCount = runCount,
@@ -137,11 +138,15 @@ public class XmlTaskSequenceSerialization {
                 sequence.Conditions.Add(DeserializeCondition(conditionElement));
             }
         }
-        
+
         if (element.GetElementsByTagName("OperationList").OfType<XmlElement>().FirstOrDefault() is XmlElement operationListElement) {
             foreach (XmlElement operationElement in operationListElement.GetElementsByTagName("Operation").OfType<XmlElement>()) {
                 sequence.Operations.Add(DeserializeOperation(operationElement));
             }
+        }
+
+        foreach (JumpToLabelOperation op in sequence.Operations.OfType<JumpToLabelOperation>()) {
+            op.UpdateTargetLabelForName();
         }
         
         return sequence;
@@ -163,7 +168,7 @@ public class XmlTaskSequenceSerialization {
             }
         }
     }
-    
+
     public static BaseSequenceCondition DeserializeCondition(XmlElement element) {
         if (!conditionNameToTypeInfo.TryGetValue(element.GetAttribute("TypeName"), out Type? objType))
             throw new Exception($"No such condition type: '{element.GetAttribute("TypeName")}'");
@@ -201,6 +206,13 @@ public class XmlTaskSequenceSerialization {
             xmlRandomTriggerInfo.SetAttribute("Chance", operation.RandomTriggerHelper.Chance.ToString());
             xmlRandomTriggerInfo.SetAttribute("MinimumTriesToTrigger", operation.RandomTriggerHelper.MinimumTriesToTrigger.ToString());
         }
+        
+        if (operation.Conditions.Count > 0) {
+            XmlElement xmlConditionList = (XmlElement) element.AppendChild(document.CreateElement("ConditionList"))!;
+            foreach (BaseSequenceCondition condition in operation.Conditions.ToList()) {
+                SaveCondition(document, xmlConditionList, condition);
+            }
+        }
 
         for (Type? type = operation.GetType(); type != null; type = type.BaseType) {
             if (operationTypeToRegistrationInfo.TryGetValue(type, out OperationEntry info)) {
@@ -208,7 +220,7 @@ public class XmlTaskSequenceSerialization {
             }
         }
     }
-    
+
     public static BaseSequenceOperation DeserializeOperation(XmlElement element) {
         if (!operationNameToTypeInfo.TryGetValue(element.GetAttribute("TypeName"), out Type? objType))
             throw new Exception($"No such condition type: '{element.GetAttribute("TypeName")}'");
@@ -224,11 +236,12 @@ public class XmlTaskSequenceSerialization {
                 throw new Exception($"Invalid time for WaitForTriggerInterval '{randomTriggerElement.GetAttribute("WaitForTriggerInterval")}'. {errorMessage}");
             theWaitTime = waitTime;
         }
-        
+
         if (!uint.TryParse(randomTriggerElement.GetAttribute("Chance"), out uint chance))
             throw new Exception("Invalid uint for Chance: " + randomTriggerElement.GetAttribute("Chance"));
         if (!uint.TryParse(randomTriggerElement.GetAttribute("MinimumTriesToTrigger"), out uint minTries))
             throw new Exception("Invalid uint for MinimumTriesToTrigger: " + randomTriggerElement.GetAttribute("MinimumTriesToTrigger"));
+
         BaseSequenceOperation operation = (BaseSequenceOperation) Activator.CreateInstance(objType)!;
         operation.IsEnabled = isEnabled;
         operation.RandomTriggerHelper.WaitForTriggerInterval = theWaitTime;
@@ -238,6 +251,12 @@ public class XmlTaskSequenceSerialization {
         for (Type? type = operation.GetType(); type != null; type = type.BaseType) {
             if (operationTypeToRegistrationInfo.TryGetValue(type, out OperationEntry info)) {
                 info.Deserializer(element, operation);
+            }
+        }
+        
+        if (element.GetElementsByTagName("ConditionList").OfType<XmlElement>().FirstOrDefault() is XmlElement conditionListElement) {
+            foreach (XmlElement conditionElement in conditionListElement.GetElementsByTagName("Condition").OfType<XmlElement>()) {
+                operation.Conditions.Add(DeserializeCondition(conditionElement));
             }
         }
 

@@ -164,6 +164,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.StopSelectedSequencesCommand", new StopSelectedSequencesCommand());
         manager.Register("commands.sequencer.RunSequenceCommand", new RunSequenceCommand());
         manager.Register("commands.sequencer.ToggleOperationEnabledCommand", new ToggleOperationEnabledCommand());
+        manager.Register("commands.sequencer.ToggleOperationConditionBehaviourCommand", new ToggleOperationConditionBehaviourCommand());
         manager.Register("commands.sequencer.ToggleConditionEnabledCommand", new ToggleConditionEnabledCommand());
         manager.Register("commands.sequencer.SaveTaskSequencesCommand", new SaveTaskSequencesCommand());
         manager.Register("commands.sequencer.LoadTaskSequencesCommand", new LoadTaskSequencesCommand());
@@ -222,7 +223,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         MemoryEngineBrushLoader.Init();
         ThemeManagerImpl manager = (ThemeManagerImpl) this.ServiceManager.GetService<ThemeManager>();
         Theme darkTheme = manager.GetThemeByVariant(ThemeVariant.Dark)!;
-        
+
         Theme redTheme = manager.RegisterTheme("Red Theme (Built In)", darkTheme, false);
         redTheme.SetThemeColour("ABrush.Tone1.Background.Static", SKColor.Parse("ff181818"));
         redTheme.SetThemeColour("ABrush.Tone2.Background.Static", SKColor.Parse("ff2e0000"));
@@ -237,7 +238,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         redTheme.SetThemeColour("ABrush.Tone4.Border.Static", SKColor.Parse("ff810000"));
         redTheme.SetThemeColour("ABrush.Tone6.Background.Static", SKColor.Parse("ffb60000"));
         redTheme.SetThemeColour("ABrush.Tone6.Border.Static", SKColor.Parse("ffb80000"));
-        
+
         Theme hcTheme = manager.RegisterTheme("High Contrast (Built In)", darkTheme, false);
         hcTheme.SetThemeColour("ABrush.Foreground.Static", SKColor.Parse("ffededed"));
         hcTheme.SetThemeColour("ABrush.Tone0.Background.Static", SKColors.Black);
@@ -333,6 +334,29 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             if (!TimeSpanUtils.TryParseTime(element.GetAttribute("Delay"), out TimeSpan delay, out string? errorMessage))
                 throw new Exception($"Invalid delay value '{element.GetAttribute("Delay")}'. " + errorMessage);
             op.Delay = delay;
+        });
+
+        XmlTaskSequenceSerialization.RegisterOperation("JumpTo", typeof(JumpToLabelOperation), (document, element, _op) => {
+            JumpToLabelOperation op = (JumpToLabelOperation) _op;
+            element.SetAttribute("TargetName", op.CurrentTarget?.LabelName);
+        }, (element, _op) => {
+            JumpToLabelOperation op = (JumpToLabelOperation) _op;
+            string name = element.GetAttribute("TargetName");
+            // targets will be updated once all operations are fully deserialized
+            op.SetTarget(string.IsNullOrWhiteSpace(name) ? null : name, null);
+        });
+
+        XmlTaskSequenceSerialization.RegisterOperation("Label", typeof(LabelOperation), (document, element, _op) => {
+            LabelOperation op = (LabelOperation) _op;
+            element.SetAttribute("Name", op.LabelName);
+        }, (element, _op) => {
+            LabelOperation op = (LabelOperation) _op;
+            string name = element.GetAttribute("Name");
+            op.LabelName = string.IsNullOrWhiteSpace(name) ? null : name;
+        });
+
+        XmlTaskSequenceSerialization.RegisterOperation("StopSequence", typeof(StopSequenceOperation), (document, element, _op) => {
+        }, (element, _op) => {
         });
 
         XmlTaskSequenceSerialization.RegisterOperation("SetMemory", typeof(SetMemoryOperation), (document, element, _op) => {

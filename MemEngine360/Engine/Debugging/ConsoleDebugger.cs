@@ -469,14 +469,14 @@ public class ConsoleDebugger {
     public void CheckConnection() {
         IConsoleConnection? conn = this.Connection;
         if (conn != null && !conn.IsConnected) {
-            using (IDisposable? token1 = this.BusyLock.BeginBusyOperation()) {
+            using (IDisposable? token1 = this.BusyLock.TryBeginBusyOperation()) {
                 if (token1 != null && this.TryDisconnectForLostConnection(token1)) {
                     return;
                 }
             }
 
             ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                using IDisposable? token2 = this.BusyLock.BeginBusyOperation();
+                using IDisposable? token2 = this.BusyLock.TryBeginBusyOperation();
                 if (token2 != null)
                     this.TryDisconnectForLostConnection(token2);
             }, DispatchPriority.Background);

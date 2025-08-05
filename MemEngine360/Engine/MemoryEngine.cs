@@ -61,7 +61,7 @@ public class MemoryEngine {
     /// Gets the current console connection. This can only change on the main thread
     /// <para>
     /// It's crucial that when using any command that requires sending/receiving data from the console that
-    /// it is synchronized with <see cref="BeginBusyOperation"/> or any of the async overloads, because,
+    /// it is synchronized with <see cref="TryBeginBusyOperation"/> or any of the async overloads, because,
     /// connections may not be thread-safe (but may implement fail-safety when trying to read/write concurrently)
     /// </para>
     /// <para>
@@ -301,15 +301,15 @@ public class MemoryEngine {
     }
 
     /// <summary>
-    /// Begins a busy operation that uses the <see cref="Connection"/>. Dispose to finish the busy operation.
+    /// Tries to begin a busy operation that uses the <see cref="Connection"/>. Dispose to finish the busy operation.
     /// <para>
     /// It is vital to use the busy-operation system when reading from or writing to the <see cref="Connection"/>,
     /// because the connection may not support concurrent commands, which may result in corruption in the pipeline
     /// </para>
     /// </summary>
     /// <returns>A token to dispose when the operation is completed. Returns null if currently busy</returns>
-    public IDisposable? BeginBusyOperation() {
-        return this.busyLocker.BeginBusyOperation();
+    public IDisposable? TryBeginBusyOperation() {
+        return this.busyLocker.TryBeginBusyOperation();
     }
 
     /// <summary>
@@ -341,7 +341,7 @@ public class MemoryEngine {
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
     public Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...", CancellationTokenSource? cancellationTokenSource = null) {
-        IDisposable? token = this.BeginBusyOperation();
+        IDisposable? token = this.TryBeginBusyOperation();
         if (token != null)
             return Task.FromResult<IDisposable?>(token);
 
@@ -396,14 +396,14 @@ public class MemoryEngine {
             return;
         }
 
-        using (IDisposable? token1 = this.BeginBusyOperation()) {
+        using (IDisposable? token1 = this.TryBeginBusyOperation()) {
             if (token1 != null && this.TryDisconnectForLostConnection(token1, likelyCause)) {
                 return;
             }
         }
 
         ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-            using IDisposable? token2 = this.BeginBusyOperation();
+            using IDisposable? token2 = this.TryBeginBusyOperation();
             if (token2 != null)
                 this.TryDisconnectForLostConnection(token2, likelyCause);
         }, DispatchPriority.Background);

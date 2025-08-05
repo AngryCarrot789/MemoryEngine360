@@ -70,7 +70,7 @@ public sealed class BusyLock {
     /// Tries to take the token, or returns null if already busy. Dispose the returned object to finish the busy operation.
     /// </summary>
     /// <returns>A token to dispose when the operation is completed. Returns null if currently busy</returns>
-    public IDisposable? BeginBusyOperation() {
+    public IDisposable? TryBeginBusyOperation() {
         bool lockTaken = false;
         Lock lockObj = this.CriticalLock;
 
@@ -98,7 +98,7 @@ public sealed class BusyLock {
     /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
     /// <returns>The acquired token, or null if the task was cancelled</returns>
     public async Task<IDisposable?> BeginBusyOperationAsync(CancellationToken cancellationToken) {
-        IDisposable? token = this.BeginBusyOperation();
+        IDisposable? token = this.TryBeginBusyOperation();
         if (token != null)
             return token;
 
@@ -118,7 +118,7 @@ public sealed class BusyLock {
         if (timeoutMilliseconds < -1)
             throw new ArgumentOutOfRangeException(nameof(timeoutMilliseconds), "Timeout milliseconds cannot be below -1");
 
-        IDisposable? token = this.BeginBusyOperation();
+        IDisposable? token = this.TryBeginBusyOperation();
         if (token != null)
             return token;
 
@@ -161,7 +161,7 @@ public sealed class BusyLock {
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
     public async Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...", CancellationTokenSource? cancellationTokenSource = null) {
-        IDisposable? token = this.BeginBusyOperation();
+        IDisposable? token = this.TryBeginBusyOperation();
         if (token == null) {
             return await this.BeginBusyOperationActivityAsync(new ConcurrentActivityProgress() { Caption = caption, Text = message }, cancellationTokenSource).ConfigureAwait(false);
         }
@@ -180,7 +180,7 @@ public sealed class BusyLock {
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
     public async Task<IDisposable?> BeginBusyOperationActivityAsync(IActivityProgress progress, CancellationTokenSource? cancellationTokenSource = null) {
-        IDisposable? token = this.BeginBusyOperation();
+        IDisposable? token = this.TryBeginBusyOperation();
         if (token == null) {
             CancellationTokenSource cts = cancellationTokenSource ?? new CancellationTokenSource();
             token = await ActivityManager.Instance.RunTask(() => {
@@ -251,9 +251,7 @@ public sealed class BusyLock {
                     return null;
                 }
             }
-            // stoopid IDE, using the async overload could cause stack overflow if we get really unlucky in lock taking
-            // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-        } while ((token = this.BeginBusyOperation()) == null);
+        } while ((token = this.TryBeginBusyOperation()) == null);
 
         return token;
     }

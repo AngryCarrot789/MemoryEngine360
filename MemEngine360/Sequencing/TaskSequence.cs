@@ -19,6 +19,8 @@
 
 using System.Diagnostics;
 using MemEngine360.Connections;
+using MemEngine360.Sequencing.Conditions;
+using MemEngine360.Sequencing.Operations;
 using PFXToolKitUI;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
@@ -33,7 +35,7 @@ public delegate void TaskSequenceDedicatedConnectionChangedEventHandler(TaskSequ
 /// <summary>
 /// A sequence that contains a list of operations
 /// </summary>
-public sealed class TaskSequence {
+public sealed class TaskSequence : IConditionsHost {
     internal TaskSequencerManager? myManager;
     private string displayName = "Empty Sequence";
     private int runCount = 1;
@@ -122,6 +124,8 @@ public sealed class TaskSequence {
     /// </summary>
     public ObservableList<BaseSequenceOperation> Operations { get; }
 
+    TaskSequence IConditionsHost.TaskSequence => this;
+
     /// <summary>
     /// Gets the list of conditions that must be met for this sequence to run.
     /// </summary>
@@ -150,9 +154,9 @@ public sealed class TaskSequence {
         this.Operations.BeforeItemAdded += (list, index, item) => {
             if (item == null)
                 throw new ArgumentNullException(nameof(item), "Cannot add a null operation");
-            if (item.Sequence == this)
+            if (item.TaskSequence == this)
                 throw new InvalidOperationException("Operation already exists in this operation. It must be removed first");
-            if (item.Sequence != null)
+            if (item.TaskSequence != null)
                 throw new InvalidOperationException("Operation already exists in another container. It must be removed first");
             this.CheckNotRunning("Cannot modify sequence list while running");
         };
@@ -166,9 +170,37 @@ public sealed class TaskSequence {
         };
 
         this.Operations.ItemsAdded += (list, index, items) => items.ForEach(this, BaseSequenceOperation.InternalSetSequence);
-        this.Operations.ItemsRemoved += (list, index, items) => items.ForEach((TaskSequence?) null, BaseSequenceOperation.InternalSetSequence);
+        this.Operations.ItemsRemoved += (list, index, removedItems) => {
+            List<LabelOperation>? removedLabels = null;
+
+            foreach (BaseSequenceOperation operation in removedItems) {
+                BaseSequenceOperation.InternalSetSequence(operation, null);
+                if (operation is LabelOperation label) {
+                    (removedLabels ??= new List<LabelOperation>()).Add(label);
+                }
+            }
+
+            if (removedLabels != null) {
+                foreach (JumpToLabelOperation ope in this.Operations.OfType<JumpToLabelOperation>()) {
+                    if (ope.TargetLabel != null && ope.CurrentTarget != null && removedLabels.Contains(ope.CurrentTarget)) {
+                        ope.SetTarget(ope.TargetLabel, null);
+                    }
+                }
+            }
+        };
+        
         this.Operations.ItemReplaced += (list, index, oldItem, newItem) => {
             BaseSequenceOperation.InternalSetSequence(oldItem, null);
+            if (oldItem is LabelOperation label) {
+                foreach (JumpToLabelOperation ope in this.Operations.OfType<JumpToLabelOperation>()) {
+                    if (ope.TargetLabel != null && ope.CurrentTarget == label) {
+                        // Replacing an item in a list seems more like a removal operation to me,
+                        // so I think clearing the target is a better idea here. Though maybe it isn't.
+                        ope.SetTarget(ope.TargetLabel, null);
+                    }
+                }
+            }
+
             BaseSequenceOperation.InternalSetSequence(newItem, this);
         };
 
@@ -240,22 +272,25 @@ public sealed class TaskSequence {
         this.Progress.IsIndeterminate = true;
 
         List<BaseSequenceOperation> operations = this.Operations.ToList();
-        List<BaseSequenceCondition> conditions = this.Conditions.ToList();
-        foreach (BaseSequenceOperation operation in operations)
+        foreach (BaseSequenceOperation operation in operations) {
             operation.OnSequenceStarted();
-        foreach (BaseSequenceCondition condition in conditions)
+            foreach (BaseSequenceCondition condition in operation.Conditions)
+                condition.OnSequenceStarted();
+        }
+
+        foreach (BaseSequenceCondition condition in this.Conditions)
             condition.OnSequenceStarted();
 
         CancellationToken token = this.myCts.Token;
         Task task = Task.Run(async () => {
             int remainingRunCount = this.runCount;
             while ((remainingRunCount < 0 || remainingRunCount != 0) && !token.IsCancellationRequested) {
-                if (conditions.Count > 0) {
-                    this.Progress.Text = "Checking conditions...";
+                if (this.Conditions.Count > 0) {
+                    this.Progress.Text = "Updating sequence conditions";
                     this.Progress.IsIndeterminate = true;
 
                     try {
-                        Task<bool> updateTask = this.UpdateConditionsAndCheckCanRun(conditions, token);
+                        Task<bool> updateTask = this.UpdateConditionsAndCheckCanRun(this, token);
                         bool canRun = await updateTask;
                         if (!canRun) {
                             await Task.Delay(10, token);
@@ -272,9 +307,9 @@ public sealed class TaskSequence {
 
                     this.Progress.IsIndeterminate = false;
 
-                    // Even though there's no operations to run, the user may want to just
+                    // Even though there's no valid operations to run, the user may want to just
                     // see a condition's output. We add a delay to save some CPU cycles
-                    if (!operations.Any(x => x.IsEnabled)) {
+                    if (!operations.Any(x => x.IsEnabled && !(x is IPlaceholderOperation))) {
                         await Task.Delay(10, token);
                     }
                 }
@@ -286,16 +321,76 @@ public sealed class TaskSequence {
 
                 if (operations.Count > 0) {
                     this.Progress.Text = "Running operation(s)";
-                    foreach (BaseSequenceOperation operation in operations) {
-                        try {
-                            await operation.Run(this.myContext, token);
-                        }
-                        catch (OperationCanceledException) {
+                    for (int i = 0; i < operations.Count; i++) {
+                        if (token.IsCancellationRequested) {
                             return;
                         }
-                        catch (Exception e) {
-                            this.LastException = e;
-                            return;
+
+                        BaseSequenceOperation operation = operations[i];
+                        if (operation is IPlaceholderOperation) {
+                            await Task.Yield();
+                        }
+                        else {
+                            try {
+                                operation.IsRunning = true;
+                                bool bCanRun = true;
+                                if (operation.Conditions.Count > 0) {
+                                    this.Progress.Text = "Updating operation conditions";
+                                    this.Progress.IsIndeterminate = true;
+
+                                    try {
+                                        do {
+                                            if (await this.UpdateConditionsAndCheckCanRun(operation, token)) {
+                                                break;
+                                            }
+
+                                            switch (operation.ConditionBehaviour) {
+                                                case OperationConditionBehaviour.Wait: await Task.Delay(10, token); break;
+                                                case OperationConditionBehaviour.Skip: bCanRun = false; break;
+                                                default:                               throw new ArgumentOutOfRangeException();
+                                            }
+                                        } while (bCanRun);
+                                    }
+                                    catch (OperationCanceledException) {
+                                        return;
+                                    }
+                                    catch (Exception e) {
+                                        this.LastException = e;
+                                        return;
+                                    }
+
+                                    this.Progress.IsIndeterminate = false;
+                                }
+
+                                if (bCanRun) {
+                                    this.Progress.Text = "Running operation(s)";
+                                    if (operation is JumpToLabelOperation jump) {
+                                        if (jump.IsEnabled && jump.CurrentTarget != null && jump.CurrentTarget.TaskSequence == this /* should be impossible to be null */) {
+                                            int idx = this.IndexOf(jump.CurrentTarget);
+                                            Debug.Assert(idx != -1);
+
+                                            i = idx - 1;
+                                        }
+
+                                        await Task.Yield();
+                                    }
+                                    else {
+                                        try {
+                                            await operation.Run(this.myContext, token);
+                                        }
+                                        catch (OperationCanceledException) {
+                                            return;
+                                        }
+                                        catch (Exception e) {
+                                            this.LastException = e;
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                            finally {
+                                operation.IsRunning = false;
+                            }
                         }
                     }
                 }
@@ -318,9 +413,13 @@ public sealed class TaskSequence {
             this.LastException = e;
         }
 
-        foreach (BaseSequenceOperation operation in operations)
+        foreach (BaseSequenceOperation operation in operations) {
             operation.OnSequenceStopped();
-        foreach (BaseSequenceCondition condition in conditions)
+            foreach (BaseSequenceCondition condition in operation.Conditions)
+                condition.OnSequenceStopped();
+        }
+
+        foreach (BaseSequenceCondition condition in this.Conditions)
             condition.OnSequenceStopped();
 
         this.Progress.Text = "Sequence finished";
@@ -332,12 +431,14 @@ public sealed class TaskSequence {
         this.myTcs = null;
     }
 
-    private async Task<bool> UpdateConditionsAndCheckCanRun(List<BaseSequenceCondition> conditions, CancellationToken cancellationToken) {
+    private async Task<bool> UpdateConditionsAndCheckCanRun(IConditionsHost conditionsHost, CancellationToken cancellationToken) {
         CachedConditionData cache = new CachedConditionData();
         bool isConditionMet = true;
-        foreach (BaseSequenceCondition condition in conditions) {
+        foreach (BaseSequenceCondition condition in conditionsHost.Conditions) {
             await condition.UpdateCondition(this.myContext!, cache, cancellationToken);
-            isConditionMet &= condition.IsCurrentlyMet;
+
+            // maintain met state when disabled
+            isConditionMet &= !condition.IsEnabled || condition.IsCurrentlyMet;
         }
 
         return isConditionMet;
@@ -364,7 +465,7 @@ public sealed class TaskSequence {
     }
 
     public int IndexOf(BaseSequenceOperation entry) {
-        if (!ReferenceEquals(entry.Sequence, this))
+        if (!ReferenceEquals(entry.TaskSequence, this))
             return -1;
         int idx = this.Operations.IndexOf(entry);
         Debug.Assert(idx != -1);

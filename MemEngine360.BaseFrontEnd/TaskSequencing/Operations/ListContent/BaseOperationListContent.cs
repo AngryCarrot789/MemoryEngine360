@@ -42,11 +42,14 @@ public class BaseOperationListContent : UserControl {
 
     public BaseOperationListContent() {
     }
-    
+
     static BaseOperationListContent() {
         OperationProperty.Changed.AddClassHandler<BaseOperationListContent, BaseSequenceOperation?>((o, e) => o.OnOperationChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
         Registry.RegisterType(typeof(DelayOperation), () => new DelayOperationListContent());
         Registry.RegisterType(typeof(SetMemoryOperation), () => new SetMemoryOperationListContent());
+        Registry.RegisterType(typeof(LabelOperation), () => new LabelOperationListContent());
+        Registry.RegisterType(typeof(JumpToLabelOperation), () => new JumpToOperationListContent());
+        Registry.RegisterType(typeof(StopSequenceOperation), () => new StopSequenceOperationListContent());
     }
 
     protected virtual void OnOperationChanged(BaseSequenceOperation? oldOperation, BaseSequenceOperation? newOperation) {
@@ -63,6 +66,8 @@ public class BaseOperationListContent : UserControl {
 
     private void UpdateOpacity() {
         BaseSequenceOperation? operation = this.Operation;
-        this.Opacity = operation == null || operation.IsEnabled ? 1.0 : 0.5;
+        this.Opacity = operation == null || operation is LabelOperation /* disabled label means nothing */ || operation.IsEnabled
+            ? 1.0
+            : 0.5;
     }
 }

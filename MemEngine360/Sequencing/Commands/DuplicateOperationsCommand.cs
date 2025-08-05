@@ -44,7 +44,7 @@ public class DuplicateOperationsCommand : Command {
         }
         
         List<(BaseSequenceOperation Operation, int Idx)> clones = ui.OperationSelectionManager.SelectedItemList.
-                                                                     Select(x => (Seq: x.Operation.CreateClone(), Idx: x.Operation.Sequence!.IndexOf(x.Operation))).
+                                                                     Select(x => (Seq: x.Operation.CreateClone(), Idx: x.Operation.TaskSequence!.IndexOf(x.Operation))).
                                                                      OrderBy(x => x.Idx).ToList();
         int offset = 1; // +1 to add after the existing item
         foreach ((BaseSequenceOperation Operation, int Idx) item in clones) {

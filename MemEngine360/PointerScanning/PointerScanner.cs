@@ -368,7 +368,7 @@ public class PointerScanner {
         options.ActivityTask.CheckCancelled();
         PointerPrivate basePtr = chain[chain.Count - 1];
 
-        if (((ConcurrentActivityProgress) options.ActivityTask.Progress).HasTextUpdated) {
+        if (((ConcurrentActivityProgress) options.ActivityTask.Progress).IsTextClean) {
             options.currentChain = (chain, currDepth);
         }
 

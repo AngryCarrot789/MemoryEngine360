@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using PFXToolKitUI.AdvancedMenuService;
 
 namespace MemEngine360.Sequencing.Contexts;
@@ -46,7 +47,28 @@ public static class OperationsContextRegistry {
             }
         });
         
+        CommandContextEntry entry = actions.AddCommand("commands.sequencer.ToggleOperationConditionBehaviourCommand", "Skip when conditions not met", "Skips over this operation when conditions not met, otherwise, wait until they are met");
+        entry.IsCheckedFunction = e => {
+            if (e.CapturedContext != null && IOperationItemUI.DataKey.TryGetContext(e.CapturedContext, out IOperationItemUI? operation)) {
+                return operation.Operation.ConditionBehaviour == OperationConditionBehaviour.Skip;
+            }
+            
+            return false;
+        };
+
+        entry.AddContextChangeHandler(IOperationItemUI.DataKey, (e, oldUI, newUI) => {
+            if (oldUI != null)
+                oldUI.Operation.ConditionBehaviourChanged -= OperationOnConditionBehaviourChanged;
+            if (newUI != null)
+                newUI.Operation.ConditionBehaviourChanged += OperationOnConditionBehaviourChanged;
+        });
+
         actions.AddSeparator();
         actions.AddCommand("commands.sequencer.DeleteOperationSelectionCommand", "Delete");
+        return;
+
+        void OperationOnConditionBehaviourChanged(BaseSequenceOperation sender) {
+            entry.RaiseIsCheckedChanged();
+        }
     }
 }

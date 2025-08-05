@@ -66,7 +66,7 @@ public class RunSequenceCommand : Command {
         }
 
         IDisposable? token = null;
-        if (sequence.HasBusyLockPriority && (token = sequence.Manager.MemoryEngine.BeginBusyOperation()) == null) {
+        if (sequence.HasBusyLockPriority && (token = sequence.Manager.MemoryEngine.TryBeginBusyOperation()) == null) {
             using CancellationTokenSource cts = new CancellationTokenSource();
             token = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;

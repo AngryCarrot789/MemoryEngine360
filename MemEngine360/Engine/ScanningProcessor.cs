@@ -43,75 +43,6 @@ public delegate void ScanningProcessorScanRangeChangedEventHandler(ScanningProce
 
 public delegate void UnknownDataTypeOptionsEventHandler(UnknownDataTypeOptions sender);
 
-// Separate class because the ScanningProcessor is already stuffed full enough of properties
-public sealed class UnknownDataTypeOptions {
-    /// <summary>
-    /// Do not add/remove items!!! Only move them
-    /// </summary>
-    public ObservableList<ScanningOrderModel> Orders { get; }
-
-    private bool canSearchForFloat = true;
-    private bool canSearchForDouble = true;
-    private bool canSearchForString = true;
-    private bool canRunNextScanForByteArray = true;
-
-    public bool CanSearchForByte => this.Orders[0].IsEnabled;
-
-    public bool CanSearchForShort => this.Orders[1].IsEnabled;
-
-    public bool CanSearchForInt => this.Orders[2].IsEnabled;
-
-    public bool CanSearchForLong => this.Orders[3].IsEnabled;
-
-    public bool CanSearchForFloat {
-        get => this.canSearchForFloat;
-        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForFloat, value, this, static t => t.CanSearchForFloatChanged?.Invoke(t));
-    }
-
-    public bool CanSearchForDouble {
-        get => this.canSearchForDouble;
-        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForDouble, value, this, static t => t.CanSearchForDoubleChanged?.Invoke(t));
-    }
-
-    public bool CanSearchForString {
-        get => this.canSearchForString;
-        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForString, value, this, static t => t.CanSearchForStringChanged?.Invoke(t));
-    }
-
-    public bool CanRunNextScanForByteArray {
-        get => this.canRunNextScanForByteArray;
-        set => PropertyHelper.SetAndRaiseINE(ref this.canRunNextScanForByteArray, value, this, static t => t.CanRunNextScanForByteArrayChanged?.Invoke(t));
-    }
-
-    public event UnknownDataTypeOptionsEventHandler? CanSearchForFloatChanged;
-    public event UnknownDataTypeOptionsEventHandler? CanSearchForDoubleChanged;
-    public event UnknownDataTypeOptionsEventHandler? CanSearchForStringChanged;
-    public event UnknownDataTypeOptionsEventHandler? CanRunNextScanForByteArrayChanged;
-
-    public UnknownDataTypeOptions() {
-        this.Orders = new ObservableList<ScanningOrderModel>() {
-            new ScanningOrderModel(DataType.Int32),
-            new ScanningOrderModel(DataType.Int16),
-            new ScanningOrderModel(DataType.Byte),
-            new ScanningOrderModel(DataType.Int64),
-        };
-    }
-
-    /// <summary>
-    /// The order in which we scan integer types. Default order is int32, int16 , byte and finally int64.
-    /// This order is used because int32 is the most common data type, next to int16 and then byte. int64 is uncommon hence it's last. 
-    /// </summary>
-    public DataType[] GetIntDataTypeOrdering() {
-        DataType[] array = this.Orders.Select(x => x.DataType).ToArray();
-        Debug.Assert(array.Length == 4);
-        foreach (DataType dt in array) {
-            Debug.Assert(dt.IsInteger());
-        }
-
-        return array;
-    }
-}
-
 public class ScanningProcessor {
     private string inputA, inputB;
     private bool hasDoneFirstScan;
@@ -438,7 +369,7 @@ public class ScanningProcessor {
         if ((newStartAddress + newScanLength) < newStartAddress) {
             // should we just support 64 bit addresses?
             // I don't even think there's anything useful beyond 0xFFFFFFFF...
-            // and the xbox can't even physically address that far, apart from that one model with 4 gigs of ram
+            // and the xbox can't even physically address that far
             throw new ArgumentException("New scan range exceed size of UInt32; it requires a 64 bit address range, which is unsupported");
         }
 
@@ -721,7 +652,7 @@ public class ScanningProcessor {
             return; // nothing to update so do nothing
         }
 
-        using IDisposable? token = this.MemoryEngine.BeginBusyOperation();
+        using IDisposable? token = this.MemoryEngine.TryBeginBusyOperation();
         if (token == null) {
             return; // do not read while connection busy
         }
@@ -883,5 +814,77 @@ public class ScanningProcessor {
                     ? ConnectionChangeCause.LostConnection
                     : ConnectionChangeCause.ConnectionError);
         }
+    }
+}
+
+// Separate class because the ScanningProcessor is already stuffed full enough of properties
+public sealed class UnknownDataTypeOptions {
+    /// <summary>
+    /// Do not add/remove items!!! Only move them
+    /// </summary>
+    public ObservableList<ScanningOrderModel> Orders { get; }
+
+    private bool canSearchForFloat = true;
+    private bool canSearchForDouble = true;
+    private bool canSearchForString = true;
+    private bool canRunNextScanForByteArray = true;
+
+    public bool CanSearchForByte => this.Orders[0].IsEnabled;
+
+    public bool CanSearchForShort => this.Orders[1].IsEnabled;
+
+    public bool CanSearchForInt => this.Orders[2].IsEnabled;
+
+    public bool CanSearchForLong => this.Orders[3].IsEnabled;
+
+    public bool CanSearchForFloat {
+        get => this.canSearchForFloat;
+        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForFloat, value, this, static t => t.CanSearchForFloatChanged?.Invoke(t));
+    }
+
+    public bool CanSearchForDouble {
+        get => this.canSearchForDouble;
+        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForDouble, value, this, static t => t.CanSearchForDoubleChanged?.Invoke(t));
+    }
+
+    public bool CanSearchForString {
+        get => this.canSearchForString;
+        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForString, value, this, static t => t.CanSearchForStringChanged?.Invoke(t));
+    }
+
+    public bool CanRunNextScanForByteArray {
+        get => this.canRunNextScanForByteArray;
+        set => PropertyHelper.SetAndRaiseINE(ref this.canRunNextScanForByteArray, value, this, static t => t.CanRunNextScanForByteArrayChanged?.Invoke(t));
+    }
+
+    public event UnknownDataTypeOptionsEventHandler? CanSearchForFloatChanged;
+    public event UnknownDataTypeOptionsEventHandler? CanSearchForDoubleChanged;
+    public event UnknownDataTypeOptionsEventHandler? CanSearchForStringChanged;
+    public event UnknownDataTypeOptionsEventHandler? CanRunNextScanForByteArrayChanged;
+
+    public UnknownDataTypeOptions() {
+        this.Orders = new ObservableList<ScanningOrderModel>() {
+            new ScanningOrderModel(DataType.Int32),
+            new ScanningOrderModel(DataType.Int16),
+            new ScanningOrderModel(DataType.Byte),
+            new ScanningOrderModel(DataType.Int64),
+        };
+
+        this.Orders.BeforeItemAdded += (list, index, item) => throw new InvalidOperationException("Items cannot be added to this list");
+        this.Orders.BeforeItemsRemoved += (list, index, count) => throw new InvalidOperationException("Items cannot be removed from this list");
+    }
+
+    /// <summary>
+    /// The order in which we scan integer types. Default order is int32, int16 , byte and finally int64.
+    /// This order is used because int32 is the most common data type, next to int16 and then byte. int64 is uncommon hence it's last. 
+    /// </summary>
+    public DataType[] GetIntDataTypeOrdering() {
+        DataType[] array = this.Orders.Select(x => x.DataType).ToArray();
+        Debug.Assert(array.Length == 4);
+        foreach (DataType dt in array) {
+            Debug.Assert(dt.IsInteger());
+        }
+
+        return array;
     }
 }

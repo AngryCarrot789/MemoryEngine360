@@ -243,6 +243,18 @@
                                     BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                     Content="Delay" tt:ToolTipEx.Tip="Adds a pause into the sequence"
                                     Click="Button_InsertDelay"/>
+                            <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                    BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
+                                    Content="Jump To" tt:ToolTipEx.Tip="Adds a jump operation that will jump to a label"
+                                    Click="Button_InsertJumpTo"/>
+                            <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                    BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
+                                    Content="Label" tt:ToolTipEx.Tip="Adds a label that can be jumped to"
+                                    Click="Button_InsertLabel"/>
+                            <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                                    BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
+                                    Content="Stop Seq" tt:ToolTipEx.Tip="Adds an operation that stops the sequence. Ideally should be used with labels and jumps"
+                                    Click="Button_InsertStopSequence"/>
                             <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,1"/>
                             <avc:IconButton Padding="2" Width="24" BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                             tt:ToolTipEx.Tip="Clears all operations"
@@ -424,7 +436,7 @@
                                     <DockPanel LastChildFill="False" Height="22">
                                         <TextBlock Text="Conditions Panel" VerticalAlignment="Center" Padding="4,0,0,0"/>
                                         <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="5,3"/>
-                                        <TextBlock x:Name="PART_PrimarySelectedConditionText" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="PART_ConditionSourceName" VerticalAlignment="Center"/>
                                         <StackPanel Orientation="Horizontal" Spacing="1" Margin="1" DockPanel.Dock="Right">
                                             <Button Padding="3,0" BorderThickness="1"
                                                     Background="{DynamicResource ABrush.Tone7.Background.Static}"
