@@ -37,6 +37,7 @@ public class LabelOperation : BaseSequenceOperation, IPlaceholderOperation {
             if (string.IsNullOrWhiteSpace(value))
                 value = null;
             PropertyHelper.SetAndRaiseINE(ref this.labelName, value, this, static t => t.LabelNameChanged?.Invoke(t));
+            this.TaskSequence?.UpdateAllJumpTargets();
         }
     }
 
@@ -51,12 +52,14 @@ public class LabelOperation : BaseSequenceOperation, IPlaceholderOperation {
             return new LabelOperation();
         }
 
+        List<LabelOperation> labels = this.TaskSequence.Operations.OfType<LabelOperation>().ToList();
         if (!TextIncrement.GetIncrementableString(
-                x => this.TaskSequence.Operations.Any(op => op is LabelOperation label && x.Equals(label.LabelName, StringComparison.OrdinalIgnoreCase)),
+                x => labels.Count < 1 || labels.All(op => op.LabelName == null || !x.Equals(op.LabelName, StringComparison.OrdinalIgnoreCase)),
                 this.labelName,
                 out string? newLabelName,
-                canUseInitialInput: false /* current instance already uses this.labelName */))
+                canUseInitialInput: false /* current instance already uses this.labelName */)) {
             newLabelName = null;
+        }
 
         return new LabelOperation() { LabelName = newLabelName };
     }

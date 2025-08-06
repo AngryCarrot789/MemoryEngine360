@@ -64,9 +64,9 @@ public class JumpToLabelOperation : BaseSequenceOperation {
     }
 
     public override BaseSequenceOperation CreateClone() {
-        return new JumpToLabelOperation() {
-            CurrentTarget = this.CurrentTarget,
-        };
+        JumpToLabelOperation label = new JumpToLabelOperation();
+        label.SetTarget(this.TargetLabel, this.CurrentTarget);
+        return label;
     }
 
     public void SetTarget(string? targetName, LabelOperation? operation) {
@@ -89,27 +89,5 @@ public class JumpToLabelOperation : BaseSequenceOperation {
 
     private void OnCurrentTargetNameChanged(LabelOperation sender) {
         this.TargetLabel = sender.LabelName;
-    }
-
-    /// <summary>
-    /// Called after deserialization of a <see cref="TaskSequence"/> to try and
-    /// find a target label based on our <see cref="TargetLabel"/>
-    /// </summary>
-    public void UpdateTargetLabelForName() {
-        if (this.targetLabel == null) {
-            Debug.Assert(this.CurrentTarget == null);
-            return;
-        }
-
-        if (this.TaskSequence == null) {
-            return;
-        }
-
-        foreach (BaseSequenceOperation operation in this.TaskSequence.Operations) {
-            if (operation is LabelOperation label && this.targetLabel.Equals(label.LabelName, StringComparison.OrdinalIgnoreCase)) {
-                this.SetTarget(this.targetLabel, label);
-                return;
-            }
-        }
     }
 }

@@ -145,9 +145,7 @@ public class XmlTaskSequenceSerialization {
             }
         }
 
-        foreach (JumpToLabelOperation op in sequence.Operations.OfType<JumpToLabelOperation>()) {
-            op.UpdateTargetLabelForName();
-        }
+        sequence.UpdateAllJumpTargets();
         
         return sequence;
     }

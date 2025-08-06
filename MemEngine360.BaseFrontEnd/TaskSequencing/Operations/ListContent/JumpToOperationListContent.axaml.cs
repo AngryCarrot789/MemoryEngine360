@@ -70,8 +70,13 @@ public partial class JumpToOperationListContent : BaseOperationListContent {
 
         if (oldOperation != null)
             ((JumpToLabelOperation) oldOperation).CurrentTargetChanged -= this.OnCurrentTargetLabelChanged;
-        if (newOperation != null)
-            ((JumpToLabelOperation) newOperation).CurrentTargetChanged += this.OnCurrentTargetLabelChanged;
+        
+        if (newOperation != null) {
+            JumpToLabelOperation jump = (JumpToLabelOperation) newOperation;
+            jump.CurrentTargetChanged += this.OnCurrentTargetLabelChanged;
+            if (jump.CurrentTarget != null)
+                this.OnCurrentTargetLabelChanged(jump, null, jump.CurrentTarget);
+        }
     }
 
     private void OnCurrentTargetLabelChanged(JumpToLabelOperation sender, LabelOperation? oldTarget, LabelOperation? newTarget) {

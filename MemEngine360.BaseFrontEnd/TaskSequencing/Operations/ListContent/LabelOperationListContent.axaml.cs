@@ -40,7 +40,7 @@ public partial class LabelOperationListContent : BaseOperationListContent {
                 continue;
             }
 
-            if (text.Equals(label.LabelName, StringComparison.OrdinalIgnoreCase)) {
+            if (text.Equals(label.LabelName, StringComparison.OrdinalIgnoreCase) && b.Model != op) {
                 await IMessageDialogService.Instance.ShowMessage("Label exists", $"Another label already exists with the name '{text}' at line {i + 1}", defaultButton: MessageBoxResult.OK);
                 return false;
             }

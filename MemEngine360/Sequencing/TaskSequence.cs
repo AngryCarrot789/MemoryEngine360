@@ -159,6 +159,10 @@ public sealed class TaskSequence : IConditionsHost {
             if (item.TaskSequence != null)
                 throw new InvalidOperationException("Operation already exists in another container. It must be removed first");
             this.CheckNotRunning("Cannot modify sequence list while running");
+
+            if (item is LabelOperation label && label.LabelName != null && this.Operations.Any(x => x is LabelOperation otherLabel && otherLabel.LabelName == label.LabelName)) {
+                throw new InvalidOperationException("Attempt to add label whose name is already in use");
+            }
         };
 
         this.Operations.BeforeItemsRemoved += (list, index, count) => this.CheckNotRunning("Cannot modify sequence list while running");
@@ -169,7 +173,16 @@ public sealed class TaskSequence : IConditionsHost {
             this.CheckNotRunning("Cannot modify sequence list while running");
         };
 
-        this.Operations.ItemsAdded += (list, index, items) => items.ForEach(this, BaseSequenceOperation.InternalSetSequence);
+        this.Operations.ItemsAdded += (list, index, items) => {
+            bool updateLabels = items.Any(x => x is LabelOperation || x is JumpToLabelOperation);
+            foreach (BaseSequenceOperation operation in items) {
+                BaseSequenceOperation.InternalSetSequence(operation, this);
+            }
+
+            if (updateLabels) {
+                this.UpdateAllJumpTargets();
+            }
+        };
         this.Operations.ItemsRemoved += (list, index, removedItems) => {
             List<LabelOperation>? removedLabels = null;
 
@@ -473,4 +486,21 @@ public sealed class TaskSequence : IConditionsHost {
     }
 
     public bool Contains(BaseSequenceOperation entry) => this.IndexOf(entry) != -1;
+
+    /// <summary>
+    /// Updates the target label for all jump operations. Used when a label's name changes or when a task sequence is deserialized
+    /// </summary>
+    public void UpdateAllJumpTargets() {
+        Dictionary<string, LabelOperation> labels = this.Operations.OfType<LabelOperation>().Where(x => x.LabelName != null).ToDictionary(x => x.LabelName!);
+
+        foreach (JumpToLabelOperation op in this.Operations.OfType<JumpToLabelOperation>()) {
+            if (op.TargetLabel == null) {
+                if (op.CurrentTarget != null)
+                    op.SetTarget(null, null);
+            }
+            else {
+                op.SetTarget(op.TargetLabel, labels.GetValueOrDefault(op.TargetLabel));
+            }
+        }
+    }
 }
