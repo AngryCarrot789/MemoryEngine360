@@ -36,5 +36,14 @@
                 </TextBlock>
             </tt:ToolTipEx.Tip>
         </CheckBox>
+        <CheckBox x:Name="PART_IsLittleEndian" Content="Little Endian">
+            <tt:ToolTipEx.Tip>
+                <TextBlock>
+                    <Run Text="Whether to treat the file as little endian."/>
+                    <LineBreak/>
+                    <Run Text="For example, if opening an xbox 360 memory dump on a little endian machine (which, your machine most likely is), then un-check this option, since xbox is big-endian"/>
+                </TextBlock>
+            </tt:ToolTipEx.Tip>
+        </CheckBox>
     </StackPanel>
 </UserControl>

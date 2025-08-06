@@ -34,7 +34,7 @@ public sealed class BinaryFileConnection : BaseConsoleConnection {
 
     protected override bool IsConnectedCore => this.myFileStream != null;
 
-    public override bool IsLittleEndian => BitConverter.IsLittleEndian;
+    public override bool IsLittleEndian { get; }
 
     public override AddressRange AddressableRange {
         get {
@@ -55,10 +55,11 @@ public sealed class BinaryFileConnection : BaseConsoleConnection {
         }
     }
 
-    public BinaryFileConnection(FileStream stream, uint baseAddress, bool canResizeFile) {
+    public BinaryFileConnection(FileStream stream, uint baseAddress, bool canResizeFile, bool littleEndian) {
         this.myFileStream = stream;
         this.baseAddress = baseAddress;
         this.canResizeFile = canResizeFile;
+        this.IsLittleEndian = littleEndian;
     }
 
     public override Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count) {

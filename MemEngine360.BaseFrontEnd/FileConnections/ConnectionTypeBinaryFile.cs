@@ -65,6 +65,6 @@ public class ConnectionTypeBinaryFile : RegisteredConnectionType {
             return null;
         }
 
-        return new BinaryFileConnection(stream, info.BaseAddress, info.AllowResizingFile);
+        return new BinaryFileConnection(stream, info.BaseAddress, info.AllowResizingFile, info.IsLittleEndian);
     }
 }

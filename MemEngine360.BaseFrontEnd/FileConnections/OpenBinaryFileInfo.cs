@@ -28,6 +28,7 @@ public class OpenBinaryFileInfo : UserConnectionInfo {
     private string? filePath;
     private uint baseAddress;
     private bool allowResizingFile;
+    private bool isLittleEndian;
 
     public string? FilePath {
         get => this.filePath;
@@ -47,9 +48,18 @@ public class OpenBinaryFileInfo : UserConnectionInfo {
         set => PropertyHelper.SetAndRaiseINE(ref this.allowResizingFile, value, this, static t => t.AllowResizingFileChanged?.Invoke(t));
     }
 
+    /// <summary>
+    /// Gets or sets if the data file should be treated as little endian. Default is false
+    /// </summary>
+    public bool IsLittleEndian {
+        get => this.isLittleEndian;
+        set => PropertyHelper.SetAndRaiseINE(ref this.isLittleEndian, value, this, static t => t.IsLittleEndianChanged?.Invoke(t));
+    }
+
     public event OpenDebuggingFileInfoEventHandler? FilePathChanged;
     public event OpenDebuggingFileInfoEventHandler? BaseAddressChanged;
     public event OpenDebuggingFileInfoEventHandler? AllowResizingFileChanged;
+    public event OpenDebuggingFileInfoEventHandler? IsLittleEndianChanged;
 
     public OpenBinaryFileInfo() : base(ConnectionTypeBinaryFile.Instance) {
     }

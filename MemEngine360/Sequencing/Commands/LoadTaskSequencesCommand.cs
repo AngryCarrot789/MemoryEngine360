@@ -19,6 +19,7 @@
 
 using System.Xml;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
@@ -50,8 +51,12 @@ public class LoadTaskSequencesCommand : Command {
 
         XmlDocument? doc = await task;
         if (doc == null) {
-            if (task.Exception != null)
-                await IMessageDialogService.Instance.ShowMessage("Error reading XML", task.Exception.Message, task.Exception.GetToString());
+            if (task.Exception != null) {
+                AppLogger.Instance.WriteLine("Error deserializing XML document");
+                AppLogger.Instance.WriteLine(task.Exception.GetToString());
+                await IMessageDialogService.Instance.ShowMessage("Error deserializing XML document", task.Exception.Message);
+            }
+            
             return;
         }
 
@@ -60,7 +65,9 @@ public class LoadTaskSequencesCommand : Command {
             list = XmlTaskSequenceSerialization.DeserializeDocument(doc);
         }
         catch (Exception ex) {
-            await IMessageDialogService.Instance.ShowMessage("Error deserializing document", ex.Message, ex.GetToString());
+            AppLogger.Instance.WriteLine("Error deserializing XML document");
+            AppLogger.Instance.WriteLine(ex.GetToString());
+            await IMessageDialogService.Instance.ShowMessage("Error deserializing XML document", ex.Message);
             return;
         }
 

@@ -23,6 +23,7 @@ using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
+using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
@@ -41,40 +42,40 @@ public partial class OpenBinaryFileView : UserControl, IConsoleConnectivityContr
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is not an unsigned integer");
             return false;
         }
-        
+
         binder.Model.BaseAddress = address;
         return true;
     });
 
     private readonly IBinder<OpenBinaryFileInfo> canResizeBinder = new AvaloniaPropertyToEventPropertyBinder<OpenBinaryFileInfo>(nameof(OpenBinaryFileInfo.AllowResizingFileChanged), b => ((CheckBox) b.Control).IsChecked = b.Model.AllowResizingFile, b => b.Model.AllowResizingFile = ((CheckBox) b.Control).IsChecked == true);
+    private readonly IBinder<OpenBinaryFileInfo> isLittleEndianBinder = new AvaloniaPropertyToEventPropertyBinder<OpenBinaryFileInfo>(nameof(OpenBinaryFileInfo.IsLittleEndianChanged), b => ((CheckBox) b.Control).IsChecked = b.Model.IsLittleEndian, b => b.Model.IsLittleEndian = ((CheckBox) b.Control).IsChecked == true);
 
     private OpenBinaryFileInfo? myInfo;
-    private readonly AsyncRelayCommand openFileCommand;
 
     public OpenBinaryFileView() {
         this.InitializeComponent();
-        this.openFileCommand = new AsyncRelayCommand(async () => {
+        this.PART_BrowseFileButton.Command = new AsyncRelayCommand(async () => {
             if (this.myInfo != null) {
-                string? path = await IFilePickDialogService.Instance.OpenFile("Open a file as the debug file", [Filters.All]);
+                string? path = await IFilePickDialogService.Instance.OpenFile("Open a file as a connection", [Filters.All]);
                 if (path != null) {
                     this.myInfo.FilePath = path;
                 }
             }
         });
-
-        this.PART_BrowseFileButton.Command = this.openFileCommand;
     }
 
     public void OnConnected(OpenConnectionView dialog, UserConnectionInfo info) {
         this.filePathBinder.Attach(this.PART_FilePathTextBox, this.myInfo = (OpenBinaryFileInfo) info);
         this.baseAddressBinder.Attach(this.PART_BaseAddress, this.myInfo);
         this.canResizeBinder.Attach(this.PART_CanResizeFile, this.myInfo);
+        this.isLittleEndianBinder.Attach(this.PART_IsLittleEndian, this.myInfo);
     }
 
     public void OnDisconnected() {
         this.filePathBinder.Detach();
         this.baseAddressBinder.Detach();
         this.canResizeBinder.Detach();
+        this.isLittleEndianBinder.Detach();
         this.myInfo = null;
     }
 }

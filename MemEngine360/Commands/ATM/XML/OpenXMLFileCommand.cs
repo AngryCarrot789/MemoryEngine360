@@ -22,6 +22,7 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
@@ -57,12 +58,14 @@ public class OpenXMLFileCommand : Command {
             rootGroup = (XmlAddressEntryGroup?) XmlGroupSerializer.Deserialize(stream);
         }
         catch (Exception ex) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "Error deserializing file", ex.GetToString());
+            AppLogger.Instance.WriteLine("Error deserializing XML document");
+            AppLogger.Instance.WriteLine(ex.GetToString());
+            await IMessageDialogService.Instance.ShowMessage("XML Error", "Error deserializing address table. See logs for more info", ExceptionUtils.GetFullMessageChain(ex));
             return;
         }
 
         if (rootGroup == null) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "Failed to deserialize object... it was null...");
+            await IMessageDialogService.Instance.ShowMessage("Error", "XML deserialization resulted in a null object. Is the file empty?");
             return;
         }
         
@@ -82,11 +85,24 @@ public class OpenXMLFileCommand : Command {
         if (keepExistingResults == MessageBoxResult.No) {
             rootEntry.Clear();
         }
-        
-        AddToEntry(engine.ScanningProcessor, rootGroup, rootEntry);
+
+        AddressTableGroupEntry entries;
+        try {
+            AddToEntry(rootGroup, entries = new AddressTableGroupEntry());
+        }
+        catch (Exception ex) {
+            AppLogger.Instance.WriteLine("Error deserializing address table");
+            AppLogger.Instance.WriteLine(ex.GetToString());
+            await IMessageDialogService.Instance.ShowMessage("XML Error", "Error deserializing address table." + Environment.NewLine + "See logs for more info", ExceptionUtils.GetFullMessageChain(ex));
+            return;
+        }
+
+        foreach (BaseAddressTableEntry entry in entries.Items.ToList()) {
+            entries.MoveEntryTo(entry, rootEntry);
+        }
     }
 
-    private static void AddToEntry(ScanningProcessor processor, XmlAddressEntryGroup group, AddressTableGroupEntry entry) {
+    private static void AddToEntry(XmlAddressEntryGroup group, AddressTableGroupEntry entry) {
         foreach (XmlBaseAddressEntry item in group.Items) {
             if (item is XmlAddressEntryGroup subGroup) {
                 AddressTableGroupEntry subEntry = new AddressTableGroupEntry() {
@@ -94,7 +110,7 @@ public class OpenXMLFileCommand : Command {
                 };
                 
                 entry.AddEntry(subEntry);
-                AddToEntry(processor, subGroup, subEntry);
+                AddToEntry(subGroup, subEntry);
             }
             else {
                 XmlAddressEntry theEntry = (XmlAddressEntry) item;
