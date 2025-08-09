@@ -24,8 +24,27 @@ using MemEngine360.Engine.SavedAddressing;
 
 namespace MemEngine360.Engine.Addressing;
 
+/// <summary>
+/// Represents an address to some data. Semi-immutable; the address part is constant, however, internal caching may be used
+/// </summary>
 public interface IMemoryAddress {
     string ToString();
+
+    /// <summary>
+    /// Returns whether the address part of the current and other instance are equal,
+    /// ignoring other properties (e.g. <see cref="DynamicAddress.StaticOffsetCount"/>)
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    bool AddressEquals(IMemoryAddress other);
+
+    static bool AddressEquals(IMemoryAddress? a, IMemoryAddress? b) {
+        if (ReferenceEquals(a, b))
+            return true;
+        if (a == null || b == null)
+            return false;
+        return a.AddressEquals(b);
+    }
 }
 
 public static class MemoryAddressUtils {
@@ -57,11 +76,29 @@ public static class MemoryAddressUtils {
             idxBeginLastOffset = idxPtrToken + 2;
         }
 
-        if (!TryParseHexInt32(span = input.AsSpan(idxBeginLastOffset), out offset))
-            return (null, "Invalid offset: " + span.ToString());
+        span = input.AsSpan(idxBeginLastOffset);
+        int idxStaticDepth = span.IndexOf('[');
 
+        ReadOnlySpan<char> remainingOffset = idxStaticDepth == -1 ? span : span.Slice(0, idxStaticDepth);
+        if (!TryParseHexInt32(remainingOffset, out offset))
+            return (null, "Invalid offset: " + remainingOffset.ToString());
+
+        int staticOffsetCount = 0;
+        if (idxStaticDepth != -1) {            
+            int idxEnd = span.IndexOf(']');
+            if (idxEnd == -1 || idxEnd < idxStaticDepth)
+                return (null, "Invalid static depth value");
+
+            span = span.Slice(idxStaticDepth + 1, idxEnd - idxStaticDepth - 1);
+            if (!uint.TryParse(span, out uint maxStaticDepth) || maxStaticDepth > int.MaxValue) {
+                return (null, "Invalid static depth value: " + span.ToString());
+            }
+
+            staticOffsetCount = (int) maxStaticDepth;
+        }
+        
         offsets.Add(offset);
-        return (new DynamicAddress(baseAddress, offsets), null);
+        return (new DynamicAddress(baseAddress, offsets, staticOffsetCount), null);
     }
 
     public static bool TryParse(string? input, [NotNullWhen(true)] out IMemoryAddress? address) {
@@ -102,11 +139,11 @@ public static class MemoryAddressUtils {
         return null;
     }
 
-    public static Task<uint?> TryResolveAddress(this IMemoryAddress address, IConsoleConnection connection) {
+    public static Task<uint?> TryResolveAddress(this IMemoryAddress address, IConsoleConnection connection, bool invalidateCache = false) {
         if (address is StaticAddress)
             return Task.FromResult<uint?>(((StaticAddress) address).Address);
         if (address is DynamicAddress)
-            return ((DynamicAddress) address).TryResolve(connection);
+            return ((DynamicAddress) address).TryResolve(connection, invalidateCache);
 
         throw new ArgumentException("Unknown memory address type");
     }
@@ -120,7 +157,7 @@ public static class MemoryAddressUtils {
             input = input.Slice(2);
         return uint.TryParse(input, NumberStyles.HexNumber, null, out result);
     }
-    
+
     public static bool TryParseHexInt32(string? input, out int result) {
         return TryParseHexInt32(input.AsSpan(), out result);
     }
@@ -130,7 +167,7 @@ public static class MemoryAddressUtils {
             input = input.Slice(3);
         else if (input.StartsWith("0x", StringComparison.Ordinal))
             input = input.Slice(2);
-        
+
         return int.TryParse(input, NumberStyles.HexNumber, null, out result);
     }
 }

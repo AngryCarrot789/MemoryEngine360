@@ -40,7 +40,7 @@ public sealed class StaticAddress : IMemoryAddress, IEquatable<StaticAddress> {
     }
 
     public override bool Equals(object? obj) {
-        return ReferenceEquals(this, obj) || obj is StaticAddress other && this.Equals(other);
+        return ReferenceEquals(this, obj) || obj is StaticAddress other && this.AddressEquals(other);
     }
 
     public override int GetHashCode() {
@@ -49,5 +49,13 @@ public sealed class StaticAddress : IMemoryAddress, IEquatable<StaticAddress> {
 
     public override string ToString() {
         return this.Address.ToString("X8");
+    }
+
+    public bool AddressEquals(StaticAddress other) {
+        return this.Address == other.Address;
+    }
+    
+    public bool AddressEquals(IMemoryAddress other) {
+        return ReferenceEquals(this, other) || other is StaticAddress addr && this.AddressEquals(addr);
     }
 }

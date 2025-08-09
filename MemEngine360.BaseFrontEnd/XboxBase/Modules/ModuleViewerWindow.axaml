@@ -119,6 +119,10 @@
                         <TextBlock x:Name="PART_SelectedSequenceTextBlock" Text="Module Information"
                                    FontFamily="{StaticResource FontOxanium}"
                                    VerticalAlignment="Center"/>
+                        <Button Content="Dump Memory" DockPanel.Dock="Right" x:Name="PART_DumpModuleMemory" Padding="5,1"
+                                Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                BorderBrush="{DynamicResource PanelBorderBrush}"/>
+                        <Border/>
                     </DockPanel>
                 </c:GroupBox.Header>
                 <ScrollViewer>

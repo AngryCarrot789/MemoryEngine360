@@ -48,29 +48,76 @@ public sealed class DynamicAddress : IMemoryAddress, IEquatable<DynamicAddress> 
     /// </summary>
     public ImmutableArray<int> Offsets { get; }
 
-    public DynamicAddress(uint baseAddress, ImmutableArray<int> offsets) {
+    // This is stinky but it works
+    
+    /// <summary>
+    /// Gets the amount of offsets that should be used to pre-resolve the full address, and that address will be cached internally
+    /// and used as the base address. This is used to optimise pointer resolution by skipping the bottom area that may never actually chance.
+    /// </summary>
+    public int StaticOffsetCount { get; }
+
+    private uint? resolvedStaticBaseAddress;
+    private readonly ImmutableArray<int> skipOffsets;
+
+    public DynamicAddress(uint baseAddress, ImmutableArray<int> offsets, int staticOffsetCount = 0) {
         if (offsets.IsEmpty)
             throw new ArgumentException("Offsets cannot be empty.", nameof(offsets));
+        if (staticOffsetCount < 0)
+            throw new ArgumentException("Static offset count cannot be negative", nameof(staticOffsetCount));
 
         this.BaseAddress = baseAddress;
         this.Offsets = offsets;
+        this.StaticOffsetCount = staticOffsetCount;
+        this.skipOffsets = staticOffsetCount > 0 ? offsets.Skip(staticOffsetCount).ToImmutableArray() : ImmutableArray<int>.Empty;
     }
 
-    public DynamicAddress(uint baseAddress, IEnumerable<int> offsets) : this(baseAddress, offsets.ToImmutableArray()) {
+    public DynamicAddress(uint baseAddress, IEnumerable<int> offsets, int staticOffsetCount = 0) : this(baseAddress, offsets.ToImmutableArray(), staticOffsetCount) {
     }
 
     /// <summary>
     /// Tries to resolve this pointer and give the address of the effective value. The given address may be a null pointer when this method returns true
     /// </summary>
     /// <returns>The final pointer which points to a useful value. Or returns null when a dereferenced pointer is invalid</returns>
-    public Task<uint?> TryResolve(IConsoleConnection connection) => connection.ResolvePointer(this);
+    public async Task<uint?> TryResolve(IConsoleConnection connection, bool invalidateCache) {
+        if (invalidateCache) {
+            this.resolvedStaticBaseAddress = null;
+        }
+        
+        if (this.StaticOffsetCount > 0) {
+            uint resolvedBase;
+            if (!this.resolvedStaticBaseAddress.HasValue) {
+                uint? address = await connection.ResolvePointer(this.BaseAddress, this.Offsets.Take(this.StaticOffsetCount).ToImmutableArray());
+                if (!address.HasValue) {
+                    return null;
+                }
 
+                this.resolvedStaticBaseAddress = address;
+                resolvedBase = address.Value;
+            }
+            else {
+                resolvedBase = this.resolvedStaticBaseAddress.Value;
+            }
+
+            if (this.skipOffsets.Length > 0)
+                return await connection.ResolvePointer(resolvedBase, this.skipOffsets);
+            return resolvedBase;
+        }
+
+        return await connection.ResolvePointer(this.BaseAddress, this.Offsets);
+    }
+
+    public bool AddressEquals(IMemoryAddress other) {
+        return ReferenceEquals(this, other) && (other is DynamicAddress addr && this.AddressEquals(addr));
+    }
+    
+    public bool AddressEquals(DynamicAddress other) {
+        return ReferenceEquals(this, other) || (other.BaseAddress == this.BaseAddress && other.Offsets.SequenceEqual(this.Offsets));
+    }
+    
     public bool Equals(DynamicAddress? other) {
         if (other == null)
             return false;
-        if (ReferenceEquals(this, other))
-            return true;
-        return this.BaseAddress == other.BaseAddress && this.Offsets.SequenceEqual(other.Offsets);
+        return this.AddressEquals(other) && this.StaticOffsetCount == other.StaticOffsetCount;
     }
 
     public override bool Equals(object? obj) {
@@ -78,7 +125,7 @@ public sealed class DynamicAddress : IMemoryAddress, IEquatable<DynamicAddress> 
     }
 
     public override int GetHashCode() {
-        return HashCode.Combine(this.BaseAddress, this.Offsets);
+        return HashCode.Combine(this.BaseAddress, this.Offsets, this.StaticOffsetCount);
     }
 
     public override string ToString() {
@@ -87,6 +134,9 @@ public sealed class DynamicAddress : IMemoryAddress, IEquatable<DynamicAddress> 
         foreach (int offset in this.Offsets) {
             sb.Append("->").Append(offset.ToString("X"));
         }
+
+        if (this.StaticOffsetCount > 0)
+            sb.Append('[').Append(this.StaticOffsetCount).Append(']');
 
         return sb.ToString();
     }

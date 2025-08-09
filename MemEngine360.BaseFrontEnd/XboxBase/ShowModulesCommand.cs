@@ -59,7 +59,7 @@ public class ShowModulesCommand : Command {
         bool result = await ActivityManager.Instance.RunTask(async () => await ModuleViewer.TryFillModuleManager(engine, connection, viewer), cts);
         if (result) { // may be null when cancelled
             ModuleViewerWindow window = new ModuleViewerWindow() {
-                XboxModuleManager = viewer
+                XboxModuleManager = viewer, MemoryEngine = engine
             };
 
             system.Register(window).Show();

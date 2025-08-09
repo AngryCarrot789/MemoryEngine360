@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Numerics;
@@ -339,29 +340,32 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
 
     // Use a dedicated resolve pointer to improve performance as much as possible,
     // since reading from the console takes a long time, relative to 
-    public async Task<uint?> ResolvePointer(DynamicAddress address) {
+    public async Task<uint?> ResolvePointer(uint baseAddress, ImmutableArray<int> offsets) {
         // Even if Offsets.Length is zero, still check disposed and take busy token to try and catch unsynchronized access
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
-
-        long ptr = address.BaseAddress;
-        ImmutableArray<int> offsets = address.Offsets;
-
+        
+        long ptr = baseAddress;
         if (offsets.Length > 0) {
-            byte[] buffer = new byte[sizeof(uint)];
-            bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(sizeof(uint));
+            try {
+                bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
 
-            foreach (int offset in offsets) {
-                this.EnsureNotClosed();
-                await this.ReadBytesCore((uint) ptr, buffer, 0, buffer.Length).ConfigureAwait(false);
-                if (reverse)
-                    Array.Reverse(buffer);
+                foreach (int offset in offsets) {
+                    this.EnsureNotClosed();
+                    await this.ReadBytesCore((uint) ptr, buffer, 0, sizeof(uint)).ConfigureAwait(false);
+                    if (reverse)
+                        Array.Reverse(buffer, 0, sizeof(uint));
 
-                uint deref = MemoryMarshal.Read<uint>(buffer);
-                ptr = Math.Max((long) deref + offset, 0);
-                if (ptr <= 0 || ptr > uint.MaxValue) {
-                    return null;
+                    uint deref = MemoryMarshal.Read<uint>(new ReadOnlySpan<byte>(buffer, 0, sizeof(uint)));
+                    ptr = Math.Max((long) deref + offset, 0);
+                    if (ptr <= 0 || ptr > uint.MaxValue) {
+                        return null;
+                    }
                 }
+            }
+            finally {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 

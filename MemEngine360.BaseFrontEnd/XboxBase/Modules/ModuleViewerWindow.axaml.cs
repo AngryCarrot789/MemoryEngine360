@@ -17,17 +17,26 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Text;
 using Avalonia;
 using Avalonia.Controls;
+using MemEngine360.Commands;
+using MemEngine360.Connections;
+using MemEngine360.Engine;
+using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.XboxBase;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Services.FilePicking;
+using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.XboxBase.Modules;
 
 public partial class ModuleViewerWindow : DesktopWindow {
     public static readonly StyledProperty<ModuleViewer?> XboxModuleManagerProperty = AvaloniaProperty.Register<ModuleViewerWindow, ModuleViewer?>(nameof(XboxModuleManager));
+    public static readonly StyledProperty<MemoryEngine?> MemoryEngineProperty = AvaloniaProperty.Register<ModuleViewerWindow, MemoryEngine?>(nameof(MemoryEngine));
     private readonly IBinder<ConsoleModule> shortNameBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.NameChanged), (b) => ((TextBox) b.Control).Text = b.Model.Name);
     private readonly IBinder<ConsoleModule> fullNameBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.FullNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.FullName);
     private readonly IBinder<ConsoleModule> peModuleNameBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.PEModuleNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.PEModuleName);
@@ -36,13 +45,22 @@ public partial class ModuleViewerWindow : DesktopWindow {
     private readonly IBinder<ConsoleModule> moduleSizeBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.ModuleSizeChanged), (b) => ((TextBox) b.Control).Text = b.Model.ModuleSize.ToString("X8"));
     private readonly IBinder<ConsoleModule> originalSizeBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.OriginalModuleSizeChanged), (b) => ((TextBox) b.Control).Text = b.Model.OriginalModuleSize.ToString("X8"));
     private readonly IBinder<ConsoleModule> timestampBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.TimestampChanged), (b) => ((TextBox) b.Control).Text = b.Model.Timestamp.ToString("g"));
-    
+
     public ModuleViewer? XboxModuleManager {
         get => this.GetValue(XboxModuleManagerProperty);
         set => this.SetValue(XboxModuleManagerProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets the engine reference. This is used to allow memory dumping within this GUI
+    /// </summary>
+    public MemoryEngine? MemoryEngine {
+        get => this.GetValue(MemoryEngineProperty);
+        set => this.SetValue(MemoryEngineProperty, value);
+    }
+
     private ConsoleModule? selectedModule;
+    private readonly AsyncRelayCommand dumpModuleMemoryCommand;
 
     public ModuleViewerWindow() {
         this.InitializeComponent();
@@ -56,6 +74,56 @@ public partial class ModuleViewerWindow : DesktopWindow {
         this.moduleSizeBinder.AttachControl(this.PART_TB_ModuleSize);
         this.originalSizeBinder.AttachControl(this.PART_TB_OriginalSize);
         this.timestampBinder.AttachControl(this.PART_TB_Timestamp);
+        this.PART_DumpModuleMemory.Command = this.dumpModuleMemoryCommand = new AsyncRelayCommand(async () => {
+            if (this.selectedModule == null) {
+                return;
+            }
+
+            MemoryEngine? engine = this.MemoryEngine;
+            if (engine == null || engine.Connection == null) {
+                return;
+            }
+            
+            using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Dump memory");
+            if (token == null) {
+                return;
+            }
+            
+            MessageBoxResult freezeResult = await IMessageDialogService.Instance.ShowMessage(
+                "Freeze console",
+                "Freezing the console massively increases how quickly we can download memory from the console",
+                "Freeze console during memory dump?",
+                MessageBoxButton.YesNo, MessageBoxResult.Yes);
+            if (freezeResult == MessageBoxResult.None) {
+                return;
+            }
+
+            string? filePath = await IFilePickDialogService.Instance.SaveFile("Save binary data", SaveSelectionAsFileCommand.BinaryTypeAndAll);
+            if (filePath == null) {
+                return;
+            }
+
+            uint start = this.selectedModule.BaseAddress;
+            uint length = this.selectedModule.ModuleSize;
+
+            DumpMemoryCommand.DumpMemoryTask task = new DumpMemoryCommand.DumpMemoryTask(engine, filePath, start, length, freezeResult == MessageBoxResult.Yes, token);
+            await task.Run();
+            if (task.FileException != null || task.ConnectionException != null) {
+                StringBuilder sb = new StringBuilder();
+                if (task.ConnectionException != null) {
+                    sb.Append("Download IO error: ").Append(task.ConnectionException.Message);
+                }
+                
+                if (task.FileException != null) {
+                    if (sb.Length > 0)
+                        sb.Append(Environment.NewLine);
+                    
+                    sb.Append("File IO error: ").Append(task.FileException.Message);
+                }
+                
+                await IMessageDialogService.Instance.ShowMessage("Errors", "One or more errors occurred during memory dump", sb.ToString(), defaultButton:MessageBoxResult.OK);
+            }
+        }, () => this.selectedModule != null && this.MemoryEngine?.Connection != null);
 
         if (Design.IsDesignMode) {
             this.XboxModuleManager = new ModuleViewer() {
@@ -95,19 +163,22 @@ public partial class ModuleViewerWindow : DesktopWindow {
 
     static ModuleViewerWindow() {
         XboxModuleManagerProperty.Changed.AddClassHandler<ModuleViewerWindow, ModuleViewer?>((o, e) => o.OnManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+        MemoryEngineProperty.Changed.AddClassHandler<ModuleViewerWindow, MemoryEngine?>((s, e) => s.OnMemoryEngineChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
         ConsoleModule? item = this.PART_ModuleListBox.SelectedModel;
         if (this.selectedModule != item) {
-            this.OnSelectionChanged(this.selectedModule, item);
+            ConsoleModule? oldSelection = this.selectedModule;
             this.selectedModule = item;
+            this.OnSelectionChanged(oldSelection, item);
+            this.dumpModuleMemoryCommand.RaiseCanExecuteChanged();
         }
     }
 
     private void OnSelectionChanged(ConsoleModule? oldModule, ConsoleModule? newModule) {
         this.PART_SectionsDataGrid.ItemsSource = newModule?.Sections;
-        
+
         if (oldModule != null)
             Binders.DetachModels(this.shortNameBinder, this.fullNameBinder, this.peModuleNameBinder, this.baseAddressBinder, this.entryPointBinder, this.moduleSizeBinder, this.originalSizeBinder, this.timestampBinder);
         if (newModule != null)
@@ -119,6 +190,18 @@ public partial class ModuleViewerWindow : DesktopWindow {
         if (newManager != null && newManager.Modules.Count > 0) {
             this.PART_ModuleListBox.SelectedModel = newManager.Modules[0];
         }
+    }
+    
+    private void OnMemoryEngineChanged(MemoryEngine? oldValue, MemoryEngine? newValue) {
+        this.dumpModuleMemoryCommand.RaiseCanExecuteChanged();
+        if (oldValue != null)
+            oldValue.ConnectionChanged -= this.OnEngineConnectionChanged;
+        if (newValue != null)
+            newValue.ConnectionChanged += this.OnEngineConnectionChanged;
+    }
+
+    private void OnEngineConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
+        this.dumpModuleMemoryCommand.RaiseCanExecuteChanged();
     }
 
     protected override void OnClosed(EventArgs e) {

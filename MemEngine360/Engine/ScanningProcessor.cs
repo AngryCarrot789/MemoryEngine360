@@ -643,7 +643,7 @@ public class ScanningProcessor {
 
     public Task RefreshSavedAddressesAsync() => this.RefreshSavedAddressesAsync(false);
 
-    public async Task RefreshSavedAddressesAsync(bool bypassLimits) {
+    public async Task RefreshSavedAddressesAsync(bool bypassLimits, bool invalidateCaches = false) {
         if (this.IsRefreshingAddresses || this.MemoryEngine.IsConnectionBusy || this.MemoryEngine.Connection == null) {
             return; // concurrent operations are dangerous and can corrupt the communication pipe until restarting connection
         }
@@ -657,7 +657,7 @@ public class ScanningProcessor {
             return; // do not read while connection busy
         }
 
-        await this.RefreshSavedAddressesAsync(token, bypassLimits);
+        await this.RefreshSavedAddressesAsync(token, bypassLimits, invalidateCaches);
     }
 
     /// <summary>
@@ -665,7 +665,7 @@ public class ScanningProcessor {
     /// </summary>
     /// <param name="busyOperationToken">The busy operation token. Does not dispose once finished</param>
     /// <exception cref="InvalidOperationException">No connection is present</exception>
-    public async Task RefreshSavedAddressesAsync(IDisposable busyOperationToken, bool bypassLimits = false) {
+    public async Task RefreshSavedAddressesAsync(IDisposable busyOperationToken, bool bypassLimits = false, bool invalidateCaches = false) {
         ArgumentNullException.ThrowIfNull(busyOperationToken);
         if (this.IsRefreshingAddresses) {
             throw new InvalidOperationException("Already refreshing");
@@ -731,7 +731,7 @@ public class ScanningProcessor {
                             token.ThrowIfCancellationRequested();
                             AddressTableEntry item = savedList[i];
                             if (item.IsAutoRefreshEnabled) { // may change between dispatcher callbacks
-                                uint? addr = await item.MemoryAddress.TryResolveAddress(connection);
+                                uint? addr = await item.MemoryAddress.TryResolveAddress(connection, invalidateCaches);
                                 values[i] = addr.HasValue ? await MemoryEngine.ReadDataValue(connection, addr.Value, item.DataType, item.StringType, item.StringLength, item.ArrayLength) : null;
                             }
                         }

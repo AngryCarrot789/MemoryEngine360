@@ -410,7 +410,7 @@
                                         cmdu:CommandUsageManager.UsageClassType="{x:Type ac:RefreshSavedAddressesCommandUsage}">
                                     <tt:ToolTipEx.Tip>
                                         <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Manually refresh the scan results and saved addresses values" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Manually refresh the scan results and saved addresses values. Note, this will invalidate pointers' cached addresses (if used), so this may take longer than automatic refresh" VerticalAlignment="Center"/>
                                             <avc:ShortcutLabel CommandId="commands.memengine.RefreshSavedAddressesCommand"/>
                                         </StackPanel>
                                     </tt:ToolTipEx.Tip>

@@ -107,7 +107,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
         }
     }
 
-    private class DumpMemoryTask : AdvancedPausableTask {
+    public class DumpMemoryTask : AdvancedPausableTask {
         private readonly MemoryEngine engine;
         private readonly uint startAddress;
         private readonly uint countBytes;

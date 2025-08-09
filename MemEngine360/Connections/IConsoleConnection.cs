@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Collections.Immutable;
 using System.Net.Sockets;
 using System.Numerics;
 using System.Text;
@@ -284,11 +285,12 @@ public interface IConsoleConnection {
     /// <summary>
     /// Tries to resolve a dynamic address
     /// </summary>
-    /// <param name="address">The address to resolve</param>
+    /// <param name="baseAddress">The base address</param>
+    /// <param name="offsets">The offsets</param>
     /// <returns>The address of the value the address points to, or null, if a null pointer or invalid value was read from the console</returns>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not read from console or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while reading from console</exception>
-    Task<uint?> ResolvePointer(DynamicAddress address);
+    Task<uint?> ResolvePointer(uint baseAddress, ImmutableArray<int> offsets);
 
     /// <summary>
     /// Figures out if the memory region is either unallocated or intersects a protected region of memory at all,

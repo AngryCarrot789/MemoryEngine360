@@ -47,7 +47,7 @@ public class RefreshSavedAddressesCommand : Command {
 
         ScanningProcessor p = engine.ScanningProcessor;
         if (engine.Connection != null && !p.IsRefreshingAddresses) {
-            await engine.ScanningProcessor.RefreshSavedAddressesAsync(token, true);
+            await engine.ScanningProcessor.RefreshSavedAddressesAsync(token, true, true);
         }
     }
 }

@@ -74,7 +74,8 @@ public class OpenXMLFileCommand : Command {
                 YesOkText = "Merge",
                 NoText = "Clear existing",
                 Buttons = MessageBoxButton.YesNoCancel,
-                DefaultButton = MessageBoxResult.Yes
+                DefaultButton = MessageBoxResult.Yes,
+                PersistentDialogName = "dialog.MergeOrClearExisting"
             };
 
             if ((keepExistingResults = await IMessageDialogService.Instance.ShowMessage(info)) == MessageBoxResult.Cancel || keepExistingResults == MessageBoxResult.None) {

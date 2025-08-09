@@ -148,7 +148,7 @@ public class EditSavedAddressValueCommand : Command {
             await IMessageDialogService.Instance.ShowMessage("Not all values updated", 
                 $"Only {success}/{savedList.Count} were updated. The others' addresses could not be resolved", 
                 MessageBoxButton.OK, 
-                persistentDialogName:"IDontGiveAFuckAbout_CouldNotSetAllAddressValues");
+                persistentDialogName:"dialog.CouldNotSetAllAddressValues");
         }
     }
 }
