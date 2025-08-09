@@ -1,13 +1,13 @@
-# ![](MemEngine360.Avalonia/icon-32.bmp) Memory Engine 360 v1.1.6
+# ![](MemEngine360.Avalonia/icon-32.bmp) Memory Engine 360 v1.1.7
 This is a remake of Cheat Engine, but for consoles (so far only Xbox 360). This project was inspired by https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
 
 ![](MemoryEngine360_2025-06-30_00.22.07.png)
 
 ### Additional Features (via Tools menu)
-- Task Sequencer
-- Debugger (WIP)
+- Task Sequencer (e.g. memory freezing, randomization, etc.)
+- Debugger (WIP) (thread and register exploring)
 - Pointer Scanner
-- Memory Viewer (in a hex editor)
+- Memory Viewer (hex editor)
 
 > Please take care when changing ('poking') values on your console. 
 > You may break things, maybe even permanently if you change the wrong things.
