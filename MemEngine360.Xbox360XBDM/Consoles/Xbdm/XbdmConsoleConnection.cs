@@ -195,12 +195,14 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        Task[] tasks = new Task[commands.Length];
-        for (int i = 0; i < tasks.Length; i++) {
-            tasks[i] = this.InternalWriteCommand(commands[i]).AsTask();
+        StringBuilder sb = new StringBuilder();
+        foreach (string cmd in commands) {
+            sb.Append(cmd);
+            if (!cmd.EndsWith("\r\n", StringComparison.Ordinal))
+                sb.Append("\r\n");
         }
-
-        await Task.WhenAll(tasks).ConfigureAwait(false);
+        
+        await this.InternalWriteBytes(Encoding.ASCII.GetBytes(sb.ToString()));
 
         ConsoleResponse[] responses = new ConsoleResponse[commands.Length];
         for (int i = 0; i < responses.Length; i++) {

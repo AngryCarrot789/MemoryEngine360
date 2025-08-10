@@ -25,6 +25,7 @@ using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -65,7 +66,21 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
                 }
 
                 info.Text = text; // allow lastCommand to have \r\n removed
-                ConsoleResponse command = await xbdm.SendCommand(text);
+                ConsoleResponse command;
+                try {
+                    command = await xbdm.SendCommand(text);
+                }
+                catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                    await IMessageDialogService.Instance.ShowMessage("Network error", ex.Message);
+                    return;
+                }
+                catch (Exception ex) {
+                    AppLogger.Instance.WriteLine("Unexpected error sending xbdm command");
+                    AppLogger.Instance.WriteLine(ex.GetToString());
+                    await IMessageDialogService.Instance.ShowMessage("Error", ex.Message);
+                    return;
+                }
+
                 int crt = (int) command.ResponseType;
 
                 switch (command.ResponseType) {
