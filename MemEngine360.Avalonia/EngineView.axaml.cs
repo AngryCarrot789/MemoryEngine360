@@ -35,7 +35,7 @@ using Avalonia.Interactivity;
 using MemEngine360.BaseFrontEnd;
 using MemEngine360.Commands;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Traits;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
@@ -159,16 +159,6 @@ public partial class EngineView : UserControl, IEngineUI {
             return ui.MemoryEngine.Connection is XbdmConsoleConnection;
         }
 
-        public static string ConvertStringToHex(string input, Encoding encoding) {
-            byte[] stringBytes = encoding.GetBytes(input);
-            StringBuilder sbBytes = new StringBuilder(stringBytes.Length * 2);
-            foreach (byte b in stringBytes) {
-                sbBytes.Append($"{b:X2}");
-            }
-
-            return sbBytes.ToString();
-        }
-
         public override async Task OnExecute(IContextData context) {
             if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
                 return;
@@ -179,8 +169,8 @@ public partial class EngineView : UserControl, IEngineUI {
                 return;
             }
 
-            DataParameterEnumInfo<XNotiyLogo> dpEnumInfo = DataParameterEnumInfo<XNotiyLogo>.All();
-            DoubleUserInputInfo info = new DoubleUserInputInfo("Thank you for using MemoryEngine360 <3", nameof(XNotiyLogo.FLASHING_HAPPY_FACE)) {
+            DataParameterEnumInfo<XNotifyLogo> dpEnumInfo = DataParameterEnumInfo<XNotifyLogo>.All();
+            DoubleUserInputInfo info = new DoubleUserInputInfo("Thank you for using MemoryEngine360 <3", nameof(XNotifyLogo.FLASHING_HAPPY_FACE)) {
                 Caption = "Test Notification",
                 Message = "Shows a custom notification on your xbox!",
                 ValidateA = (b) => {
@@ -188,17 +178,17 @@ public partial class EngineView : UserControl, IEngineUI {
                         b.Errors.Add("Input cannot be empty or whitespaces only");
                 },
                 ValidateB = (b) => {
-                    if (!dpEnumInfo.TextToEnum.TryGetValue(b.Input, out XNotiyLogo val))
+                    if (!dpEnumInfo.TextToEnum.TryGetValue(b.Input, out XNotifyLogo val))
                         b.Errors.Add("Unknown logo type");
                 },
                 LabelA = "Message",
-                LabelB = "Logo (search for XNotiyLogo)"
+                LabelB = "Logo (search for XNotifyLogo)"
             };
 
             if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-                XNotiyLogo logo = dpEnumInfo.TextToEnum[info.TextB];
+                XNotifyLogo logo = dpEnumInfo.TextToEnum[info.TextB];
                 int msgLen = info.TextA.Length;
-                string msgHex = ConvertStringToHex(info.TextA, Encoding.ASCII);
+                string msgHex = NumberUtils.ConvertStringToHex(info.TextA, Encoding.ASCII);
                 string command = $"consolefeatures ver=2 type=12 params=\"A\\0\\A\\2\\2/{msgLen}\\{msgHex}\\1\\{(int) logo}\\\"";
                 await xbdm.SendCommand(command);
             }
@@ -252,7 +242,7 @@ public partial class EngineView : UserControl, IEngineUI {
                     new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer").
                         AddContextValueChangeHandlerWithEvent(MemoryEngine.EngineDataKey, nameof(this.MemoryEngine.ConnectionChanged), (entry, engine) => {
                             // Maybe this should be shown via a popup instead of changing the actual menu entry
-                            entry.DisplayName = engine?.Connection != null && !(engine.Connection is IHaveSystemEvents)
+                            entry.DisplayName = engine?.Connection != null && !engine.Connection.HasFeature<IFeatureSystemEvents>()
                                 ? "Event Viewer (console unsupported)"
                                 : "Event Viewer";
                             entry.RaiseCanExecuteChanged();
@@ -663,9 +653,11 @@ public partial class EngineView : UserControl, IEngineUI {
             ActivityTask task = ActivityManager.Instance.RunTask(async () => {
                 ActivityTask activity = ActivityManager.Instance.CurrentTask;
                 IActivityProgress prog = activity.Progress;
+                IFeatureIceCubes? iceCubes = c.GetFeatureOrDefault<IFeatureIceCubes>();
+                bool isAlreadyFrozen = false;
 
-                if (c is IHaveIceCubes && engine.ScanningProcessor.PauseConsoleDuringScan)
-                    await ((IHaveIceCubes) c).DebugFreeze();
+                if (iceCubes != null && engine.ScanningProcessor.PauseConsoleDuringScan)
+                    isAlreadyFrozen = await iceCubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
 
                 if (engine.ScanningProcessor.HasDoneFirstScan) {
                     List<ScanResultViewModel> list = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => engine.ScanningProcessor.GetScanResultsAndQueued());
@@ -712,8 +704,8 @@ public partial class EngineView : UserControl, IEngineUI {
                 }
 
 
-                if (c is IHaveIceCubes && engine.ScanningProcessor.PauseConsoleDuringScan)
-                    await ((IHaveIceCubes) c).DebugUnFreeze();
+                if (iceCubes != null && !isAlreadyFrozen && engine.ScanningProcessor.PauseConsoleDuringScan)
+                    await iceCubes.DebugUnFreeze();
                 return;
 
                 static float AsFloat(byte[] buffer, int offset, bool isDataLittleEndian) {

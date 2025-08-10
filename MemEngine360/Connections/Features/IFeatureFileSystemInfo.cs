@@ -17,20 +17,23 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.Traits;
+namespace MemEngine360.Connections.Features;
 
 /// <summary>
-/// A trait for a console with power functions, such as power off and reboot
+/// A feature for a connection that can explore and modify the file system and launch files  
 /// </summary>
-public interface IHavePowerFunctions {
+public interface IFeatureFileSystemInfo : IConsoleFeature {
+    // TODO: file system navigation
+
     /// <summary>
-    /// Sends the cold reboot command to restart the console
+    /// Deletes a file on the console
     /// </summary>
-    /// <param name="cold">True to fully reboot console, False to only reboot title</param>
-    Task RebootConsole(bool cold = true);
-    
+    /// <param name="path">The file path</param>
+    Task DeleteFile(string path);
+
     /// <summary>
-    /// Sends the shutdown command to the console
+    /// Launches an executable file, e.g. an XEX
     /// </summary>
-    Task ShutdownConsole();
+    /// <param name="path"></param>
+    Task LaunchFile(string path);
 }

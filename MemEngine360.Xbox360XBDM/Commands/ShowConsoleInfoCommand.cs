@@ -21,7 +21,7 @@ using System.Net;
 using System.Text;
 using MemEngine360.Commands;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Utils;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI.CommandSystem;
@@ -31,17 +31,23 @@ namespace MemEngine360.Xbox360XBDM.Commands;
 
 public class ShowConsoleInfoCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Reading Console Info";
-
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
-        return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
+    
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
+        if (connection.HasFeature<IFeatureXbox360Xbdm>()) {
+            return true;
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Connection", "Not an XBDM connection");
+            return false;
+        }
     }
 
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
-        if (connection is IXbdmConnection xbox) {
-            string debugName = await xbox.GetDebugName();
-            XbdmExecutionState execState = await xbox.GetExecutionState();
-            IPAddress currTitleAddr = await xbox.GetTitleIPAddress();
-            uint currProcId = await xbox.GetProcessID();
+        if (connection.TryGetFeature(out IFeatureXbox360Xbdm? xbdm)) {
+            string debugName = await xbdm.GetDebugName();
+            XboxExecutionState execState = await xbdm.GetExecutionState();
+            IPAddress currTitleAddr = await xbdm.GetTitleIPAddress();
+            uint currProcId = await xbdm.GetProcessID();
 
             StringBuilder sb = new StringBuilder();
             sb.Append("Debug Name: ").Append(debugName).AppendLine();
@@ -49,7 +55,7 @@ public class ShowConsoleInfoCommand : BaseRemoteConsoleCommand {
             sb.Append("Current Title IP: ").Append(currTitleAddr).AppendLine();
             sb.Append("Current Process ID: ").Append(currProcId.ToString("X8")).AppendLine();
             sb.AppendLine("Named Threads below");
-            foreach (XboxThread info in await xbox.GetThreadDump()) {
+            foreach (XboxThread info in await xbdm.GetThreadDump()) {
                 if (!string.IsNullOrEmpty(info.readableName)) {
                     sb.AppendLine(info.ToString());
                 }

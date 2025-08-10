@@ -18,43 +18,27 @@
 // 
 
 using System.Net;
-using MemEngine360.Connections;
-using MemEngine360.Connections.Traits;
-using MemEngine360.Connections.Utils;
 
-namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
+namespace MemEngine360.Connections.Features;
 
 /// <summary>
-/// Represents a connection to an xbox console
+/// A feature that captures everything provided by the XBDM connection.
+/// Note that this may include things that the XDevkit connection does not, and vice-versa.
 /// </summary>
-public interface IXbdmConnection : INetworkConsoleConnection, IHaveMemoryRegions, IHaveIceCubes, IHaveXboxThreadInfo {
-    /// <summary>
-    /// Sends the eject command to toggle the disk tray
-    /// </summary>
-    Task OpenDiskTray();
-
-    /// <summary>
-    /// Deletes a file on the console
-    /// </summary>
-    /// <param name="path">The file path</param>
-    Task DeleteFile(string path);
-
-    /// <summary>
-    /// Launches an executable file, e.g. an XEX
-    /// </summary>
-    /// <param name="path"></param>
-    Task LaunchFile(string path);
+public interface IFeatureXbox360Xbdm :
+    IConsoleFeature,
+    IFeatureXboxThreads,
+    IFeatureMemoryRegions,
+    IFeaturePowerFunctions,
+    IFeatureDiskEjection,
+    IFeatureIceCubes,
+    IFeatureFileSystemInfo {
 
     /// <summary>
     /// Gets the console's ID
     /// </summary>
     /// <returns></returns>
     Task<string> GetConsoleID();
-
-    /// <summary>
-    /// Gets the console's CPU key
-    /// </summary>
-    Task<string> GetCPUKey();
 
     /// <summary>
     /// Gets the console's debugging name, typically the name displayed in xbox neighbourhood
@@ -71,12 +55,12 @@ public interface IXbdmConnection : INetworkConsoleConnection, IHaveMemoryRegions
     /// <summary>
     /// Gets the current state of the console
     /// </summary>
-    Task<XbdmExecutionState> GetExecutionState();
+    Task<XboxExecutionState> GetExecutionState();
 
     /// <summary>
     /// Gets the hardware information
     /// </summary>
-    Task<HardwareInfo> GetHardwareInfo();
+    Task<XboxHardwareInfo> GetHardwareInfo();
 
     /// <summary>
     /// Gets something
@@ -99,4 +83,38 @@ public interface IXbdmConnection : INetworkConsoleConnection, IHaveMemoryRegions
     /// </summary>
     /// <param name="newName">The new debug name</param>
     Task SetDebugName(string newName);
+}
+
+/// <summary>
+/// Information about the console
+/// </summary>
+public struct XboxHardwareInfo {
+    public uint Flags;
+    public byte NumberOfProcessors, PCIBridgeRevisionID;
+    public byte[] ReservedBytes;
+    public ushort BldrMagic, BldrFlags;
+}
+
+/// <summary>
+/// The state of the xbox 360
+/// </summary>
+public enum XboxExecutionState {
+    Stop,
+    Start,
+    Reboot,
+    Pending,
+    TitleReboot,
+    TitlePending,
+    Unknown
+}
+
+/// <summary>
+/// The colour of the console in xbox 360 neighbourhood
+/// </summary>
+public enum ConsoleColor {
+    Black,
+    Blue,
+    BlueGray,
+    NoSideCar,
+    White,
 }

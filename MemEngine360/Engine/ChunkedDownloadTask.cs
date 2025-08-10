@@ -20,7 +20,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Traits;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Scanners;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Tasks.Pausable;
@@ -32,6 +32,8 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
     private readonly uint countBytes;
     private readonly bool freezeConsole;
     private readonly IConsoleConnection connection;
+    private readonly IFeatureIceCubes? iceCubes;
+    
     private readonly BusyLock busyLock;
     private readonly SimpleCompletionState downloadCompletion;
     private PopCompletionStateRangeToken downloadCompletionToken;
@@ -60,6 +62,7 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
 
     public ChunkedDownloadTask(IConsoleConnection connection, BusyLock busyLock, IDisposable busyToken, uint startAddress, uint countBytes, bool freezeConsole) : base(true) {
         this.connection = connection;
+        this.iceCubes = this.connection.GetFeatureOrDefault<IFeatureIceCubes>();
         this.busyLock = busyLock;
         this.busyToken = busyToken;
         this.startAddress = startAddress;
@@ -125,9 +128,9 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
             }
 
             bool isAlreadyFrozen = false;
-            if (this.freezeConsole && this.connection is IHaveIceCubes) {
+            if (this.freezeConsole && this.iceCubes != null) {
                 try {
-                    isAlreadyFrozen = await ((IHaveIceCubes) this.connection).DebugFreeze() == FreezeResult.AlreadyFrozen;
+                    isAlreadyFrozen = await this.iceCubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
                 }
                 catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
                     this.connectionException = ex;
@@ -158,9 +161,9 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
                 this.connectionException = ex;
             }
 
-            if (this.freezeConsole && !isAlreadyFrozen && this.connection is IHaveIceCubes) {
+            if (this.freezeConsole && !isAlreadyFrozen && this.iceCubes != null) {
                 try {
-                    await ((IHaveIceCubes) this.connection).DebugUnFreeze();
+                    await this.iceCubes.DebugUnFreeze();
                 }
                 catch {
                     // ignored -- maybe connectionException is already non-null

@@ -19,34 +19,26 @@
 
 using MemEngine360.Commands;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
-using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Xbox360XBDM.Commands;
 
-public abstract class RemoteXbox360Command : BaseRemoteConsoleCommand {
-    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
-        if (!(connection is IXbdmConnection)) {
-            await IMessageDialogService.Instance.ShowMessage("Not an xbox console", "This command cannot be used because we are not connected to an xbox 360");
-            return false;
-        }
-
-        return true;
-    }
-
-    protected sealed override Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
-        return this.ExecuteRemoteCommandInActivity(engine, (IXbdmConnection) connection, e);
-    }
-
-    protected abstract Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IXbdmConnection connection, CommandEventArgs e);
-}
-
-public class EjectDiskTrayCommand : RemoteXbox360Command {
+public class EjectDiskTrayCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Ejecting disk tray...";
 
-    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IXbdmConnection connection, CommandEventArgs e) {
-        await connection.OpenDiskTray();
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
+        if (connection.HasFeature<IFeatureDiskEjection>()) {
+            return true;
+        }
+
+        await IMessageDialogService.Instance.ShowMessage("Eject disk", "This connection does not support ejecting the disk");
+        return false;
+    }
+
+    protected override Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
+        return connection.GetFeatureOrDefault<IFeatureDiskEjection>()!.EjectDisk();
     }
 }

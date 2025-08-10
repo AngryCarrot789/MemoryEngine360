@@ -25,17 +25,17 @@ public struct XboxThread {
     public uint priority; // "priority"
     public uint tlsBaseAddress; // "tlsbase"
     public uint baseAddress; // "base"
-    public uint limit; // "limit"
-    public uint slack; // "slack"
+    public uint stackLimit; // "limit"
+    public uint stackSlack; // "slack"
     public ulong creationTime; // createhi | createlo
     public uint nameAddress; // "nameaddr";
     public uint nameLength; // "namelen";
     public uint currentProcessor; // "proc";
     public uint lastError; // "proc";
     
-    public string readableName;
+    public string? readableName;
 
     public override string ToString() {
-        return $"Thread '{this.readableName}': {{ {nameof(this.id)}: {this.id}, {nameof(this.suspendCount)}: {this.suspendCount}, {nameof(this.priority)}: {this.priority}, {nameof(this.tlsBaseAddress)}: {this.tlsBaseAddress:X8}, {nameof(this.baseAddress)}: {this.baseAddress:X8}, {nameof(this.limit)}: {this.limit:X8}, {nameof(this.slack)}: {this.slack}, {nameof(this.creationTime)}: {this.creationTime}, {nameof(this.nameAddress)}: {this.nameAddress:X8}, {nameof(this.nameLength)}: {this.nameLength}, {nameof(this.currentProcessor)}: {this.currentProcessor}, {nameof(this.lastError)}: {this.lastError} }}";
+        return $"Thread '{this.readableName}': {{ {nameof(this.id)}: {this.id}, {nameof(this.suspendCount)}: {this.suspendCount}, {nameof(this.priority)}: {this.priority}, {nameof(this.tlsBaseAddress)}: {this.tlsBaseAddress:X8}, {nameof(this.baseAddress)}: {this.baseAddress:X8}, {nameof(this.stackLimit)}: {this.stackLimit:X8}, {nameof(this.stackSlack)}: {this.stackSlack}, {nameof(this.creationTime)}: {this.creationTime}, {nameof(this.nameAddress)}: {this.nameAddress:X8}, {nameof(this.nameLength)}: {this.nameLength}, {nameof(this.currentProcessor)}: {this.currentProcessor}, {nameof(this.lastError)}: {this.lastError} }}";
     }
 }

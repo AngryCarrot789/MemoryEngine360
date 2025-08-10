@@ -17,12 +17,12 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.Traits;
+namespace MemEngine360.Connections.Features;
 
 /// <summary>
-/// A trait for a <see cref="IConsoleConnection"/> which can provide memory regions
+/// A feature for connections that can provide all memory regions on the console
 /// </summary>
-public interface IHaveMemoryRegions {
+public interface IFeatureMemoryRegions : IConsoleFeature {
     /// <summary>
     /// Walks all the memory regions on the console. Optionally you can provide flags on
     /// intention in order to filter out regions that will not allow such operations (e.g.

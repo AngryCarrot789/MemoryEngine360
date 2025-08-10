@@ -20,7 +20,7 @@
 using System.Diagnostics;
 using MemEngine360.Commands;
 using MemEngine360.Connections;
-using MemEngine360.XboxBase;
+using MemEngine360.Connections.Features;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
@@ -141,7 +141,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             }
         }
 
-        if (!(newConnection is IHaveXboxDebugFeatures)) {
+        if (!newConnection.HasFeature<IFeatureXboxDebugging>()) {
             await IMessageDialogService.Instance.ShowMessage("Incompatible connection", "Connection does not support debug features", MessageBoxButton.OK, MessageBoxResult.OK);
             return false;
         }

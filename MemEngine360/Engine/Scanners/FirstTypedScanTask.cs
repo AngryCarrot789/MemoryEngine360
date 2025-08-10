@@ -19,7 +19,7 @@
 
 using System.Diagnostics;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Traits;
+using MemEngine360.Connections.Features;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Tasks.Pausable;
 
@@ -31,6 +31,7 @@ namespace MemEngine360.Engine.Scanners;
 public sealed class FirstTypedScanTask : AdvancedPausableTask {
     internal readonly ScanningContext ctx;
     internal readonly IConsoleConnection connection;
+    private readonly IFeatureIceCubes? iceCubes;
     private IDisposable? myBusyToken;
 
     // region scanning info
@@ -52,6 +53,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
         this.ctx = context ?? throw new ArgumentNullException(nameof(context));
         this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
         this.myBusyToken = busyToken ?? throw new ArgumentNullException(nameof(busyToken));
+        this.iceCubes = connection.GetFeatureOrDefault<IFeatureIceCubes>();
         this.rgIdx = 0;
     }
 
@@ -89,9 +91,9 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
     }
 
     private async Task TrySetUnFrozen() {
-        if (!this.isAlreadyFrozen && this.ctx.pauseConsoleDuringScan && this.connection is IHaveIceCubes) {
+        if (!this.isAlreadyFrozen && this.ctx.pauseConsoleDuringScan && this.iceCubes != null) {
             try {
-                await ((IHaveIceCubes) this.connection).DebugUnFreeze();
+                await this.iceCubes.DebugUnFreeze();
             }
             catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
                 this.ctx.ConnectionException = ex;
@@ -104,10 +106,9 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
             return;
         }
 
-        bool freeze = this.ctx.pauseConsoleDuringScan && this.connection is IHaveIceCubes;
-        if (freeze) {
+        if (this.ctx.pauseConsoleDuringScan && this.iceCubes != null) {
             try {
-                this.isAlreadyFrozen = await ((IHaveIceCubes) this.connection).DebugFreeze() == FreezeResult.AlreadyFrozen;
+                this.isAlreadyFrozen = await this.iceCubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
             }
             catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
                 this.ctx.ConnectionException = ex;
@@ -120,14 +121,14 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
         
         uint overlap = this.ctx.Overlap;
         byte[] tmpBuffer = new byte[DataTypedScanningContext.ChunkSize + overlap];
-        if (this.ctx.scanMemoryPages && this.connection is IHaveMemoryRegions iHaveRegions) {
+        if (this.ctx.scanMemoryPages && this.connection.TryGetFeature(out IFeatureMemoryRegions? memRegionFeature)) {
             if (this.myRegions == null) {
                 progress.IsIndeterminate = true;
                 progress.Text = "Preparing memory regions...";
 
                 List<MemoryRegion> allRegions;
                 try {
-                    allRegions = await iHaveRegions.GetMemoryRegions(true, false);
+                    allRegions = await memRegionFeature.GetMemoryRegions(true, false);
                 }
                 catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
                     this.ctx.ConnectionException = ex;

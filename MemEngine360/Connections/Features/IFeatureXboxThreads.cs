@@ -17,9 +17,12 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.Traits;
+namespace MemEngine360.Connections.Features;
 
-public interface IHaveXboxThreadInfo {
+/// <summary>
+/// A feature for xbox 360 based connections that can provide thread information
+/// </summary>
+public interface IFeatureXboxThreads : IConsoleFeature {
     /// <summary>
     /// Reads the thread info for a thread ID. The returned value's <see cref="XboxThread.id"/> will be 0 if the thread does not exist.
     /// </summary>
@@ -29,7 +32,7 @@ public interface IHaveXboxThreadInfo {
     /// <exception cref="IOException">Response was invalid</exception>
     /// <exception cref="TimeoutException">Timeout while writing/reading</exception>
     Task<XboxThread> GetThreadInfo(uint threadId, bool requireName = true);
-    
+
     /// <summary>
     /// Gets all the threads running on this console
     /// </summary>

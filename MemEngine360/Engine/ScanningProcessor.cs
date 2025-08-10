@@ -21,7 +21,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Traits;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
@@ -485,10 +485,10 @@ public class ScanningProcessor {
                                 progress.Text = "Scanning...";
 
                                 bool isAlreadyFrozen = false;
-                                IHaveIceCubes? cubes = pauseDuringScan ? connection as IHaveIceCubes : null;
+                                IFeatureIceCubes? iceCubes = pauseDuringScan ? connection.GetFeatureOrDefault<IFeatureIceCubes>() : null;
                                 try {
-                                    if (cubes != null && connection.IsConnected) {
-                                        isAlreadyFrozen = await cubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
+                                    if (iceCubes != null && connection.IsConnected) {
+                                        isAlreadyFrozen = await iceCubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
                                     }
 
                                     canContinue = true;
@@ -518,8 +518,8 @@ public class ScanningProcessor {
                                     }
 
                                     try {
-                                        if (cubes != null && !isAlreadyFrozen && connection.IsConnected) {
-                                            await cubes.DebugUnFreeze();
+                                        if (iceCubes != null && !isAlreadyFrozen && connection.IsConnected) {
+                                            await iceCubes.DebugUnFreeze();
                                         }
                                     }
                                     catch (Exception e) when (e is IOException || e is TimeoutException) {

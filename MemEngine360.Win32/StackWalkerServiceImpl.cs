@@ -20,8 +20,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Debugging;
-using MemEngine360.XboxBase;
 using MemEngine360.XboxBase.Modules;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.DbgHelp;
@@ -86,7 +86,7 @@ public class StackWalkerServiceImpl : IStackWalker {
 
     private unsafe IntPtr FunctionTableAccessRoutine(HPROCESS ahProcess, ulong addrBase) {
         CtxObj connection = *(CtxObj*) (IntPtr) ahProcess;
-        FunctionCallEntry? function = ((IHaveXboxDebugFeatures) connection.Connection).FindFunctions([(uint) addrBase]).GetAwaiter().GetResult()[0];
+        FunctionCallEntry? function = (connection.Connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!).FindFunctions([(uint) addrBase]).GetAwaiter().GetResult()[0];
         if (function == null) {
             return IntPtr.Zero;
         }
@@ -100,7 +100,7 @@ public class StackWalkerServiceImpl : IStackWalker {
 
     private unsafe ulong GetModuleBaseRoutine(HPROCESS hProcess, ulong address) {
         CtxObj connection = *(CtxObj*) (IntPtr) hProcess;
-        ConsoleModule? module = ((IHaveXboxDebugFeatures) connection.Connection).GetModuleForAddress((uint) address, false).GetAwaiter().GetResult();
+        ConsoleModule? module = (connection.Connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!).GetModuleForAddress((uint) address, false).GetAwaiter().GetResult();
         return module?.BaseAddress ?? 0;
     }
 }

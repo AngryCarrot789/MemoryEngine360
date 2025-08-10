@@ -17,14 +17,14 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.Utils;
+namespace MemEngine360.Connections.Features;
 
-public enum XbdmExecutionState {
-    Stop,
-    Start,
-    Reboot,
-    Pending,
-    TitleReboot,
-    TitlePending,
-    Unknown
-};
+/// <summary>
+/// A feature for xbox 360 connections that provide JRPC2 functionality, such as custom notifications, changing the LEDs, etc.
+/// </summary>
+public interface IFeatureXboxJRPC2 : IConsoleConnection, IFeatureXboxNotifications {
+    /// <summary>
+    /// Gets the console's CPU key
+    /// </summary>
+    Task<string> GetCPUKey();
+}

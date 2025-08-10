@@ -1,4 +1,4 @@
-// 
+﻿// 
 // Copyright (c) 2024-2025 REghZy
 // 
 // This file is part of MemoryEngine360.
@@ -17,11 +17,20 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
+namespace MemEngine360.Connections.Features;
 
-public struct HardwareInfo {
-    public uint Flags;
-    public byte NumberOfProcessors, PCIBridgeRevisionID;
-    public byte[] ReservedBytes;
-    public ushort BldrMagic, BldrFlags;
+/// <summary>
+/// A feature for connections that support rebooting and powering off
+/// </summary>
+public interface IFeaturePowerFunctions : IConsoleFeature {
+    /// <summary>
+    /// Sends the cold reboot command to restart the console
+    /// </summary>
+    /// <param name="cold">True to fully reboot console, False to only reboot title</param>
+    Task RebootConsole(bool cold = true);
+
+    /// <summary>
+    /// Sends the shutdown command to the console
+    /// </summary>
+    Task ShutdownConsole();
 }

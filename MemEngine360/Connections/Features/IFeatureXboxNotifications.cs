@@ -17,31 +17,19 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.Traits;
+using MemEngine360.XboxBase;
+
+namespace MemEngine360.Connections.Features;
 
 /// <summary>
-/// A trait for a <see cref="IConsoleConnection"/> that can be frozen and unfrozen
+/// A feature for an xbox connection that can show custom notifications
 /// </summary>
-public interface IHaveIceCubes {
+public interface IFeatureXboxNotifications : IConsoleFeature {
     /// <summary>
-    /// Signals the console to completely freeze
+    /// Shows a notification on the screen
     /// </summary>
+    /// <param name="logo">The logo/notification type</param>
+    /// <param name="message">A message to show. Note that not all logos support messages</param>
     /// <returns></returns>
-    Task<FreezeResult> DebugFreeze();
-    
-    /// <summary>
-    /// Signals the console to unfreeze/resume
-    /// </summary>
-    /// <returns></returns>
-    Task<UnFreezeResult> DebugUnFreeze();
-}
-
-public enum FreezeResult : byte {
-    Success,
-    AlreadyFrozen,
-}
-
-public enum UnFreezeResult : byte {
-    Success,
-    AlreadyUnfrozen
+    Task ShowNotification(XNotifyLogo logo, string? message);
 }

@@ -17,6 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Commands;
+using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI.CommandSystem;
@@ -24,14 +26,20 @@ using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Xbox360XBDM.Commands;
 
-public class ListHelpCommand : RemoteXbox360Command {
+public class ListHelpCommand : BaseRemoteConsoleCommand {
     protected override string ActivityText => "Reading commands";
 
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
-        return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
+        if (connection is XbdmConsoleConnection) {
+            return true;
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Connection", "Not an XBDM connection");
+            return false;
+        }
     }
 
-    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IXbdmConnection connection, CommandEventArgs e) {
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
         List<string> list = await ((XbdmConsoleConnection) connection).SendCommandAndReceiveLines("help");
         await IMessageDialogService.Instance.ShowMessage("Help", "Available commands", string.Join(Environment.NewLine, list));
     }

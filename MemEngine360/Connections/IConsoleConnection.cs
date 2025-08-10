@@ -18,10 +18,11 @@
 // 
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Numerics;
 using System.Text;
-using MemEngine360.Engine.Addressing;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Events;
 using PFXToolKitUI.Tasks;
 
@@ -319,4 +320,29 @@ public interface IConsoleConnection {
     /// and <see cref="Closed"/> is fired. May throw <see cref="AggregateException"/>
     /// </summary>
     void Close();
+
+    /// <summary>
+    /// Gets a feature by its feature type
+    /// </summary>
+    /// <param name="feature">The found feature, or null</param>
+    /// <typeparam name="T">The type of feature to get</typeparam>
+    /// <returns>True when the feature was found, otherwise false</returns>
+    bool TryGetFeature<T>([NotNullWhen(true)] out T? feature) where T : class, IConsoleFeature;
+
+    T? GetFeatureOrDefault<T>() where T : class, IConsoleFeature => this.TryGetFeature(out T? f) ? f : null;
+
+    /// <summary>
+    /// Returns true when the feature exists, otherwise false
+    /// </summary>
+    /// <typeparam name="T">The type of feature to check</typeparam>
+    /// <returns>Boolean</returns>
+    bool HasFeature<T>() where T : class, IConsoleFeature => this.HasFeature(typeof(T));
+
+    /// <summary>
+    /// Returns true when the feature exists, otherwise false
+    /// </summary>
+    /// <param name="typeOfFeature">The feature type to check</param>
+    /// <returns>Boolean</returns>
+    /// <exception cref="ArgumentException">Type is not assignable to <see cref="IConsoleFeature"/></exception>
+    bool HasFeature(Type typeOfFeature);
 }

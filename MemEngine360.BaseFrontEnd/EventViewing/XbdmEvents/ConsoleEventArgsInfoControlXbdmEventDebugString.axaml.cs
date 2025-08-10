@@ -19,7 +19,7 @@
 
 using Avalonia.Controls;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Traits;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Events;
 using MemEngine360.Engine.Events.XbdmEvents;
 using PFXToolKitUI.Utils.Commands;
@@ -36,11 +36,11 @@ public partial class ConsoleEventArgsInfoControlXbdmEventDebugString : UserContr
             if (this.myConnection?.Connection != null && !this.myConnection!.BusyLock.IsBusy) {
                 await this.myConnection!.BeginBusyOperationActivityAsync(async (tok, con) => {
                     XbdmEventArgsDebugString? e = this.args;
-                    if (e == null || !(con is IHaveXboxThreadInfo xbdm)) 
+                    if (e == null || !con.TryGetFeature(out IFeatureXboxThreads? threadFeature))
                         return;
                     
-                    XboxThread tdInfo = await xbdm.GetThreadInfo(e.Thread);
-                    if (tdInfo.nameAddress != 0 && tdInfo.nameLength != 0 && tdInfo.nameLength < int.MaxValue) {
+                    XboxThread tdInfo = await threadFeature.GetThreadInfo(e.Thread);
+                    if (tdInfo.readableName != null && tdInfo.nameAddress != 0 && tdInfo.nameLength != 0 && tdInfo.nameLength < int.MaxValue) {
                         tdInfo.readableName = await con.ReadStringASCII(tdInfo.nameAddress, (int) tdInfo.nameLength);
                     }
                     

@@ -17,7 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections.Utils;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Events.XbdmEvents;
 
 namespace MemEngine360.Xbox360XBDM;
@@ -114,19 +114,19 @@ public static class XbdmEventUtils {
                 };
             }
             case "execution": {
-                XbdmExecutionState state = XbdmExecutionState.Unknown;
+                XboxExecutionState state = XboxExecutionState.Unknown;
                 if (ParamUtils.GetOffsetToValue(textRos, "started", false, false) != -1)
-                    state = XbdmExecutionState.Start;
+                    state = XboxExecutionState.Start;
                 else if (ParamUtils.GetOffsetToValue(textRos, "stopped", false, false) != -1)
-                    state = XbdmExecutionState.Stop;
+                    state = XboxExecutionState.Stop;
                 else if (ParamUtils.GetOffsetToValue(textRos, "pending", false, false) != -1)
-                    state = XbdmExecutionState.Pending;
+                    state = XboxExecutionState.Pending;
                 else if (ParamUtils.GetOffsetToValue(textRos, "rebooting", false, false) != -1)
-                    state = XbdmExecutionState.Reboot;
+                    state = XboxExecutionState.Reboot;
                 else if (ParamUtils.GetOffsetToValue(textRos, "reboot_title", false, false) != -1)
-                    state = XbdmExecutionState.TitleReboot;
+                    state = XboxExecutionState.TitleReboot;
                 else if (ParamUtils.GetOffsetToValue(textRos, "pending_title", false, false) != -1)
-                    state = XbdmExecutionState.TitlePending;
+                    state = XboxExecutionState.TitlePending;
 
                 return new XbdmEventArgsExecutionState(text, state);
             }

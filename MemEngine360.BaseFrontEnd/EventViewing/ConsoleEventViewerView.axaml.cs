@@ -25,7 +25,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using MemEngine360.BaseFrontEnd.EventViewing.XbdmEvents;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Traits;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Events;
 using MemEngine360.Engine.Events.XbdmEvents;
@@ -103,7 +103,7 @@ public partial class ConsoleEventViewerView : UserControl {
     
     private void OnConsoleConnectionChanged(IConsoleConnection? oldConnection, IConsoleConnection? newConnection) {
         DisposableUtils.Dispose(ref this.subscription);
-        if (newConnection is IHaveSystemEvents events) {
+        if (newConnection?.TryGetFeature(out IFeatureSystemEvents? events) == true) {
             this.subscription = events.SubscribeToEvents(this.OnEvent);
         }
     }
@@ -123,7 +123,7 @@ public partial class ConsoleEventViewerView : UserControl {
         this.timer.SetTarget(this.PART_Status, TextBlock.ForegroundProperty);
         
         // ConsoleConnection may change after OnLoaded
-        if (this.subscription == null && this.ConsoleConnection is IHaveSystemEvents events) {
+        if (this.subscription == null && this.ConsoleConnection?.TryGetFeature(out IFeatureSystemEvents? events) == true) {
             this.subscription = events.SubscribeToEvents(this.OnEvent);
         }
     }

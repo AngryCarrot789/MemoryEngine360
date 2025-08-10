@@ -19,11 +19,9 @@
 
 using System.Diagnostics;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Traits;
-using MemEngine360.Connections.Utils;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Events;
 using MemEngine360.Engine.Events.XbdmEvents;
-using MemEngine360.XboxBase;
 using PFXToolKitUI;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
@@ -224,7 +222,7 @@ public class ConsoleDebugger {
     }
 
     private async Task UpdateAllThreadsImpl(IConsoleConnection connection, IDisposable busyToken) {
-        IHaveXboxDebugFeatures debug = (IHaveXboxDebugFeatures) connection;
+        IFeatureXboxDebugging debug = connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!;
         List<ThreadEntry> threads;
         try {
             List<XboxThread> threadList = await debug.GetThreadDump();
@@ -284,7 +282,7 @@ public class ConsoleDebugger {
             return null;
         }
 
-        XboxThread thread = await ((IHaveXboxDebugFeatures) connection).GetThreadInfo(threadId);
+        XboxThread thread = await (connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!).GetThreadInfo(threadId);
         if (idx == -1) {
             if (thread.id == 0) {
                 return null;
@@ -346,7 +344,7 @@ public class ConsoleDebugger {
 
         IConsoleConnection? connection = this.Connection;
         if (connection != null && connection.IsConnected) {
-            IHaveXboxDebugFeatures debug = (IHaveXboxDebugFeatures) connection;
+            IFeatureXboxDebugging debug = connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!;
             List<RegisterEntry>? registers;
             try {
                 registers = await debug.GetRegisters(thread.ThreadId);
@@ -377,7 +375,7 @@ public class ConsoleDebugger {
     private async Task UpdateCallFrame(IConsoleConnection connection, ThreadEntry thread, List<RegisterEntry>? registers) {
         if (registers == null) {
             try {
-                registers = await ((IHaveXboxDebugFeatures) connection).GetRegisters(thread.ThreadId);
+                registers = await (connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!).GetRegisters(thread.ThreadId);
             }
             catch (Exception e) when (e is IOException || e is TimeoutException) {
                 await IMessageDialogService.Instance.ShowMessage("Network error", e.Message);
@@ -405,7 +403,7 @@ public class ConsoleDebugger {
 
         FunctionCallEntry?[] functions;
         try {
-            functions = await ((IHaveXboxDebugFeatures) connection).FindFunctions([iar.Value, lr.Value]);
+            functions = await (connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!).FindFunctions([iar.Value, lr.Value]);
         }
         catch (Exception e) when (e is IOException || e is TimeoutException) {
             await IMessageDialogService.Instance.ShowMessage("Network error", e.Message);
@@ -436,7 +434,7 @@ public class ConsoleDebugger {
         if (ReferenceEquals(oldConnection, newConnection))
             throw new ArgumentException("Cannot set the connection to the same value");
 
-        if (newConnection != null && !(newConnection is IHaveXboxDebugFeatures))
+        if (newConnection != null && !newConnection.HasFeature<IFeatureXboxDebugging>())
             throw new InvalidOperationException("Connection is not debuggable");
 
         this.ignoreActiveThreadChange = true;
@@ -461,7 +459,7 @@ public class ConsoleDebugger {
         this.ignoreActiveThreadChange = false;
         this.IsConsoleRunning = null;
         this.ConsoleExecutionState = null;
-        if (newConnection is IHaveSystemEvents events) {
+        if (newConnection?.TryGetFeature(out IFeatureSystemEvents? events) == true) {
             this.eventSubscription = events.SubscribeToEvents(this.OnConsoleEvent);
         }
     }
@@ -529,7 +527,7 @@ public class ConsoleDebugger {
 
                 IConsoleConnection? connection = this.Connection;
                 if (connection != null && connection.IsConnected) {
-                    XboxThread tdInfo = await ((IHaveXboxDebugFeatures) connection).GetThreadInfo(threadEvent.Thread);
+                    XboxThread tdInfo = await (connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!).GetThreadInfo(threadEvent.Thread);
                     if (tdInfo.id != 0) {
                         this.ThreadEntries.Add(new ThreadEntry(tdInfo.id) {
                             ThreadName = tdInfo.readableName ?? "",
@@ -554,31 +552,31 @@ public class ConsoleDebugger {
         bool? newRunState;
         string? stateName;
         switch (stateChanged.ExecutionState) {
-            case XbdmExecutionState.Pending:
+            case XboxExecutionState.Pending:
                 newRunState = null;
                 stateName = "Pending";
                 break;
-            case XbdmExecutionState.Reboot:
+            case XboxExecutionState.Reboot:
                 newRunState = null;
                 stateName = "Rebooting";
                 break;
-            case XbdmExecutionState.Start:
+            case XboxExecutionState.Start:
                 newRunState = true;
                 stateName = "Running";
                 break;
-            case XbdmExecutionState.Stop:
+            case XboxExecutionState.Stop:
                 newRunState = false;
                 stateName = "Stopped";
                 break;
-            case XbdmExecutionState.TitlePending:
+            case XboxExecutionState.TitlePending:
                 newRunState = null;
                 stateName = "Title Pending";
                 break;
-            case XbdmExecutionState.TitleReboot:
+            case XboxExecutionState.TitleReboot:
                 newRunState = null;
                 stateName = "Title Rebooting";
                 break;
-            case XbdmExecutionState.Unknown:
+            case XboxExecutionState.Unknown:
                 newRunState = null;
                 stateName = null;
                 break;

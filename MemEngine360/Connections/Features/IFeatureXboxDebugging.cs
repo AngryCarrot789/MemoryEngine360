@@ -17,20 +17,22 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections.Traits;
 using MemEngine360.Engine.Debugging;
+using MemEngine360.XboxBase;
 using MemEngine360.XboxBase.Modules;
 
-namespace MemEngine360.XboxBase;
+namespace MemEngine360.Connections.Features;
 
 /// <summary>
 /// A trait for an xbox debuggable console. For now, only xbox is supported. But soon we will move to an abstract debugger to support multiple platforms
 /// </summary>
-public interface IHaveXboxDebugFeatures : IHaveXboxThreadInfo, IHaveSystemEvents, IHaveIceCubes {
+public interface IFeatureXboxDebugging : IConsoleFeature, IFeatureXboxThreads {
     Task AddBreakpoint(uint address);
+    
     Task AddDataBreakpoint(uint address, XboxBreakpointType type, uint size);
     
     Task RemoveBreakpoint(uint address);
+    
     Task RemoveDataBreakpoint(uint address, XboxBreakpointType type, uint size);
 
     /// <summary>

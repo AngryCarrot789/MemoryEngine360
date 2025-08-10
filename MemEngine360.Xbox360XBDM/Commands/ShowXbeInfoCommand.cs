@@ -27,12 +27,12 @@ namespace MemEngine360.Xbox360XBDM.Commands;
 
 public class ShowXbeInfoCommand : BaseMemoryEngineCommand {
     protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
-        return engine.Connection is IXbdmConnection ? Executability.Valid : (engine.Connection == null ? Executability.ValidButCannotExecute : Executability.Invalid);
+        return engine.Connection is XbdmConsoleConnection ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
         await engine.BeginBusyOperationActivityAsync(async (t, c) => {
-            if (c is IXbdmConnection xbox) {
+            if (c is XbdmConsoleConnection xbox) {
                 string? path = await xbox.GetXbeInfo(null);
                 if (!string.IsNullOrEmpty(path)) {
                     await IMessageDialogService.Instance.ShowMessage("File Path", path);

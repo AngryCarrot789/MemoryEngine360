@@ -22,7 +22,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Traits;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Scanners;
@@ -204,11 +204,13 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                     return;
                 }
 
+                IFeatureIceCubes? iceCubes = connection.GetFeatureOrDefault<IFeatureIceCubes>();
+
                 // Do not unfreeze when already frozoned
                 bool isAlreadyFrozen = false;
-                if (this.freezeConsole && connection is IHaveIceCubes) {
+                if (this.freezeConsole && iceCubes != null) {
                     try {
-                        isAlreadyFrozen = await ((IHaveIceCubes) connection).DebugFreeze() == FreezeResult.AlreadyFrozen;
+                        isAlreadyFrozen = await iceCubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
                     }
                     catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
                         this.connectionException = ex;
@@ -239,9 +241,9 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                     this.connectionException = ex;
                 }
 
-                if (this.freezeConsole && !isAlreadyFrozen && connection is IHaveIceCubes) {
+                if (this.freezeConsole && !isAlreadyFrozen && iceCubes != null) {
                     try {
-                        await ((IHaveIceCubes) connection).DebugUnFreeze();
+                        await iceCubes.DebugUnFreeze();
                     }
                     catch {
                         // ignored -- maybe connectionException is already non-null

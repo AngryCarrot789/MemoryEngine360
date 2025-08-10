@@ -17,8 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.XboxBase;
-using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Engine.Debugging.Commands;

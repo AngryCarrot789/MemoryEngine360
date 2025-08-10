@@ -19,6 +19,7 @@
 
 using System.Buffers.Binary;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
@@ -26,8 +27,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Traits;
-using MemEngine360.Connections.Utils;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.Events.XbdmEvents;
 using MemEngine360.XboxBase;
@@ -35,13 +35,11 @@ using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Destroying;
+using ConsoleColor = MemEngine360.Connections.Features.ConsoleColor;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
-// Rewrite with fixes and performance improvements, based on:
-// https://github.com/XeClutch/Cheat-Engine-For-Xbox-360/blob/master/Cheat%20Engine%20for%20Xbox%20360/PhantomRTM.cs
-
-public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHavePowerFunctions, IHaveXboxDebugFeatures, IHaveSystemEvents, IHaveXboxThreadInfo {
+public class XbdmConsoleConnection : BaseConsoleConnection {
     private static int NextReaderID = 1;
 
     private readonly byte[] sharedTwoByteArray = new byte[2];
@@ -99,9 +97,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
 
     public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
 
+    private readonly XbdmFeaturesImpl features;
+    
     public XbdmConsoleConnection(TcpClient client, string originalConnectionAddress) : this(client, originalConnectionAddress, false) {
     }
-    
+
     private XbdmConsoleConnection(TcpClient client, string originalConnectionAddress, bool isEventConnection) {
         this.client = client;
         this.originalConnectionAddress = originalConnectionAddress;
@@ -112,6 +112,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         "getmem addr=0x"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 0, 14));
         " length=0x"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 22, 10));
         "\r\n"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 40, 2));
+
+        this.features = new XbdmFeaturesImpl(this);
 
         new Thread(this.ReaderThreadMain) {
             Name = $"XBDM Reader Thread #{NextReaderID++}",
@@ -130,6 +132,23 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 }
             }
         }, token);
+    }
+
+    public override bool TryGetFeature<T>([NotNullWhen(true)] out T? feature) where T : class {
+        if (this.features is T t) {
+            feature = t;
+            return true;
+        }
+        
+        return base.TryGetFeature(out feature);
+    }
+
+    public override bool HasFeature<T>() {
+        return this.features is T || base.HasFeature<T>();
+    }
+
+    public override bool HasFeature(Type typeOfFeature) {
+        return typeOfFeature.IsInstanceOfType(this.features) || base.HasFeature(typeOfFeature);
     }
 
     protected override void CloseOverride() {
@@ -201,7 +220,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
             if (!cmd.EndsWith("\r\n", StringComparison.Ordinal))
                 sb.Append("\r\n");
         }
-        
+
         await this.InternalWriteBytes(Encoding.ASCII.GetBytes(sb.ToString()));
 
         ConsoleResponse[] responses = new ConsoleResponse[commands.Length];
@@ -270,8 +289,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         ParamUtils.GetDwParam(ros, "priority", true, out tdInfo.priority);
         ParamUtils.GetDwParam(ros, "tlsbase", true, out tdInfo.tlsBaseAddress);
         ParamUtils.GetDwParam(ros, "base", true, out tdInfo.baseAddress);
-        ParamUtils.GetDwParam(ros, "limit", true, out tdInfo.limit);
-        ParamUtils.GetDwParam(ros, "slack", true, out tdInfo.slack);
+        ParamUtils.GetDwParam(ros, "limit", true, out tdInfo.stackLimit);
+        ParamUtils.GetDwParam(ros, "slack", true, out tdInfo.stackSlack);
         ParamUtils.GetDwParam(ros, "nameaddr", true, out tdInfo.nameAddress);
         ParamUtils.GetDwParam(ros, "namelen", true, out tdInfo.nameLength);
         ParamUtils.GetDwParam(ros, "proc", true, out tdInfo.currentProcessor);
@@ -345,8 +364,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         this.Close();
     }
 
-    public Task OpenDiskTray() => this.SendCommand("dvdeject");
-
     public async Task<FreezeResult> DebugFreeze() {
         ConsoleResponse response = await this.SendCommand("stop");
         if (response.ResponseType == ResponseType.SingleResponse)
@@ -366,27 +383,23 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     }
 
     public async Task DeleteFile(string path) {
-        string[] lines = path.Split("\\".ToCharArray());
-        string Directory = "";
-        for (int i = 0; i < (lines.Length - 1); i++)
-            Directory += (lines[i] + "\\");
-        await this.SendCommand("delete title=\"" + path + "\" dir=\"" + Directory + "\"").ConfigureAwait(false);
+        string[] lines = path.Split('\\');
+        StringBuilder dirSb = new StringBuilder();
+        for (int i = 0; i < lines.Length - 1; i++)
+            dirSb.Append(lines[i]).Append('\\');
+        await this.SendCommand("delete title=\"" + path + "\" dir=\"" + dirSb + "\"").ConfigureAwait(false);
     }
 
     public async Task LaunchFile(string path) {
-        string[] lines = path.Split("\\".ToCharArray());
-        string Directory = "";
+        string[] lines = path.Split('\\');
+        StringBuilder dirSb = new StringBuilder();
         for (int i = 0; i < lines.Length - 1; i++)
-            Directory += lines[i] + "\\";
-        await this.SendCommand("magicboot title=\"" + path + "\" directory=\"" + Directory + "\"").ConfigureAwait(false);
+            dirSb.Append(lines[i]).Append('\\');
+        await this.SendCommand("magicboot title=\"" + path + "\" directory=\"" + dirSb + "\"").ConfigureAwait(false);
     }
 
     public async Task<string> GetConsoleID() {
         return (await this.SendCommand("getconsoleid").ConfigureAwait(false)).Message.Substring(10);
-    }
-
-    public async Task<string> GetCPUKey() {
-        return (await this.SendCommand("getcpukey").ConfigureAwait(false)).Message;
     }
 
     public async Task<string> GetDebugName() {
@@ -429,22 +442,22 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         return newList;
     }
 
-    public async Task<XbdmExecutionState> GetExecutionState() {
+    public async Task<XboxExecutionState> GetExecutionState() {
         string str = (await this.SendCommand("getexecstate").ConfigureAwait(false)).Message;
         switch (str) {
-            case "pending":       return XbdmExecutionState.Pending;
-            case "reboot":        return XbdmExecutionState.Reboot;
-            case "start":         return XbdmExecutionState.Start;
-            case "stop":          return XbdmExecutionState.Stop;
-            case "pending_title": return XbdmExecutionState.TitlePending;
-            case "reboot_title":  return XbdmExecutionState.TitleReboot;
-            default:              return XbdmExecutionState.Unknown;
+            case "pending":       return XboxExecutionState.Pending;
+            case "reboot":        return XboxExecutionState.Reboot;
+            case "start":         return XboxExecutionState.Start;
+            case "stop":          return XboxExecutionState.Stop;
+            case "pending_title": return XboxExecutionState.TitlePending;
+            case "reboot_title":  return XboxExecutionState.TitleReboot;
+            default:              return XboxExecutionState.Unknown;
         }
     }
 
-    public async Task<HardwareInfo> GetHardwareInfo() {
+    public async Task<XboxHardwareInfo> GetHardwareInfo() {
         List<KeyValuePair<string, string>> lines = await this.SendCommandAndReceiveLines2("hwinfo");
-        HardwareInfo info;
+        XboxHardwareInfo info;
         info.Flags = uint.Parse(lines[0].Value.AsSpan(2, 8), NumberStyles.HexNumber);
         info.NumberOfProcessors = byte.Parse(lines[1].Value.AsSpan(2, 2), NumberStyles.HexNumber);
         info.PCIBridgeRevisionID = byte.Parse(lines[2].Value.AsSpan(2, 2), NumberStyles.HexNumber);
@@ -477,7 +490,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         return ip;
     }
 
-    public async Task SetConsoleColor(ConsoleColor colour) {
+    public async Task SetConsoleColor(Connections.Features.ConsoleColor colour) {
         await this.SendCommand("setcolor name=" + colour.ToString().ToLower()).ConfigureAwait(false);
     }
 
@@ -845,7 +858,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
     public async Task<byte[]> ReceiveBinaryData(CancellationToken cancellation) {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
-        
+
         using MemoryStream memoryStream = new MemoryStream(1024);
         byte[] tmpBuffer = new byte[1024];
 
@@ -1333,7 +1346,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
                 if (theEvent is XbdmEventArgsExecutionState) {
                     this.currentState = (XbdmEventArgsExecutionState) theEvent;
                 }
-                
+
                 preRunEvents.Add(theEvent);
             }
 
@@ -1410,7 +1423,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         ArgumentNullException.ThrowIfNull(handler);
         if (this.isEventConnection)
             throw new InvalidOperationException("Attempt to subscribe to events on an event connection");
-        
+
         if (Interlocked.Increment(ref this.systemEventSubscribeCount) == 1) {
             lock (this.systemEventThreadLock) {
                 switch (this.systemEventMode) {
@@ -1461,6 +1474,151 @@ public class XbdmConsoleConnection : BaseConsoleConnection, IXbdmConnection, IHa
         public void Dispose() {
             XbdmConsoleConnection? conn = Interlocked.Exchange(ref this.connection, null);
             conn?.UnsubscribeFromEvents(this.handler);
+        }
+    }
+
+    private class XbdmFeaturesImpl : IConsoleFeature, IFeatureXbox360Xbdm, IFeatureXboxDebugging, IFeatureSystemEvents {
+        private readonly XbdmConsoleConnection connection;
+
+        public IConsoleConnection Connection => this.connection;
+
+        public XbdmFeaturesImpl(XbdmConsoleConnection connection) {
+            this.connection = connection;
+        }
+
+        public Task ShowNotification(XNotifyLogo logo, string? message) {
+            string msgHex = message != null ? NumberUtils.ConvertStringToHex(message, Encoding.ASCII) : "";
+            string command = $"consolefeatures ver=2 type=12 params=\"A\\0\\A\\2\\2/{message?.Length ?? 0}\\{msgHex}\\1\\{(int) logo}\\\"";
+            return this.connection.SendCommand(command);
+        }
+
+        public Task<XboxThread> GetThreadInfo(uint threadId, bool requireName = true) {
+            return this.connection.GetThreadInfo(threadId, requireName);
+        }
+
+        public async Task<List<XboxThread>> GetThreadDump(bool requireNames = true) {
+            return await this.connection.GetThreadDump(requireNames);
+        }
+
+        public Task RebootConsole(bool cold = true) {
+            return this.connection.RebootConsole(cold);
+        }
+
+        public Task ShutdownConsole() {
+            return this.connection.ShutdownConsole();
+        }
+
+        public Task EjectDisk() {
+            return this.connection.SendCommand("dvdeject");
+        }
+
+        public Task<FreezeResult> DebugFreeze() {
+            return this.connection.DebugFreeze();
+        }
+
+        public Task<UnFreezeResult> DebugUnFreeze() {
+            return this.connection.DebugUnFreeze();
+        }
+
+        public async Task<bool?> IsFrozen() {
+            XboxExecutionState state = await this.GetExecutionState();
+            return state == XboxExecutionState.Stop;
+        }
+
+        public Task DeleteFile(string path) {
+            return this.connection.DeleteFile(path);
+        }
+
+        public Task LaunchFile(string path) {
+            return this.connection.LaunchFile(path);
+        }
+
+        public Task<string> GetConsoleID() {
+            return this.connection.GetConsoleID();
+        }
+
+        public Task<string> GetDebugName() {
+            return this.connection.GetDebugName();
+        }
+
+        public Task<string?> GetXbeInfo(string? executable) {
+            return this.connection.GetXbeInfo(executable);
+        }
+
+        public Task<List<MemoryRegion>> GetMemoryRegions(bool willRead, bool willWrite) {
+            return this.connection.GetMemoryRegions(willRead, willWrite);
+        }
+
+        public Task<XboxExecutionState> GetExecutionState() {
+            return this.connection.GetExecutionState();
+        }
+
+        public Task<XboxHardwareInfo> GetHardwareInfo() {
+            return this.connection.GetHardwareInfo();
+        }
+
+        public Task<uint> GetProcessID() {
+            return this.connection.GetProcessID();
+        }
+
+        public Task<IPAddress> GetTitleIPAddress() {
+            return this.connection.GetTitleIPAddress();
+        }
+
+        public Task SetConsoleColor(ConsoleColor colour) {
+            return this.connection.SetConsoleColor(colour);
+        }
+
+        public Task SetDebugName(string newName) {
+            return this.connection.SetDebugName(newName);
+        }
+
+        public Task AddBreakpoint(uint address) {
+            return this.connection.AddBreakpoint(address);
+        }
+
+        public Task AddDataBreakpoint(uint address, XboxBreakpointType type, uint size) {
+            return this.connection.AddDataBreakpoint(address, type, size);
+        }
+
+        public Task RemoveBreakpoint(uint address) {
+            return this.connection.RemoveBreakpoint(address);
+        }
+
+        public Task RemoveDataBreakpoint(uint address, XboxBreakpointType type, uint size) {
+            return this.connection.RemoveDataBreakpoint(address, type, size);
+        }
+
+        public Task<List<RegisterEntry>?> GetRegisters(uint threadId) {
+            return this.connection.GetRegisters(threadId);
+        }
+
+        public Task<RegisterEntry?> ReadRegisterValue(uint threadId, string registerName) {
+            return this.connection.ReadRegisterValue(threadId, registerName);
+        }
+
+        public Task SuspendThread(uint threadId) {
+            return this.connection.SuspendThread(threadId);
+        }
+
+        public Task ResumeThread(uint threadId) {
+            return this.connection.ResumeThread(threadId);
+        }
+
+        public Task StepThread(uint threadId) {
+            return this.connection.StepThread(threadId);
+        }
+
+        public Task<ConsoleModule?> GetModuleForAddress(uint address, bool bNeedSections) {
+            return this.connection.GetModuleForAddress(address, bNeedSections);
+        }
+
+        public Task<FunctionCallEntry?[]> FindFunctions(uint[] iar) {
+            return this.connection.FindFunctions(iar);
+        }
+
+        public IDisposable SubscribeToEvents(ConsoleSystemEventHandler handler) {
+            return this.connection.SubscribeToEvents(handler);
         }
     }
 }

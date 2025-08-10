@@ -17,12 +17,11 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
+namespace MemEngine360.Connections.Features;
 
-public enum ConsoleColor {
-    Black,
-    Blue,
-    BlueGray,
-    NoSideCar,
-    White,
-};
+/// <summary>
+/// A feature for a console connection that can eject the disk in the disk tray
+/// </summary>
+public interface IFeatureDiskEjection : IConsoleFeature {
+    Task EjectDisk();
+}

@@ -19,7 +19,7 @@
 
 namespace MemEngine360.XboxBase;
 
-public enum XNotiyLogo : int {
+public enum XNotifyLogo : int {
     XBOX_LOGO = 0,
     NEW_MESSAGE_LOGO = 1,
     FRIEND_REQUEST_LOGO = 2,

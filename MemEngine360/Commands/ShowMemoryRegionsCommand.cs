@@ -18,7 +18,7 @@
 // 
 
 using MemEngine360.Connections;
-using MemEngine360.Connections.Traits;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI.CommandSystem;
@@ -31,7 +31,7 @@ namespace MemEngine360.Commands;
 public class ShowMemoryRegionsCommand : BaseMemoryEngineCommand {
     protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
         if (engine.Connection != null) {
-            return engine.Connection is IHaveMemoryRegions ? Executability.Valid : Executability.Invalid;
+            return engine.Connection.HasFeature<IFeatureMemoryRegions>() ? Executability.Valid : Executability.Invalid;
         }
 
         // limitation of commands API -- this is where we have to add/remove buttons dynamically to get around this
@@ -39,9 +39,9 @@ public class ShowMemoryRegionsCommand : BaseMemoryEngineCommand {
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
-        if (engine.Connection is IHaveMemoryRegions) {
+        if (engine.Connection?.HasFeature<IFeatureMemoryRegions>() == true) {
             List<MemoryRegion>? list = await engine.BeginBusyOperationActivityAsync(async (t, c) => {
-                if (!(c is IHaveMemoryRegions regions)) {
+                if (!c.TryGetFeature(out IFeatureMemoryRegions? regions)) {
                     await IMessageDialogService.Instance.ShowMessage("Unsupported", "This console does not support memory region querying");
                     return null;
                 }

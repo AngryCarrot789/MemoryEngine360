@@ -17,17 +17,17 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Connections.Traits;
+namespace MemEngine360.Connections.Features;
 
 /// <summary>
-/// An interface for connections that support system event notifications.
+/// A feature for connections that can notify handlers of system event on the target console.
 /// <para>
 /// Note that a connection can be closed with subscribers still active, in which case,
 /// once the connection is closed the events will not be published anymore. Handlers should
 /// still dispose their subscription when the connection closes, to prevent possible memory leaks
 /// </para>
 /// </summary>
-public interface IHaveSystemEvents {
+public interface IFeatureSystemEvents : IConsoleFeature {
     /// <summary>
     /// Adds the handler as a listener to this connection's system events.
     /// Disposing the returned object stops the handler receiving further notifications.

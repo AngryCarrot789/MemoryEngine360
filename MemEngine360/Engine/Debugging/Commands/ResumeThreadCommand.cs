@@ -17,7 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.XboxBase;
+using MemEngine360.Connections.Features;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 
@@ -43,7 +43,7 @@ public class ResumeThreadCommand : BaseDebuggerCommand {
                 return;
 
             try {
-                await ((IHaveXboxDebugFeatures) debugger.Connection).ResumeThread(debugger.ActiveThread.ThreadId);
+                await (debugger.Connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!).ResumeThread(debugger.ActiveThread.ThreadId);
                 await debugger.UpdateThread(token, debugger.ActiveThread.ThreadId);
             }
             catch (Exception ex) when (ex is IOException || ex is TimeoutException) {

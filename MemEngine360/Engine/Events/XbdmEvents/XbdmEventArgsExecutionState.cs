@@ -17,14 +17,14 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections.Utils;
+using MemEngine360.Connections.Features;
 
 namespace MemEngine360.Engine.Events.XbdmEvents;
 
 public class XbdmEventArgsExecutionState : XbdmEventArgs {
-    public XbdmExecutionState ExecutionState { get; }
+    public XboxExecutionState ExecutionState { get; }
 
-    public XbdmEventArgsExecutionState(string rawMessage, XbdmExecutionState executionState) : base(rawMessage) {
+    public XbdmEventArgsExecutionState(string rawMessage, XboxExecutionState executionState) : base(rawMessage) {
         this.ExecutionState = executionState;
     }
 }

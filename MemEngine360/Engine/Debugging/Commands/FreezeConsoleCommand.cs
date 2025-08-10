@@ -17,7 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections.Traits;
+using MemEngine360.Connections.Features;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 
@@ -37,7 +37,7 @@ public class FreezeConsoleCommand : BaseDebuggerCommand {
             return;
 
         using IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Freeze Console");
-        if (token != null && debugger.Connection != null && debugger.Connection is IHaveIceCubes iceCubes) {
+        if (token != null && debugger.Connection != null && debugger.Connection.TryGetFeature(out IFeatureIceCubes? iceCubes)) {
             debugger.IsConsoleRunning = false;
             debugger.ConsoleExecutionState = null;
 

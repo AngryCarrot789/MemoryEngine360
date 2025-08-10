@@ -20,13 +20,15 @@
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using MemEngine360.Engine.Addressing;
+using MemEngine360.Connections.Features;
 using PFXToolKitUI.Logging;
+using PFXToolKitUI.Services;
 using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Connections;
@@ -36,6 +38,7 @@ namespace MemEngine360.Connections;
 /// </summary>
 public abstract class BaseConsoleConnection : IConsoleConnection {
     protected readonly byte[] sharedOneByteArray = new byte[1];
+    private readonly ServiceManager featureManager;
     private volatile int busyStack;
     private volatile int isClosedState;
 
@@ -60,11 +63,43 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public event ConsoleConnectionEventHandler? Closed;
 
     protected BaseConsoleConnection() {
+        this.featureManager = new ServiceManager();
     }
 
     ~BaseConsoleConnection() {
         if (this.isClosedState == 0)
             AppLogger.Instance.WriteLine("Destructor called on " + nameof(BaseConsoleConnection) + " when still open");
+    }
+    
+    public virtual bool TryGetFeature<T>([NotNullWhen(true)] out T? feature) where T : class, IConsoleFeature {
+        return this.featureManager.TryGetService(out feature);
+    }
+
+    public virtual bool HasFeature<T>() where T : class, IConsoleFeature => this.HasFeature(typeof(T));
+
+    public virtual bool HasFeature(Type typeOfFeature) {
+        if (!typeof(IConsoleFeature).IsAssignableFrom(typeOfFeature))
+            throw new ArgumentException("Feature type is not assignable to " + nameof(IConsoleFeature));
+        
+        return this.featureManager.HasService(typeOfFeature);
+    }
+
+    /// <summary>
+    /// Registers a feature with our internal service manager
+    /// </summary>
+    /// <param name="feature">The feature instance</param>
+    /// <typeparam name="T">The feature type</typeparam>
+    protected void RegisterFeature<T>(T feature) where T : class, IConsoleFeature {
+        this.featureManager.RegisterConstant(feature);
+    }
+    
+    /// <summary>
+    /// Registers a feature, creating it when required.
+    /// </summary>
+    /// <param name="feature">The feature factory</param>
+    /// <typeparam name="T">The feature type</typeparam>
+    protected void RegisterFeatureLazy<T>(Func<T> feature) where T : class, IConsoleFeature {
+        this.featureManager.RegisterLazy<T>(feature);
     }
 
     public abstract Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);

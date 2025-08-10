@@ -20,4 +20,8 @@
 	  <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Connections\Utils\" />
+	</ItemGroup>
+
 </Project>

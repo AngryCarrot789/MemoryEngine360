@@ -17,14 +17,9 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Xbox360XBDM.Consoles;
-using PFXToolKitUI;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Accessing;

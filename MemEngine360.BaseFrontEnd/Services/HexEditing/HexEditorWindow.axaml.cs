@@ -32,7 +32,7 @@ using AvaloniaHex.Async.Editing;
 using AvaloniaHex.Async.Rendering;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Traits;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.Modes;
@@ -491,11 +491,12 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             ActivityTask<byte[]> activity = ActivityManager.Instance.RunTask(async () => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Refresh data for Hex Editor";
+                IFeatureIceCubes? iceCubes = c.GetFeatureOrDefault<IFeatureIceCubes>();
 
                 bool isAlreadyFrozen = false;
-                if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
+                if (iceCubes != null && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Freezing console...";
-                    isAlreadyFrozen = await ((IHaveIceCubes) c).DebugFreeze() == FreezeResult.AlreadyFrozen;
+                    isAlreadyFrozen = await iceCubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
                 }
 
                 SimpleCompletionState completion = new SimpleCompletionState();
@@ -509,9 +510,9 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 byte[] buffer = new byte[length];
                 await c.ReadBytes(address, buffer, 0, length, 0x10000, completion, task.CancellationToken);
 
-                if (!isAlreadyFrozen && c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
+                if (!isAlreadyFrozen && iceCubes != null && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Unfreezing console...";
-                    await ((IHaveIceCubes) c).DebugUnFreeze();
+                    await iceCubes.DebugUnFreeze();
                 }
 
                 return buffer;
@@ -563,11 +564,12 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             ActivityTask activity = ActivityManager.Instance.RunTask(async () => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Write data from Hex Editor";
+                IFeatureIceCubes? iceCubes = c.GetFeatureOrDefault<IFeatureIceCubes>();
 
                 bool isAlreadyFrozen = false;
-                if (c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
+                if (iceCubes != null && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Freezing console...";
-                    isAlreadyFrozen = await ((IHaveIceCubes) c).DebugFreeze() == FreezeResult.AlreadyFrozen;
+                    isAlreadyFrozen = await iceCubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
                 }
 
                 SimpleCompletionState completion = new SimpleCompletionState();
@@ -583,9 +585,9 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 int read = this.myBinarySource!.ReadAvailableData(start, buffer);
                 await c.WriteBytes(start, buffer, 0, read, 0x10000, completion, task.CancellationToken);
 
-                if (!isAlreadyFrozen && c is IHaveIceCubes && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
+                if (!isAlreadyFrozen && iceCubes != null && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Unfreezing console...";
-                    await ((IHaveIceCubes) c).DebugUnFreeze();
+                    await iceCubes.DebugUnFreeze();
                 }
             }, cts);
 

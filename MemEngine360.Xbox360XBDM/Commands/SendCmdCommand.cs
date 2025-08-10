@@ -17,9 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Runtime.InteropServices.Marshalling;
-using System.Text;
-using MemEngine360.BaseFrontEnd.Services.HexEditing;
 using MemEngine360.Commands;
 using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
