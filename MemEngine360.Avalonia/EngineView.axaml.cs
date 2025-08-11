@@ -123,94 +123,6 @@ public partial class EngineView : UserControl, IEngineUI {
     private LambdaNotificationCommand? connectionNotificationCommandDisconnect;
     private LambdaNotificationCommand? connectionNotificationCommandReconnect;
 
-    private class TestThing : CustomContextEntry {
-        private IEngineUI? ctxMemUI;
-
-        public TestThing(string displayName, string? description, Icon? icon = null) : base(displayName, description, icon) {
-            this.CapturedContextChanged += this.OnCapturedContextChanged;
-        }
-
-        // Sort of pointless unless the user tries to connect to a console while it's booting
-        // and then they open the File menu, they'll see that this entry is greyed out until we
-        // connect, then once connected, it's either now invisible or clickable. This is just a POF really
-        private void OnCapturedContextChanged(BaseContextEntry sender, IContextData? oldCapturedContext, IContextData? newCapturedContext) {
-            if (newCapturedContext != null) {
-                if (IEngineUI.DataKey.TryGetContext(newCapturedContext, out IEngineUI? newUI) && !ReferenceEquals(this.ctxMemUI, newUI)) {
-                    if (this.ctxMemUI != null)
-                        this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
-                    (this.ctxMemUI = newUI).MemoryEngine.ConnectionChanged += this.OnContextMemUIConnectionChanged;
-                }
-            }
-            else if (this.ctxMemUI != null) {
-                this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
-                this.ctxMemUI = null;
-            }
-        }
-
-        private void OnContextMemUIConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
-            this.RaiseCanExecuteChanged();
-        }
-
-        public override bool CanExecute(IContextData context) {
-            if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
-                return false;
-            }
-
-            return ui.MemoryEngine.Connection is XbdmConsoleConnection;
-        }
-
-        public override async Task OnExecute(IContextData context) {
-            if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
-                return;
-            }
-
-            using IDisposable? token = await ui.MemoryEngine.BeginBusyOperationActivityAsync();
-            if (token == null || !(ui.MemoryEngine.Connection is XbdmConsoleConnection xbdm)) {
-                return;
-            }
-
-            DataParameterEnumInfo<XNotifyLogo> dpEnumInfo = DataParameterEnumInfo<XNotifyLogo>.All();
-            DoubleUserInputInfo info = new DoubleUserInputInfo("Thank you for using MemoryEngine360 <3", nameof(XNotifyLogo.FLASHING_HAPPY_FACE)) {
-                Caption = "Test Notification",
-                Message = "Shows a custom notification on your xbox!",
-                ValidateA = (b) => {
-                    if (string.IsNullOrWhiteSpace(b.Input))
-                        b.Errors.Add("Input cannot be empty or whitespaces only");
-                },
-                ValidateB = (b) => {
-                    if (!dpEnumInfo.TextToEnum.TryGetValue(b.Input, out XNotifyLogo val))
-                        b.Errors.Add("Unknown logo type");
-                },
-                LabelA = "Message",
-                LabelB = "Logo (search for XNotifyLogo)"
-            };
-
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-                XNotifyLogo logo = dpEnumInfo.TextToEnum[info.TextB];
-                int msgLen = info.TextA.Length;
-                string msgHex = NumberUtils.ConvertStringToHex(info.TextA, Encoding.ASCII);
-                string command = $"consolefeatures ver=2 type=12 params=\"A\\0\\A\\2\\2/{msgLen}\\{msgHex}\\1\\{(int) logo}\\\"";
-                await xbdm.SendCommand(command);
-            }
-        }
-    }
-
-    // TODO: we need a better way to raise the CanExecuteChanged event than this, because this is awful
-    // private class CommandContextEntryEx : CommandContextEntry {
-    //     private readonly IMemEngineUI ui;
-    //     private readonly RapidDispatchAction rda;
-    //
-    //     public CommandContextEntryEx(IMemEngineUI ui, string commandId, string displayName, string? description = null, Icon? icon = null, StretchMode stretchMode = StretchMode.None) : base(commandId, displayName, description, icon, stretchMode) {
-    //         this.ui = ui;
-    //         this.ui.MemoryEngine.IsBusyChanged += this.MemoryEngineOnIsBusyChanged;
-    //         this.rda = new RapidDispatchAction(this.RaiseCanExecuteChanged, DispatchPriority.Loaded, nameof(CommandContextEntryEx));
-    //     }
-    //
-    //     private void MemoryEngineOnIsBusyChanged(MemoryEngine sender) {
-    //         this.rda.InvokeAsync();
-    //     }
-    // }
-
     public EngineView() {
         this.InitializeComponent();
 
@@ -528,6 +440,78 @@ public partial class EngineView : UserControl, IEngineUI {
 
     public IAddressTableEntryUI GetATEntryUI(BaseAddressTableEntry entry) {
         return this.PART_SavedAddressTree.ItemMap.GetControl(entry);
+    }
+
+    private class TestThing : CustomContextEntry {
+        private IEngineUI? ctxMemUI;
+
+        public TestThing(string displayName, string? description, Icon? icon = null) : base(displayName, description, icon) {
+            this.CapturedContextChanged += this.OnCapturedContextChanged;
+        }
+
+        // Sort of pointless unless the user tries to connect to a console while it's booting
+        // and then they open the File menu, they'll see that this entry is greyed out until we
+        // connect, then once connected, it's either now invisible or clickable. This is just a POF really
+        private void OnCapturedContextChanged(BaseContextEntry sender, IContextData? oldCapturedContext, IContextData? newCapturedContext) {
+            if (newCapturedContext != null) {
+                if (IEngineUI.DataKey.TryGetContext(newCapturedContext, out IEngineUI? newUI) && !ReferenceEquals(this.ctxMemUI, newUI)) {
+                    if (this.ctxMemUI != null)
+                        this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
+                    (this.ctxMemUI = newUI).MemoryEngine.ConnectionChanged += this.OnContextMemUIConnectionChanged;
+                }
+            }
+            else if (this.ctxMemUI != null) {
+                this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
+                this.ctxMemUI = null;
+            }
+        }
+
+        private void OnContextMemUIConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
+            this.RaiseCanExecuteChanged();
+        }
+
+        public override bool CanExecute(IContextData context) {
+            if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
+                return false;
+            }
+
+            return ui.MemoryEngine.Connection is XbdmConsoleConnection;
+        }
+
+        public override async Task OnExecute(IContextData context) {
+            if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
+                return;
+            }
+
+            using IDisposable? token = await ui.MemoryEngine.BeginBusyOperationActivityAsync();
+            if (token == null || !(ui.MemoryEngine.Connection is XbdmConsoleConnection xbdm)) {
+                return;
+            }
+
+            DataParameterEnumInfo<XNotifyLogo> dpEnumInfo = DataParameterEnumInfo<XNotifyLogo>.All();
+            DoubleUserInputInfo info = new DoubleUserInputInfo("Thank you for using MemoryEngine360 <3", nameof(XNotifyLogo.FLASHING_HAPPY_FACE)) {
+                Caption = "Test Notification",
+                Message = "Shows a custom notification on your xbox!",
+                ValidateA = (b) => {
+                    if (string.IsNullOrWhiteSpace(b.Input))
+                        b.Errors.Add("Input cannot be empty or whitespaces only");
+                },
+                ValidateB = (b) => {
+                    if (!dpEnumInfo.TextToEnum.TryGetValue(b.Input, out XNotifyLogo val))
+                        b.Errors.Add("Unknown logo type");
+                },
+                LabelA = "Message",
+                LabelB = "Logo (search for XNotifyLogo)"
+            };
+
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+                XNotifyLogo logo = dpEnumInfo.TextToEnum[info.TextB];
+                int msgLen = info.TextA.Length;
+                string msgHex = NumberUtils.ConvertStringToHex(info.TextA, Encoding.ASCII);
+                string command = $"consolefeatures ver=2 type=12 params=\"A\\0\\A\\2\\2/{msgLen}\\{msgHex}\\1\\{(int) logo}\\\"";
+                await xbdm.SendCommand(command);
+            }
+        }
     }
 
     private static async Task<bool> ParseAndUpdateScanAddress(IBinder<ScanningProcessor> b, string x) {

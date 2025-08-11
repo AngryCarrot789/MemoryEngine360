@@ -60,6 +60,13 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
         yield return new CommandContextEntry("commands.memengine.remote.SoftRebootCommand", "Soft Reboot (restart title)");
         yield return new CommandContextEntry("commands.memengine.remote.ColdRebootCommand", "Cold Reboot");
         yield return new CommandContextEntry("commands.memengine.remote.ShutdownCommand", "Shutdown");
+        yield return new SeparatorEntry();
+        yield return new CaptionEntry("JRPC2 Commands");
+        yield return new CommandContextEntry("commands.memengine.remote.GetCPUKeyCommand", "Get CPU Key");
+        yield return new CommandContextEntry("commands.memengine.remote.GetDashboardVersionCommand", "Get Dashboard Version");
+        yield return new CommandContextEntry("commands.memengine.remote.GetTemperaturesCommand", "Get Temperatures");
+        yield return new CommandContextEntry("commands.memengine.remote.GetTitleIDCommand", "Get Current TitleID");
+        yield return new CommandContextEntry("commands.memengine.remote.GetMoBoTypeCommand", "Get Motherboard Type");
     }
 
     public override UserConnectionInfo? CreateConnectionInfo(IContextData context) {
@@ -112,7 +119,16 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
                 StreamReader reader = new StreamReader(client.GetStream(), leaveOpen: true);
                 string? response = (await Task.Run(() => reader.ReadLine(), cancellation.Token))?.ToLower();
                 if (response == "201- connected") {
-                    return new XbdmConsoleConnection(client, info.IpAddress);
+                    XbdmConsoleConnection connection = new XbdmConsoleConnection(client, info.IpAddress);
+                    try {
+                        await connection.DetectDynamicFeatures();
+                    }
+                    catch (Exception e) when (e is IOException || e is TimeoutException) {
+                        await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => IMessageDialogService.Instance.ShowMessage("Feature detection", e.Message));
+                        return null;
+                    }
+
+                    return connection;
                 }
 
                 await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => IMessageDialogService.Instance.ShowMessage("Error", "Received invalid response from console: " + (response ?? "")));

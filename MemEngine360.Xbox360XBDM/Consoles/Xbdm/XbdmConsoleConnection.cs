@@ -41,6 +41,7 @@ namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
 public class XbdmConsoleConnection : BaseConsoleConnection {
     private static int NextReaderID = 1;
+    private static volatile bool IsJRPC2DetectionBroken;
 
     private readonly byte[] sharedTwoByteArray = new byte[2];
     private readonly byte[] sharedSetMemCommandBuffer = new byte[14 + 8 + 6 + 128 + 2];
@@ -97,8 +98,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
     public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
 
-    private readonly XbdmFeaturesImpl features;
-    
+    private readonly XbdmFeaturesImpl xbdmFeatures;
+    private Jrpc2FeaturesImpl? jrpcFeatures;
+
     public XbdmConsoleConnection(TcpClient client, string originalConnectionAddress) : this(client, originalConnectionAddress, false) {
     }
 
@@ -113,7 +115,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         " length=0x"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 22, 10));
         "\r\n"u8.CopyTo(new Span<byte>(this.sharedGetMemCommandBuffer, 40, 2));
 
-        this.features = new XbdmFeaturesImpl(this);
+        this.xbdmFeatures = new XbdmFeaturesImpl(this);
 
         new Thread(this.ReaderThreadMain) {
             Name = $"XBDM Reader Thread #{NextReaderID++}",
@@ -134,21 +136,56 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }, token);
     }
 
+    /// <summary>
+    /// Attempts to figure out additional features, such as JRPC2 being installed 
+    /// </summary>
+    public async Task DetectDynamicFeatures() {
+        if (!IsJRPC2DetectionBroken) {
+            const string GetCpuSensorCommand = "consolefeatures ver=2 type=15 params=\"A\\0\\A\\1\\1\\0\\\"";
+            ConsoleResponse response = await this.SendCommand(GetCpuSensorCommand);
+            if (response.ResponseType == ResponseType.SingleResponse) {
+                if (uint.TryParse(response.Message, NumberStyles.HexNumber, null, out uint temperature)) {
+                    // We got a temperature value, so assume JRPC2 is working fine
+                    this.jrpcFeatures = new Jrpc2FeaturesImpl(this);
+                    Debug.WriteLine(this.originalConnectionAddress + " is using JRPC2");
+                }
+                else {
+                    Debug.WriteLine(this.originalConnectionAddress + " is not using JRPC2");
+                }
+            }
+            else {
+                IsJRPC2DetectionBroken = true;
+                Debug.WriteLine(this.originalConnectionAddress + " connection broken due to JRPC2 detection");
+                this.Close();
+                throw new IOException("JRPC2 detection is now disabled as it has corrupted the connection. Please re-connect");
+            }
+        }
+    }
+
     public override bool TryGetFeature<T>([NotNullWhen(true)] out T? feature) where T : class {
-        if (this.features is T t) {
+        if (this.xbdmFeatures is T t) {
             feature = t;
             return true;
         }
-        
+
+        if (this.jrpcFeatures is T t2) {
+            feature = t2;
+            return true;
+        }
+
         return base.TryGetFeature(out feature);
     }
 
     public override bool HasFeature<T>() {
-        return this.features is T || base.HasFeature<T>();
+        return this.xbdmFeatures is T ||
+               this.jrpcFeatures is T ||
+               base.HasFeature<T>();
     }
 
     public override bool HasFeature(Type typeOfFeature) {
-        return typeOfFeature.IsInstanceOfType(this.features) || base.HasFeature(typeOfFeature);
+        return typeOfFeature.IsInstanceOfType(this.xbdmFeatures) ||
+               typeOfFeature.IsInstanceOfType(this.jrpcFeatures) ||
+               base.HasFeature(typeOfFeature);
     }
 
     protected override void CloseOverride() {
@@ -1477,6 +1514,92 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
     }
 
+    private class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
+        private readonly XbdmConsoleConnection connection;
+
+        public IConsoleConnection Connection => this.connection;
+
+        public Jrpc2FeaturesImpl(XbdmConsoleConnection connection) {
+            this.connection = connection;
+        }
+
+        public Task ShowNotification(XNotifyLogo logo, string? message) {
+            string msgHex = message != null ? NumberUtils.ConvertStringToHex(message, Encoding.ASCII) : "";
+            string command = $"consolefeatures ver=2 type=12 params=\"A\\0\\A\\2\\2/{message?.Length ?? 0}\\{msgHex}\\{(uint) RPCDataType.Int}\\{(int) logo}\\\"";
+            return this.connection.SendCommand(command);
+        }
+
+        public async Task<string> GetCPUKey() {
+            const string command = "consolefeatures ver=2 type=10 params=\"A\\0\\A\\0\\\"";
+            ConsoleResponse response = await this.connection.SendCommand(command);
+            if (response.ResponseType != ResponseType.SingleResponse || response.Message.Length != 32) {
+                this.connection.Close();
+                throw new IOException("JRPC2 did not respond correctly");
+            }
+
+            return response.Message;
+        }
+
+        public async Task<uint> GetDashboardVersion() {
+            const string command = "consolefeatures ver=2 type=13 params=\"A\\0\\A\\4\\\"";
+            ConsoleResponse response = await this.connection.SendCommand(command);
+            if (response.ResponseType != ResponseType.SingleResponse || !uint.TryParse(response.Message, out uint version)) {
+                this.connection.Close();
+                throw new IOException("JRPC2 did not respond correctly");
+            }
+
+            return version;
+        }
+
+        public async Task<uint> GetTemperature(SensorType sensorType) {
+            string command = $"consolefeatures ver=2 type=15 params=\"A\\0\\A\\1\\{(uint) RPCDataType.Int}\\{(int) sensorType}\\\"";
+            ConsoleResponse response = await this.connection.SendCommand(command);
+            if (response.ResponseType == ResponseType.SingleResponse) {
+                if (uint.TryParse(response.Message, NumberStyles.HexNumber, null, out uint version)) {
+                    return version;
+                }
+            }
+
+            this.connection.Close();
+            throw new IOException("JRPC2 did not respond correctly");
+        }
+
+        public async Task<uint> GetCurrentTitleId() {
+            const string command = "consolefeatures ver=2 type=16 params=\"A\\0\\A\\0\\\"";
+            ConsoleResponse response = await this.connection.SendCommand(command);
+            if (response.ResponseType == ResponseType.SingleResponse) {
+                if (uint.TryParse(response.Message, NumberStyles.HexNumber, null, out uint version)) {
+                    return version;
+                }
+            }
+
+            this.connection.Close();
+            throw new IOException("JRPC2 did not respond correctly");
+        }
+
+        public async Task<string> GetMotherboardType() {
+            const string command = "consolefeatures ver=2 type=17 params=\"A\\0\\A\\0\\\"";
+            ConsoleResponse response = await this.connection.SendCommand(command);
+            if (response.ResponseType == ResponseType.SingleResponse) {
+                return response.Message;
+            }
+
+            this.connection.Close();
+            throw new IOException("JRPC2 did not respond correctly");
+        }
+
+        public async Task SetLEDs(bool p1, bool p2, bool p3, bool p4) {
+            int bits = ((p4 ? 1 : 0) << 3) | ((p3 ? 1 : 0) << 2) | ((p2 ? 1 : 0) << 1) | (p1 ? 1 : 0);
+            int value = bits * 16;
+            string command = "consolefeatures ver=2 type=14 params=\"A\\0\\A\\4\\1\\0\\1\\0\\1\\0\\1\\" + value + "\\\"";
+            ConsoleResponse response = await this.connection.SendCommand(command);
+            if (response.ResponseType != ResponseType.SingleResponse || response.Message != "S_OK") {
+                this.connection.Close();
+                throw new IOException("JRPC2 did not respond correctly");
+            }
+        }
+    }
+
     private class XbdmFeaturesImpl : IConsoleFeature, IFeatureXbox360Xbdm, IFeatureXboxDebugging, IFeatureSystemEvents {
         private readonly XbdmConsoleConnection connection;
 
@@ -1484,12 +1607,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         public XbdmFeaturesImpl(XbdmConsoleConnection connection) {
             this.connection = connection;
-        }
-
-        public Task ShowNotification(XNotifyLogo logo, string? message) {
-            string msgHex = message != null ? NumberUtils.ConvertStringToHex(message, Encoding.ASCII) : "";
-            string command = $"consolefeatures ver=2 type=12 params=\"A\\0\\A\\2\\2/{message?.Length ?? 0}\\{msgHex}\\1\\{(int) logo}\\\"";
-            return this.connection.SendCommand(command);
         }
 
         public Task<XboxThread> GetThreadInfo(uint threadId, bool requireName = true) {
@@ -1500,125 +1617,67 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             return await this.connection.GetThreadDump(requireNames);
         }
 
-        public Task RebootConsole(bool cold = true) {
-            return this.connection.RebootConsole(cold);
-        }
+        public Task RebootConsole(bool cold = true) => this.connection.RebootConsole(cold);
 
-        public Task ShutdownConsole() {
-            return this.connection.ShutdownConsole();
-        }
+        public Task ShutdownConsole() => this.connection.ShutdownConsole();
 
-        public Task EjectDisk() {
-            return this.connection.SendCommand("dvdeject");
-        }
+        public Task EjectDisk() => this.connection.SendCommand("dvdeject");
 
-        public Task<FreezeResult> DebugFreeze() {
-            return this.connection.DebugFreeze();
-        }
+        public Task<FreezeResult> DebugFreeze() => this.connection.DebugFreeze();
 
-        public Task<UnFreezeResult> DebugUnFreeze() {
-            return this.connection.DebugUnFreeze();
-        }
+        public Task<UnFreezeResult> DebugUnFreeze() => this.connection.DebugUnFreeze();
 
         public async Task<bool?> IsFrozen() {
             XboxExecutionState state = await this.GetExecutionState();
             return state == XboxExecutionState.Stop;
         }
 
-        public Task DeleteFile(string path) {
-            return this.connection.DeleteFile(path);
-        }
+        public Task DeleteFile(string path) => this.connection.DeleteFile(path);
 
-        public Task LaunchFile(string path) {
-            return this.connection.LaunchFile(path);
-        }
+        public Task LaunchFile(string path) => this.connection.LaunchFile(path);
 
-        public Task<string> GetConsoleID() {
-            return this.connection.GetConsoleID();
-        }
+        public Task<string> GetConsoleID() => this.connection.GetConsoleID();
 
-        public Task<string> GetDebugName() {
-            return this.connection.GetDebugName();
-        }
+        public Task<string> GetDebugName() => this.connection.GetDebugName();
 
-        public Task<string?> GetXbeInfo(string? executable) {
-            return this.connection.GetXbeInfo(executable);
-        }
+        public Task<string?> GetXbeInfo(string? executable) => this.connection.GetXbeInfo(executable);
 
-        public Task<List<MemoryRegion>> GetMemoryRegions(bool willRead, bool willWrite) {
-            return this.connection.GetMemoryRegions(willRead, willWrite);
-        }
+        public Task<List<MemoryRegion>> GetMemoryRegions(bool willRead, bool willWrite) => this.connection.GetMemoryRegions(willRead, willWrite);
 
-        public Task<XboxExecutionState> GetExecutionState() {
-            return this.connection.GetExecutionState();
-        }
+        public Task<XboxExecutionState> GetExecutionState() => this.connection.GetExecutionState();
 
-        public Task<XboxHardwareInfo> GetHardwareInfo() {
-            return this.connection.GetHardwareInfo();
-        }
+        public Task<XboxHardwareInfo> GetHardwareInfo() => this.connection.GetHardwareInfo();
 
-        public Task<uint> GetProcessID() {
-            return this.connection.GetProcessID();
-        }
+        public Task<uint> GetProcessID() => this.connection.GetProcessID();
 
-        public Task<IPAddress> GetTitleIPAddress() {
-            return this.connection.GetTitleIPAddress();
-        }
+        public Task<IPAddress> GetTitleIPAddress() => this.connection.GetTitleIPAddress();
 
-        public Task SetConsoleColor(ConsoleColor colour) {
-            return this.connection.SetConsoleColor(colour);
-        }
+        public Task SetConsoleColor(ConsoleColor colour) => this.connection.SetConsoleColor(colour);
 
-        public Task SetDebugName(string newName) {
-            return this.connection.SetDebugName(newName);
-        }
+        public Task SetDebugName(string newName) => this.connection.SetDebugName(newName);
 
-        public Task AddBreakpoint(uint address) {
-            return this.connection.AddBreakpoint(address);
-        }
+        public Task AddBreakpoint(uint address) => this.connection.AddBreakpoint(address);
 
-        public Task AddDataBreakpoint(uint address, XboxBreakpointType type, uint size) {
-            return this.connection.AddDataBreakpoint(address, type, size);
-        }
+        public Task AddDataBreakpoint(uint address, XboxBreakpointType type, uint size) => this.connection.AddDataBreakpoint(address, type, size);
 
-        public Task RemoveBreakpoint(uint address) {
-            return this.connection.RemoveBreakpoint(address);
-        }
+        public Task RemoveBreakpoint(uint address) => this.connection.RemoveBreakpoint(address);
 
-        public Task RemoveDataBreakpoint(uint address, XboxBreakpointType type, uint size) {
-            return this.connection.RemoveDataBreakpoint(address, type, size);
-        }
+        public Task RemoveDataBreakpoint(uint address, XboxBreakpointType type, uint size) => this.connection.RemoveDataBreakpoint(address, type, size);
 
-        public Task<List<RegisterEntry>?> GetRegisters(uint threadId) {
-            return this.connection.GetRegisters(threadId);
-        }
+        public Task<List<RegisterEntry>?> GetRegisters(uint threadId) => this.connection.GetRegisters(threadId);
 
-        public Task<RegisterEntry?> ReadRegisterValue(uint threadId, string registerName) {
-            return this.connection.ReadRegisterValue(threadId, registerName);
-        }
+        public Task<RegisterEntry?> ReadRegisterValue(uint threadId, string registerName) => this.connection.ReadRegisterValue(threadId, registerName);
 
-        public Task SuspendThread(uint threadId) {
-            return this.connection.SuspendThread(threadId);
-        }
+        public Task SuspendThread(uint threadId) => this.connection.SuspendThread(threadId);
 
-        public Task ResumeThread(uint threadId) {
-            return this.connection.ResumeThread(threadId);
-        }
+        public Task ResumeThread(uint threadId) => this.connection.ResumeThread(threadId);
 
-        public Task StepThread(uint threadId) {
-            return this.connection.StepThread(threadId);
-        }
+        public Task StepThread(uint threadId) => this.connection.StepThread(threadId);
 
-        public Task<ConsoleModule?> GetModuleForAddress(uint address, bool bNeedSections) {
-            return this.connection.GetModuleForAddress(address, bNeedSections);
-        }
+        public Task<ConsoleModule?> GetModuleForAddress(uint address, bool bNeedSections) => this.connection.GetModuleForAddress(address, bNeedSections);
 
-        public Task<FunctionCallEntry?[]> FindFunctions(uint[] iar) {
-            return this.connection.FindFunctions(iar);
-        }
+        public Task<FunctionCallEntry?[]> FindFunctions(uint[] iar) => this.connection.FindFunctions(iar);
 
-        public IDisposable SubscribeToEvents(ConsoleSystemEventHandler handler) {
-            return this.connection.SubscribeToEvents(handler);
-        }
+        public IDisposable SubscribeToEvents(ConsoleSystemEventHandler handler) => this.connection.SubscribeToEvents(handler);
     }
 }

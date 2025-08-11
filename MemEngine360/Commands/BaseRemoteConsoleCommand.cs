@@ -179,3 +179,84 @@ public class DebugUnfreezeCommand : BaseRemoteConsoleCommand {
         await connection.GetFeatureOrDefault<IFeatureIceCubes>()!.DebugUnFreeze();
     }
 }
+
+public abstract class BaseJRPC2Command : BaseRemoteConsoleCommand {
+    protected override Executability CanExecuteCore(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
+        Executability exec = base.CanExecuteCore(engine, connection, e);
+        if (exec != Executability.Valid) {
+            return exec;
+        }
+
+        return connection.HasFeature<IFeatureXboxJRPC2>() ? Executability.Valid : Executability.Invalid;
+    }
+
+    protected override async Task<bool> TryBeginExecuteAsync(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
+        if (!connection.HasFeature<IFeatureXboxJRPC2>()) {
+            await IMessageDialogService.Instance.ShowMessage("JRPC2", "JRPC2 is not installed on this console");
+            return false;
+        }
+
+        return true;
+    }
+
+    protected override Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, CommandEventArgs e) {
+        return this.ExecuteRemoteCommandInActivity(engine, connection, connection.GetFeatureOrDefault<IFeatureXboxJRPC2>()!, e);
+    }
+
+    protected abstract Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e);
+}
+
+public class GetCPUKeyCommand : BaseJRPC2Command {
+    protected override string ActivityText => "Getting CPU key...";
+    
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
+        string key = await jrpc.GetCPUKey();
+        await IMessageDialogService.Instance.ShowMessage("CPU Key", key);
+    }
+}
+
+public class GetDashboardVersionCommand : BaseJRPC2Command {
+    protected override string ActivityText => "Getting dashboard version...";
+    
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
+        uint dashboard = await jrpc.GetDashboardVersion();
+        await IMessageDialogService.Instance.ShowMessage("Dashboard", dashboard.ToString());
+    }
+}
+
+public class GetTemperaturesCommand : BaseJRPC2Command {
+    protected override string ActivityText => "Getting temperatures...";
+    
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
+        uint cpu = await jrpc.GetTemperature(SensorType.CPU);
+        uint gpu = await jrpc.GetTemperature(SensorType.GPU);
+        uint memory = await jrpc.GetTemperature(SensorType.EDRAM);
+        uint mobo = await jrpc.GetTemperature(SensorType.MotherBoard);
+
+        StringJoiner joiner = new StringJoiner(Environment.NewLine);
+        joiner.Append("CPU: " + cpu);
+        joiner.Append("GPU: " + gpu);
+        joiner.Append("Memory: " + memory);
+        joiner.Append("Motherboard: " + mobo);
+        
+        await IMessageDialogService.Instance.ShowMessage("Temperatures", joiner.ToString());
+    }
+}
+
+public class GetTitleIDCommand : BaseJRPC2Command {
+    protected override string ActivityText => "Getting current title ID...";
+    
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
+        uint titleID = await jrpc.GetCurrentTitleId();
+        await IMessageDialogService.Instance.ShowMessage("Title ID", titleID.ToString("X8"));
+    }
+}
+
+public class GetMoBoTypeCommand : BaseJRPC2Command {
+    protected override string ActivityText => "Getting motherboard type...";    
+    
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
+        string mobo = await jrpc.GetMotherboardType();
+        await IMessageDialogService.Instance.ShowMessage("Motherboard", mobo);
+    }
+}

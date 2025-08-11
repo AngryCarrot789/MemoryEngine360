@@ -548,10 +548,10 @@ public class ConsoleDebugger {
         }, DispatchPriority.Background);
     }
 
-    private void OnHandleStateChange(XbdmEventArgsExecutionState stateChanged) {
+    public void SetCurrentState(XboxExecutionState state) {
         bool? newRunState;
         string? stateName;
-        switch (stateChanged.ExecutionState) {
+        switch (state) {
             case XboxExecutionState.Pending:
                 newRunState = null;
                 stateName = "Pending";
@@ -587,5 +587,9 @@ public class ConsoleDebugger {
             this.ConsoleExecutionState = stateName;
             this.IsConsoleRunning = newRunState;
         }, DispatchPriority.Background);
+    }
+    
+    private void OnHandleStateChange(XbdmEventArgsExecutionState stateChanged) {
+        this.SetCurrentState(stateChanged.ExecutionState);
     }
 }

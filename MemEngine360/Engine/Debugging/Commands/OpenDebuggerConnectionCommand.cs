@@ -109,7 +109,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             debugger.IsWindowVisible = oldIsActive;
             return debugger.Connection == null;
         }, cts);
-        
+
         return success.HasValue && success.Value;
     }
 
@@ -141,11 +141,20 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             }
         }
 
-        if (!newConnection.HasFeature<IFeatureXboxDebugging>()) {
+        if (!newConnection.TryGetFeature(out IFeatureXboxDebugging? debugging)) {
             await IMessageDialogService.Instance.ShowMessage("Incompatible connection", "Connection does not support debug features", MessageBoxButton.OK, MessageBoxResult.OK);
             return false;
         }
 
+        XboxExecutionState exec;
+        try {
+            exec = await debugging.GetExecutionState();
+        }
+        catch (Exception e) when (e is IOException || e is TimeoutException) {
+            await IMessageDialogService.Instance.ShowMessage("Network error", "Error querying current execution state", e.Message, MessageBoxButton.OK, MessageBoxResult.OK);
+            return false;
+        }
+        
         debugger.SetConnection(token, newConnection);
         if (oldConnection != null) {
             // Always close AFTER changing, just in case a listener wants to send data or whatever
@@ -157,6 +166,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             }
         }
 
+        debugger.SetCurrentState(exec);
         return true;
     }
 }

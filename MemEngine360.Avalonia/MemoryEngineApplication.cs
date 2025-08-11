@@ -138,6 +138,11 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.remote.ShutdownCommand", new ShutdownCommand());
         manager.Register("commands.memengine.remote.DebugFreezeCommand", new DebugFreezeCommand());
         manager.Register("commands.memengine.remote.DebugUnfreezeCommand", new DebugUnfreezeCommand());
+        manager.Register("commands.memengine.remote.GetCPUKeyCommand", new GetCPUKeyCommand());
+        manager.Register("commands.memengine.remote.GetDashboardVersionCommand", new GetDashboardVersionCommand());
+        manager.Register("commands.memengine.remote.GetTemperaturesCommand", new GetTemperaturesCommand());
+        manager.Register("commands.memengine.remote.GetTitleIDCommand", new GetTitleIDCommand());
+        manager.Register("commands.memengine.remote.GetMoBoTypeCommand", new GetMoBoTypeCommand());
 
         // Hex editor commands
         manager.Register("commands.hexeditor.ReloadSelectionFromConsole", new ReloadSelectionFromConsole());

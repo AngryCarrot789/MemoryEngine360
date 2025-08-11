@@ -32,7 +32,8 @@ public interface IFeatureXbox360Xbdm :
     IFeaturePowerFunctions,
     IFeatureDiskEjection,
     IFeatureIceCubes,
-    IFeatureFileSystemInfo {
+    IFeatureFileSystemInfo, 
+    IFeatureXboxExecutionState {
 
     /// <summary>
     /// Gets the console's ID
@@ -51,11 +52,6 @@ public interface IFeatureXbox360Xbdm :
     /// <param name="executable">The executable. Null to use current executable</param>
     /// <returns>The .xex file path</returns>
     Task<string?> GetXbeInfo(string? executable);
-
-    /// <summary>
-    /// Gets the current state of the console
-    /// </summary>
-    Task<XboxExecutionState> GetExecutionState();
 
     /// <summary>
     /// Gets the hardware information

@@ -26,7 +26,7 @@ namespace MemEngine360.Connections.Features;
 /// <summary>
 /// A trait for an xbox debuggable console. For now, only xbox is supported. But soon we will move to an abstract debugger to support multiple platforms
 /// </summary>
-public interface IFeatureXboxDebugging : IConsoleFeature, IFeatureXboxThreads {
+public interface IFeatureXboxDebugging : IConsoleFeature, IFeatureXboxThreads, IFeatureIceCubes, IFeatureXboxExecutionState {
     Task AddBreakpoint(uint address);
     
     Task AddDataBreakpoint(uint address, XboxBreakpointType type, uint size);

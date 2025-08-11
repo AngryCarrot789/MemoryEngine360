@@ -29,4 +29,6 @@ The API section of the wiki contains a lot of docs on the code base of MemoryEng
 # Licence
 The project is licenced under GPLv3. See COPYING.GPLv3 for more information. All files should contain the licence header
 
-This project references a project called PFXToolKitUI licenced under LGPL, and AvaloniaHex is licenced under MIT 
+This project references a project called PFXToolKitUI licenced under LGPL, and AvaloniaHex is licenced under MIT.
+
+The file IFeatureXboxJRPC2 contains code from XboxChef/JRPC, licenced under GPL-3.0
