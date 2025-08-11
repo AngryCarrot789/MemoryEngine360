@@ -65,6 +65,39 @@ public interface IFeatureXboxJRPC2 : IConsoleFeature, IFeatureXboxNotifications 
     /// <param name="p3">Player 3 LED</param>
     /// <param name="p4">Player 4 LED</param>
     Task SetLEDs(bool p1, bool p2, bool p3, bool p4);
+
+    Task<T> Call<T>(uint Address, params object[] Arguments) where T : struct;
+    Task<T> Call<T>(string module, int ordinal, params object[] Arguments) where T : struct;
+    Task<T> Call<T>(ThreadType thread, uint Address, params object[] Arguments) where T : struct;
+    Task<T> Call<T>(ThreadType thread, string module, int ordinal, params object[] Arguments) where T : struct;
+    Task CallVoid(uint address, params object[] Arguments);
+    Task CallVoid(string module, int ordinal, params object[] Arguments);
+    Task CallVoid(ThreadType Type, uint Address, params object[] Arguments);
+    Task CallVoid(ThreadType Type, string module, int ordinal, params object[] Arguments);
+    Task<T[]> CallArray<T>(uint Address, uint ArraySize, params object[] Arguments) where T : struct;
+    Task<T[]> CallArray<T>(string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct;
+    Task<T[]> CallArray<T>(ThreadType Type, uint Address, uint ArraySize, params object[] Arguments) where T : struct;
+    Task<T[]> CallArray<T>(ThreadType Type, string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct;
+    Task<string> CallString(uint Address, params object[] Arguments);
+    Task<string> CallString(string module, int ordinal, params object[] Arguments);
+    Task<string> CallString(ThreadType Type, uint Address, params object[] Arguments);
+    Task<string> CallString(ThreadType Type, string module, int ordinal, params object[] Arguments);
+    Task<T> CallVM<T>(uint Address, params object[] Arguments) where T : struct;
+    Task<T> CallVM<T>(string module, int ordinal, params object[] Arguments) where T : struct;
+    Task<T> CallVM<T>(ThreadType Type, uint Address, params object[] Arguments) where T : struct;
+    Task<T> CallVM<T>(ThreadType Type, string module, int ordinal, params object[] Arguments) where T : struct;
+    Task CallVMVoid(uint Address, params object[] Arguments);
+    Task CallVMVoid(string module, int ordinal, params object[] Arguments);
+    Task CallVMVoid(ThreadType Type, uint Address, params object[] Arguments);
+    Task CallVMVoid(ThreadType Type, string module, int ordinal, params object[] Arguments);
+    Task<T[]> CallVMArray<T>(uint Address, uint ArraySize, params object[] Arguments) where T : struct;
+    Task<T[]> CallVMArray<T>(string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct;
+    Task<T[]> CallVMArray<T>(ThreadType Type, uint Address, uint ArraySize, params object[] Arguments) where T : struct;
+    Task<T[]> CallVMArray<T>(ThreadType Type, string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct;
+    Task<string> CallVMString(uint Address, params object[] Arguments);
+    Task<string> CallVMString(string module, int ordinal, params object[] Arguments);
+    Task<string> CallVMString(ThreadType Type, uint Address, params object[] Arguments);
+    Task<string> CallVMString(ThreadType Type, string module, int ordinal, params object[] Arguments);
 }
 
 public enum SensorType {
@@ -85,4 +118,9 @@ public enum RPCDataType : uint {
     ByteArray = 7,
     Uint64 = 8,
     Uint64Array = 9
+}
+
+public enum ThreadType {
+    System,
+    Title
 }

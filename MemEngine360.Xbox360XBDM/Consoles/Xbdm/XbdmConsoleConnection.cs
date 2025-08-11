@@ -214,7 +214,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
         catch (Exception e) {
             AppLogger.Instance.WriteLine("Exception while closing " + nameof(XbdmConsoleConnection));
-            AppLogger.Instance.WriteLine(e.GetToString());
+            AppLogger.Instance.WriteLine(ExceptionUtils.GetToString(e));
         }
     }
 
@@ -268,7 +268,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         return responses;
     }
 
-    public Task<ConsoleResponse[]> SendMultipleCommands(IEnumerable<string> commands) => this.SendMultipleCommands(commands.ToArray());
+    public Task<ConsoleResponse[]> SendMultipleCommands(IEnumerable<string> commands) => this.SendMultipleCommands(Enumerable.ToArray(commands));
 
     public async Task<string> ReadLineFromStream(CancellationToken token = default) {
         this.EnsureNotClosed();
@@ -312,16 +312,16 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     }
 
     public async Task<List<KeyValuePair<string, string>>> SendCommandAndReceiveLines2(string Text) {
-        return (await this.SendCommandAndReceiveLines(Text)).Select(x => {
+        return Enumerable.ToList(Enumerable.Select(await this.SendCommandAndReceiveLines(Text), x => {
             int split = x.IndexOf(':');
             return new KeyValuePair<string, string>(
-                split == -1 ? x : x.AsSpan(0, split).Trim().ToString(),
-                split == -1 ? "" : x.AsSpan(split + 1).Trim().ToString());
-        }).ToList();
+                split == -1 ? x : MemoryExtensions.Trim(MemoryExtensions.AsSpan(x, 0, split)).ToString(),
+                split == -1 ? "" : MemoryExtensions.Trim(MemoryExtensions.AsSpan(x, split + 1)).ToString());
+        }));
     }
 
     private static void ParseThreadInfo(string text, ref XboxThread tdInfo) {
-        ReadOnlySpan<char> ros = text.AsSpan();
+        ReadOnlySpan<char> ros = MemoryExtensions.AsSpan(text);
         ParamUtils.GetDwParam(ros, "suspend", true, out tdInfo.suspendCount);
         ParamUtils.GetDwParam(ros, "priority", true, out tdInfo.priority);
         ParamUtils.GetDwParam(ros, "tlsbase", true, out tdInfo.tlsBaseAddress);
@@ -444,7 +444,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     }
 
     public async Task<string?> GetXbeInfo(string? executable) {
-        List<string> result = await this.SendCommandAndReceiveLines($"xbeinfo {(executable != null ? ("name=\"" + executable + "\"") : "running")}").ConfigureAwait(false);
+        List<string> result = await this.SendCommandAndReceiveLines($"xbeinfo {(executable != null ? "name=\"" + executable + "\"" : "running")}").ConfigureAwait(false);
         foreach (string line in result) {
             if (ParamUtils.GetStrParam(line, "name", true, out string? name)) {
                 return name;
@@ -495,20 +495,20 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     public async Task<XboxHardwareInfo> GetHardwareInfo() {
         List<KeyValuePair<string, string>> lines = await this.SendCommandAndReceiveLines2("hwinfo");
         XboxHardwareInfo info;
-        info.Flags = uint.Parse(lines[0].Value.AsSpan(2, 8), NumberStyles.HexNumber);
-        info.NumberOfProcessors = byte.Parse(lines[1].Value.AsSpan(2, 2), NumberStyles.HexNumber);
-        info.PCIBridgeRevisionID = byte.Parse(lines[2].Value.AsSpan(2, 2), NumberStyles.HexNumber);
+        info.Flags = uint.Parse(MemoryExtensions.AsSpan(lines[0].Value, 2, 8), NumberStyles.HexNumber);
+        info.NumberOfProcessors = byte.Parse(MemoryExtensions.AsSpan(lines[1].Value, 2, 2), NumberStyles.HexNumber);
+        info.PCIBridgeRevisionID = byte.Parse(MemoryExtensions.AsSpan(lines[2].Value, 2, 2), NumberStyles.HexNumber);
 
         string rbStr = lines[3].Value;
         info.ReservedBytes = new byte[6];
-        info.ReservedBytes[0] = byte.Parse(rbStr.AsSpan(3, 2), NumberStyles.HexNumber);
-        info.ReservedBytes[1] = byte.Parse(rbStr.AsSpan(6, 2), NumberStyles.HexNumber);
-        info.ReservedBytes[2] = byte.Parse(rbStr.AsSpan(9, 2), NumberStyles.HexNumber);
-        info.ReservedBytes[3] = byte.Parse(rbStr.AsSpan(12, 2), NumberStyles.HexNumber);
-        info.ReservedBytes[4] = byte.Parse(rbStr.AsSpan(15, 2), NumberStyles.HexNumber);
-        info.ReservedBytes[5] = byte.Parse(rbStr.AsSpan(18, 2), NumberStyles.HexNumber);
-        info.BldrMagic = ushort.Parse(lines[4].Value.AsSpan(2, 4), NumberStyles.HexNumber);
-        info.BldrFlags = ushort.Parse(lines[5].Value.AsSpan(2, 4), NumberStyles.HexNumber);
+        info.ReservedBytes[0] = byte.Parse(MemoryExtensions.AsSpan(rbStr, 3, 2), NumberStyles.HexNumber);
+        info.ReservedBytes[1] = byte.Parse(MemoryExtensions.AsSpan(rbStr, 6, 2), NumberStyles.HexNumber);
+        info.ReservedBytes[2] = byte.Parse(MemoryExtensions.AsSpan(rbStr, 9, 2), NumberStyles.HexNumber);
+        info.ReservedBytes[3] = byte.Parse(MemoryExtensions.AsSpan(rbStr, 12, 2), NumberStyles.HexNumber);
+        info.ReservedBytes[4] = byte.Parse(MemoryExtensions.AsSpan(rbStr, 15, 2), NumberStyles.HexNumber);
+        info.ReservedBytes[5] = byte.Parse(MemoryExtensions.AsSpan(rbStr, 18, 2), NumberStyles.HexNumber);
+        info.BldrMagic = ushort.Parse(MemoryExtensions.AsSpan(lines[4].Value, 2, 4), NumberStyles.HexNumber);
+        info.BldrFlags = ushort.Parse(MemoryExtensions.AsSpan(lines[5].Value, 2, 4), NumberStyles.HexNumber);
         return info;
     }
 
@@ -527,7 +527,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         return ip;
     }
 
-    public async Task SetConsoleColor(Connections.Features.ConsoleColor colour) {
+    public async Task SetConsoleColor(ConsoleColor colour) {
         await this.SendCommand("setcolor name=" + colour.ToString().ToLower()).ConfigureAwait(false);
     }
 
@@ -595,11 +595,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 string name = line.Substring(0, split).ToUpperInvariant();
                 string value = line.Substring(split + 1);
                 if (value.StartsWith("0x")) {
-                    if (uint.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out uint value32))
+                    if (uint.TryParse(MemoryExtensions.AsSpan(value, 2), NumberStyles.HexNumber, null, out uint value32))
                         registers.Add(new RegisterEntry32(name, value32));
                 }
                 else if (value.StartsWith("0q")) {
-                    if (ulong.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out ulong value64))
+                    if (ulong.TryParse(MemoryExtensions.AsSpan(value, 2), NumberStyles.HexNumber, null, out ulong value64))
                         registers.Add(new RegisterEntry64(name, value64));
                 }
             }
@@ -621,17 +621,17 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             if (split == -1)
                 continue;
 
-            if (!line.AsSpan(0, split).Equals(registerName, StringComparison.OrdinalIgnoreCase)) {
+            if (!MemoryExtensions.Equals(MemoryExtensions.AsSpan(line, 0, split), registerName, StringComparison.OrdinalIgnoreCase)) {
                 continue;
             }
 
             string value = line.Substring(split + 1);
             if (value.StartsWith("0x")) {
-                if (uint.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out uint value32))
+                if (uint.TryParse(MemoryExtensions.AsSpan(value, 2), NumberStyles.HexNumber, null, out uint value32))
                     return new RegisterEntry32(line.Substring(0, split), value32);
             }
             else if (value.StartsWith("0q")) {
-                if (ulong.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out ulong value64))
+                if (ulong.TryParse(MemoryExtensions.AsSpan(value, 2), NumberStyles.HexNumber, null, out ulong value64))
                     return new RegisterEntry64(line.Substring(0, split), value64);
             }
         }
@@ -656,7 +656,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 continue;
             }
 
-            if (address < modBase || address >= (modBase + modSize)) {
+            if (address < modBase || address >= modBase + modSize) {
                 continue;
             }
 
@@ -702,7 +702,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                             BaseAddress = sec_base,
                             Size = sec_size,
                             Index = sec_index,
-                            Flags = (XboxBase.XboxSectionInfoFlags) sec_flags,
+                            Flags = (XboxSectionInfoFlags) sec_flags,
                         });
                     }
                 }
@@ -788,7 +788,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
 
         public override string ToString() {
-            return $"{this.BeginAddress:X8} -> {this.EndAddress:X8} (Length: {(this.EndAddress - this.BeginAddress):X})";
+            return $"{this.BeginAddress:X8} -> {this.EndAddress:X8} (Length: {this.EndAddress - this.BeginAddress:X})";
         }
     }
 
@@ -854,7 +854,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             }
         }
 
-        buffer.CopyTo(dstBuffer.AsSpan(offset + cbTotalRead, cbLine));
+        buffer.CopyTo(MemoryExtensions.AsSpan(dstBuffer, offset + cbTotalRead, cbLine));
         return cbLine;
     }
 
@@ -870,7 +870,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         int statusFlag = 0, cbReadTotal = 0;
         do {
             if (statusFlag != 0) { // Most likely reading invalid/protected memory
-                dstBuffer.AsSpan(offset + cbReadTotal, count).Clear();
+                MemoryExtensions.AsSpan(dstBuffer, offset + cbReadTotal, count).Clear();
                 return;
             }
 
@@ -1011,7 +1011,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         int available = this.idxEndLnBuf - this.idxBeginLnBuf;
         int read = Math.Min(available, count);
-        this.localReadBuffer.AsSpan(this.idxBeginLnBuf, read).CopyTo(dstBuffer.AsSpan(offset, read));
+        MemoryExtensions.AsSpan(this.localReadBuffer, this.idxBeginLnBuf, read).CopyTo(MemoryExtensions.AsSpan(dstBuffer, offset, read));
         if ((this.idxBeginLnBuf += read) >= this.idxEndLnBuf) {
             this.idxBeginLnBuf = this.idxEndLnBuf = 0;
         }
@@ -1039,7 +1039,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         // converting this method into async and using await ReadAsync doesn't really help
         int available = this.client.Available;
-        int cbRead = (blocking || available > 0)
+        int cbRead = blocking || available > 0
             ? this.client.GetStream().Read(this.localReadBuffer, 0, Math.Min(available, this.localReadBuffer.Length))
             : 0;
         if (cbRead < 1) {
@@ -1113,7 +1113,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         const long MaxReadIntervalToSleep = TimeSpan.TicksPerMillisecond * 18;
         bool hadAnyAction;
         long currentTime = Time.GetSystemTicks(), lastReadTime = currentTime;
-        long endTicks = currentTime + (TimeSpan.TicksPerSecond * 5 /* 5 seconds */);
+        long endTicks = currentTime + TimeSpan.TicksPerSecond * 5 /* 5 seconds */;
         do {
             token.ThrowIfCancellationRequested();
 
@@ -1126,14 +1126,14 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 // No data yet, so wait for data to come in. If we've received nothing for a few millis,
                 // then just delay for a little bit. On Windows, Task.Delay() will always be about 16ms
                 // due to thread context switching
-                if ((Time.GetSystemTicks() - lastReadTime) >= MaxReadIntervalToSleep) {
+                if (Time.GetSystemTicks() - lastReadTime >= MaxReadIntervalToSleep) {
                     await Task.Delay(5, token).ConfigureAwait(false);
                 }
                 else {
                     await Task.Yield();
                 }
             }
-        } while ((hadAnyAction ? (lastReadTime = Time.GetSystemTicks()) : Time.GetSystemTicks()) < endTicks);
+        } while ((hadAnyAction ? lastReadTime = Time.GetSystemTicks() : Time.GetSystemTicks()) < endTicks);
 
         this.Close();
         throw new TimeoutException("Timeout while reading line");
@@ -1195,7 +1195,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         const long MaxReadIntervalToSleep = TimeSpan.TicksPerMillisecond * 18;
         long currentTime = Time.GetSystemTicks(), lastReadTime = currentTime;
-        long endTicks = currentTime + (TimeSpan.TicksPerSecond * 5000 /* 5 seconds */);
+        long endTicks = currentTime + TimeSpan.TicksPerSecond * 5000 /* 5 seconds */;
 
         while (true) {
             string? line;
@@ -1220,7 +1220,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 // No data yet, so wait for data to come in. If we've received nothing for a few millis,
                 // then just delay for a little bit. On Windows, Task.Delay() will always be about 16ms
                 // due to thread context switching
-                if ((Time.GetSystemTicks() - lastReadTime) >= MaxReadIntervalToSleep) {
+                if (Time.GetSystemTicks() - lastReadTime >= MaxReadIntervalToSleep) {
                     Thread.Sleep(10);
                 }
                 else {
@@ -1228,7 +1228,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 }
             }
 
-            if (info.cancellation.IsCancellationRequested || (hadAnyAction ? (lastReadTime = Time.GetSystemTicks()) : Time.GetSystemTicks()) >= endTicks) {
+            if (info.cancellation.IsCancellationRequested || (hadAnyAction ? lastReadTime = Time.GetSystemTicks() : Time.GetSystemTicks()) >= endTicks) {
                 this.Close();
                 info.completion.SetException(new TimeoutException("Timeout while reading line"));
                 this.readType = -1;
@@ -1246,7 +1246,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         const long MaxReadIntervalToSleep = TimeSpan.TicksPerMillisecond * 18; // 5ms
         long currentTime = Time.GetSystemTicks(), lastReadTime = currentTime;
-        long endTicks = currentTime + (TimeSpan.TicksPerSecond * 5 /* 5 seconds */);
+        long endTicks = currentTime + TimeSpan.TicksPerSecond * 5 /* 5 seconds */;
         int count = info.count, offset = info.offset;
         Debug.Assert(count >= 0);
 
@@ -1293,11 +1293,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 break;
             }
 
-            if (cbRead < 1 && this.client.Available < 1 && (this.idxEndLnBuf - this.idxBeginLnBuf) == 0) {
+            if (cbRead < 1 && this.client.Available < 1 && this.idxEndLnBuf - this.idxBeginLnBuf == 0) {
                 // No data yet, so wait for data to come in. If we've received nothing for a few millis,
                 // then just delay for a little bit. On Windows, Task.Delay() will always be about 16ms
                 // due to thread context switching
-                if ((Time.GetSystemTicks() - lastReadTime) >= MaxReadIntervalToSleep) {
+                if (Time.GetSystemTicks() - lastReadTime >= MaxReadIntervalToSleep) {
                     Thread.Sleep(10);
                 }
                 else {
@@ -1305,7 +1305,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 }
             }
 
-            if (info.cancellation.IsCancellationRequested || (cbRead > 0 ? (lastReadTime = Time.GetSystemTicks()) : Time.GetSystemTicks()) >= endTicks) {
+            if (info.cancellation.IsCancellationRequested || (cbRead > 0 ? lastReadTime = Time.GetSystemTicks() : Time.GetSystemTicks()) >= endTicks) {
                 this.Close();
                 info.completion.SetException(new TimeoutException("Timeout while reading line"));
                 this.readType = -1;
@@ -1396,7 +1396,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             List<ConsoleSystemEventHandler> eventHandlerList;
             if (preRunEvents.Count > 0) {
                 lock (this.systemEventHandlers) {
-                    eventHandlerList = this.systemEventHandlers.ToList();
+                    eventHandlerList = Enumerable.ToList(this.systemEventHandlers);
                 }
 
                 foreach (XbdmEventArgs tmpEvent in preRunEvents) {
@@ -1436,7 +1436,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 }
 
                 lock (this.systemEventHandlers) {
-                    eventHandlerList = this.systemEventHandlers.ToList();
+                    eventHandlerList = Enumerable.ToList(this.systemEventHandlers);
                 }
 
                 foreach (ConsoleSystemEventHandler handler in eventHandlerList) {
@@ -1450,7 +1450,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
         catch (Exception e) {
             AppLogger.Instance.WriteLine("Exception in " + Thread.CurrentThread.Name);
-            AppLogger.Instance.WriteLine(e.GetToString());
+            AppLogger.Instance.WriteLine(ExceptionUtils.GetToString(e));
             tcpClient?.Close();
             tcpClient?.Dispose();
         }
@@ -1522,6 +1522,10 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         public Jrpc2FeaturesImpl(XbdmConsoleConnection connection) {
             this.connection = connection;
         }
+        
+        // This file, specifically this class, contains code adapted from JRPC by XboxChef, licenced under GPL-3.0.
+        // See LICENCE file for the full terms.
+        // https://github.com/XboxChef/JRPC/blob/master/JRPC_Client/JRPC.cs
 
         public Task ShowNotification(XNotifyLogo logo, string? message) {
             string msgHex = message != null ? NumberUtils.ConvertStringToHex(message, Encoding.ASCII) : "";
@@ -1596,6 +1600,701 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             if (response.ResponseType != ResponseType.SingleResponse || response.Message != "S_OK") {
                 this.connection.Close();
                 throw new IOException("JRPC2 did not respond correctly");
+            }
+        }
+
+        private static RPCDataType TypeToRPCType<T>(bool Array) where T : struct {
+            Type Type = typeof(T);
+            if (Type == typeof(int) || Type == typeof(uint) || Type == typeof(short) || Type == typeof(ushort)) {
+                if (Array)
+                    return RPCDataType.IntArray;
+                return RPCDataType.Int;
+            }
+
+            if (Type == typeof(string) || Type == typeof(char[]))
+                return RPCDataType.String;
+            if (Type == typeof(float) || Type == typeof(double)) {
+                if (Array)
+                    return RPCDataType.FloatArray;
+                return RPCDataType.Float;
+            }
+
+            if (Type == typeof(byte) || Type == typeof(char)) {
+                if (Array)
+                    return RPCDataType.ByteArray;
+                return RPCDataType.Byte;
+            }
+
+            if (Type == typeof(ulong) || Type == typeof(long)) {
+                if (Array)
+                    return RPCDataType.Uint64Array;
+                return RPCDataType.Uint64;
+            }
+
+            return RPCDataType.Uint64;
+        }
+
+        public async Task<T> Call<T>(uint Address, params object[] Arguments) where T : struct {
+            return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), null, 0, Address, 0, false, Arguments);
+        }
+
+        public async Task<T> Call<T>(string module, int ordinal, params object[] Arguments) where T : struct {
+            return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), module, ordinal, 0, 0, false, Arguments);
+        }
+
+        public async Task<T> Call<T>(ThreadType thread, uint Address, params object[] Arguments) where T : struct {
+            return (T) await this.CallArgs(thread == ThreadType.System, TypeToRPCType<T>(false), typeof(T), null, 0, Address, 0, false, Arguments);
+        }
+
+        public async Task<T> Call<T>(ThreadType thread, string module, int ordinal, params object[] Arguments) where T : struct {
+            return (T) await this.CallArgs(thread == ThreadType.System, TypeToRPCType<T>(false), typeof(T), module, ordinal, 0, 0, false, Arguments);
+        }
+
+        public Task CallVoid(uint address, params object[] Arguments) {
+            return this.CallArgs(true, RPCDataType.Void, typeof(void), null, 0, address, 0, false, Arguments);
+        }
+
+        public Task CallVoid(string module, int ordinal, params object[] Arguments) {
+            return this.CallArgs(true, RPCDataType.Void, typeof(void), module, ordinal, 0, 0, false, Arguments);
+        }
+
+        public Task CallVoid(ThreadType Type, uint Address, params object[] Arguments) {
+            return this.CallArgs(Type == ThreadType.System, RPCDataType.Void, typeof(void), null, 0, Address, 0, false, Arguments);
+        }
+
+        public Task CallVoid(ThreadType Type, string module, int ordinal, params object[] Arguments) {
+            return this.CallArgs(Type == ThreadType.System, RPCDataType.Void, typeof(void), module, ordinal, 0, 0, false, Arguments);
+        }
+
+        public async Task<T[]> CallArray<T>(uint Address, uint ArraySize, params object[] Arguments) where T : struct {
+            if (ArraySize == 0)
+                return new T[1];
+            return (T[]) await this.CallArgs(true, TypeToRPCType<T>(true), typeof(T), null, 0, Address, ArraySize, false, Arguments);
+        }
+
+        public async Task<T[]> CallArray<T>(string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct {
+            if (ArraySize == 0)
+                return new T[1];
+            return (T[]) await this.CallArgs(true, TypeToRPCType<T>(true), typeof(T), module, ordinal, 0, ArraySize, false, Arguments);
+        }
+
+        public async Task<T[]> CallArray<T>(ThreadType Type, uint Address, uint ArraySize, params object[] Arguments) where T : struct {
+            if (ArraySize == 0)
+                return new T[1];
+            return (T[]) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(true), typeof(T), null, 0, Address, ArraySize, false, Arguments);
+        }
+
+        public async Task<T[]> CallArray<T>(ThreadType Type, string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct {
+            if (ArraySize == 0)
+                return new T[1];
+            return (T[]) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(true), typeof(T), module, ordinal, 0, ArraySize, false, Arguments);
+        }
+
+        public async Task<string> CallString(uint Address, params object[] Arguments) {
+            return (string) await this.CallArgs(true, RPCDataType.String, typeof(string), null, 0, Address, 0, false, Arguments);
+        }
+
+        public async Task<string> CallString(string module, int ordinal, params object[] Arguments) {
+            return (string) await this.CallArgs(true, RPCDataType.String, typeof(string), module, ordinal, 0, 0, false, Arguments);
+        }
+
+        public async Task<string> CallString(ThreadType Type, uint Address, params object[] Arguments) {
+            return (string) await this.CallArgs(Type == ThreadType.System, RPCDataType.String, typeof(string), null, 0, Address, 0, false, Arguments);
+        }
+
+        public async Task<string> CallString(ThreadType Type, string module, int ordinal, params object[] Arguments) {
+            return (string) await this.CallArgs(Type == ThreadType.System, RPCDataType.String, typeof(string), module, ordinal, 0, 0, false, Arguments);
+        }
+
+        private static byte[] IntArrayToByte(int[] iArray) {
+            byte[] Bytes = new byte[iArray.Length * 4];
+            for (int i = 0, q = 0; i < iArray.Length; i++, q += 4) {
+                byte[] bytes = BitConverter.GetBytes(iArray[i]);
+                for (int w = 0; w < 4; w++)
+                    Bytes[q + w] = bytes[w];
+            }
+
+            return Bytes;
+        }
+
+        public async Task<T> CallVM<T>(uint Address, params object[] Arguments) where T : struct {
+            return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), null, 0, Address, 0, true, Arguments);
+        }
+
+        public async Task<T> CallVM<T>(string module, int ordinal, params object[] Arguments) where T : struct {
+            return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), module, ordinal, 0, 0, true, Arguments);
+        }
+
+        public async Task<T> CallVM<T>(ThreadType Type, uint Address, params object[] Arguments) where T : struct {
+            return (T) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(false), typeof(T), null, 0, Address, 0, true, Arguments);
+        }
+
+        public async Task<T> CallVM<T>(ThreadType Type, string module, int ordinal, params object[] Arguments) where T : struct {
+            return (T) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(false), typeof(T), module, ordinal, 0, 0, true, Arguments);
+        }
+
+        public Task CallVMVoid(uint Address, params object[] Arguments) {
+            return this.CallArgs(true, RPCDataType.Void, typeof(void), null, 0, Address, 0, true, Arguments);
+        }
+
+        public Task CallVMVoid(string module, int ordinal, params object[] Arguments) {
+            return this.CallArgs(true, RPCDataType.Void, typeof(void), module, ordinal, 0, 0, true, Arguments);
+        }
+
+        public Task CallVMVoid(ThreadType Type, uint Address, params object[] Arguments) {
+            return this.CallArgs(Type == ThreadType.System, RPCDataType.Void, typeof(void), null, 0, Address, 0, true, Arguments);
+        }
+
+        public Task CallVMVoid(ThreadType Type, string module, int ordinal, params object[] Arguments) {
+            return this.CallArgs(Type == ThreadType.System, RPCDataType.Void, typeof(void), module, ordinal, 0, 0, true, Arguments);
+        }
+
+        public async Task<T[]> CallVMArray<T>(uint Address, uint ArraySize, params object[] Arguments) where T : struct {
+            if (ArraySize == 0)
+                return new T[1];
+            return (T[]) await this.CallArgs(true, TypeToRPCType<T>(true), typeof(T), null, 0, Address, ArraySize, true, Arguments);
+        }
+
+        public async Task<T[]> CallVMArray<T>(string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct {
+            if (ArraySize == 0)
+                return new T[1];
+            return (T[]) await this.CallArgs(true, TypeToRPCType<T>(true), typeof(T), module, ordinal, 0, ArraySize, true, Arguments);
+        }
+
+        public async Task<T[]> CallVMArray<T>(ThreadType Type, uint Address, uint ArraySize, params object[] Arguments) where T : struct {
+            if (ArraySize == 0)
+                return new T[1];
+            return (T[]) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(true), typeof(T), null, 0, Address, ArraySize, true, Arguments);
+        }
+
+        public async Task<T[]> CallVMArray<T>(ThreadType Type, string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct {
+            if (ArraySize == 0)
+                return new T[1];
+            return (T[]) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(true), typeof(T), module, ordinal, 0, ArraySize, true, Arguments);
+        }
+
+        public async Task<string> CallVMString(uint Address, params object[] Arguments) {
+            return (string) await this.CallArgs(true, RPCDataType.String, typeof(string), null, 0, Address, 0, true, Arguments);
+        }
+
+        public async Task<string> CallVMString(string module, int ordinal, params object[] Arguments) {
+            return (string) await this.CallArgs(true, RPCDataType.String, typeof(string), module, ordinal, 0, 0, true, Arguments);
+        }
+
+        public async Task<string> CallVMString(ThreadType Type, uint Address, params object[] Arguments) {
+            return (string) await this.CallArgs(Type == ThreadType.System, RPCDataType.String, typeof(string), null, 0, Address, 0, true, Arguments);
+        }
+
+        public async Task<string> CallVMString(ThreadType Type, string module, int ordinal, params object[] Arguments) {
+            return (string) await this.CallArgs(Type == ThreadType.System, RPCDataType.String, typeof(string), module, ordinal, 0, 0, true, Arguments);
+        }
+
+        private async Task<string?> SendCommand(string Command) {
+            ConsoleResponse response = await this.connection.SendCommand(Command);
+            if (response.RawMessage.Contains("error="))
+                throw new Exception(response.RawMessage.Substring(11));
+            if (response.RawMessage.Contains("DEBUG"))
+                throw new Exception("JRPC is not installed on the current console");
+            if (response.ResponseType == ResponseType.InvalidArgument)
+                return null;
+            return response.RawMessage;
+        }
+
+        private async Task<object> CallArgs(bool onSystemThread, RPCDataType dataType, Type t, string? module, int ordinal, uint addr, uint arraySize, bool vm, params object[] arguments) {
+            if (!IsValidReturnType(t))
+                throw new Exception("Invalid type " + (object) t.Name + Environment.NewLine + "JRPC only supports: " + "bool, byte, short, int, long, ushort, uint, ulong, float, double");
+
+            uint argc = 0;
+            string cmdParams = CreateParams(vm, arguments, ref argc);
+            if (argc > 37)
+                throw new Exception("Can not use more than 37 paramaters in a call");
+
+            string startSendCMD = $"consolefeatures ver=2 " +
+                                  $"type={(uint) dataType}" +
+                                  $"{(onSystemThread ? " system" : "")}" +
+                                  $"{(module != null ? (" module=\"" + module + "\" ord=" + ordinal) : "")}" +
+                                  $"{(vm ? " VM" : "")} " +
+                                  $"as={arraySize} " +
+                                  $"params=\"A\\{addr:X}\\A\\{argc}\\{cmdParams}";
+
+            const string findText = "buf_addr=";
+            string? response = await this.SendCommand(startSendCMD);
+            if (response == null)
+                throw new Exception("Invalid argument");
+            
+            while (response.Contains(findText)) {
+                await Task.Delay(100);
+                uint address = uint.Parse(response.AsSpan(response.IndexOf(findText) + findText.Length), NumberStyles.HexNumber);
+                response = await this.SendCommand("consolefeatures " + findText + "0x" + address.ToString("X"));
+                if (response == null)
+                    throw new Exception("Invalid argument");
+            }
+
+            switch (dataType) {
+                case RPCDataType.Int:
+                    uint uVal = uint.Parse(response.AsSpan(response.IndexOf(' ') + 1), NumberStyles.HexNumber);
+                    if (t == typeof(uint))
+                        return uVal;
+                    if (t == typeof(int))
+                        return (int) uVal;
+                    if (t == typeof(short))
+                        return short.Parse(response.AsSpan(response.IndexOf(' ') + 1), NumberStyles.HexNumber);
+                    if (t == typeof(ushort))
+                        return ushort.Parse(response.AsSpan(response.IndexOf(' ') + 1), NumberStyles.HexNumber);
+                    break;
+                case RPCDataType.String:
+                    string sString = response.Substring(response.IndexOf(' ') + 1);
+                    if (t == typeof(string))
+                        return sString;
+                    if (t == typeof(char[]))
+                        return sString.ToCharArray();
+                    break;
+                case RPCDataType.Float:
+                    if (t == typeof(double))
+                        return double.Parse(response.AsSpan(response.IndexOf(' ') + 1));
+                    if (t == typeof(float))
+                        return float.Parse(response.AsSpan(response.IndexOf(' ') + 1));
+                    break;
+                case RPCDataType.Byte:
+                    byte bByte = byte.Parse(response.AsSpan(response.IndexOf(' ') + 1), NumberStyles.HexNumber);
+                    if (t == typeof(byte))
+                        return bByte;
+                    if (t == typeof(char))
+                        return (char) bByte;
+                    break;
+                case RPCDataType.Uint64:
+                    if (t == typeof(long))
+                        return long.Parse(response.AsSpan(response.IndexOf(' ') + 1), NumberStyles.HexNumber);
+                    if (t == typeof(ulong))
+                        return ulong.Parse(response.AsSpan(response.IndexOf(' ') + 1), NumberStyles.HexNumber);
+                    break;
+                case RPCDataType.IntArray: {
+                    string String = response.Substring(response.IndexOf(' ') + 1);
+                    int Tmp = 0;
+                    string Temp = "";
+                    uint[] Uarray = new uint[8];
+                    foreach (char Char1 in String) {
+                        if (Char1 != ',' && Char1 != ';')
+                            Temp += Char1.ToString();
+                        else {
+                            Uarray[Tmp] = uint.Parse(Temp, NumberStyles.HexNumber);
+                            Tmp += 1;
+                            Temp = "";
+                        }
+
+                        if (Char1 == ';')
+                            break;
+                    }
+
+                    return Uarray;
+                }
+                case RPCDataType.FloatArray: {
+                    string String = response.Substring(response.IndexOf(' ') + 1);
+                    int Tmp = 0;
+                    string Temp = "";
+                    float[] Farray = new float[arraySize];
+                    foreach (char Char1 in String) {
+                        if (Char1 != ',' && Char1 != ';')
+                            Temp += Char1.ToString();
+                        else {
+                            Farray[Tmp] = float.Parse(Temp);
+                            Tmp += 1;
+                            Temp = "";
+                        }
+
+                        if (Char1 == ';')
+                            break;
+                    }
+
+                    return Farray;
+                }
+                case RPCDataType.ByteArray: {
+                    string String = response.Substring(response.IndexOf(' ') + 1);
+                    int Tmp = 0;
+                    string Temp = "";
+                    byte[] Barray = new byte[arraySize];
+                    foreach (char Char1 in String) {
+                        if (Char1 != ',' && Char1 != ';')
+                            Temp += Char1.ToString();
+                        else {
+                            Barray[Tmp] = byte.Parse(Temp);
+                            Tmp += 1;
+                            Temp = "";
+                        }
+
+                        if (Char1 == ';')
+                            break;
+                    }
+
+                    return Barray;
+                }
+                case RPCDataType.Uint64Array: {
+                    string str = response.Substring(response.IndexOf(' ') + 1);
+                    int Tmp = 0;
+                    string Temp = "";
+                    ulong[] ulongArray = new ulong[arraySize];
+                    foreach (char ch in str) {
+                        if (ch != ',' && ch != ';')
+                            Temp += ch.ToString();
+                        else {
+                            ulongArray[Tmp] = ulong.Parse(Temp);
+                            Tmp += 1;
+                            Temp = "";
+                        }
+
+                        if (ch == ';')
+                            break;
+                    }
+
+                    if (t == typeof(ulong)) {
+                        return ulongArray;
+                    }
+                    else if (t == typeof(long)) {
+                        long[] longArray = new long[arraySize];
+                        for (int i = 0; i < arraySize; i++)
+                            longArray[i] = (long) ulongArray[i];
+                        return longArray;
+                    }
+
+                    break;
+                }
+                case RPCDataType.Void: return 0;
+            }
+
+            return ulong.Parse(response.Substring(response.IndexOf(' ') + 1), NumberStyles.HexNumber);
+        }
+
+        // private static string CreateParams(bool vm, object[] arguments, ref uint argc) {
+        //     StringBuilder sbParams = new StringBuilder(128);
+        //     foreach (object obj in arguments) {
+        //         switch (obj) {
+        //             case uint u:
+        //                 sbParams.Append((uint) RPCDataType.Int).Append("\\" + (int) u).Append("\\");
+        //                 argc += 1;
+        //                 break;
+        //             case int:
+        //             case bool:
+        //             case byte: {
+        //                 if (obj is bool) {
+        //                     sbParams.Append((uint) RPCDataType.Int).Append('\\').Append((bool) obj ? '1' : '0').Append('\\');
+        //                 }
+        //                 else {
+        //                     sbParams.Append((uint) RPCDataType.Int).Append('\\' + (obj is byte ? Convert.ToByte(obj).ToString() : Convert.ToInt32(obj).ToString())).Append('\\');
+        //                 }
+        //
+        //                 argc += 1;
+        //                 break;
+        //             }
+        //             case int[]:
+        //             case uint[]: {
+        //                 if (!vm) {
+        //                     byte[] bytes = IntArrayToByte((int[]) obj);
+        //                     sbParams.Append((uint) RPCDataType.ByteArray).Append("/" + bytes.Length).Append('\\');
+        //                     foreach (byte b in bytes)
+        //                         sbParams.Append(b.ToString("X2"));
+        //
+        //                     sbParams.Append('\\');
+        //                     argc += 1;
+        //                 }
+        //                 else {
+        //                     bool isInt = obj is int[];
+        //                     int len;
+        //                     if (isInt) {
+        //                         int[] iarray = (int[]) obj;
+        //                         len = iarray.Length;
+        //                     }
+        //                     else {
+        //                         uint[] iarray = (uint[]) obj;
+        //                         len = iarray.Length;
+        //                     }
+        //
+        //                     int[] Iarray = new int[len];
+        //                     for (int i = 0; i < len; i++) {
+        //                         if (isInt) {
+        //                             int[] tiarray = (int[]) obj;
+        //                             Iarray[i] = tiarray[i];
+        //                         }
+        //                         else {
+        //                             uint[] tiarray = (uint[]) obj;
+        //                             Iarray[i] = (int) tiarray[i];
+        //                         }
+        //
+        //                         sbParams.Append((uint) RPCDataType.Int).Append('\\' + Iarray[i]).Append('\\');
+        //                         argc += 1;
+        //                     }
+        //                 }
+        //
+        //                 break;
+        //             }
+        //             case string s: {
+        //                 string Str = s;
+        //                 sbParams.Append((uint) RPCDataType.ByteArray).Append("/" + Str.Length).Append('\\' + NumberUtils.ConvertStringToHex(s, Encoding.ASCII)).Append('\\');
+        //                 argc += 1;
+        //                 break;
+        //             }
+        //             case double d1: {
+        //                 double d = d1;
+        //                 sbParams.Append((uint) RPCDataType.Float).Append('\\' + d.ToString()).Append('\\');
+        //                 argc += 1;
+        //                 break;
+        //             }
+        //             case float f: {
+        //                 float Fl = f;
+        //                 sbParams.Append((uint) RPCDataType.Float).Append('\\' + Fl.ToString()).Append('\\');
+        //                 argc += 1;
+        //                 break;
+        //             }
+        //             case float[] floats: {
+        //                 float[] floatArray = floats;
+        //                 if (!vm) {
+        //                     sbParams.Append((uint) RPCDataType.ByteArray).Append("/" + (floatArray.Length * 4).ToString()).Append('\\');
+        //                     foreach (float f in floatArray) {
+        //                         byte[] bytes = BitConverter.GetBytes(f);
+        //                         Array.Reverse(bytes);
+        //                         for (int q = 0; q < 4; q++)
+        //                             sbParams.Append(bytes[q].ToString("X2"));
+        //                     }
+        //
+        //                     sbParams.Append('\\');
+        //                     argc += 1;
+        //                 }
+        //                 else {
+        //                     foreach (float f in floatArray) {
+        //                         sbParams.Append((uint) RPCDataType.Float).Append('\\' + f.ToString()).Append('\\');
+        //                         argc += 1;
+        //                     }
+        //                 }
+        //
+        //                 break;
+        //             }
+        //             case byte[] bytes: {
+        //                 byte[] ByteArray = bytes;
+        //                 sbParams.Append(ByteArray.ToString()).Append("/" + ByteArray.Length).Append('\\');
+        //                 foreach (byte b in ByteArray)
+        //                     sbParams.Append(b.ToString("X2"));
+        //
+        //                 sbParams.Append('\\');
+        //                 argc += 1;
+        //                 break;
+        //             }
+        //             default: {
+        //                 sbParams.Append((uint) RPCDataType.Uint64).Append('\\').Append(ConvertToUInt64(obj)).Append('\\');
+        //                 argc += 1;
+        //                 break;
+        //             }
+        //         }
+        //     }
+        //
+        //     sbParams.Append('\"');
+        //     return sbParams.ToString();
+        // }
+        //
+
+        private static string CreateParams(bool vm, object[] arguments, ref uint argc) {
+            string SendCMD = "";
+            foreach (object obj in arguments) {
+                bool Done = false;
+                if (obj is uint) {
+                    SendCMD += ((uint) RPCDataType.Int) + "\\" + UIntToInt((uint) obj) + "\\";
+                    argc += 1;
+                    Done = true;
+                }
+
+                if (obj is int || obj is bool || obj is byte) {
+                    if (obj is bool) {
+                        SendCMD += ((uint) RPCDataType.Int) + "\\" + Convert.ToInt32((bool) obj) + "\\";
+                    }
+                    else {
+                        SendCMD += ((uint) RPCDataType.Int) + "\\" + ((obj is byte) ? Convert.ToByte(obj).ToString() : Convert.ToInt32(obj).ToString()) + "\\";
+                    }
+
+                    argc += 1;
+                    Done = true;
+                }
+                else if (obj is int[] || obj is uint[]) {
+                    if (!vm) {
+                        byte[] Array = IntArrayToByte((int[]) obj);
+                        SendCMD += ((uint) RPCDataType.ByteArray).ToString() + "/" + Array.Length + "\\";
+                        for (int i = 0; i < Array.Length; i++)
+                            SendCMD += Array[i].ToString("X2");
+                        SendCMD += "\\";
+                        argc += 1;
+                    }
+                    else {
+                        bool isInt = obj is int[];
+                        int len;
+                        if (isInt) {
+                            int[] iarray = (int[]) obj;
+                            len = iarray.Length;
+                        }
+                        else {
+                            uint[] iarray = (uint[]) obj;
+                            len = iarray.Length;
+                        }
+
+                        int[] Iarray = new int[len];
+                        for (int i = 0; i < len; i++) {
+                            if (isInt) {
+                                int[] tiarray = (int[]) obj;
+                                Iarray[i] = tiarray[i];
+                            }
+                            else {
+                                uint[] tiarray = (uint[]) obj;
+                                Iarray[i] = UIntToInt(tiarray[i]);
+                            }
+
+                            SendCMD += ((uint) RPCDataType.Int) + "\\" + Iarray[i] + "\\";
+                            argc += 1;
+                        }
+                    }
+
+                    Done = true;
+                }
+                else if (obj is string) {
+                    string Str = (string) obj;
+                    SendCMD += ((uint) RPCDataType.ByteArray).ToString() + "/" + Str.Length + "\\" + ToHexString((string)obj) + "\\";
+                    argc += 1;
+                    Done = true;
+                }
+                else if (obj is double) {
+                    double d = (double) obj;
+                    SendCMD += ((uint) RPCDataType.Float).ToString() + "\\" + d.ToString() + "\\";
+                    argc += 1;
+                    Done = true;
+                }
+                else if (obj is float) {
+                    float Fl = (float) obj;
+                    SendCMD += ((uint) RPCDataType.Float).ToString() + "\\" + Fl.ToString() + "\\";
+                    argc += 1;
+                    Done = true;
+                }
+                else if (obj is float[]) {
+                    float[] floatArray = (float[]) obj;
+                    if (!vm) {
+                        SendCMD += ((uint) RPCDataType.ByteArray).ToString() + "/" + (floatArray.Length * 4).ToString() + "\\";
+                        for (int i = 0; i < floatArray.Length; i++) {
+                            byte[] bytes = BitConverter.GetBytes(floatArray[i]);
+                            Array.Reverse(bytes);
+                            for (int q = 0; q < 4; q++)
+                                SendCMD += bytes[q].ToString("X2");
+                        }
+
+                        SendCMD += "\\";
+                        argc += 1;
+                    }
+                    else {
+                        for (int i = 0; i < floatArray.Length; i++) {
+                            SendCMD += ((uint) RPCDataType.Float).ToString() + "\\" + floatArray[i].ToString() + "\\";
+                            argc += 1;
+                        }
+                    }
+
+                    Done = true;
+                }
+                else if (obj is byte[]) {
+                    byte[] ByteArray = (byte[]) obj;
+                    SendCMD += ((uint) RPCDataType.ByteArray).ToString() + "/" + ByteArray.Length + "\\";
+                    for (int i = 0; i < ByteArray.Length; i++)
+                        SendCMD += ByteArray[i].ToString("X2");
+                    SendCMD += "\\";
+                    argc += 1;
+                    Done = true;
+                }
+
+                if (!Done) {
+                    SendCMD += ((uint) RPCDataType.Uint64).ToString() + "\\" + ConvertToUInt64(obj).ToString() + "\\";
+                    argc += 1;
+                }
+            }
+
+            SendCMD += "\"";
+            return SendCMD;
+        }
+        
+        public static string ToHexString(string String)
+        {
+            string Str = "";
+            foreach (byte b in String)
+                Str += b.ToString("X2");
+            return Str;
+        }
+        
+        private static int UIntToInt(uint Value)
+        {
+            byte[] array = BitConverter.GetBytes(Value);
+            return BitConverter.ToInt32(array, 0);
+        }
+
+        private static readonly HashSet<Type> ValidReturnTypes = new HashSet<Type>() {
+            typeof(void),
+            typeof(bool),
+            typeof(byte),
+            typeof(short),
+            typeof(int),
+            typeof(long),
+            typeof(ushort),
+            typeof(uint),
+            typeof(ulong),
+            typeof(float),
+            typeof(double),
+            typeof(string),
+            typeof(bool[]),
+            typeof(byte[]),
+            typeof(short[]),
+            typeof(int[]),
+            typeof(long[]),
+            typeof(ushort[]),
+            typeof(uint[]),
+            typeof(ulong[]),
+            typeof(float[]),
+            typeof(double[]),
+            typeof(string[])
+        };
+
+        public static bool IsValidReturnType(Type t) {
+            return ValidReturnTypes.Contains(t);
+        }
+
+        // private static ulong ConvertToUInt64(object o) {
+        //     return o switch {
+        //         bool bo => !bo ? 0UL : 1UL,
+        //         byte b => b,
+        //         short s => (ulong) s,
+        //         int i => (ulong) i,
+        //         long l => (ulong) l,
+        //         ushort us => us,
+        //         uint u => u,
+        //         ulong ul => ul,
+        //         float f => (ulong) BitConverter.DoubleToInt64Bits(f),
+        //         double d => (ulong) BitConverter.DoubleToInt64Bits(d),
+        //         _ => 0UL
+        //     };
+        // }
+
+        private static ulong ConvertToUInt64(object o) {
+            if (o is bool)
+                return (ulong) (!(bool) o ? 0UL : 1UL);
+            else {
+                if (o is byte)
+                    return (ulong) (byte) o;
+                if (o is short)
+                    return (ulong) (short) o;
+                if (o is int)
+                    return (ulong) (int) o;
+                if (o is long)
+                    return (ulong) (long) o;
+                if (o is ushort)
+                    return (ulong) (ushort) o;
+                if (o is uint)
+                    return (ulong) (uint) o;
+                if (o is ulong)
+                    return (ulong) o;
+                if (o is float)
+                    return (ulong) BitConverter.DoubleToInt64Bits((double) (float) o);
+                if (o is double)
+                    return (ulong) BitConverter.DoubleToInt64Bits((double) o);
+                else
+                    return 0UL;
             }
         }
     }

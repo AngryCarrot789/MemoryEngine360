@@ -260,3 +260,16 @@ public class GetMoBoTypeCommand : BaseJRPC2Command {
         await IMessageDialogService.Instance.ShowMessage("Motherboard", mobo);
     }
 }
+
+public class TestRPCCommand : BaseJRPC2Command {
+    protected override string ActivityText => "Test RPC";    
+    
+    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
+        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Test RPC", "Have MW3 loaded up on your console first." + Environment.NewLine + "This might crash your console. Continue?", MessageBoxButton.YesNo, MessageBoxResult.No);
+        if (result == MessageBoxResult.Yes) {
+            // https://www.se7ensins.com/forums/threads/new-mw3-offsets-and-functions.952174/post-7071717?referrer=1519241
+            await jrpc.CallVoid(0x822CB3E8, 0x3FA, 0x404);
+            await IMessageDialogService.Instance.ShowMessage("Done!", "Done!");
+        }
+    }
+}
