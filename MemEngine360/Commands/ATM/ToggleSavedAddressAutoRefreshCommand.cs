@@ -23,35 +23,29 @@ using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Commands.ATM;
 
-public class ToggleSavedAddressAutoRefreshCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            return Executability.Invalid;
-        }
-
-        return Executability.Valid;
+public class ToggleSavedAddressAutoRefreshCommand : BaseSavedAddressSelectionCommand {
+    protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        return entries.Any(x => x.Entry is AddressTableEntry)
+            ? base.CanExecuteOverride(entries, engine, e)
+            : Executability.ValidButCannotExecute;
     }
 
-    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            return Task.CompletedTask;
-        }
-
-        List<AddressTableEntry> list = ui.AddressTableSelectionManager.SelectedItems.Where(x => x.Entry is AddressTableEntry).Select(x => (AddressTableEntry) x.Entry).ToList();
-        if (list.Count < 1) {
+    protected override Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        entries = entries.Where(x => x.Entry is AddressTableEntry).ToList();
+        if (entries.Count < 1) {
             return Task.CompletedTask;
         }
 
         int countDisabled = 0;
-        foreach (AddressTableEntry entry in list) {
-            if (!entry.IsAutoRefreshEnabled) {
+        foreach (IAddressTableEntryUI item in entries) {
+            if (!((AddressTableEntry) item.Entry).IsAutoRefreshEnabled) {
                 countDisabled++;
             }
         }
 
-        bool isEnabled = list.Count == 1 ? (countDisabled != 0) : countDisabled >= (list.Count / 2);
-        foreach (AddressTableEntry entry in list) {
-            entry.IsAutoRefreshEnabled = isEnabled;
+        bool isEnabled = entries.Count == 1 ? (countDisabled != 0) : countDisabled >= (entries.Count / 2);
+        foreach (IAddressTableEntryUI item in entries) {
+            ((AddressTableEntry) item.Entry).IsAutoRefreshEnabled = isEnabled;
         }
 
         return Task.CompletedTask;

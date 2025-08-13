@@ -42,15 +42,15 @@ public class TestDebuggerEventReceiver {
 
             XbdmConsoleConnection connection = new XbdmConsoleConnection(client, "192.168.1.202");
 
-            ConsoleResponse response = await connection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"");
-            if (response.ResponseType != ResponseType.SingleResponse) {
+            XbdmResponse response = await connection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"");
+            if (response.ResponseType != XbdmResponseType.SingleResponse) {
                 throw new Exception($"Failed to enable debugger. Response = {response.ToString()}");
             }
 
             // no idea what reconnectport does, surely it's not the port it tries to reconnect on
             response = await connection.SendCommand($"notify reconnectport=12345");
-            if (response.ResponseType != ResponseType.DedicatedConnection) {
-                throw new Exception($"Failed to setup notifications. Response type is not {nameof(ResponseType.DedicatedConnection)}: {response.RawMessage}");
+            if (response.ResponseType != XbdmResponseType.DedicatedConnection) {
+                throw new Exception($"Failed to setup notifications. Response type is not {nameof(XbdmResponseType.DedicatedConnection)}: {response.RawMessage}");
             }
 
             new Thread(() => {

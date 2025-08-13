@@ -19,7 +19,7 @@
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
-public readonly struct ConsoleResponse {
+public readonly struct XbdmResponse {
     /// <summary>
     /// Gets the first response line as raw
     /// </summary>
@@ -33,29 +33,29 @@ public readonly struct ConsoleResponse {
     /// <summary>
     /// Gets the response type
     /// </summary>
-    public readonly ResponseType ResponseType;
+    public readonly XbdmResponseType ResponseType;
 
-    private ConsoleResponse(string raw, ResponseType responseType, string message) {
+    private XbdmResponse(string raw, XbdmResponseType responseType, string message) {
         this.RawMessage = raw;
         this.Message = message;
         this.ResponseType = responseType;
     }
 
-    public static ConsoleResponse FromLine(string line) {
+    public static XbdmResponse FromLine(string line) {
         if (line.Length > 4 && int.TryParse(line.AsSpan(0, 3), out int responseType)) {
-            return new ConsoleResponse(line, (ResponseType) responseType, line.Substring(5));
+            return new XbdmResponse(line, (XbdmResponseType) responseType, line.Substring(5));
         }
 
         throw new IOException("Invalid response: " + line);
     }
 
-    public static bool TryParseFromLine(string line, out ConsoleResponse consoleResponse) {
+    public static bool TryParseFromLine(string line, out XbdmResponse xbdmResponse) {
         if (line.Length > 4 && int.TryParse(line.AsSpan(0, 3), out int responseType)) {
-            consoleResponse = new ConsoleResponse(line, (ResponseType) responseType, line.Substring(5));
+            xbdmResponse = new XbdmResponse(line, (XbdmResponseType) responseType, line.Substring(5));
             return true;
         }
 
-        consoleResponse = default;
+        xbdmResponse = default;
         return false;
     }
 

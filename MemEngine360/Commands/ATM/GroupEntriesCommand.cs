@@ -25,60 +25,49 @@ using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Commands.ATM;
 
-public class GroupEntriesCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            return Executability.Invalid;
+public class GroupEntriesCommand : BaseSavedAddressSelectionCommand {
+    protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        Executability exec = base.CanExecuteOverride(entries, engine, e);
+        if (exec != Executability.Valid) {
+            return exec;
         }
 
-        List<BaseAddressTableEntry> list = ui.AddressTableSelectionManager.SelectedItems.Select(x => x.Entry).ToList();
-        if (list.Count < 1) {
-            return Executability.ValidButCannotExecute;
-        }
-
-        if (!BaseAddressTableEntry.CheckHaveParentsAndAllMatch(list, out AddressTableGroupEntry? parent)) {
+        if (!BaseAddressTableEntry.CheckHaveParentsAndAllMatch(entries.Select(x => x.Entry), out AddressTableGroupEntry? parent)) {
             return Executability.ValidButCannotExecute;
         }
 
         return Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            return;
-        }
-
-        List<BaseAddressTableEntry> list = ui.AddressTableSelectionManager.SelectedItems.Select(x => x.Entry).ToList();
-        if (list.Count < 1) {
-            return;
-        }
-
-        AddressTableGroupEntry? firstParent = list[0].Parent;
+    protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        List<BaseAddressTableEntry> modelList = entries.Select(x => x.Entry).ToList();
+        
+        AddressTableGroupEntry? firstParent = modelList[0].Parent;
         if (firstParent == null)
             throw new Exception("Program corrupted");
 
-        int minIndex = firstParent.IndexOf(list[0]);
-        for (int i = 1; i < list.Count; i++) {
-            if (firstParent != list[i].Parent) {
+        int minIndex = firstParent.IndexOf(modelList[0]);
+        for (int i = 1; i < modelList.Count; i++) {
+            if (firstParent != modelList[i].Parent) {
                 await IMessageDialogService.Instance.ShowMessage("Cannot group", "The selected rows must all be within the same group, or be root rows");
                 return;
             }
 
-            minIndex = Math.Min(minIndex, firstParent.IndexOf(list[i]));
+            minIndex = Math.Min(minIndex, firstParent.IndexOf(modelList[i]));
         }
 
-        ui.AddressTableSelectionManager.Clear();
-        
+        engine.AddressTableSelectionManager.Clear();
+
         Debug.Assert(minIndex != -1);
-        firstParent.RemoveEntries(list);
+        firstParent.RemoveEntries(modelList);
 
         AddressTableGroupEntry newEntry = new AddressTableGroupEntry();
-        newEntry.AddEntries(list);
-        
+        newEntry.AddEntries(modelList);
+
         firstParent.InsertEntry(minIndex, newEntry);
 
-        IAddressTableEntryUI entry = ui.GetATEntryUI(newEntry);
-        ui.AddressTableSelectionManager.SetSelection(entry);
+        IAddressTableEntryUI entry = engine.GetATEntryUI(newEntry);
+        engine.AddressTableSelectionManager.SetSelection(entry);
         entry.Focus();
     }
 }

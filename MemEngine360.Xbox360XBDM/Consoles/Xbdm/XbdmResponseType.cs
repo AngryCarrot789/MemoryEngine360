@@ -19,7 +19,7 @@
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
-public enum ResponseType : int {
+public enum XbdmResponseType {
     SingleResponse = 200,
     Connected = 201, // XBDM_CONNECTED
     MultiResponse = 202, // XBDM_MULTIRESPONSE // terminates with period

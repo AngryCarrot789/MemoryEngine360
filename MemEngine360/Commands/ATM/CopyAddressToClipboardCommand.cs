@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Services.Messaging;
@@ -24,7 +25,7 @@ using PFXToolKitUI.Services.Messaging;
 namespace MemEngine360.Commands.ATM;
 
 public class CopyAddressToClipboardCommand : BaseCopyAddressTableEntryCommand {
-    protected override async Task Copy(IAddressTableEntryUI entry, IClipboardService clipboard) {
+    protected override async Task Copy(IAddressTableEntryUI entry, IEngineUI engine, IClipboardService clipboard) {
         if (!(entry.Entry is AddressTableEntry ate)) {
             return;
         }

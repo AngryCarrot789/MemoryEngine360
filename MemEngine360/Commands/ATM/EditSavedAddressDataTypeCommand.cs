@@ -26,25 +26,20 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands.ATM;
 
-public class EditSavedAddressDataTypeCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out BaseAddressTableEntry? result) || !(result is AddressTableEntry)) {
-            return Executability.Invalid;
-        }
-
-        return Executability.Valid;
+public class EditSavedAddressDataTypeCommand : BaseSavedAddressSelectionCommand {
+    public EditSavedAddressDataTypeCommand() {
+        this.MaximumSelection = 1;
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out BaseAddressTableEntry? result) || !(result is AddressTableEntry saved)) {
+    protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        return entries[0].Entry is AddressTableEntry ? Executability.Valid : Executability.ValidButCannotExecute;
+    }
+
+    protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        if (!(entries[0].Entry is AddressTableEntry saved)) {
             return;
         }
-
-        // somehow disconnected from tree
-        if (saved.AddressTableManager == null) {
-            return;
-        }
-
+        
         SavedResultDataTypeUserInputInfo info = new SavedResultDataTypeUserInputInfo(saved) {
             Caption = "Modify data type"
         };
@@ -54,7 +49,7 @@ public class EditSavedAddressDataTypeCommand : Command {
             if (saved.AddressTableManager == null) {
                 return;
             }
-            
+
             if (info.DataType.IsNumeric()) {
                 if (info.DisplayAsHex) {
                     saved.NumericDisplayType = NumericDisplayType.Hexadecimal;
@@ -69,7 +64,7 @@ public class EditSavedAddressDataTypeCommand : Command {
             else {
                 saved.NumericDisplayType = NumericDisplayType.Normal;
             }
-            
+
             saved.StringType = info.StringScanOption;
             saved.StringLength = info.StringLength;
             saved.ArrayLength = info.ArrayLength;
@@ -101,7 +96,7 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
         get => this.stringLength;
         set => PropertyHelper.SetAndRaiseINE(ref this.stringLength, value, this, static t => t.StringLengthChanged?.Invoke(t));
     }
-    
+
     public int ArrayLength {
         get => this.arrayLength;
         set => PropertyHelper.SetAndRaiseINE(ref this.arrayLength, value, this, static t => t.ArrayLengthChanged?.Invoke(t));

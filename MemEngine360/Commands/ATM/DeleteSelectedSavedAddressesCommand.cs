@@ -23,21 +23,10 @@ using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Commands.ATM;
 
-public class DeleteSelectedSavedAddressesCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine))
-            return Executability.Invalid;
-        
-        return engine.AddressTableSelectionManager.Count < 1 ? Executability.ValidButCannotExecute : Executability.Valid;
-    }
-
-    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine)) {
-            return Task.CompletedTask;
-        }
-
-        List<IAddressTableEntryUI> items = engine.AddressTableSelectionManager.SelectedItems.ToList();
-        foreach (IAddressTableEntryUI entry in items) {
+public class DeleteSelectedSavedAddressesCommand : BaseSavedAddressSelectionCommand {
+    protected override Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        engine.AddressTableSelectionManager.Clear();
+        foreach (IAddressTableEntryUI entry in entries) {
             if (entry.IsValid)
                 entry.Entry.Parent?.RemoveEntry(entry.Entry);
         }

@@ -37,7 +37,7 @@ namespace MemEngine360.Connections;
 /// The base class for a console connection. This class implements the basic read/write value methods
 /// </summary>
 public abstract class BaseConsoleConnection : IConsoleConnection {
-    protected readonly byte[] sharedOneByteArray = new byte[1];
+    protected readonly byte[] sharedByteArray8 = new byte[8];
     private readonly ServiceManager featureManager;
     private volatile int busyStack;
     private volatile int isClosedState;
@@ -189,14 +189,14 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         using BusyToken x = this.CreateBusyToken();
 
         try {
-            await this.ReadBytesCore(address, this.sharedOneByteArray, 0, 1).ConfigureAwait(false);
+            await this.ReadBytesCore(address, this.sharedByteArray8, 0, 1).ConfigureAwait(false);
         }
         catch (Exception e) when (e is TimeoutException || e is IOException) {
             this.Close();
             throw;
         }
 
-        return this.sharedOneByteArray[0];
+        return this.sharedByteArray8[0];
     }
 
     public async Task<bool> ReadBool(uint address) => await this.ReadByte(address).ConfigureAwait(false) != 0;
@@ -291,12 +291,21 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         }
     }
 
-    public async Task WriteBytes(uint address, byte[] buffer) {
+    public Task WriteBytes(uint address, byte[] buffer) => this.WriteBytes(address, buffer, 0, buffer.Length);
+
+    public async Task WriteBytes(uint address, byte[] buffer, int offset, int count) {
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), offset, "Value must be within the bounds of the array");
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset), offset, "Count cannot be negative");
+        if (count == 0)
+            return;
+        
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         try {
-            await this.WriteBytesCore(address, buffer, 0, buffer.Length).ConfigureAwait(false);
+            await this.WriteBytesCore(address, buffer, offset, count).ConfigureAwait(false);
         }
         catch (Exception e) when (e is TimeoutException || e is IOException) {
             this.Close();
@@ -322,8 +331,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        this.sharedOneByteArray[0] = value;
-        await this.WriteBytesCore(address, this.sharedOneByteArray, 0, 1).ConfigureAwait(false);
+        this.sharedByteArray8[0] = value;
+        await this.WriteBytesCore(address, this.sharedByteArray8, 0, 1).ConfigureAwait(false);
     }
 
     public Task WriteBool(uint address, bool value) => this.WriteByte(address, (byte) (value ? 0x01 : 0x00));
@@ -331,7 +340,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public Task WriteChar(uint address, char value) => this.WriteByte(address, (byte) value);
 
     public Task WriteValue<T>(uint address, T value) where T : unmanaged {
-        byte[] bytes = new byte[Unsafe.SizeOf<T>()];
+        int cbValue = Unsafe.SizeOf<T>();
+        byte[] bytes = cbValue > 8 ? new byte[cbValue] : this.sharedByteArray8;
         Unsafe.As<byte, T>(ref MemoryMarshal.GetArrayDataReference(bytes)) = value;
         if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
             Array.Reverse(bytes);

@@ -112,16 +112,16 @@ public class PluginXbox360Xbdm : Plugin {
             //   fieldsize=0x<size in uint32 hex>
             //   <value>
             // may return ResponseType.XexFieldNotFound
-            ConsoleResponse entryPointResponse = await connection.SendCommand($"xexfield module=\"{name}\" field=0x10100");
-            if (entryPointResponse.ResponseType == ResponseType.MultiResponse) {
+            XbdmResponse entryPointResponse = await connection.SendCommand($"xexfield module=\"{name}\" field=0x10100");
+            if (entryPointResponse.ResponseType == XbdmResponseType.MultiResponse) {
                 List<string> lines = await connection.ReadMultiLineResponse();
                 if (lines.Count == 2 && uint.TryParse(lines[1], NumberStyles.HexNumber, null, out uint entryPoint)) {
                     consoleModule.EntryPoint = entryPoint;
                 }
             }
 
-            ConsoleResponse response = await connection.SendCommand($"modsections name=\"{name}\"");
-            if (response.ResponseType != ResponseType.FileNotFound) {
+            XbdmResponse response = await connection.SendCommand($"modsections name=\"{name}\"");
+            if (response.ResponseType != XbdmResponseType.FileNotFound) {
                 List<string> sections = await connection.ReadMultiLineResponse();
                 foreach (string sectionLine in sections) {
                     task.CheckCancelled();

@@ -24,36 +24,35 @@ using PFXToolKitUI.Interactivity;
 
 namespace MemEngine360.Commands.ATM;
 
-public abstract class BaseCopyAddressTableEntryCommand : Command {
-    protected sealed override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IDesktopWindow.DataKey.TryGetContext(e.ContextData, out IDesktopWindow? window) || window.ClipboardService == null)
-            return Executability.Invalid;
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui))
-            return Executability.Invalid;
-
-        if (ui.AddressTableSelectionManager.Count != 1)
-            return Executability.ValidButCannotExecute;
-        
-        IAddressTableEntryUI first = ui.AddressTableSelectionManager.SelectedItemList[0];
-        return this.CanExecute(first, e);
+public abstract class BaseCopyAddressTableEntryCommand : BaseSavedAddressSelectionCommand {
+    protected BaseCopyAddressTableEntryCommand() {
+        this.MaximumSelection = 1;
     }
 
-    protected sealed override async Task ExecuteCommandAsync(CommandEventArgs e) {
+    protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        Executability exec = base.CanExecuteOverride(entries, engine, e);
+        if (exec != Executability.Valid)
+            return exec;
+        
+        if (!IDesktopWindow.DataKey.TryGetContext(e.ContextData, out IDesktopWindow? window))
+            return Executability.Invalid;
+        if (window.ClipboardService == null)
+            return Executability.ValidButCannotExecute;
+        
+        return this.CanExecute(entries[0], engine, e);
+    }
+
+    protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
         IClipboardService? clipboard;
         if (!IDesktopWindow.DataKey.TryGetContext(e.ContextData, out IDesktopWindow? window) || (clipboard = window.ClipboardService) == null)
             return;
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui))
-            return;
-        if (ui.AddressTableSelectionManager.Count != 1)
-            return;
 
-        IAddressTableEntryUI first = ui.AddressTableSelectionManager.SelectedItemList[0];
-        await this.Copy(first, clipboard);
+        await this.Copy(entries[0], engine, clipboard);
     }
 
-    protected virtual Executability CanExecute(IAddressTableEntryUI entry, CommandEventArgs e) {
+    protected virtual Executability CanExecute(IAddressTableEntryUI entry, IEngineUI engine, CommandEventArgs e) {
         return Executability.Valid;
     }
 
-    protected abstract Task Copy(IAddressTableEntryUI entry, IClipboardService clipboard);
+    protected abstract Task Copy(IAddressTableEntryUI entry, IEngineUI engine, IClipboardService clipboard);
 }

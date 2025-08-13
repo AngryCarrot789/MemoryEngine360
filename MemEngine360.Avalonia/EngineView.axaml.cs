@@ -42,7 +42,6 @@ using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.Scanners;
 using MemEngine360.ValueAbstraction;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
-using MemEngine360.XboxBase;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
@@ -404,7 +403,7 @@ public partial class EngineView : UserControl, IEngineUI {
                         }
                         else {
                             c.Notification?.Close();
-                            await CommandManager.Instance.Execute("commands.memengine.OpenConsoleConnectionDialogCommand", c.ContextData!, true);
+                            await CommandManager.Instance.Execute("commands.memengine.OpenConsoleConnectionDialogCommand", c.ContextData!);
                         }
                     }) {
                         ToolTip = "Attempt to reconnect to the console, using the same options (e.g. IP address) specified when it was opened initially." + Environment.NewLine +

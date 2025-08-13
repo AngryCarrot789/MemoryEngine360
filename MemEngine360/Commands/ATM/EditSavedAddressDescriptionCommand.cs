@@ -17,34 +17,26 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Commands.ATM;
 
-public class EditSavedAddressDescriptionCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out BaseAddressTableEntry? result)) {
-            return Executability.Invalid;
-        }
-
-        return Executability.Valid;
-    }
-
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out BaseAddressTableEntry? result)) {
-            return;
-        }
-
-        SingleUserInputInfo info = new SingleUserInputInfo(result.Description) {
+public class EditSavedAddressDescriptionCommand : BaseSavedAddressSelectionCommand {
+    protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        SingleUserInputInfo info = new SingleUserInputInfo(entries[0].Entry.Description) {
             Caption = "Change description",
             DefaultButton = true,
             Label = "New description"
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-            result.Description = info.Text;
+            List<BaseAddressTableEntry> selection = entries.Select(x => x.Entry).ToList();
+            foreach (BaseAddressTableEntry entry in selection) {
+                entry.Description = info.Text;
+            }
         }
     }
 }

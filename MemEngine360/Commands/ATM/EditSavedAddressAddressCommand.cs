@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
@@ -24,25 +25,21 @@ using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Commands.ATM;
 
-public class EditSavedAddressAddressCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? theResult)) {
-            return Executability.Invalid;
-        }
-
-        return theResult.Entry is AddressTableEntry ? Executability.Valid : Executability.Invalid;
+public class EditSavedAddressAddressCommand : BaseSavedAddressSelectionCommand {
+    public EditSavedAddressAddressCommand() {
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? theResult)) {
+    protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        return entries.Any(x => x.Entry is AddressTableEntry) ? Executability.Valid : Executability.ValidButCannotExecute;
+    }
+
+    protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        entries = entries.Where(x => x.Entry is AddressTableEntry).ToList();
+        if (entries.Count < 1) {
             return;
         }
 
-        if (!(theResult.Entry is AddressTableEntry entry)) {
-            return;
-        }
-
-        SingleUserInputInfo input = new SingleUserInputInfo(entry.MemoryAddress.ToString()) {
+        SingleUserInputInfo input = new SingleUserInputInfo(((AddressTableEntry) entries[0].Entry).MemoryAddress.ToString()) {
             Caption = "Edit address",
             Message = "Change the address of this saved address table entry",
             DefaultButton = true,
@@ -56,8 +53,12 @@ public class EditSavedAddressAddressCommand : Command {
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) == true) {
             _ = MemoryAddressUtils.TryParse(input.Text, out IMemoryAddress? memoryAddress);
-            entry.MemoryAddress = memoryAddress!;
-            entry.AddressTableManager?.MemoryEngine.ScanningProcessor.RefreshSavedAddressesLater();
+            foreach (IAddressTableEntryUI ui in entries) {
+                AddressTableEntry entry = (AddressTableEntry) ui.Entry;
+                
+                entry.MemoryAddress = memoryAddress!;
+                entry.AddressTableManager?.MemoryEngine.ScanningProcessor.RefreshSavedAddressesLater();   
+            }
         }
     }
 }

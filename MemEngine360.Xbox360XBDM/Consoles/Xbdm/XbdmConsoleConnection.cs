@@ -142,8 +142,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     public async Task DetectDynamicFeatures() {
         if (!IsJRPC2DetectionBroken) {
             const string GetCpuSensorCommand = "consolefeatures ver=2 type=15 params=\"A\\0\\A\\1\\1\\0\\\"";
-            ConsoleResponse response = await this.SendCommand(GetCpuSensorCommand);
-            if (response.ResponseType == ResponseType.SingleResponse) {
+            XbdmResponse response = await this.SendCommand(GetCpuSensorCommand);
+            if (response.ResponseType == XbdmResponseType.SingleResponse) {
                 if (uint.TryParse(response.Message, NumberStyles.HexNumber, null, out uint temperature)) {
                     // We got a temperature value, so assume JRPC2 is working fine
                     this.jrpcFeatures = new Jrpc2FeaturesImpl(this);
@@ -214,7 +214,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
         catch (Exception e) {
             AppLogger.Instance.WriteLine("Exception while closing " + nameof(XbdmConsoleConnection));
-            AppLogger.Instance.WriteLine(ExceptionUtils.GetToString(e));
+            AppLogger.Instance.WriteLine(e.GetToString());
         }
     }
 
@@ -225,7 +225,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         await this.InternalWriteCommand(command).ConfigureAwait(false);
     }
 
-    public async Task<ConsoleResponse> GetResponseOnly() {
+    public async Task<XbdmResponse> GetResponseOnly() {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
@@ -240,14 +240,14 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         return responseText;
     }
 
-    public async Task<ConsoleResponse> SendCommand(string command) {
+    public async Task<XbdmResponse> SendCommand(string command) {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
         return await this.InternalSendCommand(command).ConfigureAwait(false);
     }
 
-    public async Task<ConsoleResponse[]> SendMultipleCommands(string[] commands) {
+    public async Task<XbdmResponse[]> SendMultipleCommands(string[] commands) {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
@@ -260,7 +260,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         await this.InternalWriteBytes(Encoding.ASCII.GetBytes(sb.ToString()));
 
-        ConsoleResponse[] responses = new ConsoleResponse[commands.Length];
+        XbdmResponse[] responses = new XbdmResponse[commands.Length];
         for (int i = 0; i < responses.Length; i++) {
             responses[i] = await this.InternalReadResponse().ConfigureAwait(false);
         }
@@ -268,7 +268,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         return responses;
     }
 
-    public Task<ConsoleResponse[]> SendMultipleCommands(IEnumerable<string> commands) => this.SendMultipleCommands(Enumerable.ToArray(commands));
+    public Task<XbdmResponse[]> SendMultipleCommands(IEnumerable<string> commands) => this.SendMultipleCommands(commands.ToArray());
 
     public async Task<string> ReadLineFromStream(CancellationToken token = default) {
         this.EnsureNotClosed();
@@ -287,9 +287,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        ConsoleResponse response = await this.InternalSendCommand(command).ConfigureAwait(false);
+        XbdmResponse response = await this.InternalSendCommand(command).ConfigureAwait(false);
         int idx = command.IndexOf(' ');
-        VerifyResponse(idx == -1 ? command : command.Substring(0, idx), response.ResponseType, ResponseType.MultiResponse);
+        VerifyResponse(idx == -1 ? command : command.Substring(0, idx), response.ResponseType, XbdmResponseType.MultiResponse);
         return await this.InternalReadMultiLineResponse();
     }
 
@@ -312,16 +312,16 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     }
 
     public async Task<List<KeyValuePair<string, string>>> SendCommandAndReceiveLines2(string Text) {
-        return Enumerable.ToList(Enumerable.Select(await this.SendCommandAndReceiveLines(Text), x => {
+        return (await this.SendCommandAndReceiveLines(Text)).Select(x => {
             int split = x.IndexOf(':');
             return new KeyValuePair<string, string>(
-                split == -1 ? x : MemoryExtensions.Trim(MemoryExtensions.AsSpan(x, 0, split)).ToString(),
-                split == -1 ? "" : MemoryExtensions.Trim(MemoryExtensions.AsSpan(x, split + 1)).ToString());
-        }));
+                split == -1 ? x : x.AsSpan(0, split).Trim().ToString(),
+                split == -1 ? "" : x.AsSpan(split + 1).Trim().ToString());
+        }).ToList();
     }
 
     private static void ParseThreadInfo(string text, ref XboxThread tdInfo) {
-        ReadOnlySpan<char> ros = MemoryExtensions.AsSpan(text);
+        ReadOnlySpan<char> ros = text.AsSpan();
         ParamUtils.GetDwParam(ros, "suspend", true, out tdInfo.suspendCount);
         ParamUtils.GetDwParam(ros, "priority", true, out tdInfo.priority);
         ParamUtils.GetDwParam(ros, "tlsbase", true, out tdInfo.tlsBaseAddress);
@@ -339,10 +339,10 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         XboxThread tdInfo;
         using (this.CreateBusyToken()) {
-            ConsoleResponse response = await this.InternalSendCommand($"threadinfo thread=0x{threadId:X8}").ConfigureAwait(false);
-            if (response.ResponseType == ResponseType.NoSuchThread)
+            XbdmResponse response = await this.InternalSendCommand($"threadinfo thread=0x{threadId:X8}").ConfigureAwait(false);
+            if (response.ResponseType == XbdmResponseType.NoSuchThread)
                 return default;
-            VerifyResponse("threadinfo", response.ResponseType, ResponseType.MultiResponse);
+            VerifyResponse("threadinfo", response.ResponseType, XbdmResponseType.MultiResponse);
             List<string> info = await this.InternalReadMultiLineResponse();
             Debug.Assert(info.Count > 0, "Info should have at least 1 line since it will be a multi-line response");
             if (info.Count != 1) {
@@ -402,20 +402,20 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     }
 
     public async Task<FreezeResult> DebugFreeze() {
-        ConsoleResponse response = await this.SendCommand("stop");
-        if (response.ResponseType == ResponseType.SingleResponse)
+        XbdmResponse response = await this.SendCommand("stop");
+        if (response.ResponseType == XbdmResponseType.SingleResponse)
             return FreezeResult.Success;
 
-        VerifyResponse("stop", response.ResponseType, ResponseType.XBDM_ALREADYSTOPPED);
+        VerifyResponse("stop", response.ResponseType, XbdmResponseType.XBDM_ALREADYSTOPPED);
         return FreezeResult.AlreadyFrozen;
     }
 
     public async Task<UnFreezeResult> DebugUnFreeze() {
-        ConsoleResponse response = await this.SendCommand("go");
-        if (response.ResponseType == ResponseType.SingleResponse)
+        XbdmResponse response = await this.SendCommand("go");
+        if (response.ResponseType == XbdmResponseType.SingleResponse)
             return UnFreezeResult.Success;
 
-        VerifyResponse("go", response.ResponseType, ResponseType.NotStopped);
+        VerifyResponse("go", response.ResponseType, XbdmResponseType.NotStopped);
         return UnFreezeResult.AlreadyUnfrozen;
     }
 
@@ -495,33 +495,33 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     public async Task<XboxHardwareInfo> GetHardwareInfo() {
         List<KeyValuePair<string, string>> lines = await this.SendCommandAndReceiveLines2("hwinfo");
         XboxHardwareInfo info;
-        info.Flags = uint.Parse(MemoryExtensions.AsSpan(lines[0].Value, 2, 8), NumberStyles.HexNumber);
-        info.NumberOfProcessors = byte.Parse(MemoryExtensions.AsSpan(lines[1].Value, 2, 2), NumberStyles.HexNumber);
-        info.PCIBridgeRevisionID = byte.Parse(MemoryExtensions.AsSpan(lines[2].Value, 2, 2), NumberStyles.HexNumber);
+        info.Flags = uint.Parse(lines[0].Value.AsSpan(2, 8), NumberStyles.HexNumber);
+        info.NumberOfProcessors = byte.Parse(lines[1].Value.AsSpan(2, 2), NumberStyles.HexNumber);
+        info.PCIBridgeRevisionID = byte.Parse(lines[2].Value.AsSpan(2, 2), NumberStyles.HexNumber);
 
         string rbStr = lines[3].Value;
         info.ReservedBytes = new byte[6];
-        info.ReservedBytes[0] = byte.Parse(MemoryExtensions.AsSpan(rbStr, 3, 2), NumberStyles.HexNumber);
-        info.ReservedBytes[1] = byte.Parse(MemoryExtensions.AsSpan(rbStr, 6, 2), NumberStyles.HexNumber);
-        info.ReservedBytes[2] = byte.Parse(MemoryExtensions.AsSpan(rbStr, 9, 2), NumberStyles.HexNumber);
-        info.ReservedBytes[3] = byte.Parse(MemoryExtensions.AsSpan(rbStr, 12, 2), NumberStyles.HexNumber);
-        info.ReservedBytes[4] = byte.Parse(MemoryExtensions.AsSpan(rbStr, 15, 2), NumberStyles.HexNumber);
-        info.ReservedBytes[5] = byte.Parse(MemoryExtensions.AsSpan(rbStr, 18, 2), NumberStyles.HexNumber);
-        info.BldrMagic = ushort.Parse(MemoryExtensions.AsSpan(lines[4].Value, 2, 4), NumberStyles.HexNumber);
-        info.BldrFlags = ushort.Parse(MemoryExtensions.AsSpan(lines[5].Value, 2, 4), NumberStyles.HexNumber);
+        info.ReservedBytes[0] = byte.Parse(rbStr.AsSpan(3, 2), NumberStyles.HexNumber);
+        info.ReservedBytes[1] = byte.Parse(rbStr.AsSpan(6, 2), NumberStyles.HexNumber);
+        info.ReservedBytes[2] = byte.Parse(rbStr.AsSpan(9, 2), NumberStyles.HexNumber);
+        info.ReservedBytes[3] = byte.Parse(rbStr.AsSpan(12, 2), NumberStyles.HexNumber);
+        info.ReservedBytes[4] = byte.Parse(rbStr.AsSpan(15, 2), NumberStyles.HexNumber);
+        info.ReservedBytes[5] = byte.Parse(rbStr.AsSpan(18, 2), NumberStyles.HexNumber);
+        info.BldrMagic = ushort.Parse(lines[4].Value.AsSpan(2, 4), NumberStyles.HexNumber);
+        info.BldrFlags = ushort.Parse(lines[5].Value.AsSpan(2, 4), NumberStyles.HexNumber);
         return info;
     }
 
     public async Task<uint> GetProcessID() {
-        ConsoleResponse response = await this.SendCommand("getpid").ConfigureAwait(false);
-        VerifyResponse("getpid", response.ResponseType, ResponseType.SingleResponse);
+        XbdmResponse response = await this.SendCommand("getpid").ConfigureAwait(false);
+        VerifyResponse("getpid", response.ResponseType, XbdmResponseType.SingleResponse);
         ParamUtils.GetDwParam(response.Message, "pid", true, out uint pid);
         return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(pid) : pid;
     }
 
     public async Task<IPAddress> GetTitleIPAddress() {
-        ConsoleResponse response = await this.SendCommand("altaddr").ConfigureAwait(false);
-        VerifyResponse("altaddr", response.ResponseType, ResponseType.SingleResponse);
+        XbdmResponse response = await this.SendCommand("altaddr").ConfigureAwait(false);
+        VerifyResponse("altaddr", response.ResponseType, XbdmResponseType.SingleResponse);
         ParamUtils.GetDwParam(response.Message, "addr", true, out uint addr);
         IPAddress ip = new IPAddress(BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(addr) : addr);
         return ip;
@@ -545,8 +545,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         this.FillGetMemCommandBuffer(address, count);
         await this.InternalWriteBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
-        ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
-        VerifyResponse("getmem", response.ResponseType, ResponseType.MultiResponse);
+        XbdmResponse response = await this.InternalReadResponse().ConfigureAwait(false);
+        VerifyResponse("getmem", response.ResponseType, XbdmResponseType.MultiResponse);
 
         string line;
         while ((line = await this.InternalReadLine().ConfigureAwait(false)) != ".") {
@@ -578,12 +578,12 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        ConsoleResponse response = await this.InternalSendCommand($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
-        if (response.ResponseType == ResponseType.NoSuchThread) {
+        XbdmResponse response = await this.InternalSendCommand($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
+        if (response.ResponseType == XbdmResponseType.NoSuchThread) {
             return null;
         }
 
-        VerifyResponse("getcontext", response.ResponseType, ResponseType.MultiResponse);
+        VerifyResponse("getcontext", response.ResponseType, XbdmResponseType.MultiResponse);
         List<RegisterEntry> registers = new List<RegisterEntry>();
         await Task.Run(async () => {
             List<string> lines = await this.InternalReadMultiLineResponse().ConfigureAwait(false);
@@ -595,11 +595,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 string name = line.Substring(0, split).ToUpperInvariant();
                 string value = line.Substring(split + 1);
                 if (value.StartsWith("0x")) {
-                    if (uint.TryParse(MemoryExtensions.AsSpan(value, 2), NumberStyles.HexNumber, null, out uint value32))
+                    if (uint.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out uint value32))
                         registers.Add(new RegisterEntry32(name, value32));
                 }
                 else if (value.StartsWith("0q")) {
-                    if (ulong.TryParse(MemoryExtensions.AsSpan(value, 2), NumberStyles.HexNumber, null, out ulong value64))
+                    if (ulong.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out ulong value64))
                         registers.Add(new RegisterEntry64(name, value64));
                 }
             }
@@ -609,29 +609,29 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     }
 
     public async Task<RegisterEntry?> ReadRegisterValue(uint threadId, string registerName) {
-        ConsoleResponse response = await this.SendCommand($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
-        if (response.ResponseType == ResponseType.NoSuchThread) {
+        XbdmResponse response = await this.SendCommand($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
+        if (response.ResponseType == XbdmResponseType.NoSuchThread) {
             return null;
         }
 
-        VerifyResponse("getcontext", response.ResponseType, ResponseType.MultiResponse);
+        VerifyResponse("getcontext", response.ResponseType, XbdmResponseType.MultiResponse);
         List<string> lines = await this.ReadMultiLineResponse();
         foreach (string line in lines) {
             int split = line.IndexOf('=');
             if (split == -1)
                 continue;
 
-            if (!MemoryExtensions.Equals(MemoryExtensions.AsSpan(line, 0, split), registerName, StringComparison.OrdinalIgnoreCase)) {
+            if (!line.AsSpan(0, split).Equals(registerName, StringComparison.OrdinalIgnoreCase)) {
                 continue;
             }
 
             string value = line.Substring(split + 1);
             if (value.StartsWith("0x")) {
-                if (uint.TryParse(MemoryExtensions.AsSpan(value, 2), NumberStyles.HexNumber, null, out uint value32))
+                if (uint.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out uint value32))
                     return new RegisterEntry32(line.Substring(0, split), value32);
             }
             else if (value.StartsWith("0q")) {
-                if (ulong.TryParse(MemoryExtensions.AsSpan(value, 2), NumberStyles.HexNumber, null, out ulong value64))
+                if (ulong.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out ulong value64))
                     return new RegisterEntry64(line.Substring(0, split), value64);
             }
         }
@@ -678,8 +678,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             //   fieldsize=0x<size in uint32 hex>
             //   <value>
             // may return ResponseType.XexFieldNotFound
-            ConsoleResponse entryPointResponse = await this.SendCommand($"xexfield module=\"{name}\" field=0x10100");
-            if (entryPointResponse.ResponseType == ResponseType.MultiResponse) {
+            XbdmResponse entryPointResponse = await this.SendCommand($"xexfield module=\"{name}\" field=0x10100");
+            if (entryPointResponse.ResponseType == XbdmResponseType.MultiResponse) {
                 List<string> lines = await this.ReadMultiLineResponse();
                 if (lines.Count == 2 && uint.TryParse(lines[1], NumberStyles.HexNumber, null, out uint entryPoint)) {
                     consoleModule.EntryPoint = entryPoint;
@@ -687,8 +687,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             }
 
             if (bNeedSections) {
-                ConsoleResponse response = await this.SendCommand($"modsections name=\"{name}\"");
-                if (response.ResponseType != ResponseType.FileNotFound) {
+                XbdmResponse response = await this.SendCommand($"modsections name=\"{name}\"");
+                if (response.ResponseType != XbdmResponseType.FileNotFound) {
                     List<string> sections = await this.ReadMultiLineResponse();
                     foreach (string sectionLine in sections) {
                         ParamUtils.GetStrParam(sectionLine, "name", true, out string? sec_name);
@@ -728,8 +728,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 continue;
             }
 
-            ConsoleResponse response = await this.SendCommand($"modsections name=\"{modName}\"");
-            if (response.ResponseType == ResponseType.FileNotFound) {
+            XbdmResponse response = await this.SendCommand($"modsections name=\"{modName}\"");
+            if (response.ResponseType == XbdmResponseType.FileNotFound) {
                 continue;
             }
 
@@ -829,8 +829,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     private async Task OldReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
         this.FillGetMemCommandBuffer(address, (uint) count);
         await this.InternalWriteBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
-        ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
-        VerifyResponse("getmem", response.ResponseType, ResponseType.MultiResponse);
+        XbdmResponse response = await this.InternalReadResponse().ConfigureAwait(false);
+        VerifyResponse("getmem", response.ResponseType, XbdmResponseType.MultiResponse);
         int cbRead = 0;
         string line;
         while ((line = await this.InternalReadLine().ConfigureAwait(false)) != ".") {
@@ -854,7 +854,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             }
         }
 
-        buffer.CopyTo(MemoryExtensions.AsSpan(dstBuffer, offset + cbTotalRead, cbLine));
+        buffer.CopyTo(dstBuffer.AsSpan(offset + cbTotalRead, cbLine));
         return cbLine;
     }
 
@@ -864,13 +864,13 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             return;
         }
 
-        ConsoleResponse response = await this.InternalSendCommand($"getmemex addr=0x{address:X8} length=0x{count:X8}").ConfigureAwait(false);
-        VerifyResponse("getmemex", response.ResponseType, ResponseType.BinaryResponse);
+        XbdmResponse response = await this.InternalSendCommand($"getmemex addr=0x{address:X8} length=0x{count:X8}").ConfigureAwait(false);
+        VerifyResponse("getmemex", response.ResponseType, XbdmResponseType.BinaryResponse);
 
         int statusFlag = 0, cbReadTotal = 0;
         do {
             if (statusFlag != 0) { // Most likely reading invalid/protected memory
-                MemoryExtensions.AsSpan(dstBuffer, offset + cbReadTotal, count).Clear();
+                dstBuffer.AsSpan(offset + cbReadTotal, count).Clear();
                 return;
             }
 
@@ -924,9 +924,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             int cbToWrite = Math.Min(count, 64 /* Fixed Chunk Size */);
             this.FillSetMemCommandBuffer(address + (uint) cbReadTotal, srcBuffer, offset + cbReadTotal, cbToWrite);
             await this.InternalWriteBytes(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, 30 + (cbToWrite << 1))).ConfigureAwait(false);
-            ConsoleResponse response = await this.InternalReadResponse().ConfigureAwait(false);
-            if (response.ResponseType != ResponseType.SingleResponse && response.ResponseType != ResponseType.MemoryNotMapped) {
-                VerifyResponse("setmem", response.ResponseType, ResponseType.SingleResponse);
+            XbdmResponse response = await this.InternalReadResponse().ConfigureAwait(false);
+            if (response.ResponseType != XbdmResponseType.SingleResponse && response.ResponseType != XbdmResponseType.MemoryNotMapped) {
+                VerifyResponse("setmem", response.ResponseType, XbdmResponseType.SingleResponse);
             }
 
             cbReadTotal += cbToWrite;
@@ -934,23 +934,14 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
     }
 
-    private static int GetSafeCountForAddress(uint address, int count) {
-        ulong overflow = (ulong) address + (uint) count;
-        if (overflow > uint.MaxValue) {
-            count = Math.Max(0, (int) (overflow - uint.MaxValue));
-        }
-
-        return count;
-    }
-
-    private async Task<ConsoleResponse> InternalReadResponse_Threaded() {
+    private async Task<XbdmResponse> InternalReadResponse_Threaded() {
         string responseText = await this.InternalReadLine_Threaded().ConfigureAwait(false);
-        return ConsoleResponse.FromLine(responseText);
+        return XbdmResponse.FromLine(responseText);
     }
 
-    private async Task<ConsoleResponse> InternalReadResponse() {
+    private async Task<XbdmResponse> InternalReadResponse() {
         string responseText = await this.InternalReadLine().ConfigureAwait(false);
-        return ConsoleResponse.FromLine(responseText);
+        return XbdmResponse.FromLine(responseText);
     }
 
     private ValueTask InternalWriteCommand(string command) {
@@ -971,7 +962,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
     }
 
-    private async Task<ConsoleResponse> InternalSendCommand(string command) {
+    private async Task<XbdmResponse> InternalSendCommand(string command) {
         await this.InternalWriteCommand(command).ConfigureAwait(false);
         return await this.InternalReadResponse().ConfigureAwait(false);
     }
@@ -983,9 +974,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void FillSetMemCommandBuffer(uint address, byte[] srcData, int srcOffset, int cbData) {
         ref byte dstAscii = ref MemoryMarshal.GetArrayDataReference(this.sharedSetMemCommandBuffer);
-        NumberUtils.UInt32ToHexAscii(address, ref dstAscii, 14);
+        NumberUtils.UInt32ToHexAscii(address, ref dstAscii, 14 /* magic */);
 
-        int i = 28;
+        int i = 28 /* magic */;
         ref byte hexChars = ref MemoryMarshal.GetArrayDataReference(NumberUtils.HEX_CHARS_ASCII);
         for (int j = 0; j < cbData; j++, i += 2) {
             byte b = srcData[srcOffset + j];
@@ -1000,8 +991,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void FillGetMemCommandBuffer(uint address, uint count) {
         ref byte dstAscii = ref MemoryMarshal.GetArrayDataReference(this.sharedGetMemCommandBuffer);
-        NumberUtils.UInt32ToHexAscii(address, ref dstAscii, 14);
-        NumberUtils.UInt32ToHexAscii(count, ref dstAscii, 32);
+        NumberUtils.UInt32ToHexAscii(address, ref dstAscii, 14 /* magic */);
+        NumberUtils.UInt32ToHexAscii(count, ref dstAscii, 32 /* magic */);
     }
 
     private int ReadBytesFromBuffer(byte[] dstBuffer, int offset, int count) {
@@ -1011,7 +1002,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         int available = this.idxEndLnBuf - this.idxBeginLnBuf;
         int read = Math.Min(available, count);
-        MemoryExtensions.AsSpan(this.localReadBuffer, this.idxBeginLnBuf, read).CopyTo(MemoryExtensions.AsSpan(dstBuffer, offset, read));
+        this.localReadBuffer.AsSpan(this.idxBeginLnBuf, read).CopyTo(dstBuffer.AsSpan(offset, read));
         if ((this.idxBeginLnBuf += read) >= this.idxEndLnBuf) {
             this.idxBeginLnBuf = this.idxEndLnBuf = 0;
         }
@@ -1324,7 +1315,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         return cbTotalRead;
     }
 
-    private static void VerifyResponse(string commandName, ResponseType actual, ResponseType expected) {
+    private static void VerifyResponse(string commandName, XbdmResponseType actual, XbdmResponseType expected) {
         if (actual != expected) {
             throw InvalidResponseException.ForCommand(commandName, actual, expected);
         }
@@ -1355,8 +1346,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             XbdmConsoleConnection delegateConnection = new XbdmConsoleConnection(theClient, this.originalConnectionAddress);
 
             // DEBUGGER CONNECT PORT=0x<PORT_HERE> override user=<COMPUTER_NAME_HERE> name="MemEngine360"
-            ConsoleResponse response = delegateConnection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"").GetAwaiter().GetResult();
-            if (response.ResponseType != ResponseType.SingleResponse) {
+            XbdmResponse response = delegateConnection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"").GetAwaiter().GetResult();
+            if (response.ResponseType != XbdmResponseType.SingleResponse) {
                 throw new Exception($"Failed to enable debugger. Response = {response.ToString()}");
             }
 
@@ -1371,9 +1362,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             delegateConnection.SendCommandOnly("notify reconnectport=12345 reverse").GetAwaiter().GetResult();
             while (true) {
                 string responseText = delegateConnection.GetResponseAsTextOnly().GetAwaiter().GetResult();
-                if (ConsoleResponse.TryParseFromLine(responseText, out response)) {
-                    if (response.ResponseType != ResponseType.DedicatedConnection) {
-                        throw new Exception($"Failed to setup notifications. Response type is not {nameof(ResponseType.DedicatedConnection)}: {response.RawMessage}");
+                if (XbdmResponse.TryParseFromLine(responseText, out response)) {
+                    if (response.ResponseType != XbdmResponseType.DedicatedConnection) {
+                        throw new Exception($"Failed to setup notifications. Response type is not {nameof(XbdmResponseType.DedicatedConnection)}: {response.RawMessage}");
                     }
 
                     break;
@@ -1396,7 +1387,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             List<ConsoleSystemEventHandler> eventHandlerList;
             if (preRunEvents.Count > 0) {
                 lock (this.systemEventHandlers) {
-                    eventHandlerList = Enumerable.ToList(this.systemEventHandlers);
+                    eventHandlerList = this.systemEventHandlers.ToList();
                 }
 
                 foreach (XbdmEventArgs tmpEvent in preRunEvents) {
@@ -1436,7 +1427,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 }
 
                 lock (this.systemEventHandlers) {
-                    eventHandlerList = Enumerable.ToList(this.systemEventHandlers);
+                    eventHandlerList = this.systemEventHandlers.ToList();
                 }
 
                 foreach (ConsoleSystemEventHandler handler in eventHandlerList) {
@@ -1450,7 +1441,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
         catch (Exception e) {
             AppLogger.Instance.WriteLine("Exception in " + Thread.CurrentThread.Name);
-            AppLogger.Instance.WriteLine(ExceptionUtils.GetToString(e));
+            AppLogger.Instance.WriteLine(e.GetToString());
             tcpClient?.Close();
             tcpClient?.Dispose();
         }
@@ -1535,8 +1526,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         public async Task<string> GetCPUKey() {
             const string command = "consolefeatures ver=2 type=10 params=\"A\\0\\A\\0\\\"";
-            ConsoleResponse response = await this.connection.SendCommand(command);
-            if (response.ResponseType != ResponseType.SingleResponse || response.Message.Length != 32) {
+            XbdmResponse response = await this.connection.SendCommand(command);
+            if (response.ResponseType != XbdmResponseType.SingleResponse || response.Message.Length != 32) {
                 this.connection.Close();
                 throw new IOException("JRPC2 did not respond correctly");
             }
@@ -1546,8 +1537,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         public async Task<uint> GetDashboardVersion() {
             const string command = "consolefeatures ver=2 type=13 params=\"A\\0\\A\\4\\\"";
-            ConsoleResponse response = await this.connection.SendCommand(command);
-            if (response.ResponseType != ResponseType.SingleResponse || !uint.TryParse(response.Message, out uint version)) {
+            XbdmResponse response = await this.connection.SendCommand(command);
+            if (response.ResponseType != XbdmResponseType.SingleResponse || !uint.TryParse(response.Message, out uint version)) {
                 this.connection.Close();
                 throw new IOException("JRPC2 did not respond correctly");
             }
@@ -1557,8 +1548,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         public async Task<uint> GetTemperature(SensorType sensorType) {
             string command = $"consolefeatures ver=2 type=15 params=\"A\\0\\A\\1\\{(uint) RPCDataType.Int}\\{(int) sensorType}\\\"";
-            ConsoleResponse response = await this.connection.SendCommand(command);
-            if (response.ResponseType == ResponseType.SingleResponse) {
+            XbdmResponse response = await this.connection.SendCommand(command);
+            if (response.ResponseType == XbdmResponseType.SingleResponse) {
                 if (uint.TryParse(response.Message, NumberStyles.HexNumber, null, out uint version)) {
                     return version;
                 }
@@ -1570,8 +1561,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         public async Task<uint> GetCurrentTitleId() {
             const string command = "consolefeatures ver=2 type=16 params=\"A\\0\\A\\0\\\"";
-            ConsoleResponse response = await this.connection.SendCommand(command);
-            if (response.ResponseType == ResponseType.SingleResponse) {
+            XbdmResponse response = await this.connection.SendCommand(command);
+            if (response.ResponseType == XbdmResponseType.SingleResponse) {
                 if (uint.TryParse(response.Message, NumberStyles.HexNumber, null, out uint version)) {
                     return version;
                 }
@@ -1583,8 +1574,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         public async Task<string> GetMotherboardType() {
             const string command = "consolefeatures ver=2 type=17 params=\"A\\0\\A\\0\\\"";
-            ConsoleResponse response = await this.connection.SendCommand(command);
-            if (response.ResponseType == ResponseType.SingleResponse) {
+            XbdmResponse response = await this.connection.SendCommand(command);
+            if (response.ResponseType == XbdmResponseType.SingleResponse) {
                 return response.Message;
             }
 
@@ -1596,8 +1587,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             int bits = ((p4 ? 1 : 0) << 3) | ((p3 ? 1 : 0) << 2) | ((p2 ? 1 : 0) << 1) | (p1 ? 1 : 0);
             int value = bits * 16;
             string command = "consolefeatures ver=2 type=14 params=\"A\\0\\A\\4\\1\\0\\1\\0\\1\\0\\1\\" + value + "\\\"";
-            ConsoleResponse response = await this.connection.SendCommand(command);
-            if (response.ResponseType != ResponseType.SingleResponse || response.Message != "S_OK") {
+            XbdmResponse response = await this.connection.SendCommand(command);
+            if (response.ResponseType != XbdmResponseType.SingleResponse || response.Message != "S_OK") {
                 this.connection.Close();
                 throw new IOException("JRPC2 did not respond correctly");
             }
@@ -1790,12 +1781,12 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
 
         private async Task<string?> SendCommand(string Command) {
-            ConsoleResponse response = await this.connection.SendCommand(Command);
+            XbdmResponse response = await this.connection.SendCommand(Command);
             if (response.RawMessage.Contains("error="))
                 throw new Exception(response.RawMessage.Substring(11));
             if (response.RawMessage.Contains("DEBUG"))
                 throw new Exception("JRPC is not installed on the current console");
-            if (response.ResponseType == ResponseType.InvalidArgument)
+            if (response.ResponseType == XbdmResponseType.InvalidArgument)
                 return null;
             return response.RawMessage;
         }

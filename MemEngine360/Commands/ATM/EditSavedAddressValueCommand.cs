@@ -33,67 +33,41 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands.ATM;
 
-public class EditSavedAddressValueCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        ScanningProcessor? processor = null;
-        if (IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? theResult)) {
-            if (!(theResult.Entry is AddressTableEntry)) {
-                return Executability.Invalid;
-            }
-
-            processor = theResult.Entry.AddressTableManager!.MemoryEngine.ScanningProcessor;
-        }
-
-        if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            processor = ui.MemoryEngine.ScanningProcessor;
-        }
-
-        if (processor == null)
-            return Executability.Invalid;
-        
-        if (processor.MemoryEngine.Connection == null)
+public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
+    protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        IConsoleConnection? connection = engine.MemoryEngine.Connection;
+        if (connection == null || !connection.IsConnected) {
             return Executability.ValidButCannotExecute;
-        
+        }
+
         return Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        MemoryEngine? engine = null;
-        List<AddressTableEntry> savedList = new List<AddressTableEntry>();
-        if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            savedList.AddRange(ui.AddressTableSelectionManager.SelectedItems.Where(x => x.Entry is AddressTableEntry).Select(x => (AddressTableEntry) x.Entry));
-            engine = ui.MemoryEngine;
-        }
-
-        if (IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? theResult)) {
-            engine ??= theResult.Entry.AddressTableManager!.MemoryEngine;
-            if (theResult.Entry is AddressTableEntry entry && !savedList.Contains(entry)) {
-                savedList.Add(entry);
-            }
-        }
-
-        if (engine == null || savedList.Count < 1) {
+    protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+        IConsoleConnection? connection = engine.MemoryEngine.Connection;
+        if (connection == null || !connection.IsConnected) {
+            await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
             return;
         }
-
-        if (engine.Connection == null) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
+        
+        List<AddressTableEntry> savedList = entries.Select(x => x.Entry).OfType<AddressTableEntry>().ToList();
+        if (savedList.Count < 1) {
             return;
         }
 
         DataType dataType = savedList[0].DataType;
-        for (int i = 1; i < savedList.Count; i++) {
+        int count = savedList.Count;
+        for (int i = 1; i < count; i++) {
             if (dataType != savedList[i].DataType) {
                 await IMessageDialogService.Instance.ShowMessage("Error", "Data types for the selected results are not all the same");
                 return;
             }
         }
 
-        int c = savedList.Count;
-        AddressTableEntry lastResult = savedList[savedList.Count - 1];
+        AddressTableEntry lastResult = savedList[count - 1];
         SingleUserInputInfo input = new SingleUserInputInfo(
-            $"Change {c} value{Lang.S(c)}",
-            $"Immediately change the value at {Lang.ThisThese(c)} address{Lang.Es(c)}", "Value",
+            $"Change {count} value{Lang.S(count)}",
+            $"Immediately change the value at {Lang.ThisThese(count)} address{Lang.Es(count)}", "Value",
             lastResult.Value != null ? DataValueUtils.GetStringFromDataValue(lastResult, lastResult.Value) : "") {
             Validate = (args) => {
                 DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out _);
@@ -104,9 +78,13 @@ public class EditSavedAddressValueCommand : Command {
             return;
         }
 
-        using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Edit scan result value");
-        IConsoleConnection? conn;
-        if (token == null || (conn = engine.Connection) == null) {
+        using IDisposable? token = await engine.MemoryEngine.BeginBusyOperationActivityAsync("Edit scan result value");
+        if (token == null) {
+            return;
+        }
+
+        if ((connection = engine.MemoryEngine.Connection) == null || !connection.IsConnected) {
+            await IMessageDialogService.Instance.ShowMessage("Error", "Console was disconnected while trying to edit values. Nothing was modified. Please reconnect.");
             return;
         }
 
@@ -120,13 +98,13 @@ public class EditSavedAddressValueCommand : Command {
             int success = 0;
             foreach (AddressTableEntry scanResult in savedList) {
                 ActivityManager.Instance.CurrentTask.CheckCancelled();
-                uint? address = await scanResult.MemoryAddress.TryResolveAddress(conn);
+                uint? address = await scanResult.MemoryAddress.TryResolveAddress(connection);
                 if (!address.HasValue)
                     continue; // pointer could not be resolved
 
                 success++;
-                await MemoryEngine.WriteDataValue(conn, address.Value, value!);
-                IDataValue actualValue = await MemoryEngine.ReadDataValue(conn, address.Value, value);
+                await MemoryEngine.WriteDataValue(connection, address.Value, value);
+                IDataValue actualValue = await MemoryEngine.ReadDataValue(connection, address.Value, value);
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     if (actualValue is DataValueString str) {
                         lastResult.StringType = str.StringType;
@@ -144,11 +122,11 @@ public class EditSavedAddressValueCommand : Command {
             return success;
         }, cts);
 
-        if (success != savedList.Count) {
-            await IMessageDialogService.Instance.ShowMessage("Not all values updated", 
-                $"Only {success}/{savedList.Count} were updated. The others' addresses could not be resolved", 
-                MessageBoxButton.OK, 
-                persistentDialogName:"dialog.CouldNotSetAllAddressValues");
+        if (success != count) {
+            await IMessageDialogService.Instance.ShowMessage("Not all values updated",
+                $"Only {success}/{count} were updated. The others' addresses could not be resolved",
+                MessageBoxButton.OK,
+                persistentDialogName: "dialog.CouldNotSetAllAddressValues");
         }
     }
 }

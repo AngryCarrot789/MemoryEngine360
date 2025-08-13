@@ -182,6 +182,17 @@ public interface IConsoleConnection {
     /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
     Task WriteBytes(uint address, byte[] buffer);
+    
+    /// <summary>
+    /// Writes the exact number of bytes to the console. If for some reason the amount of bytes count not be written, an <see cref="IOException"/> is thrown
+    /// </summary>
+    /// <param name="address">The address to write to</param>
+    /// <param name="buffer">The buffer to write</param>
+    /// <param name="offset">The offset, within <see cref="buffer"/>, to start at</param>
+    /// <param name="count">The amount of bytes to write</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
+    Task WriteBytes(uint address, byte[] buffer, int offset, int count);
 
     /// <summary>
     /// Writes the exact number of bytes to the console, with support for cancelling. If cancellation is requested,

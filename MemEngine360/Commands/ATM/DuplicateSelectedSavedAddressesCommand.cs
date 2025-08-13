@@ -24,23 +24,12 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands.ATM;
 
-public class DuplicateSelectedSavedAddressesCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine))
-            return Executability.Invalid;
-
-        return engine.AddressTableSelectionManager.Count < 1 ? Executability.ValidButCannotExecute : Executability.Valid;
-    }
-
-    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            return Task.CompletedTask;
-        }
-
+public class DuplicateSelectedSavedAddressesCommand : BaseSavedAddressSelectionCommand {
+    protected override Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
         // Create list of clones, ordered by their index in the sequence list
-        List<BaseAddressTableEntry> selection = ui.AddressTableSelectionManager.SelectedItemList.Select(x => x.Entry).ToList();
-        ui.AddressTableSelectionManager.SelectedItemList.Clear();
-
+        List<BaseAddressTableEntry> selection = entries.Select(x => x.Entry).ToList();
+        engine.AddressTableSelectionManager.Clear();
+        
         List<BaseAddressTableEntry> clonedItems = new List<BaseAddressTableEntry>();
         Dictionary<AddressTableGroupEntry, List<(BaseAddressTableEntry, int)>> duplication = GetEffectiveOrderedDuplication(selection);
         foreach (KeyValuePair<AddressTableGroupEntry, List<(BaseAddressTableEntry, int)>> entry in duplication) {
@@ -53,44 +42,12 @@ public class DuplicateSelectedSavedAddressesCommand : Command {
                 offset++;
             }
         }
-        
-        ui.AddressTableSelectionManager.Select(clonedItems.Select(x => ui.GetATEntryUI(x)));
+
+        engine.AddressTableSelectionManager.Select(clonedItems.Select(engine.GetATEntryUI));
         return Task.CompletedTask;
     }
 
     public static Dictionary<AddressTableGroupEntry, List<(BaseAddressTableEntry, int)>> GetEffectiveOrderedDuplication(List<BaseAddressTableEntry> source) {
-        List<BaseAddressTableEntry> roots = [];
-        foreach (BaseAddressTableEntry item in source) {
-            for (int i = roots.Count - 1; i >= 0; i--) {
-                if (IsParent(roots[i], item) || IsParent(item, roots[i])) {
-                    roots.RemoveAt(i);
-                }
-            }
-
-            roots.Add(item);
-        }
-
-        Dictionary<AddressTableGroupEntry, List<(BaseAddressTableEntry, int)>> items = [];
-        foreach (BaseAddressTableEntry item in roots) {
-            if (!items.TryGetValue(item.Parent!, out List<(BaseAddressTableEntry, int)>? entry))
-                items[item.Parent!] = entry = [];
-            entry.Add((item, item.GetIndexInParent()));
-        }
-
-        foreach (KeyValuePair<AddressTableGroupEntry, List<(BaseAddressTableEntry, int)>> entry in items) {
-            entry.Value.Sort((a, b) => a.Item2.CompareTo(b.Item2));
-        }
-
-        return items;
-    }
-
-    private static bool IsParent(BaseAddressTableEntry @this, BaseAddressTableEntry check, bool self = true) {
-        for (BaseAddressTableEntry? entry = self ? @this : @this.Parent; entry != null; entry = entry.Parent) {
-            if (entry == check) {
-                return true;
-            }
-        }
-
-        return false;
+        return HierarchicalDuplicationUtils.GetEffectiveOrderedDuplication(source, x => x.Parent!, e => e.GetIndexInParent());
     }
 }

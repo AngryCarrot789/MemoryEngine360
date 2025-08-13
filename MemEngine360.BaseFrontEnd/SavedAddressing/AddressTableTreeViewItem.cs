@@ -284,7 +284,9 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         }
 
         PointerPoint point = e.GetCurrentPoint(this);
-        if (point.Properties.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed) {
+        PointerUpdateKind updateKind = point.Properties.PointerUpdateKind;
+
+        if (updateKind == PointerUpdateKind.LeftButtonPressed) {
             bool isToggle = (e.KeyModifiers & KeyModifiers.Control) != 0;
             if ((e.ClickCount % 2) == 0) {
                 if (!isToggle) {
@@ -315,6 +317,14 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                 // handle to stop tree view from selecting stuff
                 e.Handled = true;
             }
+        }
+        else if (updateKind == PointerUpdateKind.RightButtonPressed) {
+            if (!this.IsSelected) {
+                this.MyTree!.UnselectAll();
+                this.IsSelected = true;
+            }
+
+            e.Handled = true;
         }
     }
 
@@ -660,7 +670,7 @@ public static class AddressTableContextRegistry {
         modGeneric.AddHeader("General");
         modGeneric.AddCommand("commands.memengine.CopyAddressToClipboardCommand", "Copy Address");
         modGeneric.AddCommand("commands.memengine.CopyAbsoluteAddressToClipboardCommand", "Copy Absolute Address");
-        modGeneric.AddCommand("commands.memengine.CopyATEValueToClipboardCommand", "Copy Value");
+        modGeneric.AddCommand("commands.memengine.CopySavedAddressValuesToClipboardCommand", "Copy Value");
         modGeneric.AddCommand("commands.memengine.RefreshSavedAddressesCommand", "Refresh");
         modGeneric.AddCommand("commands.meengine.ToggleSavedAddressAutoRefreshCommand", "Toggle Enabled");
         modGeneric.AddSeparator();
