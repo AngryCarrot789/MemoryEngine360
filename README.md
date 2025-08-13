@@ -31,4 +31,4 @@ The project is licenced under GPLv3. See COPYING.GPLv3 for more information. All
 
 This project references a project called PFXToolKitUI licenced under LGPL, and AvaloniaHex is licenced under MIT.
 
-The file IFeatureXboxJRPC2 contains code from XboxChef/JRPC, licenced under GPL-3.0
+The files `IFeatureXboxJRPC2.cs` and `Jrpc2FeaturesImpl.cs` contain code adapted from XboxChef/JRPC, licenced under GPL-3.0
