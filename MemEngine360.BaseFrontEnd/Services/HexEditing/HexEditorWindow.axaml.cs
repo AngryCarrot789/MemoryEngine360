@@ -78,7 +78,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
         return default;
     }) {
-        CanChangeOnLostFocus = false
+        CanApplyValueOnLostFocus = false
     };
 
     private readonly TextBoxToDataParameterBinder<HexEditorInfo, uint> bytesPerRowBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.BytesPerRowParameter, (p) => p!.ToString(), async (t, x) => {

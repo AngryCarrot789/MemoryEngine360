@@ -133,7 +133,7 @@
                                                 </Border>
                                                 <StackPanel Orientation="Horizontal" Spacing="3" Margin="0,1,0,2">
                                                     <TextBlock Text="Run Count" VerticalAlignment="Center"/>
-                                                    <TextBox x:Name="PART_RunCountTextBox" Padding="3,1" VerticalContentAlignment="Center" MinWidth="50"
+                                                    <TextBox x:Name="PART_RunCountTextBox" Padding="3,1" VerticalContentAlignment="Center" Width="50"
                                                              tt:ToolTipEx.Tip="The amount of times to run the sequence. Default is 1. This lets you repeat the operations"
                                                              Background="{DynamicResource ABrush.Tone1.Background.Static}"/>
                                                 </StackPanel>

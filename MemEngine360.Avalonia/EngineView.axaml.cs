@@ -45,6 +45,8 @@ using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
+using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity.Selecting;
 using PFXToolKitUI.CommandSystem;
@@ -79,7 +81,7 @@ public partial class EngineView : UserControl, IEngineUI {
             nameof(ScanningProcessor.IsScanningChanged),
             (b) => {
                 EngineView w = (EngineView) b.Control;
-                w.PART_ScanOptionsControl.IsEnabled = !b.Model.IsScanning;
+                w.PART_Grid_ScanInput.IsEnabled = !b.Model.IsScanning;
                 w.PART_Grid_ScanOptions.IsEnabled = !b.Model.IsScanning;
                 w.UpdateScanResultCounterText();
             });
@@ -89,6 +91,92 @@ public partial class EngineView : UserControl, IEngineUI {
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventUpdateBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((EngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
+
+    private readonly EventPropertyEnumBinder<FloatScanOption> floatScanModeBinder = new EventPropertyEnumBinder<FloatScanOption>(typeof(ScanningProcessor), nameof(ScanningProcessor.FloatScanModeChanged), (x) => ((ScanningProcessor) x).FloatScanOption, (x, v) => ((ScanningProcessor) x).FloatScanOption = v);
+    private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(ScanningProcessor), nameof(ScanningProcessor.StringScanModeChanged), (x) => ((ScanningProcessor) x).StringScanOption, (x, v) => ((ScanningProcessor) x).StringScanOption = v);
+    private readonly IBinder<ScanningProcessor> int_isHexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.IsIntInputHexadecimalChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.IsIntInputHexadecimal, (b) => b.Model.IsIntInputHexadecimal = ((ToggleButton) b.Control).IsChecked == true);
+    private readonly IBinder<ScanningProcessor> useFirstValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.UseFirstValueForNextScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.UseFirstValueForNextScan, (b) => b.Model.UseFirstValueForNextScan = ((ToggleButton) b.Control).IsChecked == true);
+    private readonly IBinder<ScanningProcessor> usePrevValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.UsePreviousValueForNextScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.UsePreviousValueForNextScan, (b) => b.Model.UsePreviousValueForNextScan = ((ToggleButton) b.Control).IsChecked == true);
+    private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(ScanningProcessor), nameof(ScanningProcessor.DataTypeChanged), (x) => ((ScanningProcessor) x).DataType, (x, y) => ((ScanningProcessor) x).DataType = y);
+    private readonly ComboBoxToEventPropertyEnumBinder<NumericScanType> scanTypeBinder1 = new ComboBoxToEventPropertyEnumBinder<NumericScanType>(typeof(ScanningProcessor), nameof(ScanningProcessor.NumericScanTypeChanged), (x) => ((ScanningProcessor) x).NumericScanType, (x, y) => ((ScanningProcessor) x).NumericScanType = y);
+    private readonly ComboBoxToEventPropertyEnumBinder<NumericScanType> scanTypeBinder2 = new ComboBoxToEventPropertyEnumBinder<NumericScanType>(typeof(ScanningProcessor), nameof(ScanningProcessor.NumericScanTypeChanged), (x) => ((ScanningProcessor) x).NumericScanType, (x, y) => ((ScanningProcessor) x).NumericScanType = y);
+
+    private readonly IBinder<ScanningProcessor> selectedTabIndexBinder = new AvaloniaPropertyToMultiEventPropertyBinder<ScanningProcessor>(SelectingItemsControl.SelectedIndexProperty, [nameof(ScanningProcessor.DataTypeChanged), nameof(ScanningProcessor.ScanForAnyDataTypeChanged)], (b) => {
+        if (b.Model.ScanForAnyDataType) {
+            ((TabControl) b.Control).SelectedIndex = 3;
+        }
+        else {
+            switch (b.Model.DataType) {
+                case DataType.Byte:
+                case DataType.Int16:
+                case DataType.Int32:
+                case DataType.Int64: {
+                    ((TabControl) b.Control).SelectedIndex = 0;
+                    break;
+                }
+                case DataType.Float:
+                case DataType.Double: {
+                    ((TabControl) b.Control).SelectedIndex = 1;
+                    break;
+                }
+                case DataType.String: {
+                    ((TabControl) b.Control).SelectedIndex = 2;
+                    break;
+                }
+                case DataType.ByteArray: {
+                    break;
+                }
+                default: throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        ((EngineWindow?) TopLevel.GetTopLevel(b.Control))?.PART_MemEngineView.UpdateUIForScanTypeAndDataType();
+    }, (b) => {
+        EngineView view = ((EngineWindow) TopLevel.GetTopLevel(b.Control)!).PART_MemEngineView;
+        if (!b.Model.HasDoneFirstScan) {
+            int idx = ((TabControl) b.Control).SelectedIndex;
+            if (idx == 3) {
+                b.Model.ScanForAnyDataType = true;
+                b.Model.Alignment = 1;
+            }
+            else {
+                b.Model.ScanForAnyDataType = false;
+                switch (idx) {
+                    case 0: b.Model.DataType = view.lastIntegerDataType; break;
+                    case 1: b.Model.DataType = view.lastFloatDataType; break;
+                    case 2: b.Model.DataType = DataType.String; break;
+                }
+
+                // update anyway just in case old DT equals new DT
+                b.Model.Alignment = b.Model.DataType.GetAlignmentFromDataType();
+            }
+        }
+    });
+
+    private readonly IBinder<ScanningProcessor> scanForAnyBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanForAnyDataTypeChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanForAnyDataType, (b) => b.Model.ScanForAnyDataType = ((ToggleButton) b.Control).IsChecked == true);
+    private readonly IBinder<ScanningProcessor> inputValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
+    private readonly IBinder<ScanningProcessor> inputBetweenABinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
+    private readonly IBinder<ScanningProcessor> inputBetweenBBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputBChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputB, (b) => b.Model.InputB = ((TextBox) b.Control).Text ?? "");
+    private readonly IBinder<ScanningProcessor> stringIgnoreCaseBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.StringIgnoreCaseChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.StringIgnoreCase, (b) => b.Model.StringIgnoreCase = ((ToggleButton) b.Control).IsChecked == true);
+
+    private readonly IBinder<UnknownDataTypeOptions> canScanFloatBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForFloatChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForFloat, (b) => b.Model.CanSearchForFloat = ((ToggleButton) b.Control).IsChecked == true);
+    private readonly IBinder<UnknownDataTypeOptions> canScanDoubleBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForDoubleChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForDouble, (b) => b.Model.CanSearchForDouble = ((ToggleButton) b.Control).IsChecked == true);
+    private readonly IBinder<UnknownDataTypeOptions> canScanStringBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForStringChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForString, (b) => b.Model.CanSearchForString = ((ToggleButton) b.Control).IsChecked == true);
+
+    private readonly IBinder<ScanningProcessor> updatedEnabledControlsBinder = new MultiEventUpdateBinder<ScanningProcessor>([nameof(ScanningProcessor.ScanForAnyDataTypeChanged), nameof(ScanningProcessor.HasFirstScanChanged)], b => {
+        EngineView view = (EngineView) b.Control;
+        bool scanAny = b.Model.ScanForAnyDataType;
+        view.PART_DataTypeCombo.IsEnabled = !scanAny && !b.Model.HasDoneFirstScan;
+        view.PART_TabItemInteger.IsEnabled = !scanAny;
+        view.PART_TabItemFloat.IsEnabled = !scanAny;
+        view.PART_TabItemString.IsEnabled = !scanAny;
+        view.PART_UseFirstValue.IsEnabled = !scanAny && b.Model.HasDoneFirstScan;
+        view.PART_UsePreviousValue.IsEnabled = !scanAny && b.Model.HasDoneFirstScan;
+        view.PART_ToggleUnknownDataType.IsEnabled = !b.Model.HasDoneFirstScan || scanAny;
+    });
+
+    private DataType lastIntegerDataType = DataType.Int32, lastFloatDataType = DataType.Float;
+
     private readonly AsyncRelayCommand editAlignmentCommand;
 
     public MemoryEngine MemoryEngine { get; }
@@ -126,71 +214,9 @@ public partial class EngineView : UserControl, IEngineUI {
         this.InitializeComponent();
 
         this.TopLevelMenuRegistry = new TopLevelMenuRegistry();
-        {
-            ContextEntryGroup entry = new ContextEntryGroup("File");
-            entry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
-            entry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.DownloadMemoryIcon));
-            entry.Items.Add(new SeparatorEntry());
-            entry.Items.Add(new CommandContextEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command...", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
-            entry.Items.Add(new TestThing("Test Notification (XBDM)", null, null));
-            entry.Items.Add(new SeparatorEntry());
-            entry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
-            this.TopLevelMenuRegistry.Items.Add(entry);
-        }
-
-        {
-            this.RemoteCommandsContextEntry = new ContextEntryGroup("Remote Controls");
-            this.TopLevelMenuRegistry.Items.Add(this.RemoteCommandsContextEntry);
-        }
-
-        {
-            ContextEntryGroup entry = new ContextEntryGroup("Tools") {
-                Items = {
-                    new CommandContextEntry("commands.memengine.ShowMemoryCommand", "Memory View", "Opens the memory viewer/hex editor"),
-                    new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Task Sequencer", "Opens the task sequencer"),
-                    new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
-                    new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scanner"),
-                    new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer").
-                        AddContextValueChangeHandlerWithEvent(MemoryEngine.EngineDataKey, nameof(this.MemoryEngine.ConnectionChanged), (entry, engine) => {
-                            // Maybe this should be shown via a popup instead of changing the actual menu entry
-                            entry.DisplayName = engine?.Connection != null && !engine.Connection.HasFeature<IFeatureSystemEvents>()
-                                ? "Event Viewer (console unsupported)"
-                                : "Event Viewer";
-                            entry.RaiseCanExecuteChanged();
-                        }),
-                    new SeparatorEntry(),
-                    new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Explorer", "Opens a window which presents the modules"),
-                    new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),
-                    new SeparatorEntry(),
-                    new ContextEntryGroup("Cool Utils") {
-                        Items = {
-                            new CustomLambdaContextEntry("[BO1 SP] Find AI's X pos near camera", ExecuteFindAINearBO1Camera, (c) => c.ContainsKey(IEngineUI.DataKey.Id))
-                        }
-                    }
-                }
-            };
-
-            entry.AddCanExecuteChangeUpdaterForEvent(MemoryEngine.EngineDataKey, nameof(this.MemoryEngine.ConnectionChanged));
-
-            this.TopLevelMenuRegistry.Items.Add(entry);
-        }
-
         this.themesSubList = new ContextEntryGroup("Themes");
-        this.TopLevelMenuRegistry.Items.Add(this.themesSubList);
-
-        {
-            ContextEntryGroup entry = new ContextEntryGroup("Help");
-            entry.Items.Add(new CommandContextEntry("commands.application.ShowLogsCommand", "Show Logs"));
-            entry.Items.Add(new SeparatorEntry());
-            entry.Items.Add(new CustomLambdaContextEntry("Open Wiki", (c) => {
-                const string url = "https://github.com/AngryCarrot789/MemoryEngine360/wiki#quick-start";
-                return TopLevel.GetTopLevel(this /* EngineView */)?.Launcher.LaunchUriAsync(new Uri(url)) ?? Task.FromResult(false);
-            }, (c) => TopLevel.GetTopLevel(this) != null));
-            entry.Items.Add(new CommandContextEntry("commands.application.AboutApplicationCommand", "About MemoryEngine360"));
-            this.TopLevelMenuRegistry.Items.Add(entry);
-        }
-
-        this.PART_TopLevelMenu.TopLevelMenuRegistry = this.TopLevelMenuRegistry;
+        this.RemoteCommandsContextEntry = new ContextEntryGroup("Remote Controls");
+        this.SetupMainMenu();
 
         this.MemoryEngine = new MemoryEngine();
         this.ScanResultSelectionManager = new DataGridSelectionManager<ScanResultViewModel>(this.PART_ScanListResults);
@@ -240,16 +266,86 @@ public partial class EngineView : UserControl, IEngineUI {
             }
         });
 
-        this.PART_ScanOptionsControl.MemoryEngine = this.MemoryEngine;
-        this.PART_ActivityListPanel.KeyDown += this.PART_ActivityListPanelOnKeyDown;
-
+        this.stringIgnoreCaseBinder.AttachControl(this.PART_IgnoreCases);
+        this.floatScanModeBinder.Assign(this.PART_DTFloat_Truncate, FloatScanOption.TruncateToQuery);
+        this.floatScanModeBinder.Assign(this.PART_DTFloat_RoundToQuery, FloatScanOption.RoundToQuery);
+        this.stringScanModeBinder.Assign(this.PART_DTString_ASCII, StringType.ASCII);
+        this.stringScanModeBinder.Assign(this.PART_DTString_UTF8, StringType.UTF8);
+        this.stringScanModeBinder.Assign(this.PART_DTString_UTF16, StringType.UTF16);
+        this.stringScanModeBinder.Assign(this.PART_DTString_UTF32, StringType.UTF32);
+        
+        // Close activity list when user presses ESC
+        this.PART_ActivityListPanel.AddHandler(KeyDownEvent, (sender, e) => {
+            if (e.Key == Key.Escape) {
+                this.IsActivtyListVisible = false;
+                e.Handled = true;
+            }
+        }, RoutingStrategies.Tunnel);
+        
         this.PART_NotificationListBox.NotificationManager = new NotificationManager();
     }
 
-    private void PART_ActivityListPanelOnKeyDown(object? sender, KeyEventArgs e) {
-        if (e.Key == Key.Escape) {
-            this.IsActivtyListVisible = false;
-        }
+    private void SetupMainMenu() {
+        // ### File ###
+        ContextEntryGroup fileEntry = new ContextEntryGroup("File");
+        fileEntry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
+        fileEntry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.DownloadMemoryIcon));
+        fileEntry.Items.Add(new SeparatorEntry());
+        fileEntry.Items.Add(new CommandContextEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command...", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
+        fileEntry.Items.Add(new TestThing("Test Notification (XBDM)", null, null));
+        fileEntry.Items.Add(new SeparatorEntry());
+        fileEntry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
+        this.TopLevelMenuRegistry.Items.Add(fileEntry);
+
+        // ### Remote Commands ###
+        this.TopLevelMenuRegistry.Items.Add(this.RemoteCommandsContextEntry);
+
+        // ### Tools ###
+        ContextEntryGroup toolsEntry = new ContextEntryGroup("Tools") {
+            Items = {
+                new CommandContextEntry("commands.memengine.ShowMemoryCommand", "Memory View", "Opens the memory viewer/hex editor"),
+                new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Task Sequencer", "Opens the task sequencer"),
+                new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
+                new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scanner"),
+                new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer").
+                    AddContextValueChangeHandlerWithEvent(MemoryEngine.EngineDataKey, nameof(this.MemoryEngine.ConnectionChanged), (entry, engine) => {
+                        // Maybe this should be shown via a popup instead of changing the actual menu entry
+                        entry.DisplayName = engine?.Connection != null && !engine.Connection.HasFeature<IFeatureSystemEvents>()
+                            ? "Event Viewer (console unsupported)"
+                            : "Event Viewer";
+                        entry.RaiseCanExecuteChanged();
+                    }),
+                new SeparatorEntry(),
+                new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Explorer", "Opens a window which presents the modules"),
+                new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),
+                new SeparatorEntry(),
+                new ContextEntryGroup("Cool Utils") {
+                    Items = {
+                        new CustomLambdaContextEntry("[BO1 SP] Find AI's X pos near camera", ExecuteFindAINearBO1Camera, (c) => c.ContainsKey(IEngineUI.DataKey.Id))
+                    }
+                }
+            }
+        };
+
+        // update all tools when connection changes, since most if not all tools rely on a connection
+        toolsEntry.AddCanExecuteChangeUpdaterForEvent(MemoryEngine.EngineDataKey, nameof(this.MemoryEngine.ConnectionChanged));
+        this.TopLevelMenuRegistry.Items.Add(toolsEntry);
+
+        // ### Themes ###
+        this.TopLevelMenuRegistry.Items.Add(this.themesSubList);
+
+        // ### Help ###
+        ContextEntryGroup helpEntry = new ContextEntryGroup("Help");
+        helpEntry.Items.Add(new CommandContextEntry("commands.application.ShowLogsCommand", "Show Logs"));
+        helpEntry.Items.Add(new SeparatorEntry());
+        helpEntry.Items.Add(new CustomLambdaContextEntry("Open Wiki", (c) => {
+            const string url = "https://github.com/AngryCarrot789/MemoryEngine360/wiki#quick-start";
+            return TopLevel.GetTopLevel(this /* EngineView */)?.Launcher.LaunchUriAsync(new Uri(url)) ?? Task.FromResult(false);
+        }, (c) => TopLevel.GetTopLevel(this) != null));
+        helpEntry.Items.Add(new CommandContextEntry("commands.application.AboutApplicationCommand", "About MemoryEngine360"));
+        this.TopLevelMenuRegistry.Items.Add(helpEntry);
+
+        this.PART_TopLevelMenu.TopLevelMenuRegistry = this.TopLevelMenuRegistry;
     }
 
     private void UpdateScanResultCounterText() {
@@ -263,23 +359,53 @@ public partial class EngineView : UserControl, IEngineUI {
 
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
+
+        ScanningProcessor processor = this.MemoryEngine.ScanningProcessor;
+        
         this.connectedHostNameBinder.Attach(this.PART_ConnectedHostName, this.MemoryEngine);
-        this.isScanningBinder.Attach(this, this.MemoryEngine.ScanningProcessor);
-        this.scanAddressBinder.Attach(this.PART_ScanOption_StartAddress, this.MemoryEngine.ScanningProcessor);
-        this.scanLengthBinder.Attach(this.PART_ScanOption_Length, this.MemoryEngine.ScanningProcessor);
-        this.alignmentBinder.Attach(this, this.MemoryEngine.ScanningProcessor);
-        this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, this.MemoryEngine.ScanningProcessor);
+        this.isScanningBinder.Attach(this, processor);
+        this.scanAddressBinder.Attach(this.PART_ScanOption_StartAddress, processor);
+        this.scanLengthBinder.Attach(this.PART_ScanOption_Length, processor);
+        this.alignmentBinder.Attach(this, processor);
+        this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, processor);
         // this.forceLEBinder.Attach(this.PART_ForcedEndianness, this.MemoryEngine);
-        this.scanMemoryPagesBinder.Attach(this.PART_ScanOption_ScanMemoryPages, this.MemoryEngine.ScanningProcessor);
+        this.scanMemoryPagesBinder.Attach(this.PART_ScanOption_ScanMemoryPages, processor);
         this.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;
 
         this.themeListHandler = ObservableItemProcessor.MakeIndexable(ThemeManager.Instance.Themes, (sender, index, item) => {
             this.themesSubList.Items.Insert(index, new SetThemeContextEntry(item));
-        }, (sender, index, item) => {
-            this.themesSubList.Items.RemoveAt(index);
-        }, (sender, oldIndex, newIndex, item) => {
+        }, (s, idx, item) => {
+            this.themesSubList.Items.RemoveAt(idx);
+        }, (s, oldIndex, newIndex, item) => {
             this.themesSubList.Items.Move(oldIndex, newIndex);
         }).AddExistingItems();
+
+        this.stringIgnoreCaseBinder.AttachModel(processor);
+        this.floatScanModeBinder.Attach(processor);
+        this.stringScanModeBinder.Attach(processor);
+        this.int_isHexBinder.Attach(this.PART_DTInt_IsHex, processor);
+        this.useFirstValueBinder.Attach(this.PART_UseFirstValue, processor);
+        this.usePrevValueBinder.Attach(this.PART_UsePreviousValue, processor);
+        this.dataTypeBinder.Attach(this.PART_DataTypeCombo, processor);
+        this.scanTypeBinder1.Attach(this.PART_ScanTypeCombo1, processor);
+        this.scanTypeBinder2.Attach(this.PART_ScanTypeCombo2, processor);
+        this.selectedTabIndexBinder.Attach(this.PART_ScanSettingsTabControl, processor);
+        this.scanForAnyBinder.Attach(this.PART_ToggleUnknownDataType, processor);
+        this.updatedEnabledControlsBinder.Attach(this, processor);
+
+        this.canScanFloatBinder.Attach(this.PART_Toggle_Float, processor.UnknownDataTypeOptions);
+        this.canScanDoubleBinder.Attach(this.PART_Toggle_Double, processor.UnknownDataTypeOptions);
+        this.canScanStringBinder.Attach(this.PART_Toggle_String, processor.UnknownDataTypeOptions);
+
+        processor.NumericScanTypeChanged += this.ScanningProcessorOnNumericScanTypeChanged;
+        processor.DataTypeChanged += this.OnScanningProcessorOnDataTypeChanged;
+        processor.UseFirstValueForNextScanChanged += this.UpdateNonBetweenInput;
+        processor.UsePreviousValueForNextScanChanged += this.UpdateNonBetweenInput;
+        processor.ScanForAnyDataTypeChanged += this.UpdateNonBetweenInput;
+
+        this.UpdateUIForScanTypeAndDataType();
+
+        this.PART_OrderListBox.SetScanningProcessor(processor);
     }
 
     protected override void OnUnloaded(RoutedEventArgs e) {
@@ -299,20 +425,98 @@ public partial class EngineView : UserControl, IEngineUI {
         // this.forceLEBinder.Detach();
         this.scanMemoryPagesBinder.Detach();
 
-        this.PART_ScanOptionsControl.MemoryEngine = null;
         this.PART_SavedAddressTree.AddressTableManager = null;
         this.PART_TopLevelMenu.TopLevelMenuRegistry = null;
+
+        if (this.inputValueBinder.IsFullyAttached)
+            this.inputValueBinder.Detach();
+        if (this.inputBetweenABinder.IsFullyAttached)
+            this.inputBetweenABinder.Detach();
+        if (this.inputBetweenBBinder.IsFullyAttached)
+            this.inputBetweenBBinder.Detach();
+        
+        this.stringIgnoreCaseBinder.DetachModel();
+        this.floatScanModeBinder.Detach();
+        this.stringScanModeBinder.Detach();
+        this.int_isHexBinder.Detach();
+        this.useFirstValueBinder.Detach();
+        this.usePrevValueBinder.Detach();
+        this.dataTypeBinder.Detach();
+        this.scanTypeBinder1.Detach();
+        this.scanTypeBinder2.Detach();
+        this.selectedTabIndexBinder.Detach();
+        this.scanForAnyBinder.Detach();
+        this.updatedEnabledControlsBinder.Detach();
+
+        this.canScanFloatBinder.Detach();
+        this.canScanDoubleBinder.Detach();
+        this.canScanStringBinder.Detach();
+
+        this.MemoryEngine.ScanningProcessor.NumericScanTypeChanged -= this.ScanningProcessorOnNumericScanTypeChanged;
+        this.MemoryEngine.ScanningProcessor.DataTypeChanged -= this.OnScanningProcessorOnDataTypeChanged;
+        this.MemoryEngine.ScanningProcessor.UseFirstValueForNextScanChanged -= this.UpdateNonBetweenInput;
+        this.MemoryEngine.ScanningProcessor.UsePreviousValueForNextScanChanged -= this.UpdateNonBetweenInput;
+        this.MemoryEngine.ScanningProcessor.ScanForAnyDataTypeChanged -= this.UpdateNonBetweenInput;
+
+        this.PART_OrderListBox.SetScanningProcessor(null);
     }
 
-    private class SetThemeContextEntry : CustomContextEntry {
-        private readonly Theme theme;
+    private void ScanningProcessorOnNumericScanTypeChanged(ScanningProcessor sender) {
+        this.UpdateUIForScanTypeAndDataType();
+    }
 
-        public SetThemeContextEntry(Theme theme, Icon? icon = null) : base(theme.Name, $"Sets the application's theme to '{theme.Name}'", icon) {
-            this.theme = theme;
+    private void UpdateUIForScanTypeAndDataType() {
+        ScanningProcessor sp = this.MemoryEngine.ScanningProcessor;
+        bool isNumeric = sp.DataType.IsNumeric();
+        bool isBetween = sp.NumericScanType.IsBetween();
+        bool isAny = sp.ScanForAnyDataType;
+
+        if (isBetween && isNumeric && !isAny) {
+            this.PART_Input_Value1.IsVisible = false;
+            this.PART_Grid_Input_Between.IsVisible = true;
+            this.PART_ValueOrBetweenTextBlock.Text = "Between";
+            this.PART_UseFirstOrPrevButtonGrid.IsVisible = false;
+
+            if (this.inputValueBinder.IsFullyAttached)
+                this.inputValueBinder.Detach();
+            if (!this.inputBetweenABinder.IsFullyAttached)
+                this.inputBetweenABinder.Attach(this.PART_Input_BetweenA, sp);
+            if (!this.inputBetweenBBinder.IsFullyAttached)
+                this.inputBetweenBBinder.Attach(this.PART_Input_BetweenB, sp);
+        }
+        else {
+            this.PART_Input_Value1.IsVisible = true;
+            this.PART_Grid_Input_Between.IsVisible = false;
+            this.PART_ValueOrBetweenTextBlock.Text = "Value";
+            this.PART_UseFirstOrPrevButtonGrid.IsVisible = !isAny && isNumeric;
+
+            if (this.inputBetweenABinder.IsFullyAttached)
+                this.inputBetweenABinder.Detach();
+            if (this.inputBetweenBBinder.IsFullyAttached)
+                this.inputBetweenBBinder.Detach();
+            if (!this.inputValueBinder.IsFullyAttached)
+                this.inputValueBinder.Attach(this.PART_Input_Value1, sp);
         }
 
+        this.UpdateNonBetweenInput(sp);
+    }
+
+    private void OnScanningProcessorOnDataTypeChanged(ScanningProcessor p) {
+        if (p.DataType.IsFloatingPoint()) {
+            this.lastFloatDataType = p.DataType;
+        }
+        else if (p.DataType.IsInteger()) {
+            this.lastIntegerDataType = p.DataType;
+        }
+    }
+
+    private void UpdateNonBetweenInput(ScanningProcessor p) {
+        this.PART_Input_Value1.IsEnabled = p.ScanForAnyDataType || p.DataType == DataType.ByteArray || p.DataType == DataType.String || (!p.UseFirstValueForNextScan && !p.UsePreviousValueForNextScan);
+    }
+
+    private class SetThemeContextEntry(Theme theme, Icon? icon = null) : CustomContextEntry(theme.Name, $"Sets the application's theme to '{theme.Name}'", icon) {
         public override Task OnExecute(IContextData context) {
-            this.theme.ThemeManager.SetTheme(this.theme);
+            theme.ThemeManager.SetTheme(theme);
             return Task.CompletedTask;
         }
     }
