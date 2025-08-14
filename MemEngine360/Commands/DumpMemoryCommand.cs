@@ -200,7 +200,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             this.fileOutput = new FileStream(this.filePath, isFirst ? FileMode.Create : FileMode.Append, FileAccess.Write, FileShare.Read);
             Task taskDownload = Task.Run(async () => {
                 IConsoleConnection? connection = this.engine.Connection;
-                if (this.engine.IsShuttingDown || connection?.IsConnected != true) {
+                if (this.engine.IsShuttingDown || (connection != null ? !connection.IsClosed : null) != true) {
                     return;
                 }
 

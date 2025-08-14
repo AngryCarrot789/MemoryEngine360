@@ -378,7 +378,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         await this.PerformOperationBetweenAutoRefresh(async () => {
             IConsoleConnection connection;
             using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Upload DI value");
-            if (token != null && (connection = engine.Connection) != null && connection.IsConnected) {
+            if (token != null && (connection = engine.Connection) != null && !connection.IsClosed) {
                 await MemoryEngine.WriteDataValue(connection, (uint) caretIndex, value);
                 if (this.PART_ToggleShowChanges.IsChecked == true && this.myBinarySource != null) {
                     int dataLength = 0;
@@ -922,7 +922,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             while (true) {
                 pauseOrCancelToken.ThrowIfCancellationRequested();
                 IConsoleConnection? connection = this.info!.MemoryEngine.Connection;
-                if (this.info.MemoryEngine.IsShuttingDown || connection?.IsConnected != true) {
+                if (this.info.MemoryEngine.IsShuttingDown || (connection != null ? !connection.IsClosed : null) != true) {
                     return;
                 }
 

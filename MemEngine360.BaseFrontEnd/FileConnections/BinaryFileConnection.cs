@@ -32,8 +32,6 @@ public sealed class BinaryFileConnection : BaseConsoleConnection {
 
     public override RegisteredConnectionType ConnectionType => ConnectionTypeBinaryFile.Instance;
 
-    protected override bool IsConnectedCore => this.myFileStream != null;
-
     public override bool IsLittleEndian { get; }
 
     public override AddressRange AddressableRange {

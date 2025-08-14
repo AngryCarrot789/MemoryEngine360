@@ -177,7 +177,7 @@ public class ConsoleDebugger {
             return;
         }
 
-        if (this.Connection == null || !this.Connection.IsConnected) {
+        if (this.Connection == null || this.Connection.IsClosed) {
             return;
         }
 
@@ -185,7 +185,7 @@ public class ConsoleDebugger {
         if (token != null && !this.ignoreActiveThreadChange) {
             ThreadEntry? thread = Volatile.Read(ref this.activeThread);
             IConsoleConnection? connection = this.Connection;
-            if (thread != null && connection != null && connection.IsConnected) {
+            if (thread != null && connection != null && !connection.IsClosed) {
                 if (thread.IsSuspended || this.IsConsoleRunning == false) {
                     await this.UpdateCallFrame(connection, thread, null);
                 }
@@ -216,7 +216,7 @@ public class ConsoleDebugger {
         }
 
         IConsoleConnection? connection = this.Connection;
-        if (connection != null && connection.IsConnected) {
+        if (connection != null && !connection.IsClosed) {
             await this.UpdateAllThreadsImpl(connection, token);
         }
     }
@@ -258,7 +258,7 @@ public class ConsoleDebugger {
     }
 
     public async Task<ThreadEntry?> UpdateThread(uint threadId, bool createIfDoesntExist = true) {
-        if (this.Connection == null || !this.Connection.IsConnected)
+        if (this.Connection == null || this.Connection.IsClosed)
             return null;
 
         using IDisposable? token = await this.busyLocker.BeginBusyOperationActivityAsync("Read Info on Newly Created Thread");
@@ -278,7 +278,7 @@ public class ConsoleDebugger {
         }
 
         IConsoleConnection? connection = this.Connection;
-        if (connection == null || !connection.IsConnected) {
+        if (connection == null || connection.IsClosed) {
             return null;
         }
 
@@ -325,7 +325,7 @@ public class ConsoleDebugger {
     /// so the cancellation token isn't required to be cancellable
     /// </summary>
     public async Task UpdateRegistersForActiveThread(CancellationToken busyCancellationToken) {
-        if (this.Connection == null || !this.Connection.IsConnected)
+        if (this.Connection == null || this.Connection.IsClosed)
             return;
 
         using IDisposable? token = await this.busyLocker.BeginBusyOperationAsync(500, busyCancellationToken);
@@ -343,7 +343,7 @@ public class ConsoleDebugger {
         }
 
         IConsoleConnection? connection = this.Connection;
-        if (connection != null && connection.IsConnected) {
+        if (connection != null && !connection.IsClosed) {
             IFeatureXboxDebugging debug = connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!;
             List<RegisterEntry>? registers;
             try {
@@ -466,7 +466,7 @@ public class ConsoleDebugger {
 
     public void CheckConnection() {
         IConsoleConnection? conn = this.Connection;
-        if (conn != null && !conn.IsConnected) {
+        if (conn != null && conn.IsClosed) {
             using (IDisposable? token1 = this.BusyLock.TryBeginBusyOperation()) {
                 if (token1 != null && this.TryDisconnectForLostConnection(token1)) {
                     return;
@@ -485,7 +485,7 @@ public class ConsoleDebugger {
         IConsoleConnection? conn = this.Connection;
         if (conn == null)
             return true;
-        if (conn.IsConnected)
+        if (!conn.IsClosed)
             return false;
 
         this.SetConnection(token, null);
@@ -526,7 +526,7 @@ public class ConsoleDebugger {
                     return;
 
                 IConsoleConnection? connection = this.Connection;
-                if (connection != null && connection.IsConnected) {
+                if (connection != null && !connection.IsClosed) {
                     XboxThread tdInfo = await (connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!).GetThreadInfo(threadEvent.Thread);
                     if (tdInfo.id != 0) {
                         this.ThreadEntries.Add(new ThreadEntry(tdInfo.id) {

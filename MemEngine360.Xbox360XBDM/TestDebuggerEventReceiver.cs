@@ -54,7 +54,7 @@ public class TestDebuggerEventReceiver {
             }
 
             new Thread(() => {
-                while (connection.IsConnected) {
+                while (!connection.IsClosed) {
                     string line;
                     try {
                         line = connection.ReadLineFromStream().GetAwaiter().GetResult();
@@ -77,7 +77,7 @@ public class TestDebuggerEventReceiver {
                 IsBackground = true, Name = "XBDM Notify Thread"
             }.Start();
 
-            while (connection.IsConnected) {
+            while (!connection.IsClosed) {
                 await Task.Delay(500);
             }
         }).Wait();

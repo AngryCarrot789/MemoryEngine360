@@ -49,7 +49,7 @@ public class ShowModulesCommand : Command {
         MemoryEngine engine = ui.MemoryEngine;
         IConsoleConnection? connection;
         using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Begin reading modules");
-        if (token == null || (connection = engine.Connection) == null || !connection.IsConnected) {
+        if (token == null || (connection = engine.Connection) == null || connection.IsClosed) {
             return;
         }
 

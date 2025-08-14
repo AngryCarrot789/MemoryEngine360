@@ -180,7 +180,7 @@ public class MemoryEngine {
 
             while (!this.IsShuttingDown) {
                 IConsoleConnection? conn = this.connection;
-                if (conn != null && !conn.IsConnected) {
+                if (conn != null && conn.IsClosed) {
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         // rarely not the case (depending on how quickly the callback runs on the main thread)
                         if (conn == this.Connection) {
@@ -392,7 +392,7 @@ public class MemoryEngine {
         // because any code that actually tries to read/write will be async and can handle
         // the timeout exceptions
         IConsoleConnection? conn = this.connection;
-        if (conn == null || conn.IsConnected) {
+        if (conn == null || !conn.IsClosed) {
             return;
         }
 
@@ -416,7 +416,7 @@ public class MemoryEngine {
     }
 
     /// <summary>
-    /// Attempts to auto-disconnect the connection immediately if it is no longer actually connected (<see cref="IConsoleConnection.IsConnected"/> is false)
+    /// Attempts to auto-disconnect the connection immediately if it is no longer actually connected (<see cref="IConsoleConnection.IsClosed"/> is true)
     /// </summary>
     /// <param name="token"></param>
     public void CheckConnection(IDisposable token, ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection) {
@@ -428,7 +428,7 @@ public class MemoryEngine {
         IConsoleConnection? conn = this.connection;
         if (conn == null)
             return true;
-        if (conn.IsConnected)
+        if (!conn.IsClosed)
             return false;
 
         this.SetConnection(token, 0, null, cause);

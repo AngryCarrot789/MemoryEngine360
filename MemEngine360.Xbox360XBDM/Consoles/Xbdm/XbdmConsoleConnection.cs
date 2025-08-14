@@ -88,11 +88,9 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     private readonly string originalConnectionAddress;
     private volatile XbdmEventArgsExecutionState? currentState;
 
-    public EndPoint? EndPoint => this.IsConnected ? this.client.Client.RemoteEndPoint : null;
+    public EndPoint? EndPoint => !this.IsClosed ? this.client.Client.RemoteEndPoint : null;
 
     public override RegisteredConnectionType ConnectionType => ConnectionTypeXbox360Xbdm.Instance;
-
-    protected override bool IsConnectedCore => this.client.Connected;
 
     public override bool IsLittleEndian => false;
 
@@ -1397,7 +1395,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 }
             }
 
-            while (delegateConnection.IsConnected) {
+            while (!delegateConnection.IsClosed) {
                 lock (this.systemEventThreadLock) {
                     if (this.systemEventMode == EnumEventThreadMode.Stopping) {
                         goto CloseConnection;

@@ -53,7 +53,7 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
 
         ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection;
         IConsoleConnection? connection = engine.Connection;
-        if (connection == null || !connection.IsConnected) {
+        if (connection == null || connection.IsClosed) {
             IEnumerable<ShortcutEntry> scList = ShortcutManager.Instance.GetShortcutsByCommandId("commands.memengine.OpenConsoleConnectionDialogCommand") ?? ReadOnlyCollection<ShortcutEntry>.Empty;
             string shortcuts = string.Join(Environment.NewLine, scList.Select(x => x.Shortcut.ToString()));
             if (!string.IsNullOrEmpty(shortcuts))
@@ -63,9 +63,6 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
             await IMessageDialogService.Instance.ShowMessage("Disconnected", "Not connected to a console." + shortcuts);
         }
         else if (await this.TryBeginExecuteAsync(engine, connection, e)) {
-            // we won't bother using the async versions because they will most likely have an
-            // activity running (e.g. scan progress) and at the moment there's no list of
-            // activities displayable in the main UI (unimplemented but possible)
             await ActivityManager.Instance.RunTask(async () => {
                 IActivityProgress prog = ActivityManager.Instance.GetCurrentProgressOrEmpty();
                 prog.Caption = "Remote Command";

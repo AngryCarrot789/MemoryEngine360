@@ -61,7 +61,7 @@ public class ThreadMemoryAutoRefresh : IDisposable {
                     int len = visibleRange.ByteLength > int.MaxValue ? int.MaxValue : (int) visibleRange.ByteLength;
 
                     IConsoleConnection? connection = this.Debugger.Connection;
-                    if (connection == null || !connection.IsConnected) {
+                    if (connection == null || connection.IsClosed) {
                         this.Dispose();
                         return;
                     }
@@ -71,7 +71,7 @@ public class ThreadMemoryAutoRefresh : IDisposable {
                         if (t == null)
                             continue;
 
-                        if ((connection = this.Debugger.Connection) == null || !connection.IsConnected) {
+                        if ((connection = this.Debugger.Connection) == null || connection.IsClosed) {
                             this.Dispose();
                             return;
                         }

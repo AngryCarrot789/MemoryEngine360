@@ -38,8 +38,6 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
 
     public override RegisteredConnectionType ConnectionType => ConnectionTypeXbox360XDevkit.Instance;
 
-    protected override bool IsConnectedCore => this.isConnectedAsDebugger;
-
     public override bool IsLittleEndian => false;
 
     public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
@@ -57,13 +55,13 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
 
         // console.DebugTarget.SetDataBreakpoint(0, XboxBreakpointType.OnExecute);
     }
-    
+
     public override bool TryGetFeature<T>([NotNullWhen(true)] out T? feature) where T : class {
         if (this.features is T t) {
             feature = t;
             return true;
         }
-        
+
         return base.TryGetFeature(out feature);
     }
 
@@ -143,21 +141,20 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         //     }
         // }
 
-        List<MemoryRegion> regionList = new List<MemoryRegion>();
-        IXboxMemoryRegions regions = await Task.Run(() => {
+        return await Task.Run(() => {
+            List<MemoryRegion> regionList = new List<MemoryRegion>();
             try {
-                return this.console.DebugTarget.MemoryRegions;
+                IXboxMemoryRegions regions = this.console.DebugTarget.MemoryRegions;
+                foreach (IXboxMemoryRegion region in regions) {
+                    regionList.Add(new MemoryRegion((uint) region.BaseAddress, (uint) region.RegionSize, (uint) region.Flags, 0));
+                }
             }
             catch (COMException) {
                 throw new TimeoutException("Timeout reading memory regions");
             }
-        });
-        for (int i = 0, count = regions.Count; i < count; i++) {
-            IXboxMemoryRegion region = regions[i];
-            regionList.Add(new MemoryRegion((uint) region.BaseAddress, (uint) region.RegionSize, (uint) region.Flags, 0));
-        }
 
-        return regionList;
+            return regionList;
+        });
     }
 
     protected override Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
@@ -263,7 +260,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
                 StringBuilder dirSb = new StringBuilder();
                 for (int i = 0; i < lines.Length - 1; i++)
                     dirSb.Append(lines[i]).Append('\\');
-                
+
                 this.connection.console.Reboot(path, dirSb.ToString(), "", XboxRebootFlags.Title);
             });
         }

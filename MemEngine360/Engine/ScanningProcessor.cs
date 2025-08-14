@@ -450,7 +450,7 @@ public class ScanningProcessor {
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     // If for some reason it gets force disconnected in an already scheduled
                     // dispatcher operation, we should just safely stop scanning
-                    if (!connection.IsConnected || this.MemoryEngine.IsShuttingDown) {
+                    if (connection.IsClosed || this.MemoryEngine.IsShuttingDown) {
                         return;
                     }
 
@@ -458,7 +458,7 @@ public class ScanningProcessor {
                 }, token: CancellationToken.None);
 
                 bool result = false;
-                if (this.IsScanning && connection.IsConnected) {
+                if (this.IsScanning && !connection.IsClosed) {
                     thisTask.CancellationToken.ThrowIfCancellationRequested();
                     try {
                         context.ResultFound += (sender, model) => {
@@ -487,7 +487,7 @@ public class ScanningProcessor {
                                 bool isAlreadyFrozen = false;
                                 IFeatureIceCubes? iceCubes = pauseDuringScan ? connection.GetFeatureOrDefault<IFeatureIceCubes>() : null;
                                 try {
-                                    if (iceCubes != null && connection.IsConnected) {
+                                    if (iceCubes != null && !connection.IsClosed) {
                                         isAlreadyFrozen = await iceCubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
                                     }
 
@@ -518,7 +518,7 @@ public class ScanningProcessor {
                                     }
 
                                     try {
-                                        if (iceCubes != null && !isAlreadyFrozen && connection.IsConnected) {
+                                        if (iceCubes != null && !isAlreadyFrozen && !connection.IsClosed) {
                                             await iceCubes.DebugUnFreeze();
                                         }
                                     }

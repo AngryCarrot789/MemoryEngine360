@@ -36,7 +36,7 @@ namespace MemEngine360.Commands.ATM;
 public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
     protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
         IConsoleConnection? connection = engine.MemoryEngine.Connection;
-        if (connection == null || !connection.IsConnected) {
+        if (connection == null || connection.IsClosed) {
             return Executability.ValidButCannotExecute;
         }
 
@@ -45,7 +45,7 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
 
     protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
         IConsoleConnection? connection = engine.MemoryEngine.Connection;
-        if (connection == null || !connection.IsConnected) {
+        if (connection == null || connection.IsClosed) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
             return;
         }
@@ -83,7 +83,7 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             return;
         }
 
-        if ((connection = engine.MemoryEngine.Connection) == null || !connection.IsConnected) {
+        if ((connection = engine.MemoryEngine.Connection) == null || connection.IsClosed) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Console was disconnected while trying to edit values. Nothing was modified. Please reconnect.");
             return;
         }

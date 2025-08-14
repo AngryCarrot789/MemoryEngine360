@@ -44,11 +44,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
 
     public abstract RegisteredConnectionType ConnectionType { get; }
 
-    public bool IsConnected => this.isClosedState == 0 && this.IsConnectedCore;
-
     public bool IsClosed => this.isClosedState != 0;
-
-    protected abstract bool IsConnectedCore { get; }
 
     public abstract bool IsLittleEndian { get; }
 

@@ -60,7 +60,7 @@ public class RunSequenceCommand : Command {
         bool useEngineConnection = sequence.UseEngineConnection;
 
         IConsoleConnection? connection = useEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection;
-        if (connection == null || !connection.IsConnected) {
+        if (connection == null || connection.IsClosed) {
             await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine is not connected to a console" : "Not connected to a console");
             return;
         }
@@ -83,7 +83,7 @@ public class RunSequenceCommand : Command {
 
         try {
             connection = useEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection;
-            if (connection == null || !connection.IsConnected) {
+            if (connection == null || connection.IsClosed) {
                 await IMessageDialogService.Instance.ShowMessage("Not connected", "Not connected to a console");
             }
             else {

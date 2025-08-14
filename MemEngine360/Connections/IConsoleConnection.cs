@@ -44,13 +44,8 @@ public interface IConsoleConnection {
     RegisteredConnectionType ConnectionType { get; }
 
     /// <summary>
-    /// Returns whether the underlying connection is logically connected (as in <see cref="CloseConnectionAsync"/> has not been called)
-    /// and if the underlying connection is still valid. E.g. for TCP, returns <see cref="TcpClient.Connected"/>
-    /// </summary>
-    bool IsConnected { get; }
-
-    /// <summary>
-    /// Returns true when <see cref="CloseConnectionAsync"/> is invoked or some other internal method caused the connection to close 
+    /// Returns true when <see cref="Close"/> was invoked. If a network operation results in an
+    /// IO or timeout exception, typically <see cref="Close"/> will be called before throwing. 
     /// </summary>
     bool IsClosed { get; }
 
@@ -327,8 +322,7 @@ public interface IConsoleConnection {
     Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);
 
     /// <summary>
-    /// Closes this connection, making <see cref="IsClosed"/> become true, <see cref="IsConnected"/> become false,
-    /// and <see cref="Closed"/> is fired. May throw <see cref="AggregateException"/>
+    /// Closes this connection, making <see cref="IsClosed"/> become true and <see cref="Closed"/> is fired. May throw <see cref="AggregateException"/>
     /// </summary>
     void Close();
 

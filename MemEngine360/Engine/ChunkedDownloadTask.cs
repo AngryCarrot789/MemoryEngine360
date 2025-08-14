@@ -123,7 +123,7 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
     private async Task RunDownloadLoop(bool isFirst, CancellationToken pauseOrCancelToken) {
         // We don't handle the exception here
         Task taskDownload = Task.Run(async () => {
-            if (!this.connection.IsConnected) {
+            if (this.connection.IsClosed) {
                 return;
             }
 
