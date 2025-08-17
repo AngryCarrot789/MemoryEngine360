@@ -32,8 +32,8 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public static readonly PersistentProperty<bool> ScanMemoryPagesProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("ScanMemoryPages", defaultValue: true, owner => owner.scanMemoryPages, (x, y) => x.scanMemoryPages = y, false);
     public static readonly PersistentProperty<bool> DTInt_UseHexValueProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("DTInt_UseHexValue", defaultValue: false, owner => owner.dtInt_UseHexValueProperty, (x, y) => x.dtInt_UseHexValueProperty = y, false);
     public static readonly PersistentProperty<bool> DTString_IgnoreCaseProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("DTString_IgnoreCase", defaultValue: true, owner => owner.dtString_IgnoreCase, (x, y) => x.dtString_IgnoreCase = y, false);
-    public static readonly PersistentProperty<byte> DTFloat_ModeProperty = PersistentProperty.RegisterParsable<byte, BasicApplicationConfiguration>("DTFloat_Mode", defaultValue: (byte) FloatScanOption.RoundToQuery, owner => owner.dtFloat_Mode, (x, y) => x.dtFloat_Mode = y, false);
-    public static readonly PersistentProperty<byte> DTString_ModeProperty = PersistentProperty.RegisterParsable<byte, BasicApplicationConfiguration>("DTString_Mode", defaultValue: (byte) StringType.ASCII, owner => owner.dtString_Mode, (x, y) => x.dtString_Mode = y, false);
+    public static readonly PersistentProperty<FloatScanOption> DTFloat_ModeProperty = PersistentProperty.RegisterEnum<FloatScanOption, BasicApplicationConfiguration>("DTFloat_Mode", defaultValue: FloatScanOption.RoundToQuery, owner => owner.dtFloat_Mode, (x, y) => x.dtFloat_Mode = y, useNumericValue: false, false);
+    public static readonly PersistentProperty<StringType> DTString_ModeProperty = PersistentProperty.RegisterEnum<StringType, BasicApplicationConfiguration>("DTString_Mode", defaultValue: StringType.ASCII, owner => owner.dtString_Mode, (x, y) => x.dtString_Mode = y, useNumericValue: false, false);
     public static readonly PersistentProperty<uint> RefreshRateMillisProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("RefreshRateMillis", defaultValue: 1000, owner => owner.refreshRateMillis, (x, y) => x.refreshRateMillis = Math.Max(y, 250), false);
     public static readonly PersistentProperty<uint> AutoRefreshUpdatesPerSecondProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("AutoRefreshUpdatesPerSecond", defaultValue: 12, owner => owner.autoRefreshUpdatesPerSecond, (x, y) => x.autoRefreshUpdatesPerSecond = Math.Clamp(y, 1, 20), false);
     public static readonly PersistentProperty<uint> MaxRowsBeforeDisableAutoRefreshProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("MaxRowsBeforeDisableAutoRefresh", defaultValue: 400, owner => owner.maxRowsBeforeDisableAutoRefresh, (x, y) => x.maxRowsBeforeDisableAutoRefresh = y, false);
@@ -51,8 +51,8 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     private bool scanMemoryPages = ScanMemoryPagesProperty.DefaultValue;
     private bool dtInt_UseHexValueProperty = DTInt_UseHexValueProperty.DefaultValue;
     private bool dtString_IgnoreCase = DTString_IgnoreCaseProperty.DefaultValue;
-    private byte dtFloat_Mode = DTFloat_ModeProperty.DefaultValue;
-    private byte dtString_Mode = DTString_ModeProperty.DefaultValue;
+    private FloatScanOption dtFloat_Mode = DTFloat_ModeProperty.DefaultValue;
+    private StringType dtString_Mode = DTString_ModeProperty.DefaultValue;
     private uint refreshRateMillis = RefreshRateMillisProperty.DefaultValue;
     private uint autoRefreshUpdatesPerSecond = AutoRefreshUpdatesPerSecondProperty.DefaultValue;
     private uint maxRowsBeforeDisableAutoRefresh = MaxRowsBeforeDisableAutoRefreshProperty.DefaultValue;
@@ -111,13 +111,13 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     }
 
     public FloatScanOption DTFloat_Mode {
-        get => (FloatScanOption) DTFloat_ModeProperty.GetValue(this);
-        set => DTFloat_ModeProperty.SetValue(this, (byte) value);
+        get => DTFloat_ModeProperty.GetValue(this);
+        set => DTFloat_ModeProperty.SetValue(this, value);
     }
 
     public StringType DTString_Mode {
-        get => (StringType) DTString_ModeProperty.GetValue(this);
-        set => DTString_ModeProperty.SetValue(this, (byte) value);
+        get => DTString_ModeProperty.GetValue(this);
+        set => DTString_ModeProperty.SetValue(this, value);
     }
 
     public uint RefreshRateMillis {

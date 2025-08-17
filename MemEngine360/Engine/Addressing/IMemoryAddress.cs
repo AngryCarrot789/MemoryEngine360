@@ -59,7 +59,7 @@ public static class MemoryAddressUtils {
         // 820002CD->25C->40->118
         int firstOffset = input.IndexOf("->", StringComparison.Ordinal);
         if (firstOffset == -1)
-            return (null, "Missing dereference token(s) \"->\"" + input);
+            return (null, "Invalid address: " + input);
 
         ReadOnlySpan<char> span = input.AsSpan(0, firstOffset);
         if (!TryParseHexUInt32(span, out uint baseAddress))
