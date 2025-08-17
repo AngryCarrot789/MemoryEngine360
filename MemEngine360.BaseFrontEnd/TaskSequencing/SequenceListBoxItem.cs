@@ -17,6 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Data;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
@@ -80,10 +82,24 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e) {
-        base.OnPointerPressed(e);
+        if (this.ListBox?.GetVisualRoot() is TaskSequencerWindow window) {
+            PointerPointProperties pointer = e.GetCurrentPoint(this).Properties;
+            if (pointer.PointerUpdateKind == PointerUpdateKind.RightButtonPressed) {
+                if (!this.IsSelected) {
+                    window.SequenceSelectionManager.Clear();
+                    window.SequenceSelectionManager.SetSelection(this);
+                }
 
-        if (e.KeyModifiers == KeyModifiers.None && this.ListBox?.GetVisualRoot() is TaskSequencerWindow window) {
-            window.OnSequenceItemTapped(this);
+                e.Handled = true;
+            }
+
+            base.OnPointerPressed(e);
+            if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed && this.IsSelected) {
+                window.SetPrimaryTaskSequencer(this);
+            }
+        }
+        else {
+            base.OnPointerPressed(e);
         }
     }
 

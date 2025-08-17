@@ -1,0 +1,255 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:lc="clr-namespace:PFXToolKitUI.Avalonia.Interactivity;assembly=PFXToolKitUI.Avalonia"
+                    xmlns:sc="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+                    xmlns:layers="clr-namespace:MemEngine360.BaseFrontEnd.SavedAddressing"
+                    xmlns:savedAddressing="clr-namespace:MemEngine360.Engine.SavedAddressing;assembly=MemEngine360"
+                    xmlns:fb="clr-namespace:MemEngine360.BaseFrontEnd.FileBrowsing"
+                    xmlns:fileBrowsing="clr-namespace:MemEngine360.Engine.FileBrowsing;assembly=MemEngine360">
+
+    <!--
+        Credits to Siemens for SVGs - MIT
+        https://www.svgrepo.com/svg/486676/folder-outline
+        https://www.svgrepo.com/svg/486674/folder-open
+        https://www.svgrepo.com/svg/486415/folder-filled
+    -->
+    <ControlTheme x:Key="FolderSvgIconClosedControl" TargetType="{x:Type lc:PanelSvgIconControl}">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="{x:Type lc:PanelSvgIconControl}">
+                <Panel x:Name="PART_Panel" Width="427" Height="342">
+                    <Polygon Fill="Peru" Points="426.666667 341.333333 3.55271368e-14 341.333333 3.55271368e-14 1.42108547e-14 178.083413 1.42108547e-14 232.041813 42.6666667 426.666667 42.6666667"/>
+                    <Path Fill="Gold" Data="M 426.667 341.333 L 3.55271e-14 341.333 L 3.55271e-14 1.42109e-14 L 178.083 1.42109e-14 L 232.042 42.6667 L 426.667 42.6667 L 426.667 341.333 Z M 42.6667 298.667 L 384 298.667 L 384 85.3333 L 217.208 85.3333 L 163.25 42.6667 L 42.6667 42.6667 L 42.6667 298.667 Z"/>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="FolderSvgIconOpenedControl" TargetType="{x:Type lc:PanelSvgIconControl}">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="{x:Type lc:PanelSvgIconControl}">
+                <Panel x:Name="PART_Panel" Width="420.2" Height="342">
+                    <Polygon Fill="Peru" Points="370 341.333333 3.55271368e-14 341.333333 3.55271368e-14 1.42108547e-14 178.083413 1.42108547e-14 232.041813 42.6666667 383 42.6666667 383 250"/>
+                    <Path Fill="Gold" Data="M 384 128 L 384 42.6667 L 232.042 42.6667 L 178.083 1.42109e-14 L -2.13163e-14 1.42109e-14 L -2.13163e-14 341.333 L 60.9376 341.333 L 363.417 341.333 L 372.583 341.333 L 437.333 128 L 384 128 Z M 42.6667 253.44 L 42.6667 42.6667 L 163.25 42.6667 L 217.208 85.3333 L 341.333 85.3333 L 341.333 128 L 82.0209 128 L 42.6667 253.44 Z M 340.958 298.667 L 73.1874 298.667 L 113.354 170.667 L 379.791 170.667 L 340.958 298.667 Z"/>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <Design.PreviewWith>
+        <fb:FileBrowserTreeView ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                ScrollViewer.VerticalScrollBarVisibility="Visible"
+                                Height="250"
+                                FileTreeManager="{x:Static fileBrowsing:FileTreeManager.DummyInstance_UITest}"/>
+    </Design.PreviewWith>
+
+    <ControlTheme x:Key="{x:Type fb:FileBrowserTreeView}" TargetType="{x:Type fb:FileBrowserTreeView}" BasedOn="{StaticResource {x:Type TreeView}}">
+        <Setter Property="SelectionMode" Value="Multiple"/>
+        <Setter Property="Background" Value="{DynamicResource ABrush.Tone2.Background.Static}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone2.Border.Static}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
+        <Setter Property="ColumnSeparatorBrush" Value="{DynamicResource ABrush.Tone6.Border.Static}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="ScrollViewer.IsScrollChainingEnabled" Value="True"/>
+        <Setter Property="sc:UIInputManager.FocusPath" Value="EngineWindow/FileTree"/>
+        <Setter Property="Grid.IsSharedSizeScope" Value="True"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top"
+                                Background="{DynamicResource ABrush.Tone5.Background.Static}"
+                                BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
+                                BorderThickness="0,0,0,1" Height="22">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_A" Width="300"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_B" Width="125"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_C" Width="125"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_D" Width="100"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_E" Width="100"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="File Name" Grid.Column="0" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
+                                <TextBlock Text="Date Created" Grid.Column="2" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
+                                <TextBlock Text="Date Modified" Grid.Column="4" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
+                                <TextBlock Text="Type" Grid.Column="6" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
+                                <TextBlock Text="Size" Grid.Column="8" Padding="5,1,0,1" HorizontalAlignment="Stretch"/>
+                                <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="1" Width="1"/>
+                                <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="3" Width="1"/>
+                                <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="5" Width="1"/>
+                                <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="7" Width="1"/>
+                                <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="9" Width="1"/>
+                                <GridSplitter ResizeDirection="Columns" Grid.Column="1" Margin="-4,0" Background="Transparent"/>
+                                <GridSplitter ResizeDirection="Columns" Grid.Column="3" Margin="-4,0" Background="Transparent"/>
+                                <GridSplitter ResizeDirection="Columns" Grid.Column="5" Margin="-4,0" Background="Transparent"/>
+                                <GridSplitter ResizeDirection="Columns" Grid.Column="7" Margin="-4,0" Background="Transparent"/>
+                                <GridSplitter ResizeDirection="Columns" Grid.Column="9" Margin="-4,0" Background="Transparent"/>
+                            </Grid>
+                        </Border>
+                        <ScrollViewer x:Name="PART_ScrollViewer"
+                                      AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
+                                      BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}"
+                                      Background="{TemplateBinding Background}"
+                                      HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                      IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
+                                      IsDeferredScrollingEnabled="{TemplateBinding (ScrollViewer.IsDeferredScrollingEnabled)}"
+                                      VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}">
+                            <Panel>
+                                <ItemsPresenter x:Name="PART_ItemsPresenter"
+                                                Margin="{TemplateBinding Padding}"
+                                                ItemsPanel="{TemplateBinding ItemsPanel}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition SharedSizeGroup="ATTV_A" Width="300"/>
+                                        <ColumnDefinition Width="1"/>
+                                        <ColumnDefinition SharedSizeGroup="ATTV_B" Width="125"/>
+                                        <ColumnDefinition Width="1"/>
+                                        <ColumnDefinition SharedSizeGroup="ATTV_C" Width="125"/>
+                                        <ColumnDefinition Width="1"/>
+                                        <ColumnDefinition SharedSizeGroup="ATTV_D" Width="100"/>
+                                        <ColumnDefinition Width="1"/>
+                                        <ColumnDefinition SharedSizeGroup="ATTV_E" Width="100"/>
+                                        <ColumnDefinition Width="1"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Rectangle Grid.Column="1" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+                                    <Rectangle Grid.Column="3" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+                                    <Rectangle Grid.Column="5" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+                                    <Rectangle Grid.Column="7" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+                                    <Rectangle Grid.Column="9" Width="1" Fill="{TemplateBinding ColumnSeparatorBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+                                </Grid>
+                            </Panel>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="{x:Type fb:FileBrowserTreeViewItem}" TargetType="{x:Type fb:FileBrowserTreeViewItem}">
+        <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone4.Border.Static}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="sc:UIInputManager.FocusPath" Value="EngineWindow/FileTree/RowItem"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <StackPanel>
+                        <Border x:Name="SelectionBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{TemplateBinding CornerRadius}"
+                                Focusable="False" Height="23"
+                                TemplatedControl.IsTemplateFocusTarget="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_A" Width="300"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_B" Width="125"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_C" Width="125"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_D" Width="100"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition SharedSizeGroup="ATTV_E" Width="100"/>
+                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid x:Name="PART_Header" ColumnDefinitions="Auto,0, *"
+                                      Margin="{TemplateBinding Level, Mode=OneWay, Converter={StaticResource LeftMarginConverter}}"
+                                      HorizontalAlignment="Stretch"
+                                      Grid.Column="0"
+                                      Background="Transparent"
+                                      ClipToBounds="True">
+                                    <ToggleButton x:Name="PART_ExpandCollapseChevron"
+                                                  Focusable="False"
+                                                  Background="Transparent"
+                                                  IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}"
+                                                  Theme="{StaticResource OutlinedButtonTreeViewItemToggleButtonTheme}"
+                                                  VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                  Margin="2,0" Width="14"/>
+                                    <Panel Grid.Column="2" VerticalAlignment="Center"
+                                           HorizontalAlignment="Left"
+                                           Background="Transparent"
+                                           Margin="{TemplateBinding Padding}"
+                                           Focusable="False">
+                                        <StackPanel Orientation="Horizontal" Spacing="3">
+                                            <ContentPresenter x:Name="PART_IconPresenter" IsVisible="False"/>
+                                            <TextBlock x:Name="PART_FileName" Text="{TemplateBinding Header}" Margin="0,-1,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Panel>
+                                </Grid>
+                                <TextBlock Grid.Column="2" x:Name="PART_DateCreated"
+                                           Text="" Padding="4,1" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" x:Name="PART_DateModified"
+                                           Text="" Padding="4,1" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="6" x:Name="PART_FileType"
+                                           Text="" Padding="4,1" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="8" x:Name="PART_FileSize"
+                                           Text="" Padding="4,1" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ItemsPresenter x:Name="PART_ItemsPresenter"
+                                        IsVisible="{TemplateBinding IsExpanded}"
+                                        ItemsPanel="{TemplateBinding ItemsPanel}"/>
+                    </StackPanel>
+                    <Border x:Name="PART_DropTargetOverBorder" Margin="0" BorderThickness="0"
+                            BorderBrush="{DynamicResource ABrush.ColourfulGlyph.Static}"/>
+                    <Border x:Name="PART_DragDropMoveBorder"
+                            Margin="{TemplateBinding Level, Mode=OneWay, Converter={StaticResource LeftMarginConverter}}"
+                            BorderBrush="{DynamicResource ABrush.ColourfulGlyph.Static}" BorderThickness="0"/>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^ /template/ ContentPresenter#PART_HeaderPresenter">
+            <Setter Property="Padding" Value="2"/>
+        </Style>
+        <Style Selector="^:selected /template/ Border#SelectionBorder">
+            <Setter Property="Background" Value="{DynamicResource TreeViewItem.Selected.Background}"/>
+        </Style>
+        <Style Selector="^:selected /template/ Border#SelectionBorder[IsFocused=False]">
+            <Setter Property="Background" Value="{DynamicResource TreeViewItem.Selected.Inactive.Background}"/>
+        </Style>
+        <Style Selector="^[IsFolderItem=false]">
+            <Style Selector="^/template/ ToggleButton#PART_ExpandCollapseChevron">
+                <Setter Property="IsVisible" Value="False"/>
+            </Style>
+        </Style>
+        <Style Selector="^[IsDroppableTargetOver=true] /template/ Border#PART_DropTargetOverBorder">
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style Selector="^[IsFolderItem=true] /template/ ContentPresenter#PART_IconPresenter">
+            <Setter Property="IsVisible" Value="True"/>
+        </Style>
+        <Style Selector="^[IsFolderItem=true]">
+            <Style Selector="^[IsExpanded=false] /template/ ContentPresenter#PART_IconPresenter">
+                <Setter Property="Content">
+                    <Template>
+                        <lc:PanelSvgIconControl Theme="{StaticResource FolderSvgIconClosedControl}" Width="15" Height="15"/>
+                    </Template>
+                </Setter>
+            </Style>
+            <Style Selector="^[IsExpanded=true] /template/ ContentPresenter#PART_IconPresenter">
+                <Setter Property="Content">
+                    <Template>
+                        <lc:PanelSvgIconControl Theme="{StaticResource FolderSvgIconOpenedControl}" Width="15" Height="15"/>
+                    </Template>
+                </Setter>
+            </Style>
+        </Style>
+    </ControlTheme>
+</ResourceDictionary>

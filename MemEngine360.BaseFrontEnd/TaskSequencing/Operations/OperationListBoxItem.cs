@@ -20,6 +20,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.VisualTree;
 using MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Contexts;
@@ -33,12 +35,12 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations;
 
 public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>, IOperationItemUI {
     public static readonly StyledProperty<bool> IsRunningProperty = AvaloniaProperty.Register<OperationListBoxItem, bool>(nameof(IsRunning));
-    
+
     public bool IsRunning {
         get => this.GetValue(IsRunningProperty);
         set => this.SetValue(IsRunningProperty, value);
     }
-    
+
     public BaseSequenceOperation Operation => this.Model ?? throw new Exception("Not connected to a model");
 
     private readonly IBinder<BaseSequenceOperation> isRunningBinder = new EventUpdateBinder<BaseSequenceOperation>(nameof(BaseSequenceOperation.IsRunningChanged), (b) => ((OperationListBoxItem) b.Control).IsRunning = b.Model.IsRunning);
@@ -46,7 +48,32 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
     public OperationListBoxItem() {
         DataManager.GetContextData(this).Set(IOperationItemUI.DataKey, this);
     }
-    
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e) {
+        if (this.ListBox != null) {
+            PointerPointProperties pointer = e.GetCurrentPoint(this).Properties;
+            if (pointer.PointerUpdateKind == PointerUpdateKind.RightButtonPressed) {
+                if (!this.IsSelected) {
+                    this.ListBox.UnselectAll();
+                    this.IsSelected = true;
+                }
+
+                e.Handled = true;
+            }
+
+            base.OnPointerPressed(e);
+
+            if (this.ListBox.GetVisualRoot() is TaskSequencerWindow window) {
+                if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed && this.IsSelected) {
+                    window.SetPrimaryOperation(this);
+                }
+            }
+        }
+        else {
+            base.OnPointerPressed(e);
+        }
+    }
+
     // replaced by ToggleOperationEnabledCommand
     // protected override void OnKeyDown(KeyEventArgs e) {
     //     base.OnKeyDown(e);
@@ -68,14 +95,14 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
         BaseOperationListContent content = (BaseOperationListContent) this.Content!;
         TemplateUtils.Apply(content);
         content.Operation = this.Model;
-        
+
         this.isRunningBinder.Attach(this, this.Model!);
         AdvancedContextMenu.SetContextRegistry(this, OperationsContextRegistry.Registry);
     }
 
     protected override void OnRemovingFromList() {
         this.isRunningBinder.Detach();
-        
+
         AdvancedContextMenu.SetContextRegistry(this, null);
         BaseOperationListContent content = (BaseOperationListContent) this.Content!;
         BaseSequenceOperation operation = content.Operation!;
@@ -85,6 +112,5 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
     }
 
     protected override void OnRemovedFromList() {
-        
     }
 }

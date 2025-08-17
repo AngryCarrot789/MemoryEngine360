@@ -15,6 +15,7 @@
              xmlns:notifications="clr-namespace:PFXToolKitUI.Avalonia.Notifications;assembly=PFXToolKitUI.Avalonia"
              xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:fb="clr-namespace:MemEngine360.BaseFrontEnd.FileBrowsing;assembly=MemEngine360.BaseFrontEnd"
              mc:Ignorable="d"
              x:Class="MemEngine360.Avalonia.EngineView"
              Background="{DynamicResource ABrush.MemEngine.MainView.Background}">
@@ -599,8 +600,13 @@
                             <Border/>
                         </DockPanel>
                     </c:GroupBox.Header>
-                    <sa:AddressTableTreeView x:Name="PART_SavedAddressTree" Background="Transparent" BorderThickness="0"
-                                             ColumnSeparatorBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.ColumnSeparator}"/>
+                    <DockPanel>
+                        <!-- <fb:FileBrowserTreeView x:Name="PART_FileBrowser" Background="Transparent" BorderThickness="0" -->
+                        <!--                         ColumnSeparatorBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.ColumnSeparator}" -->
+                        <!--                         DockPanel.Dock="Bottom" MinHeight="125"/> -->
+                        <sa:AddressTableTreeView x:Name="PART_SavedAddressTree" Background="Transparent" BorderThickness="0"
+                                                 ColumnSeparatorBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.ColumnSeparator}"/>    
+                    </DockPanel>
                 </c:GroupBox>
                 <GridSplitter Grid.Column="2" Grid.Row="1" Background="Transparent"/>
                 <GridSplitter Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="2" Background="Transparent"/>

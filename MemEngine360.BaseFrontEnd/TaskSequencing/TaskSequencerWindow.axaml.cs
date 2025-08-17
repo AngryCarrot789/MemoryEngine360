@@ -19,6 +19,7 @@
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using MemEngine360.BaseFrontEnd.TaskSequencing.Operations;
 using MemEngine360.Connections;
@@ -122,12 +123,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
         base.OnClosed(e);
     }
     
-    public void OnSequenceItemTapped(SequenceListBoxItem item) {
-        this.SequenceSelectionManager.SetSelection(item);
-        this.OnSequenceItemTappedImpl(item);
-    }
-    
-    public void OnSequenceItemTappedImpl(SequenceListBoxItem? item) {
+    public void SetPrimaryTaskSequencer(ITaskSequenceEntryUI? item) {
         this.PART_OperationListBox.TaskSequence = item?.TaskSequence;
         this.PART_ConditionsListBox.TaskSequence = item?.TaskSequence;
         this.PART_ConditionsListBox.ConditionsHost = item?.TaskSequence;
@@ -145,7 +141,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
 
     private void OnSequenceSelectionChanged(ILightSelectionManager<ITaskSequenceEntryUI> sender) {
         ITaskSequenceEntryUI? newSequenceUI = sender.Count == 1 ? ((IListSelectionManager<ITaskSequenceEntryUI>) sender).SelectedItemList[0] : null;
-        this.OnSequenceItemTappedImpl((SequenceListBoxItem?) newSequenceUI);
+        this.SetPrimaryTaskSequencer((SequenceListBoxItem?) newSequenceUI);
     }
     
     private void OnPrimarySelectedSequenceChanged(ITaskSequenceEntryUI? oldSeqUI, ITaskSequenceEntryUI? newSeqUI) {
@@ -171,7 +167,10 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
     
     private void OnOperationSelectionChanged(ILightSelectionManager<IOperationItemUI> sender) {
         IOperationItemUI? newPrimary = sender.Count == 1 ? ((IListSelectionManager<IOperationItemUI>) sender).SelectedItemList[0] : null;
+        this.SetPrimaryOperation(newPrimary);
+    }
 
+    public void SetPrimaryOperation(IOperationItemUI? newPrimary) {
         // I'm too lazy at the moment to replace this rawdogging the properties with Binders.
         // May do it at some point, but it works...
         if (newPrimary != null) {
@@ -184,13 +183,13 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
             this.PART_ConditionSourceName.Text = newPrimary.Operation.DisplayName;
         }
         else {
-            this.PART_PrimarySelectedOperationText.Text = sender.Count == 0 ? "(No operation selected)" : "(Too many operations selected)";
+            this.PART_PrimarySelectedOperationText.Text = this.OperationSelectionManager.Count == 0 ? "(No operation selected)" : "(Too many operations selected)";
             
             this.PART_ConditionsListBox.TaskSequence = null;
             this.PART_ConditionsListBox.ConditionsHost = null;
         
             // this.PART_SelectedSequenceTextBlock.Text = sender.Count == 0 ? "(No operation selected)" : "(Too many operations selected)";
-            this.PART_ConditionSourceName.Text = sender.Count == 0 ? "(No operation selected)" : "(Too many operations selected)";
+            this.PART_ConditionSourceName.Text = this.OperationSelectionManager.Count == 0 ? "(No operation selected)" : "(Too many operations selected)";
         }
 
         if (this.PrimarySelectedOperation != null) {

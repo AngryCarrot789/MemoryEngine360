@@ -173,7 +173,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         });
     }
 
-    private class FeaturesImpl : IConsoleFeature, IFeatureXboxThreads, IFeatureMemoryRegions, IFeatureIceCubes, IFeatureFileSystemInfo { // IFeatureSystemEvents
+    private class FeaturesImpl : IConsoleFeature, IFeatureXboxThreads, IFeatureMemoryRegions, IFeatureIceCubes/*, IFeatureFileSystemInfo*/ { // IFeatureSystemEvents
         private readonly XDevkitConsoleConnection connection;
 
         public IConsoleConnection Connection => this.connection;
@@ -243,27 +243,27 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
             return state == XboxExecutionState.Stop;
         }
 
-        public async Task DeleteFile(string path) {
-            this.connection.EnsureNotClosed();
-            using BusyToken token = this.connection.CreateBusyToken();
-
-            await Task.Run(() => {
-                this.connection.console.DeleteFile(path);
-            });
-        }
-
-        public async Task LaunchFile(string path) {
-            this.connection.EnsureNotClosed();
-            using BusyToken token = this.connection.CreateBusyToken();
-            await Task.Run(() => {
-                string[] lines = path.Split('\\');
-                StringBuilder dirSb = new StringBuilder();
-                for (int i = 0; i < lines.Length - 1; i++)
-                    dirSb.Append(lines[i]).Append('\\');
-
-                this.connection.console.Reboot(path, dirSb.ToString(), "", XboxRebootFlags.Title);
-            });
-        }
+        // public async Task DeleteFile(string path) {
+        //     this.connection.EnsureNotClosed();
+        //     using BusyToken token = this.connection.CreateBusyToken();
+        //
+        //     await Task.Run(() => {
+        //         this.connection.console.DeleteFile(path);
+        //     });
+        // }
+        //
+        // public async Task LaunchFile(string path) {
+        //     this.connection.EnsureNotClosed();
+        //     using BusyToken token = this.connection.CreateBusyToken();
+        //     await Task.Run(() => {
+        //         string[] lines = path.Split('\\');
+        //         StringBuilder dirSb = new StringBuilder();
+        //         for (int i = 0; i < lines.Length - 1; i++)
+        //             dirSb.Append(lines[i]).Append('\\');
+        //
+        //         this.connection.console.Reboot(path, dirSb.ToString(), "", XboxRebootFlags.Title);
+        //     });
+        // }
 
         public Task<List<MemoryRegion>> GetMemoryRegions(bool willRead, bool willWrite) {
             return this.connection.GetMemoryRegions(willRead, willWrite);

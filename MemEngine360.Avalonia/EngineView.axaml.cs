@@ -130,7 +130,7 @@ public partial class EngineView : UserControl, IEngineUI {
             }
         }
 
-        ((EngineWindow?) TopLevel.GetTopLevel(b.Control))?.PART_MemEngineView.UpdateUIForScanTypeAndDataType();
+        (TopLevel.GetTopLevel(b.Control) as EngineWindow)?.PART_MemEngineView.UpdateUIForScanTypeAndDataType();
     }, (b) => {
         EngineView view = ((EngineWindow) TopLevel.GetTopLevel(b.Control)!).PART_MemEngineView;
         if (!b.Model.HasDoneFirstScan) {
@@ -226,6 +226,7 @@ public partial class EngineView : UserControl, IEngineUI {
         this.PART_LatestActivity.Text = "Welcome to MemoryEngine360.";
         this.PART_ScanListResults.ItemsSource = this.MemoryEngine.ScanningProcessor.ScanResults;
         this.PART_SavedAddressTree.AddressTableManager = this.MemoryEngine.AddressTableManager;
+        // this.PART_FileBrowser.FileTreeManager = this.MemoryEngine.FileTreeManager;
 
         this.MemoryEngine.ScanningProcessor.ScanResults.CollectionChanged += (sender, args) => {
             this.UpdateScanResultCounterText();

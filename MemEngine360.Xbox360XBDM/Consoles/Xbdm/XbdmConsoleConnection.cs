@@ -46,7 +46,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         Running, // (SET BY THREAD) Loop running
         Stopping // Notify thread loop to stop
     }
-    
+
     private readonly struct ThreadedBinaryReadInfo(byte[] dstBuffer, int offset, int count, TaskCompletionSource completion, CancellationToken cancellation) {
         public readonly byte[] dstBuffer = dstBuffer;
         public readonly int offset = offset;
@@ -59,7 +59,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         public readonly TaskCompletionSource<string> completion = completion;
         public readonly CancellationToken cancellation = cancellation;
     }
-    
+
     private static int NextReaderID = 1;
     private static volatile bool IsJRPC2DetectionBroken;
 
@@ -1533,6 +1533,63 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         public async Task<bool?> IsFrozen() {
             XboxExecutionState state = await this.GetExecutionState();
             return state == XboxExecutionState.Stop;
+        }
+
+        public async Task<List<string>> GetRoots() {
+            List<string> drives = new List<string>();
+            List<string> list = await this.connection.SendCommandAndReceiveLines("drivelist");
+            foreach (string drive in list) {
+                if (ParamUtils.GetStrParam(drive, "drivename", true, out string? driveName)) {
+                    drives.Add(driveName);
+                }
+            }
+
+            return drives;
+        }
+
+        public async Task<(EnumFileSystemListResult, List<FileSystemEntry>?)> GetFileSystemEntries(string directory) {
+            this.connection.EnsureNotClosed();
+            using BusyToken x = this.connection.CreateBusyToken();
+
+            XbdmResponse response = await this.connection.InternalSendCommand($"dirlist name=\"{directory}\"").ConfigureAwait(false);
+            if (response.RawMessage.Contains("access denied")) {
+                return (EnumFileSystemListResult.AccessDenied, null);
+            }
+            
+            if (response.ResponseType != XbdmResponseType.MultiResponse) {
+                return (EnumFileSystemListResult.NoSuchDirectory, null);
+            }
+
+            List<FileSystemEntry> entries = new List<FileSystemEntry>();
+            List<string> list = await this.connection.InternalReadMultiLineResponse();
+            await Task.Run(() => {
+                foreach (string entryText in list) {
+                    if (!ParamUtils.GetStrParam(entryText, "name", true, out string? name))
+                        continue;
+
+                    FileSystemEntry entry = new FileSystemEntry() { Name = name };
+                    if (ParamUtils.GetDwParam(entryText, "sizelo", true, out uint sizeLo) &&
+                        ParamUtils.GetDwParam(entryText, "sizehi", true, out uint sizeHi)) {
+                        entry.Size = ((ulong) sizeHi << 32) | sizeLo;
+                    }
+
+                    if (ParamUtils.GetDwParam(entryText, "createlo", true, out uint createLo) &&
+                        ParamUtils.GetDwParam(entryText, "createhi", true, out uint createHi)) {
+                        entry.CreatedTime = DateTimeOffset.FromUnixTimeSeconds((long) (((ulong) createHi << 32) | createLo)).DateTime;
+                    }
+
+                    if (ParamUtils.GetDwParam(entryText, "changelo", true, out uint changeLo) &&
+                        ParamUtils.GetDwParam(entryText, "changehi", true, out uint changeHi)) {
+                        entry.ModifiedTime = DateTimeOffset.FromUnixTimeSeconds((long) (((ulong) changeHi << 32) | changeLo)).DateTime;
+                    }
+
+                    entry.IsDirectory = ParamUtils.GetOffsetToValue(entryText, "directory", false, true) != -1;
+
+                    entries.Add(entry);
+                }
+            });
+
+            return (EnumFileSystemListResult.Success, entries);
         }
 
         public Task DeleteFile(string path) => this.connection.DeleteFile(path);

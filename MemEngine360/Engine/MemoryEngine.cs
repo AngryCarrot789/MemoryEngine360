@@ -22,6 +22,7 @@ using System.Runtime.ExceptionServices;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Debugging;
+using MemEngine360.Engine.FileBrowsing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.PointerScanning;
@@ -104,6 +105,8 @@ public class MemoryEngine {
 
     public AddressTableManager AddressTableManager { get; }
 
+    public FileTreeManager FileTreeManager { get; }
+
     public PointerScanner PointerScanner { get; }
 
     public ConsoleDebugger ConsoleDebugger { get; }
@@ -170,6 +173,7 @@ public class MemoryEngine {
         this.busyLocker.IsBusyChanged += e => this.IsBusyChanged?.Invoke(this);
         this.ScanningProcessor = new ScanningProcessor(this);
         this.AddressTableManager = new AddressTableManager(this);
+        this.FileTreeManager = new FileTreeManager(this);
         this.TaskSequencerManager = new TaskSequencerManager(this);
         this.PointerScanner = new PointerScanner(this);
         this.ConsoleDebugger = new ConsoleDebugger(this);

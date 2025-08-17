@@ -26,6 +26,20 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     // TODO: file system navigation
 
     /// <summary>
+    /// Gets a list of root-level folders (or drives for xbox)
+    /// </summary>
+    /// <returns></returns>
+    Task<List<string>> GetRoots();
+
+    /// <summary>
+    /// Gets a list of all file system entries within a directory, such as within a root obtained
+    /// from <see cref="GetRoots"/>. Returns a null list when the directory does not exist
+    /// </summary>
+    /// <param name="directory">Directory path</param>
+    /// <returns>The entries</returns>
+    Task<(EnumFileSystemListResult, List<FileSystemEntry>?)> GetFileSystemEntries(string directory);
+
+    /// <summary>
     /// Deletes a file on the console
     /// </summary>
     /// <param name="path">The file path</param>
@@ -36,4 +50,18 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// </summary>
     /// <param name="path"></param>
     Task LaunchFile(string path);
+}
+
+public struct FileSystemEntry {
+    public string Name;
+    public ulong Size;
+    public DateTime CreatedTime;
+    public DateTime ModifiedTime;
+    public bool IsDirectory;
+}
+
+public enum EnumFileSystemListResult {
+    Success,
+    NoSuchDirectory,
+    AccessDenied,
 }
