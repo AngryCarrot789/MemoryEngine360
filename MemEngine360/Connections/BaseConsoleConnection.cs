@@ -104,6 +104,10 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         if (Interlocked.CompareExchange(ref this.isClosedState, 1, 0) != 0) {
             return; // already closed
         }
+        
+#pragma warning disable CA1816
+        GC.SuppressFinalize(this);
+#pragma warning restore CA1816
 
         ExceptionDispatchInfo? closeException = null, eventException = null;
         try {

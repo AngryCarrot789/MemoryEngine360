@@ -34,7 +34,6 @@ using MemEngine360.XboxBase;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
-using PFXToolKitUI.Utils.Destroying;
 using ConsoleColor = MemEngine360.Connections.Features.ConsoleColor;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
@@ -188,7 +187,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
     protected override void CloseOverride() {
         try {
-            DisposableUtils.DisposeAfter(this.ctsCheckClosed, x => x.Cancel());
+            this.ctsCheckClosed.Cancel();
+            this.ctsCheckClosed.Dispose();
         }
         catch {
             // ignored
@@ -244,29 +244,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         return await this.InternalSendCommand(command).ConfigureAwait(false);
     }
-
-    public async Task<XbdmResponse[]> SendMultipleCommands(string[] commands) {
-        this.EnsureNotClosed();
-        using BusyToken x = this.CreateBusyToken();
-
-        StringBuilder sb = new StringBuilder();
-        foreach (string cmd in commands) {
-            sb.Append(cmd);
-            if (!cmd.EndsWith("\r\n", StringComparison.Ordinal))
-                sb.Append("\r\n");
-        }
-
-        await this.InternalWriteBytes(Encoding.ASCII.GetBytes(sb.ToString()));
-
-        XbdmResponse[] responses = new XbdmResponse[commands.Length];
-        for (int i = 0; i < responses.Length; i++) {
-            responses[i] = await this.InternalReadResponse().ConfigureAwait(false);
-        }
-
-        return responses;
-    }
-
-    public Task<XbdmResponse[]> SendMultipleCommands(IEnumerable<string> commands) => this.SendMultipleCommands(commands.ToArray());
 
     public async Task<string> ReadLineFromStream(CancellationToken token = default) {
         this.EnsureNotClosed();

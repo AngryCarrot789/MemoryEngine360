@@ -19,7 +19,6 @@
 
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using MemEngine360.BaseFrontEnd.TaskSequencing.Operations;
 using MemEngine360.Connections;
