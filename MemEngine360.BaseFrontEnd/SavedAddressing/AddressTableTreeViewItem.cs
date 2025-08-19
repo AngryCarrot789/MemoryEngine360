@@ -100,7 +100,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         DragDrop.DragLeaveEvent.AddClassHandler<AddressTableTreeViewItem>((o, e) => o.OnDragLeave(e));
         DragDrop.DropEvent.AddClassHandler<AddressTableTreeViewItem>((o, e) => o.OnDrop(e));
     }
-    
+
     public void Focus() => base.Focus();
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
@@ -383,7 +383,6 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                 return;
             }
 
-            DragDropEffects dropEffect;
             try {
                 DataObject obj = new DataObject();
                 obj.Set(DropKey, selection);
@@ -391,8 +390,6 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                 this.dragBtnState = NodeDragState.Active;
                 Task<DragDropEffects> task = DragDrop.DoDragDrop(e, obj, DragDropEffects.Move | DragDropEffects.Copy);
                 Debug.Assert(task.IsCompleted);
-
-                dropEffect = task.Result;
             }
             catch (Exception ex) {
                 Debug.WriteLine("Exception while executing resource tree item drag drop: " + ex.GetToString());
@@ -432,6 +429,20 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
             return DoubleUtils.LessThan(pt.Y, middle) ? DropLocation.Above : DropLocation.Below;
         }
     }
+    
+    /*
+     WTF does DragEffects do?
+     
+     During DragEnter() and DragOver(), DragEventArgs.DragEffects will be the allowed drag effects 
+     for the specific drag-drop operation, which are the effects passed to DoDragDrop.
+     You have to process DragEffects (and ideally set Handled to true) and set it to a single
+     value that represents what you want the drop to actually perform. This is purely a visual 
+     feedback thing. Changing it won't affect what's passed to Drop().
+     
+     In Drop(), you're still provided the allowed drop types, and you have to do the same 
+     processing for what drop to actually do based on which modifier keys are pressed.
+     
+     */
 
     private void OnDragEnter(DragEventArgs e) {
         if (this.IsFolderItem) {
@@ -448,15 +459,16 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     }
 
     private void OnDragOver(DragEventArgs e) {
+        e.Handled = true;
+        
         Point point = e.GetPosition(this);
         DropLocation? location;
         if (!GetResourceListFromDragEvent(e, out List<AddressTableTreeViewItem>? items)) {
             e.DragEffects = DragDropEffects.None;
             location = null;
-            e.Handled = true;
         }
         else {
-            EnumDropType dropType = DropUtils.GetDropAction(e.KeyModifiers, (EnumDropType) e.DragEffects);
+            EnumDropType dropType = DropUtils.GetDropFromPressedModifiers(e.KeyModifiers, (EnumDropType) e.DragEffects);
             (List<AddressTableTreeViewItem>?, DropListResult) result = AddressTableTreeView.GetEffectiveDropList(this, items);
             if (result.Item2 != DropListResult.Valid) {
                 if (result.Item2 == DropListResult.DropListIntoSelf) {
@@ -465,7 +477,9 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                 }
                 else {
                     location = this.GetDropLocation(point, this.IsFolderItem, false);
-                    e.DragEffects = location != DropLocation.Inside ? (DragDropEffects) dropType : DragDropEffects.None;
+                    Debug.Assert(location != DropLocation.Inside);
+                    
+                    e.DragEffects = (DragDropEffects) dropType;
                 }
             }
             else {
@@ -486,9 +500,6 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
             this.IsDroppableTargetOver = false;
             this.PART_DragDropMoveBorder!.BorderThickness = default;
         }
-
-
-        e.Handled = true;
     }
 
     private void OnDragLeave(DragEventArgs e) {
@@ -508,7 +519,8 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
 
         try {
             Point point = e.GetPosition(this);
-            EnumDropType dropType = DropUtils.GetDropAction(e.KeyModifiers, (EnumDropType) e.DragEffects);
+            EnumDropType dropType = DropUtils.GetDropFromPressedModifiers(e.KeyModifiers, (EnumDropType) e.DragEffects);
+            e.DragEffects = (DragDropEffects) dropType;
 
             this.isProcessingAsyncDrop = true;
             // Dropped non-resources into this node
@@ -549,8 +561,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                     BaseAddressTableEntry thisModel = this.EntryObject!;
                     AddressTableGroupEntry dstModel = this.EntryObject!.Parent!;
                     Debug.Assert(dstModel != null, "This ATTreeViewItem is not in a parent...?");
-
-
+                    
                     // User wants to move items above or below current instance. First, remove all
                     // dropped entries to make calculating indices easier. TODO improve this though 
                     foreach (BaseAddressTableEntry entry in droppedModels) {
@@ -607,8 +618,8 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
             }
 #endif
         finally {
-            this.IsDroppableTargetOver = false;
             this.isProcessingAsyncDrop = false;
+            this.IsDroppableTargetOver = false;
             this.PART_DragDropMoveBorder!.BorderThickness = default;
         }
     }

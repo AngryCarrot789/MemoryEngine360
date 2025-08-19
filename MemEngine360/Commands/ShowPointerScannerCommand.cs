@@ -23,7 +23,7 @@ using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Commands;
 
-public class PointerScanCommand : Command {
+public class ShowPointerScannerCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine)) {
             return;

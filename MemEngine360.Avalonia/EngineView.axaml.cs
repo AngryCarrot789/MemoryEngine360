@@ -307,7 +307,7 @@ public partial class EngineView : UserControl, IEngineUI {
                 new CommandContextEntry("commands.memengine.ShowMemoryCommand", "Memory View", "Opens the memory viewer/hex editor"),
                 new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Task Sequencer", "Opens the task sequencer"),
                 new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
-                new CommandContextEntry("commands.memengine.PointerScanCommand", "Pointer Scanner"),
+                new CommandContextEntry("commands.memengine.ShowPointerScannerCommand", "Pointer Scanner"),
                 new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer").
                     AddContextValueChangeHandlerWithEvent(MemoryEngine.EngineDataKey, nameof(this.MemoryEngine.ConnectionChanged), (entry, engine) => {
                         // Maybe this should be shown via a popup instead of changing the actual menu entry

@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Diagnostics;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI;
@@ -113,10 +112,12 @@ public class OpenConsoleConnectionDialogCommand : Command {
             }
 
             // Doesn't matter if the connection became null in the meantime
-            IConsoleConnection? existingConnection = ui.MemoryEngine.GetConnection(token);
+            IConsoleConnection? existingConnection = ui.MemoryEngine.Connection;
             if (existingConnection != null) {
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                    ui.MemoryEngine.SetConnection(token, frame, null, ConnectionChangeCause.User);
+                    if ((existingConnection = ui.MemoryEngine.Connection) != null) {
+                        ui.MemoryEngine.SetConnection(token, frame, null, ConnectionChangeCause.User);
+                    }
                 });
 
                 try {
@@ -154,7 +155,9 @@ public class OpenConsoleConnectionDialogCommand : Command {
         }
 
         IConsoleConnection? oldConnection = engine.Connection;
-        Debug.Assert(oldConnection != newConnection);
+        if (ReferenceEquals(oldConnection, newConnection)) {
+            return token;
+        }
 
         if (oldConnection != null) {
             // Somehow a connection was set before we got here and user doesn't want to overwrite it.
