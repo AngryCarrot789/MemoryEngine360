@@ -66,22 +66,22 @@ public interface IFeatureXboxJRPC2 : IConsoleFeature, IFeatureXboxNotifications 
     /// <param name="p4">Player 4 LED</param>
     Task SetLEDs(bool p1, bool p2, bool p3, bool p4);
 
-    Task<T> Call<T>(uint Address, params object[] Arguments) where T : struct;
-    Task<T> Call<T>(string module, int ordinal, params object[] Arguments) where T : struct;
-    Task<T> Call<T>(ThreadType thread, uint Address, params object[] Arguments) where T : struct;
-    Task<T> Call<T>(ThreadType thread, string module, int ordinal, params object[] Arguments) where T : struct;
-    Task CallVoid(uint address, params object[] Arguments);
-    Task CallVoid(string module, int ordinal, params object[] Arguments);
-    Task CallVoid(ThreadType Type, uint Address, params object[] Arguments);
-    Task CallVoid(ThreadType Type, string module, int ordinal, params object[] Arguments);
-    Task<T[]> CallArray<T>(uint Address, uint ArraySize, params object[] Arguments) where T : struct;
-    Task<T[]> CallArray<T>(string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct;
-    Task<T[]> CallArray<T>(ThreadType Type, uint Address, uint ArraySize, params object[] Arguments) where T : struct;
-    Task<T[]> CallArray<T>(ThreadType Type, string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct;
-    Task<string> CallString(uint Address, params object[] Arguments);
-    Task<string> CallString(string module, int ordinal, params object[] Arguments);
-    Task<string> CallString(ThreadType Type, uint Address, params object[] Arguments);
-    Task<string> CallString(ThreadType Type, string module, int ordinal, params object[] Arguments);
+    Task<T> Call<T>(uint address, params object[] Arguments) where T : struct;
+    Task<T> Call<T>(string module, int ordinal, params object[] args) where T : struct;
+    Task<T> Call<T>(ThreadType thread, uint address, params object[] args) where T : struct;
+    Task<T> Call<T>(ThreadType thread, string module, int ordinal, params object[] args) where T : struct;
+    Task CallVoid(uint address, params object[] args);
+    Task CallVoid(string module, int ordinal, params object[] args);
+    Task CallVoid(ThreadType thread, uint address, params object[] args);
+    Task CallVoid(ThreadType thread, string module, int ordinal, params object[] args);
+    Task<T[]> CallArray<T>(uint address, uint arraySize, params object[] args) where T : struct;
+    Task<T[]> CallArray<T>(string module, int ordinal, uint arraySize, params object[] args) where T : struct;
+    Task<T[]> CallArray<T>(ThreadType thread, uint address, uint arraySize, params object[] args) where T : struct;
+    Task<T[]> CallArray<T>(ThreadType thread, string module, int ordinal, uint arraySize, params object[] args) where T : struct;
+    Task<string> CallString(uint address, params object[] args);
+    Task<string> CallString(string module, int ordinal, params object[] args);
+    Task<string> CallString(ThreadType thread, uint address, params object[] args);
+    Task<string> CallString(ThreadType thread, string module, int ordinal, params object[] args);
     Task<T> CallVM<T>(uint Address, params object[] Arguments) where T : struct;
     Task<T> CallVM<T>(string module, int ordinal, params object[] Arguments) where T : struct;
     Task<T> CallVM<T>(ThreadType Type, uint Address, params object[] Arguments) where T : struct;

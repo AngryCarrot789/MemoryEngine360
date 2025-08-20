@@ -18,6 +18,7 @@
 // 
 
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
@@ -113,118 +114,92 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
         }
     }
 
-    private static RPCDataType TypeToRPCType<T>(bool Array) where T : struct {
-        Type Type = typeof(T);
-        if (Type == typeof(int) || Type == typeof(uint) || Type == typeof(short) || Type == typeof(ushort)) {
-            if (Array)
-                return RPCDataType.IntArray;
-            return RPCDataType.Int;
-        }
-
-        if (Type == typeof(string) || Type == typeof(char[]))
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static RPCDataType TypeToRPCType<T>(bool isArray) where T : struct {
+        if (typeof(T) == typeof(byte) || typeof(T) == typeof(char))
+            return isArray ? RPCDataType.ByteArray : RPCDataType.Byte;
+        if (typeof(T) == typeof(short) || typeof(T) == typeof(ushort) || typeof(T) == typeof(int) || typeof(T) == typeof(uint))
+            return isArray ? RPCDataType.IntArray : RPCDataType.Int;
+        else if (typeof(T) == typeof(ulong) || typeof(T) == typeof(long))
+            return isArray ? RPCDataType.Uint64Array : RPCDataType.Uint64;
+        else if (typeof(T) == typeof(float) || typeof(T) == typeof(double))
+            return isArray ? RPCDataType.FloatArray : RPCDataType.Float;
+        else if (typeof(T) == typeof(string) || typeof(T) == typeof(char[]))
             return RPCDataType.String;
-        if (Type == typeof(float) || Type == typeof(double)) {
-            if (Array)
-                return RPCDataType.FloatArray;
-            return RPCDataType.Float;
-        }
-
-        if (Type == typeof(byte) || Type == typeof(char)) {
-            if (Array)
-                return RPCDataType.ByteArray;
-            return RPCDataType.Byte;
-        }
-
-        if (Type == typeof(ulong) || Type == typeof(long)) {
-            if (Array)
-                return RPCDataType.Uint64Array;
+        else // CLR object
             return RPCDataType.Uint64;
-        }
-
-        return RPCDataType.Uint64;
     }
 
-    public async Task<T> Call<T>(uint Address, params object[] Arguments) where T : struct {
-        return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), null, 0, Address, 0, false, Arguments);
+    public async Task<T> Call<T>(uint address, params object[] Arguments) where T : struct {
+        return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), null, 0, address, 0, false, Arguments);
     }
 
-    public async Task<T> Call<T>(string module, int ordinal, params object[] Arguments) where T : struct {
-        return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), module, ordinal, 0, 0, false, Arguments);
+    public async Task<T> Call<T>(string module, int ordinal, params object[] args) where T : struct {
+        return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), module, ordinal, 0, 0, false, args);
     }
 
-    public async Task<T> Call<T>(ThreadType thread, uint Address, params object[] Arguments) where T : struct {
-        return (T) await this.CallArgs(thread == ThreadType.System, TypeToRPCType<T>(false), typeof(T), null, 0, Address, 0, false, Arguments);
+    public async Task<T> Call<T>(ThreadType thread, uint address, params object[] args) where T : struct {
+        return (T) await this.CallArgs(thread == ThreadType.System, TypeToRPCType<T>(false), typeof(T), null, 0, address, 0, false, args);
     }
 
-    public async Task<T> Call<T>(ThreadType thread, string module, int ordinal, params object[] Arguments) where T : struct {
-        return (T) await this.CallArgs(thread == ThreadType.System, TypeToRPCType<T>(false), typeof(T), module, ordinal, 0, 0, false, Arguments);
+    public async Task<T> Call<T>(ThreadType thread, string module, int ordinal, params object[] args) where T : struct {
+        return (T) await this.CallArgs(thread == ThreadType.System, TypeToRPCType<T>(false), typeof(T), module, ordinal, 0, 0, false, args);
     }
 
-    public Task CallVoid(uint address, params object[] Arguments) {
-        return this.CallArgs(true, RPCDataType.Void, typeof(void), null, 0, address, 0, false, Arguments);
+    public Task CallVoid(uint address, params object[] args) {
+        return this.CallArgs(true, RPCDataType.Void, typeof(void), null, 0, address, 0, false, args);
     }
 
-    public Task CallVoid(string module, int ordinal, params object[] Arguments) {
-        return this.CallArgs(true, RPCDataType.Void, typeof(void), module, ordinal, 0, 0, false, Arguments);
+    public Task CallVoid(string module, int ordinal, params object[] args) {
+        return this.CallArgs(true, RPCDataType.Void, typeof(void), module, ordinal, 0, 0, false, args);
     }
 
-    public Task CallVoid(ThreadType Type, uint Address, params object[] Arguments) {
-        return this.CallArgs(Type == ThreadType.System, RPCDataType.Void, typeof(void), null, 0, Address, 0, false, Arguments);
+    public Task CallVoid(ThreadType thread, uint address, params object[] args) {
+        return this.CallArgs(thread == ThreadType.System, RPCDataType.Void, typeof(void), null, 0, address, 0, false, args);
     }
 
-    public Task CallVoid(ThreadType Type, string module, int ordinal, params object[] Arguments) {
-        return this.CallArgs(Type == ThreadType.System, RPCDataType.Void, typeof(void), module, ordinal, 0, 0, false, Arguments);
+    public Task CallVoid(ThreadType thread, string module, int ordinal, params object[] args) {
+        return this.CallArgs(thread == ThreadType.System, RPCDataType.Void, typeof(void), module, ordinal, 0, 0, false, args);
     }
 
-    public async Task<T[]> CallArray<T>(uint Address, uint ArraySize, params object[] Arguments) where T : struct {
-        if (ArraySize == 0)
+    public async Task<T[]> CallArray<T>(uint address, uint arraySize, params object[] args) where T : struct {
+        if (arraySize == 0)
             return new T[1];
-        return (T[]) await this.CallArgs(true, TypeToRPCType<T>(true), typeof(T), null, 0, Address, ArraySize, false, Arguments);
+        return (T[]) await this.CallArgs(true, TypeToRPCType<T>(true), typeof(T), null, 0, address, arraySize, false, args);
     }
 
-    public async Task<T[]> CallArray<T>(string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct {
-        if (ArraySize == 0)
+    public async Task<T[]> CallArray<T>(string module, int ordinal, uint arraySize, params object[] args) where T : struct {
+        if (arraySize == 0)
             return new T[1];
-        return (T[]) await this.CallArgs(true, TypeToRPCType<T>(true), typeof(T), module, ordinal, 0, ArraySize, false, Arguments);
+        return (T[]) await this.CallArgs(true, TypeToRPCType<T>(true), typeof(T), module, ordinal, 0, arraySize, false, args);
     }
 
-    public async Task<T[]> CallArray<T>(ThreadType Type, uint Address, uint ArraySize, params object[] Arguments) where T : struct {
-        if (ArraySize == 0)
+    public async Task<T[]> CallArray<T>(ThreadType thread, uint address, uint arraySize, params object[] args) where T : struct {
+        if (arraySize == 0)
             return new T[1];
-        return (T[]) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(true), typeof(T), null, 0, Address, ArraySize, false, Arguments);
+        return (T[]) await this.CallArgs(thread == ThreadType.System, TypeToRPCType<T>(true), typeof(T), null, 0, address, arraySize, false, args);
     }
 
-    public async Task<T[]> CallArray<T>(ThreadType Type, string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct {
-        if (ArraySize == 0)
+    public async Task<T[]> CallArray<T>(ThreadType thread, string module, int ordinal, uint arraySize, params object[] args) where T : struct {
+        if (arraySize == 0)
             return new T[1];
-        return (T[]) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(true), typeof(T), module, ordinal, 0, ArraySize, false, Arguments);
+        return (T[]) await this.CallArgs(thread == ThreadType.System, TypeToRPCType<T>(true), typeof(T), module, ordinal, 0, arraySize, false, args);
     }
 
-    public async Task<string> CallString(uint Address, params object[] Arguments) {
-        return (string) await this.CallArgs(true, RPCDataType.String, typeof(string), null, 0, Address, 0, false, Arguments);
+    public async Task<string> CallString(uint address, params object[] args) {
+        return (string) await this.CallArgs(true, RPCDataType.String, typeof(string), null, 0, address, 0, false, args);
     }
 
-    public async Task<string> CallString(string module, int ordinal, params object[] Arguments) {
-        return (string) await this.CallArgs(true, RPCDataType.String, typeof(string), module, ordinal, 0, 0, false, Arguments);
+    public async Task<string> CallString(string module, int ordinal, params object[] args) {
+        return (string) await this.CallArgs(true, RPCDataType.String, typeof(string), module, ordinal, 0, 0, false, args);
     }
 
-    public async Task<string> CallString(ThreadType Type, uint Address, params object[] Arguments) {
-        return (string) await this.CallArgs(Type == ThreadType.System, RPCDataType.String, typeof(string), null, 0, Address, 0, false, Arguments);
+    public async Task<string> CallString(ThreadType thread, uint address, params object[] args) {
+        return (string) await this.CallArgs(thread == ThreadType.System, RPCDataType.String, typeof(string), null, 0, address, 0, false, args);
     }
 
-    public async Task<string> CallString(ThreadType Type, string module, int ordinal, params object[] Arguments) {
-        return (string) await this.CallArgs(Type == ThreadType.System, RPCDataType.String, typeof(string), module, ordinal, 0, 0, false, Arguments);
-    }
-
-    private static byte[] IntArrayToByte(int[] iArray) {
-        byte[] Bytes = new byte[iArray.Length * 4];
-        for (int i = 0, q = 0; i < iArray.Length; i++, q += 4) {
-            byte[] bytes = BitConverter.GetBytes(iArray[i]);
-            for (int w = 0; w < 4; w++)
-                Bytes[q + w] = bytes[w];
-        }
-
-        return Bytes;
+    public async Task<string> CallString(ThreadType thread, string module, int ordinal, params object[] args) {
+        return (string) await this.CallArgs(thread == ThreadType.System, RPCDataType.String, typeof(string), module, ordinal, 0, 0, false, args);
     }
 
     public async Task<T> CallVM<T>(uint Address, params object[] Arguments) where T : struct {
@@ -475,23 +450,19 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
     }
 
     private static string CreateParams(bool vm, object[] arguments, ref uint argc) {
-        StringBuilder sbParams = new StringBuilder(128);
+        Span<byte> bytes8 = stackalloc byte[8];
+        
+        StringBuilder sb = new StringBuilder(128);
         foreach (object obj in arguments) {
             switch (obj) {
                 case uint u:
-                    sbParams.Append((uint) RPCDataType.Int).Append("\\" + (int) u).Append("\\");
+                    sb.Append((uint) RPCDataType.Int).Append("\\" + (int) u).Append('\\');
                     argc += 1;
                     break;
                 case int:
                 case bool:
                 case byte: {
-                    if (obj is bool) {
-                        sbParams.Append((uint) RPCDataType.Int).Append('\\').Append((bool) obj ? '1' : '0').Append('\\');
-                    }
-                    else {
-                        sbParams.Append((uint) RPCDataType.Int).Append('\\' + (obj is byte ? Convert.ToByte(obj).ToString() : Convert.ToInt32(obj).ToString())).Append('\\');
-                    }
-    
+                    sb.Append((uint) RPCDataType.Int).Append('\\' + (obj is bool b ? (b ? "1" : "0") : obj.ToString())).Append('\\');
                     argc += 1;
                     break;
                 }
@@ -499,106 +470,114 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
                 case uint[]: {
                     if (!vm) {
                         byte[] bytes = IntArrayToByte((int[]) obj);
-                        sbParams.Append((uint) RPCDataType.ByteArray).Append("/" + bytes.Length).Append('\\');
+                        sb.Append((uint) RPCDataType.ByteArray).Append("/" + bytes.Length).Append('\\');
                         foreach (byte b in bytes)
-                            sbParams.Append(b.ToString("X2"));
-    
-                        sbParams.Append('\\');
+                            sb.Append(b.ToString("X2"));
+                        sb.Append('\\');
                         argc += 1;
                     }
                     else {
-                        bool isInt = obj is int[];
-                        int len;
-                        if (isInt) {
-                            int[] iarray = (int[]) obj;
-                            len = iarray.Length;
+                        int[] dstArray;
+                        if (obj is int[] srcArray) {
+                            dstArray = srcArray;
                         }
                         else {
-                            uint[] iarray = (uint[]) obj;
-                            len = iarray.Length;
+                            uint[] uintArray = (uint[]) obj;
+                            dstArray = new int[uintArray.Length];
+                            for (int i = 0; i < uintArray.Length; i++) {
+                                dstArray[i] = (int) uintArray[i];
+                            }
                         }
-    
-                        int[] Iarray = new int[len];
-                        for (int i = 0; i < len; i++) {
-                            if (isInt) {
-                                int[] tiarray = (int[]) obj;
-                                Iarray[i] = tiarray[i];
-                            }
-                            else {
-                                uint[] tiarray = (uint[]) obj;
-                                Iarray[i] = (int) tiarray[i];
-                            }
-    
-                            sbParams.Append((uint) RPCDataType.Int).Append('\\' + Iarray[i]).Append('\\');
+                        
+                        foreach (int value in dstArray) {
+                            sb.Append((uint) RPCDataType.Int).Append('\\' + value).Append('\\');
                             argc += 1;
                         }
                     }
-    
+
                     break;
                 }
-                case string s: {
-                    string Str = s;
-                    sbParams.Append((uint) RPCDataType.ByteArray).Append("/" + Str.Length).Append('\\' + NumberUtils.ConvertStringToHex(s, Encoding.ASCII)).Append('\\');
+                case string str: {
+                    sb.Append((uint) RPCDataType.ByteArray).Append("/" + str.Length).Append('\\' + NumberUtils.ConvertStringToHex(str, Encoding.ASCII)).Append('\\');
                     argc += 1;
                     break;
                 }
-                case double d1: {
-                    double d = d1;
-                    sbParams.Append((uint) RPCDataType.Float).Append('\\' + d.ToString()).Append('\\');
+                case double d: {
+                    sb.Append((uint) RPCDataType.Float).Append('\\' + d.ToString()).Append('\\');
                     argc += 1;
                     break;
                 }
                 case float f: {
-                    float Fl = f;
-                    sbParams.Append((uint) RPCDataType.Float).Append('\\' + Fl.ToString()).Append('\\');
+                    sb.Append((uint) RPCDataType.Float).Append('\\' + f.ToString()).Append('\\');
                     argc += 1;
                     break;
                 }
                 case float[] floats: {
-                    float[] floatArray = floats;
                     if (!vm) {
-                        sbParams.Append((uint) RPCDataType.ByteArray).Append("/" + (floatArray.Length * 4).ToString()).Append('\\');
-                        foreach (float f in floatArray) {
-                            byte[] bytes = BitConverter.GetBytes(f);
-                            Array.Reverse(bytes);
+                        sb.Append((uint) RPCDataType.FloatArray).Append("/" + (floats.Length * 4)).Append('\\');
+                        Span<byte> bytes4 = bytes8.Slice(0, sizeof(float));
+                        foreach (float f in floats) {
+                            Unsafe.As<byte, double>(ref bytes4[0]) = f;
+                            bytes4.Reverse();
                             for (int q = 0; q < 4; q++)
-                                sbParams.Append(bytes[q].ToString("X2"));
+                                sb.Append(bytes4[q].ToString("X2"));
                         }
-    
-                        sbParams.Append('\\');
+
+                        sb.Append('\\');
                         argc += 1;
                     }
                     else {
-                        foreach (float f in floatArray) {
-                            sbParams.Append((uint) RPCDataType.Float).Append('\\' + f.ToString()).Append('\\');
+                        foreach (float f in floats) {
+                            sb.Append((uint) RPCDataType.Float).Append('\\' + f.ToString()).Append('\\');
                             argc += 1;
                         }
                     }
-    
+
+                    break;
+                }
+                case double[] doubles: {
+                    if (!vm) {
+                        sb.Append((uint) RPCDataType.FloatArray).Append("/" + (doubles.Length * 4)).Append('\\');
+                        foreach (double d in doubles) {
+                            Unsafe.As<byte, double>(ref bytes8[0]) = d;
+                            bytes8.Reverse();
+                            for (int q = 0; q < 4; q++)
+                                sb.Append(bytes8[q].ToString("X2"));
+                        }
+
+                        sb.Append('\\');
+                        argc += 1;
+                    }
+                    else {
+                        foreach (double d in doubles) {
+                            sb.Append((uint) RPCDataType.Float).Append('\\' + d.ToString()).Append('\\');
+                            argc += 1;
+                        }
+                    }
+
                     break;
                 }
                 case byte[] bytes: {
-                    byte[] ByteArray = bytes;
-                    sbParams.Append(ByteArray.ToString()).Append("/" + ByteArray.Length).Append('\\');
-                    foreach (byte b in ByteArray)
-                        sbParams.Append(b.ToString("X2"));
-    
-                    sbParams.Append('\\');
+                    sb.Append((uint) RPCDataType.ByteArray).Append("/" + bytes.Length).Append('\\');
+                    foreach (byte b in bytes)
+                        sb.Append(b.ToString("X2"));
+
+                    sb.Append('\\');
                     argc += 1;
                     break;
                 }
                 default: {
-                    sbParams.Append((uint) RPCDataType.Uint64).Append('\\').Append(ConvertToUInt64(obj)).Append('\\');
+                    sb.Append((uint) RPCDataType.Uint64).Append('\\').Append(ConvertToUInt64(obj)).Append('\\');
                     argc += 1;
                     break;
                 }
             }
         }
-    
-        sbParams.Append('\"');
-        return sbParams.ToString();
+
+        sb.Append('\"');
+        return sb.ToString();
     }
-    
+
     private static readonly HashSet<Type> ValidReturnTypes = new HashSet<Type>() {
         typeof(void),
         typeof(bool),
@@ -643,5 +622,14 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
             double d => (ulong) BitConverter.DoubleToInt64Bits(d),
             _ => 0UL
         };
+    }
+
+    private static byte[] IntArrayToByte(int[] array) {
+        byte[] output = new byte[array.Length * sizeof(int)];
+        for (int i = 0; i < array.Length; i++) {
+            Unsafe.As<byte, int>(ref output[i * sizeof(int)]) = array[i];
+        }
+
+        return output;
     }
 }
