@@ -18,11 +18,14 @@
 // 
 
 using System.Collections.ObjectModel;
+using System.Globalization;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
+using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Shortcuts;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
@@ -205,7 +208,7 @@ public abstract class BaseJRPC2Command : BaseRemoteConsoleCommand {
 
 public class GetCPUKeyCommand : BaseJRPC2Command {
     protected override string ActivityText => "Getting CPU key...";
-    
+
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
         string key = await jrpc.GetCPUKey();
         await IMessageDialogService.Instance.ShowMessage("CPU Key", key);
@@ -214,7 +217,7 @@ public class GetCPUKeyCommand : BaseJRPC2Command {
 
 public class GetDashboardVersionCommand : BaseJRPC2Command {
     protected override string ActivityText => "Getting dashboard version...";
-    
+
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
         uint dashboard = await jrpc.GetDashboardVersion();
         await IMessageDialogService.Instance.ShowMessage("Dashboard", dashboard.ToString());
@@ -223,7 +226,7 @@ public class GetDashboardVersionCommand : BaseJRPC2Command {
 
 public class GetTemperaturesCommand : BaseJRPC2Command {
     protected override string ActivityText => "Getting temperatures...";
-    
+
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
         uint cpu = await jrpc.GetTemperature(SensorType.CPU);
         uint gpu = await jrpc.GetTemperature(SensorType.GPU);
@@ -235,14 +238,14 @@ public class GetTemperaturesCommand : BaseJRPC2Command {
         joiner.Append("GPU: " + gpu);
         joiner.Append("Memory: " + memory);
         joiner.Append("Motherboard: " + mobo);
-        
+
         await IMessageDialogService.Instance.ShowMessage("Temperatures", joiner.ToString());
     }
 }
 
 public class GetTitleIDCommand : BaseJRPC2Command {
     protected override string ActivityText => "Getting current title ID...";
-    
+
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
         uint titleID = await jrpc.GetCurrentTitleId();
         await IMessageDialogService.Instance.ShowMessage("Title ID", titleID.ToString("X8"));
@@ -250,8 +253,8 @@ public class GetTitleIDCommand : BaseJRPC2Command {
 }
 
 public class GetMoBoTypeCommand : BaseJRPC2Command {
-    protected override string ActivityText => "Getting motherboard type...";    
-    
+    protected override string ActivityText => "Getting motherboard type...";
+
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
         string mobo = await jrpc.GetMotherboardType();
         await IMessageDialogService.Instance.ShowMessage("Motherboard", mobo);
@@ -259,14 +262,30 @@ public class GetMoBoTypeCommand : BaseJRPC2Command {
 }
 
 public class TestRPCCommand : BaseJRPC2Command {
-    protected override string ActivityText => "Test RPC";    
-    
+    protected override string ActivityText => "Test RPC";
+
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
-        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Test RPC", "Have MW3 loaded up on your console first." + Environment.NewLine + "This might crash your console. Continue?", MessageBoxButton.YesNo, MessageBoxResult.No);
-        if (result == MessageBoxResult.Yes) {
-            // https://www.se7ensins.com/forums/threads/new-mw3-offsets-and-functions.952174/post-7071717?referrer=1519241
-            await jrpc.CallVoid(0x822CB3E8, 0x3FA, 0x404);
-            await IMessageDialogService.Instance.ShowMessage("Done!", "Done!");
-        }
+        // https://www.se7ensins.com/forums/threads/new-mw3-offsets-and-functions.952174/post-7071717?referrer=1519241
+
+        await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+            DoubleUserInputInfo info = new DoubleUserInputInfo {
+                Caption = "Change config string",
+                Message = "void SV_SetConfigString(int, string)",
+                LabelA = "Index (hex) (e.g. 3FA for minimap model)",
+                LabelB = "String Value (e.g. rank_prestige10)",
+                TextA = "3FA", TextB = "rank_prestige10",
+                ConfirmText = "Execute RPC",
+                ValidateA = args => {
+                    if (!int.TryParse(args.Input, NumberStyles.HexNumber, null, out _))
+                        args.Errors.Add("Invalid index value. Must be an integer in hex format");
+                }
+            };
+
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+                int index = int.Parse(info.TextA, NumberStyles.HexNumber); // cannot fail
+                string value = info.TextB;
+                await jrpc.CallVoid(0x822CB3E8, index, value);
+            }
+        });
     }
 }

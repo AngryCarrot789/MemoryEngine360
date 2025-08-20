@@ -67,7 +67,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
         yield return new CommandContextEntry("commands.memengine.remote.GetTemperaturesCommand", "Get Temperatures");
         yield return new CommandContextEntry("commands.memengine.remote.GetTitleIDCommand", "Get Current TitleID");
         yield return new CommandContextEntry("commands.memengine.remote.GetMoBoTypeCommand", "Get Motherboard Type");
-        yield return new CommandContextEntry("commands.memengine.remote.TestRPCCommand", "Test RPC MW3 (do not use!!!)");
+        yield return new CommandContextEntry("commands.memengine.remote.TestRPCCommand", "SV_SetConfigString on MW3 (TU24)");
     }
 
     public override UserConnectionInfo? CreateConnectionInfo(IContextData context) {
