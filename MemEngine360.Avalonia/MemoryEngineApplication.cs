@@ -418,7 +418,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         });
     }
 
-    protected override string? GetSolutionFileName() => "MemEngine.sln";
+    protected override string? GetSolutionFileName() => "MemEngine360.sln";
 
     public override string GetApplicationName() => "MemoryEngine360";
 

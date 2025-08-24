@@ -24,14 +24,14 @@ using PFXToolKitUI.DataTransfer;
 namespace MemEngine360;
 
 /// <summary>
-/// A helper class for a view model that also uses the data parameter system, because fuck raw dog MVVM ;)
+/// A helper class for a view model that also uses the data parameter system
 /// </summary>
-public abstract class BaseTransferableViewModel : ITransferableData, INotifyPropertyChanged {
+public abstract class BaseTransferableDataViewModel : ITransferableData, INotifyPropertyChanged {
     public TransferableData TransferableData { get; }
     
     public event PropertyChangedEventHandler? PropertyChanged;
     
-    public BaseTransferableViewModel() {
+    public BaseTransferableDataViewModel() {
         this.TransferableData = new TransferableData(this);
     }
 
@@ -49,7 +49,7 @@ public abstract class BaseTransferableViewModel : ITransferableData, INotifyProp
     /// <param name="parameter">The parameter</param>
     /// <param name="owner">The owner</param>
     protected static void RaiseObservablePropertyChanged(DataParameter parameter, ITransferableData owner) {
-        ((BaseTransferableViewModel) owner).RaisePropertyChanged(parameter.Name);
+        ((BaseTransferableDataViewModel) owner).RaisePropertyChanged(parameter.Name);
     }
     
     /// <summary>

@@ -24,7 +24,7 @@ using PFXToolKitUI.Utils.Accessing;
 
 namespace MemEngine360.XboxInfo;
 
-public class MemoryRegionViewModel : BaseTransferableViewModel {
+public class MemoryRegionViewModel : BaseTransferableDataViewModel {
     // This class needs a re-work. We shouldn't use a raw address like this,
     // since cheat engine doesn't appear to do that (since you have use base address + a list of offsets)
 
