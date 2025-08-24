@@ -17,6 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI;
+
 namespace MemEngine360.Engine;
 
 public delegate void MemoryEngineUIEventHandler(MemoryEngineManager manager, IEngineUI engineUI);
@@ -27,6 +29,8 @@ public delegate void MemoryEngineUIEventHandler(MemoryEngineManager manager, IEn
 public abstract class MemoryEngineManager {
     private readonly List<IEngineUI> engines;
 
+    public static MemoryEngineManager Instance => ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>();
+    
     /// <summary>
     /// Gets all opened engine views. This list is read-only
     /// </summary>

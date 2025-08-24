@@ -27,6 +27,7 @@ using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using MemEngine360.Xbox360XBDM.Views;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Plugins;
 using PFXToolKitUI.Tasks;
@@ -54,7 +55,15 @@ public class PluginXbox360Xbdm : Plugin {
 
         ModuleViewer.RegisterHandlerForConnectionType<XbdmConsoleConnection>(new XbdmModuleViewerProcessor());
         
+        MemoryEngineManager.Instance.EngineOpened += OnEngineOpened;
+        
         return Task.CompletedTask;
+    }
+
+    private static void OnEngineOpened(MemoryEngineManager manager, IEngineUI engine) {
+        if (engine.MemoryEngine.ToolsMenu.TryGetGroupById("memoryengine.tools.coolutils", out ContextEntryGroup? group)) {
+            group.Items.Add(new CommandContextEntry("commands.memengine.remote.TestRPCCommand", "SV_SetConfigString on MW3 (TU24)", "Invokes the method on the connected xbox"));
+        }
     }
 
     private class XbdmModuleViewerProcessor : IModuleManagerProcessor {

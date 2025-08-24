@@ -18,18 +18,25 @@
 // 
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
+using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.FileBrowsing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.Scanners;
 using MemEngine360.PointerScanning;
 using MemEngine360.Sequencing;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
@@ -110,7 +117,7 @@ public class MemoryEngine {
     public PointerScanner PointerScanner { get; }
 
     public ConsoleDebugger ConsoleDebugger { get; }
-    
+
     /// <summary>
     /// Gets custom context data for this engine, which is used to store UI related things
     /// </summary>
@@ -123,6 +130,11 @@ public class MemoryEngine {
         get => this.isShuttingDown;
         set => PropertyHelper.SetAndRaiseINE(ref this.isShuttingDown, value, this, static t => t.IsShuttingDownChanged?.Invoke(t));
     }
+
+    /// <summary>
+    /// Gets the tools menu for memory engine
+    /// </summary>
+    public ContextEntryGroup ToolsMenu { get; }
 
     /// <summary>
     /// An async event fired when a connection is most likely about to change. This can be used by custom activities
@@ -177,6 +189,37 @@ public class MemoryEngine {
         this.TaskSequencerManager = new TaskSequencerManager(this);
         this.PointerScanner = new PointerScanner(this);
         this.ConsoleDebugger = new ConsoleDebugger(this);
+
+        this.ToolsMenu = new ContextEntryGroup("Tools") {
+            UniqueID = "memoryengine.tools",
+            Items = {
+                new CommandContextEntry("commands.memengine.ShowMemoryCommand", "Memory View", "Opens the memory viewer/hex editor"),
+                new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Task Sequencer", "Opens the task sequencer"),
+                new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
+                new CommandContextEntry("commands.memengine.ShowPointerScannerCommand", "Pointer Scanner"),
+                new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer").
+                    AddContextValueChangeHandlerWithEvent(EngineDataKey, nameof(this.ConnectionChanged), (entry, engine) => {
+                        // Maybe this should be shown via a popup instead of changing the actual menu entry
+                        entry.DisplayName = engine?.Connection != null && !engine.Connection.HasFeature<IFeatureSystemEvents>()
+                            ? "Event Viewer (console unsupported)"
+                            : "Event Viewer";
+                        entry.RaiseCanExecuteChanged();
+                    }),
+                new SeparatorEntry(),
+                new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Explorer", "Opens a window which presents the modules"),
+                new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),
+                new SeparatorEntry(),
+                new ContextEntryGroup("Cool Utils") {
+                    UniqueID = "memoryengine.tools.coolutils",
+                    Items = {
+                        new CustomLambdaContextEntry("[BO1 SP] Find AI's X pos near camera", ExecuteFindAINearBO1Camera, (c) => c.ContainsKey(IEngineUI.DataKey.Id))
+                    }
+                }
+            }
+        };
+
+        // update all tools when connection changes, since most if not all tools rely on a connection
+        this.ToolsMenu.AddCanExecuteChangeUpdaterForEvent(EngineDataKey, nameof(this.ConnectionChanged));
 
         Task.Factory.StartNew(async () => {
             long timeSinceRefreshedAddresses = DateTime.Now.Ticks;
@@ -515,6 +558,141 @@ public class MemoryEngine {
             case DataType.ByteArray: await connection.WriteBytes(address, ((DataValueByteArray) value).Value).ConfigureAwait(false); break;
             default:                 throw new InvalidOperationException("Data value's data type is invalid: " + value.DataType);
         }
+    }
+
+    private static async Task ExecuteFindAINearBO1Camera(IContextData ctx) {
+        if (!IEngineUI.DataKey.TryGetContext(ctx, out IEngineUI? engineUI))
+            return;
+
+        // new DynamicAddress(0x82000000, [0x1AD74, 0x1758, 0x18C4, 0x144, 0x118, 0x11C])
+        // new DynamicAddress(0x82000000, [0x1AD74, 0x1758, 0x18C4, 0x144, 0x1A4, 0x1EC8])
+        MemoryEngine engine = engineUI.MemoryEngine;
+        await engine.BeginBusyOperationActivityAsync(async (t, c) => {
+            if (engine.ScanningProcessor.IsScanning) {
+                await IMessageDialogService.Instance.ShowMessage("Currently scanning", "Cannot run. Engine is scanning for a value");
+                return;
+            }
+
+            SingleUserInputInfo info = new SingleUserInputInfo("Range", "Input maximum radius from you", "Radius", "100.0") {
+                Validate = args => {
+                    if (!float.TryParse(args.Input, out _))
+                        args.Errors.Add("Invalid float");
+                }
+            };
+
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
+                return;
+            }
+
+            float radius = float.Parse(info.Text);
+
+            // BO1 stores positions as X Z Y. Or maybe they treat Z as up/down.
+            const uint addr_p1_x = 0x82DC184C;
+
+            float p1_x;
+            float p1_z;
+            float p1_y;
+
+            try {
+                p1_x = await c.ReadValue<float>(addr_p1_x);
+                p1_z = await c.ReadValue<float>(addr_p1_x + 0x4);
+                p1_y = await c.ReadValue<float>(addr_p1_x + 0x8);
+            }
+            catch (Exception e) when (e is TimeoutException || e is IOException) {
+                await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + e.Message);
+                return;
+            }
+
+            AddressRange range = new AddressRange(engine.ScanningProcessor.StartAddress, engine.ScanningProcessor.ScanLength);
+            List<(uint, float)> results = new List<(uint, float)>();
+            using CancellationTokenSource cts = new CancellationTokenSource();
+            ActivityTask task = ActivityManager.Instance.RunTask(async () => {
+                ActivityTask activity = ActivityManager.Instance.CurrentTask;
+                IActivityProgress prog = activity.Progress;
+                IFeatureIceCubes? iceCubes = c.GetFeatureOrDefault<IFeatureIceCubes>();
+                bool isAlreadyFrozen = false;
+
+                if (iceCubes != null && engine.ScanningProcessor.PauseConsoleDuringScan)
+                    isAlreadyFrozen = await iceCubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
+
+                if (engine.ScanningProcessor.HasDoneFirstScan) {
+                    List<ScanResultViewModel> list = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => engine.ScanningProcessor.GetScanResultsAndQueued());
+                    using PopCompletionStateRangeToken token = prog.CompletionState.PushCompletionRange(0, 1.0 / list.Count);
+                    foreach (ScanResultViewModel result in list) {
+                        activity.CheckCancelled();
+                        prog.CompletionState.OnProgress(1);
+
+                        if (!(result.CurrentValue is DataValueFloat floatval)) {
+                            continue;
+                        }
+
+                        DataValueFloat currVal = (DataValueFloat) await MemoryEngine.ReadDataValue(c, result.Address, floatval);
+                        if (Math.Abs(currVal.Value - p1_x) <= radius) {
+                            results.Add((result.Address, currVal.Value));
+                        }
+                    }
+                }
+                else {
+                    using PopCompletionStateRangeToken token = prog.CompletionState.PushCompletionRange(0, 1.0 / range.Length);
+                    bool isLE = c.IsLittleEndian;
+                    byte[] buffer = new byte[0x10008]; // read 8 over for Z and Y axis
+                    int chunkIdx = 0;
+                    uint totalChunks = range.Length / 0x10000;
+                    for (uint addr = range.BaseAddress, end = range.EndAddress; addr < end; addr += 0x10000) {
+                        activity.CheckCancelled();
+                        prog.CompletionState.OnProgress(0x10000);
+                        prog.Text = $"Chunk {++chunkIdx}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(range.Length - (end - addr), false)}/{ValueScannerUtils.ByteFormatter.ToString(range.Length, false)})";
+                        await c.ReadBytes(addr, buffer, 0, buffer.Length);
+
+                        float x, z, y;
+                        for (int offset = 0; offset < (buffer.Length - 0x8) /* X10008-8=65535 */; offset += 4) {
+                            x = AsFloat(buffer, offset, isLE);
+                            z = AsFloat(buffer, offset + 4, isLE);
+                            y = AsFloat(buffer, offset + 8, isLE);
+                            if (Math.Abs(x - p1_x) <= radius && Math.Abs(z - p1_z) <= radius && Math.Abs(y - p1_y) <= radius) {
+                                if (!(Math.Abs(x - p1_x) < 0.001F) && !(Math.Abs(z - p1_z) < 0.001F) && !(Math.Abs(y - p1_y) < 0.001F)) {
+                                    if (addr + (uint) offset != addr_p1_x)
+                                        results.Add((addr + (uint) offset, x));
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+                if (iceCubes != null && !isAlreadyFrozen && engine.ScanningProcessor.PauseConsoleDuringScan)
+                    await iceCubes.DebugUnFreeze();
+                return;
+
+                static float AsFloat(byte[] buffer, int offset, bool isDataLittleEndian) {
+                    float value = Unsafe.ReadUnaligned<float>(ref buffer[offset]);
+                    if (BitConverter.IsLittleEndian != isDataLittleEndian) {
+                        MemoryMarshal.CreateSpan(ref Unsafe.As<float, byte>(ref value), sizeof(float)).Reverse();
+                    }
+
+                    return value;
+                }
+            }, cts);
+
+            await task;
+            if (task.Exception is TimeoutException || task.Exception is IOException) {
+                await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + task.Exception.Message);
+            }
+
+            if (results.Count > 0) {
+                engine.ScanningProcessor.ResetScan();
+                engine.ScanningProcessor.DataType = DataType.Float;
+                engine.ScanningProcessor.FloatScanOption = FloatScanOption.RoundToQuery;
+                engine.ScanningProcessor.NumericScanType = NumericScanType.Between;
+                engine.ScanningProcessor.InputA = (p1_x - radius).ToString("F4");
+                engine.ScanningProcessor.InputB = (p1_x + radius).ToString("F4");
+                engine.ScanningProcessor.ScanResults.AddRange(results.Select(x => new ScanResultViewModel(engine.ScanningProcessor, x.Item1, DataType.Float, NumericDisplayType.Normal, StringType.ASCII, new DataValueFloat(x.Item2))));
+                engine.ScanningProcessor.HasDoneFirstScan = true;
+            }
+            else {
+                await IMessageDialogService.Instance.ShowMessage("No results!", "Did not find anything nearby");
+            }
+        });
     }
 }
 
