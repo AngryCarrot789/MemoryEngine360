@@ -31,6 +31,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
@@ -87,13 +88,16 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
                     window.SequenceSelectionManager.Clear();
                     window.SequenceSelectionManager.SetSelection(this);
                 }
-
+                
                 e.Handled = true;
             }
 
             base.OnPointerPressed(e);
-            if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed && this.IsSelected) {
-                window.SetPrimaryTaskSequencer(this);
+            if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed) {
+                IListSelectionManager<ITaskSequenceEntryUI> sel = window.SequenceSelectionManager;
+                if (sel.Count == 1 && sel.IsSelected(this)) {
+                    window.SetPrimaryTaskSequencer(this);
+                }
             }
         }
         else {

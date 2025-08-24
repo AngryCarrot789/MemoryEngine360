@@ -580,7 +580,7 @@ public partial class EngineView : UserControl, IEngineUI {
                         }
                         else {
                             c.Notification?.Close();
-                            await CommandManager.Instance.Execute("commands.memengine.OpenConsoleConnectionDialogCommand", c.ContextData!);
+                            await CommandManager.Instance.Execute("commands.memengine.OpenConsoleConnectionDialogCommand", c.ContextData!, null, null);
                         }
                     }) {
                         ToolTip = "Attempt to reconnect to the console, using the same options (e.g. IP address) specified when it was opened initially." + Environment.NewLine +

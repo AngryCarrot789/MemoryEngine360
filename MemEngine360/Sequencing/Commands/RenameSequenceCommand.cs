@@ -24,24 +24,23 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class RenameSequenceCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceEntryUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceEntryUI? seq))
+        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? manager))
             return Executability.Invalid;
 
-        if (ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? manager) && manager.PrimarySelectedSequence != seq)
-            return Executability.ValidButCannotExecute;
-
-        return Executability.Valid;
+        return manager.PrimarySelectedSequence != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceEntryUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceEntryUI? seq))
-            return;
-        if (ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? manager) && manager.PrimarySelectedSequence != seq)
+        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? manager))
             return;
 
-        SingleUserInputInfo info = new SingleUserInputInfo("Rename sequence", null, "New Name", seq.TaskSequence.DisplayName);
+        ITaskSequenceEntryUI? sequenceUI = manager.PrimarySelectedSequence;
+        if (sequenceUI == null)
+            return;
+
+        SingleUserInputInfo info = new SingleUserInputInfo("Rename sequence", null, "New Name", sequenceUI.TaskSequence.DisplayName);
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-            seq.TaskSequence.DisplayName = info.Text;
+            sequenceUI.TaskSequence.DisplayName = info.Text;
         }
     }
 }
