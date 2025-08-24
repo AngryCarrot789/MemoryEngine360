@@ -23,7 +23,7 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DuplicateConditionsCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui) || !ui.IsValid) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui) || !ui.IsValid) {
             return Executability.Invalid;
         }
         
@@ -33,12 +33,12 @@ public class DuplicateConditionsCommand : Command {
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return Task.CompletedTask;
         }
 
         // Create list of clones, ordered by their index in the sequence list
-        ITaskSequenceEntryUI? sequence = ui.PrimarySelectedSequence;
+        ITaskSequenceItemUI? sequence = ui.PrimarySelectedSequence;
         if (sequence == null || sequence.TaskSequence.IsRunning) {
             return Task.CompletedTask;
         }
@@ -54,7 +54,7 @@ public class DuplicateConditionsCommand : Command {
             offset++;
         }
 
-        ui.ConditionSelectionManager.SetSelection(clones.Select(x => ui.GetConditionControl(x.Cond)));
+        ui.ConditionSelectionManager.SetSelection(clones.Select(x => ui.ConditionItemMap.GetControl(x.Cond)));
         return Task.CompletedTask;
     }
 }

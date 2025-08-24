@@ -127,8 +127,8 @@
     </ControlTheme>
 
     <ControlTheme x:Key="{x:Type layers:AddressTableTreeViewItem}" TargetType="{x:Type layers:AddressTableTreeViewItem}">
-        <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone4.Border.Static}"/>
+        <Setter Property="Background" Value="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Item.Background}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.ItemSeparator}"/>
         <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
         <Setter Property="Margin" Value="0"/>
@@ -205,10 +205,10 @@
             <Setter Property="Padding" Value="2"/>
         </Style>
         <Style Selector="^:selected /template/ Border#SelectionBorder">
-            <Setter Property="Background" Value="{DynamicResource TreeViewItem.Selected.Background}"/>
+            <Setter Property="Background" Value="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Item.Background.Selected}"/>
         </Style>
         <Style Selector="^:selected /template/ Border#SelectionBorder[IsFocused=False]">
-            <Setter Property="Background" Value="{DynamicResource TreeViewItem.Selected.Inactive.Background}"/>
+            <Setter Property="Background" Value="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Item.Background.Selected.Inactive}"/>
         </Style>
         <Style Selector="^:empty /template/ ToggleButton#PART_ExpandCollapseChevron">
             <Setter Property="IsEnabled" Value="False"/>

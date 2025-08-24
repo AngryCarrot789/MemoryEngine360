@@ -24,17 +24,17 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class RenameSequenceCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? manager))
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? manager))
             return Executability.Invalid;
 
         return manager.PrimarySelectedSequence != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? manager))
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? manager))
             return;
 
-        ITaskSequenceEntryUI? sequenceUI = manager.PrimarySelectedSequence;
+        ITaskSequenceItemUI? sequenceUI = manager.PrimarySelectedSequence;
         if (sequenceUI == null)
             return;
 

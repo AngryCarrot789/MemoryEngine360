@@ -22,10 +22,10 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.Sequencing;
 
 /// <summary>
-/// An actual sequence item in the sequencer UI
+/// Represents the UI object within the task sequencer list
 /// </summary>
-public interface ITaskSequenceEntryUI {
-    public static readonly DataKey<ITaskSequenceEntryUI> DataKey = DataKey<ITaskSequenceEntryUI>.Create(nameof(ITaskSequenceEntryUI));
+public interface ITaskSequenceItemUI {
+    public static readonly DataKey<ITaskSequenceItemUI> DataKey = DataKey<ITaskSequenceItemUI>.Create(nameof(ITaskSequenceItemUI));
     
     /// <summary>
     /// Gets this entry's sequence model

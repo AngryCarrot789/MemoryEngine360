@@ -30,7 +30,7 @@ public static class TaskSequenceContextRegistry {
         actions.AddCommand("commands.sequencer.RunSequenceCommand", "Run");
         
         actions.AddDynamicSubGroup((group, ctx, items) => {
-            if (ITaskSequenceManagerUI.DataKey.TryGetContext(ctx, out ITaskSequenceManagerUI? ui)) {
+            if (ITaskSequencerUI.DataKey.TryGetContext(ctx, out ITaskSequencerUI? ui)) {
                 if (ui.SequenceSelectionManager.Count == 1) {
                     items.Add(new CommandContextEntry("commands.sequencer.StopSpecificSequenceCommand", "Cancel"));
                 }
@@ -45,7 +45,7 @@ public static class TaskSequenceContextRegistry {
         FixedContextGroup edit = Registry.GetFixedGroup("general");
         edit.AddHeader("Edit");
         edit.AddDynamicSubGroup((group, ctx, items) => {
-            if (ITaskSequenceManagerUI.DataKey.TryGetContext(ctx, out ITaskSequenceManagerUI? ui)) {
+            if (ITaskSequencerUI.DataKey.TryGetContext(ctx, out ITaskSequencerUI? ui)) {
                 if (ui.PrimarySelectedSequence != null)
                     items.Add(new CommandContextEntry("commands.sequencer.RenameSequenceCommand", "Rename"));
             }
@@ -57,7 +57,7 @@ public static class TaskSequenceContextRegistry {
         // also sometimes buggy with no hope of being truly fixed because i'm not smart enough to figure it out.
         // Check out the method AdvancedMenuService.RemoveItemNodesWithDynamicSupport for nightmare fuel
         edit.AddCommand("commands.sequencer.DeleteSequenceSelectionCommand", "Delete Sequence(s)").
-             AddSimpleContextUpdate(ITaskSequenceManagerUI.DataKey, (e, ui) => {
+             AddSimpleContextUpdate(ITaskSequencerUI.DataKey, (e, ui) => {
                  e.DisplayName = ui != null && ui.SequenceSelectionManager.Count == 1 ? "Delete Sequence" : "Delete Sequences";
              });
 

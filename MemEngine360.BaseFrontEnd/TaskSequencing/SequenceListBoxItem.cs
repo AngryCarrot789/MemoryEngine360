@@ -36,7 +36,7 @@ using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
-public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSequenceEntryUI {
+public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSequenceItemUI {
     private readonly IBinder<TaskSequence> nameBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.DisplayNameChanged), (b) => ((SequenceListBoxItem) b.Control).Content = b.Model.DisplayName);
 
     private readonly IBinder<TaskSequence> busyLockPriorityBinder = new AvaloniaPropertyToEventPropertyBinder<TaskSequence>(CheckBox.IsCheckedProperty, nameof(TaskSequence.HasBusyLockPriorityChanged), (b) => {
@@ -94,9 +94,9 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
 
             base.OnPointerPressed(e);
             if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed) {
-                IListSelectionManager<ITaskSequenceEntryUI> sel = window.SequenceSelectionManager;
+                IListSelectionManager<ITaskSequenceItemUI> sel = window.SequenceSelectionManager;
                 if (sel.Count == 1 && sel.IsSelected(this)) {
-                    window.SetPrimaryTaskSequencer(this);
+                    window.UpdatePrimaryTaskSequencer(this);
                 }
             }
         }
@@ -128,7 +128,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
         this.myEngine = this.Model!.Manager!.MemoryEngine;
         this.Model.IsRunningChanged += this.OnIsRunningChanged;
 
-        DataManager.GetContextData(this).Set(ITaskSequenceEntryUI.DataKey, this);
+        DataManager.GetContextData(this).Set(ITaskSequenceItemUI.DataKey, this);
         AdvancedContextMenu.SetContextRegistry(this, TaskSequenceContextRegistry.Registry);
     }
 
@@ -137,7 +137,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
         this.Model!.IsRunningChanged -= this.OnIsRunningChanged;
         AdvancedContextMenu.SetContextRegistry(this, null);
 
-        DataManager.GetContextData(this).Set(ITaskSequenceEntryUI.DataKey, null);
+        DataManager.GetContextData(this).Set(ITaskSequenceItemUI.DataKey, null);
     }
 
     protected override void OnRemovedFromList() {

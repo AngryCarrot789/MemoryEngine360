@@ -26,7 +26,7 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class NewSequenceCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return Executability.Invalid;
         }
 
@@ -34,7 +34,7 @@ public class NewSequenceCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return;
         }
 
@@ -44,7 +44,7 @@ public class NewSequenceCommand : Command {
         };
             
         sequences.Add(sequence);
-        ui.SequenceSelectionManager.SetSelection(ui.GetSequenceControl(sequence));
+        ui.SequenceSelectionManager.SetSelection(ui.TaskSequenceItemMap.GetControl(sequence));
         
         SingleUserInputInfo info = new SingleUserInputInfo("New sequence", "What do you want to call it?", sequence.DisplayName);
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {

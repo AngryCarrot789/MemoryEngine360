@@ -23,7 +23,7 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DuplicateOperationsCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui) || !ui.IsValid) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui) || !ui.IsValid) {
             return Executability.Invalid;
         }
 
@@ -33,12 +33,12 @@ public class DuplicateOperationsCommand : Command {
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return Task.CompletedTask;
         }
 
         // Create list of clones, ordered by their index in the sequence list
-        ITaskSequenceEntryUI? sequence = ui.PrimarySelectedSequence;
+        ITaskSequenceItemUI? sequence = ui.PrimarySelectedSequence;
         if (sequence == null || sequence.TaskSequence.IsRunning) {
             return Task.CompletedTask;
         }
@@ -54,7 +54,7 @@ public class DuplicateOperationsCommand : Command {
         
         // virtualization of task sequence list box items not implemented yet, and there's no reason
         // to do it since I doubt anyone will use enough to where it makes a difference
-        ui.OperationSelectionManager.SetSelection(clones.Select(x => ui.GetOperationControl(x.Operation)));
+        ui.OperationSelectionManager.SetSelection(clones.Select(x => ui.OperationItemMap.GetControl(x.Operation)));
         return Task.CompletedTask;
     }
 }

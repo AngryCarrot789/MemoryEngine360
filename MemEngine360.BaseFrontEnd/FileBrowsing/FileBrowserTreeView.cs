@@ -24,7 +24,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
 using MemEngine360.Engine.FileBrowsing;
-using PFXToolKitUI.Avalonia;
+using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 
@@ -35,12 +35,12 @@ public sealed class FileBrowserTreeView : TreeView {
     public static readonly StyledProperty<IBrush?> ColumnSeparatorBrushProperty = AvaloniaProperty.Register<FileBrowserTreeView, IBrush?>(nameof(ColumnSeparatorBrush));
     
     internal readonly Stack<FileBrowserTreeViewItem> itemCache;
-    internal readonly ModelControlDictionary<BaseFileTreeNode, FileBrowserTreeViewItem> itemMap;
+    internal readonly ModelControlMap<BaseFileTreeNode, FileBrowserTreeViewItem> itemMap;
     private readonly AvaloniaList<FileBrowserTreeViewItem> selectedItemsList;
 
     private IDisposable? collectionChangeListener;
     
-    public IModelControlDictionary<BaseFileTreeNode, FileBrowserTreeViewItem> ItemMap => this.itemMap;
+    public IModelControlMap<BaseFileTreeNode, FileBrowserTreeViewItem> ItemMap => this.itemMap;
 
     public FileTreeManager? FileTreeManager {
         get => this.GetValue(FileTreeManagerProperty);
@@ -55,7 +55,7 @@ public sealed class FileBrowserTreeView : TreeView {
     private ScrollViewer? PART_ScrollViewer;
 
     public FileBrowserTreeView() {
-        this.itemMap = new ModelControlDictionary<BaseFileTreeNode, FileBrowserTreeViewItem>();
+        this.itemMap = new ModelControlMap<BaseFileTreeNode, FileBrowserTreeViewItem>();
         this.itemCache = new Stack<FileBrowserTreeViewItem>();
         this.SelectedItems = this.selectedItemsList = new AvaloniaList<FileBrowserTreeViewItem>();
         DragDrop.SetAllowDrop(this, true);

@@ -25,7 +25,7 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DeleteOperationSelectionCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui) || !ui.IsValid) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui) || !ui.IsValid) {
             return Executability.Invalid;
         }
 
@@ -33,7 +33,7 @@ public class DeleteOperationSelectionCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return;
         }
 

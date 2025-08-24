@@ -25,11 +25,11 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DeleteSequenceSelectionCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return ITaskSequenceManagerUI.DataKey.GetExecutabilityForPresence(e.ContextData);
+        return ITaskSequencerUI.DataKey.GetExecutabilityForPresence(e.ContextData);
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return;
         }
 
@@ -46,7 +46,7 @@ public class DeleteSequenceSelectionCommand : Command {
         }
     }
 
-    public static async Task<bool> TryStopActiveSequences(ITaskSequenceManagerUI ui) {
+    public static async Task<bool> TryStopActiveSequences(ITaskSequencerUI ui) {
         if (ui.Manager.ActiveSequences.Count > 0) {
             bool result = await TryStopSequences(ui.Manager.ActiveSequences.ToList(), "Sequences still running", "One or more sequences are running and cannot be deleted. Do you want to stop them and then delete?");
             Debug.Assert(result == ui.Manager.ActiveSequences.Count < 1);

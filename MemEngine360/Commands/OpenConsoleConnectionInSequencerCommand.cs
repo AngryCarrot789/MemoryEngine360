@@ -29,7 +29,7 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
     private IOpenConnectionView? myDialog;
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui) || !ui.IsValid) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui) || !ui.IsValid) {
             return Executability.Invalid;
         }
 
@@ -42,7 +42,7 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
             return;
         }
 
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return;
         }
 

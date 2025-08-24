@@ -23,7 +23,7 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class StopSelectedSequencesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui))
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui))
             return Executability.Invalid;
 
         if (ui.SequenceSelectionManager.SelectedItemList.Any(x => x.TaskSequence.IsRunning))
@@ -33,7 +33,7 @@ public class StopSelectedSequencesCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui))
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui))
             return;
 
         List<TaskSequence> sequences = ui.SequenceSelectionManager.SelectedItemList.Select(x => x.TaskSequence).ToList();

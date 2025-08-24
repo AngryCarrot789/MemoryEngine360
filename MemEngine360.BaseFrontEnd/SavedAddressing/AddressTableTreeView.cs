@@ -24,7 +24,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
 using MemEngine360.Engine.SavedAddressing;
-using PFXToolKitUI.Avalonia;
+using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 
@@ -39,12 +39,12 @@ public sealed class AddressTableTreeView : TreeView {
     // public static readonly StyledProperty<GridLength> ColumnWidth3Property = AvaloniaProperty.Register<AddressTableTreeView, GridLength>("ColumnWidth3", new GridLength(150));
     
     internal readonly Stack<AddressTableTreeViewItem> itemCache;
-    internal readonly ModelControlDictionary<BaseAddressTableEntry, AddressTableTreeViewItem> itemMap;
+    internal readonly ModelControlMap<BaseAddressTableEntry, AddressTableTreeViewItem> itemMap;
     private readonly AvaloniaList<AddressTableTreeViewItem> selectedItemsList;
 
     private IDisposable? collectionChangeListener;
     
-    public IModelControlDictionary<BaseAddressTableEntry, AddressTableTreeViewItem> ItemMap => this.itemMap;
+    public IModelControlMap<BaseAddressTableEntry, AddressTableTreeViewItem> ItemMap => this.itemMap;
 
     // public GridLength ColumnWidth0 { get => this.GetValue(ColumnWidth0Property); set => this.SetValue(ColumnWidth0Property, value); }
     // public GridLength ColumnWidth1 { get => this.GetValue(ColumnWidth1Property); set => this.SetValue(ColumnWidth1Property, value); }
@@ -64,7 +64,7 @@ public sealed class AddressTableTreeView : TreeView {
     private ScrollViewer? PART_ScrollViewer;
 
     public AddressTableTreeView() {
-        this.itemMap = new ModelControlDictionary<BaseAddressTableEntry, AddressTableTreeViewItem>();
+        this.itemMap = new ModelControlMap<BaseAddressTableEntry, AddressTableTreeViewItem>();
         this.itemCache = new Stack<AddressTableTreeViewItem>();
         this.SelectedItems = this.selectedItemsList = new AvaloniaList<AddressTableTreeViewItem>();
         DragDrop.SetAllowDrop(this, true);

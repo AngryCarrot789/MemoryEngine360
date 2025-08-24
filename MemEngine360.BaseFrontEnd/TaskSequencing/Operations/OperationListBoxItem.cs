@@ -30,6 +30,7 @@ using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Interactivity;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations;
 
@@ -63,9 +64,10 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
 
             base.OnPointerPressed(e);
 
-            if (this.ListBox.GetVisualRoot() is TaskSequencerWindow window) {
-                if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed && this.IsSelected) {
-                    window.SetPrimaryOperation(this);
+            if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed && this.ListBox.GetVisualRoot() is TaskSequencerWindow window) {
+                IListSelectionManager<IOperationItemUI> sel = window.OperationSelectionManager;
+                if (sel.Count == 1 && sel.IsSelected(this)) {
+                    window.UpdatePrimarySelectedOperation(this);
                 }
             }
         }

@@ -22,7 +22,7 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.Sequencing;
 
 /// <summary>
-/// The UI interface for an operation in a sequence
+/// Represents the UI object within the task sequencer's operations list
 /// </summary>
 public interface IOperationItemUI {
     public static readonly DataKey<IOperationItemUI> DataKey = DataKey<IOperationItemUI>.Create("IOperationItemUI");

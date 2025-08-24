@@ -26,7 +26,7 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class ConnectToDedicatedConsoleCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceEntryUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceEntryUI? seq)) {
+        if (!ITaskSequenceItemUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceItemUI? seq)) {
             return Executability.Invalid;
         }
 
@@ -34,7 +34,7 @@ public class ConnectToDedicatedConsoleCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceEntryUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceEntryUI? seqUI)) {
+        if (!ITaskSequenceItemUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceItemUI? seqUI)) {
             return;
         }
 

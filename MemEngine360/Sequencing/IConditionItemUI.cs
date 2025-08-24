@@ -22,7 +22,7 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.Sequencing;
 
 /// <summary>
-/// A UI object for a condition item
+/// Represents the UI object within the task sequencer's conditions list
 /// </summary>
 public interface IConditionItemUI {
     public static readonly DataKey<IConditionItemUI> DataKey = DataKey<IConditionItemUI>.Create("IConditionItemUI");

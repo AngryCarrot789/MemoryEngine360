@@ -22,7 +22,7 @@
                  Width="960" Height="640"
                  Title="Task Sequencer"
                  sav:UIInputManager.FocusPath="SequencerWindow"
-                 TitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}">
+                 TitleBarBrush="{DynamicResource ABrush.MemEngine.Sequencer.TitleBarBackground}">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
         <Grid>
             <Grid.ColumnDefinitions>
@@ -30,7 +30,7 @@
                 <ColumnDefinition Width="1"/>
                 <ColumnDefinition Width="*" MinWidth="200"/>
             </Grid.ColumnDefinitions>
-            <c:GroupBox Grid.Column="0" Background="{DynamicResource ABrush.Tone4.Background.Static}"
+            <c:GroupBox Grid.Column="0" Background="{DynamicResource ABrush.MemEngine.Sequencer.Sequences.Background}"
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
@@ -223,7 +223,7 @@
                 </local:SequenceListBox>
             </c:GroupBox>
 
-            <c:GroupBox Grid.Column="2" Background="{DynamicResource ABrush.Tone4.Background.Static}"
+            <c:GroupBox Grid.Column="2" Background="Transparent"
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
@@ -231,7 +231,7 @@
                 <c:GroupBox.Header>
                     <DockPanel HorizontalSpacing="3">
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="3">
-                            <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                            <Button Padding="5,2"
                                     BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                     tt:ToolTipEx.Tip="Adds an operation that sets memory (e.g. an integer or string) at an address"
                                     Click="Button_InsertSetMemory">
@@ -239,23 +239,22 @@
                                     <TextBlock Text="Set Memory"/>
                                 </DockPanel>
                             </Button>
-                            <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                            <Button Padding="5,2"
                                     BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                     Content="Delay" tt:ToolTipEx.Tip="Adds a pause into the sequence"
                                     Click="Button_InsertDelay"/>
-                            <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                            <Button Padding="5,2"
                                     BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                     Content="Jump To" tt:ToolTipEx.Tip="Adds a jump operation that will jump to a label"
                                     Click="Button_InsertJumpTo"/>
-                            <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                            <Button Padding="5,2"
                                     BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                     Content="Label" tt:ToolTipEx.Tip="Adds a label that can be jumped to"
                                     Click="Button_InsertLabel"/>
-                            <Button Padding="5,2" Background="{DynamicResource ABrush.Tone7.Background.Static}"
+                            <Button Padding="5,2"
                                     BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                     Content="Stop Seq" tt:ToolTipEx.Tip="Adds an operation that stops the sequence. Ideally should be used with labels and jumps"
                                     Click="Button_InsertStopSequence"/>
-                            <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,1"/>
                             <avc:IconButton Padding="2" Width="24" BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                             tt:ToolTipEx.Tip="Clears all operations"
                                             Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"
@@ -279,7 +278,7 @@
                                           Grid.Row="0"
                                           BorderThickness="0"
                                           FontFamily="{StaticResource FontOxanium}"
-                                          Background="{DynamicResource ABrush.Tone1.Background.Static}"
+                                          Background="{DynamicResource ABrush.MemEngine.Sequencer.Operations.Background}"
                                           SelectionMode="Multiple"
                                           CanDragItemPosition="True"
                                           ScrollViewer.VerticalScrollBarVisibility="Visible"

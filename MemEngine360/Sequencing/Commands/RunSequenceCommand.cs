@@ -31,7 +31,7 @@ public class RunSequenceCommand : Command {
     }
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceEntryUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceEntryUI? seq)) {
+        if (!ITaskSequenceItemUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceItemUI? seq)) {
             return Executability.Invalid;
         }
 
@@ -48,7 +48,7 @@ public class RunSequenceCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceEntryUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceEntryUI? seq)) {
+        if (!ITaskSequenceItemUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceItemUI? seq)) {
             return;
         }
 

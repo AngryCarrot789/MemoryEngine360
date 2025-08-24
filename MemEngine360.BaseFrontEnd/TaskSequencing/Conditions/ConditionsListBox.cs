@@ -52,7 +52,7 @@ public class ConditionsListBox : ModelBasedListBox<BaseSequenceCondition> {
     }
 
     static ConditionsListBox() {
-        ConditionsHostProperty.Changed.AddClassHandler<ConditionsListBox, IConditionsHost?>((s, e) => s.OnTaskSequenceChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+        ConditionsHostProperty.Changed.AddClassHandler<ConditionsListBox, IConditionsHost?>((s, e) => s.OnConditionsHostChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     protected override ModelBasedListBoxItem<BaseSequenceCondition> CreateItem() {
@@ -63,7 +63,7 @@ public class ConditionsListBox : ModelBasedListBox<BaseSequenceCondition> {
         this.ConditionsHost?.Conditions.Move(oldIndex, newIndex);
     }
 
-    private void OnTaskSequenceChanged(IConditionsHost? oldHost, IConditionsHost? newHost) {
+    private void OnConditionsHostChanged(IConditionsHost? oldHost, IConditionsHost? newHost) {
         this.SetItemsSource(newHost?.Conditions);
     }
 

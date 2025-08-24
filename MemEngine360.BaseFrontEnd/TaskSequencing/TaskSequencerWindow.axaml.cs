@@ -29,6 +29,7 @@ using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
+using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
@@ -39,12 +40,10 @@ using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
-public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI {
+public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerUI {
     public static readonly StyledProperty<TaskSequencerManager?> TaskSequencerManagerProperty = AvaloniaProperty.Register<TaskSequencerWindow, TaskSequencerManager?>(nameof(TaskSequencerManager));
-
-    private readonly IBinder<TaskSequence> useDedicatedConnectionBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.UseEngineConnectionChanged), (b) => {
-        ((CheckBox) b.Control).IsChecked = !b.Model.UseEngineConnection;
-    });
+    private readonly IBinder<TaskSequence> useDedicatedConnectionBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.UseEngineConnectionChanged), (b) => ((CheckBox) b.Control).IsChecked = !b.Model.UseEngineConnection);
+    private readonly IBinder<TaskSequence> selectedSequenceDisplayNameBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.DisplayNameChanged), (b) => ((TextBlock) b.Control).Text = b.Model.DisplayName);
 
     private readonly IBinder<TaskSequence> currentConnectionTypeBinder = new MultiEventUpdateBinder<TaskSequence>([nameof(TaskSequence.UseEngineConnectionChanged), nameof(TaskSequence.DedicatedConnectionChanged)], (b) => {
         ((TextBlock) b.Control).Opacity = b.Model.UseEngineConnection ? 0.6 : 1.0;
@@ -64,27 +63,34 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
     public bool IsValid => this.TaskSequencerManager != null;
 
     public TaskSequencerManager Manager => this.TaskSequencerManager ?? throw new Exception("Window Closed");
+    public IModelControlMap<TaskSequence, ITaskSequenceItemUI> TaskSequenceItemMap { get; }
+    public IModelControlMap<BaseSequenceOperation, IOperationItemUI> OperationItemMap { get; }
+    public IModelControlMap<BaseSequenceCondition, IConditionItemUI> ConditionItemMap { get; }
 
-    public IListSelectionManager<ITaskSequenceEntryUI> SequenceSelectionManager => this.PART_SequenceListBox.ControlSelectionManager;
+    public IListSelectionManager<ITaskSequenceItemUI> SequenceSelectionManager => this.PART_SequenceListBox.ControlSelectionManager;
 
     public IListSelectionManager<IOperationItemUI> OperationSelectionManager => this.PART_OperationListBox.ControlSelectionManager;
 
     public IListSelectionManager<IConditionItemUI> ConditionSelectionManager => this.PART_ConditionsListBox.ControlSelectionManager;
 
-
-    public ITaskSequenceEntryUI? PrimarySelectedSequence { get; private set; }
+    public ITaskSequenceItemUI? PrimarySelectedSequence { get; private set; }
 
     public IOperationItemUI? PrimarySelectedOperation { get; private set; }
+    
+    private readonly ConditionSourceDisplayNamePresenter conditionSourceDisplayNamePresenter;
 
     public TaskSequencerWindow() {
         this.InitializeComponent();
         this.PART_OperationListBox.TaskSequencerUI = this;
-
         this.SequenceSelectionManager.LightSelectionChanged += this.OnSequenceSelectionChanged;
         this.OperationSelectionManager.LightSelectionChanged += this.OnOperationSelectionChanged;
 
+        this.TaskSequenceItemMap = CastingModelControlMap.CreateUnsafe<TaskSequence, TaskSequence, ModelBasedListBoxItem<TaskSequence>, ITaskSequenceItemUI>(this.PART_SequenceListBox.ItemMap);
+        this.OperationItemMap = CastingModelControlMap.CreateUnsafe<BaseSequenceOperation, BaseSequenceOperation, ModelBasedListBoxItem<BaseSequenceOperation>, IOperationItemUI>(this.PART_OperationListBox.ItemMap);
+        this.ConditionItemMap = CastingModelControlMap.CreateUnsafe<BaseSequenceCondition, BaseSequenceCondition, ModelBasedListBoxItem<BaseSequenceCondition>, IConditionItemUI>(this.PART_ConditionsListBox.ItemMap);
+
         this.PART_UseDedicatedConnection.Command = new AsyncRelayCommand(async () => {
-            ITaskSequenceEntryUI? seqUI = this.PrimarySelectedSequence;
+            ITaskSequenceItemUI? seqUI = this.PrimarySelectedSequence;
             if (seqUI == null || seqUI.TaskSequence.IsRunning) {
                 return;
             }
@@ -103,17 +109,29 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
                 seq.UseEngineConnection = true;
             }
         }, () => {
-            ITaskSequenceEntryUI? seqUI = this.PrimarySelectedSequence;
+            ITaskSequenceItemUI? seqUI = this.PrimarySelectedSequence;
             return seqUI != null && !seqUI.TaskSequence.IsRunning;
         });
 
         this.useDedicatedConnectionBinder.AttachControl(this.PART_UseDedicatedConnection);
         this.currentConnectionTypeBinder.AttachControl(this.PART_ActiveConnectionTextBoxRO);
 
-        DataManager.GetContextData(this).Set(ITaskSequenceManagerUI.DataKey, this);
+        DataManager.GetContextData(this).Set(ITaskSequencerUI.DataKey, this);
         if (Design.IsDesignMode) {
             this.TaskSequencerManager = new MemoryEngine().TaskSequencerManager;
         }
+
+        this.conditionSourceDisplayNamePresenter = new ConditionSourceDisplayNamePresenter(this);
+        this.selectedSequenceDisplayNameBinder.UpdateControlWithoutModel += b => {
+            int selectionCount = this.SequenceSelectionManager.Count;
+            ((TextBlock) b.Control).Text = selectionCount == 0 ? "(No sequence selected)" : "(Too many sequences selected)";
+        };
+
+        this.selectedSequenceDisplayNameBinder.AttachControl(this.PART_SelectedSequenceTextBlock);
+    }
+
+    static TaskSequencerWindow() {
+        TaskSequencerManagerProperty.Changed.AddClassHandler<TaskSequencerWindow, TaskSequencerManager?>((s, e) => s.OnTaskSequencerManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     protected override void OnClosed(EventArgs e) {
@@ -121,29 +139,28 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
         this.TaskSequencerManager = null;
         base.OnClosed(e);
     }
-    
-    public void SetPrimaryTaskSequencer(ITaskSequenceEntryUI? item) {
+
+    public void UpdatePrimaryTaskSequencer(ITaskSequenceItemUI? item) {
         this.PART_OperationListBox.TaskSequence = item?.TaskSequence;
         this.PART_ConditionsListBox.TaskSequence = item?.TaskSequence;
         this.PART_ConditionsListBox.ConditionsHost = item?.TaskSequence;
-        
-        int selectionCount = this.SequenceSelectionManager.Count;
-        this.PART_SelectedSequenceTextBlock.Text = item?.TaskSequence.DisplayName ?? (selectionCount == 0 ? "(No sequence selected)" : "(Too many sequences selected)");
-        this.PART_ConditionSourceName.Text = item?.TaskSequence.DisplayName ?? (selectionCount == 0 ? "(No sequence selected)" : "(Too many sequences selected)");
 
-        ITaskSequenceEntryUI? oldSequenceUI = this.PrimarySelectedSequence;
+        this.selectedSequenceDisplayNameBinder.SwitchModel(item?.TaskSequence);
+        this.conditionSourceDisplayNamePresenter.SetTaskSequenceSource(item?.TaskSequence);
+
+        ITaskSequenceItemUI? oldSequenceUI = this.PrimarySelectedSequence;
         if (!ReferenceEquals(oldSequenceUI, item)) {
             this.PrimarySelectedSequence = item;
             this.OnPrimarySelectedSequenceChanged(oldSequenceUI, item);
         }
     }
 
-    private void OnSequenceSelectionChanged(ILightSelectionManager<ITaskSequenceEntryUI> sender) {
-        ITaskSequenceEntryUI? newSequenceUI = sender.Count == 1 ? ((IListSelectionManager<ITaskSequenceEntryUI>) sender).SelectedItemList[0] : null;
-        this.SetPrimaryTaskSequencer((SequenceListBoxItem?) newSequenceUI);
+    private void OnSequenceSelectionChanged(ILightSelectionManager<ITaskSequenceItemUI> sender) {
+        ITaskSequenceItemUI? newSequenceUI = sender.Count == 1 ? ((IListSelectionManager<ITaskSequenceItemUI>) sender).SelectedItemList[0] : null;
+        this.UpdatePrimaryTaskSequencer((SequenceListBoxItem?) newSequenceUI);
     }
-    
-    private void OnPrimarySelectedSequenceChanged(ITaskSequenceEntryUI? oldSeqUI, ITaskSequenceEntryUI? newSeqUI) {
+
+    private void OnPrimarySelectedSequenceChanged(ITaskSequenceItemUI? oldSeqUI, ITaskSequenceItemUI? newSeqUI) {
         if (oldSeqUI != null) {
             oldSeqUI.TaskSequence.Progress.TextChanged -= this.OnSequenceProgressTextChanged;
             oldSeqUI.TaskSequence.IsRunningChanged -= this.OnPrimarySequenceIsRunningChanged;
@@ -161,59 +178,41 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
         this.OnSequenceProgressTextChanged(newSeqUI?.TaskSequence.Progress ?? EmptyActivityProgress.Instance);
         ((AsyncRelayCommand) this.PART_UseDedicatedConnection.Command!).RaiseCanExecuteChanged();
 
-        DataManager.GetContextData(this.PART_CurrentSequenceGroupBox).Set(ITaskSequenceEntryUI.DataKey, newSeqUI);
-    }
-    
-    private void OnOperationSelectionChanged(ILightSelectionManager<IOperationItemUI> sender) {
-        IOperationItemUI? newPrimary = sender.Count == 1 ? ((IListSelectionManager<IOperationItemUI>) sender).SelectedItemList[0] : null;
-        this.SetPrimaryOperation(newPrimary);
+        DataManager.GetContextData(this.PART_CurrentSequenceGroupBox).Set(ITaskSequenceItemUI.DataKey, newSeqUI);
     }
 
-    public void SetPrimaryOperation(IOperationItemUI? newPrimary) {
+    private void OnOperationSelectionChanged(ILightSelectionManager<IOperationItemUI> sender) {
+        IOperationItemUI? newPrimary = sender.Count == 1 ? ((IListSelectionManager<IOperationItemUI>) sender).SelectedItemList[0] : null;
+        this.UpdatePrimarySelectedOperation(newPrimary);
+    }
+
+    public void UpdatePrimarySelectedOperation(IOperationItemUI? newPrimary) {
         // I'm too lazy at the moment to replace this rawdogging the properties with Binders.
         // May do it at some point, but it works...
         if (newPrimary != null) {
             this.PART_PrimarySelectedOperationText.Text = $"Editing '{newPrimary.Operation.DisplayName}'";
-            
             this.PART_ConditionsListBox.TaskSequence = newPrimary.Operation.TaskSequence;
             this.PART_ConditionsListBox.ConditionsHost = newPrimary.Operation;
-        
-            // this.PART_SelectedSequenceTextBlock.Text = newPrimary.Operation.DisplayName;
-            this.PART_ConditionSourceName.Text = newPrimary.Operation.DisplayName;
         }
         else {
             this.PART_PrimarySelectedOperationText.Text = this.OperationSelectionManager.Count == 0 ? "(No operation selected)" : "(Too many operations selected)";
-            
             this.PART_ConditionsListBox.TaskSequence = null;
             this.PART_ConditionsListBox.ConditionsHost = null;
+        }
         
-            // this.PART_SelectedSequenceTextBlock.Text = sender.Count == 0 ? "(No operation selected)" : "(Too many operations selected)";
-            this.PART_ConditionSourceName.Text = this.OperationSelectionManager.Count == 0 ? "(No operation selected)" : "(Too many operations selected)";
-        }
-
-        if (this.PrimarySelectedOperation != null) {
-            this.PART_OperationEditorControlsListBox.SetOperation(null);
-            this.PrimarySelectedOperation = null;
-        }
-
-        if (newPrimary != null) {
-            this.PrimarySelectedOperation = newPrimary;
-            this.PART_OperationEditorControlsListBox.SetOperation(newPrimary.Operation);
-        }
+        this.PrimarySelectedOperation = newPrimary;
+        this.conditionSourceDisplayNamePresenter.SetOperationSource(newPrimary?.Operation);
+        this.PART_OperationEditorControlsListBox.SetOperation(newPrimary?.Operation);
     }
 
     private void OnPrimarySequenceIsRunningChanged(TaskSequence sender) {
         ((AsyncRelayCommand) this.PART_UseDedicatedConnection.Command!).RaiseCanExecuteChanged();
     }
 
-    static TaskSequencerWindow() {
-        TaskSequencerManagerProperty.Changed.AddClassHandler<TaskSequencerWindow, TaskSequencerManager?>((s, e) => s.OnTaskSequencerManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
-    }
-
     private void OnTaskSequencerManagerChanged(TaskSequencerManager? oldManager, TaskSequencerManager? newManager) {
         this.PART_SequenceListBox.TaskSequencerManager = newManager;
         if (newManager != null && newManager.Sequences.Count > 0) {
-            this.SequenceSelectionManager.Select((ITaskSequenceEntryUI) this.PART_SequenceListBox.ItemMap.GetControl(newManager.Sequences[0]));
+            this.SequenceSelectionManager.Select((ITaskSequenceItemUI) this.PART_SequenceListBox.ItemMap.GetControl(newManager.Sequences[0]));
         }
 
         if (oldManager != null)
@@ -223,7 +222,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
     }
 
     private void OnEngineConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
-        ITaskSequenceEntryUI? seq = this.PrimarySelectedSequence;
+        ITaskSequenceItemUI? seq = this.PrimarySelectedSequence;
         if (seq != null && seq.TaskSequence.UseEngineConnection)
             this.currentConnectionTypeBinder.UpdateControl();
     }
@@ -237,24 +236,17 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
             this.PrimarySelectedSequence.TaskSequence.Operations.Clear();
     }
 
-    private void Button_InsertDelay(object? sender, RoutedEventArgs e) {
-        this.AddOperationAndSelect(() => new DelayOperation(500));
-    }
+    private void Button_InsertDelay(object? sender, RoutedEventArgs e) => this.AddOperationAndSelect(() => new DelayOperation(500));
 
     private void Button_InsertSetMemory(object? sender, RoutedEventArgs e) {
         this.AddOperationAndSelect(() => new SetMemoryOperation() { Address = new StaticAddress(0x82600000), DataValueProvider = new ConstantDataProvider(new DataValueInt32(125)) });
     }
 
-    private void Button_InsertJumpTo(object? sender, RoutedEventArgs e) {
-        this.AddOperationAndSelect(() => new JumpToLabelOperation());
-    }
+    private void Button_InsertJumpTo(object? sender, RoutedEventArgs e) => this.AddOperationAndSelect(() => new JumpToLabelOperation());
 
-    private void Button_InsertLabel(object? sender, RoutedEventArgs e) {
-        this.AddOperationAndSelect(() => new LabelOperation());
-    }
-    private void Button_InsertStopSequence(object? sender, RoutedEventArgs e) {
-        this.AddOperationAndSelect(() => new StopSequenceOperation());
-    }
+    private void Button_InsertLabel(object? sender, RoutedEventArgs e) => this.AddOperationAndSelect(() => new LabelOperation());
+
+    private void Button_InsertStopSequence(object? sender, RoutedEventArgs e) => this.AddOperationAndSelect(() => new StopSequenceOperation());
 
     private void AddOperationAndSelect(Func<BaseSequenceOperation> factory) {
         if (this.PrimarySelectedSequence != null && !this.PrimarySelectedSequence.TaskSequence.IsRunning) {
@@ -272,17 +264,5 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequenceManagerUI
                 CompareTo = new DataValueInt32(0), CompareType = CompareType.Equals
             });
         }
-    }
-    
-    public ITaskSequenceEntryUI GetSequenceControl(TaskSequence sequence) {
-        return (ITaskSequenceEntryUI) this.PART_SequenceListBox.ItemMap.GetControl(sequence);
-    }
-
-    public IOperationItemUI GetOperationControl(BaseSequenceOperation operation) {
-        return (IOperationItemUI) this.PART_OperationListBox.ItemMap.GetControl(operation);
-    }
-
-    public IConditionItemUI GetConditionControl(BaseSequenceCondition condition) {
-        return (IConditionItemUI) this.PART_ConditionsListBox.ItemMap.GetControl(condition);
     }
 }

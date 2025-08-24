@@ -30,7 +30,7 @@ public static class ConditionsContextRegistry {
         actions.AddCommand("commands.sequencer.EditConditionOutputModeCommand", "Edit output mode");
         actions.AddHeader("General");
         actions.AddCommand("commands.sequencer.DuplicateConditionsCommand", "Duplicate");
-        actions.AddCommand("commands.sequencer.ToggleConditionEnabledCommand", "Toggle Enabled").AddSimpleContextUpdate(ITaskSequenceManagerUI.DataKey, (e, ui) => {
+        actions.AddCommand("commands.sequencer.ToggleConditionEnabledCommand", "Toggle Enabled").AddSimpleContextUpdate(ITaskSequencerUI.DataKey, (e, ui) => {
             if (ui != null && ui.ConditionSelectionManager.SelectedItemList.Count == 1) {
                 IConditionItemUI item = ui.ConditionSelectionManager.SelectedItemList[0];
                 e.DisplayName = item.Condition.IsEnabled ? "Disable" : "Enable";

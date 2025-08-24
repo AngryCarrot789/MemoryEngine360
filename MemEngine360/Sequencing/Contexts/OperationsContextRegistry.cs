@@ -28,7 +28,7 @@ public static class OperationsContextRegistry {
         FixedContextGroup actions = Registry.GetFixedGroup("operations");
         actions.AddCommand("commands.sequencer.DuplicateOperationsCommand", "Duplicate");
         actions.AddDynamicSubGroup((group, ctx, items) => {
-            if (!ITaskSequenceManagerUI.DataKey.TryGetContext(ctx, out ITaskSequenceManagerUI? ui)) {
+            if (!ITaskSequencerUI.DataKey.TryGetContext(ctx, out ITaskSequencerUI? ui)) {
                 return;
             }
 

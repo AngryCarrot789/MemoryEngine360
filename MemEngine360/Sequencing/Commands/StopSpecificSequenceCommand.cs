@@ -23,14 +23,14 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class StopSpecificSequenceCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceEntryUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceEntryUI? sequence))
+        if (!ITaskSequenceItemUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceItemUI? sequence))
             return Executability.Invalid;
 
         return sequence.TaskSequence.IsRunning ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceEntryUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceEntryUI? seq))
+        if (!ITaskSequenceItemUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceItemUI? seq))
             return;
 
         if (!seq.TaskSequence.IsRunning)

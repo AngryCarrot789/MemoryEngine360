@@ -29,11 +29,11 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class LoadTaskSequencesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return ITaskSequenceManagerUI.DataKey.GetExecutabilityForPresence(e.ContextData);
+        return ITaskSequencerUI.DataKey.GetExecutabilityForPresence(e.ContextData);
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return;
         }
 

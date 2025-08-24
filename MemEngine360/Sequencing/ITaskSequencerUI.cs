@@ -17,13 +17,17 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Sequencing;
 
-public interface ITaskSequenceManagerUI {
-    public static readonly DataKey<ITaskSequenceManagerUI> DataKey = DataKey<ITaskSequenceManagerUI>.Create(nameof(ITaskSequenceManagerUI));
+/// <summary>
+/// Represents the task sequencer window
+/// </summary>
+public interface ITaskSequencerUI {
+    public static readonly DataKey<ITaskSequencerUI> DataKey = DataKey<ITaskSequencerUI>.Create(nameof(ITaskSequencerUI));
 
     bool IsValid { get; }
 
@@ -31,32 +35,32 @@ public interface ITaskSequenceManagerUI {
     /// Gets the task sequence manager
     /// </summary>
     TaskSequencerManager Manager { get; }
-    
-    /// <summary>
-    /// Gets the selection manager for sequences
-    /// </summary>
-    IListSelectionManager<ITaskSequenceEntryUI> SequenceSelectionManager { get; }
-    
-    /// <summary>
-    /// Gets the selection manager for the currently selected operations
-    /// </summary>
+
+    /// <summary>Gets the mode-control map for mapping task sequences to and from the UI object</summary>
+    IModelControlMap<TaskSequence, ITaskSequenceItemUI> TaskSequenceItemMap { get; }
+
+    /// <summary>Gets the mode-control map for mapping operations to and from the UI object</summary>
+    IModelControlMap<BaseSequenceOperation, IOperationItemUI> OperationItemMap { get; }
+
+    /// <summary>Gets the mode-control map for mapping conditions to and from the UI object</summary>
+    IModelControlMap<BaseSequenceCondition, IConditionItemUI> ConditionItemMap { get; }
+
+    /// <summary>Gets the selection manager for the sequences list</summary>
+    IListSelectionManager<ITaskSequenceItemUI> SequenceSelectionManager { get; }
+
+    /// <summary>Gets the selection manager for the operations list</summary>
     IListSelectionManager<IOperationItemUI> OperationSelectionManager { get; }
-    
+
+    /// <summary>Gets the selection manager for the conditions list</summary>
     IListSelectionManager<IConditionItemUI> ConditionSelectionManager { get; }
-    
+
     /// <summary>
     /// Gets the primary selected task sequence item, or null, if there's none selected or more than 1
     /// </summary>
-    ITaskSequenceEntryUI? PrimarySelectedSequence { get; }
-    
+    ITaskSequenceItemUI? PrimarySelectedSequence { get; }
+
     /// <summary>
     /// Gets the primary selected operation, or null, if there's none selected or more than 1
     /// </summary>
     IOperationItemUI? PrimarySelectedOperation { get; }
-    
-    ITaskSequenceEntryUI GetSequenceControl(TaskSequence sequence);
-    
-    IOperationItemUI GetOperationControl(BaseSequenceOperation operation);
-    
-    IConditionItemUI GetConditionControl(BaseSequenceCondition condition);
 }

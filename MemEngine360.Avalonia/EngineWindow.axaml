@@ -7,7 +7,7 @@
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.Avalonia.EngineWindow"
-                 TitleBarBrush="{DynamicResource ABrush.Tone6.Background.Static}"
+                 TitleBarBrush="{DynamicResource ABrush.MemEngine.MainView.TitleBarBackground}"
                  BorderBrush="{DynamicResource PanelBorderBrush}"
                  avalonia1:UIInputManager.FocusPath="EngineWindow"
                  MinWidth="600" MinHeight="520"

@@ -24,7 +24,7 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DuplicateSequencesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui) || !ui.IsValid) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui) || !ui.IsValid) {
             return Executability.Invalid;
         }
 
@@ -32,7 +32,7 @@ public class DuplicateSequencesCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceManagerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceManagerUI? ui)) {
+        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
             return;
         }
 
@@ -49,6 +49,6 @@ public class DuplicateSequencesCommand : Command {
 
         // virtualization of task sequence list box items not implemented yet, and there's no reason
         // to do it since I doubt anyone will use enough to where it makes a difference
-        ui.SequenceSelectionManager.SetSelection(clones.Select(x => ui.GetSequenceControl(x.Seq)));
+        ui.SequenceSelectionManager.SetSelection(clones.Select(x => ui.TaskSequenceItemMap.GetControl(x.Seq)));
     }
 }

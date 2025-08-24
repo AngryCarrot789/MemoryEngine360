@@ -32,7 +32,7 @@ public class SequenceListBox : ModelBasedListBox<TaskSequence> {
         set => this.SetValue(TaskSequencerManagerProperty, value);
     }
 
-    public IListSelectionManager<ITaskSequenceEntryUI> ControlSelectionManager { get; }
+    public IListSelectionManager<ITaskSequenceItemUI> ControlSelectionManager { get; }
 
     protected override bool CanDragItemPositionCore => this.TaskSequencerManager != null;
     
@@ -40,7 +40,7 @@ public class SequenceListBox : ModelBasedListBox<TaskSequence> {
     // used cached items. Not entirely sure why, maybe some internal avalonia
     // states aren't set in new objects but are once they become loaded
     public SequenceListBox() : base(8) {
-        this.ControlSelectionManager = new ModelListBoxSelectionManagerForControl<TaskSequence, ITaskSequenceEntryUI>(this);
+        this.ControlSelectionManager = new ModelListBoxSelectionManagerForControl<TaskSequence, ITaskSequenceItemUI>(this);
     }
 
     static SequenceListBox() {
