@@ -93,7 +93,7 @@ public class StackWalkerServiceImpl : IStackWalker {
         
         Marshal.WriteInt32(connection.RTFUNCInfo, 0, (int) function.Address);
         Marshal.WriteInt32(connection.RTFUNCInfo, 4, (int) (function.Address + function.Size));
-        Marshal.WriteInt64(connection.RTFUNCInfo, 8, (long) function.UnwindInfo);
+        Marshal.WriteInt64(connection.RTFUNCInfo, 8, (long) function.unwindInfoAddressOrData);
         
         return connection.RTFUNCInfo;
     }

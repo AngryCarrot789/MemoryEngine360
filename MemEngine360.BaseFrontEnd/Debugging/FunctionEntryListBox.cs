@@ -34,20 +34,25 @@ public class FunctionEntryListBox : ModelBasedListBox<FunctionCallEntry> {
     protected override ModelBasedListBoxItem<FunctionCallEntry> CreateItem() => new FunctionEntryListBoxItem();
 }
 
+// The items are defined in C# code since they're very simple.
+// If we want a more complex list box item, we can move to XAML at some point.
 public class FunctionEntryListBoxItem : ModelBasedListBoxItem<FunctionCallEntry> {
     protected override Type StyleKeyOverride => typeof(ListBoxItem);
 
     private readonly TextBlock tbThreadName;
     private readonly TextBlock tbFunctionSize;
+    private readonly TextBlock tbUnwindInfo;
 
     public FunctionEntryListBoxItem() {
         this.tbThreadName = new TextBlock() { TextDecorations = TextDecorations.Underline };
         this.tbFunctionSize = new TextBlock();
+        this.tbUnwindInfo = new TextBlock();
 
         this.Content = new StackPanel() {
             Children = {
                 this.tbThreadName,
-                this.tbFunctionSize
+                this.tbFunctionSize,
+                this.tbUnwindInfo
             }
         };
 
@@ -58,8 +63,9 @@ public class FunctionEntryListBoxItem : ModelBasedListBoxItem<FunctionCallEntry>
     }
 
     protected override void OnAddedToList() {
-        this.tbThreadName.Text = this.Model!.ModuleName + "!" + this.Model!.Address.ToString("X8");
-        this.tbFunctionSize.Text = "Size: " + this.Model!.Size.ToString("X");
+        this.tbThreadName.Text   = this.Model!.ModuleName + "!" + this.Model!.Address.ToString("X8");
+        this.tbFunctionSize.Text = "Function size: " + this.Model!.Size.ToString("X");
+        this.tbUnwindInfo.Text   = "Unwind Info: " + this.Model!.unwindInfoAddressOrData.ToString("X8");
     }
 
     protected override void OnRemovingFromList() {

@@ -33,6 +33,9 @@ public class ConsoleHexBinarySource : IBinarySource {
     private readonly IConnectionLockPair pair;
     private readonly Lock memoryLock = new Lock();
 
+    // We cannot use ((ulong) uint.MaxValue) + 1 because for some reason XBDM cannot
+    // read 16 bytes at 0xFFFFFFF0. It can read 15 bytes no problem.
+    // But when you read 16, it just returns a blank line for the data.
     public BitRange ApplicableRange => new BitRange(0, uint.MaxValue);
 
     public bool CanWriteBackInto => true;

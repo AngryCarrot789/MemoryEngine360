@@ -25,6 +25,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using AvaloniaHex.Async.Editing;
 using AvaloniaHex.Async.Rendering;
 using AvaloniaHex.Base.Document;
 using MemEngine360.BaseFrontEnd.Services.HexEditing;
@@ -89,6 +90,10 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
         view.Columns.Add(new HexColumn());
         view.Columns.Add(new AsciiColumn());
 
+        this.PART_HexEditor.Caret.LocationChanged += (sender, args) => this.UpdateCaretText();
+        this.PART_HexEditor.Caret.PrimaryColumnChanged += (sender, args) => this.UpdateCaretText();
+        this.PART_HexEditor.Selection.RangeChanged += (sender, args) => this.UpdateSelectionText();
+
         this.timer = new MultiBrushFlipFlopTimer(TimeSpan.FromMilliseconds(500), [
             new BrushExchange(this.PART_RunningState, ForegroundProperty, SimpleIcons.DynamicForegroundBrush, new ConstantAvaloniaColourBrush(Brushes.Black)),
             new BrushExchange(this.PART_RunningState, BackgroundProperty, SimpleIcons.ConstantTransparentBrush, new ConstantAvaloniaColourBrush(Brushes.Yellow)),
@@ -103,6 +108,22 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
         if (uint.TryParse(this.PART_GotoTextBox.Text, NumberStyles.HexNumber, null, out uint address)) {
             this.ScrollToAddressAndMoveCaret(address, out _);
         }
+    }
+
+    internal void UpdateSelectionText() {
+        Selection sel = this.PART_HexEditor.Selection;
+        if (sel.Range.IsEmpty) {
+            this.PART_SelectionText.Text = "<none>";
+        }
+        else {
+            ulong end = sel.Range.End.ByteIndex;
+            this.PART_SelectionText.Text = $"{sel.Range.ByteLength} bytes ({sel.Range.Start.ByteIndex:X8} -> {(end > 0 ? (end - 1) : 0):X8})";
+        }
+    }
+
+    internal void UpdateCaretText() {
+        BitLocation pos = this.PART_HexEditor.Caret.Location;
+        this.PART_CaretText.Text = $"{pos.ByteIndex:X8}";
     }
 
     private void PART_GotoTextBoxOnKeyDown(object? sender, KeyEventArgs e) {
@@ -190,6 +211,8 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
             this.PART_HexEditor.BinarySource = null;
             this.changeManager.Clear();
             this.changeManager.OnBinarySourceChanged(null);
+            this.UpdateSelectionText();
+            this.UpdateCaretText();
         }
 
         if (newValue != null) {
@@ -237,6 +260,8 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
             this.PART_HexEditor.BinarySource = source;
             this.changeManager.Clear();
             this.changeManager.OnBinarySourceChanged(source);
+            this.UpdateSelectionText();
+            this.UpdateCaretText();
             if (restartAutoRefresh)
                 this.RestartAutoRefresh();
 

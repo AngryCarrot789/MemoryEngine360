@@ -91,6 +91,10 @@ public class ThreadMemoryAutoRefresh : IDisposable {
                             AsyncHexEditor editor = this.window.PART_HexEditor!;
                             this.window.changeManager.ProcessChanges(addr, span);
                             ((ConsoleHexBinarySource) editor.BinarySource!).WriteBytesToCache(addr, span);
+                            
+                            this.window.UpdateSelectionText();
+                            this.window.UpdateCaretText();
+                            
                         }
                     }, token: CancellationToken.None);
                 }

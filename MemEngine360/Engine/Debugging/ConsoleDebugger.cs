@@ -417,7 +417,7 @@ public class ConsoleDebugger {
         await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
             this.FunctionCallEntries.Clear();
             foreach (FunctionCallEntry? entry in functions) {
-                this.FunctionCallEntries.Add(new FunctionCallEntry(entry?.ModuleName ?? "<unknown>", entry?.Address ?? 0, entry?.Size ?? 0, entry?.UnwindInfo ?? 0));
+                this.FunctionCallEntries.Add(new FunctionCallEntry(entry?.ModuleName ?? "<unknown>", entry?.Address ?? 0, entry?.Size ?? 0, entry?.unwindInfoAddressOrData ?? 0));
             }
         }, DispatchPriority.Default, token: CancellationToken.None);
     }

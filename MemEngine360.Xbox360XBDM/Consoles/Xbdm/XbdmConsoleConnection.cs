@@ -638,6 +638,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             // ParamUtils.GetDwParam(moduleLine, "timestamp", true, out uint modTimestamp);
             // ParamUtils.GetDwParam(moduleLine, "check", true, out uint modChecksum);
             ParamUtils.GetDwParam(moduleLine, "osize", true, out uint modOriginalSize);
+            ParamUtils.GetDwParam(moduleLine, "timestamp", true, out uint timestamp);
 
             ConsoleModule consoleModule = new ConsoleModule() {
                 Name = name,
@@ -645,6 +646,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 BaseAddress = modBase,
                 ModuleSize = modSize,
                 OriginalModuleSize = modOriginalSize,
+                Timestamp = DateTimeOffset.FromUnixTimeSeconds(timestamp).DateTime
                 // EntryPoint = module.GetEntryPointAddress()
             };
 
@@ -725,14 +727,10 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 uint startAddress = BinaryPrimitives.ReadUInt32BigEndian(rosBuffer);
                 for (int j = 0, offset = 8; j < functionCount; j++, offset += 16) {
                     uint endAddress = BinaryPrimitives.ReadUInt32BigEndian(rosBuffer.Slice(offset, 4));
-                    RUNTIME_FUNCTION_PPC function = new RUNTIME_FUNCTION_PPC {
-                        BeginAddress = startAddress,
-                        EndAddress = endAddress
-                    };
-
+                    uint unwindStuff = BinaryPrimitives.ReadUInt32BigEndian(rosBuffer.Slice(offset, 8));
                     for (int k = 0; k < iar.Length; k++) {
-                        if (entries[k] == null && function.Contains(iar[k])) {
-                            entries[k] = new FunctionCallEntry(modName, function.BeginAddress, function.EndAddress - function.BeginAddress, BinaryPrimitives.ReadUInt64BigEndian(rosBuffer.Slice(offset, 8)));
+                        if (entries[k] == null && RUNTIME_FUNCTION.Contains(iar[k], startAddress, endAddress)) {
+                            entries[k] = new FunctionCallEntry(modName, startAddress, endAddress - startAddress, unwindStuff);
                             resolvedCount++;
                         }
                     }
@@ -752,14 +750,21 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    private struct RUNTIME_FUNCTION_PPC {
+    private struct RUNTIME_FUNCTION {
         [FieldOffset(0)] public uint BeginAddress;
-        [FieldOffset(4)] public uint Padding1;
-        [FieldOffset(8)] public uint EndAddress;
-        [FieldOffset(12)] public uint Padding2;
+        [FieldOffset(4)] public uint EndAddress;
+        // union {
+        [FieldOffset(8)] public uint UnwindInfoAddress;
+        [FieldOffset(8)] public uint UnwindData;
+        // }
+        [FieldOffset(12)] private uint Padding;
 
-        public readonly bool Contains(uint address) {
-            return address >= this.BeginAddress && address < this.EndAddress;
+        static RUNTIME_FUNCTION() {
+            Debug.Assert(Unsafe.SizeOf<RUNTIME_FUNCTION>() == 16);
+        }
+
+        public static bool Contains(uint address, uint begin, uint end) {
+            return address >= begin && address < end;
         }
 
         public override string ToString() {

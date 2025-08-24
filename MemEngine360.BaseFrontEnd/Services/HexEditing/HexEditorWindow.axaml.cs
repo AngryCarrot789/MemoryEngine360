@@ -619,7 +619,8 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             this.PART_SelectionText.Text = "<none>";
         }
         else {
-            this.PART_SelectionText.Text = $"{sel.Range.ByteLength} bytes ({sel.Range.Start.ByteIndex:X8} -> {sel.Range.End.ByteIndex:X8})";
+            ulong end = sel.Range.End.ByteIndex;
+            this.PART_SelectionText.Text = $"{sel.Range.ByteLength} bytes ({sel.Range.Start.ByteIndex:X8} -> {(end > 0 ? (end - 1) : 0):X8})";
         }
 
         this.UpdateDataInspector();

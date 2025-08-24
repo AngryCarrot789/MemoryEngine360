@@ -84,7 +84,7 @@
                             <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="5,2"/>
                             <TextBox x:Name="PART_GotoTextBox" DockPanel.Dock="Left"
                                      VerticalAlignment="Center"
-                                     Width="80" Padding="2,2">
+                                     Width="80" Padding="2,2" FontFamily="{StaticResource FontOxanium}">
                                 <TextBox.InnerLeftContent>
                                     <TextBlock Text="0x" Opacity="0.7"/>
                                 </TextBox.InnerLeftContent>
@@ -92,21 +92,33 @@
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="2" Margin="2" DockPanel.Dock="Right" VerticalAlignment="Center">
                             <Button Content="Resume" Padding="5,1" BorderBrush="{DynamicResource PanelBorderBrush}"
-                                    cu:CommandUsageManager.UsageClassType="{x:Type local:ResumeThreadCommandCommandUsage}"/>
+                                    cu:CommandUsageManager.UsageClassType="{x:Type local:ResumeThreadCommandCommandUsage}"
+                                    tt:ToolTipEx.Tip="Decrease the suspend counter, potentially allowing the thread to resume execution"/>
                             <Button Content="Suspend" Padding="5,1" BorderBrush="{DynamicResource PanelBorderBrush}"
-                                    cu:CommandUsageManager.UsageClassType="{x:Type local:SuspendThreadCommandCommandUsage}"/>
+                                    cu:CommandUsageManager.UsageClassType="{x:Type local:SuspendThreadCommandCommandUsage}"
+                                    tt:ToolTipEx.Tip="Increment the suspend counter, preventing the thread from executing"/>
                         </StackPanel>
                         <Border/>
                     </DockPanel>
                 </c:GroupBox.Header>
                 <Border av2:UIInputManager.FocusPath="DebuggerWindow/MemoryHexEditor">
-                    <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto"
-                                  x:Name="PART_HexEditorScrollViewer">
-                        <async:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
-                                              Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                                              BorderThickness="0"
-                                              ResetSelectionOnDocumentChange="False"/>
-                    </ScrollViewer>
+                    <DockPanel>
+                        <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0">
+                            <Grid ColumnDefinitions="Auto,4,65,10,Auto,4,Auto" VerticalAlignment="Center" Margin="2">
+                                <TextBlock Grid.Column="0" Text="Caret: " VerticalAlignment="Center" FontFamily="{StaticResource FontOxanium}"/>
+                                <TextBlock Grid.Column="2" x:Name="PART_CaretText" Text="1" VerticalAlignment="Center" FontFamily="{StaticResource FontOxanium}"/>
+                                <TextBlock Grid.Column="4" Text="Selection: " VerticalAlignment="Center" FontFamily="{StaticResource FontOxanium}"/>
+                                <TextBlock Grid.Column="6" x:Name="PART_SelectionText" Text="2" VerticalAlignment="Center" FontFamily="{StaticResource FontOxanium}"/>
+                            </Grid>
+                        </Border>
+                        <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto"
+                                      x:Name="PART_HexEditorScrollViewer">
+                            <async:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
+                                                  Background="{DynamicResource ABrush.Tone2.Background.Static}"
+                                                  BorderThickness="0"
+                                                  ResetSelectionOnDocumentChange="False"/>
+                        </ScrollViewer>
+                    </DockPanel>
                 </Border>
             </c:GroupBox>
             <TabControl Grid.Row="2"
@@ -162,7 +174,6 @@
                 </c:GroupBox.Header>
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Bottom" Text="Full frame support coming soon" Padding="2,4" Opacity="0.6" HorizontalAlignment="Center"/>
-
                     <local:FunctionEntryListBox x:Name="PART_FunctionCallFrame"
                                                 BorderThickness="0" Background="Transparent"
                                                 FontFamily="{StaticResource FontOxanium}"/>

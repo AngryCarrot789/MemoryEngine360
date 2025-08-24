@@ -41,7 +41,7 @@ public partial class EngineWindow : DesktopWindow {
 
     protected override void OnOpenedCore() {
         base.OnOpenedCore();
-        
+
         this.PART_MemEngineView.IsActivtyListVisible = false;
         using MultiChangeToken change = DataManager.GetContextData(this).BeginChange();
         change.Context.
@@ -53,7 +53,7 @@ public partial class EngineWindow : DesktopWindow {
 
     protected override void OnClosed(EventArgs e) {
         base.OnClosed(e);
-        
+
         ((MemoryEngineManagerImpl) ApplicationPFX.Instance.ServiceManager.GetService<MemoryEngineManager>()).OnEngineClosed(this.PART_MemEngineView);
 
         DataManager.GetContextData(this).Remove(MemoryEngine.EngineDataKey, IEngineUI.DataKey);
@@ -123,10 +123,48 @@ public partial class EngineWindow : DesktopWindow {
                 connection.Close();
             }
         }
+        catch {
+            // ignored
+        }
         finally {
             token.Dispose();
         }
 
+        {
+            IDisposable? debuggerToken = await engine.ConsoleDebugger.BusyLock.BeginBusyOperationAsync(1000);
+            while (debuggerToken == null) {
+                MessageBoxInfo info = new MessageBoxInfo() {
+                    Caption = "Debugger busy", Message = $"Cannot close window yet because the debugger is still busy and cannot be shutdown safely.{Environment.NewLine}" +
+                                                         "What do you want to do?",
+                    Buttons = MessageBoxButton.YesNo,
+                    DefaultButton = MessageBoxResult.Yes,
+                    YesOkText = "Wait for operations",
+                    NoText = "Force Close"
+                };
+
+                MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
+                if (result != MessageBoxResult.Yes /* Yes == wait for ops */) {
+                    return false; // force close - let tcp things timeout
+                }
+
+                debuggerToken = await engine.ConsoleDebugger.BusyLock.BeginBusyOperationActivityAsync("Safely closing window");
+            }
+            
+            IConsoleConnection? debugConnection = engine.ConsoleDebugger.Connection;
+            try {
+                if (debugConnection != null) {
+                    engine.ConsoleDebugger.SetConnection(debuggerToken, null);
+                    debugConnection.Close();
+                }
+            }
+            catch {
+                // ignored
+            }
+            finally {
+                debuggerToken.Dispose();
+            }
+        }
+        
         return false;
     }
 }

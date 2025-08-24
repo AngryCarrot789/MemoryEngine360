@@ -25,8 +25,8 @@ namespace MemEngine360.XboxBase.Modules;
 public delegate void ConsoleModuleEventHandler(ConsoleModule sender);
 
 public class ConsoleModule {
-    private string? name = null;
-    private string? fullName = null;
+    private string? name;
+    private string? fullName;
     private uint baseAddress;
     private uint moduleSize;
     private uint originalModuleSize;
