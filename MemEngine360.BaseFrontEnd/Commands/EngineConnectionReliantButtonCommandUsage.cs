@@ -81,7 +81,7 @@ public class AddSelectedScanResultsToSavedAddressListCommandUsage : EngineUIButt
 }
 
 public class SelectRangeFromRegionCommandUsage() : EngineConnectionReliantButtonCommandUsage("commands.memengine.SelectRangeFromMemoryRegionCommand");
-public class ShowCommandUsage() : EngineConnectionReliantButtonCommandUsage("commands.memengine.ShowMemoryCommand");
+public class ShowCommandUsage() : EngineConnectionReliantButtonCommandUsage("commands.memengine.ShowMemoryViewCommand");
 
 public class ResetScanOptionsCommandUsage() : EngineConnectionReliantButtonCommandUsage("commands.memengine.ResetScanOptionsCommand") {
     protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine) {

@@ -31,10 +31,8 @@ public class ShowMemoryViewCommand : BaseMemoryEngineCommand {
 
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
         if (ApplicationPFX.Instance.ServiceManager.TryGetService(out IHexDisplayService? service)) {
-            HexEditorInfo info = new HexEditorInfo(engine) {
-                Caption = "Console Memory",
-                Offset = engine.ScanningProcessor.StartAddress,
-                IsReadOnly = false
+            MemoryViewer info = new MemoryViewer(engine) {
+                Offset = engine.ScanningProcessor.StartAddress
             };
 
             await service.ShowHexEditor(info);

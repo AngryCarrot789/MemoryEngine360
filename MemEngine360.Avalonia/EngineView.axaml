@@ -565,7 +565,7 @@
                                     <tt:ToolTipEx.Tip>
                                         <StackPanel Orientation="Horizontal" Spacing="5">
                                             <TextBlock Text="Opens a view of the console's memory" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.memengine.ShowMemoryCommand"/>
+                                            <avc:ShortcutLabel CommandId="commands.memengine.ShowMemoryViewCommand"/>
                                         </StackPanel>
                                     </tt:ToolTipEx.Tip>
                                 </avc:IconButton>

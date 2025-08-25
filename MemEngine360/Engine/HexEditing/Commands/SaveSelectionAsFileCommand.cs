@@ -34,7 +34,7 @@ public class SaveSelectionAsFileCommand : Command {
             return Executability.Invalid;
         }
 
-        HexEditorInfo info = view.HexDisplayInfo!;
+        MemoryViewer info = view.HexDisplayInfo!;
         if (info.BinarySource == null) {
             return Executability.ValidButCannotExecute;
         }
@@ -47,7 +47,7 @@ public class SaveSelectionAsFileCommand : Command {
             return;
         }
 
-        HexEditorInfo info = view.HexDisplayInfo!;
+        MemoryViewer info = view.HexDisplayInfo!;
         if (info.BinarySource == null) {
             return;
         }

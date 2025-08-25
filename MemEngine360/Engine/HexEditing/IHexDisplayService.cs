@@ -20,5 +20,5 @@
 namespace MemEngine360.Engine.HexEditing;
 
 public interface IHexDisplayService {
-    Task ShowHexEditor(HexEditorInfo info);
+    Task ShowHexEditor(MemoryViewer info);
 }

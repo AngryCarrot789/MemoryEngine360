@@ -120,7 +120,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.DeleteSelectedScanResultsCommand", new DeleteSelectedScanResultsCommand());
         manager.Register("commands.memengine.SelectRangeFromMemoryRegionCommand", new SelectRangeFromMemoryRegionCommand());
         manager.Register("commands.memengine.ResetScanOptionsCommand", new ResetScanOptionsCommand());
-        manager.Register("commands.memengine.ShowMemoryCommand", new ShowMemoryViewCommand());
+        manager.Register("commands.memengine.ShowMemoryViewCommand", new ShowMemoryViewCommand());
         manager.Register("commands.memengine.DumpMemoryCommand", new DumpMemoryCommand());
         manager.Register("commands.memengine.GroupEntriesCommand", new GroupEntriesCommand());
         manager.Register("commands.memengine.OpenXMLFileCommand", new OpenXMLFileCommand());

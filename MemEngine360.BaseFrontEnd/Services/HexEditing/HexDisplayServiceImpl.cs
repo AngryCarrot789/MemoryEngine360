@@ -23,10 +23,10 @@ using PFXToolKitUI.Avalonia.Services.Windowing;
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
 public class HexDisplayServiceImpl : IHexDisplayService {
-    public Task ShowHexEditor(HexEditorInfo info) {
+    public Task ShowHexEditor(MemoryViewer info) {
         ArgumentNullException.ThrowIfNull(info);
         if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-            HexEditorWindow control = new HexEditorWindow() {
+            MemoryViewerWindow control = new MemoryViewerWindow() {
                 HexDisplayInfo = info
             };
             

@@ -193,7 +193,7 @@ public class MemoryEngine {
         this.ToolsMenu = new ContextEntryGroup("Tools") {
             UniqueID = "memoryengine.tools",
             Items = {
-                new CommandContextEntry("commands.memengine.ShowMemoryCommand", "Memory View", "Opens the memory viewer/hex editor"),
+                new CommandContextEntry("commands.memengine.ShowMemoryViewCommand", "Memory View", "Opens the memory viewer/hex editor"),
                 new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Task Sequencer", "Opens the task sequencer"),
                 new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
                 new CommandContextEntry("commands.memengine.ShowPointerScannerCommand", "Pointer Scanner"),

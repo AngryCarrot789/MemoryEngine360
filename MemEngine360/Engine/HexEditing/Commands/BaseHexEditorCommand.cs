@@ -35,7 +35,7 @@ public abstract class BaseHexEditorCommand : Command {
             return;
         }
 
-        HexEditorInfo? info = view.HexDisplayInfo;
+        MemoryViewer? info = view.HexDisplayInfo;
         if (info == null) {
             return;
         }
@@ -45,5 +45,5 @@ public abstract class BaseHexEditorCommand : Command {
 
     protected virtual Executability CanExecuteCore(IHexEditorUI view, CommandEventArgs e) => Executability.Valid;
     
-    protected abstract Task ExecuteCommandAsync(IHexEditorUI view, HexEditorInfo info, CommandEventArgs e);
+    protected abstract Task ExecuteCommandAsync(IHexEditorUI view, MemoryViewer info, CommandEventArgs e);
 }

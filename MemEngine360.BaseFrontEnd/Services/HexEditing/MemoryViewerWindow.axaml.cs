@@ -27,9 +27,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using AvaloniaHex.Base.Document;
 using AvaloniaHex.Async.Editing;
 using AvaloniaHex.Async.Rendering;
+using AvaloniaHex.Base.Document;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
@@ -47,7 +47,6 @@ using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
 using PFXToolKitUI.Avalonia.Utils;
-using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -61,13 +60,15 @@ using TextLayer = AvaloniaHex.Async.Rendering.TextLayer;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
-public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
-    public static readonly StyledProperty<HexEditorInfo?> HexDisplayInfoProperty = AvaloniaProperty.Register<HexEditorWindow, HexEditorInfo?>("HexDisplayInfo");
-    private readonly AvaloniaPropertyToDataParameterAutoBinder<HexEditorInfo> captionBinder = new AvaloniaPropertyToDataParameterAutoBinder<HexEditorInfo>(TitleProperty, HexEditorInfo.CaptionParameter);
+public partial class MemoryViewerWindow : DesktopWindow, IHexEditorUI {
+    public static readonly StyledProperty<MemoryViewer?> HexDisplayInfoProperty = AvaloniaProperty.Register<MemoryViewerWindow, MemoryViewer?>("HexDisplayInfo");
 
-    private readonly TextBoxToDataParameterBinder<HexEditorInfo, uint> offsetBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.OffsetParameter, (p) => p!.ToString("X8"), async (t, x) => {
+    #region Binders
+
+    private readonly TextBoxToEventPropertyBinder<MemoryViewer> offsetBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.OffsetChanged), (b) => b.Model.Offset.ToString("X8"), async (b, x) => {
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
-            return value;
+            b.Model.Offset = value;
+            return true;
         }
         else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
@@ -76,37 +77,73 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
         }
 
-        return default;
+        return false;
     }) {
         CanApplyValueOnLostFocus = false
     };
 
-    private readonly TextBoxToDataParameterBinder<HexEditorInfo, uint> bytesPerRowBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.BytesPerRowParameter, (p) => p!.ToString(), async (t, x) => {
+    private readonly IBinder<MemoryViewer> bytesPerRowBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.BytesPerRowChanged), (b) => b.Model.BytesPerRow.ToString(), async (b, x) => {
         if (uint.TryParse(x, out uint value)) {
-            DataParameterNumber<uint> p = HexEditorInfo.BytesPerRowParameter;
-            if (value == 0) {
-                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Cannot display 0 bytes per row. Are you crazy??!?", defaultButton: MessageBoxResult.OK);
-            }
-            else if (p.IsValueOutOfRange(value)) {
+            if (value < MemoryViewer.MinimumBytesPerRow || value > MemoryViewer.MaximumBytesPerRow) {
                 // will probably cause the computer so implode or something if there's too many or little bpr
-                await IMessageDialogService.Instance.ShowMessage("Out of range", $"Cannot display less than {p.Minimum} or more than {p.Maximum} bytes per row", defaultButton: MessageBoxResult.OK);
+                await IMessageDialogService.Instance.ShowMessage("Out of range", $"Bytes Per Row must be between {MemoryViewer.MinimumBytesPerRow} and {MemoryViewer.MaximumBytesPerRow}", defaultButton: MessageBoxResult.OK);
             }
             else {
-                return value;
+                b.Model.BytesPerRow = value;
+                return true;
             }
         }
         else {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
         }
 
-        return default;
+        return false;
     });
 
-    private readonly IBinder<HexEditorInfo> autoRefreshAddrBinder;
-    private readonly IBinder<HexEditorInfo> autoRefreshLenBinder;
+    private readonly IBinder<MemoryViewer> autoRefreshAddrBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.AutoRefreshStartAddressChanged), (p) => p.Model.AutoRefreshStartAddress.ToString("X8"), async (b, x) => {
+        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint newStartAddress)) {
+            if ((ulong) newStartAddress + b.Model.AutoRefreshLength > uint.MaxValue) {
+                await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Address causes scan to exceed applicable memory range");
+                return false;
+            }
 
-    private readonly DataParameterEnumBinder<Endianness> endiannessBinder = new DataParameterEnumBinder<Endianness>(HexEditorInfo.InspectorEndiannessParameter);
+            b.Model.AutoRefreshStartAddress = newStartAddress;
+            return true;
+        }
+        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. Maximum is technically 0xFFFFFFFF", defaultButton: MessageBoxResult.OK);
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
+        }
 
+        return false;
+    });
+
+    private readonly IBinder<MemoryViewer> autoRefreshLenBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.AutoRefreshLengthChanged), (p) => p.Model.AutoRefreshLength.ToString("X8"), async (b, x) => {
+        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint newByteCount)) {
+            if ((ulong) b.Model.AutoRefreshStartAddress + newByteCount > uint.MaxValue) {
+                await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Byte count causes scan to exceed applicable memory range");
+                return false;
+            }
+
+            b.Model.AutoRefreshLength = newByteCount;
+            return true;
+        }
+        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length is too long. Maximum is technically 0xFFFFFFFF", defaultButton: MessageBoxResult.OK);
+        }
+        else {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
+        }
+
+        return false;
+    });
+
+    private readonly EventPropertyEnumBinder<Endianness> endiannessBinder = new EventPropertyEnumBinder<Endianness>(typeof(MemoryViewer), nameof(MemoryViewer.InspectorEndiannessChanged), engine => ((MemoryViewer) engine).InspectorEndianness, (engine, value) => ((MemoryViewer) engine).InspectorEndianness = value);
+    
+    #endregion
+    
     private readonly AsyncRelayCommand refreshDataCommand, uploadDataCommand;
 
     private readonly record struct UploadTextBoxInfo(TextBox TextBox, DataType DataType, bool IsUnsigned);
@@ -122,7 +159,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     private readonly HexEditorChangeManager changeManager;
     private readonly AsyncRelayCommand runAutoRefreshCommand;
 
-    public HexEditorInfo? HexDisplayInfo {
+    public MemoryViewer? HexDisplayInfo {
         get => this.GetValue(HexDisplayInfoProperty);
         set => this.SetValue(HexDisplayInfoProperty, value);
     }
@@ -143,9 +180,8 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         }
     }
 
-    public HexEditorWindow() {
+    public MemoryViewerWindow() {
         this.InitializeComponent();
-        this.captionBinder.AttachControl(this);
         this.offsetBinder.AttachControl(this.PART_AddressTextBox);
         this.offsetBinder.ValueConfirmed += (b, oldText) => {
             this.PART_HexEditor.HexView.ScrollToByteOffset(b.Model.Offset, out _);
@@ -158,6 +194,13 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             this.PART_HexEditor.HexView.BytesPerLine = (int) this.HexDisplayInfo!.BytesPerRow;
         };
 
+        // Lazy way to hook into the model's value change
+        this.autoRefreshAddrBinder.ControlUpdated += (b) => this.UpdateAutoRefreshRange();
+        this.autoRefreshLenBinder.ControlUpdated += (b) => this.UpdateAutoRefreshRange();
+
+        this.autoRefreshAddrBinder.AttachControl(this.PART_AutoRefresh_From);
+        this.autoRefreshLenBinder.AttachControl(this.PART_AutoRefresh_Count);
+        
         AsyncHexView view = this.PART_HexEditor.HexView;
         view.BytesPerLine = 32;
         view.Columns.Add(new OffsetColumn());
@@ -209,16 +252,17 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         this.PART_BtnBackInt32.Click += (s, e) => this.MoveCursorForDataType(-4);
         this.PART_BtnBackInt64.Click += (s, e) => this.MoveCursorForDataType(-8);
 
-        this.PART_Int8.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
-        this.PART_UInt8.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
-        this.PART_Int16.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
-        this.PART_UInt16.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
-        this.PART_Int32.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
-        this.PART_UInt32.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
-        this.PART_Int64.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
-        this.PART_UInt64.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
-        this.PART_Float.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
-        this.PART_Double.KeyDown += this.OnDataInspectorNumericTextBoxKeyDown;
+        EventHandler<KeyEventArgs> keyDownHandler = this.OnDataInspectorNumericTextBoxKeyDown;
+        this.PART_Int8.KeyDown += keyDownHandler;
+        this.PART_UInt8.KeyDown += keyDownHandler;
+        this.PART_Int16.KeyDown += keyDownHandler;
+        this.PART_UInt16.KeyDown += keyDownHandler;
+        this.PART_Int32.KeyDown += keyDownHandler;
+        this.PART_UInt32.KeyDown += keyDownHandler;
+        this.PART_Int64.KeyDown += keyDownHandler;
+        this.PART_UInt64.KeyDown += keyDownHandler;
+        this.PART_Float.KeyDown += keyDownHandler;
+        this.PART_Double.KeyDown += keyDownHandler;
 
         this.parseTextBoxAndUploadCommand = new AsyncRelayCommand<UploadTextBoxInfo>(this.ParseTextBoxAndUpload, isParamRequired: true);
 
@@ -229,7 +273,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 await this.autoRefreshTask.CancelAsync();
             }
             else {
-                HexEditorInfo? info = this.HexDisplayInfo;
+                MemoryViewer? info = this.HexDisplayInfo;
                 if (info == null) {
                     this.UpdateAutoRefreshButtonsAndTextBoxes();
                     return;
@@ -272,47 +316,6 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
                 this.autoRefreshTask.Run();
             }
         });
-
-        this.autoRefreshAddrBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.AutoRefreshStartAddressParameter, (p) => p.ToString("X8"), async (t, x) => {
-            if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint newStartAddress)) {
-                if ((ulong) newStartAddress + t.Model.AutoRefreshLength > uint.MaxValue) {
-                    await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Address causes scan to exceed applicable memory range");
-                    return default;
-                }
-
-                return newStartAddress;
-            }
-            else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
-                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. Maximum is technically 0xFFFFFFFF", defaultButton: MessageBoxResult.OK);
-            }
-            else {
-                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
-            }
-
-            return default;
-        }, (b) => this.UpdateAutoRefreshRange());
-
-        this.autoRefreshLenBinder = new TextBoxToDataParameterBinder<HexEditorInfo, uint>(HexEditorInfo.AutoRefreshLengthParameter, (p) => p.ToString("X8"), async (t, x) => {
-            if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint newByteCount)) {
-                if ((ulong) t.Model.AutoRefreshStartAddress + newByteCount > uint.MaxValue) {
-                    await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Byte count causes scan to exceed applicable memory range");
-                    return default;
-                }
-
-                return newByteCount;
-            }
-            else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
-                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length is too long. Maximum is technically 0xFFFFFFFF", defaultButton: MessageBoxResult.OK);
-            }
-            else {
-                await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
-            }
-
-            return default;
-        }, (b) => this.UpdateAutoRefreshRange());
-
-        this.autoRefreshAddrBinder.AttachControl(this.PART_AutoRefresh_From);
-        this.autoRefreshLenBinder.AttachControl(this.PART_AutoRefresh_Count);
 
         this.UpdateAutoRefreshButtonsAndTextBoxes();
     }
@@ -420,7 +423,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     private bool IsPointerInRange(uint value) => true;
 
     private void NavigateToPointer() {
-        HexEditorInfo? info = this.HexDisplayInfo;
+        MemoryViewer? info = this.HexDisplayInfo;
         if (this.myBinarySource == null || info == null) {
             return;
         }
@@ -475,7 +478,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     }
 
     public async Task ReloadSelectionFromConsole(uint address, int length) {
-        HexEditorInfo? info = this.HexDisplayInfo;
+        MemoryViewer? info = this.HexDisplayInfo;
         if (info == null || this.autoRefreshTask != null || length < 1 || this.myBinarySource == null) {
             return;
         }
@@ -517,7 +520,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
                 return buffer;
             }, cts);
-            
+
             byte[]? buffer = await activity;
             if (activity.Exception != null) {
                 if (activity.Exception is TimeoutException || activity.Exception is IOException) {
@@ -545,7 +548,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     }
 
     public async Task UploadSelectionToConsoleCommand() {
-        HexEditorInfo? info = this.HexDisplayInfo;
+        MemoryViewer? info = this.HexDisplayInfo;
         if (this.myBinarySource == null || info == null || this.autoRefreshTask != null) {
             return;
         }
@@ -635,12 +638,11 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         this.UpdateAutoRefreshSelectionDependentShit();
     }
 
-    static HexEditorWindow() {
-        HexDisplayInfoProperty.Changed.AddClassHandler<HexEditorWindow, HexEditorInfo?>((s, e) => s.OnHexDisplayInfoChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+    static MemoryViewerWindow() {
+        HexDisplayInfoProperty.Changed.AddClassHandler<MemoryViewerWindow, MemoryViewer?>((s, e) => s.OnHexDisplayInfoChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
-    private void OnHexDisplayInfoChanged(HexEditorInfo? oldData, HexEditorInfo? newData) {
-        this.captionBinder.SwitchModel(newData);
+    private void OnHexDisplayInfoChanged(MemoryViewer? oldData, MemoryViewer? newData) {
         this.offsetBinder.SwitchModel(newData);
         this.bytesPerRowBinder.SwitchModel(newData);
         this.autoRefreshAddrBinder.SwitchModel(newData);
@@ -649,7 +651,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             oldData.RestartAutoRefresh -= this.OnRestartAutoRefresh;
             oldData.MemoryEngine.ConnectionAboutToChange -= this.OnConnectionAboutToChange;
             oldData.MemoryEngine.ConnectionChanged -= this.OnConnectionChanged;
-            HexEditorInfo.InspectorEndiannessParameter.RemoveValueChangedHandler(oldData, this.OnEndiannessModeChanged);
+            oldData.InspectorEndiannessChanged -= this.OnEndiannessModeChanged;
             this.endiannessBinder.Detach();
             this.SetBinarySource(null);
             oldData.BinarySource = null;
@@ -659,7 +661,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
             newData.RestartAutoRefresh += this.OnRestartAutoRefresh;
             newData.MemoryEngine.ConnectionAboutToChange += this.OnConnectionAboutToChange;
             newData.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;
-            HexEditorInfo.InspectorEndiannessParameter.AddValueChangedHandler(newData, this.OnEndiannessModeChanged);
+            newData.InspectorEndiannessChanged += this.OnEndiannessModeChanged;
             this.endiannessBinder.Attach(newData);
             this.PART_CancelButton.Focus();
             this.SetBinarySource(new ConnectionLockPair(newData.MemoryEngine.BusyLocker, newData.MemoryEngine.Connection));
@@ -671,7 +673,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         this.SetBinarySource(this.HexDisplayInfo != null ? new ConnectionLockPair(sender.BusyLocker, newconnection) : null);
     }
 
-    private void OnEndiannessModeChanged(DataParameter parameter, ITransferableData owner) {
+    private void OnEndiannessModeChanged(MemoryViewer sender) {
         this.UpdateDataInspector();
     }
 
@@ -690,7 +692,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         this.HexDisplayInfo = null;
     }
 
-    private void OnRestartAutoRefresh(object? sender, EventArgs e) {
+    private void OnRestartAutoRefresh(MemoryViewer memoryViewer) {
         if (this.autoRefreshTask != null && !this.autoRefreshTask.IsCompleted && this.autoRefreshTask.RequestCancellation()) {
             this.flagRestartAutoRefresh = true;
         }
@@ -707,7 +709,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     }
 
     private void UpdateAutoRefreshRange() {
-        HexEditorInfo? info = this.HexDisplayInfo;
+        MemoryViewer? info = this.HexDisplayInfo;
         if (info != null) {
             this.autoRefreshLayer.SetRange(new BitRange(info.AutoRefreshStartAddress, info.AutoRefreshStartAddress + info.AutoRefreshLength));
         }
@@ -715,7 +717,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
 
     private void UpdateDataInspector() {
         ulong caretIndex = this.SelectionRange.Start.ByteIndex;
-        HexEditorInfo? info = this.HexDisplayInfo;
+        MemoryViewer? info = this.HexDisplayInfo;
         if (this.myBinarySource == null || info == null) {
             return;
         }
@@ -727,7 +729,7 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
         }
 
         // The console is big-endian. If we want to display as little endian, we need to reverse the bytes
-        byte val08 = cbAvailable >= 1 ? daBuf[0] : default, raw_val08 = val08;
+        byte val08 = cbAvailable >= 1 ? daBuf[0] : default;
         ushort val16 = cbAvailable >= 2 ? MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(daBuf, 0, 2)) : default, raw_val16 = val16;
         uint val32 = cbAvailable >= 4 ? MemoryMarshal.Read<uint>(new ReadOnlySpan<byte>(daBuf, 0, 4)) : 0, raw_val32 = val32;
         ulong val64 = cbAvailable >= 8 ? MemoryMarshal.Read<ulong>(new ReadOnlySpan<byte>(daBuf, 0, 8)) : 0, raw_val64 = val64;
@@ -823,15 +825,15 @@ public partial class HexEditorWindow : DesktopWindow, IHexEditorUI {
     }
 
     private sealed class AutoRefreshTask : AdvancedPausableTask {
-        private readonly HexEditorWindow control;
-        private readonly HexEditorInfo? info;
+        private readonly MemoryViewerWindow control;
+        private readonly MemoryViewer? info;
         private IDisposable? busyToken;
         private readonly uint startAddress, cbRange;
         private readonly ConsoleHexBinarySource? myDocument;
         private readonly byte[] myBuffer;
         private bool isInvalidOnFirstRun;
 
-        public AutoRefreshTask(HexEditorWindow control, uint startAddress, uint cbRange) : base(true) {
+        public AutoRefreshTask(MemoryViewerWindow control, uint startAddress, uint cbRange) : base(true) {
             this.control = control;
             this.info = control.HexDisplayInfo;
             this.cbRange = cbRange;

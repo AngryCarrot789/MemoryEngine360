@@ -22,7 +22,7 @@ using PFXToolKitUI.CommandSystem;
 namespace MemEngine360.Engine.HexEditing.Commands;
 
 public class UploadSelectionToConsoleCommand : BaseHexEditorCommand {
-    protected override Task ExecuteCommandAsync(IHexEditorUI view, HexEditorInfo info, CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(IHexEditorUI view, MemoryViewer info, CommandEventArgs e) {
         return view.UploadSelectionToConsoleCommand();
     }
     

@@ -31,7 +31,7 @@ public class GotoAddressCommand : BaseHexEditorCommand {
     // 83551F98, Crosshair size,       Float
     // 8354AA08, Enemy Team Score,     Int32
     
-    protected override async Task ExecuteCommandAsync(IHexEditorUI view, HexEditorInfo info, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(IHexEditorUI view, MemoryViewer info, CommandEventArgs e) {
         SingleUserInputInfo singleInfo = new SingleUserInputInfo("Go to address", "Specify an address to scroll to", "Address (hex)", (view.CaretLocation.ByteIndex).ToString("X8")) {
             Validate = (a) => {
                 if (!uint.TryParse(a.Input, NumberStyles.HexNumber, null, out uint addr)) {

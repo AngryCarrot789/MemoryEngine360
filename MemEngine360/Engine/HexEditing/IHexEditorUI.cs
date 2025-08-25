@@ -28,7 +28,7 @@ public interface IHexEditorUI {
     /// <summary>
     /// Gets the hex display info
     /// </summary>
-    HexEditorInfo? HexDisplayInfo { get; }
+    MemoryViewer? HexDisplayInfo { get; }
 
     /// <summary>
     /// Gets or sets the caret's location

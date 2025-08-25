@@ -2,22 +2,20 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                 xmlns:ah="clr-namespace:AvaloniaHex;assembly=AvaloniaHex"
-                 xmlns:s="clr-namespace:PFXToolKitUI.Avalonia.Services;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  xmlns:icons="clr-namespace:MemEngine360.BaseFrontEnd"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
                  xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:hexEditing="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexEditing"
+                 xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexEditing"
                  xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:async="clr-namespace:AvaloniaHex.Async;assembly=AvaloniaHex"
+                 xmlns:hex="clr-namespace:AvaloniaHex.Async;assembly=AvaloniaHex"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
-                 x:Class="MemEngine360.BaseFrontEnd.Services.HexEditing.HexEditorWindow"
+                 x:Class="MemEngine360.BaseFrontEnd.Services.HexEditing.MemoryViewerWindow"
                  BorderBrush="DodgerBlue"
                  TitleBarBrush="{DynamicResource ABrush.Tone4.Background.Static}"
                  MinWidth="800" MinHeight="480"
-                 Width="1280" Height="720">
+                 Width="1280" Height="720"
+                 Title="Memory Viewer">
     <Grid RowDefinitions="Auto,*,42">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -56,7 +54,7 @@
             </DockPanel>
         </Border>
         <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
-                Background="{Binding RelativeSource={RelativeSource AncestorType=hexEditing:HexEditorWindow}, Path=TitleBarBrush}"
+                Background="{Binding RelativeSource={RelativeSource AncestorType=local:MemoryViewerWindow}, Path=TitleBarBrush}"
                 BorderThickness="0,0,0,1"
                 BorderBrush="{DynamicResource ABrush.Tone4.Border.Static}">
             <StackPanel Margin="0,3" Spacing="4">
@@ -155,7 +153,7 @@
                 BorderBrush="{DynamicResource PanelBorderBrush}"
                 BorderThickness="0,1,1,1">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                <async:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
+                <hex:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
                                       Background="{DynamicResource ABrush.Tone2.Background.Static}"
                                       BorderThickness="0"
                                       ResetSelectionOnDocumentChange="False"/>
