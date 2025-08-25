@@ -39,7 +39,7 @@
         <fb:FileBrowserTreeView ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                 ScrollViewer.VerticalScrollBarVisibility="Visible"
                                 Height="250"
-                                FileTreeManager="{x:Static fileBrowsing:FileTreeManager.DummyInstance_UITest}"/>
+                                FileTreeManager="{x:Static fileBrowsing:FileTreeExplorer.DummyInstance_UITest}"/>
     </Design.PreviewWith>
 
     <ControlTheme x:Key="{x:Type fb:FileBrowserTreeView}" TargetType="{x:Type fb:FileBrowserTreeView}" BasedOn="{StaticResource {x:Type TreeView}}">

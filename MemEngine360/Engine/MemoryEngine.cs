@@ -112,7 +112,7 @@ public class MemoryEngine {
 
     public AddressTableManager AddressTableManager { get; }
 
-    public FileTreeManager FileTreeManager { get; }
+    public FileTreeExplorer FileTreeExplorer { get; }
 
     public PointerScanner PointerScanner { get; }
 
@@ -185,7 +185,7 @@ public class MemoryEngine {
         this.busyLocker.IsBusyChanged += e => this.IsBusyChanged?.Invoke(this);
         this.ScanningProcessor = new ScanningProcessor(this);
         this.AddressTableManager = new AddressTableManager(this);
-        this.FileTreeManager = new FileTreeManager(this);
+        this.FileTreeExplorer = new FileTreeExplorer(this);
         this.TaskSequencerManager = new TaskSequencerManager(this);
         this.PointerScanner = new PointerScanner(this);
         this.ConsoleDebugger = new ConsoleDebugger(this);
@@ -208,6 +208,7 @@ public class MemoryEngine {
                 new SeparatorEntry(),
                 new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Explorer", "Opens a window which presents the modules"),
                 new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),
+                new CommandContextEntry("commands.memengine.ShowFileBrowserCommand", "File Explorer"),
                 new SeparatorEntry(),
                 new ContextEntryGroup("Cool Utils") {
                     UniqueID = "memoryengine.tools.coolutils",

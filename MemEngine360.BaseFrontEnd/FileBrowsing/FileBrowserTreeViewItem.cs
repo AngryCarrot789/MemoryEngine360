@@ -229,8 +229,9 @@ public static class AddressTableContextRegistry {
     public static readonly ContextRegistry Registry = new ContextRegistry("File");
 
     static AddressTableContextRegistry() {
-        FixedContextGroup modEdit = Registry.GetFixedGroup("modify.edit");
+        // FixedContextGroup modEdit = Registry.GetFixedGroup("modify.edit");
         FixedContextGroup modGeneric = Registry.GetFixedGroup("modify.general");
+        modGeneric.AddCommand("commands.memengine.LaunchFileCommand", "Launch File", "Launches the file");
         // modEdit.AddHeader("Modify");
         // modEdit.AddCommand("commands.memengine.EditSavedAddressAddressCommand", "Edit Address");
         // modEdit.AddCommand("commands.memengine.EditSavedAddressValueCommand", "Edit Value");

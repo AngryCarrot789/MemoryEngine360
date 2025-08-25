@@ -18,13 +18,8 @@
 // 
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,8 +34,6 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
-using MemEngine360.Engine.Scanners;
-using MemEngine360.ValueAbstraction;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;

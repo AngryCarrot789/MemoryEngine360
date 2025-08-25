@@ -31,7 +31,7 @@ using PFXToolKitUI.Utils.Collections.Observable;
 namespace MemEngine360.BaseFrontEnd.FileBrowsing;
 
 public sealed class FileBrowserTreeView : TreeView {
-    public static readonly StyledProperty<FileTreeManager?> FileTreeManagerProperty = AvaloniaProperty.Register<FileBrowserTreeView, FileTreeManager?>("FileTreeManager");
+    public static readonly StyledProperty<FileTreeExplorer?> FileTreeManagerProperty = AvaloniaProperty.Register<FileBrowserTreeView, FileTreeExplorer?>("FileTreeManager");
     public static readonly StyledProperty<IBrush?> ColumnSeparatorBrushProperty = AvaloniaProperty.Register<FileBrowserTreeView, IBrush?>(nameof(ColumnSeparatorBrush));
     
     internal readonly Stack<FileBrowserTreeViewItem> itemCache;
@@ -42,7 +42,7 @@ public sealed class FileBrowserTreeView : TreeView {
     
     public IModelControlMap<BaseFileTreeNode, FileBrowserTreeViewItem> ItemMap => this.itemMap;
 
-    public FileTreeManager? FileTreeManager {
+    public FileTreeExplorer? FileTreeManager {
         get => this.GetValue(FileTreeManagerProperty);
         set => this.SetValue(FileTreeManagerProperty, value);
     }
@@ -59,6 +59,11 @@ public sealed class FileBrowserTreeView : TreeView {
         this.itemCache = new Stack<FileBrowserTreeViewItem>();
         this.SelectedItems = this.selectedItemsList = new AvaloniaList<FileBrowserTreeViewItem>();
         DragDrop.SetAllowDrop(this, true);
+#if DEBUG
+        if (Design.IsDesignMode) {
+            this.FileTreeManager = FileTreeExplorer.DummyInstance_UITest;
+        }
+#endif
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
@@ -71,7 +76,7 @@ public sealed class FileBrowserTreeView : TreeView {
     }
 
     static FileBrowserTreeView() {
-        FileTreeManagerProperty.Changed.AddClassHandler<FileBrowserTreeView, FileTreeManager?>((o, e) => o.OnATMChanged(e));
+        FileTreeManagerProperty.Changed.AddClassHandler<FileBrowserTreeView, FileTreeExplorer?>((o, e) => o.OnATMChanged(e));
         DragDrop.DragOverEvent.AddClassHandler<FileBrowserTreeView>((s, e) => s.OnDragOver(e), handledEventsToo: true /* required */);
     }
 
@@ -121,16 +126,16 @@ public sealed class FileBrowserTreeView : TreeView {
         this.Items.Insert(newIndex, control);
     }
 
-    private void OnATMChanged(AvaloniaPropertyChangedEventArgs<FileTreeManager?> e) {
+    private void OnATMChanged(AvaloniaPropertyChangedEventArgs<FileTreeExplorer?> e) {
         this.collectionChangeListener?.Dispose();
         this.collectionChangeListener = null;
-        if (e.TryGetOldValue(out FileTreeManager? oldAtm)) {
+        if (e.TryGetOldValue(out FileTreeExplorer? oldAtm)) {
             for (int i = this.Items.Count - 1; i >= 0; i--) {
                 this.RemoveNode(i);
             }
         }
 
-        if (e.TryGetNewValue(out FileTreeManager? newAtm)) {
+        if (e.TryGetNewValue(out FileTreeExplorer? newAtm)) {
             this.collectionChangeListener = ObservableItemProcessor.MakeIndexable(newAtm.RootEntry.Items, this.OnATMLayerAdded, this.OnATMLayerRemoved, this.OnATMLayerIndexMoved);
             int i = 0;
             foreach (BaseFileTreeNode layer in newAtm.RootEntry.Items) {

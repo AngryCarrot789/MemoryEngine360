@@ -86,9 +86,9 @@ public sealed class FileTreeNodeDirectory : BaseFileTreeNode {
         return this.IndexOf(entry) != -1;
     }
 
-    internal static FileTreeNodeDirectory InternalCreateRoot(FileTreeManager fileTreeManager) {
+    internal static FileTreeNodeDirectory InternalCreateRoot(FileTreeExplorer fileTreeExplorer) {
         FileTreeNodeDirectory entry = new FileTreeNodeDirectory();
-        InternalSetATM(entry, fileTreeManager);
+        InternalSetATM(entry, fileTreeExplorer);
         return entry;
     }
 

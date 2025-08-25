@@ -1557,12 +1557,12 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
                     if (ParamUtils.GetDwParam(entryText, "createlo", true, out uint createLo) &&
                         ParamUtils.GetDwParam(entryText, "createhi", true, out uint createHi)) {
-                        entry.CreatedTime = DateTimeOffset.FromUnixTimeSeconds((long) (((ulong) createHi << 32) | createLo)).DateTime;
+                        entry.CreatedTime = DateTime.FromFileTimeUtc((long) (((ulong) createHi << 32) | createLo));
                     }
 
                     if (ParamUtils.GetDwParam(entryText, "changelo", true, out uint changeLo) &&
                         ParamUtils.GetDwParam(entryText, "changehi", true, out uint changeHi)) {
-                        entry.ModifiedTime = DateTimeOffset.FromUnixTimeSeconds((long) (((ulong) changeHi << 32) | changeLo)).DateTime;
+                        entry.ModifiedTime = DateTime.FromFileTimeUtc((long) (((ulong) changeHi << 32) | changeLo));
                     }
 
                     entry.IsDirectory = ParamUtils.GetOffsetToValue(entryText, "directory", false, true) != -1;

@@ -20,12 +20,13 @@
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.Engine.FileBrowsing;
 
-public class FileTreeManager {
+public class FileTreeExplorer {
 #if DEBUG
-    public static FileTreeManager DummyInstance_UITest { get; } = new FileTreeManager(new MemoryEngine());
+    public static FileTreeExplorer DummyInstance_UITest { get; } = new FileTreeExplorer(new MemoryEngine());
 #endif
 
     /// <summary>
@@ -37,16 +38,19 @@ public class FileTreeManager {
     /// Gets the memory engine associated with this address table manager
     /// </summary>
     public MemoryEngine MemoryEngine { get; }
+    
+    private readonly AsyncRelayCommand refreshRootCommand;
 
-    public FileTreeManager(MemoryEngine memoryEngine) {
+    public FileTreeExplorer(MemoryEngine memoryEngine) {
         this.MemoryEngine = memoryEngine;
         this.RootEntry = FileTreeNodeDirectory.InternalCreateRoot(this);
 
-        this.MemoryEngine.ConnectionChanged += OnConnectionChanged;
+        this.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;
+        this.refreshRootCommand = new AsyncRelayCommand(this.RefreshRoot);
     }
 
     private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
-        this.RefreshRoot();
+        this.refreshRootCommand.Execute(null);
     }
 
     public async Task RefreshRoot() {
@@ -62,7 +66,7 @@ public class FileTreeManager {
         });
     }
 
-    static FileTreeManager() {
+    static FileTreeExplorer() {
 #if DEBUG
         DummyInstance_UITest.RootEntry.Items.Add(new FileTreeNodeDirectory() {
             FileName = "C:\\",

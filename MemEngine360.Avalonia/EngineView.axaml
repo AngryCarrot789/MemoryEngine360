@@ -600,13 +600,8 @@
                             <Border/>
                         </DockPanel>
                     </c:GroupBox.Header>
-                    <DockPanel>
-                        <!-- <fb:FileBrowserTreeView x:Name="PART_FileBrowser" Background="Transparent" BorderThickness="0" -->
-                        <!--                         ColumnSeparatorBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.ColumnSeparator}" -->
-                        <!--                         DockPanel.Dock="Bottom" MinHeight="125"/> -->
-                        <sa:AddressTableTreeView x:Name="PART_SavedAddressTree" Background="Transparent" BorderThickness="0"
-                                                 ColumnSeparatorBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.ColumnSeparator}"/>    
-                    </DockPanel>
+                    <sa:AddressTableTreeView x:Name="PART_SavedAddressTree" Background="Transparent" BorderThickness="0"
+                                             ColumnSeparatorBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.ColumnSeparator}"/>
                 </c:GroupBox>
                 <GridSplitter Grid.Column="2" Grid.Row="1" Background="Transparent"/>
                 <GridSplitter Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="2" Background="Transparent"/>

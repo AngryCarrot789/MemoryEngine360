@@ -29,7 +29,7 @@ public delegate void BaseAddressTableEntryEventHandler(BaseFileTreeNode sender);
 
 public delegate void BaseAddressTableEntryParentChangedEventHandler(BaseFileTreeNode sender, FileTreeNodeDirectory? oldPar, FileTreeNodeDirectory? newPar);
 
-public delegate void BaseAddressTableEntryManagerChangedEventHandler(BaseFileTreeNode sender, FileTreeManager? oldATM, FileTreeManager? newATM);
+public delegate void BaseAddressTableEntryManagerChangedEventHandler(BaseFileTreeNode sender, FileTreeExplorer? oldATM, FileTreeExplorer? newATM);
 
 /// <summary>
 /// Base class for files within a file tree
@@ -43,7 +43,7 @@ public abstract class BaseFileTreeNode {
     /// <summary>
     /// Gets the file tree manager this entry currently exists in
     /// </summary>
-    public FileTreeManager? FileTreeManager { get; private set; }
+    public FileTreeExplorer? FileTreeManager { get; private set; }
 
     /// <summary>
     /// Gets or sets the group entry that is a direct parent to this entry
@@ -155,8 +155,8 @@ public abstract class BaseFileTreeNode {
     /// The entry that directly caused the address table manager to become detached (either by being removed as a top-level entry
     /// or being removed from a container entry that exists in a address table manager). May equal the current instance
     /// </param>
-    /// <param name="oldFileTreeManager">The address table manager that we previously existed in</param>
-    protected virtual void OnDetachedFromFileTreeManager(BaseFileTreeNode origin, FileTreeManager oldFileTreeManager) {
+    /// <param name="oldFileTreeExplorer">The address table manager that we previously existed in</param>
+    protected virtual void OnDetachedFromFileTreeManager(BaseFileTreeNode origin, FileTreeExplorer oldFileTreeExplorer) {
     }
 
     public static bool CheckHaveParentsAndAllMatch(ISelectionManager<BaseFileTreeNode> manager, [NotNullWhen(true)] out FileTreeNodeDirectory? sameParent) {
@@ -180,8 +180,8 @@ public abstract class BaseFileTreeNode {
         return true;
     }
 
-    internal static void InternalSetATM(BaseFileTreeNode entry, FileTreeManager fileTreeManager) {
-        entry.FileTreeManager = fileTreeManager;
+    internal static void InternalSetATM(BaseFileTreeNode entry, FileTreeExplorer fileTreeExplorer) {
+        entry.FileTreeManager = fileTreeExplorer;
     }
 
     // User added some entry into group entry
@@ -228,7 +228,7 @@ public abstract class BaseFileTreeNode {
         Debug.Assert(entry.ParentDirectory != null, "Did not expect entry to not be in a group entry when removing it from another");
 
         // While child entries are notified of address table manager detachment first, should we do the same here???
-        FileTreeManager? oldATM = entry.FileTreeManager;
+        FileTreeExplorer? oldATM = entry.FileTreeManager;
         if (oldATM != null) {
             entry.FileTreeManager = null;
             entry.OnDetachedFromFileTreeManager(entry, oldATM);
@@ -248,7 +248,7 @@ public abstract class BaseFileTreeNode {
 
         return;
 
-        static void RecurseChildren(BaseFileTreeNode child, BaseFileTreeNode origin, FileTreeNodeDirectory originOldParent, FileTreeManager? oldATM) {
+        static void RecurseChildren(BaseFileTreeNode child, BaseFileTreeNode origin, FileTreeNodeDirectory originOldParent, FileTreeExplorer? oldATM) {
             // Detach from address table manager first, then notify hierarchical parent removed from entry
             if (child.FileTreeManager != null) {
                 Debug.Assert(oldATM == child.FileTreeManager, "Expected oldATM and our address table manager to match");

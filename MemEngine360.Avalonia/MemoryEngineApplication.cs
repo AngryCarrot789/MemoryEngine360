@@ -29,6 +29,7 @@ using Avalonia.Styling;
 using MemEngine360.BaseFrontEnd;
 using MemEngine360.BaseFrontEnd.Debugging;
 using MemEngine360.BaseFrontEnd.EventViewing;
+using MemEngine360.BaseFrontEnd.FileBrowsing;
 using MemEngine360.BaseFrontEnd.FileConnections;
 using MemEngine360.BaseFrontEnd.MemRegions;
 using MemEngine360.BaseFrontEnd.PointerScanning;
@@ -49,6 +50,8 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.Debugging.Commands;
+using MemEngine360.Engine.FileBrowsing;
+using MemEngine360.Engine.FileBrowsing.Commands;
 using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Modes;
@@ -121,6 +124,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.SelectRangeFromMemoryRegionCommand", new SelectRangeFromMemoryRegionCommand());
         manager.Register("commands.memengine.ResetScanOptionsCommand", new ResetScanOptionsCommand());
         manager.Register("commands.memengine.ShowMemoryViewCommand", new ShowMemoryViewCommand());
+        manager.Register("commands.memengine.ShowFileBrowserCommand", new ShowFileBrowserCommand());
+        manager.Register("commands.memengine.LaunchFileCommand", new LaunchFileCommand());
         manager.Register("commands.memengine.DumpMemoryCommand", new DumpMemoryCommand());
         manager.Register("commands.memengine.GroupEntriesCommand", new GroupEntriesCommand());
         manager.Register("commands.memengine.OpenXMLFileCommand", new OpenXMLFileCommand());
@@ -207,6 +212,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.RegisterConstant<IPointerScanService>(new PointerScanServiceImpl());
         manager.RegisterConstant<IConsoleEventViewerService>(new ConsoleEventViewerServiceImpl());
         manager.RegisterConstant<IDebuggerViewService>(new DebuggerViewServiceImpl());
+        manager.RegisterConstant<IFileBrowserService>(new FileBrowserServiceImpl());
 
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }
