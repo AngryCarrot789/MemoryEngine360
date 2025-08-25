@@ -67,7 +67,7 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
             if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed && this.ListBox.GetVisualRoot() is TaskSequencerWindow window) {
                 IListSelectionManager<IOperationItemUI> sel = window.OperationSelectionManager;
                 if (sel.Count == 1 && sel.IsSelected(this)) {
-                    window.UpdatePrimarySelectedOperation(this);
+                    window.UpdatePrimaryOperation(this);
                 }
             }
         }

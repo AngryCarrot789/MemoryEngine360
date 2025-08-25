@@ -21,18 +21,19 @@ using MemEngine360.Sequencing;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
-public class ConditionSourceDisplayNamePresenter {
+public class ConditionSourcePresenter {
     private readonly TaskSequencerWindow window;
     private TaskSequence? sourceSequence;
     private BaseSequenceOperation? sourceOperation;
 
-    public ConditionSourceDisplayNamePresenter(TaskSequencerWindow window) {
+    public ConditionSourcePresenter(TaskSequencerWindow window) {
         this.window = window;
     }
 
     public void SetTaskSequenceSource(TaskSequence? sequence) {
         this.ClearOperationSource();
         this.ClearTaskSequenceSource();
+        this.window.PART_ConditionsListBox.ConditionsHost = sequence;
 
         this.sourceSequence = sequence;
         if (sequence != null) {
@@ -50,6 +51,7 @@ public class ConditionSourceDisplayNamePresenter {
     public void SetOperationSource(BaseSequenceOperation? operation) {
         this.ClearOperationSource();
         this.ClearTaskSequenceSource();
+        this.window.PART_ConditionsListBox.ConditionsHost = operation;
 
         this.sourceOperation = operation;
         if (operation != null) {

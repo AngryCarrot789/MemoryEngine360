@@ -26,22 +26,21 @@ using PFXToolKitUI.Interactivity;
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 
 public class ConditionsListBox : ModelBasedListBox<BaseSequenceCondition> {
-    public static readonly StyledProperty<TaskSequence?> TaskSequenceProperty = AvaloniaProperty.Register<ConditionsListBox, TaskSequence?>(nameof(TaskSequence));
     public static readonly StyledProperty<IConditionsHost?> ConditionsHostProperty = AvaloniaProperty.Register<ConditionsListBox, IConditionsHost?>(nameof(ConditionsHost));
 
     private readonly Dictionary<Type, Stack<BaseConditionListContent>> itemContentCacheMap;
-
-    public TaskSequence? TaskSequence {
-        get => this.GetValue(TaskSequenceProperty);
-        set => this.SetValue(TaskSequenceProperty, value);
-    }
 
     public IConditionsHost? ConditionsHost {
         get => this.GetValue(ConditionsHostProperty);
         set => this.SetValue(ConditionsHostProperty, value);
     }
 
-    protected override bool CanDragItemPositionCore => this.ConditionsHost != null && !this.TaskSequence!.IsRunning;
+    protected override bool CanDragItemPositionCore {
+        get {
+            IConditionsHost? host = this.ConditionsHost;
+            return host != null && !host.TaskSequence!.IsRunning;
+        }
+    }
 
     public IListSelectionManager<IConditionItemUI> ControlSelectionManager { get; }
 

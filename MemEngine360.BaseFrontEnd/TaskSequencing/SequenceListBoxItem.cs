@@ -96,7 +96,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
             if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed) {
                 IListSelectionManager<ITaskSequenceItemUI> sel = window.SequenceSelectionManager;
                 if (sel.Count == 1 && sel.IsSelected(this)) {
-                    window.UpdatePrimaryTaskSequencer(this);
+                    window.UpdatePrimaryTaskSequence(this);
                 }
             }
         }
