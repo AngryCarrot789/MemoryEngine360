@@ -39,7 +39,9 @@ public abstract class BaseFileTreeNode {
 
     private string? fileName, fullPath;
     private string? errorText;
-
+    private ulong size;
+    private DateTime creationTimeUtc, modifiedTimeUtc;
+    
     /// <summary>
     /// Gets the file tree manager this entry currently exists in
     /// </summary>
@@ -85,6 +87,21 @@ public abstract class BaseFileTreeNode {
         set => PropertyHelper.SetAndRaiseINE(ref this.errorText, value, this, static t => t.ErrorTextChanged?.Invoke(t));
     }
     
+    public ulong Size {
+        get => this.size;
+        set => PropertyHelper.SetAndRaiseINE(ref this.size, value, this, static t => t.SizeChanged?.Invoke(t));
+    }
+
+    public DateTime CreationTimeUtc {
+        get => this.creationTimeUtc;
+        set => PropertyHelper.SetAndRaiseINE(ref this.creationTimeUtc, value, this, static t => t.CreationTimeUtcChanged?.Invoke(t));
+    }
+    
+    public DateTime ModifiedTimeUtc {
+        get => this.modifiedTimeUtc;
+        set => PropertyHelper.SetAndRaiseINE(ref this.modifiedTimeUtc, value, this, static t => t.ModifiedTimeUtcChanged?.Invoke(t));
+    }
+    
     /// <summary>
     /// An event fired when our <see cref="ParentDirectory"/> property changes.
     /// If the new parent is attached to a address table manager, our address table manager will be updates
@@ -99,7 +116,10 @@ public abstract class BaseFileTreeNode {
 
     public event BaseAddressTableEntryEventHandler? FileNameChanged;
     public event BaseAddressTableEntryEventHandler? ErrorTextChanged;
-
+    public event BaseAddressTableEntryEventHandler? SizeChanged;
+    public event BaseAddressTableEntryEventHandler? CreationTimeUtcChanged;
+    public event BaseAddressTableEntryEventHandler? ModifiedTimeUtcChanged;
+    
     protected BaseFileTreeNode() {
     }
 

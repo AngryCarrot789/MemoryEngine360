@@ -22,7 +22,9 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using MemEngine360.BaseFrontEnd.Utils;
 using MemEngine360.Engine.FileBrowsing;
+using MemEngine360.Engine.Scanners;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
@@ -42,7 +44,7 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
         get => this.GetValue(IsDroppableTargetOverProperty);
         set => this.SetValue(IsDroppableTargetOverProperty, value);
     }
-    
+
     public bool HasContentsLoaded {
         get => this.GetValue(HasContentsLoadedProperty);
         set => this.SetValue(HasContentsLoadedProperty, value);
@@ -58,6 +60,9 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
     }
 
     private readonly IBinder<BaseFileTreeNode> fileNameBinder = new EventUpdateBinder<BaseFileTreeNode>(nameof(BaseFileTreeNode.FileNameChanged), b => b.Control.SetValue(HeaderProperty, b.Model.FileName));
+    private readonly IBinder<BaseFileTreeNode> fileSizeBinder = new EventUpdateBinder<BaseFileTreeNode>(nameof(BaseFileTreeNode.SizeChanged), b => b.Control.SetValue(TextBlock.TextProperty, (b.Model.ParentDirectory?.IsRootEntry != true && !(b.Model is FileTreeNodeDirectory) ? ValueScannerUtils.ByteFormatter.ToString(b.Model.Size, false) : "")));
+    private readonly IBinder<BaseFileTreeNode> dateCreatedBinder = new EventUpdateBinder<BaseFileTreeNode>(nameof(BaseFileTreeNode.CreationTimeUtcChanged), b => b.Control.SetValue(TextBlock.TextProperty, (b.Model.ParentDirectory?.IsRootEntry != true ? b.Model.CreationTimeUtc.ToString() : "")));
+    private readonly IBinder<BaseFileTreeNode> dateModifiedBinder = new EventUpdateBinder<BaseFileTreeNode>(nameof(BaseFileTreeNode.ModifiedTimeUtcChanged), b => b.Control.SetValue(TextBlock.TextProperty, (b.Model.ParentDirectory?.IsRootEntry != true ? b.Model.ModifiedTimeUtc.ToString() : "")));
     private ObservableItemProcessorIndexing<BaseFileTreeNode>? compositeListener;
     private Border? PART_DragDropMoveBorder;
     private bool isFolderItem;
@@ -73,7 +78,7 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
     bool IFileTreeNodeUI.IsValid => this.EntryObject != null;
 
     private readonly AsyncRelayCommand LoadContentsCommand;
-    
+
     public FileBrowserTreeViewItem() {
         DataManager.GetContextData(this).Set(IFileTreeNodeUI.DataKey, this);
         DragDrop.SetAllowDrop(this, true);
@@ -88,9 +93,9 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
             }
 
             this.IsEnabled = false;
-            
+
             await dir.FileTreeManager!.LoadContentsCommand(dir);
-            
+
             this.IsEnabled = true;
         });
     }
@@ -123,6 +128,9 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
         this.PART_FileSize = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_FileSize));
 
         this.fileNameBinder.AttachControl(this);
+        this.fileSizeBinder.AttachControl(this.PART_FileSize);
+        this.dateCreatedBinder.AttachControl(this.PART_DateCreated);
+        this.dateModifiedBinder.AttachControl(this.PART_DateModified);
     }
 
     public void OnAdding(FileBrowserTreeView tree, FileBrowserTreeViewItem? parentNode, BaseFileTreeNode layer) {
@@ -142,7 +150,7 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
             }
         }
 
-        this.fileNameBinder.AttachModel(this.EntryObject!);
+        Binders.AttachModels(this.EntryObject!, this.fileNameBinder, this.fileSizeBinder, this.dateCreatedBinder, this.dateModifiedBinder);
         DataManager.GetContextData(this).Set(BaseFileTreeNode.DataKey, this.EntryObject);
         AdvancedContextMenu.SetContextRegistry(this, AddressTableContextRegistry.Registry);
     }
@@ -154,7 +162,7 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
             this.RemoveNode(i);
         }
 
-        this.fileNameBinder.DetachModel();
+        Binders.DetachModels(this.fileNameBinder, this.fileSizeBinder, this.dateCreatedBinder, this.dateModifiedBinder);
         DataManager.GetContextData(this).Set(BaseFileTreeNode.DataKey, null);
     }
 

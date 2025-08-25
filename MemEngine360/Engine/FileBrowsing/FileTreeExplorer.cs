@@ -143,9 +143,15 @@ public class FileTreeExplorer {
                         directory.Items.Add(entry.IsDirectory
                             ? new FileTreeNodeDirectory() {
                                 FileName = entry.Name,
+                                CreationTimeUtc = entry.CreatedTime,
+                                ModifiedTimeUtc = entry.ModifiedTime,
+                                Size = entry.Size,
                             }
                             : new FileTreeNodeFile() {
                                 FileName = entry.Name,
+                                CreationTimeUtc = entry.CreatedTime,
+                                ModifiedTimeUtc = entry.ModifiedTime,
+                                Size = entry.Size,
                             });
                     }
 
