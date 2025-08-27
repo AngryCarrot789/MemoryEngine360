@@ -51,6 +51,11 @@ public abstract class BaseFileTreeNode {
     /// Gets or sets the group entry that is a direct parent to this entry
     /// </summary>
     public FileTreeNodeDirectory? ParentDirectory { get; private set; }
+    
+    /// <summary>
+    /// Returns true when this entry is either the invisible root directory or is a top level entry
+    /// </summary>
+    public bool IsTopLevelEntry => this.ParentDirectory?.ParentDirectory == null;
 
     public string? FileName {
         get => this.fileName;
@@ -72,7 +77,7 @@ public abstract class BaseFileTreeNode {
                 throw new InvalidOperationException("File entry is invalid: no name");
 
             FileTreeNodeDirectory? parent = this.ParentDirectory;
-            return this.fullPath = (parent != null && !parent.IsRootEntry ? (parent.FullPath + '\\' + this.FileName) : this.FileName);
+            return this.fullPath = (parent != null && parent.ParentDirectory != null ? (parent.FullPath + '\\' + this.FileName) : this.FileName);
 
             // List<BaseFileTreeNode> nodes = new List<BaseFileTreeNode>();
             // for (BaseFileTreeNode? node = this; node != null; node = node.ParentDirectory) {

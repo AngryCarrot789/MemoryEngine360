@@ -752,10 +752,14 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     [StructLayout(LayoutKind.Explicit)]
     private struct RUNTIME_FUNCTION {
         [FieldOffset(0)] public uint BeginAddress;
+
         [FieldOffset(4)] public uint EndAddress;
+
         // union {
         [FieldOffset(8)] public uint UnwindInfoAddress;
+
         [FieldOffset(8)] public uint UnwindData;
+
         // }
         [FieldOffset(12)] private uint Padding;
 
@@ -1517,13 +1521,29 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             return state == XboxExecutionState.Stop;
         }
 
-        public async Task<List<string>> GetRoots() {
-            List<string> drives = new List<string>();
-            List<string> list = await this.connection.SendCommandAndReceiveLines("drivelist");
+        public async Task<List<DriveEntry>> GetDriveList() {
+            List<DriveEntry> drives = new List<DriveEntry>();
+            List<string> list = await this.connection.SendCommandAndReceiveLines("drivelist").ConfigureAwait(false);
             foreach (string drive in list) {
-                if (ParamUtils.GetStrParam(drive, "drivename", true, out string? driveName)) {
-                    drives.Add(driveName);
+                if (!ParamUtils.GetStrParam(drive, "drivename", true, out string? driveName)) {
+                    continue;
                 }
+
+                DriveEntry entry = new DriveEntry { Name = driveName };
+                List<string> freeSpaceResponse = await this.connection.SendCommandAndReceiveLines($"drivefreespace name=\"{driveName}:\\\"");
+                if (freeSpaceResponse.Count == 1) {
+                    if (ParamUtils.GetDwParam(freeSpaceResponse[0], "totalbyteslo", true, out uint lo) &&
+                        ParamUtils.GetDwParam(freeSpaceResponse[0], "totalbyteshi", true, out uint hi)) {
+                        entry.TotalSize = ((ulong) hi << 32) | lo;
+                    }
+
+                    if (ParamUtils.GetDwParam(freeSpaceResponse[0], "totalfreebyteslo", true, out lo) &&
+                        ParamUtils.GetDwParam(freeSpaceResponse[0], "totalfreebyteshi", true, out hi)) {
+                        entry.FreeBytes = ((ulong) hi << 32) | lo;
+                    }
+                }
+
+                drives.Add(entry);
             }
 
             return drives;
@@ -1533,11 +1553,14 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             this.connection.EnsureNotClosed();
             using BusyToken x = this.connection.CreateBusyToken();
 
+            if (string.IsNullOrEmpty(directory))
+                return (EnumFileSystemListResult.NoSuchDirectory, null);
+
             XbdmResponse response = await this.connection.InternalSendCommand($"dirlist name=\"{directory}\"").ConfigureAwait(false);
             if (response.RawMessage.Contains("access denied")) {
                 return (EnumFileSystemListResult.AccessDenied, null);
             }
-            
+
             if (response.ResponseType != XbdmResponseType.MultiResponse) {
                 return (EnumFileSystemListResult.NoSuchDirectory, null);
             }

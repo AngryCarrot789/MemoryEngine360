@@ -32,8 +32,6 @@ public sealed class FileTreeNodeDirectory : BaseFileTreeNode {
 
     public ObservableList<BaseFileTreeNode> Items { get; }
 
-    public bool IsRootEntry => this.ParentDirectory == null;
-
     public bool HasLoadedContents {
         get => this.hasLoadedContents;
         set => PropertyHelper.SetAndRaiseINE(ref this.hasLoadedContents, value, this, static t => t.HasLoadedContentsChanged?.Invoke(t));

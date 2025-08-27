@@ -26,14 +26,13 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     // TODO: file system navigation
 
     /// <summary>
-    /// Gets a list of root-level folders (or drives for xbox)
+    /// Gets a list of drives
     /// </summary>
-    /// <returns></returns>
-    Task<List<string>> GetRoots();
+    Task<List<DriveEntry>> GetDriveList();
 
     /// <summary>
     /// Gets a list of all file system entries within a directory, such as within a root obtained
-    /// from <see cref="GetRoots"/>. Returns a null list when the directory does not exist
+    /// from <see cref="GetDriveList"/>. Returns a null list when the directory does not exist
     /// </summary>
     /// <param name="directory">Directory path</param>
     /// <returns>The entries</returns>
@@ -58,6 +57,12 @@ public struct FileSystemEntry {
     public DateTime CreatedTime;
     public DateTime ModifiedTime;
     public bool IsDirectory;
+}
+
+public struct DriveEntry {
+    public string Name;
+    public ulong TotalSize;
+    public ulong FreeBytes;
 }
 
 public enum EnumFileSystemListResult {

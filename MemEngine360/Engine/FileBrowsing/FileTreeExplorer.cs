@@ -57,9 +57,10 @@ public class FileTreeExplorer {
         this.RootEntry.Clear();
         await this.MemoryEngine.BeginBusyOperationActivityAsync(async (t, connection) => {
             if (connection.TryGetFeature(out IFeatureFileSystemInfo? fs)) {
-                foreach (string root in await fs.GetRoots()) {
+                foreach (DriveEntry root in await fs.GetDriveList()) {
                     this.RootEntry.Items.Add(new FileTreeNodeDirectory() {
-                        FileName = root + ":"
+                        FileName = root.Name + ":",
+                        Size = root.TotalSize
                     });
                 }
             }
@@ -126,11 +127,16 @@ public class FileTreeExplorer {
                 directory.HasLoadedContents = true;
                 return;
             }
-
+            
             FileTreeNodeDirectory parent = directory.ParentDirectory!;
             (EnumFileSystemListResult, List<FileSystemEntry>?) result;
+            string path = directory.FullPath;
+            if (directory.IsTopLevelEntry) {
+                path += '\\';
+            }
+            
             try {
-                result = await info.GetFileSystemEntries(directory.FullPath);
+                result = await info.GetFileSystemEntries(path);
             }
             catch (Exception e) {
                 await IMessageDialogService.Instance.ShowMessage("Error", "Error reading file system entries", e.Message);
