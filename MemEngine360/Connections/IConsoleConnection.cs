@@ -22,14 +22,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Text;
 using MemEngine360.Connections.Features;
-using MemEngine360.Engine.Events;
 using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Connections;
 
 public delegate void ConsoleConnectionEventHandler(IConsoleConnection sender);
-
-public delegate void ConsoleSystemEventHandler(IConsoleConnection sender, ConsoleSystemEventArgs e);
 
 /// <summary>
 /// Represents a connection to a console. Reading/writing operations may

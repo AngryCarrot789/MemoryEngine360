@@ -71,7 +71,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return this.featureManager.TryGetService(out feature);
     }
 
-    public virtual bool HasFeature<T>() where T : class, IConsoleFeature => this.HasFeature(typeof(T));
+    public bool HasFeature<T>() where T : class, IConsoleFeature => this.HasFeature(typeof(T));
 
     public virtual bool HasFeature(Type typeOfFeature) {
         if (!typeof(IConsoleFeature).IsAssignableFrom(typeOfFeature))

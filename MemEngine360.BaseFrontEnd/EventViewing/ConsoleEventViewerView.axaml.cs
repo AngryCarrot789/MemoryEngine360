@@ -131,17 +131,14 @@ public partial class ConsoleEventViewerView : UserControl {
     protected override void OnUnloaded(RoutedEventArgs e) {
         base.OnUnloaded(e);
 
-        this.PART_EventListBox.SelectedItem = null;
-
         this.isUnloadedState = 1;
         DisposableUtils.Dispose(ref this.subscription);
         this.timer.ClearTarget();
-        this.myEvents.Clear();
-
-        lock (this.pendingInsertionEx) {
-            this.pendingInsertionCount = 0;
-            this.pendingInsertionEx.Clear();
-        }
+        // this.myEvents.Clear();
+        // lock (this.pendingInsertionEx) {
+        //     this.pendingInsertionCount = 0;
+        //     this.pendingInsertionEx.Clear();
+        // }
     }
 
     private void PART_ScrollViewerOnPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e) {
@@ -155,7 +152,7 @@ public partial class ConsoleEventViewerView : UserControl {
 
     private void PART_ScrollViewerOnScrollChanged(object? sender, ScrollChangedEventArgs e) {
         ScrollViewer sv = (ScrollViewer) sender!;
-        // this.isScrolledToBottomOfList = Math.Abs(sv.Offset.Y - Math.Max(sv.Extent.Height - sv.Viewport.Height, 0)) < 20;
+        this.isScrolledToBottomOfList = Math.Abs(sv.Offset.Y - Math.Max(sv.Extent.Height - sv.Viewport.Height, 0)) < 20;
     }
 
     private void PART_ScrollViewerOnLayoutUpdated(object? sender, EventArgs e) {

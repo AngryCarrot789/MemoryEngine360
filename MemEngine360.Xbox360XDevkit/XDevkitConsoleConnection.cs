@@ -65,10 +65,6 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         return base.TryGetFeature(out feature);
     }
 
-    public override bool HasFeature<T>() {
-        return this.features is T || base.HasFeature<T>();
-    }
-
     public override bool HasFeature(Type typeOfFeature) {
         return typeOfFeature.IsInstanceOfType(this.features) || base.HasFeature(typeOfFeature);
     }

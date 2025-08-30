@@ -14,7 +14,7 @@
                  xmlns:av2="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.BaseFrontEnd.Debugging.DebuggerWindow"
-                 Title="DebuggerWindow"
+                 Title="Debugger"
                  Background="{DynamicResource ABrush.Tone2.Background.Static}"
                  av2:UIInputManager.FocusPath="DebuggerWindow"
                  MinHeight="400" MinWidth="400">

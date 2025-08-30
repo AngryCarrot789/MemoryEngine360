@@ -85,7 +85,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     private ThreadedBinaryReadInfo readInfo_binary;
     private ThreadedStringLineReadInfo readInfo_string;
     private readonly string originalConnectionAddress;
-    private volatile XbdmEventArgsExecutionState? currentState;
 
     public EndPoint? EndPoint => !this.IsClosed ? this.client.Client.RemoteEndPoint : null;
 
@@ -171,12 +170,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
 
         return base.TryGetFeature(out feature);
-    }
-
-    public override bool HasFeature<T>() {
-        return this.xbdmFeatures is T ||
-               this.jrpcFeatures is T ||
-               base.HasFeature<T>();
     }
 
     public override bool HasFeature(Type typeOfFeature) {
@@ -1354,12 +1347,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                     break;
                 }
 
-                XbdmEventArgs theEvent = XbdmEventUtils.ParseSpecial(responseText) ?? new XbdmEventArgs(responseText);
-                if (theEvent is XbdmEventArgsExecutionState) {
-                    this.currentState = (XbdmEventArgsExecutionState) theEvent;
-                }
-
-                preRunEvents.Add(theEvent);
+                preRunEvents.Add(XbdmEventUtils.ParseSpecial(responseText) ?? new XbdmEventArgs(responseText));
             }
 
             lock (this.systemEventThreadLock) {
@@ -1406,10 +1394,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
                 Debug.Assert(line != null);
                 XbdmEventArgs e = XbdmEventUtils.ParseSpecial(line) ?? new XbdmEventArgs(line);
-                if (e is XbdmEventArgsExecutionState) {
-                    this.currentState = (XbdmEventArgsExecutionState) e;
-                }
-
                 lock (this.systemEventHandlers) {
                     eventHandlerList = this.systemEventHandlers.ToList();
                 }
@@ -1456,9 +1440,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         lock (this.systemEventHandlers) {
             this.systemEventHandlers.Add(handler);
-            if (this.currentState != null) {
-                handler(this, this.currentState);
-            }
         }
 
         return new EventSubscriber(this, handler);

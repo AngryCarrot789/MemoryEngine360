@@ -22,7 +22,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using MemEngine360.BaseFrontEnd.Utils;
 using MemEngine360.Engine.FileBrowsing;
 using MemEngine360.Engine.Scanners;
 using PFXToolKitUI.AdvancedMenuService;

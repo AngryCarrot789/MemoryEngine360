@@ -17,7 +17,11 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Engine.Events;
+
 namespace MemEngine360.Connections.Features;
+
+public delegate void ConsoleSystemEventHandler(IConsoleConnection sender, ConsoleSystemEventArgs e);
 
 /// <summary>
 /// A feature for connections that can notify handlers of system event on the target console.
@@ -35,6 +39,9 @@ public interface IFeatureSystemEvents : IConsoleFeature {
     /// Some connections may require a background connection or thread to receive events, and once
     /// all handlers are removed, they may stop or pause the thread and close the connection. Therefore,
     /// it's important to always dispose the returned object when no longer required
+    /// </para>
+    /// <para>
+    /// The event instance passed to the handler will always be a unique instance
     /// </para>
     /// </summary>
     /// <param name="handler">The handler of the system events. May be invoked from any thread</param>
