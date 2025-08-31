@@ -35,6 +35,7 @@ using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
 using ConsoleColor = MemEngine360.Connections.Features.ConsoleColor;
+using RegisterContext = MemEngine360.Connections.Features.RegisterContext;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
@@ -331,12 +332,22 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     public async Task<List<XboxThread>> GetThreadDump(bool requireNames = true) {
         List<string> list = await this.SendCommandAndReceiveLines("threads");
         List<XboxThread> threads = new List<XboxThread>(list.Count);
+        
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+        
         foreach (string threadId in list) {
             XboxThread tdInfo = new XboxThread {
                 id = (uint) int.Parse(threadId)
             };
 
-            List<string> info = await this.SendCommandAndReceiveLines($"threadinfo thread=0x{tdInfo.id:X8}");
+            XbdmResponse response = await this.InternalSendCommand($"threadinfo thread=0x{tdInfo.id:X8}").ConfigureAwait(false);
+            if (response.ResponseType != XbdmResponseType.MultiResponse) {
+                VerifyResponse("threadinfo", response.ResponseType, XbdmResponseType.NoSuchThread);
+                continue;
+            }
+            
+            List<string> info = await this.InternalReadMultiLineResponse();
             Debug.Assert(info.Count > 0, "Info should have at least 1 line since it will be a multi-line response");
             if (info.Count != 1) {
                 Debugger.Break(); // interesting... more than 1 line of info. Let's explore!
@@ -350,7 +361,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             for (int i = 0; i < threads.Count; i++) {
                 XboxThread tdInfo = threads[i];
                 if (tdInfo.nameAddress != 0 && tdInfo.nameLength != 0 && tdInfo.nameLength < int.MaxValue) {
-                    tdInfo.readableName = await this.ReadStringASCII(tdInfo.nameAddress, (int) tdInfo.nameLength);
+                    tdInfo.readableName = await this.InternalReadStringASCII(tdInfo.nameAddress, (int) tdInfo.nameLength);
                     threads[i] = tdInfo;
                 }
             }
@@ -542,7 +553,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         return this.SetDataBreakpoint(address, type, size, true);
     }
 
-    public async Task<List<RegisterEntry>?> GetRegisters(uint threadId) {
+    public async Task<RegisterContext?> GetRegisters(uint threadId) {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
@@ -552,59 +563,31 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
 
         VerifyResponse("getcontext", response.ResponseType, XbdmResponseType.MultiResponse);
-        List<RegisterEntry> registers = new List<RegisterEntry>();
+        RegisterContext ctx = new RegisterContext();
         await Task.Run(async () => {
             List<string> lines = await this.InternalReadMultiLineResponse().ConfigureAwait(false);
             foreach (string line in lines) {
                 int split = line.IndexOf('=');
-                if (split == -1)
+                if (split == -1) {
                     continue;
+                }
 
                 string name = line.Substring(0, split).ToUpperInvariant();
                 string value = line.Substring(split + 1);
                 if (value.StartsWith("0x")) {
-                    if (uint.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out uint value32))
-                        registers.Add(new RegisterEntry32(name, value32));
+                    if (uint.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out uint value32)) {
+                        ctx.SetUInt32(name, value32);
+                    }
                 }
                 else if (value.StartsWith("0q")) {
-                    if (ulong.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out ulong value64))
-                        registers.Add(new RegisterEntry64(name, value64));
+                    if (ulong.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out ulong value64)) {
+                        ctx.SetUInt64(name, value64);
+                    }
                 }
             }
         });
 
-        return registers;
-    }
-
-    public async Task<RegisterEntry?> ReadRegisterValue(uint threadId, string registerName) {
-        XbdmResponse response = await this.SendCommand($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
-        if (response.ResponseType == XbdmResponseType.NoSuchThread) {
-            return null;
-        }
-
-        VerifyResponse("getcontext", response.ResponseType, XbdmResponseType.MultiResponse);
-        List<string> lines = await this.ReadMultiLineResponse();
-        foreach (string line in lines) {
-            int split = line.IndexOf('=');
-            if (split == -1)
-                continue;
-
-            if (!line.AsSpan(0, split).Equals(registerName, StringComparison.OrdinalIgnoreCase)) {
-                continue;
-            }
-
-            string value = line.Substring(split + 1);
-            if (value.StartsWith("0x")) {
-                if (uint.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out uint value32))
-                    return new RegisterEntry32(line.Substring(0, split), value32);
-            }
-            else if (value.StartsWith("0q")) {
-                if (ulong.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out ulong value64))
-                    return new RegisterEntry64(line.Substring(0, split), value64);
-            }
-        }
-
-        return null;
+        return ctx;
     }
 
     public Task SuspendThread(uint threadId) => this.SendCommand($"suspend thread=0x{threadId:X8}");
@@ -1610,9 +1593,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         public Task RemoveDataBreakpoint(uint address, XboxBreakpointType type, uint size) => this.connection.RemoveDataBreakpoint(address, type, size);
 
-        public Task<List<RegisterEntry>?> GetRegisters(uint threadId) => this.connection.GetRegisters(threadId);
-
-        public Task<RegisterEntry?> ReadRegisterValue(uint threadId, string registerName) => this.connection.ReadRegisterValue(threadId, registerName);
+        public Task<RegisterContext?> GetThreadRegisters(uint threadId) => this.connection.GetRegisters(threadId);
 
         public Task SuspendThread(uint threadId) => this.connection.SuspendThread(threadId);
 

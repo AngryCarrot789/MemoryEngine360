@@ -135,7 +135,7 @@ public interface IConsoleConnection {
     /// corrects the endianness for each field in the struct
     /// </summary>
     /// <param name="address">The address to read from</param>
-    /// <param name="fields">
+    /// <param name="fieldSizes">
     /// The field sizes. Alignment must be done manually, therefore, the layout of the struct
     /// being read must be known, and therefore, the summation of all integers in this array
     /// should equal or almost equal <c>sizeof(T)</c> (might be less due to alignment)
@@ -143,7 +143,7 @@ public interface IConsoleConnection {
     /// <typeparam name="T">The type of value to read, e.g. <see cref="Vector3"/></typeparam>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
-    Task<T> ReadStruct<T>(uint address, params int[] fields) where T : unmanaged;
+    Task<T> ReadStruct<T>(uint address, params int[] fieldSizes) where T : unmanaged;
 
     /// <summary>
     /// Reads the given number of single byte characters from the console (ASCII chars)
@@ -159,11 +159,11 @@ public interface IConsoleConnection {
     /// Reads the given number of single byte characters from the console (ASCII chars)
     /// </summary>
     /// <param name="address">The address to read from</param>
-    /// <param name="count">The number of chars to read</param>
+    /// <param name="charCount">The number of chars to read</param>
     /// <param name="encoding">The encoding to use to read chars</param>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
-    Task<string> ReadString(uint address, int count, Encoding encoding);
+    Task<string> ReadString(uint address, int charCount, Encoding encoding);
 
     /// <summary>
     /// Writes the exact number of bytes to the console. If for some reason the amount of bytes count not be written, an <see cref="IOException"/> is thrown
@@ -228,7 +228,8 @@ public interface IConsoleConnection {
     Task WriteChar(uint address, char value);
 
     /// <summary>
-    /// Writes a value to the console's memory. This method corrects the endianness
+    /// Writes a value to the console's memory. Note, this method will correct the endianness for the entire value
+    /// which may be undesirable for multi-field structs, in which case, use <see cref="WriteStruct{T}"/> instead.
     /// </summary>
     /// <param name="address">The address to write to</param>
     /// <param name="value">The value to write</param>
@@ -238,20 +239,15 @@ public interface IConsoleConnection {
     Task WriteValue<T>(uint address, T value) where T : unmanaged;
 
     /// <summary>
-    /// Writes a struct to the console's memory. This method
-    /// corrects the endianness for each field in the struct
+    /// Writes a struct to the console's memory. This method corrects the endianness for each field in the struct
     /// </summary>
     /// <param name="address">The address to write to</param>
     /// <param name="value">The value to write</param>
-    /// <param name="fields">
-    /// The field sizes. Alignment must be done manually, therefore, the layout of the struct
-    /// being read must be known, and therefore, the summation of all integers in this array
-    /// should equal or almost equal <c>sizeof(T)</c> (might be less due to alignment)
-    /// </param>
+    /// <param name="fieldSizes">An array of field sizes. Alignment/padding must be inserted manually.</param>
     /// <typeparam name="T">The type of value to write, e.g. <see cref="Vector3"/></typeparam>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
-    Task WriteStruct<T>(uint address, T value, params int[] fields) where T : unmanaged;
+    Task WriteStruct<T>(uint address, T value, params int[] fieldSizes) where T : unmanaged;
 
     /// <summary>
     /// Writes the string's characters to the console (ASCII chars)
@@ -286,7 +282,8 @@ public interface IConsoleConnection {
     // Task<uint?> FindPattern(uint address, uint count, MemoryPattern pattern, CompletionState? completion = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Tries to resolve a dynamic address
+    /// Tries to resolve a dynamic address. The final element in <see cref="offsets"/> is added to the address before
+    /// being returned, then this address can be read from (dereferenced) to get a useful value
     /// </summary>
     /// <param name="baseAddress">The base address</param>
     /// <param name="offsets">The offsets</param>

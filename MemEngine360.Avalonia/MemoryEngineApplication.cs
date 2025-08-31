@@ -62,7 +62,6 @@ using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
-using MemEngine360.Win32;
 using MemEngine360.Xbox360XBDM;
 using MemEngine360.Xbox360XDevkit;
 using MemEngine360.XboxBase;
@@ -224,9 +223,6 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
     protected override async Task OnSetupApplication(IApplicationStartupProgress progress) {
         await base.OnSetupApplication(progress);
         bool isWindows = OperatingSystem.IsWindows();
-        if (isWindows)
-            this.PluginLoader.AddCorePlugin(typeof(PluginMemEngineWin32Lib));
-
         this.PluginLoader.AddCorePlugin(typeof(PluginXbox360Xbdm));
 
         if (isWindows)

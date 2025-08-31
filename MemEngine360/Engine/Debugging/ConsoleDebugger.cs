@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Buffers.Binary;
 using System.Diagnostics;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
@@ -61,7 +62,7 @@ public class ConsoleDebugger {
     /// Gets the register entries list
     /// </summary>
     public ObservableList<RegisterEntry> RegisterEntries { get; }
-    
+
     /// <summary>
     /// Gets the thread list
     /// </summary>
@@ -294,7 +295,7 @@ public class ConsoleDebugger {
                 IsSuspended = thread.suspendCount > 0,
                 ProcessorNumber = thread.currentProcessor
             });
-            
+
             this.rldaUpdateCallFrame.InvokeAsync();
         }
         else {
@@ -345,9 +346,9 @@ public class ConsoleDebugger {
         IConsoleConnection? connection = this.Connection;
         if (connection != null && !connection.IsClosed) {
             IFeatureXboxDebugging debug = connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!;
-            List<RegisterEntry>? registers;
+            RegisterContext? registers;
             try {
-                registers = await debug.GetRegisters(thread.ThreadId);
+                registers = await debug.GetThreadRegisters(thread.ThreadId);
             }
             catch (Exception e) when (e is IOException || e is TimeoutException) {
                 await IMessageDialogService.Instance.ShowMessage("Network error", e.Message);
@@ -364,7 +365,9 @@ public class ConsoleDebugger {
             else {
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     this.RegisterEntries.Clear();
-                    this.RegisterEntries.AddRange(registers);
+                    this.RegisterEntries.AddRange(registers.UInt32Registers.Select(x => new RegisterEntry32(x.Key, x.Value)));
+                    this.RegisterEntries.AddRange(registers.UInt64Registers.Select(x => new RegisterEntry64(x.Key, x.Value)));
+                    this.RegisterEntries.AddRange(registers.Vector128Registers.Select(x => new RegisterEntryVector(x.Key, x.Value)));
                 }, DispatchPriority.Default, token: CancellationToken.None);
             }
 
@@ -372,10 +375,10 @@ public class ConsoleDebugger {
         }
     }
 
-    private async Task UpdateCallFrame(IConsoleConnection connection, ThreadEntry thread, List<RegisterEntry>? registers) {
+    private async Task UpdateCallFrame(IConsoleConnection connection, ThreadEntry thread, RegisterContext? registers) {
         if (registers == null) {
             try {
-                registers = await (connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!).GetRegisters(thread.ThreadId);
+                registers = await (connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!).GetThreadRegisters(thread.ThreadId);
             }
             catch (Exception e) when (e is IOException || e is TimeoutException) {
                 await IMessageDialogService.Instance.ShowMessage("Network error", e.Message);
@@ -391,19 +394,13 @@ public class ConsoleDebugger {
             }
         }
 
-        RegisterEntry32? iar = registers.FirstOrDefault(x => x.Name.EqualsIgnoreCase("iar")) as RegisterEntry32;
-        if (iar == null) {
-            return;
-        }
-
-        RegisterEntry32? lr = registers.FirstOrDefault(x => x.Name.EqualsIgnoreCase("lr")) as RegisterEntry32;
-        if (lr == null) {
+        if (!registers.TryGetUInt32("iar", out uint iar) || !registers.TryGetUInt32("lr", out uint lr)) {
             return;
         }
 
         FunctionCallEntry?[] functions;
         try {
-            functions = await (connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!).FindFunctions([iar.Value, lr.Value]);
+            functions = await (connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!).FindFunctions([iar, lr]);
         }
         catch (Exception e) when (e is IOException || e is TimeoutException) {
             await IMessageDialogService.Instance.ShowMessage("Network error", e.Message);
@@ -420,6 +417,15 @@ public class ConsoleDebugger {
                 this.FunctionCallEntries.Add(new FunctionCallEntry(entry?.ModuleName ?? "<unknown>", entry?.Address ?? 0, entry?.Size ?? 0, entry?.unwindInfoAddressOrData ?? 0));
             }
         }, DispatchPriority.Default, token: CancellationToken.None);
+
+        // IReadOnlyList<FrameContext> frames = await Unwinder.UnwindFullStack(connection, thread.ThreadId);
+        // await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+        //     this.FunctionCallEntries.Clear();
+        //     foreach (FrameContext? entry in frames) {
+        //         FunctionCallEntry? func = entry.Function;
+        //         this.FunctionCallEntries.Add(new FunctionCallEntry(func?.ModuleName ?? "<unknown>", func?.FunctionAddress ?? 0, func?.Size ?? 0, func?.unwindInfoAddressOrData ?? 0));
+        //     }
+        // }, DispatchPriority.Default, token: CancellationToken.None);
     }
 
     public void SetConnection(IDisposable busyToken, IConsoleConnection? newConnection) {
@@ -588,7 +594,7 @@ public class ConsoleDebugger {
             this.IsConsoleRunning = newRunState;
         }, DispatchPriority.Background);
     }
-    
+
     private void OnHandleStateChange(XbdmEventArgsExecutionState stateChanged) {
         this.SetCurrentState(stateChanged.ExecutionState);
     }

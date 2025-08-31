@@ -21,6 +21,7 @@ using System.Diagnostics;
 using Avalonia.Input;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
@@ -70,6 +71,7 @@ public partial class OpenConnectionWindow : DesktopWindow, IOpenConnectionView {
     }
 
     public Task<IConsoleConnection?> WaitForClose() {
+        ApplicationPFX.Instance.Dispatcher.VerifyAccess();
         if (this.IsClosed) {
             return Task.FromResult(this.closedConnection);
         }

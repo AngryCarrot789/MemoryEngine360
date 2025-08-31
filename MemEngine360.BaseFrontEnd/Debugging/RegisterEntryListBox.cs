@@ -105,7 +105,7 @@ public class RegisterEntryListBoxItem : ModelBasedListBoxItem<RegisterEntry> {
 
                 textValue = new StringBuilder().Append(" = ").Append(eDouble.Value.ToString("X16")).Append(" (").Append(Unsafe.As<ulong, double>(ref value)).ToString();
                 break;
-            case RegisterEntryVector eVector: textValue = new StringBuilder().Append(" = ").Append(eVector.Value1.ToString("X16")).Append(", ").Append(eVector.Value2.ToString("X16")).ToString(); break;
+            case RegisterEntryVector eVector: textValue = new StringBuilder().Append(" = ").Append(eVector.Value).ToString(); break;
             default:                          textValue = ""; break;
         }
 

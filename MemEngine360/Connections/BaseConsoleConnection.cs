@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -66,7 +65,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         if (this.isClosedState == 0)
             AppLogger.Instance.WriteLine("Destructor called on " + nameof(BaseConsoleConnection) + " when still open");
     }
-    
+
     public virtual bool TryGetFeature<T>([NotNullWhen(true)] out T? feature) where T : class, IConsoleFeature {
         return this.featureManager.TryGetService(out feature);
     }
@@ -76,7 +75,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public virtual bool HasFeature(Type typeOfFeature) {
         if (!typeof(IConsoleFeature).IsAssignableFrom(typeOfFeature))
             throw new ArgumentException("Feature type is not assignable to " + nameof(IConsoleFeature));
-        
+
         return this.featureManager.HasService(typeOfFeature);
     }
 
@@ -88,7 +87,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     protected void RegisterFeature<T>(T feature) where T : class, IConsoleFeature {
         this.featureManager.RegisterConstant(feature);
     }
-    
+
     /// <summary>
     /// Registers a feature, creating it when required.
     /// </summary>
@@ -104,7 +103,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         if (Interlocked.CompareExchange(ref this.isClosedState, 1, 0) != 0) {
             return; // already closed
         }
-        
+
 #pragma warning disable CA1816
         GC.SuppressFinalize(this);
 #pragma warning restore CA1816
@@ -127,7 +126,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         if (closeException != null) {
             if (eventException != null)
                 throw new AggregateException("Exception occurred while closing connection and also raising " + nameof(this.Closed) + " event", closeException.SourceException, eventException.SourceException);
-            
+
             closeException.Throw();
         }
         else if (eventException != null) {
@@ -139,11 +138,11 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public async Task ReadBytes(uint address, byte[] buffer, int offset, int count) {
-        if (count < 0) 
+        if (count < 0)
             throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
-        if (offset < 0) 
+        if (offset < 0)
             throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
-        if (count == 0) 
+        if (count == 0)
             return;
 
         this.EnsureNotClosed();
@@ -208,7 +207,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         using BusyToken x = this.CreateBusyToken();
 
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
-        
+
         try {
             await this.ReadBytesCore(address, buffer, 0, buffer.Length).ConfigureAwait(false);
         }
@@ -224,7 +223,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return MemoryMarshal.Read<T>(buffer);
     }
 
-    public async Task<T> ReadStruct<T>(uint address, params int[] fields) where T : unmanaged {
+    public async Task<T> ReadStruct<T>(uint address, params int[] fieldSizes) where T : unmanaged {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
@@ -232,7 +231,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         byte[] buffer = new byte[Unsafe.SizeOf<T>()];
 
         try {
-            foreach (int cbField in fields) {
+            foreach (int cbField in fieldSizes) {
                 Debug.Assert(cbField >= 0, "Field was negative");
 
                 this.EnsureNotClosed();
@@ -258,14 +257,36 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public async Task<string> ReadStringASCII(uint address, int count, bool removeNull = true) {
-        byte[] buffer = await this.ReadBytes(address, count).ConfigureAwait(false);
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+
+        return await this.InternalReadStringASCII(address, count, removeNull);
+    }
+
+    protected internal async Task<string> InternalReadStringASCII(uint address, int count, bool removeNull = true) {
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
+        if (count == 0)
+            return "";
+
+        byte[] buffer = new byte[count];
+
+        try {
+            await this.ReadBytesCore(address, buffer, 0, count).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            this.Close();
+            throw;
+        }
 
         if (removeNull) {
             int j = 0, k = 0;
-            for (; k < count; k++) {
-                if (buffer[k] != 0) {
-                    buffer[j++] = buffer[k];
-                }
+            for (; k < count; ++k) {
+                if (buffer[k] == 0)
+                    continue;
+                if (j != k)
+                    buffer[j] = buffer[k];
+                ++j;
             }
 
             count = j;
@@ -274,16 +295,15 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return Encoding.ASCII.GetString(buffer, 0, count);
     }
 
-    public async Task<string> ReadString(uint address, int count, Encoding encoding) {
-        int cbMaxLength = encoding.GetMaxByteCount(count);
-        byte[] buffer = new byte[cbMaxLength];
-        await this.ReadBytes(address, buffer, 0, cbMaxLength).ConfigureAwait(false);
+    public async Task<string> ReadString(uint address, int charCount, Encoding encoding) {
+        byte[] buffer = new byte[encoding.GetMaxByteCount(charCount)];
+        await this.ReadBytes(address, buffer, 0, buffer.Length).ConfigureAwait(false);
 
         Decoder decoder = encoding.GetDecoder();
-        char[] charBuffer = new char[count];
+        char[] charBuffer = new char[charCount];
 
         try {
-            decoder.Convert(buffer, 0, cbMaxLength, charBuffer, 0, count, true, out _, out int charsUsed, out _);
+            decoder.Convert(buffer, 0, buffer.Length, charBuffer, 0, charCount, true, out _, out int charsUsed, out _);
             return new string(charBuffer, 0, charsUsed);
         }
         catch {
@@ -300,7 +320,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             throw new ArgumentOutOfRangeException(nameof(offset), offset, "Count cannot be negative");
         if (count == 0)
             return;
-        
+
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
@@ -340,37 +360,44 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public Task WriteChar(uint address, char value) => this.WriteByte(address, (byte) value);
 
     public Task WriteValue<T>(uint address, T value) where T : unmanaged {
-        int cbValue = Unsafe.SizeOf<T>();
-        byte[] bytes = cbValue > 8 ? new byte[cbValue] : this.sharedByteArray8;
+        int size = Unsafe.SizeOf<T>();
+        byte[] bytes = size > 8 ? new byte[size] : this.sharedByteArray8;
         Unsafe.As<byte, T>(ref MemoryMarshal.GetArrayDataReference(bytes)) = value;
         if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
             Array.Reverse(bytes);
         }
 
-        return this.WriteBytes(address, bytes);
+        return this.WriteBytes(address, bytes, 0, size);
     }
 
-    public async Task WriteStruct<T>(uint address, T value, params int[] fields) where T : unmanaged {
+    public async Task WriteStruct<T>(uint address, T value, params int[] fieldSizes) where T : unmanaged {
         this.EnsureNotClosed();
 
-        int offset = 0;
-        byte[] buffer = new byte[Unsafe.SizeOf<T>()];
-        foreach (int cbField in fields) {
-            Debug.Assert(cbField >= 0, "Field was negative");
+        byte[] buffer;
+        int length = Unsafe.SizeOf<T>(), offset = 0;
+        ref byte value_bytes = ref Unsafe.As<T, byte>(ref value);
+        bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
+        using (this.CreateBusyToken()) {
+            buffer = length > 8 ? new byte[length] : this.sharedByteArray8;
+            Span<byte> buffer_span = buffer.AsSpan(0, length);
+            foreach (int cbField in fieldSizes) {
+                Debug.Assert(cbField >= 0, "Field was negative");
+                if ((cbField + offset) > length) {
+                    throw new ArgumentException("Summation of field sizes exceeds the size of the value");
+                }
 
-            Unsafe.As<byte, T>(ref buffer[offset]) = value;
-            if (BitConverter.IsLittleEndian != this.IsLittleEndian)
-                Array.Reverse(buffer, offset, cbField);
+                Span<byte> buffer_field_slice = buffer_span.Slice(offset, cbField);
+                MemoryMarshal.CreateSpan(ref value_bytes, cbField).CopyTo(buffer_field_slice);
+                if (reverse) {
+                    buffer_field_slice.Reverse();
+                }
 
-            offset += cbField;
-            Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.WriteStruct));
+                offset += cbField;
+                Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.WriteStruct));
+            }
         }
 
-        if (offset > buffer.Length) {
-            Debugger.Break();
-        }
-
-        await this.WriteBytes(address, buffer).ConfigureAwait(false);
+        await this.WriteBytes(address, buffer, 0, offset).ConfigureAwait(false);
     }
 
     public Task WriteString(uint address, string value) => this.WriteString(address, value, Encoding.ASCII);
@@ -389,53 +416,36 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         // Even if Offsets.Length is zero, still check disposed and take busy token to try and catch unsynchronized access
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
-        
-        long ptr = baseAddress;
+
+        long address = baseAddress;
         if (offsets.Length > 0) {
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(sizeof(uint));
-            try {
-                bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
+            bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
+            foreach (int offset in offsets) {
+                this.EnsureNotClosed();
+                await this.ReadBytesCore((uint) address, this.sharedByteArray8, 0, sizeof(uint)).ConfigureAwait(false);
 
-                foreach (int offset in offsets) {
-                    this.EnsureNotClosed();
-                    await this.ReadBytesCore((uint) ptr, buffer, 0, sizeof(uint)).ConfigureAwait(false);
-                    if (reverse)
-                        Array.Reverse(buffer, 0, sizeof(uint));
+                Span<byte> span = this.sharedByteArray8.AsSpan(0, sizeof(uint));
+                if (reverse)
+                    span.Reverse();
 
-                    uint deref = MemoryMarshal.Read<uint>(new ReadOnlySpan<byte>(buffer, 0, sizeof(uint)));
-                    ptr = Math.Max((long) deref + offset, 0);
-                    if (ptr <= 0 || ptr > uint.MaxValue) {
-                        return null;
-                    }
+                uint deref = Unsafe.ReadUnaligned<uint>(ref span.GetPinnableReference());
+                address = Math.Max((long) deref + offset, 0);
+                if (address <= 0 || address > uint.MaxValue) {
+                    return null;
                 }
-            }
-            finally {
-                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 
         // The final pointer, which points to hopefully an effective value (e.g. float or literally anything)
-        return (uint) ptr;
-    }
-
-    protected BusyToken CreateBusyToken() {
-        if (Interlocked.CompareExchange(ref this.busyStack, 1, 0) != 0)
-            throw new InvalidOperationException("Already busy performing another operation");
-        return new BusyToken(this);
-    }
-
-    protected void EnsureNotClosed() {
-        if (this.isClosedState != 0) {
-            throw new IOException("Connection is closed");
-        }
+        return (uint) address;
     }
 
     public Task WriteVector2(uint address, Vector2 vec2) {
-        return this.WriteStruct(address, vec2, 4, 4);
+        return this.WriteStruct(address, vec2, sizeof(float), sizeof(float));
     }
 
     public Task WriteVector3(uint Offset, Vector3 vec3) {
-        return this.WriteStruct(Offset, vec3, 4, 4, 4);
+        return this.WriteStruct(Offset, vec3, sizeof(float), sizeof(float), sizeof(float));
     }
 
     protected async Task ReadBytesInChunksUnderBusyLock(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion, CancellationToken cancellationToken) {
@@ -505,6 +515,25 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// <param name="offset">The offset within <see cref="srcBuffer"/> to begin reading from. Should always be greather than or equal to 0</param>
     /// <param name="count">The amount of bytes to write to the console. This should always be greater than 0</param>
     protected abstract Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count);
+
+    /// <summary>
+    /// Creates a busy token
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Another operation already in progress</exception>
+    protected BusyToken CreateBusyToken() {
+        if (Interlocked.CompareExchange(ref this.busyStack, 1, 0) != 0)
+            throw new InvalidOperationException("Already busy performing another operation");
+        return new BusyToken(this);
+    }
+
+    /// <summary>
+    /// Throws <see cref="IOException"/> if closed
+    /// </summary>
+    protected void EnsureNotClosed() {
+        if (this.isClosedState != 0) {
+            throw new IOException("Connection is closed");
+        }
+    }
 
     /// <summary>
     /// A token used to safeguard against concurrent read/write operations

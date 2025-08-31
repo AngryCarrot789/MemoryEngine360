@@ -150,6 +150,9 @@
                 <KeyStroke Mods="CTRL" Key="G"/>
             </Shortcut>
         </Group>
+        <Shortcut Name="ConnectToConsole" CommandId="commands.debugger.OpenDebuggerConnectionCommand">
+            <KeyStroke Mods="CTRL" Key="O"/>
+        </Shortcut>
         <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
             <KeyStroke Mods="CTRL+ALT" Key="S"/>
         </Shortcut>

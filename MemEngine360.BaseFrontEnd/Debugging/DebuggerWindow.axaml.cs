@@ -51,7 +51,7 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
         set => this.SetValue(ConsoleDebuggerProperty, value);
     }
 
-    private readonly IBinder<ConsoleDebugger> autoRefreshBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.RefreshRegistersOnActiveThreadChangeChanged), (b) => b.Control.SetValue(ToggleButton.IsCheckedProperty, b.Model.RefreshRegistersOnActiveThreadChange));
+    private readonly IBinder<ConsoleDebugger> autoRefreshBinder = new AvaloniaPropertyToEventPropertyBinder<ConsoleDebugger>(ToggleButton.IsCheckedProperty, nameof(ConsoleDebugger.RefreshRegistersOnActiveThreadChangeChanged), (b) => b.Control.SetValue(ToggleButton.IsCheckedProperty, b.Model.RefreshRegistersOnActiveThreadChange), b => b.Model.RefreshRegistersOnActiveThreadChange = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ConsoleDebugger> autoAddRemoveThreadsBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.AutoAddOrRemoveThreadsChanged), (b) => b.Control.SetValue(CheckBox.IsCheckedProperty, b.Model.AutoAddOrRemoveThreads));
     private readonly IBinder<ConsoleDebugger> currentConnectionTypeBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.ConnectionChanged), (b) => ((TextBlock) b.Control).Text = (b.Model.Connection?.ConnectionType.DisplayName ?? "Not Connected"));
 
