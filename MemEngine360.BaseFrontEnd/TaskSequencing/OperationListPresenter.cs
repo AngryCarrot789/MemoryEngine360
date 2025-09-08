@@ -51,23 +51,22 @@ public class OperationListPresenter {
 
     private void OnWindowOpened(object? sender, EventArgs e) {
         this.window.State.SelectedSequences.CollectionChanged += this.Event_SelectedSequencesCollectionChanged;
-        if (this.window.State.PrimarySelectedSequence != null) {
-            this.OnPrimarySelectedSequenceChanged(null, this.window.State.PrimarySelectedSequence);
-        }
-        else {
-            this.UpdateOperationEditorPanelHeader();
-        }
+        this.SetPrimarySelectedSequence(this.window.State.PrimarySelectedSequence);
     }
 
     private void OnWindowClosed(object? sender, EventArgs e) {
         this.window.State.SelectedSequences.CollectionChanged -= this.Event_SelectedSequencesCollectionChanged;
-        if (this.window.State.PrimarySelectedSequence != null) {
-            this.OnPrimarySelectedSequenceChanged(this.window.State.PrimarySelectedSequence, null);
-        }
+        this.SetPrimarySelectedSequence(null);
     }
     
     private void Event_SelectedSequencesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
-        TaskSequence? newPrimarySequence = this.window.State.PrimarySelectedSequence;
+        this.SetPrimarySelectedSequence(this.window.State.PrimarySelectedSequence);
+    }
+
+    private void SetPrimarySelectedSequence(TaskSequence? newPrimarySequence) {
+        // We track a local copy of the primary selected sequence instead of using the view state's own event,
+        // so that we only have to hook into collection changed, because we need to update header text blocks.
+        // E.g. select all then delete all, primary sequence won't change on deletion since it is already null on select all
         if (this.myPrimarySequence == newPrimarySequence) {
             if (newPrimarySequence == null) {
                 this.UpdateOperationEditorPanelHeader();
@@ -80,7 +79,7 @@ public class OperationListPresenter {
         this.OnPrimarySelectedSequenceChanged(this.myPrimarySequence, newPrimarySequence);
         this.myPrimarySequence = newPrimarySequence;
     }
-
+    
     private void OnPrimarySelectedSequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {
         this.selectedSequenceDisplayNameBinder.SwitchModel(newSeq);
 
@@ -96,6 +95,7 @@ public class OperationListPresenter {
             }
         }
 
+        Debug.Assert(this.operationSelectionHandler == null);
         this.window.PART_OperationListBox.TaskSequence = newSeq;
         if (newSeq != null) {
             TaskSequenceViewState newState = TaskSequenceViewState.GetInstance(newSeq);
