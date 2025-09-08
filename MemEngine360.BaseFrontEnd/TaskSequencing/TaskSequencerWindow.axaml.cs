@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using MemEngine360.Connections;
@@ -39,7 +38,7 @@ using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
-public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerView {
+public partial class TaskSequencerWindow : DesktopWindow {
     private readonly IBinder<TaskSequence> useDedicatedConnectionBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.UseEngineConnectionChanged), (b) => ((CheckBox) b.Control).IsChecked = !b.Model.UseEngineConnection);
 
     private readonly IBinder<TaskSequence> currentConnectionTypeBinder = new MultiEventUpdateBinder<TaskSequence>([nameof(TaskSequence.UseEngineConnectionChanged), nameof(TaskSequence.DedicatedConnectionChanged)], (b) => {
@@ -59,7 +58,6 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerView {
     private readonly TaskSequenceManager manager;
 
     private ObservableListBoxSelectionHandler<TaskSequence>? taskSequenceSelectionHandler;
-    private ObservableListBoxSelectionHandler<BaseSequenceCondition>? conditionSelectionHandler;
 
     public TaskSequencerWindow() : this(new TaskSequenceManager(new MemoryEngine())) {
         
@@ -69,9 +67,6 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerView {
         this.InitializeComponent();
         this.manager = manager;
         this.State = TaskSequenceManagerViewState.GetInstance(manager);
-
-        this.PART_OperationListBox.TaskSequencerView = this;
-
         this.PART_UseDedicatedConnection.Command = new RelayCommand(this.OnToggleUseDedicatedConnection, () => {
             TaskSequence? seqUI = this.State.PrimarySelectedSequence;
             return seqUI != null && !seqUI.IsRunning;
@@ -132,7 +127,7 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerView {
 
     protected override void OnClosed(EventArgs e) {
         DataManager.GetContextData(this).Set(TaskSequenceManager.DataKey, null);
-        
+        this.conditionSourcePresenter.SetTaskSequenceSource(null);
         this.taskSequenceSelectionHandler!.Dispose();
         this.PART_SequenceListBox.TaskSequencerManager = null;
         
@@ -140,8 +135,6 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerView {
         if (this.State.PrimarySelectedSequence != null) {
             this.OnPrimarySequenceChanged(this.State.PrimarySelectedSequence, null);
         }
-        
-        Debug.Assert(this.conditionSelectionHandler == null);
         
         this.manager.MemoryEngine.ConnectionChanged -= this.OnEngineConnectionChanged;
         base.OnClosed(e);
@@ -154,10 +147,6 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerView {
     private void OnPrimarySequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {
         this.conditionSourcePresenter.SetTaskSequenceSource(newSeq);
         if (oldSeq != null) {
-            Debug.Assert(this.conditionSelectionHandler != null);
-            this.conditionSelectionHandler!.Dispose();
-            this.conditionSelectionHandler = null;
-            
             oldSeq.Progress.TextChanged -= this.OnSequenceProgressTextChanged;
             oldSeq.IsRunningChanged -= this.OnPrimarySequenceIsRunningChanged;
         }
@@ -165,9 +154,6 @@ public partial class TaskSequencerWindow : DesktopWindow, ITaskSequencerView {
         if (newSeq != null) {
             newSeq.Progress.TextChanged += this.OnSequenceProgressTextChanged;
             newSeq.IsRunningChanged += this.OnPrimarySequenceIsRunningChanged;
-
-            TaskSequenceViewState state = TaskSequenceViewState.GetInstance(newSeq);
-            this.conditionSelectionHandler = new ObservableListBoxSelectionHandler<BaseSequenceCondition>(state.SelectedConditions, this.PART_ConditionsListBox, item => ((ModelBasedListBoxItem<BaseSequenceCondition>) item).Model!, seq => this.PART_ConditionsListBox.ItemMap.GetControl(seq));
         }
 
         this.PART_CurrentSequenceGroupBox.IsEnabled = newSeq != null;

@@ -18,7 +18,6 @@
 // 
 
 using System.Collections.Specialized;
-using System.Diagnostics;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
@@ -69,8 +68,6 @@ public sealed class TaskSequenceManagerViewState {
     private TaskSequenceManagerViewState(TaskSequenceManager manager) {
         this.Manager = manager;
         this.SelectedSequences = new ObservableList<TaskSequence>();
-        this.SelectedSequences.BeforeItemAdded += this.VerifyAddItem;
-        this.SelectedSequences.BeforeItemReplace += this.VerifyReplaceItem;
         this.SelectedSequences.CollectionChanged += this.OnSelectedSequencesCollectionChanged;
     }
 
@@ -80,25 +77,5 @@ public sealed class TaskSequenceManagerViewState {
 
     public static TaskSequenceManagerViewState GetInstance(TaskSequenceManager manager) {
         return ((IComponentManager) manager).GetOrCreateComponent((t) => new TaskSequenceManagerViewState((TaskSequenceManager) t));
-    }
-
-    private void VerifyAddItem(IObservableList<TaskSequence> list, int index, TaskSequence item) {
-        if (item == null)
-            throw new ArgumentException("Cannot add null items");
-        if (item.myManager == null)
-            throw new ArgumentException("Cannot add item with no manager associated");
-        Debug.Assert(this.Manager.Sequences.Contains(item));
-        if (item.myManager != this.Manager)
-            throw new ArgumentException("Cannot add item in different manager");
-    }
-
-    private void VerifyReplaceItem(IObservableList<TaskSequence> list, int index, TaskSequence oldItem, TaskSequence newItem) {
-        if (newItem == null)
-            throw new ArgumentException("New item is nul");
-        if (newItem.myManager == null)
-            throw new ArgumentException("New item has no manager associated");
-        Debug.Assert(this.Manager.Sequences.Contains(newItem));
-        if (newItem.myManager != this.Manager)
-            throw new ArgumentException("New item in different manager");
     }
 }

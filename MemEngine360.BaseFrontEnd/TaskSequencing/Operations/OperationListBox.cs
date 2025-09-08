@@ -36,8 +36,6 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
         set => this.SetValue(TaskSequenceProperty, value);
     }
 
-    public ITaskSequencerView TaskSequencerView { get; internal set; }
-    
     protected override bool CanDragItemPositionCore => this.TaskSequence != null && !this.TaskSequence.IsRunning;
 
     public OperationListBox() : base(32) {
