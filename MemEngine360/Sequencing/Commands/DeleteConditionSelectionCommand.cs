@@ -18,6 +18,7 @@
 // 
 
 using System.Diagnostics;
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 
@@ -25,39 +26,40 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DeleteConditionSelectionCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui) || !ui.IsValid) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return Executability.Invalid;
         }
 
-        return ui.PrimarySelectedSequence == null ? Executability.ValidButCannotExecute : Executability.Valid;
+        return TaskSequenceManagerViewState.GetInstance(manager).PrimarySelectedSequence == null ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return;
         }
 
-        if (ui.PrimarySelectedSequence == null) {
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        TaskSequence? sequence = state.PrimarySelectedSequence;
+        if (sequence == null) {
             return;
         }
         
-        if (ui.PrimarySelectedSequence.TaskSequence.IsRunning) {
+        if (sequence.IsRunning) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Cannot delete conditions", "The sequence is still running, conditions cannot be removed. Do you want to stop them and then delete?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
             if (result != MessageBoxResult.OK) {
                 return;
             }
 
-            TaskSequence task = ui.PrimarySelectedSequence.TaskSequence;
-            task.RequestCancellation();
-            await task.WaitForCompletion();
+            sequence.RequestCancellation();
+            await sequence.WaitForCompletion();
 
-            Debug.Assert(!task.IsRunning);
+            Debug.Assert(!sequence.IsRunning);
         }
 
-        List<IConditionItemUI> items = ui.ConditionSelectionManager.SelectedItems.ToList();
-        ui.ConditionSelectionManager.Clear();
-        foreach (IConditionItemUI item in items) {
-            bool removed = item.Condition.TaskSequence!.Conditions.Remove(item.Condition);
+        List<BaseSequenceCondition> items = state.SelectedConditions!.ToList();
+        state.SelectedConditions!.Clear();
+        foreach (BaseSequenceCondition item in items) {
+            bool removed = sequence.Conditions.Remove(item);
             Debug.Assert(removed);
         }
     }

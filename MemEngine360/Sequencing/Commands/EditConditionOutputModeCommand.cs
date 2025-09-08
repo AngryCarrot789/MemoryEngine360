@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 
@@ -24,24 +25,24 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class EditConditionOutputModeCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return ITaskSequencerUI.DataKey.GetExecutabilityForPresence(e.ContextData);
+        return TaskSequenceManager.DataKey.GetExecutabilityForPresence(e.ContextData);
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return;
         }
 
-        List<IConditionItemUI> selection = ui.ConditionSelectionManager.SelectedItemList.ToList();
-        if (selection.Count < 1) {
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        if (state.SelectedConditions == null || state.SelectedConditions.Count < 1) {
             return;
         }
 
         IEditConditionOutputModeService service = ApplicationPFX.Instance.ServiceManager.GetService<IEditConditionOutputModeService>();
-        ConditionOutputMode? result = await service.EditTriggerMode(selection[0].Condition.OutputMode);
-        if (result.HasValue) {
-            foreach (IConditionItemUI condition in selection) {
-                condition.Condition.OutputMode = result.Value;
+        ConditionOutputMode? result = await service.EditTriggerMode(state.SelectedConditions[0].OutputMode);
+        if (result.HasValue && state.SelectedConditions != null && state.SelectedConditions.Count > 0) {
+            foreach (BaseSequenceCondition condition in state.SelectedConditions) {
+                condition.OutputMode = result.Value;
             }
         }
     }

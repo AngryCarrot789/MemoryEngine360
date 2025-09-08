@@ -21,6 +21,7 @@ using System.Diagnostics;
 using MemEngine360.Connections;
 using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.Operations;
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
@@ -36,7 +37,9 @@ public delegate void TaskSequenceDedicatedConnectionChangedEventHandler(TaskSequ
 /// A sequence that contains a list of operations
 /// </summary>
 public sealed class TaskSequence : IConditionsHost {
-    internal TaskSequencerManager? myManager;
+    internal TaskSequenceViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using Dictionary
+    
+    internal TaskSequenceManager? myManager;
     private string displayName = "Empty Sequence";
     private int runCount = 1;
     private bool hasBusyLockPriority;
@@ -110,9 +113,9 @@ public sealed class TaskSequence : IConditionsHost {
     }
 
     /// <summary>
-    /// Gets the <see cref="TaskSequencerManager"/> that this sequence exists in
+    /// Gets the <see cref="TaskSequenceManager"/> that this sequence exists in
     /// </summary>
-    public TaskSequencerManager? Manager => this.myManager;
+    public TaskSequenceManager? Manager => this.myManager;
 
     /// <summary>
     /// Gets the exception encountered while executing an operation in this sequence. This is set before <see cref="IsRunning"/> is changed
@@ -269,7 +272,7 @@ public sealed class TaskSequence : IConditionsHost {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
         this.CheckNotRunning("Cannot run while already running");
         if (this.myManager == null)
-            throw new InvalidOperationException("Cannot run standalone without a " + nameof(TaskSequencerManager));
+            throw new InvalidOperationException("Cannot run standalone without a " + nameof(TaskSequenceManager));
 
         Debug.Assert(this.myCts == null && this.myTcs == null);
         Debug.Assert(this.myContext == null);
@@ -278,7 +281,7 @@ public sealed class TaskSequence : IConditionsHost {
         this.myTcs = new TaskCompletionSource();
         this.myContext = new SequenceExecutionContext(this, connection, busyToken, isConnectionDedicated);
         this.LastException = null;
-        TaskSequencerManager.InternalSetIsRunning(this.myManager!, this, true);
+        TaskSequenceManager.InternalSetIsRunning(this.myManager!, this, true);
         this.IsRunning = true;
         this.Progress.Caption = this.DisplayName;
         this.Progress.Text = "Running sequence";
@@ -438,7 +441,7 @@ public sealed class TaskSequence : IConditionsHost {
         this.Progress.Text = "Sequence finished";
         this.myCts = null;
         this.myContext = null;
-        TaskSequencerManager.InternalSetIsRunning(this.myManager!, this, false);
+        TaskSequenceManager.InternalSetIsRunning(this.myManager!, this, false);
         this.IsRunning = false;
         this.myTcs.TrySetResult();
         this.myTcs = null;

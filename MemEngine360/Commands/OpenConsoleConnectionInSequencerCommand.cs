@@ -18,7 +18,6 @@
 // 
 
 using MemEngine360.Connections;
-using MemEngine360.Engine;
 using MemEngine360.Sequencing;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
@@ -29,11 +28,11 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
     private IOpenConnectionView? myDialog;
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui) || !ui.IsValid) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return Executability.Invalid;
         }
 
-        return ui.Manager.MemoryEngine.Connection != null ? Executability.ValidButCannotExecute : Executability.Valid;
+        return manager.MemoryEngine.Connection != null ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -42,18 +41,16 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
             return;
         }
 
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return;
         }
 
-        MemoryEngine engine = ui.Manager.MemoryEngine;
-        ulong frame = engine.GetNextConnectionChangeFrame();
-
-        if (engine.Connection != null) {
+        if (manager.MemoryEngine.Connection != null) {
             return;
         }
 
-        this.myDialog = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(engine);
+        ulong frame = manager.MemoryEngine.GetNextConnectionChangeFrame();
+        this.myDialog = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(manager.MemoryEngine);
         if (this.myDialog != null) {
             IDisposable? token = null;
             try {
@@ -61,7 +58,7 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
                 if (connection != null) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
-                    token = await OpenConsoleConnectionDialogCommand.SetEngineConnectionAndHandleProblemsAsync(engine, connection, frame);
+                    token = await OpenConsoleConnectionDialogCommand.SetEngineConnectionAndHandleProblemsAsync(manager.MemoryEngine, connection, frame);
                     if (token == null) {
                         connection.Close();
                     }

@@ -21,8 +21,8 @@ using Avalonia;
 using Avalonia.Input;
 using MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
-using PFXToolKitUI.Interactivity;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations;
 
@@ -36,15 +36,12 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
         set => this.SetValue(TaskSequenceProperty, value);
     }
 
-    public ITaskSequencerUI TaskSequencerUI { get; internal set; }
+    public ITaskSequencerView TaskSequencerView { get; internal set; }
     
-    public IListSelectionManager<IOperationItemUI> ControlSelectionManager { get; }
-
     protected override bool CanDragItemPositionCore => this.TaskSequence != null && !this.TaskSequence.IsRunning;
 
     public OperationListBox() : base(32) {
         this.itemContentCacheMap = new Dictionary<Type, Stack<BaseOperationListContent>>();
-        this.ControlSelectionManager = new ModelListBoxSelectionManagerForControl<BaseSequenceOperation, IOperationItemUI>(this);
     }
 
     static OperationListBox() {
@@ -59,7 +56,7 @@ public class OperationListBox : ModelBasedListBox<BaseSequenceOperation> {
         }
     }
 
-    protected override void MoveItemIndex(int oldIndex, int newIndex) {
+    protected override void MoveItemIndexOverride(int oldIndex, int newIndex) {
         this.TaskSequence?.Operations.Move(oldIndex, newIndex);
     }
 

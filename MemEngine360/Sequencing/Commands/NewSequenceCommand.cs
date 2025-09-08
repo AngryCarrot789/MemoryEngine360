@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils;
@@ -26,25 +27,24 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class NewSequenceCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
-            return Executability.Invalid;
-        }
-
-        return Executability.Valid;
+        return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return;
         }
 
-        ObservableList<TaskSequence> sequences = ui.Manager.Sequences;
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        state.SelectedSequences.Clear();
+        
+        ObservableList<TaskSequence> sequences = manager.Sequences;
         TaskSequence sequence = new TaskSequence() {
             DisplayName = TextIncrement.GetIncrementableString(x => sequences.All(y => y.DisplayName != x), "New Sequence", out string? output, true) ? output : "New Sequence"
         };
-            
+
         sequences.Add(sequence);
-        ui.SequenceSelectionManager.SetSelection(ui.TaskSequenceItemMap.GetControl(sequence));
+        state.SelectedSequences.Add(sequence);
         
         SingleUserInputInfo info = new SingleUserInputInfo("New sequence", "What do you want to call it?", sequence.DisplayName);
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {

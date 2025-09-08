@@ -17,31 +17,39 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing.Commands;
 
 public class ToggleConditionEnabledCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return ITaskSequencerUI.DataKey.GetExecutabilityForPresence(e.ContextData);
+        return TaskSequenceManager.DataKey.GetExecutabilityForPresence(e.ContextData);
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return;
         }
 
-        List<IConditionItemUI> selection = ui.ConditionSelectionManager.SelectedItemList.ToList();
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        ObservableList<BaseSequenceCondition>? list = state.SelectedConditions;
+        if (list == null || list.Count < 1) {
+            return;
+        }
+
+        
         int countDisabled = 0;
-        foreach (IConditionItemUI entry in selection) {
-            if (!entry.Condition.IsEnabled) {
+        foreach (BaseSequenceCondition entry in list) {
+            if (!entry.IsEnabled) {
                 countDisabled++;
             }
         }
 
-        bool isEnabled = selection.Count == 1 ? (countDisabled != 0) : countDisabled >= (selection.Count / 2);
-        foreach (IConditionItemUI entry in selection) {
-            entry.Condition.IsEnabled = isEnabled;
+        bool isEnabled = list.Count == 1 ? (countDisabled != 0) : countDisabled >= (list.Count / 2);
+        foreach (BaseSequenceCondition entry in list) {
+            entry.IsEnabled = isEnabled;
         }
     }
 }

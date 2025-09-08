@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Sequencing;
+using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
@@ -79,20 +80,22 @@ public class ConditionSourcePresenter {
     private void OnSequenceDisplayNameChanged(TaskSequence sender) => this.UpdateTextForSequence(sender);
 
     private void UpdateTextForSequence(TaskSequence? sequence) {
-        int selectCount = this.window.SequenceSelectionManager.Count;
+        int selectCount = this.window.State.SelectedSequences.Count;
         this.window.PART_ConditionSourceName.Text = sequence?.DisplayName ?? (selectCount < 1 ? "(No sequence selected)" : "(Too many sequences selected)");
     }
 
     private void UpdateTextForOperation(BaseSequenceOperation? sequence) {
-        int selectCount = this.window.SequenceSelectionManager.Count;
+        int selectCount = this.window.State.SelectedSequences.Count;
         this.window.PART_ConditionSourceName.Text = sequence?.DisplayName ?? (selectCount < 1 ? "(No sequence selected)" : "(Too many sequences selected)");
     }
 
     private void UpdateTextForNothing(bool isCausedByOperationChange) {
-        if (isCausedByOperationChange && this.window.OperationSelectionManager.Count > 1) {
+        ObservableList<BaseSequenceOperation>? operations = this.window.State.SelectedOperations;
+        
+        if (isCausedByOperationChange && operations?.Count > 1) {
             this.window.PART_ConditionSourceName.Text = "(Too many operations selected)";
         }
-        else if (!isCausedByOperationChange && this.window.SequenceSelectionManager.Count > 1) {
+        else if (!isCausedByOperationChange && this.window.State.SelectedSequences.Count > 1) {
             this.window.PART_ConditionSourceName.Text = "(Too many sequences selected)";
         }
         else {

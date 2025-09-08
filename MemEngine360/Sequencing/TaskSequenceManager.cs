@@ -25,16 +25,24 @@ using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
+using PFXToolKitUI.Composition;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing;
 
 /// <summary>
-/// Manages all of the task sequences
+/// Manager of task sequences
 /// </summary>
-public class TaskSequencerManager {
+public class TaskSequenceManager : IComponentManager {
+    public static readonly DataKey<TaskSequenceManager> DataKey = DataKey<TaskSequenceManager>.Create(nameof(TaskSequenceManager));
+    
     private readonly ObservableList<TaskSequence> activeSequences;
+    private readonly ComponentStorage myComponentStorage;
 
+    /// <summary>
+    /// The list of task sequences
+    /// </summary>
     public ObservableList<TaskSequence> Sequences { get; }
 
     /// <summary>
@@ -48,8 +56,12 @@ public class TaskSequencerManager {
     /// </summary>
     public MemoryEngine MemoryEngine { get; }
 
-    public TaskSequencerManager(MemoryEngine engine) {
+    ComponentStorage IComponentManager.ComponentStorage => this.myComponentStorage;
+    IComponentManager IComponentManager.ParentComponentManager => this.MemoryEngine;
+
+    public TaskSequenceManager(MemoryEngine engine) {
         this.MemoryEngine = engine ?? throw new ArgumentNullException(nameof(engine));
+        this.myComponentStorage = new ComponentStorage(this);
         this.Sequences = new ObservableList<TaskSequence>();
         this.Sequences.BeforeItemAdded += (list, index, item) => {
             if (item == null)
@@ -58,8 +70,6 @@ public class TaskSequencerManager {
                 throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
             if (item.Manager != null)
                 throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
-
-            // It shouldn't be able to run without a manager set anyway
             item.CheckNotRunning("Cannot add entry while it is running");
         };
 
@@ -97,31 +107,30 @@ public class TaskSequencerManager {
 
         this.MemoryEngine.ConnectionAboutToChange += this.OnMemoryEngineConnectionAboutToChange;
 
-        {
-            TaskSequence sequence = new TaskSequence() {
-                DisplayName = "Freeze BO1 Primary Ammo",
-                RunCount = -1,
-                // Conditions = {
-                //     new CompareMemoryCondition() {
-                //         Address = 0xDEADBEEF,
-                //         CompareTo = new DataValueInt64(1234567),
-                //         CompareType = CompareType.LessThanOrEquals,
-                //     }
-                // }
-            };
+        this.Sequences.Add(new TaskSequence() {
+            DisplayName = "Freeze BO1 Primary Ammo",
+            RunCount = -1,
+            // Conditions = {
+            //     new CompareMemoryCondition() {
+            //         Address = 0xDEADBEEF,
+            //         CompareTo = new DataValueInt64(1234567),
+            //         CompareType = CompareType.LessThanOrEquals,
+            //     }
+            // }
+            Operations = {
+                new SetMemoryOperation() {
+                    Address = new StaticAddress(0x8303AA08),
+                    DataValueProvider = new ConstantDataProvider(IDataValue.CreateNumeric((int) 25))
+                }
+            }
+        });
 
-            sequence.Operations.Add(new SetMemoryOperation() { Address = new StaticAddress(0x8303AA08), DataValueProvider = new ConstantDataProvider(IDataValue.CreateNumeric((int) 25)) });
-            this.Sequences.Add(sequence);
-        }
-
-        {
-            TaskSequence sequence = new TaskSequence() {
-                DisplayName = "Literally sleep for 1s"
-            };
-
-            sequence.Operations.Add(new DelayOperation(1000));
-            this.Sequences.Add(sequence);
-        }
+        this.Sequences.Add(new TaskSequence() {
+            DisplayName = "Literally sleep for 1s",
+            Operations = {
+                new DelayOperation(1000)
+            }
+        });
 
         if (Debugger.IsAttached) {
             TaskSequence sequence = new TaskSequence() {
@@ -165,7 +174,7 @@ public class TaskSequencerManager {
 
     public bool Contains(TaskSequence entry) => this.IndexOf(entry) != -1;
 
-    internal static void InternalSetIsRunning(TaskSequencerManager tsm, TaskSequence sequence, bool isRunning) {
+    internal static void InternalSetIsRunning(TaskSequenceManager tsm, TaskSequence sequence, bool isRunning) {
         if (isRunning) {
             Debug.Assert(!tsm.activeSequences.Contains(sequence));
             tsm.activeSequences.Add(sequence);

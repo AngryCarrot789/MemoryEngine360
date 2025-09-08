@@ -17,44 +17,46 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing.Commands;
 
 public class DuplicateConditionsCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui) || !ui.IsValid) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return Executability.Invalid;
         }
-        
-        return ui.PrimarySelectedSequence == null || ui.PrimarySelectedSequence.TaskSequence.IsRunning 
-            ? Executability.ValidButCannotExecute 
+
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        return state.PrimarySelectedSequence == null || state.PrimarySelectedSequence.IsRunning
+            ? Executability.ValidButCannotExecute
             : Executability.Valid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return Task.CompletedTask;
         }
 
-        // Create list of clones, ordered by their index in the sequence list
-        ITaskSequenceItemUI? sequence = ui.PrimarySelectedSequence;
-        if (sequence == null || sequence.TaskSequence.IsRunning) {
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+
+        TaskSequence? sequence = state.PrimarySelectedSequence;
+        if (sequence == null || sequence.IsRunning) {
             return Task.CompletedTask;
         }
 
-        List<(BaseSequenceCondition Cond, int Idx)> clones = ui.ConditionSelectionManager.SelectedItemList.
-                                                                Select(x => (Cond: x.Condition.CreateClone(), Idx: x.Condition.TaskSequence!.Conditions.IndexOf(x.Condition))).
-                                                                OrderBy(x => x.Idx).
-                                                                ToList();
-
+        ObservableList<BaseSequenceCondition> selection = TaskSequenceViewState.GetInstance(sequence).SelectedConditions;
+        List<(BaseSequenceCondition Cond, int Idx)> clones = selection.Select(x => (Cond: x.CreateClone(), Idx: x.TaskSequence!.Conditions.IndexOf(x))).OrderBy(x => x.Idx).ToList();
         int offset = 0;
         foreach ((BaseSequenceCondition Cond, int Idx) in clones) {
-            sequence.TaskSequence.Conditions.Insert(offset + Idx + 1, Cond);
+            sequence.Conditions.Insert(offset + Idx + 1, Cond);
             offset++;
         }
 
-        ui.ConditionSelectionManager.SetSelection(clones.Select(x => ui.ConditionItemMap.GetControl(x.Cond)));
+        selection.Clear();
+        selection.AddRange(clones.Select(x => x.Cond));
         return Task.CompletedTask;
     }
 }

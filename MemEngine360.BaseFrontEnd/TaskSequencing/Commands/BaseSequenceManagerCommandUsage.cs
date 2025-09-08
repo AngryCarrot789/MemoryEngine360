@@ -27,7 +27,7 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.Commands;
 public abstract class BaseSequenceManagerCommandUsage : SimpleButtonCommandUsage {
     public MemoryEngine? Engine { get; private set; }
     
-    public TaskSequencerManager? TaskSequencerManager { get; private set; }
+    public TaskSequenceManager? TaskSequencerManager { get; private set; }
 
     protected BaseSequenceManagerCommandUsage(string commandId) : base(commandId) {
     }
@@ -39,10 +39,10 @@ public abstract class BaseSequenceManagerCommandUsage : SimpleButtonCommandUsage
 
     protected override void OnContextChanged() {
         base.OnContextChanged();
-        TaskSequencerManager? oldManager = this.TaskSequencerManager;
-        TaskSequencerManager? newManager = null;
-        if (this.GetContextData() is IContextData data && ITaskSequencerUI.DataKey.TryGetContext(data, out ITaskSequencerUI? ui)) {
-            newManager = ui.Manager;
+        TaskSequenceManager? oldManager = this.TaskSequencerManager;
+        TaskSequenceManager? newManager = null;
+        if (this.GetContextData() is IContextData data && TaskSequenceManager.DataKey.TryGetContext(data, out TaskSequenceManager? manager)) {
+            newManager = manager;
         }
 
         if (oldManager != newManager) {
@@ -60,7 +60,7 @@ public abstract class BaseSequenceManagerCommandUsage : SimpleButtonCommandUsage
         }
     }
 
-    protected virtual void OnTaskSequencerManagerChanged(TaskSequencerManager? oldManager, TaskSequencerManager? newManager) {
+    protected virtual void OnTaskSequencerManagerChanged(TaskSequenceManager? oldManager, TaskSequenceManager? newManager) {
         
     }
 

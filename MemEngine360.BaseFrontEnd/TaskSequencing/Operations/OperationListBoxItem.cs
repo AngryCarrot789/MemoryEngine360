@@ -30,7 +30,7 @@ using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
-using PFXToolKitUI.Interactivity;
+using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations;
 
@@ -65,9 +65,12 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
             base.OnPointerPressed(e);
 
             if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed && this.ListBox.GetVisualRoot() is TaskSequencerWindow window) {
-                IListSelectionManager<IOperationItemUI> sel = window.OperationSelectionManager;
-                if (sel.Count == 1 && sel.IsSelected(this)) {
-                    window.UpdatePrimaryOperation(this);
+                // The condition source may currently be a task sequence. But since this operation was clicked
+                // and is already selected, a selection change won't be processed and the source won't get updated.
+                // So, we do it manually here
+                ObservableList<BaseSequenceOperation>? state = window.State!.SelectedOperations;
+                if (state != null && state.Count == 1 && this.IsSelected) {
+                    window.SetConditionSourceAsOperation(this.Model!);
                 }
             }
         }

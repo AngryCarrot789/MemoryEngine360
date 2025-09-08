@@ -17,38 +17,48 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing.Commands;
 
 public class DuplicateSequencesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui) || !ui.IsValid) {
-            return Executability.Invalid;
-        }
-
-        return Executability.Valid;
+        return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return;
         }
 
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+
         // Create list of clones, ordered by their index in the sequence list
-        List<(TaskSequence Seq, int Idx)> clones = ui.SequenceSelectionManager.SelectedItemList.
-                                                      Select(x => (Seq: x.TaskSequence.CreateClone(), Idx: x.TaskSequence.Manager!.IndexOf(x.TaskSequence))).
-                                                      OrderBy(x => x.Idx).ToList();
+        List<(TaskSequence Seq, int Idx)> clones =
+            state.SelectedSequences.
+                  Select(x => (Seq: x.CreateClone(), Idx: x.Manager!.IndexOf(x))).
+                  OrderBy(x => x.Idx).ToList();
+
+        ObservableList<TaskSequence> sequences = state.Manager.Sequences;
+        SortedList<int, TaskSequence> tmpSortedList = new SortedList<int, TaskSequence>();
+
         int offset = 0;
         foreach ((TaskSequence Seq, int Idx) item in clones) {
-            item.Seq.DisplayName = TextIncrement.GetNextText(ui.Manager.Sequences.Select(x => x.DisplayName).ToList(), item.Seq.DisplayName, false);
-            ui.Manager.Sequences.Insert(offset + item.Idx + 1, item.Seq); // +1 to add after the existing item
+            item.Seq.DisplayName = TextIncrement.GetNextText(sequences.Select(x => x.DisplayName).ToList(), item.Seq.DisplayName, false);
+            tmpSortedList.Add(offset + item.Idx + 1, item.Seq); // +1 to add after the existing item
             offset++;
+        }
+
+        foreach (KeyValuePair<int, TaskSequence> entry in tmpSortedList) {
+            sequences.Insert(entry.Key, entry.Value);
         }
 
         // virtualization of task sequence list box items not implemented yet, and there's no reason
         // to do it since I doubt anyone will use enough to where it makes a difference
-        ui.SequenceSelectionManager.SetSelection(clones.Select(x => ui.TaskSequenceItemMap.GetControl(x.Seq)));
+        state.SelectedSequences.Clear();
+        state.SelectedSequences.AddRange(clones.Select(x => x.Seq));
     }
 }

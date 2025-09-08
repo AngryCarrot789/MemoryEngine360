@@ -17,44 +17,48 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing.Commands;
 
 public class DuplicateOperationsCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui) || !ui.IsValid) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return Executability.Invalid;
         }
 
-        return ui.PrimarySelectedSequence == null || ui.PrimarySelectedSequence.TaskSequence.IsRunning 
-            ? Executability.ValidButCannotExecute 
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        return state.PrimarySelectedSequence == null || state.PrimarySelectedSequence.IsRunning
+            ? Executability.ValidButCannotExecute
             : Executability.Valid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+            return Task.CompletedTask;
+        }
+
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        TaskSequence? sequence = state.PrimarySelectedSequence;
+        if (sequence == null || sequence.IsRunning) {
             return Task.CompletedTask;
         }
 
         // Create list of clones, ordered by their index in the sequence list
-        ITaskSequenceItemUI? sequence = ui.PrimarySelectedSequence;
-        if (sequence == null || sequence.TaskSequence.IsRunning) {
-            return Task.CompletedTask;
-        }
-        
-        List<(BaseSequenceOperation Operation, int Idx)> clones = ui.OperationSelectionManager.SelectedItemList.
-                                                                     Select(x => (Seq: x.Operation.CreateClone(), Idx: x.Operation.TaskSequence!.IndexOf(x.Operation))).
-                                                                     OrderBy(x => x.Idx).ToList();
+        ObservableList<BaseSequenceOperation> selection = TaskSequenceViewState.GetInstance(sequence).SelectedOperations;
+        List<(BaseSequenceOperation Op, int Idx)> clones = selection.Select(x => (Op: x.CreateClone(), Idx: x.TaskSequence!.IndexOf(x))).OrderBy(x => x.Idx).ToList();
         int offset = 1; // +1 to add after the existing item
-        foreach ((BaseSequenceOperation Operation, int Idx) item in clones) {
-            sequence.TaskSequence.Operations.Insert(offset + item.Idx, item.Operation);
+        foreach ((BaseSequenceOperation Op, int Idx) item in clones) {
+            sequence.Operations.Insert(offset + item.Idx, item.Op);
             offset++;
         }
-        
+
         // virtualization of task sequence list box items not implemented yet, and there's no reason
         // to do it since I doubt anyone will use enough to where it makes a difference
-        ui.OperationSelectionManager.SetSelection(clones.Select(x => ui.OperationItemMap.GetControl(x.Operation)));
+        selection.Clear();
+        selection.AddRange(clones.Select(x => x.Op));
         return Task.CompletedTask;
     }
 }

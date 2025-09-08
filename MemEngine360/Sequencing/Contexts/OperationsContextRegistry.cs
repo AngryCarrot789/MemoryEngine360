@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.AdvancedMenuService;
 
 namespace MemEngine360.Sequencing.Contexts;
@@ -28,21 +29,19 @@ public static class OperationsContextRegistry {
         FixedContextGroup actions = Registry.GetFixedGroup("operations");
         actions.AddCommand("commands.sequencer.DuplicateOperationsCommand", "Duplicate");
         actions.AddDynamicSubGroup((group, ctx, items) => {
-            if (!ITaskSequencerUI.DataKey.TryGetContext(ctx, out ITaskSequencerUI? ui)) {
+            if (!TaskSequenceManager.DataKey.TryGetContext(ctx, out TaskSequenceManager? ui)) {
                 return;
             }
 
-            int count = ui.OperationSelectionManager.SelectedItemList.Count;
-            if (count < 1) {
-                return;
-            }
-            
-            if (count == 1) {
-                IOperationItemUI item = ui.OperationSelectionManager.SelectedItemList[0];
-                items.Add(new CommandContextEntry("commands.sequencer.ToggleOperationEnabledCommand", item.Operation.IsEnabled ? "Disable" : "Enable"));
-            }
-            else {
-                items.Add(new CommandContextEntry("commands.sequencer.ToggleOperationEnabledCommand", "Toggle Enabled"));
+            TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
+            if (state.SelectedOperations != null && state.SelectedOperations.Count > 0) {
+                if (state.SelectedOperations.Count == 1) {
+                    BaseSequenceOperation item = state.SelectedOperations[0];
+                    items.Add(new CommandContextEntry("commands.sequencer.ToggleOperationEnabledCommand", item.IsEnabled ? "Disable" : "Enable"));
+                }
+                else {
+                    items.Add(new CommandContextEntry("commands.sequencer.ToggleOperationEnabledCommand", "Toggle Enabled"));
+                }
             }
         });
         

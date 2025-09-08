@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Buffers.Binary;
 using System.Diagnostics;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;

@@ -29,11 +29,11 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class LoadTaskSequencesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return ITaskSequencerUI.DataKey.GetExecutabilityForPresence(e.ContextData);
+        return TaskSequenceManager.DataKey.GetExecutabilityForPresence(e.ContextData);
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return;
         }
 
@@ -41,7 +41,7 @@ public class LoadTaskSequencesCommand : Command {
         if (filePath == null) {
             return;
         }
-        
+
         ActivityTask<XmlDocument> task = ActivityManager.Instance.RunTask(() => {
             ActivityManager.Instance.GetCurrentProgressOrEmpty().IsIndeterminate = true;
             XmlDocument document = new XmlDocument();
@@ -56,7 +56,7 @@ public class LoadTaskSequencesCommand : Command {
                 AppLogger.Instance.WriteLine(task.Exception.GetToString());
                 await IMessageDialogService.Instance.ShowMessage("Error deserializing XML document", task.Exception.Message);
             }
-            
+
             return;
         }
 
@@ -71,8 +71,6 @@ public class LoadTaskSequencesCommand : Command {
             return;
         }
 
-        foreach (TaskSequence seq in list) {
-            ui.Manager.Sequences.Add(seq);
-        }
+        manager.Sequences.AddRange(list);
     }
 }

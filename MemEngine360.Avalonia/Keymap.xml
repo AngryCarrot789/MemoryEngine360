@@ -5,6 +5,18 @@
         <KeyStroke Mods="CTRL+ALT" Key="D"/>
         <KeyStroke Mods="CTRL+ALT" Key="OemPeriod"/>
     </Shortcut>
+    <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
+        <KeyStroke Mods="CTRL+ALT" Key="S"/>
+    </Shortcut>
+    <Shortcut Name="Undo" CommandId="commands.application.UndoCommand">
+        <KeyStroke Mods="CTRL" Key="Z"/>
+    </Shortcut>
+    <Shortcut Name="Redo1" CommandId="commands.application.RedoCommand">
+        <KeyStroke Mods="CTRL" Key="Y"/>
+    </Shortcut>
+    <Shortcut Name="Redo2" CommandId="commands.application.RedoCommand">
+        <KeyStroke Mods="CTRL+SHIFT" Key="Z"/>
+    </Shortcut>
     <Group Name="EngineWindow" DisplayName="Memory Engine Window" Description="The entire engine window">
         <Shortcut Name="ConnectToConsole" CommandId="commands.memengine.OpenConsoleConnectionDialogCommand">
             <KeyStroke Mods="CTRL" Key="O"/>
@@ -66,10 +78,6 @@
         <Shortcut Name="RedoShortcut2" CommandId="commands.generic.RedoCommand">
             <KeyStroke Mods="CTRL" Key="Y"/>
         </Shortcut>
-
-        <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
-            <KeyStroke Mods="CTRL+ALT" Key="S"/>
-        </Shortcut>
     </Group>
     <Group Name="HexDisplayWindow" DisplayName="Hex Editor Window" Description="The entire hex editor window">
         <Group Name="HexEditor" DisplayName="Hex editor" Description="The actual hex editor control">
@@ -89,10 +97,6 @@
                 <KeyStroke Mods="CTRL" Key="S"/>
             </Shortcut>
         </Group>
-
-        <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
-            <KeyStroke Mods="CTRL+ALT" Key="S"/>
-        </Shortcut>
     </Group>
     <Group Name="SequencerWindow" DisplayName="Task Sequencer Window">
         <Group Name="SequenceList" DisplayName="Task Sequence List box" Description="The list box of task sequences">
@@ -140,9 +144,6 @@
                 <KeyStroke Key="Delete"/>
             </Shortcut>
         </Group>
-        <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
-            <KeyStroke Mods="CTRL+ALT" Key="S"/>
-        </Shortcut>
     </Group>
     <Group Name="DebuggerWindow" DisplayName="Debugger Window">
         <Group Name="MemoryHexEditor">
@@ -152,9 +153,6 @@
         </Group>
         <Shortcut Name="ConnectToConsole" CommandId="commands.debugger.OpenDebuggerConnectionCommand">
             <KeyStroke Mods="CTRL" Key="O"/>
-        </Shortcut>
-        <Shortcut Name="OpenEditorSettings" CommandId="commands.mainWindow.OpenEditorSettings">
-            <KeyStroke Mods="CTRL+ALT" Key="S"/>
         </Shortcut>
     </Group>
     <Group Name="Configuration" DisplayName="Configuration window" Description="The configuration window">

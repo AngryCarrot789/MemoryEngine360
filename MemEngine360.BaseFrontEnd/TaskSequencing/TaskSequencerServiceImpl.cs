@@ -29,9 +29,7 @@ public class TaskSequencerServiceImpl : ITaskSequencerService {
     public Task OpenOrFocusWindow(IEngineUI engine) {
         if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
             if (this.currentWindow == null || !this.currentWindow.TryGetTarget(out TaskSequencerWindow? existing) || existing.IsClosed) {
-                TaskSequencerWindow window = new TaskSequencerWindow() {
-                    TaskSequencerManager = engine.MemoryEngine.TaskSequencerManager
-                };
+                TaskSequencerWindow window = new TaskSequencerWindow(engine.MemoryEngine.TaskSequenceManager);
 
                 if (this.currentWindow == null)
                     this.currentWindow = new WeakReference<TaskSequencerWindow>(window);

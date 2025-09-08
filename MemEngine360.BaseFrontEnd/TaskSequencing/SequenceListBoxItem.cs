@@ -31,7 +31,6 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
-using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
@@ -85,8 +84,8 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
             PointerPointProperties pointer = e.GetCurrentPoint(this).Properties;
             if (pointer.PointerUpdateKind == PointerUpdateKind.RightButtonPressed) {
                 if (!this.IsSelected) {
-                    window.SequenceSelectionManager.Clear();
-                    window.SequenceSelectionManager.SetSelection(this);
+                    this.ListBox.UnselectAll();
+                    this.IsSelected = true;
                 }
                 
                 e.Handled = true;
@@ -94,9 +93,8 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence>, ITaskSeq
 
             base.OnPointerPressed(e);
             if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed) {
-                IListSelectionManager<ITaskSequenceItemUI> sel = window.SequenceSelectionManager;
-                if (sel.Count == 1 && sel.IsSelected(this)) {
-                    window.UpdatePrimaryTaskSequence(this);
+                if (window.State.SelectedSequences.Count == 1 && this.IsSelected) {
+                    window.SetConditionSourceAsTaskSequence(this.Model!);
                 }
             }
         }

@@ -17,32 +17,38 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing.Commands;
 
 public class ToggleOperationEnabledCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return ITaskSequencerUI.DataKey.GetExecutabilityForPresence(e.ContextData);
+        return TaskSequenceManager.DataKey.GetExecutabilityForPresence(e.ContextData);
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return Task.CompletedTask;
         }
 
-        List<IOperationItemUI> selection = ui.OperationSelectionManager.SelectedItemList.ToList();
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        ObservableList<BaseSequenceOperation>? selection = state.SelectedOperations;
+        if (selection == null || selection.Count < 1) {
+            return Task.CompletedTask;
+        }
         
         int countDisabled = 0;
-        foreach (IOperationItemUI entry in selection) {
-            if (!entry.Operation.IsEnabled) {
+        foreach (BaseSequenceOperation entry in selection) {
+            if (!entry.IsEnabled) {
                 countDisabled++;
             }
         }
 
         bool isEnabled = selection.Count == 1 ? (countDisabled != 0) : countDisabled >= (selection.Count / 2);
-        foreach (IOperationItemUI entry in selection) {
-            entry.Operation.IsEnabled = isEnabled;
+        foreach (BaseSequenceOperation entry in selection) {
+            entry.IsEnabled = isEnabled;
         }
 
         return Task.CompletedTask;

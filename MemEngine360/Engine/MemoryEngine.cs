@@ -34,6 +34,8 @@ using MemEngine360.Sequencing;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
+using PFXToolKitUI.Composition;
+using PFXToolKitUI.History;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
@@ -52,18 +54,22 @@ public delegate void MemoryEngineConnectionChangedEventHandler(MemoryEngine send
 /// The main manager class for a the memory engine window. Also provides utilities for reading/writing data values
 /// </summary>
 [DebuggerDisplay("IsBusy = {IsConnectionBusy}, Connection = {Connection}")]
-public class MemoryEngine {
+public class MemoryEngine : IComponentManager {
     public static readonly DataKey<MemoryEngine> EngineDataKey = DataKey<MemoryEngine>.Create("MemoryEngine");
 
     private volatile IConsoleConnection? connection; // our connection object -- volatile in case JIT plays dirty tricks, i ain't no expert in wtf volatile does though
     private bool isShuttingDown;
     private ulong currentConnectionAboutToChangeFrame;
-    private readonly BusyLock busyLocker;
 
+    /// <summary>
+    /// Gets memory engine's history manager
+    /// </summary>
+    public HistoryManager HistoryManager { get; } = new HistoryManager();
+    
     /// <summary>
     /// Gets this engine's busy lock, which is used to synchronize our connection
     /// </summary>
-    public BusyLock BusyLocker => this.busyLocker;
+    public BusyLock BusyLocker { get; }
 
     /// <summary>
     /// Gets the current console connection. This can only change on the main thread
@@ -104,11 +110,11 @@ public class MemoryEngine {
     /// Gets or sets if the memory engine is currently busy, e.g. reading or writing data.
     /// This will never be true when <see cref="Connection"/> is null
     /// </summary>
-    public bool IsConnectionBusy => this.busyLocker.IsBusy;
+    public bool IsConnectionBusy => this.BusyLocker.IsBusy;
 
     public ScanningProcessor ScanningProcessor { get; }
 
-    public TaskSequencerManager TaskSequencerManager { get; }
+    public TaskSequenceManager TaskSequenceManager { get; }
 
     public AddressTableManager AddressTableManager { get; }
 
@@ -180,13 +186,18 @@ public class MemoryEngine {
     /// </summary>
     public event MemoryEngineEventHandler? IsBusyChanged;
 
+    private readonly ComponentStorage myComponentStorage;
+    ComponentStorage IComponentManager.ComponentStorage => this.myComponentStorage;
+    IComponentManager IComponentManager.ParentComponentManager => ApplicationPFX.Instance;
+
     public MemoryEngine() {
-        this.busyLocker = new BusyLock();
-        this.busyLocker.IsBusyChanged += e => this.IsBusyChanged?.Invoke(this);
+        this.myComponentStorage = new ComponentStorage(this);
+        this.BusyLocker = new BusyLock();
+        this.BusyLocker.IsBusyChanged += e => this.IsBusyChanged?.Invoke(this);
         this.ScanningProcessor = new ScanningProcessor(this);
         this.AddressTableManager = new AddressTableManager(this);
         this.FileTreeExplorer = new FileTreeExplorer(this);
-        this.TaskSequencerManager = new TaskSequencerManager(this);
+        this.TaskSequenceManager = new TaskSequenceManager(this);
         this.PointerScanner = new PointerScanner(this);
         this.ConsoleDebugger = new ConsoleDebugger(this);
 
@@ -255,7 +266,7 @@ public class MemoryEngine {
     /// <returns>The current connection</returns>
     /// <exception cref="InvalidOperationException">Token is invalid in some way</exception>
     public IConsoleConnection? GetConnection(IDisposable token) {
-        this.busyLocker.ValidateToken(token);
+        this.BusyLocker.ValidateToken(token);
         return this.connection;
     }
 
@@ -300,7 +311,7 @@ public class MemoryEngine {
     /// <exception cref="ArgumentException">New connection is non-null when cause is <see cref="ConnectionChangeCause.LostConnection"/></exception>
     public void SetConnection(IDisposable busyToken, ulong frame, IConsoleConnection? newConnection, ConnectionChangeCause cause, UserConnectionInfo? userConnectionInfo = null) {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-        this.busyLocker.ValidateToken(busyToken);
+        this.BusyLocker.ValidateToken(busyToken);
         if (newConnection != null && (cause == ConnectionChangeCause.LostConnection || cause == ConnectionChangeCause.ConnectionError))
             throw new ArgumentException($"Cause cannot be {cause} when setting connection to a non-null value");
 
@@ -319,7 +330,7 @@ public class MemoryEngine {
             newConnection.Closed += this.OnConnectionClosed;
 
         // ConnectionChanged is invoked under the lock to enforce busy operation rules
-        lock (this.busyLocker.CriticalLock) {
+        lock (this.BusyLocker.CriticalLock) {
             this.connection = newConnection;
             if (newConnection != null)
                 this.LastUserConnectionInfo = userConnectionInfo;
@@ -357,7 +368,7 @@ public class MemoryEngine {
     /// </summary>
     /// <returns>A token to dispose when the operation is completed. Returns null if currently busy</returns>
     public IDisposable? TryBeginBusyOperation() {
-        return this.busyLocker.TryBeginBusyOperation();
+        return this.BusyLocker.TryBeginBusyOperation();
     }
 
     /// <summary>
@@ -367,7 +378,7 @@ public class MemoryEngine {
     /// <param name="timeoutMilliseconds">An optional timeout value. When the amount of time elapses, we return null</param>
     /// <returns>The acquired token, or null if the task was cancelled</returns>
     public Task<IDisposable?> BeginBusyOperationAsync(CancellationToken cancellationToken) {
-        return this.busyLocker.BeginBusyOperationAsync(cancellationToken);
+        return this.BusyLocker.BeginBusyOperationAsync(cancellationToken);
     }
 
     /// <summary>
@@ -377,7 +388,7 @@ public class MemoryEngine {
     /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
     /// <returns></returns>
     public Task<IDisposable?> BeginBusyOperationAsync(int timeoutMilliseconds, CancellationToken cancellationToken = default) {
-        return this.busyLocker.BeginBusyOperationAsync(timeoutMilliseconds, cancellationToken);
+        return this.BusyLocker.BeginBusyOperationAsync(timeoutMilliseconds, cancellationToken);
     }
 
     /// <summary>
@@ -393,7 +404,7 @@ public class MemoryEngine {
         if (token != null)
             return Task.FromResult<IDisposable?>(token);
 
-        return this.busyLocker.BeginBusyOperationActivityAsync(new ConcurrentActivityProgress() {
+        return this.BusyLocker.BeginBusyOperationActivityAsync(new ConcurrentActivityProgress() {
             Caption = caption, Text = message
         }, cancellationTokenSource);
     }
@@ -468,7 +479,7 @@ public class MemoryEngine {
     /// </summary>
     /// <param name="token"></param>
     public void CheckConnection(IDisposable token, ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection) {
-        this.busyLocker.ValidateToken(token);
+        this.BusyLocker.ValidateToken(token);
         this.TryDisconnectForLostConnection(token, likelyCause);
     }
 

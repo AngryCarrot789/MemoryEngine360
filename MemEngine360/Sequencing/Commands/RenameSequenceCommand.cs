@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
 
@@ -24,23 +25,24 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class RenameSequenceCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? manager))
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager))
             return Executability.Invalid;
 
-        return manager.PrimarySelectedSequence != null ? Executability.Valid : Executability.ValidButCannotExecute;
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        return state.PrimarySelectedSequence != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? manager))
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager))
             return;
 
-        ITaskSequenceItemUI? sequenceUI = manager.PrimarySelectedSequence;
-        if (sequenceUI == null)
-            return;
-
-        SingleUserInputInfo info = new SingleUserInputInfo("Rename sequence", null, "New Name", sequenceUI.TaskSequence.DisplayName);
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-            sequenceUI.TaskSequence.DisplayName = info.Text;
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        TaskSequence? sequenceUI = state.PrimarySelectedSequence;
+        if (sequenceUI != null) {
+            SingleUserInputInfo info = new SingleUserInputInfo("Rename sequence", null, "New Name", sequenceUI.DisplayName);
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+                sequenceUI.DisplayName = info.Text;
+            }
         }
     }
 }

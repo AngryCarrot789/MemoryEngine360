@@ -260,7 +260,7 @@
                                             Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"
                                             Click="PART_ClearOperationsClick"/>
                         </StackPanel>
-                        <TextBlock x:Name="PART_SelectedSequenceTextBlock" Text="Current Operation"
+                        <TextBlock x:Name="PART_OperationGroupBoxHeaderTextBlock" Text="Current Operation"
                                    FontFamily="{StaticResource FontOxanium}"
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"/>
@@ -361,7 +361,7 @@
                                     <DockPanel LastChildFill="False" Height="22">
                                         <TextBlock Text="Operation Editor Panel" VerticalAlignment="Center" Padding="4,0,0,0"/>
                                         <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="5,3"/>
-                                        <TextBlock x:Name="PART_PrimarySelectedOperationText" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="PART_OperationEditorPanelTextBlock" VerticalAlignment="Center"/>
                                     </DockPanel>
                                 </Border>
                                 <ctain:OperationEditorContentContainerListBox x:Name="PART_OperationEditorControlsListBox"

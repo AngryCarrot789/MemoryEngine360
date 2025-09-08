@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.AdvancedMenuService;
 
 namespace MemEngine360.Sequencing.Contexts;
@@ -28,10 +29,11 @@ public static class TaskSequenceContextRegistry {
         FixedContextGroup actions = Registry.GetFixedGroup("operations");
         actions.AddHeader("General");
         actions.AddCommand("commands.sequencer.RunSequenceCommand", "Run");
-        
+
         actions.AddDynamicSubGroup((group, ctx, items) => {
-            if (ITaskSequencerUI.DataKey.TryGetContext(ctx, out ITaskSequencerUI? ui)) {
-                if (ui.SequenceSelectionManager.Count == 1) {
+            if (TaskSequenceManager.DataKey.TryGetContext(ctx, out TaskSequenceManager? ui)) {
+                TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
+                if (state.SelectedSequences.Count == 1) {
                     items.Add(new CommandContextEntry("commands.sequencer.StopSpecificSequenceCommand", "Cancel"));
                 }
                 else {
@@ -45,8 +47,9 @@ public static class TaskSequenceContextRegistry {
         FixedContextGroup edit = Registry.GetFixedGroup("general");
         edit.AddHeader("Edit");
         edit.AddDynamicSubGroup((group, ctx, items) => {
-            if (ITaskSequencerUI.DataKey.TryGetContext(ctx, out ITaskSequencerUI? ui)) {
-                if (ui.PrimarySelectedSequence != null)
+            if (TaskSequenceManager.DataKey.TryGetContext(ctx, out TaskSequenceManager? ui)) {
+                TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
+                if (state.PrimarySelectedSequence != null)
                     items.Add(new CommandContextEntry("commands.sequencer.RenameSequenceCommand", "Rename"));
             }
         });
@@ -57,8 +60,11 @@ public static class TaskSequenceContextRegistry {
         // also sometimes buggy with no hope of being truly fixed because i'm not smart enough to figure it out.
         // Check out the method AdvancedMenuService.RemoveItemNodesWithDynamicSupport for nightmare fuel
         edit.AddCommand("commands.sequencer.DeleteSequenceSelectionCommand", "Delete Sequence(s)").
-             AddSimpleContextUpdate(ITaskSequencerUI.DataKey, (e, ui) => {
-                 e.DisplayName = ui != null && ui.SequenceSelectionManager.Count == 1 ? "Delete Sequence" : "Delete Sequences";
+             AddSimpleContextUpdate(TaskSequenceManager.DataKey, (e, ui) => {
+                 e.DisplayName =
+                     ui != null && TaskSequenceManagerViewState.GetInstance(ui).SelectedSequences.Count == 1
+                         ? "Delete Sequence"
+                         : "Delete Sequences";
              });
 
         edit.AddCommand("commands.sequencer.ConnectToDedicatedConsoleCommand", "Connect to dedicated console...");

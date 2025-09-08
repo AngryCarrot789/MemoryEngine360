@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.AdvancedMenuService;
 
 namespace MemEngine360.Sequencing.Contexts;
@@ -30,14 +31,16 @@ public static class ConditionsContextRegistry {
         actions.AddCommand("commands.sequencer.EditConditionOutputModeCommand", "Edit output mode");
         actions.AddHeader("General");
         actions.AddCommand("commands.sequencer.DuplicateConditionsCommand", "Duplicate");
-        actions.AddCommand("commands.sequencer.ToggleConditionEnabledCommand", "Toggle Enabled").AddSimpleContextUpdate(ITaskSequencerUI.DataKey, (e, ui) => {
-            if (ui != null && ui.ConditionSelectionManager.SelectedItemList.Count == 1) {
-                IConditionItemUI item = ui.ConditionSelectionManager.SelectedItemList[0];
-                e.DisplayName = item.Condition.IsEnabled ? "Disable" : "Enable";
+        actions.AddCommand("commands.sequencer.ToggleConditionEnabledCommand", "Toggle Enabled").AddSimpleContextUpdate(TaskSequenceManager.DataKey, (e, ui) => {
+            if (ui != null) {
+                TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
+                if (state.SelectedConditions != null && state.SelectedConditions.Count == 1) {
+                    e.DisplayName = state.SelectedConditions[0].IsEnabled ? "Disable" : "Enable";
+                    return;
+                }
             }
-            else {
-                e.DisplayName = "Toggle Enabled";
-            }
+
+            e.DisplayName = "Toggle Enabled";
         });
 
         actions.AddSeparator();

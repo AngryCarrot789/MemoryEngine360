@@ -18,6 +18,7 @@
 // 
 
 using System.Diagnostics;
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 
@@ -25,19 +26,20 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DeleteOperationSelectionCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui) || !ui.IsValid) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return Executability.Invalid;
         }
 
-        return ui.PrimarySelectedSequence == null ? Executability.ValidButCannotExecute : Executability.Valid;
+        return TaskSequenceManagerViewState.GetInstance(manager).PrimarySelectedSequence == null ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return;
         }
 
-        TaskSequence? task = ui.PrimarySelectedSequence?.TaskSequence;
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        TaskSequence? task = state.PrimarySelectedSequence;
         if (task == null) {
             return;
         }
@@ -52,12 +54,12 @@ public class DeleteOperationSelectionCommand : Command {
             await task.WaitForCompletion();
         }
 
-        List<IOperationItemUI> items = ui.OperationSelectionManager.SelectedItems.ToList();
-        Debug.Assert(items.All(x => x.Operation.TaskSequence == task));
+        List<BaseSequenceOperation> items = state.SelectedOperations!.ToList();
+        Debug.Assert(items.All(x => x.TaskSequence == task));
+        state.SelectedOperations!.Clear();
         
-        ui.OperationSelectionManager.Clear();
-        foreach (IOperationItemUI item in items) {
-            bool removed = item.Operation.TaskSequence!.Operations.Remove(item.Operation);
+        foreach (BaseSequenceOperation item in items) {
+            bool removed = task.Operations.Remove(item);
             Debug.Assert(removed);
         }
     }

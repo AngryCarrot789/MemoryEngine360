@@ -20,38 +20,34 @@
 using Avalonia;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
-using PFXToolKitUI.Interactivity;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public class SequenceListBox : ModelBasedListBox<TaskSequence> {
-    public static readonly StyledProperty<TaskSequencerManager?> TaskSequencerManagerProperty = AvaloniaProperty.Register<SequenceListBox, TaskSequencerManager?>(nameof(TaskSequencerManager));
+    public static readonly StyledProperty<TaskSequenceManager?> TaskSequencerManagerProperty = AvaloniaProperty.Register<SequenceListBox, TaskSequenceManager?>(nameof(TaskSequencerManager));
 
-    public TaskSequencerManager? TaskSequencerManager {
+    public TaskSequenceManager? TaskSequencerManager {
         get => this.GetValue(TaskSequencerManagerProperty);
         set => this.SetValue(TaskSequencerManagerProperty, value);
     }
 
-    public IListSelectionManager<ITaskSequenceItemUI> ControlSelectionManager { get; }
-
     protected override bool CanDragItemPositionCore => this.TaskSequencerManager != null;
-    
+
     // For some reason, to make dragging items work properly, we need to
     // used cached items. Not entirely sure why, maybe some internal avalonia
     // states aren't set in new objects but are once they become loaded
     public SequenceListBox() : base(8) {
-        this.ControlSelectionManager = new ModelListBoxSelectionManagerForControl<TaskSequence, ITaskSequenceItemUI>(this);
     }
 
     static SequenceListBox() {
-        TaskSequencerManagerProperty.Changed.AddClassHandler<SequenceListBox, TaskSequencerManager?>((s, e) => s.OnTaskSequencerManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+        TaskSequencerManagerProperty.Changed.AddClassHandler<SequenceListBox, TaskSequenceManager?>((s, e) => s.OnTaskSequencerManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
-    protected override void MoveItemIndex(int oldIndex, int newIndex) {
+    protected override void MoveItemIndexOverride(int oldIndex, int newIndex) {
         this.TaskSequencerManager?.Sequences.Move(oldIndex, newIndex);
     }
-    
-    private void OnTaskSequencerManagerChanged(TaskSequencerManager? oldManager, TaskSequencerManager? newManager) {
+
+    private void OnTaskSequencerManagerChanged(TaskSequenceManager? oldManager, TaskSequenceManager? newManager) {
         this.SetItemsSource(newManager?.Sequences);
     }
 

@@ -17,28 +17,30 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Sequencing.Commands;
 
 public class StopSelectedSequencesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui))
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager))
             return Executability.Invalid;
 
-        if (ui.SequenceSelectionManager.SelectedItemList.Any(x => x.TaskSequence.IsRunning))
-            return Executability.Valid;
-
-        return Executability.ValidButCannotExecute;
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        return state.SelectedSequences.Any(x => x.IsRunning) ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui))
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return;
+        }
 
-        List<TaskSequence> sequences = ui.SequenceSelectionManager.SelectedItemList.Select(x => x.TaskSequence).ToList();
-        foreach (TaskSequence seq in sequences)
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+        List<TaskSequence> sequences = state.SelectedSequences.ToList();
+        foreach (TaskSequence seq in sequences) {
             seq.RequestCancellation();
+        }
 
         await Task.WhenAll(sequences.Select(x => x.WaitForCompletion()));
     }

@@ -18,6 +18,7 @@
 // 
 
 using System.Xml;
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
@@ -28,21 +29,23 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class SaveTaskSequencesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return ITaskSequencerUI.DataKey.GetExecutabilityForPresence(e.ContextData);
+        return TaskSequenceManager.DataKey.GetExecutabilityForPresence(e.ContextData);
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequencerUI.DataKey.TryGetContext(e.ContextData, out ITaskSequencerUI? ui)) {
-            return;
-        }
-
-        // TODO: maybe create clones since we save on a background thread...?
-        List<TaskSequence> items = ui.SequenceSelectionManager.SelectedItems.Select(x => x.TaskSequence).ToList();
-        if (items.Count < 1) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return;
         }
         
-        string? filePath = await IFilePickDialogService.Instance.SaveFile($"Save {items.Count} sequence{Lang.S(items.Count)} to a file", Filters.XmlAndAll);
+        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
+
+        // TODO: maybe create clones since we save on a background thread...?
+        List<TaskSequence> itemsToSave = state.SelectedSequences.ToList();
+        if (state.SelectedSequences.Count < 1) {
+            return;
+        }
+        
+        string? filePath = await IFilePickDialogService.Instance.SaveFile($"Save {itemsToSave.Count} sequence{Lang.S(itemsToSave.Count)} to a file", Filters.XmlAndAll);
         if (filePath == null) {
             return;
         }
@@ -50,7 +53,7 @@ public class SaveTaskSequencesCommand : Command {
         ActivityTask task = ActivityManager.Instance.RunTask(() => {
             ActivityManager.Instance.GetCurrentProgressOrEmpty().IsIndeterminate = true;
             XmlDocument document = new XmlDocument();
-            XmlTaskSequenceSerialization.SaveToDocument(document, items);
+            XmlTaskSequenceSerialization.SaveToDocument(document, itemsToSave);
             document.Save(filePath);
             return Task.CompletedTask;
         });
