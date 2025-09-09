@@ -112,7 +112,12 @@ public partial class TaskSequencerWindow : DesktopWindow {
         DataManager.GetContextData(this).Set(TaskSequenceManager.DataKey, this.manager);
         
         this.PART_SequenceListBox.TaskSequencerManager = this.manager;
-        this.taskSequenceSelectionHandler = new ObservableListBoxSelectionHandler<TaskSequence>(this.State.SelectedSequences, this.PART_SequenceListBox, item => ((ModelBasedListBoxItem<TaskSequence>) item).Model!, seq => this.PART_SequenceListBox.ItemMap.GetControl(seq));
+        this.taskSequenceSelectionHandler = new ObservableListBoxSelectionHandler<TaskSequence>(
+            this.manager.Sequences,
+            this.State.SelectedSequences, 
+            this.PART_SequenceListBox, 
+            item => ((ModelBasedListBoxItem<TaskSequence>) item).Model!);
+        
         this.manager.MemoryEngine.ConnectionChanged += this.OnEngineConnectionChanged;
         this.State.PrimarySelectedSequenceChanged += this.OnPrimarySelectedSequenceChanged;
 

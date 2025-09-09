@@ -47,11 +47,10 @@ public class ConditionSourcePresenter {
             this.UpdateTextForSequence(sequence);
 
             this.conditionSelectionHandler = new ObservableListBoxSelectionHandler<BaseSequenceCondition>(
-                TaskSequenceViewState.GetInstance(sequence).SelectedConditions,
-                this.window.PART_ConditionsListBox,
-                GetConditionFromControl,
-                this.GetControlFromCondition
-            );
+                sequence.Conditions, 
+                TaskSequenceViewState.GetInstance(sequence).SelectedConditions, 
+                this.window.PART_ConditionsListBox, 
+                item => ((ModelBasedListBoxItem<BaseSequenceCondition>) item).Model!);
         }
         else {
             Debug.Assert(this.sourceOperation == null);
@@ -77,14 +76,14 @@ public class ConditionSourcePresenter {
     private void ClearTaskSequenceSource() {
         if (this.sourceSequence != null) {
             Debug.Assert(this.conditionSelectionHandler != null);
-            
+
             this.sourceSequence.DisplayNameChanged -= this.OnSequenceDisplayNameChanged;
             this.conditionSelectionHandler!.Dispose();
             this.conditionSelectionHandler = null;
-            
+
             this.sourceSequence = null;
         }
-        
+
         Debug.Assert(this.conditionSelectionHandler == null);
     }
 
@@ -117,7 +116,4 @@ public class ConditionSourcePresenter {
             this.window.PART_ConditionSourceName.Text = "(No sequences or operations selected)";
         }
     }
-
-    private static BaseSequenceCondition GetConditionFromControl(ListBoxItem item) => ((ModelBasedListBoxItem<BaseSequenceCondition>) item).Model!;
-    private ListBoxItem GetControlFromCondition(BaseSequenceCondition seq) => this.window.PART_ConditionsListBox.ItemMap.GetControl(seq);
 }

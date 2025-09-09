@@ -98,11 +98,15 @@ public class OperationListPresenter {
         Debug.Assert(this.operationSelectionHandler == null);
         this.window.PART_OperationListBox.TaskSequence = newSeq;
         if (newSeq != null) {
-            TaskSequenceViewState newState = TaskSequenceViewState.GetInstance(newSeq);
-            newState.PrimarySelectedOperationChanged += this.Event_PrimaryOperationChanged;
+            TaskSequenceViewState newSeqState = TaskSequenceViewState.GetInstance(newSeq);
+            newSeqState.PrimarySelectedOperationChanged += this.Event_PrimaryOperationChanged;
 
-            this.operationSelectionHandler = new ObservableListBoxSelectionHandler<BaseSequenceOperation>(newState.SelectedOperations, this.window.PART_OperationListBox, item => ((ModelBasedListBoxItem<BaseSequenceOperation>) item).Model!, seq => this.window.PART_OperationListBox.ItemMap.GetControl(seq));
-            this.OnPrimaryOperationChanged(null, newState.PrimarySelectedOperation);
+            this.operationSelectionHandler = new ObservableListBoxSelectionHandler<BaseSequenceOperation>(
+                newSeq.Operations,
+                newSeqState.SelectedOperations, 
+                this.window.PART_OperationListBox, 
+                item => ((ModelBasedListBoxItem<BaseSequenceOperation>) item).Model!);
+            this.OnPrimaryOperationChanged(null, newSeqState.PrimarySelectedOperation);
         }
         else {
             this.UpdateOperationEditorPanelHeader();
