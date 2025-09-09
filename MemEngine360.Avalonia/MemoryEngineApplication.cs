@@ -190,7 +190,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.debugger.SuspendThreadCommand", new SuspendThreadCommand());
         manager.Register("commands.debugger.ResumeThreadCommand", new ResumeThreadCommand());
         manager.Register("commands.debugger.GoToDebugMemoryCommand", new GoToDebugMemoryCommand());
-        
+
         // History
         // manager.Register("commands.application.UndoCommand", new UndoCommand());
         // manager.Register("commands.application.RedoCommand", new RedoCommand());

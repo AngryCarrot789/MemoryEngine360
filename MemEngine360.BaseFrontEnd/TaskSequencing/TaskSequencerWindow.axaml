@@ -134,8 +134,15 @@
                                                 <StackPanel Orientation="Horizontal" Spacing="3" Margin="0,1,0,2">
                                                     <TextBlock Text="Run Count" VerticalAlignment="Center"/>
                                                     <TextBox x:Name="PART_RunCountTextBox" Padding="3,1" VerticalContentAlignment="Center" Width="50"
-                                                             tt:ToolTipEx.Tip="The amount of times to run the sequence. Default is 1. This lets you repeat the operations"
-                                                             Background="{DynamicResource ABrush.Tone1.Background.Static}"/>
+                                                             Background="{DynamicResource ABrush.Tone1.Background.Static}">
+                                                        <tt:ToolTipEx.Tip>
+                                                            <TextBlock>
+                                                                <Run Text="The amount of times to repeat the sequence. Default is 1. Set as 'inf' to repeat forever."/>
+                                                                <LineBreak/>
+                                                                <Run Text="A 'run' is completed when the last operation finishes and either isn't a jump operation or it didn't actually jump (e.g. condition wasn't met)."/>
+                                                            </TextBlock>
+                                                        </tt:ToolTipEx.Tip>
+                                                    </TextBox>
                                                 </StackPanel>
                                                 <CheckBox x:Name="PART_ToggleBusyExclusive" DockPanel.Dock="Right" Content="Busy Priority">
                                                     <tt:ToolTipEx.Tip>
@@ -335,11 +342,22 @@
                                     <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedActive.Background}"/>
                                 </Style>
 
-                                <Style Selector="^[IsRunning=true] /template/ Border#PART_RootBorder">
+                                <Style Selector="^[OperationState=WaitingForConditions] /template/ Border#PART_RootBorder">
                                     <Setter Property="Background">
                                         <Setter.Value>
                                             <LinearGradientBrush>
-                                                <GradientStop Color="{DynamicResource ABrush.AccentTone1.Border.Static.Color}"/>
+                                                <GradientStop Color="{DynamicResource ABrush.MemEngine.Sequencer.OperationWaitForCondition.Gradient1.Color}"/>
+                                                <GradientStop Color="{DynamicResource ABrush.Tone4.Background.Static.Color}" Offset="1.0"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                                
+                                <Style Selector="^[OperationState=Running] /template/ Border#PART_RootBorder">
+                                    <Setter Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush>
+                                                <GradientStop Color="{DynamicResource ABrush.MemEngine.Sequencer.OperationRunning.Gradient1.Color}"/>
                                                 <GradientStop Color="{DynamicResource ABrush.Tone4.Background.Static.Color}" Offset="1.0"/>
                                             </LinearGradientBrush>
                                         </Setter.Value>

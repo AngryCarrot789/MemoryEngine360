@@ -925,7 +925,7 @@ public partial class MemoryViewerWindow : DesktopWindow, IHexEditorUI {
             while (true) {
                 pauseOrCancelToken.ThrowIfCancellationRequested();
                 IConsoleConnection? connection = this.info!.MemoryEngine.Connection;
-                if (this.info.MemoryEngine.IsShuttingDown || (connection != null ? !connection.IsClosed : null) != true) {
+                if (this.info.MemoryEngine.IsShuttingDown || connection == null || connection.IsClosed) {
                     return;
                 }
 
@@ -939,7 +939,7 @@ public partial class MemoryViewerWindow : DesktopWindow, IHexEditorUI {
                     // aprox. 50ms to fully read 1.5k bytes, based on simple benchmark with DateTime.Now
                     await connection.ReadBytes(this.startAddress, this.myBuffer, 0, (int) Math.Min(this.cbRange, int.MaxValue), 0x1000, null, pauseOrCancelToken);
 
-                    await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         if (this.control.PART_ToggleShowChanges.IsChecked == true) {
                             this.control.changeManager.ProcessChanges(this.startAddress, this.myBuffer, this.myBuffer.Length);
                         }
@@ -948,7 +948,6 @@ public partial class MemoryViewerWindow : DesktopWindow, IHexEditorUI {
 
                         this.control.UpdateSelectionText();
                         this.control.UpdateCaretText();
-                        return Task.CompletedTask;
                     }, token: CancellationToken.None);
                 }
                 catch (OperationCanceledException) {

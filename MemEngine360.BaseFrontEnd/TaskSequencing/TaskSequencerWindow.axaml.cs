@@ -31,8 +31,8 @@ using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
+using PFXToolKitUI.Avalonia.Interactivity.SelectingEx;
 using PFXToolKitUI.Avalonia.Services.Windowing;
-using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Commands;
 
@@ -57,7 +57,7 @@ public partial class TaskSequencerWindow : DesktopWindow {
     private readonly OperationListPresenter operationListPresenter;
     private readonly TaskSequenceManager manager;
 
-    private ObservableListBoxSelectionHandler<TaskSequence>? taskSequenceSelectionHandler;
+    private ListBoxSelectionHandler<TaskSequence>? taskSequenceSelectionHandler;
 
     public TaskSequencerWindow() : this(new TaskSequenceManager(new MemoryEngine())) {
         
@@ -112,7 +112,7 @@ public partial class TaskSequencerWindow : DesktopWindow {
         DataManager.GetContextData(this).Set(TaskSequenceManager.DataKey, this.manager);
         
         this.PART_SequenceListBox.TaskSequencerManager = this.manager;
-        this.taskSequenceSelectionHandler = new ObservableListBoxSelectionHandler<TaskSequence>(
+        this.taskSequenceSelectionHandler = new ListBoxSelectionHandler<TaskSequence>(
             this.manager.Sequences,
             this.State.SelectedSequences, 
             this.PART_SequenceListBox, 

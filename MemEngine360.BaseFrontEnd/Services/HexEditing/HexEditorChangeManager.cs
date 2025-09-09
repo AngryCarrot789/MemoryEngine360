@@ -17,9 +17,12 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Buffers;
+using System.Diagnostics;
 using AvaloniaHex.Async;
 using AvaloniaHex.Async.Rendering;
 using AvaloniaHex.Base.Document;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
@@ -51,7 +54,10 @@ public class HexEditorChangeManager {
         return this.layerCache.Count > 0 ? this.layerCache.Pop() : new ChangedRegionLayer(this);
     }
 
-    public static BitRangeUnion GetChangedRanges(ulong baseAddress, Span<byte> oldData, Span<byte> newData, int count) {
+    public static BitRangeUnion GetChangedRanges(ulong baseAddress, Span<byte> oldData, Span<byte> newData) {
+        int count = oldData.Length;
+        Debug.Assert(count == newData.Length);
+        
         int start = -1;
         BitRangeUnion union = new BitRangeUnion();
         for (int i = 0; i < count; i++) {
@@ -86,19 +92,24 @@ public class HexEditorChangeManager {
             return;
         }
 
-        byte[] oldBytes = new byte[newData.Length];
-        
-        BitRangeUnion availableOldBytes = new BitRangeUnion();
-        this.BinarySource.ReadAvailableData(baseAddress, oldBytes, availableOldBytes);
+        byte[] oldBytes = ArrayPool<byte>.Shared.Rent(newData.Length);
 
-        BitRangeUnion newRanges = GetChangedRanges(baseAddress, oldBytes, newData, oldBytes.Length);
-        foreach (BitRange newRange in newRanges) {
-            if (availableOldBytes.Contains(newRange.Start)) {
-                this.TryMergeOrCreateLayer(newRange);
+        try {
+            BitRangeUnion availableOldBytes = new BitRangeUnion();
+            this.BinarySource.ReadAvailableData(baseAddress, oldBytes.AsSpan(0, newData.Length), availableOldBytes);
+
+            BitRangeUnion newRanges = GetChangedRanges(baseAddress, oldBytes.AsSpan(0, newData.Length), newData);
+            foreach (BitRange newRange in newRanges) {
+                if (availableOldBytes.Contains(newRange.Start)) {
+                    this.TryMergeOrCreateLayer(newRange);
+                }
             }
-        }
 
-        this.CleanupInvalidatedRanges();
+            this.CleanupInvalidatedRanges();
+        }
+        finally {
+            ArrayPool<byte>.Shared.Return(oldBytes);
+        }
     }
 
     public void Clear() {
@@ -115,8 +126,7 @@ public class HexEditorChangeManager {
             return;
         }
 
-        for (int i = 0; i < this.myLayers.Count; i++) {
-            ChangedRegionLayer layer = this.myLayers[i];
+        foreach (ChangedRegionLayer layer in this.myLayers) {
             int timeLived = (DateTime.Now - layer.LastUpdatedTime).Milliseconds;
             if (timeLived >= 1200 ? RangesOverlapOrNearby(layer.Range, newRange) : layer.Range == newRange) {
                 layer.SetRange(new BitRange(Math.Min(layer.Range.Start.ByteIndex, newRange.Start.ByteIndex), Math.Max(layer.Range.End.ByteIndex, newRange.End.ByteIndex)));
@@ -154,6 +164,6 @@ public class HexEditorChangeManager {
     }
 
     private static bool RangesOverlapOrNearby(BitRange a, BitRange b) {
-        return b.End.ByteIndex >= a.Start.ByteIndex && b.Start.ByteIndex <= (a.End.ByteIndex + 1);
+        return b.End.ByteIndex >= a.Start.ByteIndex && b.Start.ByteIndex <= Maths.SumAndClampOverflow(a.End.ByteIndex, 1);
     }
 }

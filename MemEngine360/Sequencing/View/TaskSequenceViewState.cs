@@ -30,7 +30,7 @@ public delegate void TaskSequenceViewStatePrimarySelectedOperationChangedEventHa
 /// </summary>
 public class TaskSequenceViewState {
     private BaseSequenceOperation? primarySelectedOperation;
-    
+
     /// <summary>
     /// Gets the sequence that this view state represents
     /// </summary>
@@ -58,7 +58,40 @@ public class TaskSequenceViewState {
 
     internal TaskSequenceViewState(TaskSequence sequence) {
         this.Sequence = sequence;
+        this.Sequence.Operations.ItemsRemoved += this.OnOperationsRemoved;
+        this.Sequence.Operations.ItemReplaced += this.OnOperationReplaced;
+        this.Sequence.Conditions.ItemsRemoved += this.OnConditionsRemoved;
+        this.Sequence.Conditions.ItemReplaced += this.OnConditionReplaced;
+
         this.SelectedOperations.CollectionChanged += this.OnSelectedOperationsCollectionChanged;
+    }
+
+    private void OnOperationsRemoved(IObservableList<BaseSequenceOperation> list, int index, IList<BaseSequenceOperation> items) {
+        if (this.SelectedOperations.Count > 0) {
+            foreach (BaseSequenceOperation operation in items) {
+                this.SelectedOperations.Remove(operation);
+            }
+        }
+    }
+
+    private void OnOperationReplaced(IObservableList<BaseSequenceOperation> list, int index, BaseSequenceOperation oldItem, BaseSequenceOperation newItem) {
+        if (this.SelectedOperations.Count > 0)
+            this.SelectedOperations.Remove(oldItem);
+        // I don't think we should select newItem... right?
+    }
+
+    private void OnConditionsRemoved(IObservableList<BaseSequenceCondition> list, int index, IList<BaseSequenceCondition> items) {
+        if (this.SelectedConditions.Count > 0) {
+            foreach (BaseSequenceCondition condition in items) {
+                this.SelectedConditions.Remove(condition);
+            }
+        }
+    }
+
+    private void OnConditionReplaced(IObservableList<BaseSequenceCondition> list, int index, BaseSequenceCondition oldItem, BaseSequenceCondition newItem) {
+        if (this.SelectedConditions.Count > 0)
+            this.SelectedConditions.Remove(oldItem);
+        // I don't think we should select newItem... right?
     }
 
     private void OnSelectedOperationsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {

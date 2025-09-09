@@ -35,19 +35,19 @@ namespace MemEngine360.Xbox360XDevkit;
 public class PluginXbox360XDevkit : Plugin {
     public override string Name => "Xbox360 XDevkit";
 
-    public override void OnCreated() {
+    protected override void OnCreated() {
         base.OnCreated();
         if (!OperatingSystem.IsWindows()) {
             throw new Exception("The " + this.Name + " plugin is only supported on windows");
         }
     }
 
-    public override void RegisterCommands(CommandManager manager) {
-        base.RegisterCommands(manager);
-        manager.Register("commands.memengine.remote.XboxRunningProcessCommand", new XboxRunningProcessCommand());
+    protected override void OnInitialize() {
+        base.OnInitialize();
+        CommandManager.Instance.Register("commands.memengine.remote.XboxRunningProcessCommand", new XboxRunningProcessCommand());
     }
 
-    public override Task OnApplicationFullyLoaded() {
+    protected override Task OnApplicationFullyLoaded() {
         OpenConnectionView.Registry.RegisterType<ConnectToXboxInfo>(() => new OpenXDevkitConnectionView());
 
         ConsoleConnectionManager manager = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();

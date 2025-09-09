@@ -32,7 +32,7 @@ public static class MemoryEngineBrushLoader {
         ThemeConfigurationPage p = manager.ThemeConfigurationPage;
         
         // MAKE SURE TO UPDATE ANY INHERITANCE IN MemoryEngineThemes.axaml TOO! Otherwise, the app won't look the same at runtime compared to design time | This is the inheritance column |
-        List<(string, string, string)> items = [
+        List<(string, string, string?)> items = [
             ("Memory Engine/Engine/Status bar",                                           "ABrush.PFX.StatusBar.Background",                                            "ABrush.Tone6.Background.Static"),
             
             ("Memory Engine/Engine/Background",                                           "ABrush.MemEngine.MainView.Background",                                       "ABrush.Tone4.Background.Static"),
@@ -75,10 +75,12 @@ public static class MemoryEngineBrushLoader {
             ("Memory Engine/Task Sequencer/TitleBar Background",                          "ABrush.MemEngine.Sequencer.TitleBarBackground",                              "ABrush.Tone6.Background.Static"),
             ("Memory Engine/Task Sequencer/Sequences/Background",                         "ABrush.MemEngine.Sequencer.Sequences.Background",                            "ABrush.Tone4.Background.Static"),
             ("Memory Engine/Task Sequencer/Operations/Background",                        "ABrush.MemEngine.Sequencer.Operations.Background",                           "ABrush.Tone1.Background.Static"),
+            ("Memory Engine/Task Sequencer/Operations/Background (Wait for condition)",   "ABrush.MemEngine.Sequencer.OperationWaitForCondition.Gradient1",             null),
+            ("Memory Engine/Task Sequencer/Operations/Background (Running)",              "ABrush.MemEngine.Sequencer.OperationRunning.Gradient1",                      null),
         ];
         
         Dictionary<string, string?> inheritMap = new Dictionary<string, string?>();
-        foreach ((string path, string theme, string inherit) item in items) {
+        foreach ((string path, string theme, string? inherit) item in items) {
             inheritMap[item.theme] = item.inherit;
         }
         
@@ -86,7 +88,7 @@ public static class MemoryEngineBrushLoader {
             theme.SetInheritance(inheritMap);
         }
         
-        foreach ((string path, string theme, string inherit) item in items) {
+        foreach ((string path, string theme, string? inherit) item in items) {
             p.AssignMapping(item.path, item.theme);
         }
     }

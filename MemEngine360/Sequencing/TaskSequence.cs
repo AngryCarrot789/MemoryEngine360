@@ -37,8 +37,8 @@ public delegate void TaskSequenceDedicatedConnectionChangedEventHandler(TaskSequ
 /// A sequence that contains a list of operations
 /// </summary>
 public sealed class TaskSequence : IConditionsHost {
-    internal TaskSequenceViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using Dictionary
-    
+    internal TaskSequenceViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using IComponentManager
+
     internal TaskSequenceManager? myManager;
     private string displayName = "Empty Sequence";
     private int runCount = 1;
@@ -204,7 +204,7 @@ public sealed class TaskSequence : IConditionsHost {
                 }
             }
         };
-        
+
         this.Operations.ItemReplaced += (list, index, oldItem, newItem) => {
             BaseSequenceOperation.InternalSetSequence(oldItem, null);
             if (oldItem is LabelOperation label) {
@@ -345,27 +345,56 @@ public sealed class TaskSequence : IConditionsHost {
                         BaseSequenceOperation operation = operations[i];
                         if (operation is IPlaceholderOperation) {
                             await Task.Yield();
+                            continue;
                         }
-                        else {
-                            try {
-                                operation.IsRunning = true;
-                                bool bCanRun = true;
-                                if (operation.Conditions.Count > 0) {
-                                    this.Progress.Text = "Updating operation conditions";
-                                    this.Progress.IsIndeterminate = true;
 
+
+                        try {
+                            bool canRunOperation = true;
+                            if (operation.Conditions.Count > 0) {
+                                operation.State = OperationState.WaitingForConditions;
+                                this.Progress.Text = "Updating operation conditions";
+                                this.Progress.IsIndeterminate = true;
+
+                                try {
+                                    do {
+                                        if (await this.UpdateConditionsAndCheckCanRun(operation, token)) {
+                                            break;
+                                        }
+
+                                        switch (operation.ConditionBehaviour) {
+                                            case OperationConditionBehaviour.Wait: await Task.Delay(10, token); break;
+                                            case OperationConditionBehaviour.Skip: canRunOperation = false; break;
+                                        }
+                                    } while (canRunOperation /* always true until ConditionBehaviour becomes Skip */);
+                                }
+                                catch (OperationCanceledException) {
+                                    return;
+                                }
+                                catch (Exception e) {
+                                    this.LastException = e;
+                                    return;
+                                }
+
+                                this.Progress.IsIndeterminate = false;
+                            }
+
+                            if (canRunOperation) {
+                                operation.State = OperationState.Running;
+                                this.Progress.Text = "Running operation(s)";
+                                if (operation is JumpToLabelOperation jump) {
+                                    if (jump.IsEnabled && jump.CurrentTarget != null && jump.CurrentTarget.TaskSequence == this /* should be impossible to be null */) {
+                                        int idx = this.IndexOf(jump.CurrentTarget);
+                                        Debug.Assert(idx != -1);
+
+                                        i = idx - 1;
+                                    }
+
+                                    await Task.Yield();
+                                }
+                                else {
                                     try {
-                                        do {
-                                            if (await this.UpdateConditionsAndCheckCanRun(operation, token)) {
-                                                break;
-                                            }
-
-                                            switch (operation.ConditionBehaviour) {
-                                                case OperationConditionBehaviour.Wait: await Task.Delay(10, token); break;
-                                                case OperationConditionBehaviour.Skip: bCanRun = false; break;
-                                                default:                               throw new ArgumentOutOfRangeException();
-                                            }
-                                        } while (bCanRun);
+                                        await operation.Run(this.myContext, token);
                                     }
                                     catch (OperationCanceledException) {
                                         return;
@@ -374,39 +403,11 @@ public sealed class TaskSequence : IConditionsHost {
                                         this.LastException = e;
                                         return;
                                     }
-
-                                    this.Progress.IsIndeterminate = false;
-                                }
-
-                                if (bCanRun) {
-                                    this.Progress.Text = "Running operation(s)";
-                                    if (operation is JumpToLabelOperation jump) {
-                                        if (jump.IsEnabled && jump.CurrentTarget != null && jump.CurrentTarget.TaskSequence == this /* should be impossible to be null */) {
-                                            int idx = this.IndexOf(jump.CurrentTarget);
-                                            Debug.Assert(idx != -1);
-
-                                            i = idx - 1;
-                                        }
-
-                                        await Task.Yield();
-                                    }
-                                    else {
-                                        try {
-                                            await operation.Run(this.myContext, token);
-                                        }
-                                        catch (OperationCanceledException) {
-                                            return;
-                                        }
-                                        catch (Exception e) {
-                                            this.LastException = e;
-                                            return;
-                                        }
-                                    }
                                 }
                             }
-                            finally {
-                                operation.IsRunning = false;
-                            }
+                        }
+                        finally {
+                            operation.State = OperationState.NotRunning;
                         }
                     }
                 }

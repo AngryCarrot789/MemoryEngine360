@@ -83,12 +83,12 @@ public partial class ModuleViewerWindow : DesktopWindow {
             if (engine == null || engine.Connection == null) {
                 return;
             }
-            
+
             using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Dump memory");
             if (token == null) {
                 return;
             }
-            
+
             MessageBoxResult freezeResult = await IMessageDialogService.Instance.ShowMessage(
                 "Freeze console",
                 "Freezing the console massively increases how quickly we can download memory from the console",
@@ -113,15 +113,14 @@ public partial class ModuleViewerWindow : DesktopWindow {
                 if (task.ConnectionException != null) {
                     sb.Append("Download IO error: ").Append(task.ConnectionException.Message);
                 }
-                
+
                 if (task.FileException != null) {
                     if (sb.Length > 0)
-                        sb.Append(Environment.NewLine);
-                    
+                        sb.AppendLine();
                     sb.Append("File IO error: ").Append(task.FileException.Message);
                 }
-                
-                await IMessageDialogService.Instance.ShowMessage("Errors", "One or more errors occurred during memory dump", sb.ToString(), defaultButton:MessageBoxResult.OK);
+
+                await IMessageDialogService.Instance.ShowMessage("Errors", "One or more errors occurred during memory dump", sb.ToString(), defaultButton: MessageBoxResult.OK);
             }
         }, () => this.selectedModule != null && this.MemoryEngine?.Connection != null);
 
@@ -191,7 +190,7 @@ public partial class ModuleViewerWindow : DesktopWindow {
             this.PART_ModuleListBox.SelectedModel = newManager.Modules[0];
         }
     }
-    
+
     private void OnMemoryEngineChanged(MemoryEngine? oldValue, MemoryEngine? newValue) {
         this.dumpModuleMemoryCommand.RaiseCanExecuteChanged();
         if (oldValue != null)
@@ -200,7 +199,7 @@ public partial class ModuleViewerWindow : DesktopWindow {
             newValue.ConnectionChanged += this.OnEngineConnectionChanged;
     }
 
-    private void OnEngineConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
+    private void OnEngineConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConnection, IConsoleConnection? newConnection, ConnectionChangeCause cause) {
         this.dumpModuleMemoryCommand.RaiseCanExecuteChanged();
     }
 

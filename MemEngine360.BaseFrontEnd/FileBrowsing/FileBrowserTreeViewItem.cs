@@ -143,10 +143,11 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
         TemplateUtils.ApplyRecursive(this);
         if (this.EntryObject is FileTreeNodeDirectory folder) {
             this.compositeListener = ObservableItemProcessor.MakeIndexable(folder.Items, this.OnLayerAdded, this.OnLayerRemoved, this.OnLayerMoved);
-            int i = 0;
-            foreach (BaseFileTreeNode item in folder.Items) {
-                this.InsertNode(item, i++);
-            }
+            this.compositeListener.AddExistingItems();
+            // int i = 0;
+            // foreach (BaseFileTreeNode item in folder.Items) {
+            //     this.InsertNode(item, i++);
+            // }
         }
 
         Binders.AttachModels(this.EntryObject!, this.fileNameBinder, this.fileSizeBinder, this.dateCreatedBinder, this.dateModifiedBinder);
@@ -155,11 +156,13 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
     }
 
     public void OnRemoving() {
+        this.compositeListener?.RemoveExistingItems();
         this.compositeListener?.Dispose();
-        int count = this.Items.Count;
-        for (int i = count - 1; i >= 0; i--) {
-            this.RemoveNode(i);
-        }
+        this.compositeListener = null;
+        // int count = this.Items.Count;
+        // for (int i = count - 1; i >= 0; i--) {
+        //     this.RemoveNode(i);
+        // }
 
         Binders.DetachModels(this.fileNameBinder, this.fileSizeBinder, this.dateCreatedBinder, this.dateModifiedBinder);
         DataManager.GetContextData(this).Set(BaseFileTreeNode.DataKey, null);
@@ -181,8 +184,8 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
         this.RemoveNode(index);
     }
 
-    private void OnLayerMoved(object sender, int oldindex, int newindex, BaseFileTreeNode item) {
-        this.MoveNode(oldindex, newindex);
+    private void OnLayerMoved(object sender, int oldIndex, int newIndex, BaseFileTreeNode item) {
+        this.MoveNode(oldIndex, newIndex);
     }
 
     public FileBrowserTreeViewItem GetNodeAt(int index) => (FileBrowserTreeViewItem) this.Items[index]!;

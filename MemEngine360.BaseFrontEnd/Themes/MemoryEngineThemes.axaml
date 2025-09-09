@@ -42,4 +42,10 @@
     <SolidColorBrush x:Key="ABrush.MemEngine.Sequencer.TitleBarBackground"                              Color="{StaticResource ABrush.Tone6.Background.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.Sequencer.Sequences.Background"                            Color="{StaticResource ABrush.Tone4.Background.Static.Color}"/>
     <SolidColorBrush x:Key="ABrush.MemEngine.Sequencer.Operations.Background"                           Color="{StaticResource ABrush.Tone1.Background.Static.Color}"/>
+    
+    <Color x:Key="ABrush.MemEngine.Sequencer.OperationWaitForCondition.Gradient1.Color">Orange</Color>
+    <SolidColorBrush x:Key="ABrush.MemEngine.Sequencer.OperationWaitForCondition.Gradient1" Color="{StaticResource ABrush.MemEngine.Sequencer.OperationWaitForCondition.Gradient1.Color}"/>
+    
+    <Color x:Key="ABrush.MemEngine.Sequencer.OperationRunning.Gradient1.Color">DodgerBlue</Color>
+    <SolidColorBrush x:Key="ABrush.MemEngine.Sequencer.OperationRunning.Gradient1" Color="{StaticResource ABrush.MemEngine.Sequencer.OperationRunning.Gradient1.Color}"/>
 </ResourceDictionary>

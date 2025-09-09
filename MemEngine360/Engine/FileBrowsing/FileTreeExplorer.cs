@@ -145,7 +145,7 @@ public class FileTreeExplorer {
 
             switch (result.Item1) {
                 case EnumFileSystemListResult.Success: {
-                    foreach (FileSystemEntry entry in result.Item2!) {
+                    foreach (FileSystemEntry entry in result.Item2!.OrderByDescending(x => x.IsDirectory).ThenBy(x => x.Name)) {
                         directory.Items.Add(entry.IsDirectory
                             ? new FileTreeNodeDirectory() {
                                 FileName = entry.Name,

@@ -34,6 +34,7 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
@@ -42,6 +43,7 @@ using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity.Selecting;
+using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity;
@@ -325,9 +327,9 @@ public partial class EngineView : UserControl, IEngineUI {
 
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
+        MemoryEngineViewState.GetInstance(this.MemoryEngine).RequestWindowFocus += this.OnRequestWindowFocus;
 
         ScanningProcessor processor = this.MemoryEngine.ScanningProcessor;
-        
         this.connectedHostNameBinder.Attach(this.PART_ConnectedHostName, this.MemoryEngine);
         this.isScanningBinder.Attach(this, processor);
         this.scanAddressBinder.Attach(this.PART_ScanOption_StartAddress, processor);
@@ -374,8 +376,15 @@ public partial class EngineView : UserControl, IEngineUI {
         this.PART_OrderListBox.SetScanningProcessor(processor);
     }
 
+    private void OnRequestWindowFocus(object? sender, EventArgs e) {
+        if (TopLevel.GetTopLevel(this) is DesktopWindow window) {
+            window.Activate();
+        }
+    }
+
     protected override void OnUnloaded(RoutedEventArgs e) {
         base.OnUnloaded(e);
+        MemoryEngineViewState.GetInstance(this.MemoryEngine).RequestWindowFocus -= this.OnRequestWindowFocus;
 
         this.MemoryEngine.ConnectionChanged -= this.OnConnectionChanged;
         this.themeListHandler?.RemoveExistingItems();
@@ -513,11 +522,11 @@ public partial class EngineView : UserControl, IEngineUI {
                     ((ContextData) c.ContextData!).Set(IEngineUI.IsDisconnectFromNotification, null);
                 }
 
-                c.Notification?.Close();
+                c.Notification?.Hide();
             }) { ToolTip = "Disconnect from the connection" });
 
             notification.CanAutoHide = true;
-            notification.Open(this.NotificationManager);
+            notification.Show(this.NotificationManager);
             this.PART_LatestActivity.Text = notification.Text;
         }
         else {
@@ -543,7 +552,7 @@ public partial class EngineView : UserControl, IEngineUI {
                         IEngineUI mem = IEngineUI.DataKey.GetContext(c.ContextData!)!;
                         MemoryEngine eng = mem.MemoryEngine;
                         if (eng.Connection != null) {
-                            c.Notification?.Close();
+                            c.Notification?.Hide();
                             return;
                         }
 
@@ -567,12 +576,12 @@ public partial class EngineView : UserControl, IEngineUI {
                             }
 
                             if (connection != null) {
-                                c.Notification?.Close();
+                                c.Notification?.Hide();
                                 eng.SetConnection(busyToken, 0, connection, ConnectionChangeCause.User, eng.LastUserConnectionInfo);
                             }
                         }
                         else {
-                            c.Notification?.Close();
+                            c.Notification?.Hide();
                             await CommandManager.Instance.Execute("commands.memengine.OpenConsoleConnectionDialogCommand", c.ContextData!, null, null);
                         }
                     }) {
@@ -584,7 +593,7 @@ public partial class EngineView : UserControl, IEngineUI {
                     notification.CanAutoHide = true;
                 }
 
-                notification.Open(this.NotificationManager);
+                notification.Show(this.NotificationManager);
             }
         }
 

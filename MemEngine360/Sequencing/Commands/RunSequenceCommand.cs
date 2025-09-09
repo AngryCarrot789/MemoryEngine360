@@ -88,18 +88,37 @@ public class RunSequenceCommand : Command {
             }
             else {
                 await sequence.Run(connection, token, !useEngineConnection);
-                if (sequence.LastException != null) {
-                    await IMessageDialogService.Instance.ShowMessage("Error encountered", "An exception occured while running sequence", sequence.LastException.GetToString());
+                Exception? except = sequence.LastException;
+                if (except != null) {
+                    if (except is IOException || except is TimeoutException) {
+                        await LogExceptionHelper.ShowMessageAndPrintToLogs("Network Error", except.Message, except);
+                    }
+                    else {
+                        await LogExceptionHelper.ShowMessageAndPrintToLogs("Unexpected Error", "An exception occured while running sequence: " + except.Message, except);
+                    }
                 }
 
-                ConnectionChangeCause cause = sequence.LastException is IOException
-                    ? ConnectionChangeCause.ConnectionError
-                    : ConnectionChangeCause.LostConnection; // Use LostConnection even if not TimeoutException since it's the only other option that makes sense.
-                if (token != null) {
-                    sequence.Manager.MemoryEngine.CheckConnection(token, cause);
-                }
-                else if (useEngineConnection) {
-                    sequence.Manager.MemoryEngine.CheckConnection(cause);
+                if (sequence.Manager != null) {
+                    ConnectionChangeCause cause = except is IOException
+                        ? ConnectionChangeCause.ConnectionError
+                        : ConnectionChangeCause.LostConnection; // Use LostConnection even if not TimeoutException since it's the only other option that makes sense.
+
+                    if (token != null) {
+                        sequence.Manager.MemoryEngine.CheckConnection(token, cause);
+                    }
+                    else if (useEngineConnection) {
+                        sequence.Manager.MemoryEngine.CheckConnection(cause);
+                    }
+
+                    // Probably annoying to the user to force activate the window
+                    // await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                    //     if (useEngineConnection && sequence.Manager != null) {
+                    //         IConsoleConnection? currentConnection = sequence.Manager.MemoryEngine.Connection;
+                    //         if (currentConnection == null || currentConnection.IsClosed) {
+                    //             MemoryEngineViewState.GetInstance(sequence.Manager.MemoryEngine).RaiseRequestWindowFocus();
+                    //         }
+                    //     }
+                    // }, DispatchPriority.Background);
                 }
             }
         }

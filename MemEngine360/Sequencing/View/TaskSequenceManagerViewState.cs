@@ -67,8 +67,25 @@ public sealed class TaskSequenceManagerViewState {
 
     private TaskSequenceManagerViewState(TaskSequenceManager manager) {
         this.Manager = manager;
+        this.Manager.Sequences.ItemsRemoved += this.OnSequencesRemoved;
+        this.Manager.Sequences.ItemReplaced += this.OnSequenceReplaced;
+
         this.SelectedSequences = new ObservableList<TaskSequence>();
         this.SelectedSequences.CollectionChanged += this.OnSelectedSequencesCollectionChanged;
+    }
+
+    private void OnSequencesRemoved(IObservableList<TaskSequence> list, int index, IList<TaskSequence> items) {
+        if (this.SelectedSequences.Count > 0) {
+            foreach (TaskSequence sequence in items) {
+                this.SelectedSequences.Remove(sequence);
+            }
+        }
+    }
+
+    private void OnSequenceReplaced(IObservableList<TaskSequence> list, int index, TaskSequence oldItem, TaskSequence newItem) {
+        if (this.SelectedSequences.Count > 0)
+            this.SelectedSequences.Remove(oldItem);
+        // I don't think we should select newItem... right?
     }
 
     private void OnSelectedSequencesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {

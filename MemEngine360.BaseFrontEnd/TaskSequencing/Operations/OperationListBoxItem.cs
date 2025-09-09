@@ -35,16 +35,16 @@ using PFXToolKitUI.Utils.Collections.Observable;
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations;
 
 public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>, IOperationItemUI {
-    public static readonly StyledProperty<bool> IsRunningProperty = AvaloniaProperty.Register<OperationListBoxItem, bool>(nameof(IsRunning));
+    public static readonly StyledProperty<OperationState> OperationStateProperty = AvaloniaProperty.Register<OperationListBoxItem, OperationState>(nameof(OperationState));
 
-    public bool IsRunning {
-        get => this.GetValue(IsRunningProperty);
-        set => this.SetValue(IsRunningProperty, value);
+    public OperationState OperationState {
+        get => this.GetValue(OperationStateProperty);
+        set => this.SetValue(OperationStateProperty, value);
     }
 
     public BaseSequenceOperation Operation => this.Model ?? throw new Exception("Not connected to a model");
 
-    private readonly IBinder<BaseSequenceOperation> isRunningBinder = new EventUpdateBinder<BaseSequenceOperation>(nameof(BaseSequenceOperation.IsRunningChanged), (b) => ((OperationListBoxItem) b.Control).IsRunning = b.Model.IsRunning);
+    private readonly IBinder<BaseSequenceOperation> operatingStateBinder = new EventUpdateBinder<BaseSequenceOperation>(nameof(BaseSequenceOperation.StateChanged), (b) => ((OperationListBoxItem) b.Control).OperationState = b.Model.State);
 
     public OperationListBoxItem() {
         DataManager.GetContextData(this).Set(IOperationItemUI.DataKey, this);
@@ -101,12 +101,12 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
         TemplateUtils.Apply(content);
         content.Operation = this.Model;
 
-        this.isRunningBinder.Attach(this, this.Model!);
+        this.operatingStateBinder.Attach(this, this.Model!);
         AdvancedContextMenu.SetContextRegistry(this, OperationsContextRegistry.Registry);
     }
 
     protected override void OnRemovingFromList() {
-        this.isRunningBinder.Detach();
+        this.operatingStateBinder.Detach();
 
         AdvancedContextMenu.SetContextRegistry(this, null);
         BaseOperationListContent content = (BaseOperationListContent) this.Content!;

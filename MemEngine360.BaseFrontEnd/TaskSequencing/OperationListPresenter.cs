@@ -24,14 +24,14 @@ using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
-using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Avalonia.Interactivity.SelectingEx;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public class OperationListPresenter {
     private readonly TaskSequencerWindow window;
     private readonly IBinder<TaskSequence> selectedSequenceDisplayNameBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.DisplayNameChanged), (b) => ((TextBlock) b.Control).Text = b.Model.DisplayName);
-    private ObservableListBoxSelectionHandler<BaseSequenceOperation>? operationSelectionHandler;
+    private ListBoxSelectionHandler<BaseSequenceOperation>? operationSelectionHandler;
 
     private TaskSequence? myPrimarySequence;
 
@@ -101,7 +101,7 @@ public class OperationListPresenter {
             TaskSequenceViewState newSeqState = TaskSequenceViewState.GetInstance(newSeq);
             newSeqState.PrimarySelectedOperationChanged += this.Event_PrimaryOperationChanged;
 
-            this.operationSelectionHandler = new ObservableListBoxSelectionHandler<BaseSequenceOperation>(
+            this.operationSelectionHandler = new ListBoxSelectionHandler<BaseSequenceOperation>(
                 newSeq.Operations,
                 newSeqState.SelectedOperations, 
                 this.window.PART_OperationListBox, 

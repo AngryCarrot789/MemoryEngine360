@@ -35,9 +35,10 @@ using PFXToolKitUI.Tasks;
 namespace MemEngine360.Xbox360XBDM;
 
 public class PluginXbox360Xbdm : Plugin {
-    public override void RegisterCommands(CommandManager manager) {
-        base.RegisterCommands(manager);
+    protected override void OnInitialize() {
+        base.OnInitialize();
 
+        CommandManager manager = CommandManager.Instance;
         manager.Register("commands.memengine.remote.ListHelpCommand", new ListHelpCommand());
 
         // TODO: move commands to ME360 project and use a trait like IDiskEjectable
@@ -47,7 +48,7 @@ public class PluginXbox360Xbdm : Plugin {
         manager.Register("commands.memengine.remote.SendCmdCommand", new SendCmdCommand());
     }
 
-    public override Task OnApplicationFullyLoaded() {
+    protected override Task OnApplicationFullyLoaded() {
         OpenConnectionView.Registry.RegisterType<ConnectToXboxInfo>(() => new OpenXbdmConnectionView());
 
         ConsoleConnectionManager manager = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();

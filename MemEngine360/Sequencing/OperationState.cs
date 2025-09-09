@@ -17,21 +17,22 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Composition;
-
-namespace MemEngine360.Engine.View;
+namespace MemEngine360.Sequencing;
 
 /// <summary>
-/// Represents the persistent state of the address table
+/// An enum that specifies the current operating state of a <see cref="BaseSequenceOperation"/>
 /// </summary>
-public sealed class AddressTablePanelViewState {
-    public MemoryEngine Engine { get; }
-    
-    public AddressTablePanelViewState(MemoryEngine engine) {
-        this.Engine = engine;
-    }
-    
-    public static AddressTablePanelViewState GetInstance(MemoryEngine engine) {
-        return ((IComponentManager) engine).GetOrCreateComponent((t) => new AddressTablePanelViewState((MemoryEngine) t));
-    }
+public enum OperationState {
+    /// <summary>
+    /// The operation is not running
+    /// </summary>
+    NotRunning = 0,
+    /// <summary>
+    /// The operation is waiting for conditions to become true. This state is only set when conditions are present  
+    /// </summary>
+    WaitingForConditions,
+    /// <summary>
+    /// The operation is running
+    /// </summary>
+    Running
 }

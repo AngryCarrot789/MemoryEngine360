@@ -17,8 +17,18 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI.Composition;
+
 namespace MemEngine360.Engine.View;
 
-public class ScanResultPanelViewState {
-    
+public sealed class ScanResultPanelViewState {
+    public MemoryEngine Engine { get; }
+
+    public ScanResultPanelViewState(MemoryEngine engine) {
+        this.Engine = engine;
+    }
+
+    public static ScanResultPanelViewState GetInstance(MemoryEngine engine) {
+        return ((IComponentManager) engine).GetOrCreateComponent((t) => new ScanResultPanelViewState((MemoryEngine) t));
+    }
 }

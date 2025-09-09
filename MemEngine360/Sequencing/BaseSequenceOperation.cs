@@ -26,11 +26,13 @@ namespace MemEngine360.Sequencing;
 
 public delegate void BaseSequenceOperationEventHandler(BaseSequenceOperation sender);
 
+public delegate void BaseSequenceOperationStateChangedEventHandler(BaseSequenceOperation sender, OperationState oldState, OperationState newState);
+
 /// <summary>
 /// The base class for a sequencer operation
 /// </summary>
 public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost {
-    private bool isRunning;
+    private OperationState state = OperationState.NotRunning;
     private bool isEnabled = true;
     private OperationConditionBehaviour conditionBehaviour = OperationConditionBehaviour.Wait;
 
@@ -41,12 +43,9 @@ public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost
     /// </summary>
     public TaskSequence? TaskSequence { get; private set; }
 
-    /// <summary>
-    /// Gets whether this operation is currently running. This may be changed from any thread
-    /// </summary>
-    public bool IsRunning {
-        get => this.isRunning;
-        internal set => PropertyHelper.SetAndRaiseINE(ref this.isRunning, value, this, static t => t.IsRunningChanged?.Invoke(t));
+    public OperationState State {
+        get => this.state;
+        set => PropertyHelper.SetAndRaiseINE(ref this.state, value, this, static (t, o, n) => t.StateChanged?.Invoke(t, o, n));
     }
 
     /// <summary>
@@ -79,13 +78,8 @@ public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost
 
     public ObservableList<BaseSequenceCondition> Conditions { get; }
 
-    /// <summary>
-    /// Fired when <see cref="IsRunning"/> changes. This may be fired on any thread
-    /// </summary>
-    public event BaseSequenceOperationEventHandler? IsRunningChanged;
-
+    public event BaseSequenceOperationStateChangedEventHandler? StateChanged;
     public event BaseSequenceOperationEventHandler? IsEnabledChanged;
-
     public event BaseSequenceOperationEventHandler? ConditionBehaviourChanged;
 
     protected BaseSequenceOperation() {
