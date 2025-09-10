@@ -24,22 +24,101 @@ using PFXToolKitUI.Persistence;
 namespace MemEngine360.Configs;
 
 public class BasicApplicationConfiguration : PersistentConfiguration {
-    public static readonly PersistentProperty<string> DefaultThemeProperty = PersistentProperty.RegisterString<BasicApplicationConfiguration>("DefaultTheme", defaultValue: "Dark", owner => owner.defaultTheme, (x, y) => x.defaultTheme = y, true);
-    public static readonly PersistentProperty<string> LastHostNameProperty = PersistentProperty.RegisterString<BasicApplicationConfiguration>("LastHostName", defaultValue: "", owner => owner.lastHostName, (x, y) => x.lastHostName = y, false);
-    public static readonly PersistentProperty<uint> StartAddressProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("StartAddress", defaultValue: 0x82600000, owner => owner.startAddr, (x, y) => x.startAddr = y, false);
-    public static readonly PersistentProperty<uint> ScanLengthProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("ScanLength", defaultValue: 0x1000000, owner => owner.scanLength, (x, y) => x.scanLength = y, false);
-    public static readonly PersistentProperty<bool> PauseConsoleDuringScanProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("PauseConsoleDuringScan", defaultValue: true, owner => owner.pauseConsoleDuringScan, (x, y) => x.pauseConsoleDuringScan = y, false);
-    public static readonly PersistentProperty<bool> ScanMemoryPagesProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("ScanMemoryPages", defaultValue: true, owner => owner.scanMemoryPages, (x, y) => x.scanMemoryPages = y, false);
-    public static readonly PersistentProperty<bool> DTInt_UseHexValueProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("DTInt_UseHexValue", defaultValue: false, owner => owner.dtInt_UseHexValueProperty, (x, y) => x.dtInt_UseHexValueProperty = y, false);
-    public static readonly PersistentProperty<bool> DTString_IgnoreCaseProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("DTString_IgnoreCase", defaultValue: true, owner => owner.dtString_IgnoreCase, (x, y) => x.dtString_IgnoreCase = y, false);
-    public static readonly PersistentProperty<FloatScanOption> DTFloat_ModeProperty = PersistentProperty.RegisterEnum<FloatScanOption, BasicApplicationConfiguration>("DTFloat_Mode", defaultValue: FloatScanOption.RoundToQuery, owner => owner.dtFloat_Mode, (x, y) => x.dtFloat_Mode = y, useNumericValue: false, false);
-    public static readonly PersistentProperty<StringType> DTString_ModeProperty = PersistentProperty.RegisterEnum<StringType, BasicApplicationConfiguration>("DTString_Mode", defaultValue: StringType.ASCII, owner => owner.dtString_Mode, (x, y) => x.dtString_Mode = y, useNumericValue: false, false);
-    public static readonly PersistentProperty<uint> RefreshRateMillisProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("RefreshRateMillis", defaultValue: 1000, owner => owner.refreshRateMillis, (x, y) => x.refreshRateMillis = Math.Max(y, 250), false);
-    public static readonly PersistentProperty<uint> AutoRefreshUpdatesPerSecondProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("AutoRefreshUpdatesPerSecond", defaultValue: 12, owner => owner.autoRefreshUpdatesPerSecond, (x, y) => x.autoRefreshUpdatesPerSecond = Math.Clamp(y, 1, 20), false);
-    public static readonly PersistentProperty<uint> MaxRowsBeforeDisableAutoRefreshProperty = PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>("MaxRowsBeforeDisableAutoRefresh", defaultValue: 400, owner => owner.maxRowsBeforeDisableAutoRefresh, (x, y) => x.maxRowsBeforeDisableAutoRefresh = y, false);
-    public static readonly PersistentProperty<bool> IsAutoRefreshResultsEnabledProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("IsAutoRefreshResultsEnabled", defaultValue: true, owner => owner.isAutoRefreshResultsEnabled, (x, y) => x.isAutoRefreshResultsEnabled = y, false);
-    public static readonly PersistentProperty<bool> UseNaNInfProtectionProperty = PersistentProperty.RegisterBool<BasicApplicationConfiguration>("UseNaNInfProtection", defaultValue: true, owner => owner.useNaNInfProtection, (x, y) => x.useNaNInfProtection = y, false);
-    public static readonly PersistentProperty<double> FloatingPointEpsilonProperty = PersistentProperty.RegisterParsable<double, BasicApplicationConfiguration>("FloatingPointEpsilon", defaultValue: 0.00001D, owner => owner.floatingPointEpsilon, (x, y) => x.floatingPointEpsilon = Math.Clamp(y, 0, 0.9999D), false);
+    public static readonly PersistentProperty<string> DefaultThemeProperty =
+        PersistentProperty.RegisterString<BasicApplicationConfiguration>(
+            "DefaultTheme",
+            defaultValue: "Dark",
+            owner => owner.defaultTheme, (x, y) => x.defaultTheme = y, true);
+
+    public static readonly PersistentProperty<string> LastHostNameProperty =
+        PersistentProperty.RegisterString<BasicApplicationConfiguration>(
+            "LastHostName",
+            defaultValue: "",
+            owner => owner.lastHostName, (x, y) => x.lastHostName = y, false);
+
+    public static readonly PersistentProperty<uint> StartAddressProperty =
+        PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>(
+            "StartAddress",
+            defaultValue: 0x82600000,
+            owner => owner.startAddr, (x, y) => x.startAddr = y, false);
+
+    public static readonly PersistentProperty<uint> ScanLengthProperty =
+        PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>(
+            "ScanLength",
+            defaultValue: 0x1000000,
+            owner => owner.scanLength, (x, y) => x.scanLength = y, false);
+
+    public static readonly PersistentProperty<bool> PauseConsoleDuringScanProperty =
+        PersistentProperty.RegisterBool<BasicApplicationConfiguration>(
+            "PauseConsoleDuringScan",
+            defaultValue: true,
+            owner => owner.pauseConsoleDuringScan, (x, y) => x.pauseConsoleDuringScan = y, false);
+
+    public static readonly PersistentProperty<bool> ScanMemoryPagesProperty =
+        PersistentProperty.RegisterBool<BasicApplicationConfiguration>(
+            "ScanMemoryPages",
+            defaultValue: true,
+            owner => owner.scanMemoryPages, (x, y) => x.scanMemoryPages = y, false);
+
+    public static readonly PersistentProperty<bool> DTInt_UseHexValueProperty =
+        PersistentProperty.RegisterBool<BasicApplicationConfiguration>(
+            "DTInt_UseHexValue",
+            defaultValue: false,
+            owner => owner.dtInt_UseHexValueProperty, (x, y) => x.dtInt_UseHexValueProperty = y, false);
+
+    public static readonly PersistentProperty<bool> DTString_IgnoreCaseProperty =
+        PersistentProperty.RegisterBool<BasicApplicationConfiguration>(
+            "DTString_IgnoreCase",
+            defaultValue: true,
+            owner => owner.dtString_IgnoreCase, (x, y) => x.dtString_IgnoreCase = y, false);
+
+    public static readonly PersistentProperty<FloatScanOption> DTFloat_ModeProperty =
+        PersistentProperty.RegisterEnum<FloatScanOption, BasicApplicationConfiguration>(
+            "DTFloat_Mode",
+            defaultValue: FloatScanOption.RoundToQuery,
+            owner => owner.dtFloat_Mode, (x, y) => x.dtFloat_Mode = y, useNumericValue: false, false);
+
+    public static readonly PersistentProperty<StringType> DTString_ModeProperty =
+        PersistentProperty.RegisterEnum<StringType, BasicApplicationConfiguration>(
+            "DTString_Mode",
+            defaultValue: StringType.ASCII,
+            owner => owner.dtString_Mode, (x, y) => x.dtString_Mode = y, useNumericValue: false, false);
+
+    public static readonly PersistentProperty<uint> RefreshRateMillisProperty =
+        PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>(
+            "RefreshRateMillis",
+            defaultValue: 1000,
+            owner => owner.refreshRateMillis, (x, y) => x.refreshRateMillis = Math.Max(y, 250), false);
+
+    public static readonly PersistentProperty<uint> AutoRefreshUpdatesPerSecondProperty =
+        PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>(
+            "AutoRefreshUpdatesPerSecond",
+            defaultValue: 12,
+            owner => owner.autoRefreshUpdatesPerSecond, (x, y) => x.autoRefreshUpdatesPerSecond = Math.Clamp(y, 1, 20), false);
+
+    public static readonly PersistentProperty<uint> MaxRowsBeforeDisableAutoRefreshProperty =
+        PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>(
+            "MaxRowsBeforeDisableAutoRefresh",
+            defaultValue: 400,
+            owner => owner.maxRowsBeforeDisableAutoRefresh, (x, y) => x.maxRowsBeforeDisableAutoRefresh = y, false);
+
+    public static readonly PersistentProperty<bool> IsAutoRefreshResultsEnabledProperty =
+        PersistentProperty.RegisterBool<BasicApplicationConfiguration>(
+            "IsAutoRefreshResultsEnabled",
+            defaultValue: true,
+            owner => owner.isAutoRefreshResultsEnabled, (x, y) => x.isAutoRefreshResultsEnabled = y, false);
+
+    public static readonly PersistentProperty<bool> UseNaNInfProtectionProperty =
+        PersistentProperty.RegisterBool<BasicApplicationConfiguration>(
+            "UseNaNInfProtection",
+            defaultValue: true,
+            owner => owner.useNaNInfProtection, (x, y) => x.useNaNInfProtection = y, false);
+
+    public static readonly PersistentProperty<double> FloatingPointEpsilonProperty =
+        PersistentProperty.RegisterParsable<double, BasicApplicationConfiguration>(
+            "FloatingPointEpsilon",
+            defaultValue: 0.00001D,
+            owner => owner.floatingPointEpsilon, (x, y) => x.floatingPointEpsilon = Math.Clamp(y, 0, 0.9999D), false);
 
     public static BasicApplicationConfiguration Instance => ApplicationPFX.Instance.PersistentStorageManager.GetConfiguration<BasicApplicationConfiguration>();
 
@@ -67,7 +146,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
         get => LastHostNameProperty.GetValue(this);
         set => LastHostNameProperty.SetValue(this, value);
     }
-    
+
     /// <summary>
     /// Gets or sets the default theme loaded at app startup
     /// </summary>
@@ -139,12 +218,12 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
         get => IsAutoRefreshResultsEnabledProperty.GetValue(this);
         set => IsAutoRefreshResultsEnabledProperty.SetValue(this, value);
     }
-    
+
     public bool UseNaNInfProtection {
         get => UseNaNInfProtectionProperty.GetValue(this);
         set => UseNaNInfProtectionProperty.SetValue(this, value);
     }
-    
+
     public double FloatingPointEpsilon {
         get => FloatingPointEpsilonProperty.GetValue(this);
         set => FloatingPointEpsilonProperty.SetValue(this, value);

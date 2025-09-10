@@ -51,7 +51,7 @@ public class PluginXbox360Xbdm : Plugin {
     protected override Task OnApplicationFullyLoaded() {
         OpenConnectionView.Registry.RegisterType<ConnectToXboxInfo>(() => new OpenXbdmConnectionView());
 
-        ConsoleConnectionManager manager = ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>();
+        ConsoleConnectionManager manager = ApplicationPFX.GetService<ConsoleConnectionManager>();
         manager.Register(ConnectionTypeXbox360Xbdm.TheID, ConnectionTypeXbox360Xbdm.Instance);
 
         ModuleViewer.RegisterHandlerForConnectionType<XbdmConsoleConnection>(new XbdmModuleViewerProcessor());

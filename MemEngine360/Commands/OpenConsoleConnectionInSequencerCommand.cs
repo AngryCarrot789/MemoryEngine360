@@ -50,7 +50,7 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
         }
 
         ulong frame = manager.MemoryEngine.GetNextConnectionChangeFrame();
-        this.myDialog = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(manager.MemoryEngine);
+        this.myDialog = await ApplicationPFX.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(manager.MemoryEngine);
         if (this.myDialog != null) {
             IDisposable? token = null;
             try {

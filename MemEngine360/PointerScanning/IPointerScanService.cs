@@ -23,7 +23,7 @@ using PFXToolKitUI;
 namespace MemEngine360.PointerScanning;
 
 public interface IPointerScanService {
-    public static IPointerScanService Instance => ApplicationPFX.Instance.ServiceManager.GetService<IPointerScanService>();
+    public static IPointerScanService Instance => ApplicationPFX.GetService<IPointerScanService>();
     
     Task ShowPointerScan(MemoryEngine engine);
 }

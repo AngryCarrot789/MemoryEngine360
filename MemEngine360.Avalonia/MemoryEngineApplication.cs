@@ -289,7 +289,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             DisplayName = "Memory Engine", Id = "config.memoryengine", Page = new MemoryEngineConfigurationPage()
         });
 
-        ConsoleConnectionManager manager = Instance.ServiceManager.GetService<ConsoleConnectionManager>();
+        ConsoleConnectionManager manager = this.ServiceManager.GetService<ConsoleConnectionManager>();
         manager.Register(ConnectionTypeBinaryFile.TheID, ConnectionTypeBinaryFile.Instance);
 
 #if DEBUG

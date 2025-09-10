@@ -64,7 +64,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
 
         UserConnectionInfo? lastInfo = memUi.MemoryEngine.LastUserConnectionInfo;
         string focusedTypeId = lastInfo != null ? lastInfo.ConnectionType.RegisteredId : "console.xbox360.xbdm-coreimpl";
-        this.myDialog = await ApplicationPFX.Instance.ServiceManager.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(memUi.MemoryEngine, focusedTypeId);
+        this.myDialog = await ApplicationPFX.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(memUi.MemoryEngine, focusedTypeId);
         if (this.myDialog != null) {
             if (lastInfo != null)
                 this.myDialog.SetUserInfoForConnectionType(lastInfo.ConnectionType.RegisteredId, lastInfo);

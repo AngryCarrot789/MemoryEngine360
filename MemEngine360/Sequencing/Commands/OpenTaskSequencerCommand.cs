@@ -37,6 +37,6 @@ public class OpenTaskSequencerCommand : Command {
             return;
         }
 
-        await ApplicationPFX.Instance.ServiceManager.GetService<ITaskSequencerService>().OpenOrFocusWindow(memUi);
+        await ApplicationPFX.GetService<ITaskSequencerService>().OpenOrFocusWindow(memUi);
     }
 }

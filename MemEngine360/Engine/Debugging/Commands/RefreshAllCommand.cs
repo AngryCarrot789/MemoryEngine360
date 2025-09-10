@@ -30,7 +30,7 @@ public class RefreshAllCommand : BaseDebuggerCommand {
         //     return;
         // }
         //
-        // IStackWalker service = ApplicationPFX.Instance.ServiceManager.GetService<IStackWalker>();
+        // IStackWalker service = ApplicationPFX.GetService<IStackWalker>();
         // ThreadContext ctx = new ThreadContext();
         // List<RegisterEntry>? result = await ((IHaveXboxDebugFeatures) debugger.Connection!).GetRegisters(active.ThreadId);
         // if (result == null) {
