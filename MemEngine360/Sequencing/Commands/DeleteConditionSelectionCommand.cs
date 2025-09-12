@@ -18,9 +18,12 @@
 // 
 
 using System.Diagnostics;
+using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.Commands;
 
@@ -34,33 +37,58 @@ public class DeleteConditionSelectionCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        // There are two ways to figuring out who to delete conditions from.
+        //   1 - look at the TaskSequenceManagerViewState.ConditionHost
+        //       since this is what the user will see
+        //   2 - Access the contextual condition via BaseSequenceCondition.DataKey
+        //       and look at its Owner property
+        // And for which is better, who knows.
+        // Maybe option 1 for shortcuts, option 2 for context menu commands?
+        
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out var manager)) {
             return;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        TaskSequence? sequence = state.PrimarySelectedSequence;
-        if (sequence == null) {
+        TaskSequenceManagerViewState viewState = TaskSequenceManagerViewState.GetInstance(manager);
+        IConditionsHost? conditionHost = viewState.ConditionHost;
+        if (conditionHost == null) {
+            Debug.Assert(!BaseSequenceCondition.DataKey.IsPresent(e.ContextData));
             return;
         }
-        
-        if (sequence.IsRunning) {
+
+        TaskSequence? rootSequence = conditionHost.TaskSequence;
+        if (rootSequence == null) {
+            return;
+        }
+
+        if (rootSequence.IsRunning) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Cannot delete conditions", "The sequence is still running, conditions cannot be removed. Do you want to stop them and then delete?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
             if (result != MessageBoxResult.OK) {
                 return;
             }
 
-            sequence.RequestCancellation();
-            await sequence.WaitForCompletion();
+            rootSequence.RequestCancellation();
+            await rootSequence.WaitForCompletion();
 
-            Debug.Assert(!sequence.IsRunning);
+            Debug.Assert(!rootSequence.IsRunning);
         }
 
-        List<BaseSequenceCondition> items = state.SelectedConditions!.ToList();
-        state.SelectedConditions!.Clear();
-        foreach (BaseSequenceCondition item in items) {
-            bool removed = sequence.Conditions.Remove(item);
-            Debug.Assert(removed);
+        ListSelectionModel<BaseSequenceCondition> selectionModel;
+        if (conditionHost is TaskSequence ownerSequence) {
+            selectionModel = TaskSequenceViewState.GetInstance(ownerSequence).SelectedConditions;
+        }
+        else if (conditionHost is BaseSequenceOperation ownerOperation) {
+            selectionModel = SequenceOperationViewState.GetInstance(ownerOperation).SelectedConditions;
+        }
+        else {
+            Debug.Fail("What");
+            return;
+        }
+
+        List<IntRange> selection = selectionModel.ToIntRangeUnion().ToList();
+        selectionModel.Clear();
+        for (int i = selection.Count - 1; i >= 0; i--) {
+            selectionModel.SourceList.RemoveRange(selection[i].Start, selection[i].Length);
         }
     }
 }

@@ -132,7 +132,6 @@ public partial class TaskSequencerWindow : DesktopWindow {
 
     protected override void OnClosed(EventArgs e) {
         DataManager.GetContextData(this).Set(TaskSequenceManager.DataKey, null);
-        this.conditionSourcePresenter.SetTaskSequenceSource(null);
         this.taskSequenceSelectionHandler!.Dispose();
         this.PART_SequenceListBox.TaskSequencerManager = null;
         
@@ -150,7 +149,6 @@ public partial class TaskSequencerWindow : DesktopWindow {
     }
 
     private void OnPrimarySequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {
-        this.conditionSourcePresenter.SetTaskSequenceSource(newSeq);
         if (oldSeq != null) {
             oldSeq.Progress.TextChanged -= this.OnSequenceProgressTextChanged;
             oldSeq.IsRunningChanged -= this.OnPrimarySequenceIsRunningChanged;
@@ -168,8 +166,7 @@ public partial class TaskSequencerWindow : DesktopWindow {
         this.OnSequenceProgressTextChanged(newSeq?.Progress);
         ((BaseRelayCommand) this.PART_UseDedicatedConnection.Command!).RaiseCanExecuteChanged();
 
-        DataManager.GetContextData(this.PART_CurrentSequenceGroupBox).
-                    Set(ITaskSequenceItemUI.DataKey, newSeq != null ? (ITaskSequenceItemUI) this.PART_SequenceListBox.ItemMap.GetControl(newSeq) : null);
+        DataManager.GetContextData(this.PART_CurrentSequenceGroupBox).Set(TaskSequence.DataKey, newSeq);
     }
 
     private void OnPrimarySequenceIsRunningChanged(TaskSequence sender) {
@@ -209,7 +206,7 @@ public partial class TaskSequencerWindow : DesktopWindow {
 
             BaseSequenceOperation operation = factory();
             state.PrimarySelectedSequence.Operations.Add(operation);
-            state.SelectedOperations!.Add(operation);
+            state.SelectedOperations!.SelectItem(operation);
         }
     }
 
@@ -220,13 +217,5 @@ public partial class TaskSequencerWindow : DesktopWindow {
                 CompareTo = new DataValueInt32(0), CompareType = CompareType.Equals
             });
         }
-    }
-
-    internal void SetConditionSourceAsTaskSequence(TaskSequence? sequence) {
-        this.conditionSourcePresenter.SetTaskSequenceSource(sequence);
-    }
-    
-    internal void SetConditionSourceAsOperation(BaseSequenceOperation? operation) {
-        this.conditionSourcePresenter.SetOperationSource(operation);
     }
 }

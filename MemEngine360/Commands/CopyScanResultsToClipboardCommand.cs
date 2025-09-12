@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Services.Messaging;
@@ -31,7 +32,7 @@ public class CopyScanResultsToClipboardCommand : Command {
             if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
                 return Executability.Invalid;
             }
-            else if (ui.ScanResultSelectionManager.Count < 1) {
+            else if (MemoryEngineViewState.GetInstance(ui.MemoryEngine).SelectedScanResults.Count < 1) {
                 return Executability.ValidButCannotExecute;
             }
         }
@@ -43,7 +44,7 @@ public class CopyScanResultsToClipboardCommand : Command {
         MemoryEngine? engine = null;
         List<ScanResultViewModel> scanResults = new List<ScanResultViewModel>();
         if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            scanResults.AddRange(ui.ScanResultSelectionManager.SelectedItems);
+            scanResults.AddRange(MemoryEngineViewState.GetInstance(ui.MemoryEngine).SelectedScanResults.SelectedItems);
             engine = ui.MemoryEngine;
         }
 

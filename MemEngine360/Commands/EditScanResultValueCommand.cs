@@ -21,6 +21,7 @@ using System.Diagnostics;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
+using MemEngine360.Engine.View;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
@@ -56,7 +57,7 @@ public class EditScanResultValueCommand : Command {
         MemoryEngine? engine = null;
         List<ScanResultViewModel> scanResults = new List<ScanResultViewModel>();
         if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            scanResults.AddRange(ui.ScanResultSelectionManager.SelectedItems);
+            scanResults.AddRange(MemoryEngineViewState.GetInstance(ui.MemoryEngine).SelectedScanResults.SelectedItems);
             engine = ui.MemoryEngine;
         }
 

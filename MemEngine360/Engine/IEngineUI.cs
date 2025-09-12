@@ -18,11 +18,9 @@
 // 
 
 using MemEngine360.Engine.SavedAddressing;
-using MemEngine360.Engine.View;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
-using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Notifications;
 
 namespace MemEngine360.Engine;
@@ -67,8 +65,6 @@ public interface IEngineUI {
     /// Gets or sets if the activity list is visible in the UI
     /// </summary>
     bool IsActivtyListVisible { get; set; }
-
-    ListSelectionModel<ScanResultViewModel> ScanResultSelectionManager => MemoryEngineViewState.GetInstance(this.MemoryEngine).SelectedScanResults;
 
     /// <summary>
     /// Gets the UI component of an ATE

@@ -26,12 +26,12 @@ namespace MemEngine360.Sequencing.Conditions;
 /// </summary>
 public interface IConditionsHost {
     /// <summary>
-    /// Gets the task sequencer associated with this condition host
+    /// Gets the task sequencer associated with this condition host. Return the current instance when a <see cref="Sequencing.TaskSequence"/>.
     /// </summary>
     TaskSequence? TaskSequence { get; }
     
     /// <summary>
-    /// Gets the list of conditions.
+    /// Gets the list of conditions
     /// </summary>
     ObservableList<BaseSequenceCondition> Conditions { get; }
 }

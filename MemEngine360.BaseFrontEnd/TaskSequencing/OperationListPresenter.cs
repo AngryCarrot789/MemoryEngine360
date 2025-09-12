@@ -22,16 +22,15 @@ using System.Diagnostics;
 using Avalonia.Controls;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.View;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
-using PFXToolKitUI.Avalonia.Interactivity.SelectingEx;
+using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public class OperationListPresenter {
     private readonly TaskSequencerWindow window;
     private readonly IBinder<TaskSequence> selectedSequenceDisplayNameBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.DisplayNameChanged), (b) => ((TextBlock) b.Control).Text = b.Model.DisplayName);
-    private ListBoxSelectionHandler<BaseSequenceOperation>? operationSelectionHandler;
+    private SelectionModelBinder<BaseSequenceOperation>? operationSelectionHandler; 
 
     private TaskSequence? myPrimarySequence;
 
@@ -101,11 +100,7 @@ public class OperationListPresenter {
             TaskSequenceViewState newSeqState = TaskSequenceViewState.GetInstance(newSeq);
             newSeqState.PrimarySelectedOperationChanged += this.Event_PrimaryOperationChanged;
 
-            this.operationSelectionHandler = new ListBoxSelectionHandler<BaseSequenceOperation>(
-                newSeq.Operations,
-                newSeqState.SelectedOperations, 
-                this.window.PART_OperationListBox, 
-                item => ((ModelBasedListBoxItem<BaseSequenceOperation>) item).Model!);
+            this.operationSelectionHandler = new SelectionModelBinder<BaseSequenceOperation>(this.window.PART_OperationListBox.Selection, newSeqState.SelectedOperations);
             this.OnPrimaryOperationChanged(null, newSeqState.PrimarySelectedOperation);
         }
         else {
@@ -119,7 +114,6 @@ public class OperationListPresenter {
 
     private void OnPrimaryOperationChanged(BaseSequenceOperation? oldOperation, BaseSequenceOperation? newOperation) {
         this.UpdateOperationEditorPanelHeader();
-        this.window.SetConditionSourceAsOperation(newOperation);
         this.window.PART_OperationEditorControlsListBox.SetOperation(newOperation);
     }
 

@@ -43,7 +43,7 @@ using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity.Selecting;
-using PFXToolKitUI.Avalonia.Interactivity.SelectingEx;
+using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Icons;

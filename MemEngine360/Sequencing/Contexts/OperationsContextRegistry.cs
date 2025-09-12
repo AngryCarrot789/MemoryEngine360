@@ -47,18 +47,18 @@ public static class OperationsContextRegistry {
         
         CommandContextEntry entry = actions.AddCommand("commands.sequencer.ToggleOperationConditionBehaviourCommand", "Skip when conditions not met", "Skips over this operation when conditions not met, otherwise, wait until they are met");
         entry.IsCheckedFunction = e => {
-            if (e.CapturedContext != null && IOperationItemUI.DataKey.TryGetContext(e.CapturedContext, out IOperationItemUI? operation)) {
-                return operation.Operation.ConditionBehaviour == OperationConditionBehaviour.Skip;
+            if (e.CapturedContext != null && BaseSequenceOperation.DataKey.TryGetContext(e.CapturedContext, out BaseSequenceOperation? operation)) {
+                return operation.ConditionBehaviour == OperationConditionBehaviour.Skip;
             }
             
             return false;
         };
 
-        entry.AddContextChangeHandler(IOperationItemUI.DataKey, (e, oldUI, newUI) => {
+        entry.AddContextChangeHandler(BaseSequenceOperation.DataKey, (e, oldUI, newUI) => {
             if (oldUI != null)
-                oldUI.Operation.ConditionBehaviourChanged -= OperationOnConditionBehaviourChanged;
+                oldUI.ConditionBehaviourChanged -= OperationOnConditionBehaviourChanged;
             if (newUI != null)
-                newUI.Operation.ConditionBehaviourChanged += OperationOnConditionBehaviourChanged;
+                newUI.ConditionBehaviourChanged += OperationOnConditionBehaviourChanged;
         });
 
         actions.AddSeparator();

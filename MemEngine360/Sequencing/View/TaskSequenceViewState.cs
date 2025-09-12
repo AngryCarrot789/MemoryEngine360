@@ -17,9 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Collections.Specialized;
+using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Utils;
-using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing.View;
 
@@ -39,12 +38,12 @@ public class TaskSequenceViewState {
     /// <summary>
     /// Gets the list of selected operations
     /// </summary>
-    public ObservableList<BaseSequenceOperation> SelectedOperations { get; } = new ObservableList<BaseSequenceOperation>();
+    public ListSelectionModel<BaseSequenceOperation> SelectedOperations { get; }
 
     /// <summary>
     /// Gets the list of selected conditions
     /// </summary>
-    public ObservableList<BaseSequenceCondition> SelectedConditions { get; } = new ObservableList<BaseSequenceCondition>();
+    public ListSelectionModel<BaseSequenceCondition> SelectedConditions { get; }
 
     /// <summary>
     /// Gets the primary selected operation
@@ -58,44 +57,17 @@ public class TaskSequenceViewState {
 
     internal TaskSequenceViewState(TaskSequence sequence) {
         this.Sequence = sequence;
-        this.Sequence.Operations.ItemsRemoved += this.OnOperationsRemoved;
-        this.Sequence.Operations.ItemReplaced += this.OnOperationReplaced;
-        this.Sequence.Conditions.ItemsRemoved += this.OnConditionsRemoved;
-        this.Sequence.Conditions.ItemReplaced += this.OnConditionReplaced;
-
-        this.SelectedOperations.CollectionChanged += this.OnSelectedOperationsCollectionChanged;
+        this.SelectedOperations = new ListSelectionModel<BaseSequenceOperation>(sequence.Operations);
+        this.SelectedConditions = new ListSelectionModel<BaseSequenceCondition>(sequence.Conditions);
+        this.SelectedOperations.SelectionChanged += this.OnSelectedOperationsCollectionChanged;
     }
 
-    private void OnOperationsRemoved(IObservableList<BaseSequenceOperation> list, int index, IList<BaseSequenceOperation> items) {
-        if (this.SelectedOperations.Count > 0) {
-            foreach (BaseSequenceOperation operation in items) {
-                this.SelectedOperations.Remove(operation);
-            }
-        }
-    }
-
-    private void OnOperationReplaced(IObservableList<BaseSequenceOperation> list, int index, BaseSequenceOperation oldItem, BaseSequenceOperation newItem) {
-        if (this.SelectedOperations.Count > 0)
-            this.SelectedOperations.Remove(oldItem);
-        // I don't think we should select newItem... right?
-    }
-
-    private void OnConditionsRemoved(IObservableList<BaseSequenceCondition> list, int index, IList<BaseSequenceCondition> items) {
-        if (this.SelectedConditions.Count > 0) {
-            foreach (BaseSequenceCondition condition in items) {
-                this.SelectedConditions.Remove(condition);
-            }
-        }
-    }
-
-    private void OnConditionReplaced(IObservableList<BaseSequenceCondition> list, int index, BaseSequenceCondition oldItem, BaseSequenceCondition newItem) {
-        if (this.SelectedConditions.Count > 0)
-            this.SelectedConditions.Remove(oldItem);
-        // I don't think we should select newItem... right?
-    }
-
-    private void OnSelectedOperationsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
+    private void OnSelectedOperationsCollectionChanged(object? sender, SelectionModelChangedEventArgs e) {
         this.PrimarySelectedOperation = this.SelectedOperations.Count == 1 ? this.SelectedOperations[0] : null;
+        TaskSequenceManager? manager = this.Sequence.Manager;
+        if (manager != null) {
+            TaskSequenceManagerViewState.GetInstance(manager).ConditionHost = this.PrimarySelectedOperation;
+        }
     }
 
     public static TaskSequenceViewState GetInstance(TaskSequence sequence) => sequence.internalViewState ??= new TaskSequenceViewState(sequence);

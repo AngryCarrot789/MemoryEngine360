@@ -19,7 +19,7 @@
 
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.Sequencing.Commands;
 
@@ -47,8 +47,8 @@ public class DuplicateConditionsCommand : Command {
             return Task.CompletedTask;
         }
 
-        ObservableList<BaseSequenceCondition> selection = TaskSequenceViewState.GetInstance(sequence).SelectedConditions;
-        List<(BaseSequenceCondition Cond, int Idx)> clones = selection.Select(x => (Cond: x.CreateClone(), Idx: x.TaskSequence!.Conditions.IndexOf(x))).OrderBy(x => x.Idx).ToList();
+        ListSelectionModel<BaseSequenceCondition> selection = TaskSequenceViewState.GetInstance(sequence).SelectedConditions;
+        List<(BaseSequenceCondition Cond, int Idx)> clones = selection.SelectedItems.Select(x => (Cond: x.CreateClone(), Idx: x.TaskSequence!.Conditions.IndexOf(x))).OrderBy(x => x.Idx).ToList();
         int offset = 0;
         foreach ((BaseSequenceCondition Cond, int Idx) in clones) {
             sequence.Conditions.Insert(offset + Idx + 1, Cond);
@@ -56,7 +56,7 @@ public class DuplicateConditionsCommand : Command {
         }
 
         selection.Clear();
-        selection.AddRange(clones.Select(x => x.Cond));
+        selection.SelectItems(clones.Select(x => x.Cond));
         return Task.CompletedTask;
     }
 }

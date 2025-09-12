@@ -18,7 +18,9 @@
 // 
 
 using System.Collections.Specialized;
+using MemEngine360.Sequencing.Conditions;
 using PFXToolKitUI.Composition;
+using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 
@@ -26,11 +28,14 @@ namespace MemEngine360.Sequencing.View;
 
 public delegate void TaskSequencerViewStateSelectedSequenceChangedEventHandler(TaskSequenceManagerViewState sender, TaskSequence? oldSelectedSequence, TaskSequence? newSelectedSequence);
 
+public delegate void TaskSequenceManagerViewStateConditionHostChangedEventHandler(TaskSequenceManagerViewState sender, IConditionsHost? oldConditionHost, IConditionsHost? newConditionHost);
+
 /// <summary>
 /// Represents the persistent state of the task sequencer view
 /// </summary>
 public sealed class TaskSequenceManagerViewState {
     private TaskSequence? primarySelectedSequence;
+    private IConditionsHost? conditionHost;
 
     /// <summary>
     /// Gets the task sequence manager for this state
@@ -45,12 +50,12 @@ public sealed class TaskSequenceManagerViewState {
     /// <summary>
     /// Gets the list of selected operations. This changes after <see cref="PrimarySelectedSequence"/> changes. This property is for convenience
     /// </summary>
-    public ObservableList<BaseSequenceOperation>? SelectedOperations => this.PrimarySelectedSequence != null ? TaskSequenceViewState.GetInstance(this.PrimarySelectedSequence).SelectedOperations : null;
+    public ListSelectionModel<BaseSequenceOperation>? SelectedOperations => this.PrimarySelectedSequence != null ? TaskSequenceViewState.GetInstance(this.PrimarySelectedSequence).SelectedOperations : null;
 
     /// <summary>
     /// Gets the list of selected operations. This changes after <see cref="PrimarySelectedSequence"/> changes. This property is for convenience
     /// </summary>
-    public ObservableList<BaseSequenceCondition>? SelectedConditions => this.PrimarySelectedSequence != null ? TaskSequenceViewState.GetInstance(this.PrimarySelectedSequence).SelectedConditions : null;
+    public ListSelectionModel<BaseSequenceCondition>? SelectedConditions => this.PrimarySelectedSequence != null ? TaskSequenceViewState.GetInstance(this.PrimarySelectedSequence).SelectedConditions : null;
 
     /// <summary>
     /// Gets or sets the primary sequence, that is, the sequence whose operations are being presented
@@ -61,9 +66,19 @@ public sealed class TaskSequenceManagerViewState {
     }
 
     /// <summary>
+    /// Gets or sets the object that presents the conditions in the UI
+    /// </summary>
+    public IConditionsHost? ConditionHost {
+        get => this.conditionHost;
+        set => PropertyHelper.SetAndRaiseINE(ref this.conditionHost, value, this, static (t, o, n) => t.ConditionHostChanged?.Invoke(t, o, n));
+    }
+
+    /// <summary>
     /// Fired when the <see cref="PrimarySelectedSequence"/> changes
     /// </summary>
     public event TaskSequencerViewStateSelectedSequenceChangedEventHandler? PrimarySelectedSequenceChanged;
+
+    public event TaskSequenceManagerViewStateConditionHostChangedEventHandler? ConditionHostChanged;
 
     private TaskSequenceManagerViewState(TaskSequenceManager manager) {
         this.Manager = manager;
@@ -89,7 +104,7 @@ public sealed class TaskSequenceManagerViewState {
     }
 
     private void OnSelectedSequencesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
-        this.PrimarySelectedSequence = this.SelectedSequences.Count == 1 ? this.SelectedSequences[0] : null;
+        this.ConditionHost = this.PrimarySelectedSequence = this.SelectedSequences.Count == 1 ? this.SelectedSequences[0] : null;
     }
 
     public static TaskSequenceManagerViewState GetInstance(TaskSequenceManager manager) {

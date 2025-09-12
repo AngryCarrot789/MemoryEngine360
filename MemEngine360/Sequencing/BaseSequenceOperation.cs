@@ -18,7 +18,9 @@
 // 
 
 using MemEngine360.Sequencing.Conditions;
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.DataTransfer;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 
@@ -32,6 +34,10 @@ public delegate void BaseSequenceOperationStateChangedEventHandler(BaseSequenceO
 /// The base class for a sequencer operation
 /// </summary>
 public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost {
+    public static readonly DataKey<BaseSequenceOperation> DataKey = DataKey<BaseSequenceOperation>.Create(nameof(BaseSequenceOperation));
+    
+    internal SequenceOperationViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using IComponentManager
+
     private OperationState state = OperationState.NotRunning;
     private bool isEnabled = true;
     private OperationConditionBehaviour conditionBehaviour = OperationConditionBehaviour.Wait;
@@ -86,6 +92,20 @@ public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost
         this.TransferableData = new TransferableData(this);
         this.RandomTriggerHelper = new RandomTriggerHelper();
         this.Conditions = new ObservableList<BaseSequenceCondition>();
+        this.Conditions.ItemsAdded += (list, index, items) => {
+            foreach (BaseSequenceCondition condition in items) {
+                BaseSequenceCondition.InternalSetOwner(condition, this);
+            }
+        };
+        this.Conditions.ItemsRemoved += (list, index, items) => {
+            foreach (BaseSequenceCondition condition in items) {
+                BaseSequenceCondition.InternalSetOwner(condition, null);
+            }
+        };
+        this.Conditions.ItemReplaced += (list, index, oldItem, newItem) => {
+            BaseSequenceCondition.InternalSetOwner(oldItem, null);
+            BaseSequenceCondition.InternalSetOwner(newItem, this);
+        };
     }
 
     /// <summary>
@@ -136,7 +156,9 @@ public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost
     /// <returns>A task that represents the operation</returns>
     protected abstract Task RunOperation(SequenceExecutionContext ctx, CancellationToken token);
 
-    internal static void InternalSetSequence(BaseSequenceOperation operation, TaskSequence? sequence) => operation.TaskSequence = sequence;
+    internal static void InternalSetSequence(BaseSequenceOperation operation, TaskSequence? sequence) {
+        operation.TaskSequence = sequence;
+    }
 
     /// <summary>
     /// Creates a clone of this operation as if the user created it by hand.

@@ -23,19 +23,19 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class ToggleOperationConditionBehaviourCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return IOperationItemUI.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
+        return BaseSequenceOperation.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IOperationItemUI.DataKey.TryGetContext(e.ContextData, out IOperationItemUI? operation)) {
+        if (!BaseSequenceOperation.DataKey.TryGetContext(e.ContextData, out BaseSequenceOperation? operation)) {
             return Task.CompletedTask;
         }
 
-        if (operation.Operation.ConditionBehaviour == OperationConditionBehaviour.Skip) {
-            operation.Operation.ConditionBehaviour = OperationConditionBehaviour.Wait;
+        if (operation.ConditionBehaviour == OperationConditionBehaviour.Skip) {
+            operation.ConditionBehaviour = OperationConditionBehaviour.Wait;
         }
         else {
-            operation.Operation.ConditionBehaviour = OperationConditionBehaviour.Skip;
+            operation.ConditionBehaviour = OperationConditionBehaviour.Skip;
         }
 
         return Task.CompletedTask;

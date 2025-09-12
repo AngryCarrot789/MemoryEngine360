@@ -27,6 +27,8 @@ namespace MemEngine360.Engine.View;
 public sealed class AddressTablePanelViewState {
     public MemoryEngine Engine { get; }
     
+    
+    
     public AddressTablePanelViewState(MemoryEngine engine) {
         this.Engine = engine;
     }

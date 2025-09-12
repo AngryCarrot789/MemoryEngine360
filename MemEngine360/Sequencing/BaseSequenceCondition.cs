@@ -18,6 +18,8 @@
 // 
 
 using System.Diagnostics;
+using MemEngine360.Sequencing.Conditions;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing;
@@ -25,6 +27,8 @@ namespace MemEngine360.Sequencing;
 public delegate void BaseSequenceConditionEventHandler(BaseSequenceCondition sender);
 
 public abstract class BaseSequenceCondition {
+    public static readonly DataKey<BaseSequenceCondition> DataKey = DataKey<BaseSequenceCondition>.Create(nameof(BaseSequenceCondition));
+    
     private bool isEnabled = true;
     private bool isCurrentlyMet;
     private ConditionOutputMode outputMode;
@@ -63,7 +67,12 @@ public abstract class BaseSequenceCondition {
     /// <summary>
     /// Gets the sequence this condition belongs to
     /// </summary>
-    public TaskSequence? TaskSequence { get; private set; }
+    public TaskSequence? TaskSequence => this.Owner?.TaskSequence;
+    
+    /// <summary>
+    /// Gets the object that owns this condition. Can be either a <see cref="Sequencing.TaskSequence"/> or <see cref="BaseSequenceOperation"/>
+    /// </summary>
+    public IConditionsHost? Owner { get; private set; }
 
     public event BaseSequenceConditionEventHandler? IsEnabledChanged;
     public event BaseSequenceConditionEventHandler? IsCurrentlyMetChanged;
@@ -151,8 +160,8 @@ public abstract class BaseSequenceCondition {
     /// <returns>True if the sequence can run (other conditions may stop it running if they return false obviously)</returns>
     protected abstract Task<bool> IsConditionMetCore(SequenceExecutionContext ctx, CachedConditionData cache, CancellationToken cancellationToken);
 
-    internal static void InternalSetSequence(BaseSequenceCondition condition, TaskSequence? sequence) => condition.TaskSequence = sequence;
-
+    internal static void InternalSetOwner(BaseSequenceCondition condition, IConditionsHost? owner) => condition.Owner = owner;
+    
     /// <summary>
     /// Creates a clone of this condition, as if the user created a new instance and configured it by hand
     /// </summary>

@@ -22,8 +22,6 @@ using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Engine.SavedAddressing;
 
-public delegate void AddressTableGroupEntryEventHandler(AddressTableGroupEntry sender);
-
 /// <summary>
 /// A group entry contains its own entry hierarchy which can be rendered like a raster entry
 /// </summary>

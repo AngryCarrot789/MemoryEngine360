@@ -54,7 +54,7 @@ public class DeleteOperationSelectionCommand : Command {
             await task.WaitForCompletion();
         }
 
-        List<BaseSequenceOperation> items = state.SelectedOperations!.ToList();
+        List<BaseSequenceOperation> items = state.SelectedOperations!.SelectedItems.ToList();
         Debug.Assert(items.All(x => x.TaskSequence == task));
         state.SelectedOperations!.Clear();
         

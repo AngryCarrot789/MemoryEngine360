@@ -19,7 +19,7 @@
 
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.Sequencing.Commands;
 
@@ -34,20 +34,22 @@ public class ToggleOperationEnabledCommand : Command {
         }
 
         TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        ObservableList<BaseSequenceOperation>? selection = state.SelectedOperations;
+        ListSelectionModel<BaseSequenceOperation>? selection = state.SelectedOperations;
         if (selection == null || selection.Count < 1) {
             return Task.CompletedTask;
         }
+
+        List<BaseSequenceOperation> selectedItems = selection.SelectedItems.ToList();
         
         int countDisabled = 0;
-        foreach (BaseSequenceOperation entry in selection) {
+        foreach (BaseSequenceOperation entry in selectedItems) {
             if (!entry.IsEnabled) {
                 countDisabled++;
             }
         }
 
-        bool isEnabled = selection.Count == 1 ? (countDisabled != 0) : countDisabled >= (selection.Count / 2);
-        foreach (BaseSequenceOperation entry in selection) {
+        bool isEnabled = selectedItems.Count == 1 ? (countDisabled != 0) : countDisabled >= (selectedItems.Count / 2);
+        foreach (BaseSequenceOperation entry in selectedItems) {
             entry.IsEnabled = isEnabled;
         }
 

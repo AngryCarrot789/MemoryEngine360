@@ -19,7 +19,7 @@
 
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.Sequencing.Commands;
 
@@ -47,8 +47,8 @@ public class DuplicateOperationsCommand : Command {
         }
 
         // Create list of clones, ordered by their index in the sequence list
-        ObservableList<BaseSequenceOperation> selection = TaskSequenceViewState.GetInstance(sequence).SelectedOperations;
-        List<(BaseSequenceOperation Op, int Idx)> clones = selection.Select(x => (Op: x.CreateClone(), Idx: x.TaskSequence!.IndexOf(x))).OrderBy(x => x.Idx).ToList();
+        ListSelectionModel<BaseSequenceOperation> selection = TaskSequenceViewState.GetInstance(sequence).SelectedOperations;
+        List<(BaseSequenceOperation Op, int Idx)> clones = selection.SelectedItems.Select(x => (Op: x.CreateClone(), Idx: x.TaskSequence!.IndexOf(x))).OrderBy(x => x.Idx).ToList();
         int offset = 1; // +1 to add after the existing item
         foreach ((BaseSequenceOperation Op, int Idx) item in clones) {
             sequence.Operations.Insert(offset + item.Idx, item.Op);
@@ -58,7 +58,7 @@ public class DuplicateOperationsCommand : Command {
         // virtualization of task sequence list box items not implemented yet, and there's no reason
         // to do it since I doubt anyone will use enough to where it makes a difference
         selection.Clear();
-        selection.AddRange(clones.Select(x => x.Op));
+        selection.SelectItems(clones.Select(x => x.Op));
         return Task.CompletedTask;
     }
 }

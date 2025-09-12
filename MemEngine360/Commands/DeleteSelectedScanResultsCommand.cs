@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Utils.Collections.Observable;
 
@@ -28,7 +29,7 @@ public class DeleteSelectedScanResultsCommand : Command {
         if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine))
             return Executability.Invalid;
 
-        return engine.ScanResultSelectionManager.Count < 1 ? Executability.ValidButCannotExecute : Executability.Valid;
+        return MemoryEngineViewState.GetInstance(engine.MemoryEngine).SelectedScanResults.Count < 1 ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -37,12 +38,12 @@ public class DeleteSelectedScanResultsCommand : Command {
         }
 
         ObservableList<ScanResultViewModel> items = engine.MemoryEngine.ScanningProcessor.ScanResults;
-        if (engine.ScanResultSelectionManager.Count == items.Count) {
+        if (MemoryEngineViewState.GetInstance(engine.MemoryEngine).SelectedScanResults.Count == items.Count) {
             items.Clear();
         }
         else {
-            List<ScanResultViewModel> list = engine.ScanResultSelectionManager.SelectedItems.ToList();
-            engine.ScanResultSelectionManager.Clear();
+            List<ScanResultViewModel> list = MemoryEngineViewState.GetInstance(engine.MemoryEngine).SelectedScanResults.SelectedItems.ToList();
+            MemoryEngineViewState.GetInstance(engine.MemoryEngine).SelectedScanResults.Clear();
             
             foreach (ScanResultViewModel address in list) {
                 items.Remove(address);

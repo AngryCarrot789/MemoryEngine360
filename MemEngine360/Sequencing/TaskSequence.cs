@@ -23,6 +23,7 @@ using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
@@ -37,6 +38,8 @@ public delegate void TaskSequenceDedicatedConnectionChangedEventHandler(TaskSequ
 /// A sequence that contains a list of operations
 /// </summary>
 public sealed class TaskSequence : IConditionsHost {
+    public static readonly DataKey<TaskSequence> DataKey = DataKey<TaskSequence>.Create(nameof(TaskSequence));
+    
     internal TaskSequenceViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using IComponentManager
 
     internal TaskSequenceManager? myManager;
@@ -237,11 +240,19 @@ public sealed class TaskSequence : IConditionsHost {
             this.CheckNotRunning("Cannot replace condition while running");
         };
 
-        this.Conditions.ItemsAdded += (list, index, items) => items.ForEach(this, BaseSequenceCondition.InternalSetSequence);
-        this.Conditions.ItemsRemoved += (list, index, items) => items.ForEach((TaskSequence?) null, BaseSequenceCondition.InternalSetSequence);
+        this.Conditions.ItemsAdded += (list, index, items) => {
+            foreach (BaseSequenceCondition condition in items) {
+                BaseSequenceCondition.InternalSetOwner(condition, this);
+            }
+        };
+        this.Conditions.ItemsRemoved += (list, index, items) => {
+            foreach (BaseSequenceCondition condition in items) {
+                BaseSequenceCondition.InternalSetOwner(condition, null);
+            }
+        };
         this.Conditions.ItemReplaced += (list, index, oldItem, newItem) => {
-            BaseSequenceCondition.InternalSetSequence(oldItem, null);
-            BaseSequenceCondition.InternalSetSequence(newItem, this);
+            BaseSequenceCondition.InternalSetOwner(oldItem, null);
+            BaseSequenceCondition.InternalSetOwner(newItem, this);
         };
 
         this.Progress = new ConcurrentActivityProgress();

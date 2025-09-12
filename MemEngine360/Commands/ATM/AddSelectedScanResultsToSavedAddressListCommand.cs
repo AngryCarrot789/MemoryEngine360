@@ -19,7 +19,9 @@
 
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.Commands.ATM;
 
@@ -29,7 +31,7 @@ public class AddSelectedScanResultsToSavedAddressListCommand : Command {
             return Executability.Invalid;
         }
 
-        if (ui.ScanResultSelectionManager.Count < 1) {
+        if (MemoryEngineViewState.GetInstance(ui.MemoryEngine).SelectedScanResults.Count < 1) {
             return Executability.ValidButCannotExecute;
         }
 
@@ -48,12 +50,13 @@ public class AddSelectedScanResultsToSavedAddressListCommand : Command {
             return Task.CompletedTask;
         }
 
-        if (ui.ScanResultSelectionManager.Count < 1) {
+        ListSelectionModel<ScanResultViewModel> selectionModel = MemoryEngineViewState.GetInstance(ui.MemoryEngine).SelectedScanResults;
+        if (selectionModel.Count < 1) {
             return Task.CompletedTask;
         }
 
         AddressTableGroupEntry saved = ui.MemoryEngine.AddressTableManager.RootEntry;
-        List<ScanResultViewModel> selection = ui.ScanResultSelectionManager.SelectedItems.ToList();
+        List<ScanResultViewModel> selection = selectionModel.SelectedItems.ToList();
         foreach (ScanResultViewModel result in selection) {
             saved.AddEntry(new AddressTableEntry(result));
         }

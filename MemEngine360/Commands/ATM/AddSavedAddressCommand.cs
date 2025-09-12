@@ -21,6 +21,7 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.UserInputs;
@@ -40,7 +41,8 @@ public class AddSavedAddressCommand : Command {
         uint initialAddress = 0;
         AddressTableGroupEntry? targetParent = null;
         if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            List<ScanResultViewModel> list = ui.ScanResultSelectionManager.SelectedItems.ToList();
+            MemoryEngineViewState engineState = MemoryEngineViewState.GetInstance(ui.MemoryEngine);
+            List<ScanResultViewModel> list = engineState.SelectedScanResults.SelectedItems.ToList();
             if (list.Count > 0)
                 initialAddress = list[list.Count - 1].Address;
 

@@ -19,10 +19,10 @@
 
 using System.Diagnostics;
 using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.View;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
-using PFXToolKitUI.Avalonia.Interactivity.SelectingEx;
-using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
@@ -30,26 +30,41 @@ public class ConditionSourcePresenter {
     private readonly TaskSequencerWindow window;
     private TaskSequence? sourceSequence;
     private BaseSequenceOperation? sourceOperation;
-    private ListBoxSelectionHandler<BaseSequenceCondition>? conditionSelectionHandler;
+    private SelectionModelBinder<BaseSequenceCondition>? conditionSelectionHandler;
 
     public ConditionSourcePresenter(TaskSequencerWindow window) {
         this.window = window;
+        this.window.Closed += WindowOnClosed;
+        this.window.State.ConditionHostChanged += this.OnConditionHostChanged;
     }
 
-    public void SetTaskSequenceSource(TaskSequence? sequence) {
+    private void OnConditionHostChanged(TaskSequenceManagerViewState sender, IConditionsHost? oldConditionHost, IConditionsHost? newConditionHost) {
+        if (newConditionHost is TaskSequence sequence) {
+            this.SetTaskSequenceSource(sequence);
+        }
+        else if (newConditionHost is BaseSequenceOperation operation) {
+            this.SetOperationSource(operation);
+        }
+        else {
+            this.ClearAll();
+        }
+    }
+
+    private void WindowOnClosed(object? sender, EventArgs e) {
+        this.ClearAll();
+    }
+
+    private void SetTaskSequenceSource(TaskSequence? sequence) {
         this.ClearOperationSource();
         this.ClearTaskSequenceSource();
         this.window.PART_ConditionsListBox.ConditionsHost = sequence;
+        this.window.State.ConditionHost = sequence;
+
         this.sourceSequence = sequence;
         if (sequence != null) {
             sequence.DisplayNameChanged += this.OnSequenceDisplayNameChanged;
             this.UpdateTextForSequence(sequence);
-
-            this.conditionSelectionHandler = new ListBoxSelectionHandler<BaseSequenceCondition>(
-                sequence.Conditions, 
-                TaskSequenceViewState.GetInstance(sequence).SelectedConditions, 
-                this.window.PART_ConditionsListBox, 
-                item => ((ModelBasedListBoxItem<BaseSequenceCondition>) item).Model!);
+            this.conditionSelectionHandler = new SelectionModelBinder<BaseSequenceCondition>(this.window.PART_ConditionsListBox.Selection, TaskSequenceViewState.GetInstance(sequence).SelectedConditions);
         }
         else {
             Debug.Assert(this.sourceOperation == null);
@@ -57,22 +72,19 @@ public class ConditionSourcePresenter {
         }
     }
 
-    public void SetOperationSource(BaseSequenceOperation? operation) {
+    private void SetOperationSource(BaseSequenceOperation? operation) {
         if (operation != null && operation.TaskSequence == null)
             throw new InvalidOperationException("Attempt to set source as operation that has no task sequence");
-        
+
         this.ClearOperationSource();
         this.ClearTaskSequenceSource();
         this.window.PART_ConditionsListBox.ConditionsHost = operation;
+        this.window.State.ConditionHost = operation;
 
         this.sourceOperation = operation;
         if (operation != null) {
             this.UpdateTextForOperation(this.sourceOperation);
-            this.conditionSelectionHandler = new ListBoxSelectionHandler<BaseSequenceCondition>(
-                operation.Conditions, 
-                TaskSequenceViewState.GetInstance(operation.TaskSequence!).SelectedConditions, 
-                this.window.PART_ConditionsListBox, 
-                item => ((ModelBasedListBoxItem<BaseSequenceCondition>) item).Model!);
+            this.conditionSelectionHandler = new SelectionModelBinder<BaseSequenceCondition>(this.window.PART_ConditionsListBox.Selection, SequenceOperationViewState.GetInstance(operation).SelectedConditions);
         }
         else {
             Debug.Assert(this.sourceSequence == null);
@@ -106,6 +118,15 @@ public class ConditionSourcePresenter {
         Debug.Assert(this.conditionSelectionHandler == null || this.sourceSequence != null);
     }
 
+    private void ClearAll() {
+        this.ClearOperationSource();
+        this.ClearTaskSequenceSource();
+        this.window.PART_ConditionsListBox.ConditionsHost = null;
+        this.window.State.ConditionHost = null;
+        this.sourceSequence = null;
+        this.UpdateTextForNothing(false);
+    }
+    
     private void OnSequenceDisplayNameChanged(TaskSequence sender) => this.UpdateTextForSequence(sender);
 
     private void UpdateTextForSequence(TaskSequence? sequence) {
@@ -119,9 +140,8 @@ public class ConditionSourcePresenter {
     }
 
     private void UpdateTextForNothing(bool isCausedByOperationChange) {
-        ObservableList<BaseSequenceOperation>? operations = this.window.State.SelectedOperations;
-
-        if (isCausedByOperationChange && operations?.Count > 1) {
+        ListSelectionModel<BaseSequenceOperation>? primarySeqOperationSelection = this.window.State.SelectedOperations;
+        if (isCausedByOperationChange && primarySeqOperationSelection?.Count > 1) {
             this.window.PART_ConditionSourceName.Text = "(Too many operations selected)";
         }
         else if (!isCausedByOperationChange && this.window.State.SelectedSequences.Count > 1) {

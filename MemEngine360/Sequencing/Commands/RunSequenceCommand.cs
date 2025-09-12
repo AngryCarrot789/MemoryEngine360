@@ -31,16 +31,15 @@ public class RunSequenceCommand : Command {
     }
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceItemUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceItemUI? seq)) {
+        if (!TaskSequence.DataKey.TryGetContext(e.ContextData, out TaskSequence? seq)) {
             return Executability.Invalid;
         }
 
-        TaskSequence sequence = seq.TaskSequence;
-        if (sequence.IsRunning || sequence.Manager == null /* shouldn't be null... */) {
+        if (seq.IsRunning || seq.Manager == null /* shouldn't be null... */) {
             return Executability.ValidButCannotExecute;
         }
 
-        if ((sequence.UseEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection) == null) {
+        if ((seq.UseEngineConnection ? seq.Manager.MemoryEngine.Connection : seq.DedicatedConnection) == null) {
             return Executability.ValidButCannotExecute;
         }
 
@@ -48,32 +47,31 @@ public class RunSequenceCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceItemUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceItemUI? seq)) {
+        if (!TaskSequence.DataKey.TryGetContext(e.ContextData, out TaskSequence? seq)) {
             return;
         }
 
-        TaskSequence sequence = seq.TaskSequence;
-        if (sequence.IsRunning || sequence.Manager == null /* shouldn't be null... */) {
+        if (seq.IsRunning || seq.Manager == null /* shouldn't be null... */) {
             return;
         }
 
-        bool useEngineConnection = sequence.UseEngineConnection;
+        bool useEngineConnection = seq.UseEngineConnection;
 
-        IConsoleConnection? connection = useEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection;
+        IConsoleConnection? connection = useEngineConnection ? seq.Manager.MemoryEngine.Connection : seq.DedicatedConnection;
         if (connection == null || connection.IsClosed) {
             await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine is not connected to a console" : "Not connected to a console");
             return;
         }
 
         IDisposable? token = null;
-        if (sequence.HasBusyLockPriority && (token = sequence.Manager.MemoryEngine.TryBeginBusyOperation()) == null) {
+        if (seq.HasBusyLockPriority && (token = seq.Manager.MemoryEngine.TryBeginBusyOperation()) == null) {
             using CancellationTokenSource cts = new CancellationTokenSource();
             token = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
-                task.Progress.Caption = $"Start '{sequence.DisplayName}'";
+                task.Progress.Caption = $"Start '{seq.DisplayName}'";
                 task.Progress.Text = "Waiting for busy operations...";
-                return sequence.Manager.MemoryEngine.BeginBusyOperationAsync(task.CancellationToken);
-            }, sequence.Progress, cts);
+                return seq.Manager.MemoryEngine.BeginBusyOperationAsync(task.CancellationToken);
+            }, seq.Progress, cts);
 
             // User cancelled operation so don't run the sequence, since it wants busy lock priority
             if (token == null) {
@@ -82,13 +80,13 @@ public class RunSequenceCommand : Command {
         }
 
         try {
-            connection = useEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection;
+            connection = useEngineConnection ? seq.Manager.MemoryEngine.Connection : seq.DedicatedConnection;
             if (connection == null || connection.IsClosed) {
                 await IMessageDialogService.Instance.ShowMessage("Not connected", "Not connected to a console");
             }
             else {
-                await sequence.Run(connection, token, !useEngineConnection);
-                Exception? except = sequence.LastException;
+                await seq.Run(connection, token, !useEngineConnection);
+                Exception? except = seq.LastException;
                 if (except != null) {
                     if (except is IOException || except is TimeoutException) {
                         await LogExceptionHelper.ShowMessageAndPrintToLogs("Network Error", except.Message, except);
@@ -98,16 +96,16 @@ public class RunSequenceCommand : Command {
                     }
                 }
 
-                if (sequence.Manager != null) {
+                if (seq.Manager != null) {
                     ConnectionChangeCause cause = except is IOException
                         ? ConnectionChangeCause.ConnectionError
                         : ConnectionChangeCause.LostConnection; // Use LostConnection even if not TimeoutException since it's the only other option that makes sense.
 
                     if (token != null) {
-                        sequence.Manager.MemoryEngine.CheckConnection(token, cause);
+                        seq.Manager.MemoryEngine.CheckConnection(token, cause);
                     }
                     else if (useEngineConnection) {
-                        sequence.Manager.MemoryEngine.CheckConnection(cause);
+                        seq.Manager.MemoryEngine.CheckConnection(cause);
                     }
 
                     // Probably annoying to the user to force activate the window

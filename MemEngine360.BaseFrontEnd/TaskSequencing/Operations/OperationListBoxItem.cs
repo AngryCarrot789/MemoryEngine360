@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -30,11 +31,11 @@ using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
-using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations;
 
-public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>, IOperationItemUI {
+public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation> {
     public static readonly StyledProperty<OperationState> OperationStateProperty = AvaloniaProperty.Register<OperationListBoxItem, OperationState>(nameof(OperationState));
 
     public OperationState OperationState {
@@ -47,7 +48,6 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
     private readonly IBinder<BaseSequenceOperation> operatingStateBinder = new EventUpdateBinder<BaseSequenceOperation>(nameof(BaseSequenceOperation.StateChanged), (b) => ((OperationListBoxItem) b.Control).OperationState = b.Model.State);
 
     public OperationListBoxItem() {
-        DataManager.GetContextData(this).Set(IOperationItemUI.DataKey, this);
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e) {
@@ -68,9 +68,10 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
                 // The condition source may currently be a task sequence. But since this operation was clicked
                 // and is already selected, a selection change won't be processed and the source won't get updated.
                 // So, we do it manually here
-                ObservableList<BaseSequenceOperation>? state = window.State!.SelectedOperations;
-                if (state != null && state.Count == 1 && this.IsSelected) {
-                    window.SetConditionSourceAsOperation(this.Model!);
+                ListSelectionModel<BaseSequenceOperation>? selection = window.State.SelectedOperations;
+                if (selection != null && selection.Count == 1 && selection.IsItemSelected(this.Model!) == true) {
+                    Debug.Assert(this.IsSelected);
+                    window.State.ConditionHost = this.Model!;
                 }
             }
         }
@@ -103,9 +104,11 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
 
         this.operatingStateBinder.Attach(this, this.Model!);
         AdvancedContextMenu.SetContextRegistry(this, OperationsContextRegistry.Registry);
+        DataManager.GetContextData(this).Set(BaseSequenceOperation.DataKey, this.Model);
     }
 
     protected override void OnRemovingFromList() {
+        DataManager.GetContextData(this).Set(BaseSequenceOperation.DataKey, null);
         this.operatingStateBinder.Detach();
 
         AdvancedContextMenu.SetContextRegistry(this, null);

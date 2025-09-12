@@ -41,7 +41,7 @@ public class EditConditionOutputModeCommand : Command {
         IEditConditionOutputModeService service = ApplicationPFX.GetService<IEditConditionOutputModeService>();
         ConditionOutputMode? result = await service.EditTriggerMode(state.SelectedConditions[0].OutputMode);
         if (result.HasValue && state.SelectedConditions != null && state.SelectedConditions.Count > 0) {
-            foreach (BaseSequenceCondition condition in state.SelectedConditions) {
+            foreach (BaseSequenceCondition condition in state.SelectedConditions.SelectedItems) {
                 condition.OutputMode = result.Value;
             }
         }

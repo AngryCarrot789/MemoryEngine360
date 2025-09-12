@@ -28,11 +28,10 @@ using PFXToolKitUI.Avalonia.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 
-public class ConditionsListBoxItem : ModelBasedListBoxItem<BaseSequenceCondition>, IConditionItemUI {
+public class ConditionsListBoxItem : ModelBasedListBoxItem<BaseSequenceCondition> {
     public BaseSequenceCondition Condition => this.Model ?? throw new Exception("Not connected to a model");
     
     public ConditionsListBoxItem() {
-        DataManager.GetContextData(this).Set(IConditionItemUI.DataKey, this);
     }
 
     // replaced by ToggleConditionEnabledCommand
@@ -57,10 +56,12 @@ public class ConditionsListBoxItem : ModelBasedListBoxItem<BaseSequenceCondition
         TemplateUtils.Apply(content);
         content.Condition = this.Model!;
         AdvancedContextMenu.SetContextRegistry(this, ConditionsContextRegistry.Registry);
+        DataManager.GetContextData(this).Set(BaseSequenceCondition.DataKey, this.Condition);
     }
 
     protected override void OnRemovingFromList() {
         AdvancedContextMenu.SetContextRegistry(this, null);
+        DataManager.GetContextData(this).Set(BaseSequenceCondition.DataKey, null);
         
         BaseConditionListContent content = (BaseConditionListContent) this.Content!;
         BaseSequenceCondition condition = content.Condition!;

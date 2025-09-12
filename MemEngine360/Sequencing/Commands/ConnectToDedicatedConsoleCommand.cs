@@ -26,24 +26,20 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class ConnectToDedicatedConsoleCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ITaskSequenceItemUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceItemUI? seq)) {
+        if (!TaskSequence.DataKey.TryGetContext(e.ContextData, out TaskSequence? seq)) {
             return Executability.Invalid;
         }
 
-        return seq.TaskSequence.IsRunning ? Executability.ValidButCannotExecute : Executability.Valid;
+        return seq.IsRunning ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ITaskSequenceItemUI.DataKey.TryGetContext(e.ContextData, out ITaskSequenceItemUI? seqUI)) {
+        if (!TaskSequence.DataKey.TryGetContext(e.ContextData, out TaskSequence? sequence))
             return;
-        }
-
-        TaskSequence seq = seqUI.TaskSequence;
-        if (seq.IsRunning) {
+        if (sequence.IsRunning)
             return;
-        }
 
-        IConsoleConnection? oldConnection = seq.DedicatedConnection;
+        IConsoleConnection? oldConnection = sequence.DedicatedConnection;
         if (oldConnection != null) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
             if (result != MessageBoxResult.OK) {
@@ -51,32 +47,32 @@ public class ConnectToDedicatedConsoleCommand : Command {
             }
 
             // just in case it somehow starts running, quickly escape
-            if (seq.IsRunning) {
+            if (sequence.IsRunning) {
                 return;
             }
             
             // just in case it changes between dialog which is possible
-            if ((oldConnection = seq.DedicatedConnection) != null) {
+            if ((oldConnection = sequence.DedicatedConnection) != null) {
                 oldConnection.Close();
-                seq.DedicatedConnection = null;
+                sequence.DedicatedConnection = null;
             }
         }
         
         IConsoleConnection? newConnection;
-        IOpenConnectionView? dialog = await ApplicationPFX.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(seq.Manager?.MemoryEngine);
+        IOpenConnectionView? dialog = await ApplicationPFX.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(sequence.Manager?.MemoryEngine);
         if (dialog == null || (newConnection = await dialog.WaitForClose()) == null) {
             return;
         }
         
         // just in case it somehow starts running, quickly escape
-        if (seq.IsRunning) {
+        if (sequence.IsRunning) {
             newConnection.Close();
             return;
         }
 
-        oldConnection = seq.DedicatedConnection;
-        seq.UseEngineConnection = false;
-        seq.DedicatedConnection = newConnection;
+        oldConnection = sequence.DedicatedConnection;
+        sequence.UseEngineConnection = false;
+        sequence.DedicatedConnection = newConnection;
         if (oldConnection != null) {
             oldConnection.Close();
         }

@@ -19,7 +19,7 @@
 
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.Sequencing.Commands;
 
@@ -34,21 +34,22 @@ public class ToggleConditionEnabledCommand : Command {
         }
 
         TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        ObservableList<BaseSequenceCondition>? list = state.SelectedConditions;
+        ListSelectionModel<BaseSequenceCondition>? list = state.SelectedConditions;
         if (list == null || list.Count < 1) {
             return;
         }
 
+        List<BaseSequenceCondition> selectedItems = list.SelectedItems.ToList();
         
         int countDisabled = 0;
-        foreach (BaseSequenceCondition entry in list) {
+        foreach (BaseSequenceCondition entry in selectedItems) {
             if (!entry.IsEnabled) {
                 countDisabled++;
             }
         }
 
-        bool isEnabled = list.Count == 1 ? (countDisabled != 0) : countDisabled >= (list.Count / 2);
-        foreach (BaseSequenceCondition entry in list) {
+        bool isEnabled = selectedItems.Count == 1 ? (countDisabled != 0) : countDisabled >= (selectedItems.Count / 2);
+        foreach (BaseSequenceCondition entry in selectedItems) {
             entry.IsEnabled = isEnabled;
         }
     }
