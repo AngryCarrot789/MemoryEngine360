@@ -233,7 +233,7 @@ public class MemoryEngine : IComponentManager {
         // update all tools when connection changes, since most if not all tools rely on a connection
         this.ToolsMenu.AddCanExecuteChangeUpdaterForEvent(EngineDataKey, nameof(this.ConnectionChanged));
 
-        Task.Factory.StartNew(async () => {
+        Task.Run(async () => {
             long timeSinceRefreshedAddresses = DateTime.Now.Ticks;
             BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
 
@@ -256,7 +256,7 @@ public class MemoryEngine : IComponentManager {
                     }
                 }
             }
-        }, TaskCreationOptions.LongRunning);
+        });
     }
 
     /// <summary>

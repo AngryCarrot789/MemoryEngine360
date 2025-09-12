@@ -23,7 +23,7 @@ namespace MemEngine360.Engine.Debugging.Commands;
 
 public class GoToDebugMemoryCommand : Command {
     protected sealed override Executability CanExecuteCore(CommandEventArgs e) {
-        return IDebuggerWindow.DataKey.GetExecutabilityForPresence(e.ContextData);
+        return IDebuggerWindow.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected sealed override Task ExecuteCommandAsync(CommandEventArgs e) {

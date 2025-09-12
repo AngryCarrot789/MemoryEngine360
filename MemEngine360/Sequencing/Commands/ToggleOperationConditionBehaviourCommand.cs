@@ -23,7 +23,7 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class ToggleOperationConditionBehaviourCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return IOperationItemUI.DataKey.GetExecutabilityForPresence(e.ContextData);
+        return IOperationItemUI.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {

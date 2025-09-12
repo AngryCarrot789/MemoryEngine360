@@ -19,7 +19,8 @@
 
 using MemEngine360.Connections;
 using MemEngine360.Engine;
-using PFXToolKitUI.Interactivity;
+using PFXToolKitUI.Interactivity.Selections;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.BaseFrontEnd.Commands;
 
@@ -70,12 +71,12 @@ public class AddSelectedScanResultsToSavedAddressListCommandUsage : EngineUIButt
     protected override void OnEngineChanged(IEngineUI? oldUI, IEngineUI? newUI) {
         base.OnEngineChanged(oldUI, newUI);
         if (oldUI != null)
-            oldUI.ScanResultSelectionManager.LightSelectionChanged -= this.OnSelectionChanged;
+            oldUI.ScanResultSelectionManager.SelectionChanged -= this.OnSelectionChanged;
         if (newUI != null)
-            newUI.ScanResultSelectionManager.LightSelectionChanged += this.OnSelectionChanged;
+            newUI.ScanResultSelectionManager.SelectionChanged += this.OnSelectionChanged;
     }
 
-    private void OnSelectionChanged(ILightSelectionManager<ScanResultViewModel> sender) {
+    private void OnSelectionChanged(ListSelectionModel<ScanResultViewModel> sender, IList<IntRange> addedIndices, IList<IntRange> removedIndices) {
         this.UpdateCanExecuteLater();
     }
 }

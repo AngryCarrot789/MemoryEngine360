@@ -1,4 +1,5 @@
 ﻿using PFXToolKitUI.Composition;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.Engine.View;
 
@@ -10,8 +11,11 @@ public sealed class MemoryEngineViewState {
     /// </summary>
     public event EventHandler? RequestWindowFocus;
 
+    public ListSelectionModel<ScanResultViewModel> SelectedScanResults { get; }
+
     private MemoryEngineViewState(MemoryEngine engine) {
         this.Engine = engine;
+        this.SelectedScanResults = new ListSelectionModel<ScanResultViewModel>(this.Engine.ScanningProcessor.ScanResults);
     }
 
     public void RaiseRequestWindowFocus() => this.RequestWindowFocus?.Invoke(this, EventArgs.Empty);

@@ -41,7 +41,9 @@ public class DeleteSelectedScanResultsCommand : Command {
             items.Clear();
         }
         else {
-            List<ScanResultViewModel> list = engine.ScanResultSelectionManager.SelectedItemList.ToList();
+            List<ScanResultViewModel> list = engine.ScanResultSelectionManager.SelectedItems.ToList();
+            engine.ScanResultSelectionManager.Clear();
+            
             foreach (ScanResultViewModel address in list) {
                 items.Remove(address);
             }

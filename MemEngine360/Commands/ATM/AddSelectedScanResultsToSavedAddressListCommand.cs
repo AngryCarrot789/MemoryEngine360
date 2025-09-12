@@ -34,7 +34,7 @@ public class AddSelectedScanResultsToSavedAddressListCommand : Command {
         }
 
         // Probably too intensive for CanExecute
-        // List<ScanResultViewModel> list1 = ui.ScanResultSelectionManager.SelectedItemList.ToList();
+        // List<ScanResultViewModel> list1 = ui.ScanResultSelectionManager.SelectedItems.ToList();
         // HashSet<uint> addresses = ui.MemoryEngine.ScanningProcessor.SavedAddresses.Select(x => x.Address).ToHashSet();
         // if (list1.All(x => addresses.Contains(x.Address))) {
         //     return Executability.ValidButCannotExecute;
@@ -53,7 +53,7 @@ public class AddSelectedScanResultsToSavedAddressListCommand : Command {
         }
 
         AddressTableGroupEntry saved = ui.MemoryEngine.AddressTableManager.RootEntry;
-        List<ScanResultViewModel> selection = ui.ScanResultSelectionManager.SelectedItemList.ToList();
+        List<ScanResultViewModel> selection = ui.ScanResultSelectionManager.SelectedItems.ToList();
         foreach (ScanResultViewModel result in selection) {
             saved.AddEntry(new AddressTableEntry(result));
         }

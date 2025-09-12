@@ -43,6 +43,7 @@ using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity.Selecting;
+using PFXToolKitUI.Avalonia.Interactivity.SelectingEx;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Icons;
@@ -182,8 +183,6 @@ public partial class EngineView : UserControl, IEngineUI {
 
     public ContextEntryGroup RemoteCommandsContextEntry { get; }
 
-    public IListSelectionManager<ScanResultViewModel> ScanResultSelectionManager { get; }
-
     public IListSelectionManager<IAddressTableEntryUI> AddressTableSelectionManager { get; }
 
     public bool IsActivtyListVisible {
@@ -204,6 +203,7 @@ public partial class EngineView : UserControl, IEngineUI {
     private LambdaNotificationCommand? connectionNotificationCommandGetStarted;
     private LambdaNotificationCommand? connectionNotificationCommandDisconnect;
     private LambdaNotificationCommand? connectionNotificationCommandReconnect;
+    private readonly DataGridSelectionModelBinder<ScanResultViewModel> scanResultSelectionBinder;
 
     public EngineView() {
         this.InitializeComponent();
@@ -214,7 +214,8 @@ public partial class EngineView : UserControl, IEngineUI {
         this.MemoryEngine = new MemoryEngine();
         this.SetupMainMenu();
 
-        this.ScanResultSelectionManager = new DataGridSelectionManager<ScanResultViewModel>(this.PART_ScanListResults);
+        this.scanResultSelectionBinder = new DataGridSelectionModelBinder<ScanResultViewModel>(this.PART_ScanListResults, MemoryEngineViewState.GetInstance(this.MemoryEngine).SelectedScanResults);
+
         // this.SavedAddressesSelectionManager = new DataGridSelectionManager<AddressTableEntry>(this.PART_SavedAddressList);
         this.AddressTableSelectionManager = new TreeViewSelectionManager<IAddressTableEntryUI>(this.PART_SavedAddressTree);
 
@@ -269,7 +270,7 @@ public partial class EngineView : UserControl, IEngineUI {
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF8, StringType.UTF8);
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF16, StringType.UTF16);
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF32, StringType.UTF32);
-        
+
         // Close activity list when user presses ESC
         this.PART_ActivityListPanel.AddHandler(KeyDownEvent, (sender, e) => {
             if (e.Key == Key.Escape) {
@@ -277,7 +278,7 @@ public partial class EngineView : UserControl, IEngineUI {
                 e.Handled = true;
             }
         }, RoutingStrategies.Tunnel);
-        
+
         this.PART_NotificationListBox.NotificationManager = new NotificationManager();
     }
 
@@ -409,7 +410,7 @@ public partial class EngineView : UserControl, IEngineUI {
             this.inputBetweenABinder.Detach();
         if (this.inputBetweenBBinder.IsFullyAttached)
             this.inputBetweenBBinder.Detach();
-        
+
         this.stringIgnoreCaseBinder.DetachModel();
         this.floatScanModeBinder.Detach();
         this.stringScanModeBinder.Detach();

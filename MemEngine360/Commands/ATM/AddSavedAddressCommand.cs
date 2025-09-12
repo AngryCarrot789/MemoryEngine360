@@ -40,7 +40,7 @@ public class AddSavedAddressCommand : Command {
         uint initialAddress = 0;
         AddressTableGroupEntry? targetParent = null;
         if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            IList<ScanResultViewModel> list = ui.ScanResultSelectionManager.SelectedItemList;
+            List<ScanResultViewModel> list = ui.ScanResultSelectionManager.SelectedItems.ToList();
             if (list.Count > 0)
                 initialAddress = list[list.Count - 1].Address;
 
