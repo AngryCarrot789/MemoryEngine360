@@ -28,10 +28,9 @@ using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.Sequencing.View;
 using MemEngine360.ValueAbstraction;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Interactivity.SelectingEx;
+using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Commands;
@@ -57,7 +56,7 @@ public partial class TaskSequencerWindow : DesktopWindow {
     private readonly OperationListPresenter operationListPresenter;
     private readonly TaskSequenceManager manager;
 
-    private ListBoxSelectionHandler<TaskSequence>? taskSequenceSelectionHandler;
+    private SelectionModelBinder<TaskSequence>? taskSequenceSelectionHandler;
 
     public TaskSequencerWindow() : this(new TaskSequenceManager(new MemoryEngine())) {
         
@@ -112,11 +111,7 @@ public partial class TaskSequencerWindow : DesktopWindow {
         DataManager.GetContextData(this).Set(TaskSequenceManager.DataKey, this.manager);
         
         this.PART_SequenceListBox.TaskSequencerManager = this.manager;
-        this.taskSequenceSelectionHandler = new ListBoxSelectionHandler<TaskSequence>(
-            this.manager.Sequences,
-            this.State.SelectedSequences, 
-            this.PART_SequenceListBox, 
-            item => ((ModelBasedListBoxItem<TaskSequence>) item).Model!);
+        this.taskSequenceSelectionHandler = new SelectionModelBinder<TaskSequence>(this.PART_SequenceListBox.Selection, this.State.SelectedSequences);
         
         this.manager.MemoryEngine.ConnectionChanged += this.OnEngineConnectionChanged;
         this.State.PrimarySelectedSequenceChanged += this.OnPrimarySelectedSequenceChanged;
@@ -126,7 +121,7 @@ public partial class TaskSequencerWindow : DesktopWindow {
         }
 
         if (this.State.SelectedSequences.Count < 1 && this.manager.Sequences.Count > 0) {
-            this.State.SelectedSequences.Add(this.manager.Sequences[0]);
+            this.State.SelectedSequences.Select(this.manager.Sequences[0]);
         }
     }
 
@@ -206,7 +201,7 @@ public partial class TaskSequencerWindow : DesktopWindow {
 
             BaseSequenceOperation operation = factory();
             state.PrimarySelectedSequence.Operations.Add(operation);
-            state.SelectedOperations!.SelectItem(operation);
+            state.SelectedOperations!.Select(operation);
         }
     }
 

@@ -40,7 +40,7 @@ public class SaveTaskSequencesCommand : Command {
         TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
 
         // TODO: maybe create clones since we save on a background thread...?
-        List<TaskSequence> itemsToSave = state.SelectedSequences.ToList();
+        List<TaskSequence> itemsToSave = state.SelectedSequences.SelectedItems.ToList();
         if (state.SelectedSequences.Count < 1) {
             return;
         }

@@ -28,7 +28,7 @@ public class StopSelectedSequencesCommand : Command {
             return Executability.Invalid;
 
         TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        return state.SelectedSequences.Any(x => x.IsRunning) ? Executability.Valid : Executability.ValidButCannotExecute;
+        return state.SelectedSequences.SelectedItems.Any(x => x.IsRunning) ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -37,7 +37,7 @@ public class StopSelectedSequencesCommand : Command {
         }
 
         TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        List<TaskSequence> sequences = state.SelectedSequences.ToList();
+        List<TaskSequence> sequences = state.SelectedSequences.SelectedItems.ToList();
         foreach (TaskSequence seq in sequences) {
             seq.RequestCancellation();
         }

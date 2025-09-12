@@ -17,12 +17,10 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Collections.Specialized;
 using MemEngine360.Sequencing.Conditions;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Utils;
-using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing.View;
 
@@ -45,7 +43,7 @@ public sealed class TaskSequenceManagerViewState {
     /// <summary>
     /// Gets the observable list of selected sequences
     /// </summary>
-    public ObservableList<TaskSequence> SelectedSequences { get; }
+    public ListSelectionModel<TaskSequence> SelectedSequences { get; }
 
     /// <summary>
     /// Gets the list of selected operations. This changes after <see cref="PrimarySelectedSequence"/> changes. This property is for convenience
@@ -82,28 +80,11 @@ public sealed class TaskSequenceManagerViewState {
 
     private TaskSequenceManagerViewState(TaskSequenceManager manager) {
         this.Manager = manager;
-        this.Manager.Sequences.ItemsRemoved += this.OnSequencesRemoved;
-        this.Manager.Sequences.ItemReplaced += this.OnSequenceReplaced;
-
-        this.SelectedSequences = new ObservableList<TaskSequence>();
-        this.SelectedSequences.CollectionChanged += this.OnSelectedSequencesCollectionChanged;
+        this.SelectedSequences = new ListSelectionModel<TaskSequence>(this.Manager.Sequences);
+        this.SelectedSequences.SelectionChanged += this.OnSelectedSequencesCollectionChanged;
     }
 
-    private void OnSequencesRemoved(IObservableList<TaskSequence> list, int index, IList<TaskSequence> items) {
-        if (this.SelectedSequences.Count > 0) {
-            foreach (TaskSequence sequence in items) {
-                this.SelectedSequences.Remove(sequence);
-            }
-        }
-    }
-
-    private void OnSequenceReplaced(IObservableList<TaskSequence> list, int index, TaskSequence oldItem, TaskSequence newItem) {
-        if (this.SelectedSequences.Count > 0)
-            this.SelectedSequences.Remove(oldItem);
-        // I don't think we should select newItem... right?
-    }
-
-    private void OnSelectedSequencesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
+    private void OnSelectedSequencesCollectionChanged(object? sender, SelectionModelChangedEventArgs e) {
         this.ConditionHost = this.PrimarySelectedSequence = this.SelectedSequences.Count == 1 ? this.SelectedSequences[0] : null;
     }
 

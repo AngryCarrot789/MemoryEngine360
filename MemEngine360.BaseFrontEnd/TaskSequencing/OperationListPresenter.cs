@@ -17,13 +17,13 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Collections.Specialized;
 using System.Diagnostics;
 using Avalonia.Controls;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
@@ -49,16 +49,16 @@ public class OperationListPresenter {
     }
 
     private void OnWindowOpened(object? sender, EventArgs e) {
-        this.window.State.SelectedSequences.CollectionChanged += this.Event_SelectedSequencesCollectionChanged;
+        this.window.State.SelectedSequences.SelectionChanged += this.Event_SelectedSequencesCollectionChanged;
         this.SetPrimarySelectedSequence(this.window.State.PrimarySelectedSequence);
     }
 
     private void OnWindowClosed(object? sender, EventArgs e) {
-        this.window.State.SelectedSequences.CollectionChanged -= this.Event_SelectedSequencesCollectionChanged;
+        this.window.State.SelectedSequences.SelectionChanged -= this.Event_SelectedSequencesCollectionChanged;
         this.SetPrimarySelectedSequence(null);
     }
     
-    private void Event_SelectedSequencesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
+    private void Event_SelectedSequencesCollectionChanged(object? sender, SelectionModelChangedEventArgs e) {
         this.SetPrimarySelectedSequence(this.window.State.PrimarySelectedSequence);
     }
 

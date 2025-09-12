@@ -58,7 +58,7 @@ public class DuplicateOperationsCommand : Command {
         // virtualization of task sequence list box items not implemented yet, and there's no reason
         // to do it since I doubt anyone will use enough to where it makes a difference
         selection.Clear();
-        selection.SelectItems(clones.Select(x => x.Op));
+        selection.Select(clones.Select(x => x.Op));
         return Task.CompletedTask;
     }
 }

@@ -44,7 +44,7 @@ public class NewSequenceCommand : Command {
         };
 
         sequences.Add(sequence);
-        state.SelectedSequences.Add(sequence);
+        state.SelectedSequences.Select(sequence);
         
         SingleUserInputInfo info = new SingleUserInputInfo("New sequence", "What do you want to call it?", sequence.DisplayName);
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {

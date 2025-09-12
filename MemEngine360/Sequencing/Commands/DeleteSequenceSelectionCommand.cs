@@ -41,13 +41,13 @@ public class DeleteSequenceSelectionCommand : Command {
             return;
         }
 
+        List<TaskSequence> selection = state.SelectedSequences.SelectedItems.ToList();
         if (await TryStopSequences(
-                state.SelectedSequences.Where(x => x.IsRunning),
+                selection.Where(x => x.IsRunning),
                 "Sequence(s) still running",
-                state.SelectedSequences.Count == 1
+                selection.Count == 1
                     ? "This sequence is running. Do you want to stop it and then delete?"
                     : "Some of these sequences are still running. Do you want to stop them and then delete?")) {
-            List<TaskSequence> selection = state.SelectedSequences.ToList();
             state.SelectedSequences.Clear();
 
             ObservableList<TaskSequence> sequenceList = state.Manager.Sequences;
