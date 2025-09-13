@@ -18,7 +18,6 @@
 // 
 
 using System.Net.Sockets;
-using MemEngine360.BaseFrontEnd;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
@@ -68,6 +67,24 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
         yield return new CommandContextEntry("commands.memengine.remote.GetTitleIDCommand", "Get Current TitleID");
         yield return new CommandContextEntry("commands.memengine.remote.GetMoBoTypeCommand", "Get Motherboard Type");
         yield return new CommandContextEntry("commands.memengine.remote.TestRPCCommand", "SV_SetConfigString on MW3 (TU24)");
+
+        /*
+        yield return new DynamicGroupPlaceholderContextObject(new DynamicContextGroup((group, ctx, items) => {
+            IConsoleConnection? connection;
+            if (!MemoryEngine.EngineDataKey.TryGetContext(ctx, out MemoryEngine? engine))
+                return;
+            if ((connection = engine.Connection) == null || !connection.HasFeature<IFeatureXboxJRPC2>())
+                return;
+
+            items.Add(new CaptionEntry("JRPC2 Commands"));
+            items.Add(new CommandContextEntry("commands.memengine.remote.GetCPUKeyCommand", "Get CPU Key"));
+            items.Add(new CommandContextEntry("commands.memengine.remote.GetDashboardVersionCommand", "Get Dashboard Version"));
+            items.Add(new CommandContextEntry("commands.memengine.remote.GetTemperaturesCommand", "Get Temperatures"));
+            items.Add(new CommandContextEntry("commands.memengine.remote.GetTitleIDCommand", "Get Current TitleID"));
+            items.Add(new CommandContextEntry("commands.memengine.remote.GetMoBoTypeCommand", "Get Motherboard Type"));
+            items.Add(new CommandContextEntry("commands.memengine.remote.TestRPCCommand", "SV_SetConfigString on MW3 (TU24)"));
+        }));
+         */
     }
 
     public override UserConnectionInfo? CreateConnectionInfo(IContextData context) {

@@ -34,12 +34,17 @@ public interface IFeatureIceCubes : IConsoleFeature {
     /// </summary>
     /// <returns></returns>
     Task<UnFreezeResult> DebugUnFreeze();
+}
 
+/// <summary>
+/// An extension to <see cref="IFeatureIceCubes"/> that supports querying the frozen state dynamically.
+/// </summary>
+public interface IFeatureIceCubesEx : IFeatureIceCubes {
     /// <summary>
-    /// Returns true or false when the console is currently frozen. Returns null when the state cannot be determined (e.g. unsupported)
+    /// Returns true or false when the console is currently frozen.
     /// </summary>
     /// <returns></returns>
-    Task<bool?> IsFrozen();
+    Task<bool> IsFrozen();
 }
 
 public enum FreezeResult : byte {

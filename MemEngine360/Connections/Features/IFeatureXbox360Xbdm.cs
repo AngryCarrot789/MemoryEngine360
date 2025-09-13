@@ -31,7 +31,7 @@ public interface IFeatureXbox360Xbdm :
     IFeatureMemoryRegions,
     IFeaturePowerFunctions,
     IFeatureDiskEjection,
-    IFeatureIceCubes,
+    IFeatureIceCubesEx,
     IFeatureFileSystemInfo, 
     IFeatureXboxExecutionState {
 

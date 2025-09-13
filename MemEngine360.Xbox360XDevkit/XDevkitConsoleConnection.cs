@@ -169,7 +169,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         });
     }
 
-    private class FeaturesImpl : IConsoleFeature, IFeatureXboxThreads, IFeatureMemoryRegions, IFeatureIceCubes/*, IFeatureFileSystemInfo*/ { // IFeatureSystemEvents
+    private class FeaturesImpl : IConsoleFeature, IFeatureXboxThreads, IFeatureMemoryRegions, IFeatureIceCubesEx/*, IFeatureFileSystemInfo*/ { // IFeatureSystemEvents
         private readonly XDevkitConsoleConnection connection;
 
         public IConsoleConnection Connection => this.connection;
@@ -234,7 +234,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
             return this.connection.DebugUnFreeze();
         }
 
-        public async Task<bool?> IsFrozen() {
+        public async Task<bool> IsFrozen() {
             XboxExecutionState state = await this.GetExecutionState();
             return state == XboxExecutionState.Stop;
         }

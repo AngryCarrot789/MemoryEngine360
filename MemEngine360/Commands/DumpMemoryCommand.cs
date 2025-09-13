@@ -94,15 +94,15 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                 if (task.ConnectionException != null) {
                     sb.Append("Download IO error: ").Append(task.ConnectionException.Message);
                 }
-                
+
                 if (task.FileException != null) {
                     if (sb.Length > 0)
                         sb.Append(Environment.NewLine);
-                    
+
                     sb.Append("File IO error: ").Append(task.FileException.Message);
                 }
-                
-                await IMessageDialogService.Instance.ShowMessage("Errors", "One or more errors occurred during memory dump", sb.ToString(), defaultButton:MessageBoxResult.OK);
+
+                await IMessageDialogService.Instance.ShowMessage("Errors", "One or more errors occurred during memory dump", sb.ToString(), defaultButton: MessageBoxResult.OK);
             }
         }
     }
@@ -200,7 +200,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             this.fileOutput = new FileStream(this.filePath, isFirst ? FileMode.Create : FileMode.Append, FileAccess.Write, FileShare.Read);
             Task taskDownload = Task.Run(async () => {
                 IConsoleConnection? connection = this.engine.Connection;
-                if (this.engine.IsShuttingDown || (connection != null ? !connection.IsClosed : null) != true) {
+                if (this.engine.IsShuttingDown || connection == null || connection.IsClosed) {
                     return;
                 }
 

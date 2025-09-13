@@ -32,8 +32,9 @@ namespace MemEngine360.Connections.Features;
 /// available when the connection determines it to be so.
 /// </para>
 /// <para>
-/// Ideally, features cannot be dynamically added or removed from a connection, but this
-/// is up to how the connection implements <see cref="IConsoleConnection.TryGetFeature{T}"/>
+/// Ideally, features should not be dynamically added or removed from a connection once fully constructed.
+/// Instead, feature detection should be done either in the connection constructor or soon after,
+/// but before the connection is usable by the memory engine API
 /// </para>
 /// </summary>
 public interface IConsoleFeature {

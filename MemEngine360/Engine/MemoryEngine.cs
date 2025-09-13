@@ -268,10 +268,8 @@ public class MemoryEngine : IComponentManager {
     }
 
     private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
-        if (newConn == null) {
-            this.RemoteControlsMenu.Items.Clear();
-        }
-        else {
+        this.RemoteControlsMenu.Items.Clear();
+        if (newConn != null) {
             this.RemoteControlsMenu.Items.AddRange(newConn.ConnectionType.GetRemoteContextOptions());
         }
     }

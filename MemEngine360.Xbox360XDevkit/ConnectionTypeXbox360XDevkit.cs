@@ -18,7 +18,6 @@
 // 
 
 using System.Runtime.InteropServices;
-using MemEngine360.BaseFrontEnd;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Xbox360XDevkit.Views;

@@ -1480,7 +1480,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         public Task<UnFreezeResult> DebugUnFreeze() => this.connection.DebugUnFreeze();
 
-        public async Task<bool?> IsFrozen() {
+        public async Task<bool> IsFrozen() {
             XboxExecutionState state = await this.GetExecutionState();
             return state == XboxExecutionState.Stop;
         }

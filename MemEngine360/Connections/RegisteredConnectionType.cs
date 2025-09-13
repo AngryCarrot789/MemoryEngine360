@@ -158,6 +158,9 @@ public abstract class RegisteredConnectionType {
     /// <summary>
     /// Provides a collection of context objects to be added to the "Remote Commands" menu in the
     /// memory engine UI, e.g. for xbox, these could be shutdown, open disk tray, etc.
+    /// <para>
+    /// Separators (<see cref="SeparatorEntry"/>) and Captions (<see cref="CaptionEntry"/>) are supported
+    /// </para>
     /// </summary>
     /// <returns></returns>
     public virtual IEnumerable<IContextObject> GetRemoteContextOptions() {
