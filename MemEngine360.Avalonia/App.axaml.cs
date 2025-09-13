@@ -51,7 +51,7 @@ public partial class App : Application {
         this.progress = new EmptyApplicationStartupProgress();
     }
 
-    public override async void OnFrameworkInitializationCompleted() {
+    public override void OnFrameworkInitializationCompleted() {
         base.OnFrameworkInitializationCompleted();
         AvUtils.OnFrameworkInitialised();
 
@@ -60,6 +60,6 @@ public partial class App : Application {
             Directory.SetCurrentDirectory(dir);
         }
 
-        await ApplicationPFX.InitializeApplication(this.progress, envArgs);
+        ApplicationPFX.InitializeApplication(this.progress, envArgs);
     }
 }
