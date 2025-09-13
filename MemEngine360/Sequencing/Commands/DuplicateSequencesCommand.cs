@@ -59,6 +59,6 @@ public class DuplicateSequencesCommand : Command {
         // virtualization of task sequence list box items not implemented yet, and there's no reason
         // to do it since I doubt anyone will use enough to where it makes a difference
         state.SelectedSequences.Clear();
-        state.SelectedSequences.Select(clones.Select(x => x.Seq));
+        state.SelectedSequences.SelectItems(clones.Select(x => x.Seq));
     }
 }

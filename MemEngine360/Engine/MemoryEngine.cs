@@ -65,7 +65,7 @@ public class MemoryEngine : IComponentManager {
     /// Gets memory engine's history manager
     /// </summary>
     public HistoryManager HistoryManager { get; } = new HistoryManager();
-    
+
     /// <summary>
     /// Gets this engine's busy lock, which is used to synchronize our connection
     /// </summary>
@@ -141,6 +141,11 @@ public class MemoryEngine : IComponentManager {
     /// Gets the tools menu for memory engine
     /// </summary>
     public ContextEntryGroup ToolsMenu { get; }
+
+    /// <summary>
+    /// Gets the Remote Controls menu for memory engine
+    /// </summary>
+    public ContextEntryGroup RemoteControlsMenu { get; }
 
     /// <summary>
     /// An async event fired when a connection is most likely about to change. This can be used by custom activities
@@ -233,6 +238,9 @@ public class MemoryEngine : IComponentManager {
         // update all tools when connection changes, since most if not all tools rely on a connection
         this.ToolsMenu.AddCanExecuteChangeUpdaterForEvent(EngineDataKey, nameof(this.ConnectionChanged));
 
+        this.RemoteControlsMenu = new ContextEntryGroup("Remote Controls");
+        this.ConnectionChanged += this.OnConnectionChanged;
+
         Task.Run(async () => {
             long timeSinceRefreshedAddresses = DateTime.Now.Ticks;
             BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
@@ -257,6 +265,15 @@ public class MemoryEngine : IComponentManager {
                 }
             }
         });
+    }
+
+    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
+        if (newConn == null) {
+            this.RemoteControlsMenu.Items.Clear();
+        }
+        else {
+            this.RemoteControlsMenu.Items.AddRange(newConn.ConnectionType.GetRemoteContextOptions());
+        }
     }
 
     /// <summary>

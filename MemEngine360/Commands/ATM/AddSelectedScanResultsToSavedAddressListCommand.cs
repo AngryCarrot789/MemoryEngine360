@@ -58,7 +58,7 @@ public class AddSelectedScanResultsToSavedAddressListCommand : Command {
         AddressTableGroupEntry saved = ui.MemoryEngine.AddressTableManager.RootEntry;
         List<ScanResultViewModel> selection = selectionModel.SelectedItems.ToList();
         foreach (ScanResultViewModel result in selection) {
-            saved.AddEntry(new AddressTableEntry(result));
+            saved.Items.Add(new AddressTableEntry(result));
         }
 
         return Task.CompletedTask;

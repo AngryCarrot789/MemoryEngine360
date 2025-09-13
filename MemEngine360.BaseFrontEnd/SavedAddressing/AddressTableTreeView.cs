@@ -108,8 +108,6 @@ public sealed class AddressTableTreeView : TreeView {
         control.OnAdding(this, null, layer);
         this.Items.Insert(index, control);
         this.itemMap.AddMapping(layer, control);
-        control.ApplyStyling();
-        control.ApplyTemplate();
         control.OnAdded();
     }
 

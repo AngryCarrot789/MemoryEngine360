@@ -1,17 +1,39 @@
-﻿using PFXToolKitUI.Composition;
+﻿using System.Text;
+using MemEngine360.Connections;
+using MemEngine360.Connections.Features;
+using PFXToolKitUI.AdvancedMenuService;
+using PFXToolKitUI.Composition;
+using PFXToolKitUI.Icons;
+using PFXToolKitUI.Interactivity;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Selections;
+using PFXToolKitUI.PropertyEditing.DataTransfer.Enums;
+using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Services.UserInputs;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.View;
 
 public sealed class MemoryEngineViewState {
+    /// <summary>
+    /// Gets the engine model instance
+    /// </summary>
     public MemoryEngine Engine { get; }
 
     /// <summary>
-    /// Fired when someone requests for the engine window to be foucsed
+    /// Gets the menu registry for the engine window
+    /// </summary>
+    public TopLevelMenuRegistry TopLevelMenuRegistry { get; } = new TopLevelMenuRegistry();
+
+    /// <summary>
+    /// Returns the selection model for the scan results
+    /// </summary>
+    public ListSelectionModel<ScanResultViewModel> SelectedScanResults { get; }
+
+    /// <summary>
+    /// Fired when someone requests for the engine window to be focused
     /// </summary>
     public event EventHandler? RequestWindowFocus;
-
-    public ListSelectionModel<ScanResultViewModel> SelectedScanResults { get; }
 
     private MemoryEngineViewState(MemoryEngine engine) {
         this.Engine = engine;

@@ -37,7 +37,7 @@ public class DuplicateSelectedSavedAddressesCommand : BaseSavedAddressSelectionC
             foreach ((BaseAddressTableEntry, int) pair in entry.Value) {
                 BaseAddressTableEntry cloned = pair.Item1.CreateClone();
                 cloned.Description = TextIncrement.GetNextText(pair.Item1.Parent!.Items.Select(x => x.Description ?? "").ToList(), pair.Item1.Description ?? "", false);
-                pair.Item1.Parent!.InsertEntry(offset + pair.Item2 + 1, cloned); // +1 to add after the existing item
+                pair.Item1.Parent!.Items.Insert(offset + pair.Item2 + 1, cloned); // +1 to add after the existing item
                 clonedItems.Add(cloned);
                 offset++;
             }

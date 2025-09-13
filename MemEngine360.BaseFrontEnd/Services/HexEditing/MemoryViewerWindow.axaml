@@ -9,6 +9,7 @@
                  xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                  xmlns:hex="clr-namespace:AvaloniaHex.Async;assembly=AvaloniaHex"
+                 xmlns:memEngine360="clr-namespace:MemEngine360;assembly=MemEngine360"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
                  x:Class="MemEngine360.BaseFrontEnd.Services.HexEditing.MemoryViewerWindow"
                  BorderBrush="DodgerBlue"
@@ -126,7 +127,7 @@
                         </TextBox.InnerLeftContent>
                     </TextBox>
                     <avc:IconButton Grid.Column="6" x:Name="PART_SetAutoRefreshRangeAsSelection"
-                                    Icon="{x:Static icons:SimpleIcons.CopyHexSelectionToRefreshRangeIcon}"
+                                    Icon="{x:Static memEngine360:SimpleIcons.CopyHexSelectionToRefreshRangeIcon}"
                                     cu:CommandUsageManager.SimpleButtonCommandId="commands.hexeditor.SetAutoScanRangeAsSelectionCommand">
                         <tt:ToolTipEx.Tip>
                             <StackPanel Orientation="Horizontal" Spacing="5">
@@ -136,7 +137,7 @@
                         </tt:ToolTipEx.Tip>
                     </avc:IconButton>
                     <avc:IconButton Grid.Column="8" x:Name="PART_ClearAutoRefreshRange"
-                                    Icon="{x:Static icons:SimpleIcons.ClearHexRefreshRangeIcon}"
+                                    Icon="{x:Static memEngine360:SimpleIcons.ClearHexRefreshRangeIcon}"
                                     cu:CommandUsageManager.SimpleButtonCommandId="commands.hexeditor.ClearAutoScanRangeCommand">
                         <tt:ToolTipEx.Tip>
                             <StackPanel Orientation="Horizontal" Spacing="5">

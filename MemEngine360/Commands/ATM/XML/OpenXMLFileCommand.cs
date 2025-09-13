@@ -110,7 +110,7 @@ public class OpenXMLFileCommand : Command {
                     Description = subGroup.Description
                 };
                 
-                entry.AddEntry(subEntry);
+                entry.Items.Add(subEntry);
                 AddToEntry(subGroup, subEntry);
             }
             else {
@@ -119,7 +119,7 @@ public class OpenXMLFileCommand : Command {
                     throw new Exception($"Invalid address: '{theEntry.Address}'");
                 }
                 
-                entry.AddEntry(new AddressTableEntry() {
+                entry.Items.Add(new AddressTableEntry() {
                     MemoryAddress = address,
                     DataType = theEntry.DataType,
                     Description = theEntry.Description,

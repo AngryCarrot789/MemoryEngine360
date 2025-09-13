@@ -101,7 +101,7 @@ public class AddSavedAddressCommand : Command {
                 result.StringLength = dataTypeInfo.StringLength;
                 result.ArrayLength = dataTypeInfo.ArrayLength;
                 result.DataType = dataTypeInfo.DataType;
-                targetParent.AddEntry(result);
+                targetParent.Items.Add(result);
                 engine.ScanningProcessor.RefreshSavedAddressesLater();
             }
         }

@@ -27,8 +27,9 @@ public class DeleteSelectedSavedAddressesCommand : BaseSavedAddressSelectionComm
     protected override Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
         engine.AddressTableSelectionManager.Clear();
         foreach (IAddressTableEntryUI entry in entries) {
-            if (entry.IsValid)
-                entry.Entry.Parent?.RemoveEntry(entry.Entry);
+            if (entry.IsValid) {
+                entry.Entry.Parent?.Items.Remove(entry.Entry);
+            }
         }
 
         return Task.CompletedTask;

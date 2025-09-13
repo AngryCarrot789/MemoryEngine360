@@ -121,7 +121,7 @@ public partial class TaskSequencerWindow : DesktopWindow {
         }
 
         if (this.State.SelectedSequences.Count < 1 && this.manager.Sequences.Count > 0) {
-            this.State.SelectedSequences.Select(this.manager.Sequences[0]);
+            this.State.SelectedSequences.SelectItem(this.manager.Sequences[0]);
         }
     }
 
@@ -201,7 +201,7 @@ public partial class TaskSequencerWindow : DesktopWindow {
 
             BaseSequenceOperation operation = factory();
             state.PrimarySelectedSequence.Operations.Add(operation);
-            state.SelectedOperations!.Select(operation);
+            state.SelectedOperations!.SelectItem(operation);
         }
     }
 

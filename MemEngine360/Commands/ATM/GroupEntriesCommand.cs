@@ -41,7 +41,7 @@ public class GroupEntriesCommand : BaseSavedAddressSelectionCommand {
 
     protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
         List<BaseAddressTableEntry> modelList = entries.Select(x => x.Entry).ToList();
-        
+
         AddressTableGroupEntry? firstParent = modelList[0].Parent;
         if (firstParent == null)
             throw new Exception("Program corrupted");
@@ -49,7 +49,7 @@ public class GroupEntriesCommand : BaseSavedAddressSelectionCommand {
         int minIndex = firstParent.IndexOf(modelList[0]);
         for (int i = 1; i < modelList.Count; i++) {
             if (firstParent != modelList[i].Parent) {
-                await IMessageDialogService.Instance.ShowMessage("Cannot group", "The selected rows must all be within the same group, or be root rows");
+                await IMessageDialogService.Instance.ShowMessage("Cannot group", "The selected rows must all be within the same group, or be root rows", defaultButton: MessageBoxResult.OK);
                 return;
             }
 
@@ -59,12 +59,12 @@ public class GroupEntriesCommand : BaseSavedAddressSelectionCommand {
         engine.AddressTableSelectionManager.Clear();
 
         Debug.Assert(minIndex != -1);
-        firstParent.RemoveEntries(modelList);
+        firstParent.Items.RemoveRange(modelList);
 
         AddressTableGroupEntry newEntry = new AddressTableGroupEntry();
-        newEntry.AddEntries(modelList);
+        newEntry.Items.AddRange(modelList);
 
-        firstParent.InsertEntry(minIndex, newEntry);
+        firstParent.Items.Insert(minIndex, newEntry);
 
         IAddressTableEntryUI entry = engine.GetATEntryUI(newEntry);
         engine.AddressTableSelectionManager.SetSelection(entry);

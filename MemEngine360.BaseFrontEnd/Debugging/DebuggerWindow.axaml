@@ -12,6 +12,7 @@
                  xmlns:ev="clr-namespace:MemEngine360.BaseFrontEnd.EventViewing"
                  xmlns:async="clr-namespace:AvaloniaHex.Async;assembly=AvaloniaHex"
                  xmlns:av2="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:memEngine360="clr-namespace:MemEngine360;assembly=MemEngine360"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.BaseFrontEnd.Debugging.DebuggerWindow"
                  Title="Debugger"
@@ -145,7 +146,7 @@
                     <DockPanel>
                         <TextBlock Text="Registers" DockPanel.Dock="Left" VerticalAlignment="Center"/>
                         <av:IconButton DockPanel.Dock="Right"
-                                       Icon="{x:Static cb:SimpleIcons.ResetIcon}"
+                                       Icon="{x:Static memEngine360:SimpleIcons.ResetIcon}"
                                        Width="20" Height="20"
                                        IconMaxWidth="12" IconMaxHeight="12"
                                        Padding="2"
@@ -189,7 +190,7 @@
                                IconMaxWidth="16" IconMaxHeight="16"
                                Background="Transparent" BorderThickness="0"
                                tt:ToolTipEx.Tip="Open a dedicated connection"
-                               Icon="{x:Static cb:SimpleIcons.ConnectToConsoleDedicatedIcon}"
+                               Icon="{x:Static memEngine360:SimpleIcons.ConnectToConsoleDedicatedIcon}"
                                cu:CommandUsageManager.SimpleButtonCommandId="commands.debugger.OpenDebuggerConnectionCommand"/>
                 <Border Background="{DynamicResource ABrush.Tone4.Background.Static}"
                         BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"

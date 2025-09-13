@@ -16,6 +16,7 @@
                  xmlns:cond="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Conditions"
                  xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:memEngine360="clr-namespace:MemEngine360;assembly=MemEngine360"
                  mc:Ignorable="d"
                  d:DesignHeight="400" d:DesignWidth="800"
                  MinWidth="640" MinHeight="400"
@@ -39,7 +40,7 @@
                     <DockPanel HorizontalSpacing="2">
                         <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
                                         DockPanel.Dock="Right"
-                                        Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"
+                                        Icon="{x:Static memEngine360:SimpleIcons.DeleteAllRowsIcon}"
                                         cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.ClearSequencesCommand">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
@@ -51,7 +52,7 @@
 
                         <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
                                         DockPanel.Dock="Right"
-                                        Icon="{x:Static cb:SimpleIcons.GreenPlusIcon}"
+                                        Icon="{x:Static memEngine360:SimpleIcons.GreenPlusIcon}"
                                         cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.NewSequenceCommand">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
@@ -63,7 +64,7 @@
 
                         <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
                                         DockPanel.Dock="Right"
-                                        Icon="{x:Static cb:SimpleIcons.ConnectToConsoleIcon}"
+                                        Icon="{x:Static memEngine360:SimpleIcons.ConnectToConsoleIcon}"
                                         cu:CommandUsageManager.UsageClassType="{x:Type cmd:OpenConsoleConnectionInSequencerCommandUsage}">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
@@ -75,7 +76,7 @@
 
                         <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
                                         DockPanel.Dock="Right"
-                                        Icon="{x:Static cb:SimpleIcons.OpenFileXMLIcon}"
+                                        Icon="{x:Static memEngine360:SimpleIcons.OpenFileXMLIcon}"
                                         cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.LoadTaskSequencesCommand">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
@@ -86,7 +87,7 @@
                         </avc:IconButton>
                         <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
                                         DockPanel.Dock="Right"
-                                        Icon="{x:Static cb:SimpleIcons.SaveFileIcon}"
+                                        Icon="{x:Static memEngine360:SimpleIcons.SaveFileIcon}"
                                         cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.SaveTaskSequencesCommand">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
@@ -129,7 +130,7 @@
                                             <DockPanel DockPanel.Dock="Bottom" Margin="2,0">
                                                 <Border x:Name="PART_DragGrip" Background="Transparent" Width="16" DockPanel.Dock="Right"
                                                         tt:ToolTipEx.Tip="Click and drag this grip to move the sequence around.">
-                                                    <avc:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
+                                                    <avc:IconControl Icon="{x:Static memEngine360:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Orientation="Horizontal" Spacing="3" Margin="0,1,0,2">
                                                     <TextBlock Text="Run Count" VerticalAlignment="Center"/>
@@ -264,7 +265,7 @@
                                     Click="Button_InsertStopSequence"/>
                             <avc:IconButton Padding="2" Width="24" BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                             tt:ToolTipEx.Tip="Clears all operations"
-                                            Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}"
+                                            Icon="{x:Static memEngine360:SimpleIcons.DeleteAllRowsIcon}"
                                             Click="PART_ClearOperationsClick"/>
                         </StackPanel>
                         <TextBlock x:Name="PART_OperationGroupBoxHeaderTextBlock" Text="Current Operation"
@@ -314,7 +315,7 @@
                                             <DockPanel>
                                                 <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right"
                                                         tt:ToolTipEx.Tip="Click and drag this grip to move the operation around. This cannot be done while the sequence is running.">
-                                                    <avc:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
+                                                    <avc:IconControl Icon="{x:Static memEngine360:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
                                                 </Border>
                                                 <ContentPresenter x:Name="PART_ContentPresenter"
                                                                   HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -491,7 +492,7 @@
                                                         <DockPanel>
                                                             <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right"
                                                                     tt:ToolTipEx.Tip="Click and drag this grip to move the condition around. This cannot be done while the sequence is running.">
-                                                                <avc:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
+                                                                <avc:IconControl Icon="{x:Static memEngine360:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
                                                             </Border>
                                                             <ContentPresenter x:Name="PART_ContentPresenter"
                                                                               HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -528,7 +529,7 @@
                                             IconMaxWidth="16" IconMaxHeight="16"
                                             Background="Transparent" BorderThickness="0"
                                             tt:ToolTipEx.Tip="Open a dedicated connection"
-                                            Icon="{x:Static cb:SimpleIcons.ConnectToConsoleDedicatedIcon}"
+                                            Icon="{x:Static memEngine360:SimpleIcons.ConnectToConsoleDedicatedIcon}"
                                             cu:CommandUsageManager.UsageClassType="{x:Type cmd:ConnectToDedicatedConsoleCommandUsage}"/>
                             <Border Background="{DynamicResource ABrush.Tone4.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"

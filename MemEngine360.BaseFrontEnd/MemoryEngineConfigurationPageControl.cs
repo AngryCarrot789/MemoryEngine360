@@ -77,29 +77,20 @@ public class MemoryEngineConfigurationPageControl : BaseConfigurationPageControl
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
         base.OnApplyTemplate(e);
-        this.PART_RefreshRateTextBox = e.NameScope.GetTemplateChild<TextBox>("PART_RefreshRateTextBox");
-        this.PART_AutoRefreshPerSecTextBox = e.NameScope.GetTemplateChild<TextBox>("PART_AutoRefreshPerSecTextBox");
-        this.PART_UpdateCountLimit = e.NameScope.GetTemplateChild<TextBox>("PART_UpdateCountLimit");
-        this.PART_FloatingEpsilonTextBox = e.NameScope.GetTemplateChild<TextBox>("PART_FloatingEpsilonTextBox");
-        this.PART_ToggleRefreshEnabled = e.NameScope.GetTemplateChild<CheckBox>("PART_ToggleRefreshEnabled");
+        this.refreshRateBinder.AttachControl(this.PART_RefreshRateTextBox = e.NameScope.GetTemplateChild<TextBox>("PART_RefreshRateTextBox"));
+        this.autoRefreshPerSecBinder.AttachControl(this.PART_AutoRefreshPerSecTextBox = e.NameScope.GetTemplateChild<TextBox>("PART_AutoRefreshPerSecTextBox"));
+        this.updateCountLimitBinder.AttachControl(this.PART_UpdateCountLimit = e.NameScope.GetTemplateChild<TextBox>("PART_UpdateCountLimit"));
+        this.floatingEpsilonBinder.AttachControl(this.PART_FloatingEpsilonTextBox = e.NameScope.GetTemplateChild<TextBox>("PART_FloatingEpsilonTextBox"));
+        this.isRefreshEnabledBinder.AttachControl(this.PART_ToggleRefreshEnabled = e.NameScope.GetTemplateChild<CheckBox>("PART_ToggleRefreshEnabled"));
     }
 
     public override void OnConnected() {
         base.OnConnected();
-
-        this.refreshRateBinder.Attach(this.PART_RefreshRateTextBox!, (MemoryEngineConfigurationPage) this.Page!);
-        this.autoRefreshPerSecBinder.Attach(this.PART_AutoRefreshPerSecTextBox!, (MemoryEngineConfigurationPage) this.Page!);
-        this.updateCountLimitBinder.Attach(this.PART_UpdateCountLimit!, (MemoryEngineConfigurationPage) this.Page!);
-        this.floatingEpsilonBinder.Attach(this.PART_FloatingEpsilonTextBox!, (MemoryEngineConfigurationPage) this.Page!);
-        this.isRefreshEnabledBinder.Attach(this.PART_ToggleRefreshEnabled!, (MemoryEngineConfigurationPage) this.Page!);
+        Binders.AttachModels((MemoryEngineConfigurationPage) this.Page!, this.refreshRateBinder, this.autoRefreshPerSecBinder, this.updateCountLimitBinder, this.floatingEpsilonBinder, this.isRefreshEnabledBinder);
     }
 
     public override void OnDisconnected() {
         base.OnDisconnected();
-        this.refreshRateBinder.Detach();
-        this.autoRefreshPerSecBinder.Detach();
-        this.updateCountLimitBinder.Detach();
-        this.floatingEpsilonBinder.Detach();
-        this.isRefreshEnabledBinder.Detach();
+        Binders.DetachModels(this.refreshRateBinder, this.autoRefreshPerSecBinder, this.updateCountLimitBinder, this.floatingEpsilonBinder, this.isRefreshEnabledBinder);
     }
 }

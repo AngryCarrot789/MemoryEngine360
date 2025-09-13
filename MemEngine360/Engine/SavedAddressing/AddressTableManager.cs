@@ -43,12 +43,12 @@ public class AddressTableManager {
 
     static AddressTableManager() {
 #if DEBUG
-        DummyInstance_UITest.RootEntry.AddEntry(new AddressTableGroupEntry() {Description = "Test group"});
-        DummyInstance_UITest.RootEntry.AddEntry(new AddressTableEntry() {MemoryAddress = new DynamicAddress(0x82600000, [0x20, 0x5C]), Description = "Thingy Pointer"});
-        DummyInstance_UITest.RootEntry.AddEntry(new AddressTableEntry() {MemoryAddress = new DynamicAddress(0x82600000, [0x24, 0x5C]), Description = "Thingy Pointer 1"});
-        DummyInstance_UITest.RootEntry.AddEntry(new AddressTableEntry() {MemoryAddress = new DynamicAddress(0x82600000, [0x28, 0x5C]), Description = "Thingy Pointer 2"});
-        DummyInstance_UITest.RootEntry.AddEntry(new AddressTableEntry() {MemoryAddress = new DynamicAddress(0x82600000, [0x2C, 0x5C]), Description = "Thingy Pointer 3"});
-        DummyInstance_UITest.RootEntry.AddEntry(new AddressTableEntry() {MemoryAddress = new DynamicAddress(0x82600000, [0x30, 0x5C]), Description = "Thingy Pointer 4"});
+        DummyInstance_UITest.RootEntry.Items.Add(new AddressTableGroupEntry() {Description = "Test group"});
+        DummyInstance_UITest.RootEntry.Items.Add(new AddressTableEntry() {MemoryAddress = new DynamicAddress(0x82600000, [0x20, 0x5C]), Description = "Thingy Pointer"});
+        DummyInstance_UITest.RootEntry.Items.Add(new AddressTableEntry() {MemoryAddress = new DynamicAddress(0x82600000, [0x24, 0x5C]), Description = "Thingy Pointer 1"});
+        DummyInstance_UITest.RootEntry.Items.Add(new AddressTableEntry() {MemoryAddress = new DynamicAddress(0x82600000, [0x28, 0x5C]), Description = "Thingy Pointer 2"});
+        DummyInstance_UITest.RootEntry.Items.Add(new AddressTableEntry() {MemoryAddress = new DynamicAddress(0x82600000, [0x2C, 0x5C]), Description = "Thingy Pointer 3"});
+        DummyInstance_UITest.RootEntry.Items.Add(new AddressTableEntry() {MemoryAddress = new DynamicAddress(0x82600000, [0x30, 0x5C]), Description = "Thingy Pointer 4"});
 #endif
     }
 

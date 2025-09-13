@@ -42,21 +42,6 @@ public interface IEngineUI {
     MemoryEngine MemoryEngine { get; }
 
     /// <summary>
-    /// Gets the memory engine window's notification manager
-    /// </summary>
-    NotificationManager NotificationManager { get; }
-
-    /// <summary>
-    /// Gets our top-level menu
-    /// </summary>
-    TopLevelMenuRegistry TopLevelMenuRegistry { get; }
-
-    /// <summary>
-    /// Gets the context entry that contains a list of remote command entries
-    /// </summary>
-    ContextEntryGroup RemoteCommandsContextEntry { get; }
-
-    /// <summary>
     /// Gets the saved address list selection manager
     /// </summary>
     IListSelectionManager<IAddressTableEntryUI> AddressTableSelectionManager { get; }

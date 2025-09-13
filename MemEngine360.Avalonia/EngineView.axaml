@@ -16,6 +16,7 @@
              xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
              xmlns:fb="clr-namespace:MemEngine360.BaseFrontEnd.FileBrowsing;assembly=MemEngine360.BaseFrontEnd"
+             xmlns:s="clr-namespace:MemEngine360;assembly=MemEngine360"
              mc:Ignorable="d"
              x:Class="MemEngine360.Avalonia.EngineView"
              Background="{DynamicResource ABrush.MemEngine.MainView.Background}">
@@ -234,7 +235,7 @@
                                                                         x:Name="PART_RootOLBI">
                                                                     <DockPanel>
                                                                         <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right">
-                                                                            <avc:IconControl Icon="{x:Static cb:SimpleIcons.DragGripIcon}" Height="16"/>
+                                                                            <avc:IconControl Icon="{x:Static s:SimpleIcons.DragGripIcon}" Height="16"/>
                                                                         </Border>
                                                                         <CheckBox x:Name="PART_Toggle"/>
                                                                     </DockPanel>
@@ -277,7 +278,7 @@
                                 <c:GroupBox.Header>
                                     <DockPanel HorizontalSpacing="4">
                                         <avc:IconButton DockPanel.Dock="Right"
-                                                        Icon="{x:Static cb:SimpleIcons.MemoryIconTable}"
+                                                        Icon="{x:Static s:SimpleIcons.MemoryIconTable}"
                                                         Width="20" Height="20" IconMaxWidth="12" IconMaxHeight="12"
                                                         Padding="2"
                                                         Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
@@ -293,7 +294,7 @@
                                             </tt:ToolTipEx.Tip>
                                         </avc:IconButton>
                                         <avc:IconButton DockPanel.Dock="Right"
-                                                        Icon="{x:Static cb:SimpleIcons.ResetIcon}"
+                                                        Icon="{x:Static s:SimpleIcons.ResetIcon}"
                                                         Width="20" Height="20"
                                                         IconMaxWidth="12" IconMaxHeight="12"
                                                         Padding="2"
@@ -495,7 +496,7 @@
                         <DockPanel>
                             <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="5" Height="20">
-                                <avc:IconButton Icon="{x:Static cb:SimpleIcons.OpenFileXMLIcon}" Width="20"
+                                <avc:IconButton Icon="{x:Static s:SimpleIcons.OpenFileXMLIcon}" Width="20"
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
@@ -510,7 +511,7 @@
                                     </tt:ToolTipEx.Tip>
                                 </avc:IconButton>
 
-                                <avc:IconButton Icon="{x:Static cb:SimpleIcons.SaveFileIcon}" Width="20"
+                                <avc:IconButton Icon="{x:Static s:SimpleIcons.SaveFileIcon}" Width="20"
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
@@ -530,7 +531,7 @@
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                 cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.AddSavedAddressCommand"
-                                                Icon="{x:Static cb:SimpleIcons.GreenPlusIcon}">
+                                                Icon="{x:Static s:SimpleIcons.GreenPlusIcon}">
                                     <tt:ToolTipEx.Tip>
                                         <StackPanel Orientation="Horizontal" Spacing="5">
                                             <TextBlock Text="Adds a row manually" VerticalAlignment="Center"/>
@@ -544,7 +545,7 @@
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                 cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.ClearSavedAddressesCommand"
-                                                Icon="{x:Static cb:SimpleIcons.DeleteAllRowsIcon}">
+                                                Icon="{x:Static s:SimpleIcons.DeleteAllRowsIcon}">
                                     <tt:ToolTipEx.Tip>
                                         <StackPanel Orientation="Horizontal" Spacing="5">
                                             <TextBlock Text="Clears all rows" VerticalAlignment="Center"/>
@@ -555,7 +556,7 @@
 
                                 <Separator Theme="{StaticResource VerticalSeparatorTheme}"/>
 
-                                <avc:IconButton Icon="{x:Static cb:SimpleIcons.MemoryIcon}" Width="20"
+                                <avc:IconButton Icon="{x:Static s:SimpleIcons.MemoryIcon}" Width="20"
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
@@ -571,7 +572,7 @@
                                 </avc:IconButton>
 
                                 <avc:IconButton Content="Add Scan Result(s)" Padding="4,1" Height="20" IconMaxWidth="12"
-                                                Icon="{x:Static cb:SimpleIcons.RedArrowCopyToSavedResultsIcon}"
+                                                Icon="{x:Static s:SimpleIcons.RedArrowCopyToSavedResultsIcon}"
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"

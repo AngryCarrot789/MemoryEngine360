@@ -140,7 +140,6 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
     }
 
     public void OnAdded() {
-        TemplateUtils.ApplyRecursive(this);
         if (this.EntryObject is FileTreeNodeDirectory folder) {
             this.compositeListener = ObservableItemProcessor.MakeIndexable(folder.Items, this.OnLayerAdded, this.OnLayerRemoved, this.OnLayerMoved);
             this.compositeListener.AddExistingItems();
@@ -204,8 +203,6 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
         control.OnAdding(tree, this, layer);
         this.Items.Insert(index, control);
         tree.itemMap.AddMapping(layer, control);
-        control.ApplyStyling();
-        control.ApplyTemplate();
         control.OnAdded();
     }
 

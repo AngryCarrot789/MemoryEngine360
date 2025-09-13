@@ -22,7 +22,7 @@ using PFXToolKitUI.Themes;
 using PFXToolKitUI.Themes.Gradients;
 using SkiaSharp;
 
-namespace MemEngine360.BaseFrontEnd;
+namespace MemEngine360;
 
 public static class SimpleIcons {
     public static readonly IConstantColourBrush ConstantTransparentBrush = BrushManager.Instance.CreateConstant(SKColors.Transparent);

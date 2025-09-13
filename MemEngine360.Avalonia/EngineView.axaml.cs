@@ -46,6 +46,7 @@ using PFXToolKitUI.Avalonia.Interactivity.Selecting;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Composition;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -177,11 +178,9 @@ public partial class EngineView : UserControl, IEngineUI {
 
     public MemoryEngine MemoryEngine { get; }
 
-    public NotificationManager NotificationManager => this.PART_NotificationListBox.NotificationManager!;
+    public NotificationManager NotificationManager { get; }
 
-    public TopLevelMenuRegistry TopLevelMenuRegistry { get; }
-
-    public ContextEntryGroup RemoteCommandsContextEntry { get; }
+    public TopLevelMenuRegistry TopLevelMenuRegistry => MemoryEngineViewState.GetInstance(this.MemoryEngine).TopLevelMenuRegistry;
 
     public IListSelectionManager<IAddressTableEntryUI> AddressTableSelectionManager { get; }
 
@@ -208,15 +207,11 @@ public partial class EngineView : UserControl, IEngineUI {
     public EngineView() {
         this.InitializeComponent();
 
-        this.TopLevelMenuRegistry = new TopLevelMenuRegistry();
         this.themesSubList = new ContextEntryGroup("Themes");
-        this.RemoteCommandsContextEntry = new ContextEntryGroup("Remote Controls");
         this.MemoryEngine = new MemoryEngine();
         this.SetupMainMenu();
 
         this.scanResultSelectionBinder = new DataGridSelectionModelBinder<ScanResultViewModel>(this.PART_ScanListResults, MemoryEngineViewState.GetInstance(this.MemoryEngine).SelectedScanResults);
-
-        // this.SavedAddressesSelectionManager = new DataGridSelectionManager<AddressTableEntry>(this.PART_SavedAddressList);
         this.AddressTableSelectionManager = new TreeViewSelectionManager<IAddressTableEntryUI>(this.PART_SavedAddressTree);
 
         this.PART_LatestActivity.Text = "Welcome to MemoryEngine360.";
@@ -279,42 +274,48 @@ public partial class EngineView : UserControl, IEngineUI {
             }
         }, RoutingStrategies.Tunnel);
 
-        this.PART_NotificationListBox.NotificationManager = new NotificationManager();
+        this.NotificationManager = new NotificationManager();
+        ((IComponentManager) this.MemoryEngine).AddService(this.NotificationManager);
+        this.PART_NotificationListBox.NotificationManager = this.NotificationManager;
     }
 
     private void SetupMainMenu() {
+        TopLevelMenuRegistry menu = this.TopLevelMenuRegistry;
+        
         // ### File ###
         ContextEntryGroup fileEntry = new ContextEntryGroup("File");
         fileEntry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
         fileEntry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.DownloadMemoryIcon));
         fileEntry.Items.Add(new SeparatorEntry());
         fileEntry.Items.Add(new CommandContextEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command...", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
-        fileEntry.Items.Add(new TestThing("Test Notification (XBDM)", null, null));
+        fileEntry.Items.Add(new SendXboxNotificationCommandEntry("Test Notification (XBDM)", null, null));
         fileEntry.Items.Add(new SeparatorEntry());
         fileEntry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
-        this.TopLevelMenuRegistry.Items.Add(fileEntry);
+        menu.Items.Add(fileEntry);
 
         // ### Remote Commands ###
-        this.TopLevelMenuRegistry.Items.Add(this.RemoteCommandsContextEntry);
+        menu.Items.Add(this.MemoryEngine.RemoteControlsMenu);
 
         // ### Tools ###
-        this.TopLevelMenuRegistry.Items.Add(this.MemoryEngine.ToolsMenu);
+        menu.Items.Add(this.MemoryEngine.ToolsMenu);
 
         // ### Themes ###
-        this.TopLevelMenuRegistry.Items.Add(this.themesSubList);
+        menu.Items.Add(this.themesSubList);
 
         // ### Help ###
         ContextEntryGroup helpEntry = new ContextEntryGroup("Help");
         helpEntry.Items.Add(new CommandContextEntry("commands.application.ShowLogsCommand", "Show Logs"));
         helpEntry.Items.Add(new SeparatorEntry());
         helpEntry.Items.Add(new CustomLambdaContextEntry("Open Wiki", (c) => {
+            if (!IDesktopWindow.DataKey.TryGetContext(c, out IDesktopWindow? window))
+                return Task.CompletedTask;
             const string url = "https://github.com/AngryCarrot789/MemoryEngine360/wiki#quick-start";
-            return TopLevel.GetTopLevel(this /* EngineView */)?.Launcher.LaunchUriAsync(new Uri(url)) ?? Task.FromResult(false);
-        }, (c) => TopLevel.GetTopLevel(this) != null));
+            return window.LaunchUriAsync(new Uri(url));
+        }, (c) => IDesktopWindow.DataKey.IsPresent(c)));
         helpEntry.Items.Add(new CommandContextEntry("commands.application.AboutApplicationCommand", "About MemoryEngine360"));
-        this.TopLevelMenuRegistry.Items.Add(helpEntry);
+        menu.Items.Add(helpEntry);
 
-        this.PART_TopLevelMenu.TopLevelMenuRegistry = this.TopLevelMenuRegistry;
+        this.PART_TopLevelMenu.TopLevelMenuRegistry = menu;
     }
 
     private void UpdateScanResultCounterText() {
@@ -597,16 +598,6 @@ public partial class EngineView : UserControl, IEngineUI {
                 notification.Show(this.NotificationManager);
             }
         }
-
-        ContextEntryGroup entry = this.RemoteCommandsContextEntry;
-        if (newConn != null) {
-            foreach (IContextObject en in newConn.ConnectionType.GetRemoteContextOptions()) {
-                entry.Items.Add(en);
-            }
-        }
-        else {
-            entry.Items.Clear();
-        }
     }
 
     private void PART_ScanOption_Alignment_OnDoubleTapped(object? sender, TappedEventArgs e) {
@@ -619,78 +610,6 @@ public partial class EngineView : UserControl, IEngineUI {
 
     public IAddressTableEntryUI GetATEntryUI(BaseAddressTableEntry entry) {
         return this.PART_SavedAddressTree.ItemMap.GetControl(entry);
-    }
-
-    private class TestThing : CustomContextEntry {
-        private IEngineUI? ctxMemUI;
-
-        public TestThing(string displayName, string? description, Icon? icon = null) : base(displayName, description, icon) {
-            this.CapturedContextChanged += this.OnCapturedContextChanged;
-        }
-
-        // Sort of pointless unless the user tries to connect to a console while it's booting
-        // and then they open the File menu, they'll see that this entry is greyed out until we
-        // connect, then once connected, it's either now invisible or clickable. This is just a POF really
-        private void OnCapturedContextChanged(BaseContextEntry sender, IContextData? oldCapturedContext, IContextData? newCapturedContext) {
-            if (newCapturedContext != null) {
-                if (IEngineUI.DataKey.TryGetContext(newCapturedContext, out IEngineUI? newUI) && !ReferenceEquals(this.ctxMemUI, newUI)) {
-                    if (this.ctxMemUI != null)
-                        this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
-                    (this.ctxMemUI = newUI).MemoryEngine.ConnectionChanged += this.OnContextMemUIConnectionChanged;
-                }
-            }
-            else if (this.ctxMemUI != null) {
-                this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
-                this.ctxMemUI = null;
-            }
-        }
-
-        private void OnContextMemUIConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
-            this.RaiseCanExecuteChanged();
-        }
-
-        public override bool CanExecute(IContextData context) {
-            if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
-                return false;
-            }
-
-            return ui.MemoryEngine.Connection is XbdmConsoleConnection;
-        }
-
-        public override async Task OnExecute(IContextData context) {
-            if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
-                return;
-            }
-
-            using IDisposable? token = await ui.MemoryEngine.BeginBusyOperationActivityAsync();
-            if (token == null || !(ui.MemoryEngine.Connection is XbdmConsoleConnection xbdm)) {
-                return;
-            }
-
-            DataParameterEnumInfo<XNotifyLogo> dpEnumInfo = DataParameterEnumInfo<XNotifyLogo>.All();
-            DoubleUserInputInfo info = new DoubleUserInputInfo("Thank you for using MemoryEngine360 <3", nameof(XNotifyLogo.FLASHING_HAPPY_FACE)) {
-                Caption = "Test Notification",
-                Message = "Shows a custom notification on your xbox!",
-                ValidateA = (b) => {
-                    if (string.IsNullOrWhiteSpace(b.Input))
-                        b.Errors.Add("Input cannot be empty or whitespaces only");
-                },
-                ValidateB = (b) => {
-                    if (!dpEnumInfo.TextToEnum.TryGetValue(b.Input, out XNotifyLogo val))
-                        b.Errors.Add("Unknown logo type");
-                },
-                LabelA = "Message",
-                LabelB = "Logo (search for XNotifyLogo)"
-            };
-
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-                XNotifyLogo logo = dpEnumInfo.TextToEnum[info.TextB];
-                int msgLen = info.TextA.Length;
-                string msgHex = NumberUtils.ConvertStringToHex(info.TextA, Encoding.ASCII);
-                string command = $"consolefeatures ver=2 type=12 params=\"A\\0\\A\\2\\2/{msgLen}\\{msgHex}\\1\\{(int) logo}\\\"";
-                await xbdm.SendCommand(command);
-            }
-        }
     }
 
     private static async Task<bool> ParseAndUpdateScanAddress(IBinder<ScanningProcessor> b, string x) {
@@ -765,5 +684,81 @@ public partial class EngineView : UserControl, IEngineUI {
         }
 
         return true;
+    }
+
+    private class SendXboxNotificationCommandEntry : CustomContextEntry {
+        private IEngineUI? ctxMemUI;
+
+        public SendXboxNotificationCommandEntry(string displayName, string? description, Icon? icon = null) : base(displayName, description, icon) {
+            this.CapturedContextChanged += this.OnCapturedContextChanged;
+        }
+
+        // Sort of pointless unless the user tries to connect to a console while it's booting
+        // and then they open the File menu, they'll see that this entry is greyed out until we
+        // connect, then once connected, it's either now invisible or clickable. This is just a POF really
+        private void OnCapturedContextChanged(BaseContextEntry sender, IContextData? oldCapturedContext, IContextData? newCapturedContext) {
+            if (newCapturedContext != null) {
+                if (IEngineUI.DataKey.TryGetContext(newCapturedContext, out IEngineUI? newUI) && !ReferenceEquals(this.ctxMemUI, newUI)) {
+                    if (this.ctxMemUI != null)
+                        this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
+                    (this.ctxMemUI = newUI).MemoryEngine.ConnectionChanged += this.OnContextMemUIConnectionChanged;
+                }
+            }
+            else if (this.ctxMemUI != null) {
+                this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
+                this.ctxMemUI = null;
+            }
+        }
+
+        private void OnContextMemUIConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
+            this.RaiseCanExecuteChanged();
+        }
+
+        public override bool CanExecute(IContextData context) {
+            if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
+                return false;
+            }
+
+            IConsoleConnection? connection = ui.MemoryEngine.Connection;
+            return connection != null && connection.HasFeature<IFeatureXboxNotifications>();
+        }
+
+        public override async Task OnExecute(IContextData context) {
+            if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
+                return;
+            }
+
+            IConsoleConnection? connection;
+            using IDisposable? token = await ui.MemoryEngine.BeginBusyOperationActivityAsync();
+            if (token == null || (connection = ui.MemoryEngine.Connection) == null) {
+                return;
+            }
+
+            if (!connection.TryGetFeature(out IFeatureXboxNotifications? notifications)) {
+                await IMessageDialogService.Instance.ShowMessage("Not supported", "This connection does not support showing notifications", defaultButton: MessageBoxResult.OK);
+                return;
+            }
+
+            DataParameterEnumInfo<XNotifyLogo> dpEnumInfo = DataParameterEnumInfo<XNotifyLogo>.All();
+            DoubleUserInputInfo info = new DoubleUserInputInfo("Thank you for using MemoryEngine360 <3", nameof(XNotifyLogo.FLASHING_HAPPY_FACE)) {
+                Caption = "Test Notification",
+                Message = "Shows a custom notification on your xbox!",
+                ValidateA = (b) => {
+                    if (string.IsNullOrWhiteSpace(b.Input))
+                        b.Errors.Add("Input cannot be empty or whitespaces only");
+                },
+                ValidateB = (b) => {
+                    if (!dpEnumInfo.TextToEnum.TryGetValue(b.Input, out XNotifyLogo val))
+                        b.Errors.Add("Unknown logo type");
+                },
+                LabelA = "Message",
+                LabelB = "Logo (search for XNotifyLogo)"
+            };
+
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+                XNotifyLogo logo = dpEnumInfo.TextToEnum[info.TextB];
+                await notifications.ShowNotification(logo, info.TextA);
+            }
+        }
     }
 }

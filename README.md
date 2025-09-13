@@ -1,4 +1,4 @@
-# ![](MemEngine360.Avalonia/icon-32.bmp) Memory Engine 360 v1.1.7
+# ![](MemEngine360.Avalonia/icon-32.bmp) Memory Engine 360
 This is a remake of Cheat Engine, but for consoles (so far only Xbox 360). This project was inspired by https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
 
 ![](MemoryEngine360_2025-06-30_00.22.07.png)
@@ -17,6 +17,8 @@ This is a remake of Cheat Engine, but for consoles (so far only Xbox 360). This 
 - Open `MemEngine360.sln` and then run/debug.
 
 If you wish to publish as a single .exe with a few (native) DLLs alongside, run `publish.bat` in the folder `MemEngine360.Avalonia`. This is how I create releases for this project
+
+The current version is v1.1.8-dev. Dev builds most definitely have bugs.
 
 # How to use
 Visit the wiki at https://github.com/AngryCarrot789/MemoryEngine360/wiki to see the quick start guide, as well as docs for developers that wish to improve MemoryEngine360.

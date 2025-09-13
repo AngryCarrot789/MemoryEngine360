@@ -99,7 +99,6 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
 
     protected override void OnAddedToList() {
         BaseOperationListContent content = (BaseOperationListContent) this.Content!;
-        TemplateUtils.Apply(content);
         content.Operation = this.Model;
 
         this.operatingStateBinder.Attach(this, this.Model!);

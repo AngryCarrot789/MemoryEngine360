@@ -140,7 +140,6 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     }
 
     public void OnAdded() {
-        TemplateUtils.ApplyRecursive(this);
         if (this.EntryObject is AddressTableGroupEntry folder) {
             this.compositeListener = ObservableItemProcessor.MakeIndexable(folder.Items, this.OnLayerAdded, this.OnLayerRemoved, this.OnLayerMoved);
             int i = 0;
@@ -189,7 +188,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         }
 
         this.descriptionBinder.DetachModel();
-        if (this.entryAddressBinder.IsFullyAttached) {
+        if (this.entryAddressBinder.HasModel) {
             this.entryAddressBinder.DetachModel();
             this.dataTypeTextBinder.DetachModel();
             this.valueTextBinder.DetachModel();
@@ -238,8 +237,6 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
         control.OnAdding(tree, this, layer);
         this.Items.Insert(index, control);
         tree.itemMap.AddMapping(layer, control);
-        control.ApplyStyling();
-        control.ApplyTemplate();
         control.OnAdded();
     }
 
@@ -429,19 +426,19 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
             return DoubleUtils.LessThan(pt.Y, middle) ? DropLocation.Above : DropLocation.Below;
         }
     }
-    
+
     /*
      WTF does DragEffects do?
-     
-     During DragEnter() and DragOver(), DragEventArgs.DragEffects will be the allowed drag effects 
+
+     During DragEnter() and DragOver(), DragEventArgs.DragEffects will be the allowed drag effects
      for the specific drag-drop operation, which are the effects passed to DoDragDrop.
      You have to process DragEffects (and ideally set Handled to true) and set it to a single
-     value that represents what you want the drop to actually perform. This is purely a visual 
+     value that represents what you want the drop to actually perform. This is purely a visual
      feedback thing. Changing it won't affect what's passed to Drop().
-     
-     In Drop(), you're still provided the allowed drop types, and you have to do the same 
+
+     In Drop(), you're still provided the allowed drop types, and you have to do the same
      processing for what drop to actually do based on which modifier keys are pressed.
-     
+
      */
 
     private void OnDragEnter(DragEventArgs e) {
@@ -451,7 +448,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                 this.IsExpanded = true;
                 this.expandForDragOverTimer?.Stop();
             });
-            
+
             this.expandForDragOverTimer.Start();
         }
 
@@ -460,7 +457,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
 
     private void OnDragOver(DragEventArgs e) {
         e.Handled = true;
-        
+
         Point point = e.GetPosition(this);
         DropLocation? location;
         if (!GetResourceListFromDragEvent(e, out List<AddressTableTreeViewItem>? items)) {
@@ -478,7 +475,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                 else {
                     location = this.GetDropLocation(point, this.IsFolderItem, false);
                     Debug.Assert(location != DropLocation.Inside);
-                    
+
                     e.DragEffects = (DragDropEffects) dropType;
                 }
             }
@@ -507,7 +504,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
             this.IsDroppableTargetOver = false;
             this.PART_DragDropMoveBorder!.BorderThickness = default;
         }
-        
+
         this.expandForDragOverTimer?.Stop();
     }
 
@@ -534,7 +531,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
             if (result.Item2 == DropListResult.DropListIntoSelf) {
                 return;
             }
-            
+
             if (result.Item2 == DropListResult.ValidButDropListAlreadyInTarget) {
                 // Technically the drop is valid, but we specify false so that inside is not
                 // allowed, to use the full height of this tree node for above/below
@@ -553,19 +550,20 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                     AddressTableGroupEntry thisModel = (AddressTableGroupEntry) this.EntryObject!;
                     Debug.Assert(thisModel.Parent != null, "Why is there a ATTreeViewItem for the root entry object? Or why is it removed???");
 
-                    foreach (BaseAddressTableEntry entry in droppedModels) {
-                        entry.Parent!.MoveEntryTo(entry, thisModel);
+                    foreach (IGrouping<AddressTableGroupEntry, BaseAddressTableEntry> entry in droppedModels.GroupBy(x => x.Parent!)) {
+                        entry.Key.Items.RemoveRange(entry);
+                        thisModel.Items.AddRange(entry);
                     }
                 }
                 else {
                     BaseAddressTableEntry thisModel = this.EntryObject!;
                     AddressTableGroupEntry dstModel = this.EntryObject!.Parent!;
                     Debug.Assert(dstModel != null, "This ATTreeViewItem is not in a parent...?");
-                    
+
                     // User wants to move items above or below current instance. First, remove all
                     // dropped entries to make calculating indices easier. TODO improve this though 
-                    foreach (BaseAddressTableEntry entry in droppedModels) {
-                        entry.Parent!.RemoveEntry(entry);
+                    foreach (IGrouping<AddressTableGroupEntry, BaseAddressTableEntry> entry in droppedModels.GroupBy(x => x.Parent!)) {
+                        entry.Key.Items.RemoveRange(entry);
                     }
 
                     int index = dstModel.IndexOf(thisModel);
@@ -573,24 +571,18 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                         index++;
                     }
 
-                    foreach (BaseAddressTableEntry entry in droppedModels) {
-                        dstModel.InsertEntry(index++, entry);
-                    }
+                    dstModel.Items.InsertRange(index, droppedModels);
                 }
 
                 selection = droppedModels;
             }
             else {
-                List<BaseAddressTableEntry> cloneList = new List<BaseAddressTableEntry>();
-                foreach (BaseAddressTableEntry dropped in droppedModels) {
-                    cloneList.Add(dropped.CreateClone());
-                }
-
+                List<BaseAddressTableEntry> cloneList = droppedModels.Select(x => x.CreateClone()).ToList();
                 if (dropLocation == DropLocation.Inside) {
                     AddressTableGroupEntry thisModel = (AddressTableGroupEntry) this.EntryObject!;
                     Debug.Assert(thisModel.Parent != null, "Why is there a ATTreeViewItem for the root entry object? Or why is it removed???");
 
-                    thisModel.AddEntries(cloneList);
+                    thisModel.Items.AddRange(cloneList);
                 }
                 else {
                     BaseAddressTableEntry thisModel = this.EntryObject!;
@@ -602,9 +594,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
                         index++;
                     }
 
-                    foreach (BaseAddressTableEntry entry in cloneList) {
-                        dstModel.InsertEntry(index++, entry);
-                    }
+                    dstModel.Items.InsertRange(index, cloneList);
                 }
 
                 selection = cloneList;

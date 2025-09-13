@@ -18,6 +18,7 @@
 // 
 
 using System.Diagnostics;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Engine.SavedAddressing;
@@ -26,93 +27,54 @@ namespace MemEngine360.Engine.SavedAddressing;
 /// A group entry contains its own entry hierarchy which can be rendered like a raster entry
 /// </summary>
 public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
-    private readonly SuspendableObservableList<BaseAddressTableEntry> items;
-
-    public ReadOnlyObservableList<BaseAddressTableEntry> Items { get; }
+    /// <summary>
+    /// Gets this group's entries
+    /// </summary>
+    public ObservableList<BaseAddressTableEntry> Items { get; }
 
     public bool IsRootEntry => this.Parent == null;
 
     public AddressTableGroupEntry() {
-        this.items = new SuspendableObservableList<BaseAddressTableEntry>();
-        this.Items = new ReadOnlyObservableList<BaseAddressTableEntry>(this.items);
+        this.Items = new ObservableList<BaseAddressTableEntry>();
+        this.Items.BeforeItemAdded += (list, index, item) => {
+            if (item == null)
+                throw new ArgumentNullException(nameof(item), "Cannot add a null entry");
+            if (item.Parent == this)
+                throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
+            if (item.Parent != null)
+                throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
+        };
+        this.Items.ItemsAdded += (list, index, items) => items.ForEach(this, InternalOnAddedToEntry);
+        this.Items.ItemsRemoved += (list, index, removedItems) => removedItems.ForEach(InternalOnRemovedFromEntry);
+        this.Items.BeforeItemReplace += (list, index, oldItem, newItem) => {
+            if (newItem == null)
+                throw new ArgumentNullException(nameof(newItem), "Cannot replace item with null");
+            if (newItem.Parent == this)
+                throw new InvalidOperationException("Replacement entry already exists in this entry. It must be removed first");
+            if (newItem.Parent != null)
+                throw new InvalidOperationException("Replacement entry already exists in another container. It must be removed first");
+        };
+        this.Items.ItemReplaced += (list, index, oldItem, newItem) => {
+            InternalOnRemovedFromEntry(oldItem);
+            InternalOnAddedToEntry(newItem, this);
+        };
     }
-    
+
     static AddressTableGroupEntry() {
-    }
-    
-    public void AddEntry(BaseAddressTableEntry entry) => this.InsertEntry(this.items.Count, entry);
-
-    public void InsertEntry(int index, BaseAddressTableEntry entry) {
-        if (index < 0)
-            throw new ArgumentOutOfRangeException(nameof(index), "Negative indices not allowed");
-        if (index > this.items.Count)
-            throw new ArgumentOutOfRangeException(nameof(index), $"Index is beyond the range of this list: {index} > count({this.items.Count})");
-
-        if (entry == null)
-            throw new ArgumentNullException(nameof(entry), "Cannot add a null entry");
-        if (entry.Parent == this)
-            throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
-        if (entry.Parent != null)
-            throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
-
-        // Update before insertion since it fires an event, IndexInParent would be -1 in handlers
-        for (int i = this.items.Count - 1; i >= index; i--) {
-            InternalSetIndexInParent(this.items[i], i + 1);
-        }
-
-        using (this.items.SuspendEvents()) {
-            this.items.Insert(index, entry);
-            InternalOnAddedToEntry(index, entry, this);
-        }
-    }
-
-    public void AddEntries(IEnumerable<BaseAddressTableEntry> layers) {
-        foreach (BaseAddressTableEntry entry in layers) {
-            this.AddEntry(entry);
-        }
-    }
-
-    public bool RemoveEntry(BaseAddressTableEntry entry) {
-        if (!ReferenceEquals(entry.Parent, this))
-            return false;
-        this.RemoveEntryAt(InternalIndexInParent(entry));
-
-        Debug.Assert(entry.Parent != this, "Entry parent not updated, still ourself");
-        Debug.Assert(entry.Parent == null, "Entry parent not updated to null");
-        return true;
-    }
-
-    public void RemoveEntryAt(int index) {
-        BaseAddressTableEntry entry = this.items[index];
-        InternalOnPreRemoveFromOwner(entry);
-        for (int i = this.items.Count - 1; i > index /* not >= since we remove one at index */; i--) {
-            InternalSetIndexInParent(this.items[i], i - 1);
-        }
-
-        using (this.items.SuspendEvents()) {
-            this.items.RemoveAt(index);
-            InternalOnRemovedFromEntry(entry, this);
-        }
-    }
-
-    public void RemoveEntries(IEnumerable<BaseAddressTableEntry> entries) {
-        foreach (BaseAddressTableEntry entry in entries) {
-            this.RemoveEntry(entry);
-        }
     }
 
     public void MoveEntryTo(BaseAddressTableEntry entry, AddressTableGroupEntry newParent) {
         if (!ReferenceEquals(entry.Parent, this))
             throw new InvalidOperationException("Entry does not exist in this group");
 
-        int idx = InternalIndexInParent(entry);
-        this.RemoveEntryAt(idx);
-        
-        newParent.AddEntry(entry);
+        bool removed = this.Items.Remove(entry);
+        Debug.Assert(removed, "Not in list but parent reference is set");
+
+        newParent.Items.Add(entry);
     }
-    
+
     public int IndexOf(BaseAddressTableEntry entry) {
-        return ReferenceEquals(entry.Parent, this) ? InternalIndexInParent(entry) : -1;
+        return ReferenceEquals(entry.Parent, this) ? this.Items.IndexOf(entry) : -1;
     }
 
     public bool Contains(BaseAddressTableEntry entry) {
@@ -156,7 +118,7 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
     }
 
     public void GetAllEntries(List<AddressTableEntry> entries) {
-        foreach (BaseAddressTableEntry entry in this.items) {
+        foreach (BaseAddressTableEntry entry in this.Items) {
             if (entry is AddressTableGroupEntry group)
                 group.GetAllEntries(entries);
             else
@@ -164,21 +126,14 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
         }
     }
 
-    public void Clear() {
-        for (int i = this.items.Count - 1; i >= 0; i--) {
-            this.RemoveEntryAt(i);
-        }
-    }
+    public void Clear() => this.Items.Clear();
 
     public override BaseAddressTableEntry CreateClone() {
         AddressTableGroupEntry entry = new AddressTableGroupEntry() {
             Description = this.Description
         };
 
-        foreach (BaseAddressTableEntry item in this.items) {
-            entry.AddEntry(item.CreateClone());
-        }
-
+        entry.Items.AddRange(this.Items.Select(x => x.CreateClone()));
         return entry;
     }
 }

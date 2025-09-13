@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Commands;
@@ -27,11 +28,18 @@ public class NextScanCommand : BaseMemoryEngineCommand {
         return !engine.ScanningProcessor.CanPerformNextScan ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
-    protected override Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
         if (engine.ScanningProcessor.CanPerformNextScan) {
-            return engine.ScanningProcessor.ScanFirstOrNext();
+            MemoryEngineViewState state = MemoryEngineViewState.GetInstance(engine);
+            
+            // Save original selection state
+            List<ScanResultViewModel> selection = state.SelectedScanResults.SelectedItems.ToList();
+            
+            await engine.ScanningProcessor.ScanFirstOrNext();
+            
+            // Try to restore any items that still exist, since their references will
+            // be maintained unless for some reason the ScanningContext is kerfuckled
+            state.SelectedScanResults.SelectItems(selection);
         }
-
-        return Task.CompletedTask;
     }
 }

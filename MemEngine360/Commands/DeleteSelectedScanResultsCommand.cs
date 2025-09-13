@@ -20,6 +20,7 @@
 using MemEngine360.Engine;
 using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Commands;
@@ -37,17 +38,15 @@ public class DeleteSelectedScanResultsCommand : Command {
             return Task.CompletedTask;
         }
 
+        ListSelectionModel<ScanResultViewModel> selection = MemoryEngineViewState.GetInstance(engine.MemoryEngine).SelectedScanResults;
         ObservableList<ScanResultViewModel> items = engine.MemoryEngine.ScanningProcessor.ScanResults;
-        if (MemoryEngineViewState.GetInstance(engine.MemoryEngine).SelectedScanResults.Count == items.Count) {
+        if (selection.Count == items.Count) {
             items.Clear();
         }
         else {
-            List<ScanResultViewModel> list = MemoryEngineViewState.GetInstance(engine.MemoryEngine).SelectedScanResults.SelectedItems.ToList();
-            MemoryEngineViewState.GetInstance(engine.MemoryEngine).SelectedScanResults.Clear();
-            
-            foreach (ScanResultViewModel address in list) {
-                items.Remove(address);
-            }
+            List<ScanResultViewModel> list = selection.SelectedItems.ToList();
+            selection.Clear();
+            items.RemoveRange(list);
         }
 
         return Task.CompletedTask;

@@ -53,7 +53,6 @@ public class ConditionsListBoxItem : ModelBasedListBoxItem<BaseSequenceCondition
 
     protected override void OnAddedToList() {
         BaseConditionListContent content = (BaseConditionListContent) this.Content!;
-        TemplateUtils.Apply(content);
         content.Condition = this.Model!;
         AdvancedContextMenu.SetContextRegistry(this, ConditionsContextRegistry.Registry);
         DataManager.GetContextData(this).Set(BaseSequenceCondition.DataKey, this.Condition);
