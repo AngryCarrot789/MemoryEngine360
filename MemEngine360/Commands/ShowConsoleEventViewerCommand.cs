@@ -31,7 +31,7 @@ public class ShowConsoleEventViewerCommand : BaseMemoryEngineCommand {
 
     protected override Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
         if (engine.Connection?.HasFeature<IFeatureSystemEvents>() == true) {
-            return ApplicationPFX.GetService<IConsoleEventViewerService>().ShowOrFocus(engine);
+            return ApplicationPFX.GetComponent<IConsoleEventViewerService>().ShowOrFocus(engine);
         }
 
         return Task.CompletedTask;

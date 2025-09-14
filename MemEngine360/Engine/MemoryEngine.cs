@@ -193,7 +193,6 @@ public class MemoryEngine : IComponentManager {
 
     private readonly ComponentStorage myComponentStorage;
     ComponentStorage IComponentManager.ComponentStorage => this.myComponentStorage;
-    IComponentManager IComponentManager.ParentComponentManager => ApplicationPFX.Instance;
 
     public MemoryEngine() {
         this.myComponentStorage = new ComponentStorage(this);

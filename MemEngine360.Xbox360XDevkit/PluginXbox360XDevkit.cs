@@ -50,7 +50,7 @@ public class PluginXbox360XDevkit : Plugin {
     protected override Task OnApplicationFullyLoaded() {
         OpenConnectionView.Registry.RegisterType<ConnectToXboxInfo>(() => new OpenXDevkitConnectionView());
 
-        ConsoleConnectionManager manager = ApplicationPFX.GetService<ConsoleConnectionManager>();
+        ConsoleConnectionManager manager = ApplicationPFX.GetComponent<ConsoleConnectionManager>();
         manager.Register(ConnectionTypeXbox360XDevkit.TheID, ConnectionTypeXbox360XDevkit.Instance);
 
         ModuleViewer.RegisterHandlerForConnectionType<XDevkitConsoleConnection>(new XDevkitModuleViewerProcessor());

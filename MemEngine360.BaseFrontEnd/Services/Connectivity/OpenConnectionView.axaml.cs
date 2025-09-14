@@ -151,7 +151,7 @@ public partial class OpenConnectionView : UserControl {
         IContextData context = new ContextData().Set(MemoryEngine.EngineDataKey, this.MemoryEngine);
 
         ConsoleTypeListBoxItem? selected = null;
-        ConsoleConnectionManager service = ApplicationPFX.GetService<ConsoleConnectionManager>();
+        ConsoleConnectionManager service = ApplicationPFX.GetComponent<ConsoleConnectionManager>();
         foreach (RegisteredConnectionType type in service.RegisteredConsoleTypes) {
             ConsoleTypeListBoxItem item = new ConsoleTypeListBoxItem(type, context);
             if (selected == null && this.TypeToFocusOnOpened != null && type.RegisteredId == this.TypeToFocusOnOpened)

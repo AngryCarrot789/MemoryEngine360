@@ -29,10 +29,10 @@ public class ShowDebuggerCommand : Command {
             return;
 
         ConsoleDebugger debugger = engine.MemoryEngine.ConsoleDebugger;
-        IDebuggerViewService service = ApplicationPFX.GetService<IDebuggerViewService>();
+        IDebuggerViewService service = ApplicationPFX.GetComponent<IDebuggerViewService>();
         await service.ShowDebugger(debugger);
         if (debugger.Connection == null) {
-            IOpenConnectionView? dialog = await ApplicationPFX.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(debugger.Engine);
+            IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(debugger.Engine);
             if (dialog == null) {
                 return;
             }

@@ -48,7 +48,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             }
         }
 
-        this.myDialog = await ApplicationPFX.GetService<ConsoleConnectionManager>().ShowOpenConnectionView(debugger.Engine);
+        this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(debugger.Engine);
         if (this.myDialog != null) {
             try {
                 IConsoleConnection? connection = await this.myDialog.WaitForClose();

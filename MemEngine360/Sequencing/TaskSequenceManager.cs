@@ -57,7 +57,6 @@ public class TaskSequenceManager : IComponentManager {
     public MemoryEngine MemoryEngine { get; }
 
     ComponentStorage IComponentManager.ComponentStorage => this.myComponentStorage;
-    IComponentManager IComponentManager.ParentComponentManager => this.MemoryEngine;
 
     public TaskSequenceManager(MemoryEngine engine) {
         this.MemoryEngine = engine ?? throw new ArgumentNullException(nameof(engine));

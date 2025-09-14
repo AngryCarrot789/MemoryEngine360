@@ -22,7 +22,7 @@ using PFXToolKitUI;
 namespace MemEngine360.Engine.FileBrowsing;
 
 public interface IFileBrowserService {
-    static IFileBrowserService Instance => ApplicationPFX.GetService<IFileBrowserService>();
+    static IFileBrowserService Instance => ApplicationPFX.GetComponent<IFileBrowserService>();
     
     Task ShowFileBrowser(FileTreeExplorer explorer);
 }

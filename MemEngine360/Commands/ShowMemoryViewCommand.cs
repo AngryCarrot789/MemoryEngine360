@@ -30,7 +30,7 @@ public class ShowMemoryViewCommand : BaseMemoryEngineCommand {
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
-        if (ApplicationPFX.TryGetService(out IHexDisplayService? service)) {
+        if (ApplicationPFX.TryGetComponent(out IHexDisplayService? service)) {
             MemoryViewer info = new MemoryViewer(engine) {
                 Offset = engine.ScanningProcessor.StartAddress
             };

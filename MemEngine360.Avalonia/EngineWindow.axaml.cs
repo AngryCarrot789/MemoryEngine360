@@ -48,13 +48,13 @@ public partial class EngineWindow : DesktopWindow {
                Set(MemoryEngine.EngineDataKey, this.PART_MemEngineView.MemoryEngine).
                Set(IEngineUI.DataKey, this.PART_MemEngineView);
 
-        ((MemoryEngineManagerImpl) ApplicationPFX.GetService<MemoryEngineManager>()).OnEngineOpened(this.PART_MemEngineView);
+        ((MemoryEngineManagerImpl) ApplicationPFX.GetComponent<MemoryEngineManager>()).OnEngineOpened(this.PART_MemEngineView);
     }
 
     protected override void OnClosed(EventArgs e) {
         base.OnClosed(e);
 
-        ((MemoryEngineManagerImpl) ApplicationPFX.GetService<MemoryEngineManager>()).OnEngineClosed(this.PART_MemEngineView);
+        ((MemoryEngineManagerImpl) ApplicationPFX.GetComponent<MemoryEngineManager>()).OnEngineClosed(this.PART_MemEngineView);
 
         DataManager.GetContextData(this).Remove(MemoryEngine.EngineDataKey, IEngineUI.DataKey);
     }

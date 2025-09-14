@@ -74,6 +74,7 @@ using PFXToolKitUI.Avalonia.Services.UserInputs;
 using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Themes;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Composition;
 using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Services;
@@ -196,26 +197,26 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         // manager.Register("commands.application.RedoCommand", new RedoCommand());
     }
 
-    protected override void RegisterServices(ServiceManager manager) {
+    protected override void RegisterComponents(ComponentStorage manager) {
         if (this.Application.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime) {
-            manager.RegisterConstant<IDesktopService>(new DesktopServiceImpl(this.Application));
-            manager.RegisterConstant<WindowingSystem>(new WindowingSystemImpl(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)));
+            manager.AddComponent<IDesktopService>(new DesktopServiceImpl(this.Application));
+            manager.AddComponent<WindowingSystem>(new WindowingSystemImpl(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)));
         }
 
-        base.RegisterServices(manager);
+        base.RegisterComponents(manager);
 
-        manager.RegisterConstant<IIconPreferences>(new IconPreferencesImpl());
-        manager.RegisterConstant<IStartupManager>(new StartupManagerMemoryEngine360());
-        manager.RegisterConstant<IAboutService>(new AboutServiceImpl());
-        manager.RegisterConstant<IHexDisplayService>(new HexDisplayServiceImpl());
-        manager.RegisterConstant<ConsoleConnectionManager>(new ConsoleConnectionManagerImpl());
-        manager.RegisterConstant<ITaskSequencerService>(new TaskSequencerServiceImpl());
-        manager.RegisterConstant<MemoryEngineManager>(new MemoryEngineManagerImpl());
-        manager.RegisterConstant<IEditConditionOutputModeService>(new EditConditionOutputModeServiceImpl());
-        manager.RegisterConstant<IPointerScanService>(new PointerScanServiceImpl());
-        manager.RegisterConstant<IConsoleEventViewerService>(new ConsoleEventViewerServiceImpl());
-        manager.RegisterConstant<IDebuggerViewService>(new DebuggerViewServiceImpl());
-        manager.RegisterConstant<IFileBrowserService>(new FileBrowserServiceImpl());
+        manager.AddComponent<IIconPreferences>(new IconPreferencesImpl());
+        manager.AddComponent<IStartupManager>(new StartupManagerMemoryEngine360());
+        manager.AddComponent<IAboutService>(new AboutServiceImpl());
+        manager.AddComponent<IHexDisplayService>(new HexDisplayServiceImpl());
+        manager.AddComponent<ConsoleConnectionManager>(new ConsoleConnectionManagerImpl());
+        manager.AddComponent<ITaskSequencerService>(new TaskSequencerServiceImpl());
+        manager.AddComponent<MemoryEngineManager>(new MemoryEngineManagerImpl());
+        manager.AddComponent<IEditConditionOutputModeService>(new EditConditionOutputModeServiceImpl());
+        manager.AddComponent<IPointerScanService>(new PointerScanServiceImpl());
+        manager.AddComponent<IConsoleEventViewerService>(new ConsoleEventViewerServiceImpl());
+        manager.AddComponent<IDebuggerViewService>(new DebuggerViewServiceImpl());
+        manager.AddComponent<IFileBrowserService>(new FileBrowserServiceImpl());
 
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }
@@ -233,7 +234,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             this.PluginLoader.AddCorePlugin(typeof(PluginXbox360XDevkit));
 
         MemoryEngineBrushLoader.Init();
-        ThemeManagerImpl manager = (ThemeManagerImpl) this.ServiceManager.GetService<ThemeManager>();
+        ThemeManagerImpl manager = (ThemeManagerImpl) this.ComponentStorage.GetComponent<ThemeManager>();
         Theme darkTheme = manager.GetThemeByVariant(ThemeVariant.Dark)!;
 
         Theme redTheme = manager.RegisterTheme("Red Theme (Built In)", darkTheme, false);
@@ -289,7 +290,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             DisplayName = "Memory Engine", Id = "config.memoryengine", Page = new MemoryEngineConfigurationPage()
         });
 
-        ConsoleConnectionManager manager = this.ServiceManager.GetService<ConsoleConnectionManager>();
+        ConsoleConnectionManager manager = this.ComponentStorage.GetComponent<ConsoleConnectionManager>();
         manager.Register(ConnectionTypeBinaryFile.TheID, ConnectionTypeBinaryFile.Instance);
 
 #if DEBUG
@@ -303,7 +304,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         OpenConnectionView.Registry.RegisterType<OpenBinaryFileInfo>(() => new OpenBinaryFileView());
 
         Theme? theme;
-        ThemeManager themeManager = this.ServiceManager.GetService<ThemeManager>();
+        ThemeManager themeManager = this.ComponentStorage.GetComponent<ThemeManager>();
         string defaultThemeName = BasicApplicationConfiguration.Instance.DefaultTheme;
         if (!string.IsNullOrWhiteSpace(defaultThemeName) && (theme = themeManager.GetTheme(defaultThemeName)) != null) {
             themeManager.SetTheme(theme);

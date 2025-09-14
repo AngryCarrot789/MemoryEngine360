@@ -29,7 +29,7 @@ public delegate void MemoryEngineUIEventHandler(MemoryEngineManager manager, IEn
 public abstract class MemoryEngineManager {
     private readonly List<IEngineUI> engines;
 
-    public static MemoryEngineManager Instance => ApplicationPFX.GetService<MemoryEngineManager>();
+    public static MemoryEngineManager Instance => ApplicationPFX.GetComponent<MemoryEngineManager>();
     
     /// <summary>
     /// Gets all opened engine views. This list is read-only

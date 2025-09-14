@@ -26,8 +26,8 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Connections.Features;
+using PFXToolKitUI.Composition;
 using PFXToolKitUI.Logging;
-using PFXToolKitUI.Services;
 using PFXToolKitUI.Tasks;
 
 namespace MemEngine360.Connections;
@@ -37,7 +37,7 @@ namespace MemEngine360.Connections;
 /// </summary>
 public abstract class BaseConsoleConnection : IConsoleConnection {
     protected readonly byte[] sharedByteArray8 = new byte[8];
-    private readonly ServiceManager featureManager;
+    private readonly ComponentManagerWrapper featureManagerWrapper;
     private volatile int busyStack;
     private volatile int isClosedState;
 
@@ -58,7 +58,18 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public event ConsoleConnectionEventHandler? Closed;
 
     protected BaseConsoleConnection() {
-        this.featureManager = new ServiceManager();
+        this.featureManagerWrapper = new ComponentManagerWrapper(this);
+    }
+
+    private sealed class ComponentManagerWrapper : IComponentManager {
+        public ComponentStorage ComponentStorage { get; }
+
+        public IConsoleConnection Connection { get; }
+
+        public ComponentManagerWrapper(IConsoleConnection connection) {
+            this.ComponentStorage = new ComponentStorage(this);
+            this.Connection = connection;
+        }
     }
 
     ~BaseConsoleConnection() {
@@ -67,7 +78,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public virtual bool TryGetFeature<T>([NotNullWhen(true)] out T? feature) where T : class, IConsoleFeature {
-        return this.featureManager.TryGetService(out feature);
+        return this.featureManagerWrapper.ComponentStorage.TryGetComponent(out feature);
     }
 
     public bool HasFeature<T>() where T : class, IConsoleFeature => this.HasFeature(typeof(T));
@@ -76,7 +87,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         if (!typeof(IConsoleFeature).IsAssignableFrom(typeOfFeature))
             throw new ArgumentException("Feature type is not assignable to " + nameof(IConsoleFeature));
 
-        return this.featureManager.HasService(typeOfFeature);
+        return this.featureManagerWrapper.ComponentStorage.HasComponent(typeOfFeature);
     }
 
     /// <summary>
@@ -85,7 +96,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// <param name="feature">The feature instance</param>
     /// <typeparam name="T">The feature type</typeparam>
     protected void RegisterFeature<T>(T feature) where T : class, IConsoleFeature {
-        this.featureManager.RegisterConstant(feature);
+        this.featureManagerWrapper.ComponentStorage.AddComponent(feature);
     }
 
     /// <summary>
@@ -93,8 +104,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// </summary>
     /// <param name="feature">The feature factory</param>
     /// <typeparam name="T">The feature type</typeparam>
-    protected void RegisterFeatureLazy<T>(Func<T> feature) where T : class, IConsoleFeature {
-        this.featureManager.RegisterLazy<T>(feature);
+    protected void RegisterFeatureLazy<T>(Func<IConsoleConnection, T> feature) where T : class, IConsoleFeature {
+        this.featureManagerWrapper.ComponentStorage.AddLazyComponent<T>((t) => feature(((ComponentManagerWrapper) t).Connection));
     }
 
     public abstract Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);
