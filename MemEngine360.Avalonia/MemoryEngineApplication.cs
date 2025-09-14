@@ -18,8 +18,10 @@
 // 
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using Avalonia;
@@ -69,15 +71,20 @@ using MemEngine360.XboxInfo;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Configurations.Pages;
+using PFXToolKitUI.Avalonia.Interactivity;
+using PFXToolKitUI.Avalonia.Interactivity.Contexts;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.DesktopImpl;
 using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Services.UserInputs;
-using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Avalonia.Themes;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Services;
+using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Themes;
 using PFXToolKitUI.Utils;
 using SkiaSharp;
@@ -200,7 +207,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
     protected override void RegisterComponents(ComponentStorage manager) {
         if (this.Application.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime) {
             manager.AddComponent<IDesktopService>(new DesktopServiceImpl(this.Application));
-            manager.AddComponent<WindowingSystem>(new WindowingSystemImpl(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)));
+            manager.AddComponent<IWindowManager>(new DesktopWindowManager(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)));
         }
 
         base.RegisterComponents(manager);
@@ -208,7 +215,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.AddComponent<IIconPreferences>(new IconPreferencesImpl());
         manager.AddComponent<IStartupManager>(new StartupManagerMemoryEngine360());
         manager.AddComponent<IAboutService>(new AboutServiceImpl());
-        manager.AddComponent<IHexDisplayService>(new HexDisplayServiceImpl());
+        manager.AddComponent<IMemoryViewerViewService>(new MemoryViewerViewServiceImpl());
         manager.AddComponent<ConsoleConnectionManager>(new ConsoleConnectionManagerImpl());
         manager.AddComponent<ITaskSequencerService>(new TaskSequencerServiceImpl());
         manager.AddComponent<MemoryEngineManager>(new MemoryEngineManagerImpl());
@@ -444,29 +451,178 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             }
 
             await progress.ProgressAndWaitForRender("Startup completed. Loading engine window...", 1.0);
-            if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-                system.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-
-                EngineWindow view = new EngineWindow();
+            if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
+                IDesktopService.TryGetInstance(out IDesktopService? desktop);
+                if (desktop != null)
+                    desktop.ApplicationLifetime.ShutdownMode = ShutdownMode.OnExplicitShutdown; 
+                
                 (progress as SplashScreenWindow)?.Close();
+                
+                if (desktop != null)
+                    desktop.ApplicationLifetime.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
-                system.ShutdownMode = ShutdownMode.OnMainWindowClose;
-                system.Register(view, true);
-                view.Show();
+                EngineView view = new EngineView();
+                IWindow window = manager.CreateWindow(new WindowBuilder() {
+                    Title = "Memory Engine 360 v1.1.8-dev",
+                    FocusPath = "EngineWindow",
+                    Content = view,
+                    MinWidth = 600, MinHeight = 520,
+                    Width = 680, Height = 630,
+                    // rely on default icon for the DesktopWindowManager
+                    // Icon = new WindowIcon(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)),
+                    ShowTitleBarIcon = false,
+                    TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.MainView.TitleBarBackground"),
+                    BorderBrush = BrushManager.Instance.GetDynamicThemeBrush("PanelBorderBrush"),
+                    MainWindow = true
+                });
 
-                Application.Current!.Resources.TryGetResource("FontOxanium", ThemeVariant.Default, out object? font);
+                window.WindowOpened += static (s, e) => {
+                    EngineView view = (EngineView) s.Content!;
+                    view.IsActivtyListVisible = false;
+                    using MultiChangeToken change = DataManager.GetContextData(s.Control).BeginChange();
+                    change.Context.
+                           Set(MemoryEngine.EngineDataKey, view.MemoryEngine).
+                           Set(IEngineUI.DataKey, view);
+
+                    ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view);
+                };
+
+                window.BeforeClosingAsync += static (s, e) => Instance.Dispatcher.InvokeAsync(() => OnEngineWindowAboutToClose(s, e)).Unwrap();
+                window.WindowClosed += static (s, e) => {
+                    EngineView view = (EngineView) s.Content!;
+                    ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view);
+                    DataManager.GetContextData(s.Control).Remove(MemoryEngine.EngineDataKey, IEngineUI.DataKey);
+                };
+
+                await window.ShowAsync();
             }
             else {
                 Instance.Dispatcher.InvokeShutdown();
             }
         }
+
+        private static async Task OnEngineWindowAboutToClose(IWindow window, WindowCancelCloseEventArgs args) {
+            EngineView view = (EngineView) window.Content!;
+            MemoryEngine engine = view.MemoryEngine;
+
+            engine.IsShuttingDown = true;
+            ulong frame = engine.GetNextConnectionChangeFrame();
+            await engine.BroadcastConnectionAboutToChange(frame);
+
+            List<ActivityTask> tasks = ActivityManager.Instance.ActiveTasks.ToList();
+            foreach (ActivityTask task in tasks) {
+                task.TryCancel();
+            }
+
+            if (engine.ScanningProcessor.IsScanning) {
+                ActivityTask? activity = engine.ScanningProcessor.ScanningActivity;
+                if (activity != null && activity.TryCancel()) {
+                    await activity;
+
+                    if (engine.ScanningProcessor.IsScanning) {
+                        await IMessageDialogService.Instance.ShowMessage("Busy", "Rare: scan still busy");
+                        args.SetCancelled();
+                        return;
+                    }
+                }
+            }
+
+            using (CancellationTokenSource cts = new CancellationTokenSource()) {
+                // Grace period for all activities to become cancelled
+                try {
+                    await Task.WhenAny(Task.Delay(1000, cts.Token), Task.Run(() => Task.WhenAll(tasks.Select(x => x.Task)), cts.Token));
+                    await cts.CancelAsync();
+                }
+                catch (OperationCanceledException) {
+                    // ignored
+                }
+            }
+
+            IDisposable? token = await engine.BeginBusyOperationAsync(500);
+            while (token == null) {
+                MessageBoxInfo info = new MessageBoxInfo() {
+                    Caption = "Engine busy",
+                    Message = $"Cannot close window yet because the engine is still busy and cannot be shutdown safely.{Environment.NewLine}" + "What do you want to do?",
+                    Buttons = MessageBoxButton.YesNo,
+                    DefaultButton = MessageBoxResult.Yes,
+                    YesOkText = "Wait for operations",
+                    NoText = "Force Close"
+                };
+
+                MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
+                if (result != MessageBoxResult.Yes /* Yes == wait for ops */) {
+                    return; // force close - let tcp things timeout
+                }
+
+                token = await engine.BeginBusyOperationActivityAsync("Safely closing window");
+            }
+
+            IConsoleConnection? connection = engine.Connection;
+            try {
+                if (connection != null) {
+                    engine.SetConnection(token, frame, null, ConnectionChangeCause.User);
+                    connection.Close();
+                }
+            }
+            catch {
+                // ignored
+            }
+            finally {
+                token.Dispose();
+            }
+
+            IDisposable? debuggerToken = await engine.ConsoleDebugger.BusyLock.BeginBusyOperationAsync(1000);
+            while (debuggerToken == null) {
+                MessageBoxInfo info = new MessageBoxInfo() {
+                    Caption = "Debugger busy",
+                    Message = $"Cannot close window yet because the debugger is still busy and cannot be shutdown safely.{Environment.NewLine}" + "What do you want to do?",
+                    Buttons = MessageBoxButton.YesNo,
+                    DefaultButton = MessageBoxResult.Yes,
+                    YesOkText = "Wait for operations",
+                    NoText = "Force Close"
+                };
+
+                MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
+                if (result != MessageBoxResult.Yes /* Yes == wait for ops */) {
+                    return; // force close - let tcp things timeout
+                }
+
+                debuggerToken = await engine.ConsoleDebugger.BusyLock.BeginBusyOperationActivityAsync("Safely closing window");
+            }
+
+            IConsoleConnection? debugConnection = engine.ConsoleDebugger.Connection;
+            try {
+                if (debugConnection != null) {
+                    engine.ConsoleDebugger.SetConnection(debuggerToken, null);
+                    debugConnection.Close();
+                }
+            }
+            catch {
+                // ignored
+            }
+            finally {
+                debuggerToken.Dispose();
+            }
+        }
     }
 
     private class AboutServiceImpl : IAboutService {
-        public async Task ShowDialog() {
-            if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-                system.Register(new AboutWindow()).Show(system.GetActiveWindowOrNull());
+        public Task ShowDialog() {
+            if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
+                IWindow window = manager.CreateWindow(new WindowBuilder() {
+                    Title = "About MemoryEngine360",
+                    Content = new AboutView(),
+                    TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone7.Background.Static"),
+                    BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
+                    MinWidth = 500, MinHeight = 200,
+                    Width = 600, Height = 250,
+                    Parent = manager.GetActiveWindowOrNull()
+                });
+
+                return window.ShowAsync();
             }
+
+            return Task.CompletedTask;
         }
     }
 

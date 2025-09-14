@@ -19,29 +19,39 @@
 
 using MemEngine360.Engine;
 using MemEngine360.Sequencing;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Themes;
+using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public class TaskSequencerServiceImpl : ITaskSequencerService {
-    private WeakReference<TaskSequencerWindow>? currentWindow;
-    
-    public Task OpenOrFocusWindow(IEngineUI engine) {
-        if (WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-            if (this.currentWindow == null || !this.currentWindow.TryGetTarget(out TaskSequencerWindow? existing) || existing.IsClosed) {
-                TaskSequencerWindow window = new TaskSequencerWindow(engine.MemoryEngine.TaskSequenceManager);
+    private IWindow? currentWindow;
 
-                if (this.currentWindow == null)
-                    this.currentWindow = new WeakReference<TaskSequencerWindow>(window);
-                else
-                    this.currentWindow.SetTarget(window);
-                
-                system.Register(window).Show();
-            }
-            else {
-                existing.Activate();
-                return Task.CompletedTask;
-            }
+    public Task OpenOrFocusWindow(IEngineUI engine) {
+        if (this.currentWindow != null) {
+            this.currentWindow.Activate();
+            return Task.CompletedTask;
+        }
+
+        if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
+            IWindow window = this.currentWindow = manager.CreateWindow(new WindowBuilder() {
+                Title = "Task Sequencer",
+                FocusPath = "SequencerWindow",
+                Content = new TaskSequencerWindow(engine.MemoryEngine.TaskSequenceManager),
+                TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.Sequencer.TitleBarBackground"),
+                BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
+                MinWidth = 640, MinHeight = 400,
+                Width = 960, Height = 640
+            });
+
+            window.WindowOpened += (sender, args) => ((TaskSequencerWindow) sender.Content!).OnWindowOpened(sender);
+            window.WindowClosed += (sender, args) => {
+                ((TaskSequencerWindow) sender.Content!).OnWindowClosed();
+                this.currentWindow = null;
+            };
+            
+            return window.ShowAsync();
         }
 
         return Task.CompletedTask;

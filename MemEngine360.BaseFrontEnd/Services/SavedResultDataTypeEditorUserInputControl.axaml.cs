@@ -140,10 +140,4 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
         this.PART_DataTypeComboBox.Focus();
         return true;
     }
-
-    public void OnWindowOpened() {
-    }
-
-    public void OnWindowClosed() {
-    }
 }

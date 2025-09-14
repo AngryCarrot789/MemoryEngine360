@@ -33,7 +33,7 @@ public partial class PointerScanResultToolTip : UserControl, IToolTipControl {
     }
 
     public void OnOpened(Control owner, IContextData data) {
-        if (!PointerScanWindow.PointerScannerDataKey.TryGetContext(data, out PointerScanner? scanner)) {
+        if (!PointerScannerView.PointerScannerDataKey.TryGetContext(data, out PointerScanner? scanner)) {
             // I mean we could just access the PointerScannerWindow via TopLevel.GetTopLevel(this)...
             return;
         }

@@ -27,13 +27,13 @@ using PFXToolKitUI;
 namespace MemEngine360.BaseFrontEnd.Debugging;
 
 public class ThreadMemoryAutoRefresh : IDisposable {
-    private readonly DebuggerWindow window;
+    private readonly DebuggerView window;
     private volatile CancellationTokenSource? cts;
     private Task? task;
 
     public ConsoleDebugger Debugger { get; }
 
-    public ThreadMemoryAutoRefresh(ConsoleDebugger debugger, DebuggerWindow window) {
+    public ThreadMemoryAutoRefresh(ConsoleDebugger debugger, DebuggerView window) {
         this.Debugger = debugger;
         this.window = window;
         this.cts = new CancellationTokenSource();

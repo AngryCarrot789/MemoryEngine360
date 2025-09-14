@@ -21,6 +21,7 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity;
+using PFXToolKitUI.Interactivity.Windowing;
 
 namespace MemEngine360.Commands.ATM;
 
@@ -34,17 +35,18 @@ public abstract class BaseCopyAddressTableEntryCommand : BaseSavedAddressSelecti
         if (exec != Executability.Valid)
             return exec;
         
-        if (!IDesktopWindow.DataKey.TryGetContext(e.ContextData, out IDesktopWindow? window))
+        if (!ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(e.ContextData, out ITopLevelComponentManager? topLevel))
             return Executability.Invalid;
-        if (window.ClipboardService == null)
+        if (!IClipboardService.TryGet(topLevel, out _))
             return Executability.ValidButCannotExecute;
         
         return this.CanExecute(entries[0], engine, e);
     }
 
     protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
-        IClipboardService? clipboard;
-        if (!IDesktopWindow.DataKey.TryGetContext(e.ContextData, out IDesktopWindow? window) || (clipboard = window.ClipboardService) == null)
+        if (!ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(e.ContextData, out ITopLevelComponentManager? topLevel))
+            return;
+        if (!IClipboardService.TryGet(topLevel, out IClipboardService? clipboard))
             return;
 
         await this.Copy(entries[0], engine, clipboard);

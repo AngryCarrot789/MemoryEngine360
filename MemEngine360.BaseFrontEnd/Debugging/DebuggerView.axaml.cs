@@ -36,20 +36,22 @@ using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Themes.BrushFactories;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Logging;
 
 namespace MemEngine360.BaseFrontEnd.Debugging;
 
-public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
-    public static readonly StyledProperty<ConsoleDebugger?> ConsoleDebuggerProperty = AvaloniaProperty.Register<DebuggerWindow, ConsoleDebugger?>(nameof(ConsoleDebugger));
+public partial class DebuggerView : UserControl, IDebuggerWindow {
+    public static readonly StyledProperty<ConsoleDebugger?> ConsoleDebuggerProperty = AvaloniaProperty.Register<DebuggerView, ConsoleDebugger?>(nameof(ConsoleDebugger));
 
     public ConsoleDebugger? ConsoleDebugger {
         get => this.GetValue(ConsoleDebuggerProperty);
         set => this.SetValue(ConsoleDebuggerProperty, value);
     }
+    
+    public IWindow? Window { get; private set; }
 
     private readonly IBinder<ConsoleDebugger> autoRefreshBinder = new AvaloniaPropertyToEventPropertyBinder<ConsoleDebugger>(ToggleButton.IsCheckedProperty, nameof(ConsoleDebugger.RefreshRegistersOnActiveThreadChangeChanged), (b) => b.Control.SetValue(ToggleButton.IsCheckedProperty, b.Model.RefreshRegistersOnActiveThreadChange), b => b.Model.RefreshRegistersOnActiveThreadChange = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ConsoleDebugger> autoAddRemoveThreadsBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.AutoAddOrRemoveThreadsChanged), (b) => b.Control.SetValue(CheckBox.IsCheckedProperty, b.Model.AutoAddOrRemoveThreads));
@@ -70,7 +72,7 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
     private ThreadMemoryAutoRefresh? autoRefresh;
     internal readonly HexEditorChangeManager changeManager;
 
-    public DebuggerWindow() {
+    public DebuggerView() {
         this.InitializeComponent();
         this.autoRefreshBinder.AttachControl(this.PART_AutoRefreshRegistersOnThreadChange);
         this.autoAddRemoveThreadsBinder.AttachControl(this.PART_ToggleAutoAddRemoveThreads);
@@ -146,12 +148,13 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
         this.PART_HexEditor.Selection.Range = new BitRange(new BitLocation(address), new BitLocation(address + 1));
     }
 
-    static DebuggerWindow() {
-        ConsoleDebuggerProperty.Changed.AddClassHandler<DebuggerWindow, ConsoleDebugger?>((s, e) => s.OnConsoleDebuggerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+    static DebuggerView() {
+        ConsoleDebuggerProperty.Changed.AddClassHandler<DebuggerView, ConsoleDebugger?>((s, e) => s.OnConsoleDebuggerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
-    protected override void OnOpenedCore() {
-        base.OnOpenedCore();
+    internal void OnWindowOpened(IWindow window) {
+        this.Window = window;
+        
         if (this.ConsoleDebugger != null) {
             this.ConsoleDebugger.IsWindowVisible = true;
             this.PART_EventViewer.BusyLock = this.ConsoleDebugger.BusyLock;
@@ -161,17 +164,14 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
         this.timer.EnableTargets();
     }
 
-    protected sealed override async Task<bool> OnClosingAsync(WindowCloseReason reason) {
-        if (await base.OnClosingAsync(reason))
-            return true;
-
+    internal async Task OnClosingAsync(WindowCloseReason reason) {
         this.timer.ClearTarget();
 
         ConsoleDebugger? debugger = this.ConsoleDebugger;
         this.ConsoleDebugger = null;
 
         if (debugger == null)
-            return false;
+            return;
 
         this.autoRefresh?.Dispose();
         this.autoRefresh = null;
@@ -185,7 +185,7 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
             using IDisposable? token = await debugger.BusyLock.BeginBusyOperationAsync(1000);
             if (token == null) {
                 AppLogger.Instance.WriteLine("Warning: could not obtain busy token to safely disconnect debugger connection");
-                return false; // probably cannot cancel window closing here
+                return; // probably cannot cancel window closing here
             }
 
             IConsoleConnection? connection = debugger.Connection;
@@ -199,8 +199,10 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
                 }
             }
         }
+    }
 
-        return false;
+    internal void OnWindowClosed() {
+        this.Window = null;
     }
 
     private void OnConsoleDebuggerChanged(ConsoleDebugger? oldValue, ConsoleDebugger? newValue) {
@@ -239,7 +241,7 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
 
         DataManager.GetContextData(this).Set(ConsoleDebugger.DataKey, newValue);
 
-        if (this.IsOpen) {
+        if (this.Window != null && this.Window.IsOpen) {
             this.PART_EventViewer.BusyLock = newValue?.BusyLock;
             this.PART_EventViewer.ConsoleConnection = newValue?.Connection;
         }
@@ -248,7 +250,7 @@ public partial class DebuggerWindow : DesktopWindow, IDebuggerWindow {
     }
 
     private void OnConsoleConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldConn, IConsoleConnection? newConn) {
-        if (this.IsOpen)
+        if (this.Window != null && this.Window.IsOpen)
             this.SetSourceForConnection(newConn);
     }
 

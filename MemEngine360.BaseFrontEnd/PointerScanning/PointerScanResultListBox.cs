@@ -66,7 +66,7 @@ public class PointerScanResultListBoxItem : VirtualizingModelListBoxItem {
             return;
 
         IContextData data = DataManager.GetFullContextData(this);
-        if (!PointerScanWindow.PointerScannerDataKey.TryGetContext(data, out PointerScanner? scanner)) {
+        if (!PointerScannerView.PointerScannerDataKey.TryGetContext(data, out PointerScanner? scanner)) {
             // I mean we could just access the PointerScannerWindow via TopLevel.GetTopLevel(this)...
             return;
         }

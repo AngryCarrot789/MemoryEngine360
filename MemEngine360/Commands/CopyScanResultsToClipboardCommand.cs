@@ -21,6 +21,7 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 
@@ -59,29 +60,34 @@ public class CopyScanResultsToClipboardCommand : Command {
         }
 
         MessageBoxInfo info = new MessageBoxInfo("Copy Rows", "Below is the selected rows") {
-            Message = string.Join(Environment.NewLine, scanResults.Select(x => x.Address.ToString("X8") + "," + 
-                                                                               DataValueUtils.GetStringFromDataValue(x, x.CurrentValue) + "," + 
-                                                                               DataValueUtils.GetStringFromDataValue(x, x.PreviousValue) + "," + 
+            Message = string.Join(Environment.NewLine, scanResults.Select(x => x.Address.ToString("X8") + "," +
+                                                                               DataValueUtils.GetStringFromDataValue(x, x.CurrentValue) + "," +
+                                                                               DataValueUtils.GetStringFromDataValue(x, x.PreviousValue) + "," +
                                                                                DataValueUtils.GetStringFromDataValue(x, x.FirstValue))),
             Buttons = MessageBoxButton.OKCancel, DefaultButton = MessageBoxResult.OK,
             YesOkText = "Copy to Clipboard",
             CancelText = "Close"
         };
 
-        if (await IMessageDialogService.Instance.ShowMessage(info) == MessageBoxResult.OK) {
-            if (IDesktopWindow.DataKey.TryGetContext(e.ContextData, out IDesktopWindow? topLevel) && topLevel.ClipboardService != null) {
+        if (await IMessageDialogService.Instance.ShowMessage(info) != MessageBoxResult.OK) {
+            return;
+        }
+
+        if (ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(e.ContextData, out ITopLevelComponentManager? topLevel)) {
+            if (topLevel.TryGetClipboard(out IClipboardService? clipboard)) {
                 await ActivityManager.Instance.RunTask(async () => {
                     ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Clipboard", "Copying to clipboard");
                     CancellationToken token = ActivityManager.Instance.CurrentTask.CancellationToken;
-                    Task mainTask = topLevel.ClipboardService.SetTextAsync(info.Message);
+                    Task mainTask = clipboard.SetTextAsync(info.Message);
                     if (await Task.WhenAny(mainTask, Task.Delay(900, token)) != mainTask && !token.IsCancellationRequested) {
                         await IMessageDialogService.Instance.ShowMessage("Error", "Clipboard busy. Please try again later");
                     }
                 });
-            }
-            else {
-                await IMessageDialogService.Instance.ShowMessage("Error", "Could not access clipboard");
+
+                return;
             }
         }
+
+        await IMessageDialogService.Instance.ShowMessage("Error", "Could not access clipboard");
     }
 }

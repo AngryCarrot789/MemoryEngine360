@@ -17,12 +17,22 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using Avalonia.Controls;
+using MemEngine360.Engine.FileBrowsing;
+using PFXToolKitUI.Avalonia.Interactivity;
+using PFXToolKitUI.Avalonia.Interactivity.Selecting;
+using PFXToolKitUI.Interactivity;
 
-namespace MemEngine360.Avalonia;
+namespace MemEngine360.BaseFrontEnd.FileBrowsing;
 
-public partial class AboutWindow : DesktopWindow {
-    public AboutWindow() {
+public partial class FileTreeExplorerView : UserControl, IFileExplorerUI {
+    public IListSelectionManager<IFileTreeNodeUI> SelectionManager { get; }
+
+    public FileTreeExplorer FileTreeExplorer => this.PART_FileBrowser.FileTreeManager ?? throw new InvalidOperationException("Invalid window");
+    
+    public FileTreeExplorerView() {
         this.InitializeComponent();
+        this.SelectionManager = new TreeViewSelectionManager<IFileTreeNodeUI>(this.PART_FileBrowser);
+        DataManager.GetContextData(this).Set(IFileExplorerUI.DataKey, this);
     }
 }

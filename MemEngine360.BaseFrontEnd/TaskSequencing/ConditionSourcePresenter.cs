@@ -34,7 +34,7 @@ public class ConditionSourcePresenter {
 
     public ConditionSourcePresenter(TaskSequencerWindow window) {
         this.window = window;
-        this.window.Closed += WindowOnClosed;
+        this.window.WindowClosed += this.WindowOnClosed;
         this.window.State.ConditionHostChanged += this.OnConditionHostChanged;
     }
 

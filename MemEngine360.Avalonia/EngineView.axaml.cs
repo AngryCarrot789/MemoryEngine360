@@ -34,7 +34,6 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.View;
-using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
@@ -42,12 +41,14 @@ using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity.Selecting;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Notifications;
 using PFXToolKitUI.PropertyEditing.DataTransfer.Enums;
 using PFXToolKitUI.Services.Messaging;
@@ -96,57 +97,7 @@ public partial class EngineView : UserControl, IEngineUI {
     private readonly ComboBoxToEventPropertyEnumBinder<NumericScanType> scanTypeBinder1 = new ComboBoxToEventPropertyEnumBinder<NumericScanType>(typeof(ScanningProcessor), nameof(ScanningProcessor.NumericScanTypeChanged), (x) => ((ScanningProcessor) x).NumericScanType, (x, y) => ((ScanningProcessor) x).NumericScanType = y);
     private readonly ComboBoxToEventPropertyEnumBinder<NumericScanType> scanTypeBinder2 = new ComboBoxToEventPropertyEnumBinder<NumericScanType>(typeof(ScanningProcessor), nameof(ScanningProcessor.NumericScanTypeChanged), (x) => ((ScanningProcessor) x).NumericScanType, (x, y) => ((ScanningProcessor) x).NumericScanType = y);
 
-    private readonly IBinder<ScanningProcessor> selectedTabIndexBinder = new AvaloniaPropertyToMultiEventPropertyBinder<ScanningProcessor>(SelectingItemsControl.SelectedIndexProperty, [nameof(ScanningProcessor.DataTypeChanged), nameof(ScanningProcessor.ScanForAnyDataTypeChanged)], (b) => {
-        if (b.Model.ScanForAnyDataType) {
-            ((TabControl) b.Control).SelectedIndex = 3;
-        }
-        else {
-            switch (b.Model.DataType) {
-                case DataType.Byte:
-                case DataType.Int16:
-                case DataType.Int32:
-                case DataType.Int64: {
-                    ((TabControl) b.Control).SelectedIndex = 0;
-                    break;
-                }
-                case DataType.Float:
-                case DataType.Double: {
-                    ((TabControl) b.Control).SelectedIndex = 1;
-                    break;
-                }
-                case DataType.String: {
-                    ((TabControl) b.Control).SelectedIndex = 2;
-                    break;
-                }
-                case DataType.ByteArray: {
-                    break;
-                }
-                default: throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        (TopLevel.GetTopLevel(b.Control) as EngineWindow)?.PART_MemEngineView.UpdateUIForScanTypeAndDataType();
-    }, (b) => {
-        EngineView view = ((EngineWindow) TopLevel.GetTopLevel(b.Control)!).PART_MemEngineView;
-        if (!b.Model.HasDoneFirstScan) {
-            int idx = ((TabControl) b.Control).SelectedIndex;
-            if (idx == 3) {
-                b.Model.ScanForAnyDataType = true;
-                b.Model.Alignment = 1;
-            }
-            else {
-                b.Model.ScanForAnyDataType = false;
-                switch (idx) {
-                    case 0: b.Model.DataType = view.lastIntegerDataType; break;
-                    case 1: b.Model.DataType = view.lastFloatDataType; break;
-                    case 2: b.Model.DataType = DataType.String; break;
-                }
-
-                // update anyway just in case old DT equals new DT
-                b.Model.Alignment = b.Model.DataType.GetAlignmentFromDataType();
-            }
-        }
-    });
+    private readonly IBinder<ScanningProcessor> selectedTabIndexBinder;
 
     private readonly IBinder<ScanningProcessor> scanForAnyBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanForAnyDataTypeChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanForAnyDataType, (b) => b.Model.ScanForAnyDataType = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> inputValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
@@ -195,6 +146,7 @@ public partial class EngineView : UserControl, IEngineUI {
     }
 
     private readonly ContextEntryGroup themesSubList;
+    private IWindow? myOwnerWindow_onLoaded;
     private ObservableItemProcessorIndexing<Theme>? themeListHandler;
     private TextNotification? connectionNotification;
     private LambdaNotificationCommand? connectionNotificationCommandGetStarted;
@@ -202,12 +154,67 @@ public partial class EngineView : UserControl, IEngineUI {
     private LambdaNotificationCommand? connectionNotificationCommandReconnect;
     private readonly DataGridSelectionModelBinder<ScanResultViewModel> scanResultSelectionBinder;
 
+    private readonly ColourBrushHandler titleBarToMenuBackgroundBrushHandler;
+
     public EngineView() {
         this.InitializeComponent();
+
+        this.selectedTabIndexBinder = new AvaloniaPropertyToMultiEventPropertyBinder<ScanningProcessor>(SelectingItemsControl.SelectedIndexProperty, [nameof(ScanningProcessor.DataTypeChanged), nameof(ScanningProcessor.ScanForAnyDataTypeChanged)], (b) => {
+            if (b.Model.ScanForAnyDataType) {
+                ((TabControl) b.Control).SelectedIndex = 3;
+            }
+            else {
+                switch (b.Model.DataType) {
+                    case DataType.Byte:
+                    case DataType.Int16:
+                    case DataType.Int32:
+                    case DataType.Int64: {
+                        ((TabControl) b.Control).SelectedIndex = 0;
+                        break;
+                    }
+                    case DataType.Float:
+                    case DataType.Double: {
+                        ((TabControl) b.Control).SelectedIndex = 1;
+                        break;
+                    }
+                    case DataType.String: {
+                        ((TabControl) b.Control).SelectedIndex = 2;
+                        break;
+                    }
+                    case DataType.ByteArray: {
+                        break;
+                    }
+                    default: throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            this.UpdateUIForScanTypeAndDataType();
+        }, (b) => {
+            if (!b.Model.HasDoneFirstScan) {
+                int idx = ((TabControl) b.Control).SelectedIndex;
+                if (idx == 3) {
+                    b.Model.ScanForAnyDataType = true;
+                    b.Model.Alignment = 1;
+                }
+                else {
+                    b.Model.ScanForAnyDataType = false;
+                    switch (idx) {
+                        case 0: b.Model.DataType = this.lastIntegerDataType; break;
+                        case 1: b.Model.DataType = this.lastFloatDataType; break;
+                        case 2: b.Model.DataType = DataType.String; break;
+                    }
+
+                    // update anyway just in case old DT equals new DT
+                    b.Model.Alignment = b.Model.DataType.GetAlignmentFromDataType();
+                }
+            }
+        });
 
         this.themesSubList = new ContextEntryGroup("Themes");
         this.MemoryEngine = new MemoryEngine();
         this.SetupMainMenu();
+
+        this.titleBarToMenuBackgroundBrushHandler = new ColourBrushHandler(BackgroundProperty);
 
         this.scanResultSelectionBinder = new DataGridSelectionModelBinder<ScanResultViewModel>(this.PART_ScanListResults, MemoryEngineViewState.GetInstance(this.MemoryEngine).SelectedScanResults);
         this.AddressTableSelectionManager = new TreeViewSelectionManager<IAddressTableEntryUI>(this.PART_SavedAddressTree);
@@ -273,13 +280,13 @@ public partial class EngineView : UserControl, IEngineUI {
         }, RoutingStrategies.Tunnel);
 
         this.NotificationManager = new NotificationManager();
-        ((IComponentManager) this.MemoryEngine).AddService(this.NotificationManager);
+        ((IComponentManager) this.MemoryEngine).ComponentStorage.AddComponent(this.NotificationManager);
         this.PART_NotificationListBox.NotificationManager = this.NotificationManager;
     }
 
     private void SetupMainMenu() {
         TopLevelMenuRegistry menu = this.TopLevelMenuRegistry;
-        
+
         // ### File ###
         ContextEntryGroup fileEntry = new ContextEntryGroup("File");
         fileEntry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
@@ -305,11 +312,21 @@ public partial class EngineView : UserControl, IEngineUI {
         helpEntry.Items.Add(new CommandContextEntry("commands.application.ShowLogsCommand", "Show Logs"));
         helpEntry.Items.Add(new SeparatorEntry());
         helpEntry.Items.Add(new CustomLambdaContextEntry("Open Wiki", (c) => {
-            if (!IDesktopWindow.DataKey.TryGetContext(c, out IDesktopWindow? window))
+            if (!ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(c, out ITopLevelComponentManager? topLevel))
                 return Task.CompletedTask;
+            if (!IWebLauncher.TryGet(topLevel, out IWebLauncher? webLauncher))
+                return Task.CompletedTask;
+
             const string url = "https://github.com/AngryCarrot789/MemoryEngine360/wiki#quick-start";
-            return window.LaunchUriAsync(new Uri(url));
-        }, (c) => IDesktopWindow.DataKey.IsPresent(c)));
+            return webLauncher.LaunchUriAsync(new Uri(url));
+        }, (c) => {
+            if (!ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(c, out ITopLevelComponentManager? window))
+                return false;
+            if (!window.TryGetWebLauncher(out _))
+                return false;
+            return true;
+        }));
+
         helpEntry.Items.Add(new CommandContextEntry("commands.application.AboutApplicationCommand", "About MemoryEngine360"));
         menu.Items.Add(helpEntry);
 
@@ -374,10 +391,16 @@ public partial class EngineView : UserControl, IEngineUI {
         this.UpdateUIForScanTypeAndDataType();
 
         this.PART_OrderListBox.SetScanningProcessor(processor);
+
+        if (IWindowManager.TryGetWindow(this, out IWindow? window)) {
+            this.myOwnerWindow_onLoaded = window;
+            this.titleBarToMenuBackgroundBrushHandler.SetTarget(this.PART_TopLevelMenu);
+            this.titleBarToMenuBackgroundBrushHandler.Brush = this.myOwnerWindow_onLoaded.TitleBarBrush;
+        }
     }
 
     private void OnRequestWindowFocus(object? sender, EventArgs e) {
-        if (TopLevel.GetTopLevel(this) is DesktopWindow window) {
+        if (IWindowManager.TryGetWindow(this, out IWindow? window)) {
             window.Activate();
         }
     }
@@ -498,7 +521,8 @@ public partial class EngineView : UserControl, IEngineUI {
 
     private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
         TextNotification notification = this.connectionNotification ??= new TextNotification() {
-            ContextData = new ContextData().Set(IEngineUI.DataKey, this)
+            ContextData = new ContextData().Set(IEngineUI.DataKey, this).
+                                            Set(ITopLevelComponentManager.TLCManagerDataKey, this.myOwnerWindow_onLoaded)
         };
 
         if (newConn != null) {
@@ -506,11 +530,13 @@ public partial class EngineView : UserControl, IEngineUI {
             notification.Text = $"Connected to '{newConn.ConnectionType.DisplayName}'";
             notification.Commands.Clear();
             notification.Commands.Add(this.connectionNotificationCommandGetStarted ??= new LambdaNotificationCommand("Get Started", static async (c) => {
-                await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                    const string url = "https://github.com/AngryCarrot789/MemoryEngine360/wiki#quick-start";
-                    IEngineUI mem = IEngineUI.DataKey.GetContext(c.ContextData!)!;
-                    return TopLevel.GetTopLevel((EngineView) mem)?.Launcher.LaunchUriAsync(new Uri(url)) ?? Task.FromResult(false);
-                });
+                if (!ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(c.ContextData!, out ITopLevelComponentManager? topLevel))
+                    return;
+                if (!topLevel.TryGetWebLauncher(out IWebLauncher? launcher))
+                    return;
+
+                const string url = "https://github.com/AngryCarrot789/MemoryEngine360/wiki#quick-start";
+                await launcher.LaunchUriAsync(new Uri(url));
             }) { ToolTip = "Opens a link to MemoryEngine360's quick start guide on the wiki" });
 
             notification.Commands.Add(this.connectionNotificationCommandDisconnect ??= new LambdaNotificationCommand("Disconnect", static async (c) => {

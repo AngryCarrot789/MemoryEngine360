@@ -1,11 +1,9 @@
-﻿<w:DesktopWindow xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd"
-                 xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
                  xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.Debugging"
                  xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
@@ -14,11 +12,8 @@
                  xmlns:av2="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  xmlns:memEngine360="clr-namespace:MemEngine360;assembly=MemEngine360"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-                 x:Class="MemEngine360.BaseFrontEnd.Debugging.DebuggerWindow"
-                 Title="Debugger"
-                 Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                 av2:UIInputManager.FocusPath="DebuggerWindow"
-                 MinHeight="400" MinWidth="400">
+                 x:Class="MemEngine360.BaseFrontEnd.Debugging.DebuggerView"
+                 Background="{DynamicResource ABrush.Tone2.Background.Static}">
     <Grid RowDefinitions="27,3,*,26,3" ColumnDefinitions="3,2*,3,5*,3,2*,3">
         <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="7"
                 Background="{DynamicResource ABrush.Tone5.Background.Static}"
@@ -213,4 +208,4 @@
         <GridSplitter Grid.Column="2" Grid.Row="2" Background="Transparent" Margin="-3,0"/>
         <GridSplitter Grid.Column="4" Grid.Row="2" Background="Transparent" Margin="-3,0"/>
     </Grid>
-</w:DesktopWindow>
+</UserControl>

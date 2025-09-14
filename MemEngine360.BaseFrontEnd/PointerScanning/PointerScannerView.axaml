@@ -1,13 +1,11 @@
-﻿<w:DesktopWindow xmlns="https://github.com/avaloniaui"
-                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                 xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:ps="clr-namespace:MemEngine360.BaseFrontEnd.PointerScanning"
-                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-                 x:Class="MemEngine360.BaseFrontEnd.PointerScanning.PointerScanWindow"
-                 Title="Pointer Scanner">
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+             xmlns:ps="clr-namespace:MemEngine360.BaseFrontEnd.PointerScanning"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MemEngine360.BaseFrontEnd.PointerScanning.PointerScannerView">
     <DockPanel>
         <StackPanel Margin="3" Orientation="Horizontal" DockPanel.Dock="Top" Spacing="3">
             <Button x:Name="PART_OpenFile" Content="Open Memory File..." Padding="4,2"/>
@@ -23,8 +21,8 @@
         </Border>
         <TabControl SelectedIndex="1" Margin="3,0,3,3">
             <TabItem Header="Scanning Results" x:Name="PART_TabScanResults">
-                <ps:PointerScanResultListBox x:Name="PART_ScanResults" 
-                                             Margin="3" 
+                <ps:PointerScanResultListBox x:Name="PART_ScanResults"
+                                             Margin="3"
                                              Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
             </TabItem>
 
@@ -50,4 +48,4 @@
             </TabItem>
         </TabControl>
     </DockPanel>
-</w:DesktopWindow>
+</UserControl>

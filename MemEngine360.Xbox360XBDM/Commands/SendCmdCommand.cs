@@ -20,13 +20,15 @@
 using MemEngine360.Commands;
 using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Themes;
 using PFXToolKitUI.Utils;
+using SkiaSharp;
 
 namespace MemEngine360.Xbox360XBDM.Commands;
 
@@ -111,16 +113,20 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
                             }, cts);
                         }
 
-                        if (data != null && WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-                            BinaryHexEditorWindow window = new BinaryHexEditorWindow();
-                            if (system.TryGetActiveWindow(out DesktopWindow? activeWindow))
-                                window.PlaceCenteredTo(activeWindow);
-
-                            window.SetBytes(data);
-                            system.Register(window).Show();
+                        if (data != null && IWindowManager.TryGetInstance(out IWindowManager? manager)) {
+                            BinaryHexEditorView view = new BinaryHexEditorView();
+                            IWindow window = manager.CreateWindow(new WindowBuilder() {
+                                Title = "Hex Editor",
+                                Content = view,
+                                BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
+                                Width = 1024, Height = 620,
+                                Parent = manager.GetActiveWindowOrNull()
+                            });
+                            
+                            view.SetBytes(data);
+                            await window.ShowAsync();
                         }
-
-
+                        
                         break;
                     }
                     case XbdmResponseType.ReadyForBinary:                    await IMessageDialogService.Instance.ShowMessage($"Ready For Binary ({crt})", "(Cannot send data! Command line may now be broken)", command.Message, defaultButton: MessageBoxResult.OK); break;

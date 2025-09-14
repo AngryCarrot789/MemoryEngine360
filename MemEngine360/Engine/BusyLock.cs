@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine;
 
@@ -345,28 +346,6 @@ public sealed class BusyLock {
         }
 
         this.busyLockAsyncWaiters.Clear();
-    }
-
-    // A helper class deriving TCS that allows an external cancellation signal to mark it as completed
-    private sealed class CancellableTaskCompletionSource : TaskCompletionSource, IDisposable {
-        private readonly CancellationToken token;
-        private readonly CancellationTokenRegistration registration;
-
-        public CancellableTaskCompletionSource(CancellationToken token) : base(TaskCreationOptions.RunContinuationsAsynchronously) {
-            this.token = token;
-            if (token.CanBeCanceled)
-                this.registration = token.Register(this.SetCanceledCore);
-        }
-
-        private void SetCanceledCore() {
-            this.TrySetCanceled(this.token);
-        }
-
-        public void Dispose() {
-            Debug.Assert(this.Task.IsCompleted, "Expected task to be completed at this point");
-
-            this.registration.Dispose();
-        }
     }
 
     private class BusyToken : IDisposable {

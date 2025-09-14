@@ -1,13 +1,11 @@
-﻿<w:DesktopWindow x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.TaskSequencerWindow"
+﻿<UserControl x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.TaskSequencerWindow"
                  xmlns="https://github.com/avaloniaui"
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                 xmlns:w="clr-namespace:PFXToolKitUI.Avalonia.Services.Windowing;assembly=PFXToolKitUI.Avalonia"
                  xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing"
                  xmlns:act="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
                  xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd"
                  xmlns:sav="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cmd="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Commands"
@@ -18,12 +16,7 @@
                  xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                  xmlns:memEngine360="clr-namespace:MemEngine360;assembly=MemEngine360"
                  mc:Ignorable="d"
-                 d:DesignHeight="400" d:DesignWidth="800"
-                 MinWidth="640" MinHeight="400"
-                 Width="960" Height="640"
-                 Title="Task Sequencer"
-                 sav:UIInputManager.FocusPath="SequencerWindow"
-                 TitleBarBrush="{DynamicResource ABrush.MemEngine.Sequencer.TitleBarBackground}">
+                 d:DesignHeight="400" d:DesignWidth="800">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
         <Grid>
             <Grid.ColumnDefinitions>
@@ -566,4 +559,4 @@
             <local:GridSplitterNonHitListBoxItem Grid.Column="1" Margin="-5,0,-8,0" Background="Transparent" Cursor="SizeWestEast"/>
         </Grid>
     </Border>
-</w:DesktopWindow>
+</UserControl>

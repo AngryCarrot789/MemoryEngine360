@@ -21,10 +21,12 @@ using MemEngine360.BaseFrontEnd.XboxBase.Modules;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.XboxBase.Modules;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Themes;
+using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.XboxBase;
 
@@ -42,7 +44,7 @@ public class ShowModulesCommand : Command {
             return;
         }
 
-        if (!WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
+        if (!IWindowManager.TryGetInstance(out IWindowManager? manager)) {
             return;
         }
 
@@ -58,12 +60,25 @@ public class ShowModulesCommand : Command {
         
         bool result = await ActivityManager.Instance.RunTask(async () => await ModuleViewer.TryFillModuleManager(engine, connection, viewer), cts);
         if (result) { // may be null when cancelled
-            ModuleViewerWindow window = new ModuleViewerWindow() {
+            ModuleViewerView control = new ModuleViewerView() {
                 XboxModuleManager = viewer, MemoryEngine = engine
             };
 
-            system.Register(window).Show();
-            window.Activate();
+            IWindow window = manager.CreateWindow(new WindowBuilder() {
+                Title = "Memory Viewer",
+                Content = control,
+                TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone6.Background.Static"),
+                BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
+                MinWidth = 640, MinHeight = 400,
+                Width = 960, Height = 640,
+                FocusPath = "ModuleViewerWindow"
+            });
+
+            window.WindowClosed += static (sender, args) => {
+                ((ModuleViewerView) sender.Content!).XboxModuleManager = null;
+                ((ModuleViewerView) sender.Content!).MemoryEngine = null;
+            };
+            await window.ShowAsync();
         }
         else {
             await IMessageDialogService.Instance.ShowMessage("Unsupported connection", "The current connection does not support listing xbox modules");

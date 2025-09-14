@@ -19,28 +19,39 @@
 
 using MemEngine360.Engine;
 using MemEngine360.PointerScanning;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Themes;
+using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.PointerScanning;
 
 public class PointerScanServiceImpl : IPointerScanService {
-    public async Task ShowPointerScan(MemoryEngine engine) {
-        if (!WindowingSystem.TryGetInstance(out var system)) {
-            return;
-        }
-        
-        PointerScanWindow window = new PointerScanWindow() {
-            PointerScanner = engine.PointerScanner
-        };
+    public Task ShowPointerScan(MemoryEngine engine) {
+        if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
+            IWindow window = manager.CreateWindow(new WindowBuilder() {
+                Title = "Pointer Scanner",
+                Content = new PointerScannerView() {
+                    PointerScanner = engine.PointerScanner
+                },
+                TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone7.Background.Static"),
+                BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
+                MinWidth = 500, MinHeight = 200,
+                Width = 1024, Height = 576,
+                Parent = manager.GetActiveWindowOrNull()
+            });
 
-        window.Closed += (sender, args) => {
-            if (((PointerScanWindow) sender!).PointerScanner is PointerScanner scanner) {
-                scanner.DisposeMemoryDump();
-                scanner.Clear();
-                ((PointerScanWindow) sender!).PointerScanner = null;
-            }
-        };
-        
-        system.Register(window).Show();
+            window.WindowClosed += static (sender, args) => {
+                PointerScannerView view = (PointerScannerView) sender.Content!;
+                if (view.PointerScanner is PointerScanner scanner) {
+                    scanner.DisposeMemoryDump();
+                    scanner.Clear();
+                    view.PointerScanner = null;
+                }
+            };
+
+            return window.ShowAsync();
+        }
+
+        return Task.CompletedTask;
     }
 }

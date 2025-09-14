@@ -2,8 +2,6 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:lc="clr-namespace:PFXToolKitUI.Avalonia.Interactivity;assembly=PFXToolKitUI.Avalonia"
                     xmlns:sc="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
-                    xmlns:layers="clr-namespace:MemEngine360.BaseFrontEnd.SavedAddressing"
-                    xmlns:savedAddressing="clr-namespace:MemEngine360.Engine.SavedAddressing;assembly=MemEngine360"
                     xmlns:fb="clr-namespace:MemEngine360.BaseFrontEnd.FileBrowsing"
                     xmlns:fileBrowsing="clr-namespace:MemEngine360.Engine.FileBrowsing;assembly=MemEngine360">
 

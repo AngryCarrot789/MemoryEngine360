@@ -22,7 +22,7 @@ using Avalonia.Controls;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
@@ -43,15 +43,19 @@ public partial class OpenConnectionView : UserControl {
     /// if you don't need a control but still want to use the UCInfo for some reason
     /// </summary>
     public static readonly ModelControlRegistry<UserConnectionInfo, Control> Registry;
-
+    private IConsoleConnection? currentConnection;
+    private CancellationTokenSource? currCts;
+    internal bool isConnecting, isClosingWindow;
+    private ConsoleTypeListBoxItem? myCurrentSelection;
+    
     /// <summary>
     /// Gets or sets the memory engine reference, if necessary
     /// </summary>
     public MemoryEngine? MemoryEngine { get; internal set; }
-
+    
     public string? TypeToFocusOnOpened { get; internal set; }
 
-    private IConsoleConnection? currentConnection;
+    public IWindow? Window { get; private set; }
 
     public IConsoleConnection? CurrentConnection {
         get => this.currentConnection;
@@ -71,10 +75,6 @@ public partial class OpenConnectionView : UserControl {
 
     public event OpenConnectionViewCurrentConnectionChangedEventHandler? CurrentConnectionChanged;
 
-    private CancellationTokenSource? currCts;
-    internal bool isConnecting, isClosingWindow;
-    private ConsoleTypeListBoxItem? myCurrentSelection;
-
     public OpenConnectionView() {
         this.InitializeComponent();
         this.PART_ListBox.SelectionMode = SelectionMode.Single;
@@ -82,9 +82,9 @@ public partial class OpenConnectionView : UserControl {
 
         this.PART_CancelButton.Click += (sender, args) => {
             this.UserConnectionInfoForCurrentConnection = null;
-            if (TopLevel.GetTopLevel(this) is DesktopWindow window) {
+            if (this.Window != null) {
                 this.isClosingWindow = true;
-                window.Close();
+                this.Window.Close();
                 this.isClosingWindow = false;
             }
         };
@@ -109,9 +109,9 @@ public partial class OpenConnectionView : UserControl {
                 if (connection != null) {
                     this.UserConnectionInfoForCurrentConnection = selection.UserConnectionInfo;
                     this.CurrentConnection = connection;
-                    if (TopLevel.GetTopLevel(this) is DesktopWindow window) {
+                    if (this.Window != null) {
                         this.isClosingWindow = true;
-                        window.Close();
+                        this.Window.Close();
                         this.isClosingWindow = false;
                     }
                 }
@@ -147,7 +147,8 @@ public partial class OpenConnectionView : UserControl {
         }
     }
 
-    internal void OnWindowOpened() {
+    internal void OnWindowOpened(IWindow window) {
+        this.Window = window;
         IContextData context = new ContextData().Set(MemoryEngine.EngineDataKey, this.MemoryEngine);
 
         ConsoleTypeListBoxItem? selected = null;
@@ -177,6 +178,7 @@ public partial class OpenConnectionView : UserControl {
         foreach (ConsoleTypeListBoxItem? itm in this.PART_ListBox.Items)
             itm!.OnRemoving();
         this.PART_ListBox.Items.Clear();
+        this.Window = null;
     }
 
     private void PART_ListBoxOnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
@@ -210,11 +212,9 @@ public partial class OpenConnectionView : UserControl {
     }
 
     private void UpdateConnectButton() {
-        if (!(TopLevel.GetTopLevel(this) is DesktopWindow window) || window.IsClosed) {
-            return;
+        if (this.Window != null) {
+            this.PART_ConfirmButton.Content = this.isConnecting ? "Connecting..." : "Connect";
+            this.PART_ConfirmButton.Width = this.isConnecting ? 90 : 72;
         }
-
-        this.PART_ConfirmButton.Content = this.isConnecting ? "Connecting..." : "Connect";
-        this.PART_ConfirmButton.Width = this.isConnecting ? 90 : 72;
     }
 }

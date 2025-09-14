@@ -20,6 +20,7 @@
 using Avalonia.Controls;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Services.UserInputs;
 using PFXToolKitUI.Services.UserInputs;
 
@@ -60,13 +61,17 @@ public partial class XboxMemoryRegionViewerUIControl : UserControl, IUserInputCo
         return false;
     }
 
+    public void OnWindowOpening() {
+        WindowSizingInfo sizing = this.myDialog!.Window!.SizingInfo;
+        sizing.SizeToContent = SizeToContent.Manual;
+        sizing.CanResize = true;
+        sizing.MinHeight = 400;
+        sizing.MinWidth = 800;
+        sizing.Height = 400;
+        sizing.Width = 800;
+    }
+
     public void OnWindowOpened() {
-        this.myDialog!.Window!.SizeToContent = SizeToContent.Manual;
-        this.myDialog!.Window!.MinHeight = 400;
-        this.myDialog!.Window!.MinWidth = 800;
-        this.myDialog!.Window!.Height = 400;
-        this.myDialog!.Window!.Width = 800;
-        this.myDialog!.Window!.CanResize = true;
         // TODO: fix vertical scroll bar incorrect estimate of the effective height of the data grid
         // ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
         //     await Task.Delay(250);

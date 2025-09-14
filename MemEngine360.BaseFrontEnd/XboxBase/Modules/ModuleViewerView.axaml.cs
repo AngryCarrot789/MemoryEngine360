@@ -27,16 +27,15 @@ using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.XboxBase;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Avalonia.Bindings;
-using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.XboxBase.Modules;
 
-public partial class ModuleViewerWindow : DesktopWindow {
-    public static readonly StyledProperty<ModuleViewer?> XboxModuleManagerProperty = AvaloniaProperty.Register<ModuleViewerWindow, ModuleViewer?>(nameof(XboxModuleManager));
-    public static readonly StyledProperty<MemoryEngine?> MemoryEngineProperty = AvaloniaProperty.Register<ModuleViewerWindow, MemoryEngine?>(nameof(MemoryEngine));
+public partial class ModuleViewerView : UserControl {
+    public static readonly StyledProperty<ModuleViewer?> XboxModuleManagerProperty = AvaloniaProperty.Register<ModuleViewerView, ModuleViewer?>(nameof(XboxModuleManager));
+    public static readonly StyledProperty<MemoryEngine?> MemoryEngineProperty = AvaloniaProperty.Register<ModuleViewerView, MemoryEngine?>(nameof(MemoryEngine));
     private readonly IBinder<ConsoleModule> shortNameBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.NameChanged), (b) => ((TextBox) b.Control).Text = b.Model.Name);
     private readonly IBinder<ConsoleModule> fullNameBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.FullNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.FullName);
     private readonly IBinder<ConsoleModule> peModuleNameBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.PEModuleNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.PEModuleName);
@@ -62,7 +61,7 @@ public partial class ModuleViewerWindow : DesktopWindow {
     private ConsoleModule? selectedModule;
     private readonly AsyncRelayCommand dumpModuleMemoryCommand;
 
-    public ModuleViewerWindow() {
+    public ModuleViewerView() {
         this.InitializeComponent();
         this.PART_ModuleListBox.SelectionChanged += this.OnSelectionChanged;
 
@@ -160,9 +159,9 @@ public partial class ModuleViewerWindow : DesktopWindow {
         }
     }
 
-    static ModuleViewerWindow() {
-        XboxModuleManagerProperty.Changed.AddClassHandler<ModuleViewerWindow, ModuleViewer?>((o, e) => o.OnManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
-        MemoryEngineProperty.Changed.AddClassHandler<ModuleViewerWindow, MemoryEngine?>((s, e) => s.OnMemoryEngineChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+    static ModuleViewerView() {
+        XboxModuleManagerProperty.Changed.AddClassHandler<ModuleViewerView, ModuleViewer?>((o, e) => o.OnManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+        MemoryEngineProperty.Changed.AddClassHandler<ModuleViewerView, MemoryEngine?>((s, e) => s.OnMemoryEngineChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
@@ -201,10 +200,5 @@ public partial class ModuleViewerWindow : DesktopWindow {
 
     private void OnEngineConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConnection, IConsoleConnection? newConnection, ConnectionChangeCause cause) {
         this.dumpModuleMemoryCommand.RaiseCanExecuteChanged();
-    }
-
-    protected override void OnClosed(EventArgs e) {
-        this.XboxModuleManager = null;
-        base.OnClosed(e);
     }
 }

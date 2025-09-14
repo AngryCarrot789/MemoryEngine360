@@ -44,7 +44,7 @@ using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Services.Messaging;
@@ -60,8 +60,8 @@ using TextLayer = AvaloniaHex.Async.Rendering.TextLayer;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
-public partial class MemoryViewerWindow : DesktopWindow, IHexEditorUI {
-    public static readonly StyledProperty<MemoryViewer?> HexDisplayInfoProperty = AvaloniaProperty.Register<MemoryViewerWindow, MemoryViewer?>("HexDisplayInfo");
+public partial class MemoryViewerView : UserControl, IHexEditorUI {
+    public static readonly StyledProperty<MemoryViewer?> HexDisplayInfoProperty = AvaloniaProperty.Register<MemoryViewerView, MemoryViewer?>("HexDisplayInfo");
 
     #region Binders
 
@@ -180,7 +180,12 @@ public partial class MemoryViewerWindow : DesktopWindow, IHexEditorUI {
         }
     }
 
-    public MemoryViewerWindow() {
+    /// <summary>
+    /// Gets the window that this memory viewer is open in
+    /// </summary>
+    public IWindow? Window { get; private set; }
+
+    public MemoryViewerView() {
         this.InitializeComponent();
         this.offsetBinder.AttachControl(this.PART_AddressTextBox);
         this.offsetBinder.ValueConfirmed += (b, oldText) => {
@@ -638,8 +643,8 @@ public partial class MemoryViewerWindow : DesktopWindow, IHexEditorUI {
         this.UpdateAutoRefreshSelectionDependentShit();
     }
 
-    static MemoryViewerWindow() {
-        HexDisplayInfoProperty.Changed.AddClassHandler<MemoryViewerWindow, MemoryViewer?>((s, e) => s.OnHexDisplayInfoChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+    static MemoryViewerView() {
+        HexDisplayInfoProperty.Changed.AddClassHandler<MemoryViewerView, MemoryViewer?>((s, e) => s.OnHexDisplayInfoChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     private void OnHexDisplayInfoChanged(MemoryViewer? oldData, MemoryViewer? newData) {
@@ -677,19 +682,17 @@ public partial class MemoryViewerWindow : DesktopWindow, IHexEditorUI {
         this.UpdateDataInspector();
     }
 
-    protected override void OnOpenedCore() {
-        base.OnOpenedCore();
-
-        UIInputManager.SetFocusPath(this, "HexDisplayWindow");
+    internal void OnWindowOpened(IWindow sender) {
+        this.Window = sender;
         UIInputManager.SetFocusPath(this.PART_HexEditor, "HexDisplayWindow/HexEditor");
         using MultiChangeToken change = DataManager.GetContextData(this).BeginChange();
         change.Context.Set(IHexEditorUI.DataKey, this);
     }
-
-    protected override void OnClosed(EventArgs e) {
-        base.OnClosed(e);
+    
+    internal void OnWindowClosed() {
         this.autoRefreshTask?.RequestCancellation();
         this.HexDisplayInfo = null;
+        this.Window = null;
     }
 
     private void OnRestartAutoRefresh(MemoryViewer memoryViewer) {
@@ -705,7 +708,7 @@ public partial class MemoryViewerWindow : DesktopWindow, IHexEditorUI {
     }
 
     private void OnCancelButtonClicked(object? sender, RoutedEventArgs e) {
-        this.Close();
+        this.Window!.Close();
     }
 
     private void UpdateAutoRefreshRange() {
@@ -825,7 +828,7 @@ public partial class MemoryViewerWindow : DesktopWindow, IHexEditorUI {
     }
 
     private sealed class AutoRefreshTask : AdvancedPausableTask {
-        private readonly MemoryViewerWindow control;
+        private readonly MemoryViewerView control;
         private readonly MemoryViewer? info;
         private IDisposable? busyToken;
         private readonly uint startAddress, cbRange;
@@ -833,7 +836,7 @@ public partial class MemoryViewerWindow : DesktopWindow, IHexEditorUI {
         private readonly byte[] myBuffer;
         private bool isInvalidOnFirstRun;
 
-        public AutoRefreshTask(MemoryViewerWindow control, uint startAddress, uint cbRange) : base(true) {
+        public AutoRefreshTask(MemoryViewerView control, uint startAddress, uint cbRange) : base(true) {
             this.control = control;
             this.info = control.HexDisplayInfo;
             this.cbRange = cbRange;

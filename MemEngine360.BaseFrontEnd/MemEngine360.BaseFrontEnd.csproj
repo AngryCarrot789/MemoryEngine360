@@ -44,7 +44,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Update="XboxBase\Modules\ModuleViewerWindow.axaml.cs">
+      <Compile Update="XboxBase\Modules\ModuleViewerView.axaml.cs">
         <DependentUpon>ModuleViewerWindow.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>

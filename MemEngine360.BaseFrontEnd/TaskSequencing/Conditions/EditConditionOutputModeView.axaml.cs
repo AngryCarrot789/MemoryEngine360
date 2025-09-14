@@ -17,18 +17,19 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using Avalonia.Controls;
 using Avalonia.Interactivity;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 
-public delegate void EditConditionOutputModeWindowEventHandler(EditConditionOutputModeWindow sender);
+public delegate void EditConditionOutputModeWindowEventHandler(EditConditionOutputModeView sender);
 
-public partial class EditConditionOutputModeWindow : DesktopWindow {
-    private readonly EventPropertyEnumBinder<ConditionOutputMode> binder = new EventPropertyEnumBinder<ConditionOutputMode>(typeof(EditConditionOutputModeWindow), nameof(TriggerModeChanged), (b) => ((EditConditionOutputModeWindow) b).OutputMode, (b, v) => ((EditConditionOutputModeWindow) b).OutputMode = v);
+public partial class EditConditionOutputModeView : UserControl {
+    private readonly EventPropertyEnumBinder<ConditionOutputMode> binder = new EventPropertyEnumBinder<ConditionOutputMode>(typeof(EditConditionOutputModeView), nameof(TriggerModeChanged), (b) => ((EditConditionOutputModeView) b).OutputMode, (b, v) => ((EditConditionOutputModeView) b).OutputMode = v);
     private ConditionOutputMode outputMode;
 
     public ConditionOutputMode OutputMode {
@@ -36,9 +37,11 @@ public partial class EditConditionOutputModeWindow : DesktopWindow {
         set => PropertyHelper.SetAndRaiseINE(ref this.outputMode, value, this, static t => t.TriggerModeChanged?.Invoke(t));
     }
 
+    public IWindow? Window { get; set; }
+
     public event EditConditionOutputModeWindowEventHandler? TriggerModeChanged;
 
-    public EditConditionOutputModeWindow() {
+    public EditConditionOutputModeView() {
         this.InitializeComponent();
         this.binder.Assign(this.PART_WhileMet, ConditionOutputMode.WhileMet);
         this.binder.Assign(this.PART_WhileNotMet, ConditionOutputMode.WhileNotMet);
@@ -54,11 +57,11 @@ public partial class EditConditionOutputModeWindow : DesktopWindow {
         this.PART_CancelButton.Click += this.OnCancelButtonClicked;
     }
 
-    public EditConditionOutputModeWindow(ConditionOutputMode initialOutputMode) : this() {
+    public EditConditionOutputModeView(ConditionOutputMode initialOutputMode) : this() {
         this.OutputMode = initialOutputMode;
     }
 
-    private void OnConfirmButtonClicked(object? sender, RoutedEventArgs e) => this.Close(BoolBox.NullableTrue);
+    private void OnConfirmButtonClicked(object? sender, RoutedEventArgs e) => this.Window?.Close(BoolBox.NullableTrue);
 
-    private void OnCancelButtonClicked(object? sender, RoutedEventArgs e) => this.Close(BoolBox.NullableFalse);
+    private void OnCancelButtonClicked(object? sender, RoutedEventArgs e) => this.Window?.Close(BoolBox.NullableFalse);
 }

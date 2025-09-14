@@ -17,37 +17,34 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine.FileBrowsing;
+using MemEngine360.Engine.HexEditing;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Themes;
 using SkiaSharp;
 
-namespace MemEngine360.BaseFrontEnd.FileBrowsing;
+namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
-public class FileBrowserServiceImpl : IFileBrowserService {
-    private IWindow? currentWindow;
-
-    public Task ShowFileBrowser(FileTreeExplorer explorer) {
-        if (this.currentWindow != null) {
-            this.currentWindow.Activate();
-            return Task.CompletedTask;
-        }
-
+public class MemoryViewerViewServiceImpl : IMemoryViewerViewService {
+    public Task ShowMemoryViewer(MemoryViewer info) {
+        ArgumentNullException.ThrowIfNull(info);
         if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
-            FileTreeExplorerView control = new FileTreeExplorerView() {
-                PART_FileBrowser = { FileTreeManager = explorer }
+            MemoryViewerView control = new MemoryViewerView() {
+                HexDisplayInfo = info
             };
 
-            this.currentWindow = manager.CreateWindow(new WindowBuilder() {
-                Title = "File Browser",
+            IWindow window = manager.CreateWindow(new WindowBuilder() {
+                Title = "Memory Viewer",
                 Content = control,
                 TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone4.Background.Static"),
                 BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
-                Width = 1024, Height = 768
+                MinWidth = 800, MinHeight = 480,
+                Width = 1280, Height = 720,
+                FocusPath = "HexDisplayWindow"
             });
 
-            this.currentWindow.WindowClosed += (sender, args) => this.currentWindow = null;
-            return this.currentWindow.ShowAsync();
+            window.WindowOpened += static (sender, args) => ((MemoryViewerView) sender.Content!).OnWindowOpened(sender);
+            window.WindowClosed += static (sender, args) => ((MemoryViewerView) sender.Content!).OnWindowClosed();
+            return window.ShowAsync();
         }
 
         return Task.CompletedTask;

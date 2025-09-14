@@ -1,11 +1,11 @@
-﻿using AvaloniaHex.Base.Document;
+﻿using Avalonia.Controls;
+using AvaloniaHex.Base.Document;
 using AvaloniaHex.Rendering;
-using PFXToolKitUI.Avalonia.Services.Windowing;
 
 namespace MemEngine360.Xbox360XBDM;
 
-public partial class BinaryHexEditorWindow : DesktopWindow {
-    public BinaryHexEditorWindow() {
+public partial class BinaryHexEditorView : UserControl {
+    public BinaryHexEditorView() {
         this.InitializeComponent();
         
         HexView view = this.PART_HexEditor.HexView;

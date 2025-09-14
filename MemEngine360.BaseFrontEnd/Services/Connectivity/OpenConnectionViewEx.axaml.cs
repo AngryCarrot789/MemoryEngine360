@@ -17,20 +17,19 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Diagnostics;
+using Avalonia.Controls;
 using Avalonia.Input;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 /// <summary>
 /// A window which contains an instance of <see cref="OpenConnectionView"/>
 /// </summary>
-public partial class OpenConnectionWindow : DesktopWindow, IOpenConnectionView {
-    private TaskCompletionSource<IConsoleConnection?>? tcs;
+public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
     private IConsoleConnection? closedConnection;
 
     public MemoryEngine? MemoryEngine {
@@ -45,9 +44,27 @@ public partial class OpenConnectionWindow : DesktopWindow, IOpenConnectionView {
 
     public UserConnectionInfo? UserConnectionInfoForConnection => this.PART_ConnectToConsoleView.CurrentConnection == null ? null : this.PART_ConnectToConsoleView.UserConnectionInfoForCurrentConnection;
 
-    public OpenConnectionWindow() {
+    public IWindow? Window { get; private set; }
+
+    public bool IsClosed => this.Window == null || this.Window.IsClosed;
+
+    public OpenConnectionViewEx() {
         this.InitializeComponent();
     }
+
+    internal void OnWindowOpened(IWindow window) {
+        this.PART_ConnectToConsoleView.OnWindowOpened(this.Window = window);
+    }
+
+    internal void OnWindowClosed() {
+        this.PART_ConnectToConsoleView.OnWindowClosed();
+        this.closedConnection = this.PART_ConnectToConsoleView.CurrentConnection;
+        this.Window = null;
+    }
+
+    public void Close() => this.Window?.Close(null);
+
+    public void Activate() => this.Window?.Activate();
 
     protected override void OnKeyDown(KeyEventArgs e) {
         base.OnKeyDown(e);
@@ -58,30 +75,13 @@ public partial class OpenConnectionWindow : DesktopWindow, IOpenConnectionView {
         }
     }
 
-    protected override void OnOpenedCore() {
-        base.OnOpenedCore();
-        this.PART_ConnectToConsoleView.OnWindowOpened();
-    }
-
-    protected override void OnClosed(EventArgs e) {
-        base.OnClosed(e);
-        this.PART_ConnectToConsoleView.OnWindowClosed();
-        this.closedConnection = this.PART_ConnectToConsoleView.CurrentConnection;
-        this.tcs?.TrySetResult(this.closedConnection);
-    }
-
-    public Task<IConsoleConnection?> WaitForClose() {
+    public async Task<IConsoleConnection?> WaitForClose() {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-        if (this.IsClosed) {
-            return Task.FromResult(this.closedConnection);
-        }
-        else if (!this.IsOpen || !this.IsLoaded) {
-            Debugger.Break();
-            return Task.FromResult(this.closedConnection);
+        if (this.Window != null) {
+            await this.Window.WaitForClosedAsync();
         }
         
-        this.tcs ??= new TaskCompletionSource<IConsoleConnection?>();
-        return this.tcs.Task;
+        return this.closedConnection;
     }
 
     public void SetUserInfoForConnectionType(string registeredId, UserConnectionInfo info) {

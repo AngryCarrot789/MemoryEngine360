@@ -15,7 +15,6 @@
              xmlns:notifications="clr-namespace:PFXToolKitUI.Avalonia.Notifications;assembly=PFXToolKitUI.Avalonia"
              xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
-             xmlns:fb="clr-namespace:MemEngine360.BaseFrontEnd.FileBrowsing;assembly=MemEngine360.BaseFrontEnd"
              xmlns:s="clr-namespace:MemEngine360;assembly=MemEngine360"
              mc:Ignorable="d"
              x:Class="MemEngine360.Avalonia.EngineView"
@@ -23,7 +22,6 @@
     <DockPanel>
         <ams:AdvancedTopLevelMenu x:Name="PART_TopLevelMenu"
                                   DockPanel.Dock="Top"
-                                  Background="{Binding RelativeSource={RelativeSource AncestorType={x:Type c:WindowEx}}, Path=TitleBarBrush}"
                                   BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,0,0,1"/>
         <Border x:Name="PART_StatusBar"
                 DockPanel.Dock="Bottom"

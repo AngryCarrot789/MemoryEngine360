@@ -17,52 +17,36 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Data;
-using Avalonia.Markup.Xaml.MarkupExtensions;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
-using PFXToolKitUI.Avalonia.Services.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Themes;
+using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
     public override async Task<IOpenConnectionView?> ShowOpenConnectionView(MemoryEngine? engine, string? focusedTypeId = "console.xbox360.xbdm-coreimpl") {
-        if (!WindowingSystem.TryGetInstance(out WindowingSystem? system)) {
-            return null;
-        }
-
-        OpenConnectionWindow window = new OpenConnectionWindow() {
-            MemoryEngine = engine, TypeToFocusOnOpened = focusedTypeId
-        };
-        
-        if (system.TryGetActiveWindow(out DesktopWindow? active))
-            window.PlaceCenteredTo(active);
-        
-        system.Register(window).Show();
-        return window;
-    }
-
-    public class CoolWindow : DesktopWindow {
-        public CoolWindow() {
-            CheckBox coolCheckBox = new CheckBox() {Content = "Item 1"};
-            DynamicResourceExtension DynamicResource = new DynamicResourceExtension("ABrush.Tone7.Background.Static");
-            BindingExpressionBase binding = coolCheckBox.Bind(BackgroundProperty, DynamicResource);
-            binding.Dispose();
-            
-            this.Content = new Grid() {
-                Children = {
-                    new StackPanel() {
-                        Spacing = 5, Margin = new Thickness(10),
-                        Children = {
-                            coolCheckBox,
-                            new CheckBox() {Content = "Item 2"},
-                            new CheckBox() {Content = "Item 3", [!BackgroundProperty] = new DynamicResourceExtension("ABrush.Tone8.Background.Static")},
-                        }
-                    }
-                }
+        if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
+            OpenConnectionViewEx view = new OpenConnectionViewEx() {
+                MemoryEngine = engine, TypeToFocusOnOpened = focusedTypeId
             };
+            
+            IWindow window = manager.CreateWindow(new WindowBuilder() {
+                Title = "Connect to a console",
+                Content = view,
+                TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone6.Background.Static"),
+                BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
+                MinWidth = 600, MinHeight = 350,
+                Width = 700, Height = 450
+            });
+
+            window.WindowOpened += (sender, args) => ((OpenConnectionViewEx) sender.Content!).OnWindowOpened(sender);
+            window.WindowClosed += (sender, args) => ((OpenConnectionViewEx) sender.Content!).OnWindowClosed();
+            await window.ShowAsync();
+            return view;
         }
+        
+        return null;
     }
 }

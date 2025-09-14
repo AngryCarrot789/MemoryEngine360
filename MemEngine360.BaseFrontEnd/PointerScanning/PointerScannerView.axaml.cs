@@ -26,7 +26,6 @@ using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Services.Windowing;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
@@ -37,10 +36,10 @@ using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.PointerScanning;
 
-public partial class PointerScanWindow : DesktopWindow {
+public partial class PointerScannerView : UserControl {
     public static readonly DataKey<PointerScanner> PointerScannerDataKey = DataKey<PointerScanner>.Create(nameof(PointerScanner));
     
-    public static readonly StyledProperty<PointerScanner?> PointerScannerProperty = AvaloniaProperty.Register<PointerScanWindow, PointerScanner?>(nameof(PointerScanner));
+    public static readonly StyledProperty<PointerScanner?> PointerScannerProperty = AvaloniaProperty.Register<PointerScannerView, PointerScanner?>(nameof(PointerScanner));
     
     private readonly IBinder<PointerScanner> binder_AddressableBase = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.AddressableBaseChanged), b => b.Model.AddressableBase.ToString("X8"), (b, t) => ParseUIntHelper(b, t, "Invalid Base Address", (string s, out uint value) => uint.TryParse(s, NumberStyles.HexNumber, null, out value), (m, v) => m.AddressableBase = v));
     private readonly IBinder<PointerScanner> binder_AddressableLength = new TextBoxToEventPropertyBinder<PointerScanner>(nameof(PointerScanner.AddressableLengthChanged), b => b.Model.AddressableLength.ToString("X8"), (b, t) => ParseUIntHelper(b, t, "Invalid Length", (string s, out uint value) => uint.TryParse(s, NumberStyles.HexNumber, null, out value), (m, v) => m.AddressableLength = v));
@@ -69,7 +68,7 @@ public partial class PointerScanWindow : DesktopWindow {
         set => this.SetValue(PointerScannerProperty, value);
     }
     
-    public PointerScanWindow() {
+    public PointerScannerView() {
         this.InitializeComponent();
         this.binder_AddressableBase.AttachControl(this.PART_AddressableBase);
         this.binder_AddressableLength.AttachControl(this.PART_AddressableLength);
@@ -145,8 +144,8 @@ public partial class PointerScanWindow : DesktopWindow {
         }, () => this.PointerScanner != null && this.PointerScanner.IsScanRunning);
     }
 
-    static PointerScanWindow() {
-        PointerScannerProperty.Changed.AddClassHandler<PointerScanWindow, PointerScanner?>((s, e) => s.OnPointerScannerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+    static PointerScannerView() {
+        PointerScannerProperty.Changed.AddClassHandler<PointerScannerView, PointerScanner?>((s, e) => s.OnPointerScannerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     private void OnPointerScannerChanged(PointerScanner? oldValue, PointerScanner? newValue) {

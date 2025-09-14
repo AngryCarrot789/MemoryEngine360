@@ -36,8 +36,8 @@ public class OperationListPresenter {
 
     public OperationListPresenter(TaskSequencerWindow window) {
         this.window = window;
-        this.window.Opened += this.OnWindowOpened;
-        this.window.Closed += this.OnWindowClosed;
+        this.window.WindowOpened += this.OnWindowOpened;
+        this.window.WindowClosed += this.OnWindowClosed;
 
         this.selectedSequenceDisplayNameBinder.UpdateControlWithoutModel += b => this.UpdateOperationListGroupBoxHeader();
         this.selectedSequenceDisplayNameBinder.AttachControl(this.window.PART_OperationGroupBoxHeaderTextBlock);
