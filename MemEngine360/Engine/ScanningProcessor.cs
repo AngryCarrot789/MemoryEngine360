@@ -870,7 +870,7 @@ public sealed class UnknownDataTypeOptions {
             new ScanningOrderModel(DataType.Int64),
         };
 
-        this.Orders.BeforeItemAdded += (list, index, item) => throw new InvalidOperationException("Items cannot be added to this list");
+        this.Orders.BeforeItemsAdded += (list, index, items) => throw new InvalidOperationException("Items cannot be added to this list");
         this.Orders.BeforeItemsRemoved += (list, index, count) => throw new InvalidOperationException("Items cannot be removed from this list");
     }
 

@@ -41,13 +41,15 @@ public sealed class FileTreeNodeDirectory : BaseFileTreeNode {
 
     public FileTreeNodeDirectory() {
         this.Items = new ObservableList<BaseFileTreeNode>();
-        this.Items.BeforeItemAdded += (list, index, item) => {
-            if (item == null)
-                throw new ArgumentNullException(nameof(item), "Cannot add a null operation");
-            if (item.ParentDirectory == this)
-                throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
-            if (item.ParentDirectory != null)
-                throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
+        this.Items.BeforeItemsAdded += (list, index, items) => {
+            foreach (BaseFileTreeNode item in items) {
+                if (item == null)
+                    throw new ArgumentNullException(nameof(item), "Cannot add a null operation");
+                if (item.ParentDirectory == this)
+                    throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
+                if (item.ParentDirectory != null)
+                    throw new InvalidOperationException("Entry already exists in another container. It must be removed first");   
+            }
         };
 
         this.Items.BeforeItemReplace += (list, index, oldItem, newItem) => {

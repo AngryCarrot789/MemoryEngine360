@@ -97,14 +97,13 @@ public partial class EngineView : UserControl, IEngineUI {
     private readonly ComboBoxToEventPropertyEnumBinder<NumericScanType> scanTypeBinder1 = new ComboBoxToEventPropertyEnumBinder<NumericScanType>(typeof(ScanningProcessor), nameof(ScanningProcessor.NumericScanTypeChanged), (x) => ((ScanningProcessor) x).NumericScanType, (x, y) => ((ScanningProcessor) x).NumericScanType = y);
     private readonly ComboBoxToEventPropertyEnumBinder<NumericScanType> scanTypeBinder2 = new ComboBoxToEventPropertyEnumBinder<NumericScanType>(typeof(ScanningProcessor), nameof(ScanningProcessor.NumericScanTypeChanged), (x) => ((ScanningProcessor) x).NumericScanType, (x, y) => ((ScanningProcessor) x).NumericScanType = y);
 
+    
     private readonly IBinder<ScanningProcessor> selectedTabIndexBinder;
-
     private readonly IBinder<ScanningProcessor> scanForAnyBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanForAnyDataTypeChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanForAnyDataType, (b) => b.Model.ScanForAnyDataType = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> inputValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> inputBetweenABinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> inputBetweenBBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputBChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputB, (b) => b.Model.InputB = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> stringIgnoreCaseBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.StringIgnoreCaseChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.StringIgnoreCase, (b) => b.Model.StringIgnoreCase = ((ToggleButton) b.Control).IsChecked == true);
-
     private readonly IBinder<UnknownDataTypeOptions> canScanFloatBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForFloatChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForFloat, (b) => b.Model.CanSearchForFloat = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<UnknownDataTypeOptions> canScanDoubleBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForDoubleChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForDouble, (b) => b.Model.CanSearchForDouble = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<UnknownDataTypeOptions> canScanStringBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForStringChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForString, (b) => b.Model.CanSearchForString = ((ToggleButton) b.Control).IsChecked == true);
@@ -126,9 +125,7 @@ public partial class EngineView : UserControl, IEngineUI {
     private readonly AsyncRelayCommand editAlignmentCommand;
 
     public MemoryEngine MemoryEngine { get; }
-
-    public NotificationManager NotificationManager { get; }
-
+    
     public TopLevelMenuRegistry TopLevelMenuRegistry => MemoryEngineViewState.GetInstance(this.MemoryEngine).TopLevelMenuRegistry;
 
     public IListSelectionManager<IAddressTableEntryUI> AddressTableSelectionManager { get; }
@@ -279,9 +276,9 @@ public partial class EngineView : UserControl, IEngineUI {
             }
         }, RoutingStrategies.Tunnel);
 
-        this.NotificationManager = new NotificationManager();
-        ((IComponentManager) this.MemoryEngine).ComponentStorage.AddComponent(this.NotificationManager);
-        this.PART_NotificationListBox.NotificationManager = this.NotificationManager;
+        NotificationManager notificationManager = new NotificationManager();
+        ((IComponentManager) this.MemoryEngine).ComponentStorage.AddComponent(notificationManager);
+        this.PART_NotificationListBox.NotificationManager = notificationManager;
     }
 
     private void SetupMainMenu() {
@@ -290,7 +287,7 @@ public partial class EngineView : UserControl, IEngineUI {
         // ### File ###
         ContextEntryGroup fileEntry = new ContextEntryGroup("File");
         fileEntry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
-        fileEntry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.DownloadMemoryIcon));
+        fileEntry.Items.Add(new CommandContextEntry("comm®╨╨╓ands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.DownloadMemoryIcon));
         fileEntry.Items.Add(new SeparatorEntry());
         fileEntry.Items.Add(new CommandContextEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command...", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
         fileEntry.Items.Add(new SendXboxNotificationCommandEntry("Test Notification (XBDM)", null, null));
@@ -552,7 +549,7 @@ public partial class EngineView : UserControl, IEngineUI {
             }) { ToolTip = "Disconnect from the connection" });
 
             notification.CanAutoHide = true;
-            notification.Show(this.NotificationManager);
+            notification.Show(NotificationManager.GetInstance(this.MemoryEngine));
             this.PART_LatestActivity.Text = notification.Text;
         }
         else {
@@ -619,7 +616,7 @@ public partial class EngineView : UserControl, IEngineUI {
                     notification.CanAutoHide = true;
                 }
 
-                notification.Show(this.NotificationManager);
+                notification.Show(NotificationManager.GetInstance(this.MemoryEngine));
             }
         }
     }

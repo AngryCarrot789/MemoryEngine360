@@ -36,13 +36,15 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
 
     public AddressTableGroupEntry() {
         this.Items = new ObservableList<BaseAddressTableEntry>();
-        this.Items.BeforeItemAdded += (list, index, item) => {
-            if (item == null)
-                throw new ArgumentNullException(nameof(item), "Cannot add a null entry");
-            if (item.Parent == this)
-                throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
-            if (item.Parent != null)
-                throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
+        this.Items.BeforeItemsAdded += (list, index, items) => {
+            foreach (BaseAddressTableEntry item in items) {
+                if (item == null)
+                    throw new ArgumentNullException(nameof(item), "Cannot add a null entry");
+                if (item.Parent == this)
+                    throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
+                if (item.Parent != null)
+                    throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
+            }
         };
         this.Items.ItemsAdded += (list, index, items) => items.ForEach(this, InternalOnAddedToEntry);
         this.Items.ItemsRemoved += (list, index, removedItems) => removedItems.ForEach(InternalOnRemovedFromEntry);

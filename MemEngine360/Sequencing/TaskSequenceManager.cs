@@ -36,7 +36,7 @@ namespace MemEngine360.Sequencing;
 /// </summary>
 public class TaskSequenceManager : IComponentManager {
     public static readonly DataKey<TaskSequenceManager> DataKey = DataKey<TaskSequenceManager>.Create(nameof(TaskSequenceManager));
-    
+
     private readonly ObservableList<TaskSequence> activeSequences;
     private readonly ComponentStorage myComponentStorage;
 
@@ -62,14 +62,16 @@ public class TaskSequenceManager : IComponentManager {
         this.MemoryEngine = engine ?? throw new ArgumentNullException(nameof(engine));
         this.myComponentStorage = new ComponentStorage(this);
         this.Sequences = new ObservableList<TaskSequence>();
-        this.Sequences.BeforeItemAdded += (list, index, item) => {
-            if (item == null)
-                throw new ArgumentNullException(nameof(item), "Cannot add a null entry");
-            if (item.Manager == this)
-                throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
-            if (item.Manager != null)
-                throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
-            item.CheckNotRunning("Cannot add entry while it is running");
+        this.Sequences.BeforeItemsAdded += (list, index, items) => {
+            foreach (TaskSequence item in items) {
+                if (item == null)
+                    throw new ArgumentNullException(nameof(items), "List contains a null entry");
+                if (item.Manager == this)
+                    throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
+                if (item.Manager != null)
+                    throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
+                item.CheckNotRunning("Cannot add entry while it is running");
+            }
         };
 
         this.Sequences.BeforeItemsRemoved += (list, index, count) => {

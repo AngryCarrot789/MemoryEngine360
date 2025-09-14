@@ -39,7 +39,7 @@ public delegate void TaskSequenceDedicatedConnectionChangedEventHandler(TaskSequ
 /// </summary>
 public sealed class TaskSequence : IConditionsHost {
     public static readonly DataKey<TaskSequence> DataKey = DataKey<TaskSequence>.Create(nameof(TaskSequence));
-    
+
     internal TaskSequenceViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using IComponentManager
 
     internal TaskSequenceManager? myManager;
@@ -157,17 +157,19 @@ public sealed class TaskSequence : IConditionsHost {
 
     public TaskSequence() {
         this.Operations = new ObservableList<BaseSequenceOperation>();
-        this.Operations.BeforeItemAdded += (list, index, item) => {
-            if (item == null)
-                throw new ArgumentNullException(nameof(item), "Cannot add a null operation");
-            if (item.TaskSequence == this)
-                throw new InvalidOperationException("Operation already exists in this operation. It must be removed first");
-            if (item.TaskSequence != null)
-                throw new InvalidOperationException("Operation already exists in another container. It must be removed first");
-            this.CheckNotRunning("Cannot modify sequence list while running");
+        this.Operations.BeforeItemsAdded += (list, index, items) => {
+            foreach (BaseSequenceOperation item in items) {
+                if (item == null)
+                    throw new ArgumentNullException(nameof(item), "Cannot add a null operation");
+                if (item.TaskSequence == this)
+                    throw new InvalidOperationException("Operation already exists in this operation. It must be removed first");
+                if (item.TaskSequence != null)
+                    throw new InvalidOperationException("Operation already exists in another container. It must be removed first");
+                this.CheckNotRunning("Cannot modify sequence list while running");
 
-            if (item is LabelOperation label && label.LabelName != null && this.Operations.Any(x => x is LabelOperation otherLabel && otherLabel.LabelName == label.LabelName)) {
-                throw new InvalidOperationException("Attempt to add label whose name is already in use");
+                if (item is LabelOperation label && label.LabelName != null && this.Operations.Any(x => x is LabelOperation otherLabel && otherLabel.LabelName == label.LabelName)) {
+                    throw new InvalidOperationException("Attempt to add label whose name is already in use");
+                }
             }
         };
 
@@ -224,12 +226,14 @@ public sealed class TaskSequence : IConditionsHost {
         };
 
         this.Conditions = new ObservableList<BaseSequenceCondition>();
-        this.Conditions.BeforeItemAdded += (list, i, item) => {
-            this.CheckNotRunning("Cannot add conditions while running");
-            if (item.TaskSequence == this)
-                throw new InvalidOperationException("Condition already added to this sequence");
-            if (item.TaskSequence != null)
-                throw new InvalidOperationException("Condition already exists in another sequence");
+        this.Conditions.BeforeItemsAdded += (list, i, items) => {
+            foreach (BaseSequenceCondition item in items) {
+                this.CheckNotRunning("Cannot add conditions while running");
+                if (item.TaskSequence == this)
+                    throw new InvalidOperationException("Condition already added to this sequence");
+                if (item.TaskSequence != null)
+                    throw new InvalidOperationException("Condition already exists in another sequence");
+            }
         };
 
         this.Conditions.BeforeItemsRemoved += (list, index, count) => this.CheckNotRunning($"Cannot remove condition{Lang.S(count)} while running");
