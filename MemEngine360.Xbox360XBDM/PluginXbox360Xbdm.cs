@@ -61,8 +61,8 @@ public class PluginXbox360Xbdm : Plugin {
         return Task.CompletedTask;
     }
 
-    private static void OnEngineOpened(MemoryEngineManager manager, IEngineUI engine) {
-        if (engine.MemoryEngine.ToolsMenu.TryGetGroupById("memoryengine.tools.coolutils", out ContextEntryGroup? group)) {
+    private static void OnEngineOpened(MemoryEngineManager manager, MemoryEngine engine) {
+        if (engine.ToolsMenu.TryGetGroupById("memoryengine.tools.coolutils", out ContextEntryGroup? group)) {
             group.Items.Add(new CommandContextEntry("commands.memengine.remote.TestRPCCommand", "SV_SetConfigString on MW3 (TU24)", "Invokes the method on the connected xbox"));
         }
     }

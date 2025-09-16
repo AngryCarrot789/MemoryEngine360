@@ -29,17 +29,17 @@ public class EditSavedAddressAddressCommand : BaseSavedAddressSelectionCommand {
     public EditSavedAddressAddressCommand() {
     }
 
-    protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
-        return entries.Any(x => x.Entry is AddressTableEntry) ? Executability.Valid : Executability.ValidButCannotExecute;
+    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+        return entries.Any(x => x is AddressTableEntry) ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
-    protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
-        entries = entries.Where(x => x.Entry is AddressTableEntry).ToList();
+    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+        entries = entries.Where(x => x is AddressTableEntry).ToList();
         if (entries.Count < 1) {
             return;
         }
 
-        SingleUserInputInfo input = new SingleUserInputInfo(((AddressTableEntry) entries[0].Entry).MemoryAddress.ToString()) {
+        SingleUserInputInfo input = new SingleUserInputInfo(((AddressTableEntry) entries[0]).MemoryAddress.ToString()) {
             Caption = "Edit address",
             Message = "Change the address of this saved address table entry",
             DefaultButton = true,
@@ -53,8 +53,8 @@ public class EditSavedAddressAddressCommand : BaseSavedAddressSelectionCommand {
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) == true) {
             _ = MemoryAddressUtils.TryParse(input.Text, out IMemoryAddress? memoryAddress);
-            foreach (IAddressTableEntryUI ui in entries) {
-                AddressTableEntry entry = (AddressTableEntry) ui.Entry;
+            foreach (BaseAddressTableEntry ui in entries) {
+                AddressTableEntry entry = (AddressTableEntry) ui;
                 
                 entry.MemoryAddress = memoryAddress!;
                 entry.AddressTableManager?.MemoryEngine.ScanningProcessor.RefreshSavedAddressesLater();   

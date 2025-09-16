@@ -25,15 +25,15 @@ using PFXToolKitUI.Services.UserInputs;
 namespace MemEngine360.Commands.ATM;
 
 public class EditSavedAddressDescriptionCommand : BaseSavedAddressSelectionCommand {
-    protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
-        SingleUserInputInfo info = new SingleUserInputInfo(entries[0].Entry.Description) {
+    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+        SingleUserInputInfo info = new SingleUserInputInfo(entries[0].Description) {
             Caption = "Change description",
             DefaultButton = true,
             Label = "New description"
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-            List<BaseAddressTableEntry> selection = entries.Select(x => x.Entry).ToList();
+            List<BaseAddressTableEntry> selection = entries.ToList();
             foreach (BaseAddressTableEntry entry in selection) {
                 entry.Description = info.Text;
             }

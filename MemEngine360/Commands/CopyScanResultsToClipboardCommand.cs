@@ -30,10 +30,10 @@ namespace MemEngine360.Commands;
 public class CopyScanResultsToClipboardCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         if (!ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? _)) {
-            if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+            if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
                 return Executability.Invalid;
             }
-            else if (MemoryEngineViewState.GetInstance(ui.MemoryEngine).SelectedScanResults.Count < 1) {
+            else if (MemoryEngineViewState.GetInstance(engine).SelectedScanResults.Count < 1) {
                 return Executability.ValidButCannotExecute;
             }
         }
@@ -42,11 +42,9 @@ public class CopyScanResultsToClipboardCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        MemoryEngine? engine = null;
         List<ScanResultViewModel> scanResults = new List<ScanResultViewModel>();
-        if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            scanResults.AddRange(MemoryEngineViewState.GetInstance(ui.MemoryEngine).SelectedScanResults.SelectedItems);
-            engine = ui.MemoryEngine;
+        if (MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+            scanResults.AddRange(MemoryEngineViewState.GetInstance(engine).SelectedScanResults.SelectedItems);
         }
 
         if (ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? theResult)) {

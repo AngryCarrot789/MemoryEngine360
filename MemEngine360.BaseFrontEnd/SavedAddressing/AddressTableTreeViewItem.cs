@@ -38,7 +38,7 @@ using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.BaseFrontEnd.SavedAddressing;
 
-public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryUI {
+public sealed class AddressTableTreeViewItem : TreeViewItem {
     public static readonly DirectProperty<AddressTableTreeViewItem, bool> IsFolderItemProperty = AvaloniaProperty.RegisterDirect<AddressTableTreeViewItem, bool>("IsFolderItem", o => o.IsFolderItem, null);
     public static readonly StyledProperty<bool> IsDroppableTargetOverProperty = AvaloniaProperty.Register<AddressTableTreeViewItem, bool>(nameof(IsDroppableTargetOver));
 
@@ -81,14 +81,9 @@ public sealed class AddressTableTreeViewItem : TreeViewItem, IAddressTableEntryU
     private Point clickMousePoint;
     private bool isProcessingAsyncDrop;
 
-    BaseAddressTableEntry IAddressTableEntryUI.Entry => this.EntryObject ?? throw new Exception("Not connected to an entry");
-
-    bool IAddressTableEntryUI.IsValid => this.EntryObject != null;
-
     private DispatcherTimer? expandForDragOverTimer;
 
     public AddressTableTreeViewItem() {
-        DataManager.GetContextData(this).Set(IAddressTableEntryUI.DataKey, this);
         this.EditAddressCommand = new DataManagerCommandWrapper(this, "commands.memengine.EditSavedAddressAddressCommand", false);
         this.EditDataTypeCommand = new DataManagerCommandWrapper(this, "commands.memengine.EditSavedAddressDataTypeCommand", false);
         DragDrop.SetAllowDrop(this, true);

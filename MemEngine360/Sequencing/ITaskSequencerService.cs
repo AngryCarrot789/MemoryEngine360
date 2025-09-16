@@ -22,5 +22,5 @@ using MemEngine360.Engine;
 namespace MemEngine360.Sequencing;
 
 public interface ITaskSequencerService {
-    Task OpenOrFocusWindow(IEngineUI engine);
+    Task OpenOrFocusWindow(MemoryEngine engine);
 }

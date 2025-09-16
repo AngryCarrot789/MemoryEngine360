@@ -56,6 +56,11 @@ public delegate void MemoryEngineConnectionChangedEventHandler(MemoryEngine send
 [DebuggerDisplay("IsBusy = {IsConnectionBusy}, Connection = {Connection}")]
 public class MemoryEngine : IComponentManager {
     public static readonly DataKey<MemoryEngine> EngineDataKey = DataKey<MemoryEngine>.Create("MemoryEngine");
+    
+    /// <summary>
+    /// A data key used by the connection change notification to tell whether a disconnection originated from the notification's "Disconnect" command
+    /// </summary>
+    public static readonly DataKey<bool> IsDisconnectFromNotification = DataKey<bool>.Create("IsDisconnectFromNotification");
 
     private volatile IConsoleConnection? connection; // our connection object -- volatile in case JIT plays dirty tricks, i ain't no expert in wtf volatile does though
     private bool isShuttingDown;
@@ -228,7 +233,7 @@ public class MemoryEngine : IComponentManager {
                 new ContextEntryGroup("Cool Utils") {
                     UniqueID = "memoryengine.tools.coolutils",
                     Items = {
-                        new CustomLambdaContextEntry("[BO1 SP] Find AI's X pos near camera", ExecuteFindAINearBO1Camera, (c) => c.ContainsKey(IEngineUI.DataKey.Id))
+                        new CustomLambdaContextEntry("[BO1 SP] Find AI's X pos near camera", ExecuteFindAINearBO1Camera, (c) => c.ContainsKey(EngineDataKey.Id))
                     }
                 }
             }
@@ -587,12 +592,11 @@ public class MemoryEngine : IComponentManager {
     }
 
     private static async Task ExecuteFindAINearBO1Camera(IContextData ctx) {
-        if (!IEngineUI.DataKey.TryGetContext(ctx, out IEngineUI? engineUI))
+        if (!EngineDataKey.TryGetContext(ctx, out MemoryEngine? engine))
             return;
 
         // new DynamicAddress(0x82000000, [0x1AD74, 0x1758, 0x18C4, 0x144, 0x118, 0x11C])
         // new DynamicAddress(0x82000000, [0x1AD74, 0x1758, 0x18C4, 0x144, 0x1A4, 0x1EC8])
-        MemoryEngine engine = engineUI.MemoryEngine;
         await engine.BeginBusyOperationActivityAsync(async (t, c) => {
             if (engine.ScanningProcessor.IsScanning) {
                 await IMessageDialogService.Instance.ShowMessage("Currently scanning", "Cannot run. Engine is scanning for a value");
@@ -652,7 +656,7 @@ public class MemoryEngine : IComponentManager {
                             continue;
                         }
 
-                        DataValueFloat currVal = (DataValueFloat) await MemoryEngine.ReadDataValue(c, result.Address, floatval);
+                        DataValueFloat currVal = (DataValueFloat) await ReadDataValue(c, result.Address, floatval);
                         if (Math.Abs(currVal.Value - p1_x) <= radius) {
                             results.Add((result.Address, currVal.Value));
                         }

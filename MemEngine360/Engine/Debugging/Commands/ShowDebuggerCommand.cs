@@ -25,10 +25,10 @@ namespace MemEngine360.Engine.Debugging.Commands;
 
 public class ShowDebuggerCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine))
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine))
             return;
 
-        ConsoleDebugger debugger = engine.MemoryEngine.ConsoleDebugger;
+        ConsoleDebugger debugger = engine.ConsoleDebugger;
         IDebuggerViewService service = ApplicationPFX.GetComponent<IDebuggerViewService>();
         await service.ShowDebugger(debugger);
         if (debugger.Connection == null) {

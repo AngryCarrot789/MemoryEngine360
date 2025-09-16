@@ -27,11 +27,11 @@ namespace MemEngine360.Commands.ATM;
 
 public class AddSelectedScanResultsToSavedAddressListCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return Executability.Invalid;
         }
 
-        if (MemoryEngineViewState.GetInstance(ui.MemoryEngine).SelectedScanResults.Count < 1) {
+        if (MemoryEngineViewState.GetInstance(engine).SelectedScanResults.Count < 1) {
             return Executability.ValidButCannotExecute;
         }
 
@@ -46,16 +46,16 @@ public class AddSelectedScanResultsToSavedAddressListCommand : Command {
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return Task.CompletedTask;
         }
 
-        ListSelectionModel<ScanResultViewModel> selectionModel = MemoryEngineViewState.GetInstance(ui.MemoryEngine).SelectedScanResults;
+        ListSelectionModel<ScanResultViewModel> selectionModel = MemoryEngineViewState.GetInstance(engine).SelectedScanResults;
         if (selectionModel.Count < 1) {
             return Task.CompletedTask;
         }
 
-        AddressTableGroupEntry saved = ui.MemoryEngine.AddressTableManager.RootEntry;
+        AddressTableGroupEntry saved = engine.AddressTableManager.RootEntry;
         List<ScanResultViewModel> selection = selectionModel.SelectedItems.ToList();
         foreach (ScanResultViewModel result in selection) {
             saved.Items.Add(new AddressTableEntry(result));

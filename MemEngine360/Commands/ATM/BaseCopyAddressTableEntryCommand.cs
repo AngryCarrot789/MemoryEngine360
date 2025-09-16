@@ -30,7 +30,7 @@ public abstract class BaseCopyAddressTableEntryCommand : BaseSavedAddressSelecti
         this.MaximumSelection = 1;
     }
 
-    protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
         Executability exec = base.CanExecuteOverride(entries, engine, e);
         if (exec != Executability.Valid)
             return exec;
@@ -43,7 +43,7 @@ public abstract class BaseCopyAddressTableEntryCommand : BaseSavedAddressSelecti
         return this.CanExecute(entries[0], engine, e);
     }
 
-    protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
         if (!ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(e.ContextData, out ITopLevelComponentManager? topLevel))
             return;
         if (!IClipboardService.TryGet(topLevel, out IClipboardService? clipboard))
@@ -52,9 +52,9 @@ public abstract class BaseCopyAddressTableEntryCommand : BaseSavedAddressSelecti
         await this.Copy(entries[0], engine, clipboard);
     }
 
-    protected virtual Executability CanExecute(IAddressTableEntryUI entry, IEngineUI engine, CommandEventArgs e) {
+    protected virtual Executability CanExecute(BaseAddressTableEntry entry, MemoryEngine engine, CommandEventArgs e) {
         return Executability.Valid;
     }
 
-    protected abstract Task Copy(IAddressTableEntryUI entry, IEngineUI engine, IClipboardService clipboard);
+    protected abstract Task Copy(BaseAddressTableEntry entry, MemoryEngine engine, IClipboardService clipboard);
 }

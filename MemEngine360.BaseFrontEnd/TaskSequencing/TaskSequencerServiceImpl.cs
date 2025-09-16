@@ -28,7 +28,7 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 public class TaskSequencerServiceImpl : ITaskSequencerService {
     private IWindow? currentWindow;
 
-    public Task OpenOrFocusWindow(IEngineUI engine) {
+    public Task OpenOrFocusWindow(MemoryEngine engine) {
         if (this.currentWindow != null) {
             this.currentWindow.Activate();
             return Task.CompletedTask;
@@ -38,7 +38,7 @@ public class TaskSequencerServiceImpl : ITaskSequencerService {
             IWindow window = this.currentWindow = manager.CreateWindow(new WindowBuilder() {
                 Title = "Task Sequencer",
                 FocusPath = "SequencerWindow",
-                Content = new TaskSequencerWindow(engine.MemoryEngine.TaskSequenceManager),
+                Content = new TaskSequencerWindow(engine.TaskSequenceManager),
                 TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.Sequencer.TitleBarBackground"),
                 BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
                 MinWidth = 640, MinHeight = 400,

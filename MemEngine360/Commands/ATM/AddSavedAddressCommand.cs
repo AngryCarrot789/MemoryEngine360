@@ -40,23 +40,21 @@ public class AddSavedAddressCommand : Command {
 
         uint initialAddress = 0;
         AddressTableGroupEntry? targetParent = null;
-        if (IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
-            MemoryEngineViewState engineState = MemoryEngineViewState.GetInstance(ui.MemoryEngine);
-            List<ScanResultViewModel> list = engineState.SelectedScanResults.SelectedItems.ToList();
-            if (list.Count > 0)
-                initialAddress = list[list.Count - 1].Address;
+        MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(engine);
+        List<ScanResultViewModel> list = vs.SelectedScanResults.SelectedItems.ToList();
+        if (list.Count > 0)
+            initialAddress = list[list.Count - 1].Address;
 
-            if (ui.AddressTableSelectionManager.Count == 1) {
-                BaseAddressTableEntry entry = ui.AddressTableSelectionManager.SelectedItemList[0].Entry;
-                if (entry is AddressTableGroupEntry) {
-                    targetParent = (AddressTableGroupEntry) entry;
-                }
-                else {
-                    targetParent = entry.Parent;
-                }
+        if (vs.AddressTableSelectionManager.Count == 1) {
+            BaseAddressTableEntry entry = vs.AddressTableSelectionManager.SelectedItems.First();
+            if (entry is AddressTableGroupEntry) {
+                targetParent = (AddressTableGroupEntry) entry;
+            }
+            else {
+                targetParent = entry.Parent;
             }
         }
-        
+
         targetParent ??= engine.AddressTableManager.RootEntry;
         DoubleUserInputInfo addrDescInfo = new DoubleUserInputInfo() {
             Caption = "New saved address",
@@ -72,7 +70,7 @@ public class AddSavedAddressCommand : Command {
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(addrDescInfo) == true) {
             _ = MemoryAddressUtils.TryParse(addrDescInfo.TextA, out IMemoryAddress? memoryAddress, out _);
-            
+
             AddressTableEntry result = new AddressTableEntry() {
                 MemoryAddress = memoryAddress!, Description = addrDescInfo.TextB
             };

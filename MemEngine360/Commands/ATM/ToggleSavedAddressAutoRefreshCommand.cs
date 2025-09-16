@@ -24,28 +24,28 @@ using PFXToolKitUI.CommandSystem;
 namespace MemEngine360.Commands.ATM;
 
 public class ToggleSavedAddressAutoRefreshCommand : BaseSavedAddressSelectionCommand {
-    protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
-        return entries.Any(x => x.Entry is AddressTableEntry)
+    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+        return entries.Any(x => x is AddressTableEntry)
             ? base.CanExecuteOverride(entries, engine, e)
             : Executability.ValidButCannotExecute;
     }
 
-    protected override Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
-        entries = entries.Where(x => x.Entry is AddressTableEntry).ToList();
+    protected override Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+        entries = entries.Where(x => x is AddressTableEntry).ToList();
         if (entries.Count < 1) {
             return Task.CompletedTask;
         }
 
         int countDisabled = 0;
-        foreach (IAddressTableEntryUI item in entries) {
-            if (!((AddressTableEntry) item.Entry).IsAutoRefreshEnabled) {
+        foreach (BaseAddressTableEntry item in entries) {
+            if (!((AddressTableEntry) item).IsAutoRefreshEnabled) {
                 countDisabled++;
             }
         }
 
         bool isEnabled = entries.Count == 1 ? (countDisabled != 0) : countDisabled >= (entries.Count / 2);
-        foreach (IAddressTableEntryUI item in entries) {
-            ((AddressTableEntry) item.Entry).IsAutoRefreshEnabled = isEnabled;
+        foreach (BaseAddressTableEntry item in entries) {
+            ((AddressTableEntry) item).IsAutoRefreshEnabled = isEnabled;
         }
 
         return Task.CompletedTask;

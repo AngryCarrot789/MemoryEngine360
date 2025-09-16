@@ -34,8 +34,8 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Commands.ATM;
 
 public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
-    protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
-        IConsoleConnection? connection = engine.MemoryEngine.Connection;
+    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+        IConsoleConnection? connection = engine.Connection;
         if (connection == null || connection.IsClosed) {
             return Executability.ValidButCannotExecute;
         }
@@ -43,14 +43,14 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
         return Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
-        IConsoleConnection? connection = engine.MemoryEngine.Connection;
+    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+        IConsoleConnection? connection = engine.Connection;
         if (connection == null || connection.IsClosed) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
             return;
         }
         
-        List<AddressTableEntry> savedList = entries.Select(x => x.Entry).OfType<AddressTableEntry>().ToList();
+        List<AddressTableEntry> savedList = entries.OfType<AddressTableEntry>().ToList();
         if (savedList.Count < 1) {
             return;
         }
@@ -78,12 +78,12 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             return;
         }
 
-        using IDisposable? token = await engine.MemoryEngine.BeginBusyOperationActivityAsync("Edit scan result value");
+        using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Edit scan result value");
         if (token == null) {
             return;
         }
 
-        if ((connection = engine.MemoryEngine.Connection) == null || connection.IsClosed) {
+        if ((connection = engine.Connection) == null || connection.IsClosed) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Console was disconnected while trying to edit values. Nothing was modified. Please reconnect.");
             return;
         }

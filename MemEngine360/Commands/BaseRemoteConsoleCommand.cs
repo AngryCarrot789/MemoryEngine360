@@ -186,7 +186,7 @@ public abstract class BaseJRPC2Command : BaseRemoteConsoleCommand {
         if (exec != Executability.Valid) {
             return exec;
         }
-
+        
         return connection.HasFeature<IFeatureXboxJRPC2>() ? Executability.Valid : Executability.Invalid;
     }
 

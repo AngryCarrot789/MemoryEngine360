@@ -27,6 +27,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using MemEngine360.BaseFrontEnd.SavedAddressing;
 using MemEngine360.Commands;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
@@ -39,7 +40,6 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
-using PFXToolKitUI.Avalonia.Interactivity.Selecting;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Utils;
@@ -61,7 +61,7 @@ using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.Avalonia;
 
-public partial class EngineView : UserControl, IEngineUI {
+public partial class EngineView : UserControl {
     private readonly IBinder<MemoryEngine> connectedHostNameBinder =
         new EventUpdateBinder<MemoryEngine>(
             nameof(MemoryEngine.ConnectionChanged),
@@ -97,7 +97,6 @@ public partial class EngineView : UserControl, IEngineUI {
     private readonly ComboBoxToEventPropertyEnumBinder<NumericScanType> scanTypeBinder1 = new ComboBoxToEventPropertyEnumBinder<NumericScanType>(typeof(ScanningProcessor), nameof(ScanningProcessor.NumericScanTypeChanged), (x) => ((ScanningProcessor) x).NumericScanType, (x, y) => ((ScanningProcessor) x).NumericScanType = y);
     private readonly ComboBoxToEventPropertyEnumBinder<NumericScanType> scanTypeBinder2 = new ComboBoxToEventPropertyEnumBinder<NumericScanType>(typeof(ScanningProcessor), nameof(ScanningProcessor.NumericScanTypeChanged), (x) => ((ScanningProcessor) x).NumericScanType, (x, y) => ((ScanningProcessor) x).NumericScanType = y);
 
-    
     private readonly IBinder<ScanningProcessor> selectedTabIndexBinder;
     private readonly IBinder<ScanningProcessor> scanForAnyBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanForAnyDataTypeChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanForAnyDataType, (b) => b.Model.ScanForAnyDataType = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> inputValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
@@ -125,22 +124,8 @@ public partial class EngineView : UserControl, IEngineUI {
     private readonly AsyncRelayCommand editAlignmentCommand;
 
     public MemoryEngine MemoryEngine { get; }
-    
+
     public TopLevelMenuRegistry TopLevelMenuRegistry => MemoryEngineViewState.GetInstance(this.MemoryEngine).TopLevelMenuRegistry;
-
-    public IListSelectionManager<IAddressTableEntryUI> AddressTableSelectionManager { get; }
-
-    public bool IsActivtyListVisible {
-        get => this.PART_ActivityListPanel.IsVisible;
-        set {
-            if (this.PART_ActivityListPanel.IsVisible != value) {
-                this.PART_ActivityListPanel.IsVisible = value;
-                this.PART_ActivityList.ActivityManager = value ? ActivityManager.Instance : null;
-
-                this.PART_ActivityListPanel.Focus();
-            }
-        }
-    }
 
     private readonly ContextEntryGroup themesSubList;
     private IWindow? myOwnerWindow_onLoaded;
@@ -150,62 +135,12 @@ public partial class EngineView : UserControl, IEngineUI {
     private LambdaNotificationCommand? connectionNotificationCommandDisconnect;
     private LambdaNotificationCommand? connectionNotificationCommandReconnect;
     private readonly DataGridSelectionModelBinder<ScanResultViewModel> scanResultSelectionBinder;
+    private readonly TreeViewSelectionModelBinder<BaseAddressTableEntry> addressTableSelectionBinder;
 
     private readonly ColourBrushHandler titleBarToMenuBackgroundBrushHandler;
 
     public EngineView() {
         this.InitializeComponent();
-
-        this.selectedTabIndexBinder = new AvaloniaPropertyToMultiEventPropertyBinder<ScanningProcessor>(SelectingItemsControl.SelectedIndexProperty, [nameof(ScanningProcessor.DataTypeChanged), nameof(ScanningProcessor.ScanForAnyDataTypeChanged)], (b) => {
-            if (b.Model.ScanForAnyDataType) {
-                ((TabControl) b.Control).SelectedIndex = 3;
-            }
-            else {
-                switch (b.Model.DataType) {
-                    case DataType.Byte:
-                    case DataType.Int16:
-                    case DataType.Int32:
-                    case DataType.Int64: {
-                        ((TabControl) b.Control).SelectedIndex = 0;
-                        break;
-                    }
-                    case DataType.Float:
-                    case DataType.Double: {
-                        ((TabControl) b.Control).SelectedIndex = 1;
-                        break;
-                    }
-                    case DataType.String: {
-                        ((TabControl) b.Control).SelectedIndex = 2;
-                        break;
-                    }
-                    case DataType.ByteArray: {
-                        break;
-                    }
-                    default: throw new ArgumentOutOfRangeException();
-                }
-            }
-
-            this.UpdateUIForScanTypeAndDataType();
-        }, (b) => {
-            if (!b.Model.HasDoneFirstScan) {
-                int idx = ((TabControl) b.Control).SelectedIndex;
-                if (idx == 3) {
-                    b.Model.ScanForAnyDataType = true;
-                    b.Model.Alignment = 1;
-                }
-                else {
-                    b.Model.ScanForAnyDataType = false;
-                    switch (idx) {
-                        case 0: b.Model.DataType = this.lastIntegerDataType; break;
-                        case 1: b.Model.DataType = this.lastFloatDataType; break;
-                        case 2: b.Model.DataType = DataType.String; break;
-                    }
-
-                    // update anyway just in case old DT equals new DT
-                    b.Model.Alignment = b.Model.DataType.GetAlignmentFromDataType();
-                }
-            }
-        });
 
         this.themesSubList = new ContextEntryGroup("Themes");
         this.MemoryEngine = new MemoryEngine();
@@ -214,7 +149,11 @@ public partial class EngineView : UserControl, IEngineUI {
         this.titleBarToMenuBackgroundBrushHandler = new ColourBrushHandler(BackgroundProperty);
 
         this.scanResultSelectionBinder = new DataGridSelectionModelBinder<ScanResultViewModel>(this.PART_ScanListResults, MemoryEngineViewState.GetInstance(this.MemoryEngine).SelectedScanResults);
-        this.AddressTableSelectionManager = new TreeViewSelectionManager<IAddressTableEntryUI>(this.PART_SavedAddressTree);
+        this.addressTableSelectionBinder = new TreeViewSelectionModelBinder<BaseAddressTableEntry>(
+            this.PART_SavedAddressTree,
+            MemoryEngineViewState.GetInstance(this.MemoryEngine).AddressTableSelectionManager,
+            tvi => ((AddressTableTreeViewItem) tvi).EntryObject!,
+            model => this.PART_SavedAddressTree.ItemMap.GetControl(model));
 
         this.PART_LatestActivity.Text = "Welcome to MemoryEngine360.";
         this.PART_ScanListResults.ItemsSource = this.MemoryEngine.ScanningProcessor.ScanResults;
@@ -240,6 +179,14 @@ public partial class EngineView : UserControl, IEngineUI {
                 }
             };
 
+            info.TextChanged += UpdateFooter;
+            UpdateFooter(info);
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+                p.Alignment = NumberUtils.ParseHexOrRegular<uint>(info.Text);
+            }
+
+            return;
+
             static void UpdateFooter(SingleUserInputInfo inf) {
                 if (inf.TextErrors != null) {
                     inf.Footer = "Cannot show examples: invalid alignment";
@@ -252,12 +199,6 @@ public partial class EngineView : UserControl, IEngineUI {
                     inf.Footer = "We will scan " + sb.Append(", etc.");
                 }
             }
-
-            info.TextChanged += UpdateFooter;
-            UpdateFooter(info);
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-                p.Alignment = NumberUtils.ParseHexOrRegular<uint>(info.Text);
-            }
         });
 
         this.stringIgnoreCaseBinder.AttachControl(this.PART_IgnoreCases);
@@ -268,11 +209,55 @@ public partial class EngineView : UserControl, IEngineUI {
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF16, StringType.UTF16);
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF32, StringType.UTF32);
 
+        this.selectedTabIndexBinder = new AvaloniaPropertyToMultiEventPropertyBinder<ScanningProcessor>(SelectingItemsControl.SelectedIndexProperty, [nameof(ScanningProcessor.DataTypeChanged), nameof(ScanningProcessor.ScanForAnyDataTypeChanged)], (b) => {
+            if (b.Model.ScanForAnyDataType) {
+                ((TabControl) b.Control).SelectedIndex = 3;
+            }
+            else {
+                switch (b.Model.DataType) {
+                    case DataType.Byte:
+                    case DataType.Int16:
+                    case DataType.Int32:
+                    case DataType.Int64:
+                        ((TabControl) b.Control).SelectedIndex = 0;
+                        break;
+                    case DataType.Float:
+                    case DataType.Double:
+                        ((TabControl) b.Control).SelectedIndex = 1;
+                        break;
+                    case DataType.String:    ((TabControl) b.Control).SelectedIndex = 2; break;
+                    case DataType.ByteArray: break;
+                    default:                 throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            this.UpdateUIForScanTypeAndDataType();
+        }, (b) => {
+            if (!b.Model.HasDoneFirstScan) {
+                int idx = ((TabControl) b.Control).SelectedIndex;
+                if (idx == 3) {
+                    b.Model.ScanForAnyDataType = true;
+                    b.Model.Alignment = 1;
+                }
+                else {
+                    b.Model.ScanForAnyDataType = false;
+                    switch (idx) {
+                        case 0: b.Model.DataType = this.lastIntegerDataType; break;
+                        case 1: b.Model.DataType = this.lastFloatDataType; break;
+                        case 2: b.Model.DataType = DataType.String; break;
+                    }
+
+                    // update anyway just in case old DT equals new DT
+                    b.Model.Alignment = b.Model.DataType.GetAlignmentFromDataType();
+                }
+            }
+        });
+
         // Close activity list when user presses ESC
         this.PART_ActivityListPanel.AddHandler(KeyDownEvent, (sender, e) => {
             if (e.Key == Key.Escape) {
-                this.IsActivtyListVisible = false;
                 e.Handled = true;
+                MemoryEngineViewState.GetInstance(this.MemoryEngine).IsActivityListVisible = false;
             }
         }, RoutingStrategies.Tunnel);
 
@@ -341,7 +326,10 @@ public partial class EngineView : UserControl, IEngineUI {
 
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
-        MemoryEngineViewState.GetInstance(this.MemoryEngine).RequestWindowFocus += this.OnRequestWindowFocus;
+        MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(this.MemoryEngine);
+        vs.RequestWindowFocus += this.OnRequestWindowFocus;
+        vs.RequestFocusOnSavedAddress += this.OnRequestFocusOnSavedAddress;
+        vs.IsActivityListVisibleChanged += OnIsActivityListVisibleChanged;
 
         ScanningProcessor processor = this.MemoryEngine.ScanningProcessor;
         this.connectedHostNameBinder.Attach(this.PART_ConnectedHostName, this.MemoryEngine);
@@ -396,6 +384,21 @@ public partial class EngineView : UserControl, IEngineUI {
         }
     }
 
+    private void OnIsActivityListVisibleChanged(MemoryEngineViewState sender) {
+        if (this.PART_ActivityListPanel.IsVisible != sender.IsActivityListVisible) {
+            this.PART_ActivityListPanel.IsVisible = sender.IsActivityListVisible;
+            this.PART_ActivityList.ActivityManager = sender.IsActivityListVisible ? ActivityManager.Instance : null;
+            this.PART_ActivityListPanel.Focus();
+        }
+    }
+
+    private void OnRequestFocusOnSavedAddress(MemoryEngineViewState state, BaseAddressTableEntry address) {
+        if (this.PART_SavedAddressTree.ItemMap.TryGetControl(address, out AddressTableTreeViewItem? item)) {
+            item.IsSelected = true;
+            item.Focus();
+        }
+    }
+
     private void OnRequestWindowFocus(object? sender, EventArgs e) {
         if (IWindowManager.TryGetWindow(this, out IWindow? window)) {
             window.Activate();
@@ -404,7 +407,9 @@ public partial class EngineView : UserControl, IEngineUI {
 
     protected override void OnUnloaded(RoutedEventArgs e) {
         base.OnUnloaded(e);
-        MemoryEngineViewState.GetInstance(this.MemoryEngine).RequestWindowFocus -= this.OnRequestWindowFocus;
+        MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(this.MemoryEngine);
+        vs.RequestWindowFocus -= this.OnRequestWindowFocus;
+        vs.RequestFocusOnSavedAddress -= this.OnRequestFocusOnSavedAddress;
 
         this.MemoryEngine.ConnectionChanged -= this.OnConnectionChanged;
         this.themeListHandler?.RemoveExistingItems();
@@ -518,7 +523,7 @@ public partial class EngineView : UserControl, IEngineUI {
 
     private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
         TextNotification notification = this.connectionNotification ??= new TextNotification() {
-            ContextData = new ContextData().Set(IEngineUI.DataKey, this).
+            ContextData = new ContextData().Set(MemoryEngine.EngineDataKey, this.MemoryEngine).
                                             Set(ITopLevelComponentManager.TLCManagerDataKey, this.myOwnerWindow_onLoaded)
         };
 
@@ -538,11 +543,11 @@ public partial class EngineView : UserControl, IEngineUI {
 
             notification.Commands.Add(this.connectionNotificationCommandDisconnect ??= new LambdaNotificationCommand("Disconnect", static async (c) => {
                 // ContextData ensured non-null by LambdaNotificationCommand.requireContext
-                IEngineUI mem = IEngineUI.DataKey.GetContext(c.ContextData!)!;
-                if (mem.MemoryEngine.Connection != null) {
-                    ((ContextData) c.ContextData!).Set(IEngineUI.IsDisconnectFromNotification, true);
-                    await OpenConsoleConnectionDialogCommand.DisconnectInActivity(mem, 0);
-                    ((ContextData) c.ContextData!).Set(IEngineUI.IsDisconnectFromNotification, null);
+                MemoryEngine engine = MemoryEngine.EngineDataKey.GetContext(c.ContextData!)!;
+                if (engine.Connection != null) {
+                    ((ContextData) c.ContextData!).Set(MemoryEngine.IsDisconnectFromNotification, true);
+                    await OpenConsoleConnectionDialogCommand.DisconnectInActivity(engine, 0);
+                    ((ContextData) c.ContextData!).Set(MemoryEngine.IsDisconnectFromNotification, null);
                 }
 
                 c.Notification?.Hide();
@@ -555,7 +560,7 @@ public partial class EngineView : UserControl, IEngineUI {
         else {
             notification.Text = $"Disconnected from '{oldConn!.ConnectionType.DisplayName}'";
             this.PART_LatestActivity.Text = notification.Text;
-            if (cause != ConnectionChangeCause.ClosingWindow && (!IEngineUI.IsDisconnectFromNotification.TryGetContext(notification.ContextData!, out bool b) || !b)) {
+            if (cause != ConnectionChangeCause.ClosingWindow && (!MemoryEngine.IsDisconnectFromNotification.TryGetContext(notification.ContextData!, out bool b) || !b)) {
                 notification.Caption = cause switch {
                     ConnectionChangeCause.LostConnection => "Lost Connection",
                     ConnectionChangeCause.ConnectionError => "Connection error",
@@ -572,26 +577,25 @@ public partial class EngineView : UserControl, IEngineUI {
                     notification.CanAutoHide = false;
                     notification.Commands.Add(this.connectionNotificationCommandReconnect ??= new LambdaNotificationCommand("Reconnect", static async (c) => {
                         // ContextData ensured non-null by LambdaNotificationCommand.requireContext
-                        IEngineUI mem = IEngineUI.DataKey.GetContext(c.ContextData!)!;
-                        MemoryEngine eng = mem.MemoryEngine;
-                        if (eng.Connection != null) {
+                        MemoryEngine engine = MemoryEngine.EngineDataKey.GetContext(c.ContextData!)!;
+                        if (engine.Connection != null) {
                             c.Notification?.Hide();
                             return;
                         }
 
                         // oh...
-                        using IDisposable? busyToken = await eng.BeginBusyOperationActivityAsync("Reconnect to console");
+                        using IDisposable? busyToken = await engine.BeginBusyOperationActivityAsync("Reconnect to console");
                         if (busyToken == null) {
                             return;
                         }
 
-                        if (eng.LastUserConnectionInfo != null) {
-                            RegisteredConnectionType type = eng.LastUserConnectionInfo.ConnectionType;
+                        if (engine.LastUserConnectionInfo != null) {
+                            RegisteredConnectionType type = engine.LastUserConnectionInfo.ConnectionType;
 
                             using CancellationTokenSource cts = new CancellationTokenSource();
                             IConsoleConnection? connection;
                             try {
-                                connection = await type.OpenConnection(eng.LastUserConnectionInfo, cts);
+                                connection = await type.OpenConnection(engine.LastUserConnectionInfo, cts);
                             }
                             catch (Exception e) {
                                 await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
@@ -600,7 +604,7 @@ public partial class EngineView : UserControl, IEngineUI {
 
                             if (connection != null) {
                                 c.Notification?.Hide();
-                                eng.SetConnection(busyToken, 0, connection, ConnectionChangeCause.User, eng.LastUserConnectionInfo);
+                                engine.SetConnection(busyToken, 0, connection, ConnectionChangeCause.User, engine.LastUserConnectionInfo);
                             }
                         }
                         else {
@@ -626,11 +630,7 @@ public partial class EngineView : UserControl, IEngineUI {
     }
 
     private void CloseActivityListButtonClicked(object? sender, RoutedEventArgs e) {
-        this.IsActivtyListVisible = false;
-    }
-
-    public IAddressTableEntryUI GetATEntryUI(BaseAddressTableEntry entry) {
-        return this.PART_SavedAddressTree.ItemMap.GetControl(entry);
+        MemoryEngineViewState.GetInstance(this.MemoryEngine).IsActivityListVisible = false;
     }
 
     private static async Task<bool> ParseAndUpdateScanAddress(IBinder<ScanningProcessor> b, string x) {
@@ -708,7 +708,7 @@ public partial class EngineView : UserControl, IEngineUI {
     }
 
     private class SendXboxNotificationCommandEntry : CustomContextEntry {
-        private IEngineUI? ctxMemUI;
+        private MemoryEngine? myEngine;
 
         public SendXboxNotificationCommandEntry(string displayName, string? description, Icon? icon = null) : base(displayName, description, icon) {
             this.CapturedContextChanged += this.OnCapturedContextChanged;
@@ -719,39 +719,39 @@ public partial class EngineView : UserControl, IEngineUI {
         // connect, then once connected, it's either now invisible or clickable. This is just a POF really
         private void OnCapturedContextChanged(BaseContextEntry sender, IContextData? oldCapturedContext, IContextData? newCapturedContext) {
             if (newCapturedContext != null) {
-                if (IEngineUI.DataKey.TryGetContext(newCapturedContext, out IEngineUI? newUI) && !ReferenceEquals(this.ctxMemUI, newUI)) {
-                    if (this.ctxMemUI != null)
-                        this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
-                    (this.ctxMemUI = newUI).MemoryEngine.ConnectionChanged += this.OnContextMemUIConnectionChanged;
+                if (MemoryEngine.EngineDataKey.TryGetContext(newCapturedContext, out MemoryEngine? engine) && !ReferenceEquals(this.myEngine, engine)) {
+                    if (this.myEngine != null)
+                        this.myEngine.ConnectionChanged -= this.OnContextEngineConnectionChanged;
+                    (this.myEngine = engine).ConnectionChanged += this.OnContextEngineConnectionChanged;
                 }
             }
-            else if (this.ctxMemUI != null) {
-                this.ctxMemUI.MemoryEngine.ConnectionChanged -= this.OnContextMemUIConnectionChanged;
-                this.ctxMemUI = null;
+            else if (this.myEngine != null) {
+                this.myEngine.ConnectionChanged -= this.OnContextEngineConnectionChanged;
+                this.myEngine = null;
             }
         }
 
-        private void OnContextMemUIConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
+        private void OnContextEngineConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
             this.RaiseCanExecuteChanged();
         }
 
         public override bool CanExecute(IContextData context) {
-            if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
+            if (!MemoryEngine.EngineDataKey.TryGetContext(context, out MemoryEngine? engine)) {
                 return false;
             }
 
-            IConsoleConnection? connection = ui.MemoryEngine.Connection;
+            IConsoleConnection? connection = engine.Connection;
             return connection != null && connection.HasFeature<IFeatureXboxNotifications>();
         }
 
         public override async Task OnExecute(IContextData context) {
-            if (!IEngineUI.DataKey.TryGetContext(context, out IEngineUI? ui)) {
+            if (!MemoryEngine.EngineDataKey.TryGetContext(context, out MemoryEngine? engine)) {
                 return;
             }
 
             IConsoleConnection? connection;
-            using IDisposable? token = await ui.MemoryEngine.BeginBusyOperationActivityAsync();
-            if (token == null || (connection = ui.MemoryEngine.Connection) == null) {
+            using IDisposable? token = await engine.BeginBusyOperationActivityAsync();
+            if (token == null || (connection = engine.Connection) == null) {
                 return;
             }
 

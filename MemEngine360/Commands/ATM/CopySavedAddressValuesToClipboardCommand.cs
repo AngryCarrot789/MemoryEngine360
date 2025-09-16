@@ -27,12 +27,12 @@ using PFXToolKitUI.Services.Messaging;
 namespace MemEngine360.Commands.ATM;
 
 public class CopySavedAddressValuesToClipboardCommand : BaseCopyAddressTableEntryCommand {
-    protected override Executability CanExecute(IAddressTableEntryUI entry, IEngineUI engine, CommandEventArgs e) {
-        return entry.Entry is AddressTableEntry ? Executability.Valid : Executability.Invalid;
+    protected override Executability CanExecute(BaseAddressTableEntry entry, MemoryEngine engine, CommandEventArgs e) {
+        return entry is AddressTableEntry ? Executability.Valid : Executability.Invalid;
     }
 
-    protected override async Task Copy(IAddressTableEntryUI _entry, IEngineUI engine, IClipboardService clipboard) {
-        if (_entry.Entry is AddressTableEntry entry) {
+    protected override async Task Copy(BaseAddressTableEntry _entry, MemoryEngine engine, IClipboardService clipboard) {
+        if (_entry is AddressTableEntry entry) {
             IDataValue? value = entry.Value;
             if (value != null) {
                 string text = DataValueUtils.GetStringFromDataValue(entry, value);

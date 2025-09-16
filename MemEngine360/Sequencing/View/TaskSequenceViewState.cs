@@ -62,7 +62,7 @@ public class TaskSequenceViewState {
         this.SelectedOperations.SelectionChanged += this.OnSelectedOperationsCollectionChanged;
     }
 
-    private void OnSelectedOperationsCollectionChanged(object? sender, SelectionModelChangedEventArgs e) {
+    private void OnSelectedOperationsCollectionChanged(object? sender, ListSelectionModelChangedEventArgs e) {
         this.PrimarySelectedOperation = this.SelectedOperations.Count == 1 ? this.SelectedOperations[0] : null;
         
         // Null means the TaskSequence was deleted/not yet added, so

@@ -32,15 +32,15 @@ namespace MemEngine360.BaseFrontEnd.XboxBase;
 
 public class ShowModulesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return Executability.Invalid;
         }
 
-        return ui.MemoryEngine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
+        return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? ui)) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return;
         }
 
@@ -48,7 +48,6 @@ public class ShowModulesCommand : Command {
             return;
         }
 
-        MemoryEngine engine = ui.MemoryEngine;
         IConsoleConnection? connection;
         using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Begin reading modules");
         if (token == null || (connection = engine.Connection) == null || connection.IsClosed) {

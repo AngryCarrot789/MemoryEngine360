@@ -64,19 +64,19 @@ public class RefreshSavedAddressesCommandUsage : EngineConnectionReliantButtonCo
     private void DoUpdate(ScanningProcessor sender) => this.UpdateCanExecuteLater();
 }
 
-public class AddSelectedScanResultsToSavedAddressListCommandUsage : EngineUIButtonCommandUsage {
+public class AddSelectedScanResultsToSavedAddressListCommandUsage : EngineButtonCommandUsage {
     public AddSelectedScanResultsToSavedAddressListCommandUsage() : base("commands.memengine.AddSelectedScanResultsToSavedAddressListCommand") {
     }
 
-    protected override void OnEngineChanged(IEngineUI? oldUI, IEngineUI? newUI) {
-        base.OnEngineChanged(oldUI, newUI);
-        if (oldUI != null)
-            MemoryEngineViewState.GetInstance(oldUI.MemoryEngine).SelectedScanResults.SelectionChanged -= this.OnSelectionChanged;
-        if (newUI != null)
-            MemoryEngineViewState.GetInstance(newUI.MemoryEngine).SelectedScanResults.SelectionChanged += this.OnSelectionChanged;
+    protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine) {
+        base.OnEngineChanged(oldEngine, newEngine);
+        if (oldEngine != null)
+            MemoryEngineViewState.GetInstance(oldEngine).SelectedScanResults.SelectionChanged -= this.OnSelectionChanged;
+        if (newEngine != null)
+            MemoryEngineViewState.GetInstance(newEngine).SelectedScanResults.SelectionChanged += this.OnSelectionChanged;
     }
 
-    private void OnSelectionChanged(object? sender, SelectionModelChangedEventArgs e) {
+    private void OnSelectionChanged(object? sender, ListSelectionModelChangedEventArgs e) {
         this.UpdateCanExecuteLater();
     }
 }

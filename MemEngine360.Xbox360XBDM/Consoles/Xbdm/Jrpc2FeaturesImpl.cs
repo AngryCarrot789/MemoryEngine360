@@ -277,9 +277,9 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
     private async Task<string?> SendCommand(string Command) {
         XbdmResponse response = await this.connection.SendCommand(Command);
         if (response.RawMessage.Contains("error="))
-            throw new Exception(response.RawMessage.Substring(11));
+            throw new IOException(response.RawMessage.Substring(11));
         if (response.RawMessage.Contains("DEBUG"))
-            throw new Exception("JRPC is not installed on the current console");
+            throw new IOException("JRPC is not installed on the current console");
         if (response.ResponseType == XbdmResponseType.InvalidArgument)
             return null;
         return response.RawMessage;
@@ -287,12 +287,12 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
 
     private async Task<object> CallArgs(bool onSystemThread, RPCDataType dataType, Type t, string? module, int ordinal, uint addr, uint arraySize, bool vm, params object[] arguments) {
         if (!IsValidReturnType(t))
-            throw new Exception("Invalid type " + (object) t.Name + Environment.NewLine + "JRPC only supports: " + "bool, byte, short, int, long, ushort, uint, ulong, float, double");
+            throw new IOException("Invalid type " + (object) t.Name + Environment.NewLine + "JRPC only supports: " + "bool, byte, short, int, long, ushort, uint, ulong, float, double");
 
         uint argc = 0;
         string cmdParams = CreateParams(vm, arguments, ref argc);
         if (argc > 37)
-            throw new Exception("Can not use more than 37 paramaters in a call");
+            throw new IOException("Can not use more than 37 paramaters in a call");
 
         string startSendCMD = $"consolefeatures ver=2 " +
                               $"type={(uint) dataType}" +
@@ -305,14 +305,14 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
         const string findText = "buf_addr=";
         string? response = await this.SendCommand(startSendCMD);
         if (response == null)
-            throw new Exception("Invalid argument");
+            throw new IOException("Invalid argument");
 
         while (response.Contains(findText)) {
             await Task.Delay(100);
             uint address = uint.Parse(response.AsSpan(response.IndexOf(findText) + findText.Length), NumberStyles.HexNumber);
             response = await this.SendCommand("consolefeatures " + findText + "0x" + address.ToString("X"));
             if (response == null)
-                throw new Exception("Invalid argument");
+                throw new IOException("Invalid argument");
         }
 
         switch (dataType) {

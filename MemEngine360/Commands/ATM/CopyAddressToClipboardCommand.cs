@@ -25,8 +25,8 @@ using PFXToolKitUI.Services.Messaging;
 namespace MemEngine360.Commands.ATM;
 
 public class CopyAddressToClipboardCommand : BaseCopyAddressTableEntryCommand {
-    protected override async Task Copy(IAddressTableEntryUI entry, IEngineUI engine, IClipboardService clipboard) {
-        if (!(entry.Entry is AddressTableEntry ate)) {
+    protected override async Task Copy(BaseAddressTableEntry entry, MemoryEngine engine, IClipboardService clipboard) {
+        if (!(entry is AddressTableEntry ate)) {
             return;
         }
 

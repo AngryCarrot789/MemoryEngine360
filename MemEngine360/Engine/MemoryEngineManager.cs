@@ -21,20 +21,20 @@ using PFXToolKitUI;
 
 namespace MemEngine360.Engine;
 
-public delegate void MemoryEngineUIEventHandler(MemoryEngineManager manager, IEngineUI engineUI);
+public delegate void MemoryEngineUIEventHandler(MemoryEngineManager manager, MemoryEngine engineUI);
 
 /// <summary>
 /// Manages memory engine instances
 /// </summary>
 public abstract class MemoryEngineManager {
-    private readonly List<IEngineUI> engines;
+    private readonly List<MemoryEngine> engines;
 
     public static MemoryEngineManager Instance => ApplicationPFX.GetComponent<MemoryEngineManager>();
     
     /// <summary>
     /// Gets all opened engine views. This list is read-only
     /// </summary>
-    public IList<IEngineUI> Engines { get; }
+    public IList<MemoryEngine> Engines { get; }
     
     /// <summary>
     /// A global event fired when any mem engine view opens
@@ -47,10 +47,10 @@ public abstract class MemoryEngineManager {
     public event MemoryEngineUIEventHandler? EngineClosed;
     
     public MemoryEngineManager() {
-        this.Engines = (this.engines = new List<IEngineUI>(1)).AsReadOnly();
+        this.Engines = (this.engines = new List<MemoryEngine>(1)).AsReadOnly();
     }
 
-    protected void OnEngineOpened(IEngineUI engineUI) {
+    protected void OnEngineOpened(MemoryEngine engineUI) {
         if (this.engines.Contains(engineUI))
             throw new InvalidOperationException("Engine already opened");
 
@@ -58,7 +58,7 @@ public abstract class MemoryEngineManager {
         this.EngineOpened?.Invoke(this, engineUI);
     }
 
-    protected void OnEngineClosed(IEngineUI engineUI) {
+    protected void OnEngineClosed(MemoryEngine engineUI) {
         if (!this.engines.Remove(engineUI))
             throw new InvalidOperationException("Engine not opened");
         

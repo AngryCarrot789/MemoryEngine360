@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Commands.ATM;
@@ -40,7 +41,7 @@ public abstract class BaseSavedAddressSelectionCommand : Command {
     public int MaximumSelection { get; protected init; } = int.MaxValue;
 
     protected sealed override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine)) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return Executability.Invalid;
         }
 
@@ -49,18 +50,18 @@ public abstract class BaseSavedAddressSelectionCommand : Command {
             return Executability.ValidButCannotExecute;
         }
 
-        List<IAddressTableEntryUI> selection = GetSelection(engine, e);
+        List<BaseAddressTableEntry> selection = GetSelection(engine, e);
         Debug.Assert(selection.Count == count);
         
         return this.CanExecuteOverride(selection, engine, e);
     }
     
     protected sealed override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine)) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return Task.CompletedTask;
         }
         
-        List<IAddressTableEntryUI> selection = GetSelection(engine, e);
+        List<BaseAddressTableEntry> selection = GetSelection(engine, e);
         if (selection.Count < this.MinimumSelection || selection.Count > this.MaximumSelection) {
             return Task.CompletedTask;
         }
@@ -68,13 +69,13 @@ public abstract class BaseSavedAddressSelectionCommand : Command {
         return this.ExecuteCommandAsync(selection, engine, e);
     }
 
-    private static List<IAddressTableEntryUI> GetSelection(IEngineUI engine, CommandEventArgs e) {
-        List<IAddressTableEntryUI> selection = engine.AddressTableSelectionManager.SelectedItemList.ToList();
+    private static List<BaseAddressTableEntry> GetSelection(MemoryEngine engine, CommandEventArgs e) {
+        List<BaseAddressTableEntry> selection = MemoryEngineViewState.GetInstance(engine).AddressTableSelectionManager.SelectedItems.ToList();
         
         // When selection is empty, we check if the command is running through a context menu,
         // since right-clicking an item might not select it, so we use only that item.
         if (selection.Count < 1 && e.SourceContextMenu != null) {
-            if (IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? entry)) {
+            if (BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out BaseAddressTableEntry? entry)) {
                 selection.Add(entry);
             }
         }
@@ -82,10 +83,10 @@ public abstract class BaseSavedAddressSelectionCommand : Command {
         return selection;
     }
     
-    private static int GetSelectionCount(IEngineUI engine, CommandEventArgs e) {
-        int count = engine.AddressTableSelectionManager.Count;
+    private static int GetSelectionCount(MemoryEngine engine, CommandEventArgs e) {
+        int count = MemoryEngineViewState.GetInstance(engine).AddressTableSelectionManager.Count;
         if (count < 1 && e.SourceContextMenu != null) {
-            if (IAddressTableEntryUI.DataKey.TryGetContext(e.ContextData, out IAddressTableEntryUI? entry)) {
+            if (BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out _)) {
                 count++;
             }
         }
@@ -93,18 +94,18 @@ public abstract class BaseSavedAddressSelectionCommand : Command {
         return count;
     }
     
-    protected virtual Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+    protected virtual Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
         return Executability.Valid;
     }
-    
+
     /// <summary>
     /// Executes this command with the selected saved addresses (may be entries or groups)
     /// </summary>
     /// <param name="entries">
-    /// A list of the selected items. This list does not affect and is not
-    /// affected by the <see cref="IEngineUI.AddressTableSelectionManager"/>
+    ///     A list of the selected items. This list does not affect and is not
+    ///     affected by the <see cref="MemoryEngine.AddressTableSelectionManager"/>
     /// </param>
     /// <param name="engine">The engine available via the command context</param>
     /// <param name="e">The command args</param>
-    protected abstract Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e);
+    protected abstract Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e);
 }

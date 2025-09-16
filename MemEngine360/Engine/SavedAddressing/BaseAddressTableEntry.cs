@@ -57,6 +57,11 @@ public abstract class BaseAddressTableEntry : ITransferableData {
         set => PropertyHelper.SetAndRaiseINE(ref this.description, value, this, static t => t.DescriptionChanged?.Invoke(t));
     }
 
+    /// <summary>
+    /// Returns true when this item is a top level item, meaning that when it exists in a UI tree, it effectively has no parent, even though <see cref="Parent"/> will be non-null (which will be the hidden root node)
+    /// </summary>
+    public bool IsTopLevelEntry => this.Parent != null && this.Parent.Parent == null;
+
     public event BaseAddressTableEntryEventHandler? DescriptionChanged;
 
     protected BaseAddressTableEntry() {

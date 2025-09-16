@@ -32,7 +32,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
     private IOpenConnectionView? myDialog;
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? memUi)) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return Executability.Invalid;
         }
 
@@ -45,26 +45,26 @@ public class OpenConsoleConnectionDialogCommand : Command {
             return;
         }
 
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? memUi)) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return;
         }
 
-        ulong frame = memUi.MemoryEngine.GetNextConnectionChangeFrame();
+        ulong frame = engine.GetNextConnectionChangeFrame();
 
-        if (memUi.MemoryEngine.Connection != null) {
+        if (engine.Connection != null) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName: AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 return;
             }
 
-            if (!await DisconnectInActivity(memUi, frame)) {
+            if (!await DisconnectInActivity(engine, frame)) {
                 return;
             }
         }
 
-        UserConnectionInfo? lastInfo = memUi.MemoryEngine.LastUserConnectionInfo;
+        UserConnectionInfo? lastInfo = engine.LastUserConnectionInfo;
         string focusedTypeId = lastInfo != null ? lastInfo.ConnectionType.RegisteredId : "console.xbox360.xbdm-coreimpl";
-        this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(memUi.MemoryEngine, focusedTypeId);
+        this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(engine, focusedTypeId);
         if (this.myDialog != null) {
             if (lastInfo != null)
                 this.myDialog.SetUserInfoForConnectionType(lastInfo.ConnectionType.RegisteredId, lastInfo);
@@ -75,7 +75,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
                 if (connection != null) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
-                    if ((token = await SetEngineConnectionAndHandleProblemsAsync(memUi.MemoryEngine, connection, frame, this.myDialog.UserConnectionInfoForConnection)) == null) {
+                    if ((token = await SetEngineConnectionAndHandleProblemsAsync(engine, connection, frame, this.myDialog.UserConnectionInfoForConnection)) == null) {
                         connection.Close();
                     }
                 }
@@ -91,10 +91,10 @@ public class OpenConsoleConnectionDialogCommand : Command {
     /// 
     /// </summary>
     /// <param name="e"></param>
-    /// <param name="ui"></param>
+    /// <param name="engine"></param>
     /// <param name="frame"></param>
     /// <returns>False when token could not be acquired</returns>
-    public static async Task<bool> DisconnectInActivity(IEngineUI ui, ulong frame) {
+    public static async Task<bool> DisconnectInActivity(MemoryEngine engine, ulong frame) {
         using CancellationTokenSource cts = new CancellationTokenSource();
         bool isOperationCancelled = await ActivityManager.Instance.RunTask(async () => {
             ActivityTask task = ActivityManager.Instance.CurrentTask;
@@ -103,20 +103,20 @@ public class OpenConsoleConnectionDialogCommand : Command {
 
             // ConnectionAboutToChange can be called at any time even if the connection isn't
             // about to change. It's purely just to signal tasks to stop
-            await ui.MemoryEngine.BroadcastConnectionAboutToChange(frame);
+            await engine.BroadcastConnectionAboutToChange(frame);
 
             task.Progress.Text = "Waiting for busy operations...";
-            using IDisposable? token = await ui.MemoryEngine.BeginBusyOperationAsync(task.CancellationToken);
+            using IDisposable? token = await engine.BeginBusyOperationAsync(task.CancellationToken);
             if (token == null) {
                 return false;
             }
 
             // Doesn't matter if the connection became null in the meantime
-            IConsoleConnection? existingConnection = ui.MemoryEngine.Connection;
+            IConsoleConnection? existingConnection = engine.Connection;
             if (existingConnection != null) {
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                    if ((existingConnection = ui.MemoryEngine.Connection) != null) {
-                        ui.MemoryEngine.SetConnection(token, frame, null, ConnectionChangeCause.User);
+                    if ((existingConnection = engine.Connection) != null) {
+                        engine.SetConnection(token, frame, null, ConnectionChangeCause.User);
                     }
                 });
 

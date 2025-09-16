@@ -19,17 +19,16 @@
 
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Commands.ATM;
 
 public class DeleteSelectedSavedAddressesCommand : BaseSavedAddressSelectionCommand {
-    protected override Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
-        engine.AddressTableSelectionManager.Clear();
-        foreach (IAddressTableEntryUI entry in entries) {
-            if (entry.IsValid) {
-                entry.Entry.Parent?.Items.Remove(entry.Entry);
-            }
+    protected override Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+        MemoryEngineViewState.GetInstance(engine).AddressTableSelectionManager.Clear();
+        foreach (BaseAddressTableEntry entry in entries) {
+            entry.Parent?.Items.Remove(entry);
         }
 
         return Task.CompletedTask;

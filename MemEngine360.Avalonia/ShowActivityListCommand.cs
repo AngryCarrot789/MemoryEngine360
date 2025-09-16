@@ -19,6 +19,7 @@
 
 using System.Threading.Tasks;
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 
@@ -26,15 +27,14 @@ namespace MemEngine360.Avalonia;
 
 public class ShowActivityListCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return e.ContextData.ContainsKey(IEngineUI.DataKey) ? Executability.Valid : Executability.Invalid;
+        return e.ContextData.ContainsKey(MemoryEngine.EngineDataKey) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engineUI)) {
-            return Task.CompletedTask;
+        if (MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+            MemoryEngineViewState.GetInstance(engine).IsActivityListVisible = true;
         }
 
-        engineUI.IsActivtyListVisible = true;
         return Task.CompletedTask;
     }
 }

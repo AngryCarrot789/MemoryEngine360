@@ -57,6 +57,7 @@ using MemEngine360.Engine.FileBrowsing.Commands;
 using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Modes;
+using MemEngine360.Engine.View;
 using MemEngine360.PointerScanning;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Commands;
@@ -72,7 +73,6 @@ using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Configurations.Pages;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.DesktopImpl;
 using PFXToolKitUI.Avalonia.Services;
@@ -478,20 +478,17 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
                 window.WindowOpened += static (s, e) => {
                     EngineView view = (EngineView) s.Content!;
-                    view.IsActivtyListVisible = false;
-                    using MultiChangeToken change = DataManager.GetContextData(s.Control).BeginChange();
-                    change.Context.
-                           Set(MemoryEngine.EngineDataKey, view.MemoryEngine).
-                           Set(IEngineUI.DataKey, view);
+                    MemoryEngineViewState.GetInstance(view.MemoryEngine).IsActivityListVisible = false;
+                    DataManager.GetContextData(s.Control).Set(MemoryEngine.EngineDataKey, view.MemoryEngine);
 
-                    ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view);
+                    ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.MemoryEngine);
                 };
 
                 window.BeforeClosingAsync += static (s, e) => Instance.Dispatcher.InvokeAsync(() => OnEngineWindowAboutToClose(s, e)).Unwrap();
                 window.WindowClosed += static (s, e) => {
                     EngineView view = (EngineView) s.Content!;
-                    ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view);
-                    DataManager.GetContextData(s.Control).Remove(MemoryEngine.EngineDataKey, IEngineUI.DataKey);
+                    ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
+                    DataManager.GetContextData(s.Control).Remove(MemoryEngine.EngineDataKey);
                 };
 
                 await window.ShowAsync();

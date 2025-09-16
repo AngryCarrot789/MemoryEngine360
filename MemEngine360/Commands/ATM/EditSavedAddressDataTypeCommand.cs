@@ -31,12 +31,12 @@ public class EditSavedAddressDataTypeCommand : BaseSavedAddressSelectionCommand 
         this.MaximumSelection = 1;
     }
 
-    protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
-        return entries[0].Entry is AddressTableEntry ? Executability.Valid : Executability.ValidButCannotExecute;
+    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+        return entries[0] is AddressTableEntry ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
-    protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
-        if (!(entries[0].Entry is AddressTableEntry saved)) {
+    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+        if (!(entries[0] is AddressTableEntry saved)) {
             return;
         }
         

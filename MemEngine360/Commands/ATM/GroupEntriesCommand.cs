@@ -20,27 +20,28 @@
 using System.Diagnostics;
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Commands.ATM;
 
 public class GroupEntriesCommand : BaseSavedAddressSelectionCommand {
-    protected override Executability CanExecuteOverride(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
         Executability exec = base.CanExecuteOverride(entries, engine, e);
         if (exec != Executability.Valid) {
             return exec;
         }
 
-        if (!BaseAddressTableEntry.CheckHaveParentsAndAllMatch(entries.Select(x => x.Entry), out AddressTableGroupEntry? parent)) {
+        if (!BaseAddressTableEntry.CheckHaveParentsAndAllMatch(entries, out AddressTableGroupEntry? parent)) {
             return Executability.ValidButCannotExecute;
         }
 
         return Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
-        List<BaseAddressTableEntry> modelList = entries.Select(x => x.Entry).ToList();
+    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+        List<BaseAddressTableEntry> modelList = entries.ToList();
 
         AddressTableGroupEntry? firstParent = modelList[0].Parent;
         if (firstParent == null)
@@ -55,8 +56,10 @@ public class GroupEntriesCommand : BaseSavedAddressSelectionCommand {
 
             minIndex = Math.Min(minIndex, firstParent.IndexOf(modelList[i]));
         }
-
-        engine.AddressTableSelectionManager.Clear();
+        
+        MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(engine);
+        
+        vs.AddressTableSelectionManager.Clear();
 
         Debug.Assert(minIndex != -1);
         firstParent.Items.RemoveRange(modelList);
@@ -66,8 +69,7 @@ public class GroupEntriesCommand : BaseSavedAddressSelectionCommand {
 
         firstParent.Items.Insert(minIndex, newEntry);
 
-        IAddressTableEntryUI entry = engine.GetATEntryUI(newEntry);
-        engine.AddressTableSelectionManager.SetSelection(entry);
-        entry.Focus();
+        vs.AddressTableSelectionManager.SetSelection(newEntry);
+        vs.RaiseRequestFocusOnSavedAddress(newEntry);
     }
 }

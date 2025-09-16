@@ -19,16 +19,17 @@
 
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands.ATM;
 
 public class DuplicateSelectedSavedAddressesCommand : BaseSavedAddressSelectionCommand {
-    protected override Task ExecuteCommandAsync(List<IAddressTableEntryUI> entries, IEngineUI engine, CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
         // Create list of clones, ordered by their index in the sequence list
-        List<BaseAddressTableEntry> selection = entries.Select(x => x.Entry).ToList();
-        engine.AddressTableSelectionManager.Clear();
+        List<BaseAddressTableEntry> selection = entries.ToList();
+        MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(engine);
         
         List<BaseAddressTableEntry> clonedItems = new List<BaseAddressTableEntry>();
         Dictionary<AddressTableGroupEntry, List<(BaseAddressTableEntry, int)>> duplication = GetEffectiveOrderedDuplication(selection);
@@ -43,7 +44,7 @@ public class DuplicateSelectedSavedAddressesCommand : BaseSavedAddressSelectionC
             }
         }
 
-        engine.AddressTableSelectionManager.Select(clonedItems.Select(engine.GetATEntryUI));
+        vs.AddressTableSelectionManager.SetSelection(clonedItems);
         return Task.CompletedTask;
     }
 

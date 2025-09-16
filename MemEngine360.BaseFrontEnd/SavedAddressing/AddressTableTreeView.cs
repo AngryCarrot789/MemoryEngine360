@@ -18,7 +18,6 @@
 // 
 
 using Avalonia;
-using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
@@ -40,7 +39,6 @@ public sealed class AddressTableTreeView : TreeView {
     
     internal readonly Stack<AddressTableTreeViewItem> itemCache;
     internal readonly ModelControlMap<BaseAddressTableEntry, AddressTableTreeViewItem> itemMap;
-    private readonly AvaloniaList<AddressTableTreeViewItem> selectedItemsList;
 
     private IDisposable? collectionChangeListener;
     
@@ -66,7 +64,6 @@ public sealed class AddressTableTreeView : TreeView {
     public AddressTableTreeView() {
         this.itemMap = new ModelControlMap<BaseAddressTableEntry, AddressTableTreeViewItem>();
         this.itemCache = new Stack<AddressTableTreeViewItem>();
-        this.SelectedItems = this.selectedItemsList = new AvaloniaList<AddressTableTreeViewItem>();
         DragDrop.SetAllowDrop(this, true);
     }
 

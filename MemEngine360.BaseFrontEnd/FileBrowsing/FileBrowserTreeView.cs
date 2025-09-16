@@ -18,7 +18,6 @@
 // 
 
 using Avalonia;
-using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
@@ -36,7 +35,6 @@ public sealed class FileBrowserTreeView : TreeView {
     
     internal readonly Stack<FileBrowserTreeViewItem> itemCache;
     internal readonly ModelControlMap<BaseFileTreeNode, FileBrowserTreeViewItem> itemMap;
-    private readonly AvaloniaList<FileBrowserTreeViewItem> selectedItemsList;
 
     private IDisposable? collectionChangeListener;
     
@@ -57,7 +55,6 @@ public sealed class FileBrowserTreeView : TreeView {
     public FileBrowserTreeView() {
         this.itemMap = new ModelControlMap<BaseFileTreeNode, FileBrowserTreeViewItem>();
         this.itemCache = new Stack<FileBrowserTreeViewItem>();
-        this.SelectedItems = this.selectedItemsList = new AvaloniaList<FileBrowserTreeViewItem>();
         DragDrop.SetAllowDrop(this, true);
 #if DEBUG
         if (Design.IsDesignMode) {

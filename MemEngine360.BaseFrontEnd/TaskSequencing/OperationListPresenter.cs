@@ -58,7 +58,7 @@ public class OperationListPresenter {
         this.SetPrimarySelectedSequence(null);
     }
     
-    private void Event_SelectedSequencesCollectionChanged(object? sender, SelectionModelChangedEventArgs e) {
+    private void Event_SelectedSequencesCollectionChanged(object? sender, ListSelectionModelChangedEventArgs e) {
         this.SetPrimarySelectedSequence(this.window.State.PrimarySelectedSequence);
     }
 

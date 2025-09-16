@@ -25,10 +25,10 @@ namespace MemEngine360.Commands;
 
 public class ShowPointerScannerCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IEngineUI.DataKey.TryGetContext(e.ContextData, out IEngineUI? engine)) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return;
         }
 
-        await IPointerScanService.Instance.ShowPointerScan(engine.MemoryEngine);
+        await IPointerScanService.Instance.ShowPointerScan(engine);
     }
 }

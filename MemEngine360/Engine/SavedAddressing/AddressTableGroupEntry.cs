@@ -32,8 +32,12 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
     /// </summary>
     public ObservableList<BaseAddressTableEntry> Items { get; }
 
-    public bool IsRootEntry => this.Parent == null;
-
+    /// <summary>
+    /// Returns true when this group is the "hidden" root node in the <see cref="AddressTableManager"/>.
+    /// This just returns true when <see cref="BaseAddressTableEntry.Parent"/> is null
+    /// </summary>
+    public bool IsHiddenRootNode => this.Parent == null;
+    
     public AddressTableGroupEntry() {
         this.Items = new ObservableList<BaseAddressTableEntry>();
         this.Items.BeforeItemsAdded += (list, index, items) => {
