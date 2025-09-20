@@ -21,7 +21,9 @@ using MemEngine360.Commands;
 using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
@@ -55,7 +57,7 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
             }
         };
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData)) == true) {
             using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Sending command");
             if (token != null) {
                 // XBDM appends \r\n for us so we remove it
@@ -98,7 +100,7 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
                     case XbdmResponseType.BinaryResponse: {
                         byte[]? data;
                         using (CancellationTokenSource cts = new CancellationTokenSource()) {
-                            data = await ActivityManager.Instance.RunTask(async () => {
+                            Result<byte[]> dataResult = await ActivityManager.Instance.RunTask(async () => {
                                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                                 task.Progress.Caption = task.Progress.Text = "Reading binary response";
                                 task.Progress.IsIndeterminate = true;
@@ -111,16 +113,18 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
 
                                 return array;
                             }, cts);
+
+                            data = dataResult.GetValueOrDefault();
                         }
 
-                        if (data != null && IWindowManager.TryGetInstance(out IWindowManager? manager)) {
+                        if (data != null && WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IWindow? parentWindow)) {
                             BinaryHexEditorView view = new BinaryHexEditorView();
                             IWindow window = manager.CreateWindow(new WindowBuilder() {
                                 Title = "Hex Editor",
                                 Content = view,
                                 BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
                                 Width = 1024, Height = 620,
-                                Parent = manager.GetActiveWindowOrNull()
+                                Parent = parentWindow
                             });
                             
                             view.SetBytes(data);

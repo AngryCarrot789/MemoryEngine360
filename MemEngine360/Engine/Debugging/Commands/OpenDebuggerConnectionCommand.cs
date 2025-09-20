@@ -75,7 +75,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
     /// <returns>True when disconnected, false when failed to disconnect (could not obtain token)</returns>
     public static async Task<bool> TryDisconnectInActivity(ConsoleDebugger debugger) {
         using CancellationTokenSource cts = new CancellationTokenSource();
-        bool? success = await ActivityManager.Instance.RunTask<bool?>(async () => {
+        Result<bool> result = await ActivityManager.Instance.RunTask(async () => {
             ActivityTask task = ActivityManager.Instance.CurrentTask;
             task.Progress.Caption = "Disconnect from connection";
             task.Progress.Text = "Stopping all tasks...";
@@ -110,7 +110,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             return debugger.Connection == null;
         }, cts);
 
-        return success.HasValue && success.Value;
+        return result.GetValueOrDefault();
     }
 
     /// <summary>

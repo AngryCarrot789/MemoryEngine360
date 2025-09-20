@@ -78,6 +78,7 @@ using PFXToolKitUI.Avalonia.Interactivity.Windowing.DesktopImpl;
 using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Services.UserInputs;
 using PFXToolKitUI.Avalonia.Themes;
+using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Configurations;
@@ -166,7 +167,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.hexeditor.SaveSelectionAsFileCommand", new SaveSelectionAsFileCommand());
 
         // Sequencer
-        manager.Register("commands.memengine.OpenTaskSequencerCommand", new OpenTaskSequencerCommand());
+        manager.Register("commands.memengine.ShowTaskSequencerCommand", new ShowTaskSequencerCommand());
         manager.Register("commands.sequencer.DeleteSequenceSelectionCommand", new DeleteSequenceSelectionCommand());
         manager.Register("commands.sequencer.DeleteOperationSelectionCommand", new DeleteOperationSelectionCommand());
         manager.Register("commands.sequencer.DeleteConditionSelectionCommand", new DeleteConditionSelectionCommand());
@@ -184,8 +185,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.sequencer.ToggleOperationEnabledCommand", new ToggleOperationEnabledCommand());
         manager.Register("commands.sequencer.ToggleOperationConditionBehaviourCommand", new ToggleOperationConditionBehaviourCommand());
         manager.Register("commands.sequencer.ToggleConditionEnabledCommand", new ToggleConditionEnabledCommand());
-        manager.Register("commands.sequencer.SaveTaskSequencesCommand", new SaveTaskSequencesCommand());
-        manager.Register("commands.sequencer.LoadTaskSequencesCommand", new LoadTaskSequencesCommand());
+        manager.Register("commands.sequencer.SaveTaskSequencesToFileCommand", new SaveTaskSequencesToFileCommand());
+        manager.Register("commands.sequencer.OpenTaskSequencesFromFileCommand", new OpenTaskSequencesFromFileCommand());
 
         // Debugger
         manager.Register("commands.memengine.ShowDebuggerCommand", new ShowDebuggerCommand());
@@ -208,6 +209,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         if (this.Application.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime) {
             manager.AddComponent<IDesktopService>(new DesktopServiceImpl(this.Application));
             manager.AddComponent<IWindowManager>(new DesktopWindowManager(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)));
+            manager.AddComponent<IForegroundActivityService>(new DesktopForegroundActivityServiceImpl());
         }
 
         base.RegisterComponents(manager);
@@ -484,7 +486,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.MemoryEngine);
                 };
 
-                window.BeforeClosingAsync += static (s, e) => Instance.Dispatcher.InvokeAsync(() => OnEngineWindowAboutToClose(s, e)).Unwrap();
+                window.TryCloseAsync += static (s, e) => Instance.Dispatcher.InvokeAsync(() => OnEngineWindowAboutToClose(s, e)).Unwrap();
                 window.WindowClosed += static (s, e) => {
                     EngineView view = (EngineView) s.Content!;
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
@@ -504,7 +506,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
             engine.IsShuttingDown = true;
             ulong frame = engine.GetNextConnectionChangeFrame();
-            await engine.BroadcastConnectionAboutToChange(frame);
+            await engine.BroadcastConnectionAboutToChange(window, frame);
 
             List<ActivityTask> tasks = ActivityManager.Instance.ActiveTasks.ToList();
             foreach (ActivityTask task in tasks) {
@@ -605,7 +607,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
     private class AboutServiceImpl : IAboutService {
         public Task ShowDialog() {
-            if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
+            if (WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IWindow? parentWindow)) {
                 IWindow window = manager.CreateWindow(new WindowBuilder() {
                     Title = "About MemoryEngine360",
                     Content = new AboutView(),
@@ -613,7 +615,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
                     MinWidth = 500, MinHeight = 200,
                     Width = 600, Height = 250,
-                    Parent = manager.GetActiveWindowOrNull()
+                    Parent = parentWindow
                 });
 
                 return window.ShowAsync();

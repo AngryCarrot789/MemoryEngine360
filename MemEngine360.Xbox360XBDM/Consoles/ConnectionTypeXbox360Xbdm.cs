@@ -103,7 +103,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
         BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
 
         try {
-            XbdmConsoleConnection? result = await ActivityManager.Instance.RunTask(async () => {
+            Result<XbdmConsoleConnection?> result = await ActivityManager.Instance.RunTask(async () => {
                 IActivityProgress progress = ActivityManager.Instance.GetCurrentProgressOrEmpty();
                 progress.Caption = "XBDM Connection";
                 progress.Text = "Connecting to console...";
@@ -153,7 +153,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
                 return null;
             }, cancellation);
 
-            return result;
+            return result.GetValueOrDefault();
         }
         catch (Exception e) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Could not connect to Xbox 360: " + e.Message);

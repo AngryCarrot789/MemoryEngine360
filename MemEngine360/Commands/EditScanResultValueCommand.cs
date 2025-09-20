@@ -25,6 +25,7 @@ using MemEngine360.Engine.View;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -74,6 +75,11 @@ public class EditScanResultValueCommand : Command {
             await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
             return;
         }
+        
+        if (engine.Connection.IsClosed) {
+            await IMessageDialogService.Instance.ShowMessage("Error", "Connection is no longer connected. Please reconnect");
+            return;
+        }
 
         DataType dataType = scanResults[0].DataType;
         for (int i = 1; i < scanResults.Count; i++) {
@@ -94,7 +100,7 @@ public class EditScanResultValueCommand : Command {
             }
         };
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) != true) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input, ITopLevel.FromContext(e.ContextData)) != true) {
             return;
         }
 

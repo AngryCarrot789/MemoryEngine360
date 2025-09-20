@@ -27,6 +27,7 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Scanners;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
@@ -69,7 +70,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             TextB = p.ScanLength.ToString("X8")
         };
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData)) == true) {
             uint start = uint.Parse(info.TextA, NumberStyles.HexNumber);
             uint length = uint.Parse(info.TextB, NumberStyles.HexNumber);
 

@@ -20,23 +20,25 @@
 using MemEngine360.Sequencing;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 
 public class EditConditionOutputModeServiceImpl : IEditConditionOutputModeService {
     public async Task<ConditionOutputMode?> EditTriggerMode(ConditionOutputMode initialMode) {
         return await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-            if (IWindowManager.TryGetInstance(out IWindowManager? manager) && manager.TryGetActiveOrMainWindow(out IWindow? activeWindow)) {
+            IWindow? parentWindow = WindowContextUtils.GetUsefulWindow();
+            if (parentWindow != null) {
                 EditConditionOutputModeView view = new EditConditionOutputModeView(initialMode);
-                IWindow window = manager.CreateWindow(new WindowBuilder() {
+                IWindow window = parentWindow.WindowManager.CreateWindow(new WindowBuilder() {
                     Title = "Edit output mode",
                     Content = view,
                     Width = 260, Height = 290,
-                    Parent = activeWindow
+                    Parent = parentWindow
                 });
 
                 view.Window = window;
-                bool? result = await window.ShowDialog() as bool?;
+                bool? result = await window.ShowDialogAsync() as bool?;
                 view.Window = null;
                 if (result == true) {
                     return view.OutputMode;

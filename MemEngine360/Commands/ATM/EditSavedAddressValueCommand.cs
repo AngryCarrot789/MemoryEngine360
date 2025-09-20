@@ -26,6 +26,7 @@ using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -45,11 +46,16 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
 
     protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
         IConsoleConnection? connection = engine.Connection;
-        if (connection == null || connection.IsClosed) {
+        if (connection == null) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
             return;
         }
         
+        if (connection.IsClosed) {
+            await IMessageDialogService.Instance.ShowMessage("Error", "Connection is no longer connected. Please reconnect");
+            return;
+        }
+
         List<AddressTableEntry> savedList = entries.OfType<AddressTableEntry>().ToList();
         if (savedList.Count < 1) {
             return;
@@ -74,7 +80,7 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             }
         };
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) != true) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input, ITopLevel.FromContext(e.ContextData)) != true) {
             return;
         }
 
@@ -93,7 +99,7 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
         Debug.Assert(parsed && value != null);
 
         using CancellationTokenSource cts = new CancellationTokenSource();
-        int success = await ActivityManager.Instance.RunTask(async () => {
+        Result<int> result = await ActivityManager.Instance.RunTask(async () => {
             ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Edit value", "Editing values");
             int success = 0;
             foreach (AddressTableEntry scanResult in savedList) {
@@ -122,10 +128,10 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             return success;
         }, cts);
 
-        if (success != count) {
+        if (!result.HasException && result.Value != count) {
             await IMessageDialogService.Instance.ShowMessage("Not all values updated",
-                $"Only {success}/{count} were updated. The others' addresses could not be resolved",
-                MessageBoxButton.OK,
+                $"Only {result.Value}/{count} were updated. The others' addresses could not be resolved",
+                defaultButton: MessageBoxResult.OK,
                 persistentDialogName: "dialog.CouldNotSetAllAddressValues");
         }
     }

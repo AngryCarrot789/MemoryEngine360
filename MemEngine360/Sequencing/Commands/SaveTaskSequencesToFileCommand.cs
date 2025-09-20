@@ -27,7 +27,7 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.Commands;
 
-public class SaveTaskSequencesCommand : Command {
+public class SaveTaskSequencesToFileCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
@@ -39,8 +39,7 @@ public class SaveTaskSequencesCommand : Command {
         
         TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
 
-        // TODO: maybe create clones since we save on a background thread...?
-        List<TaskSequence> itemsToSave = state.SelectedSequences.SelectedItems.ToList();
+        List<TaskSequence> itemsToSave = state.SelectedSequences.SelectedItems.Select(x => x.CreateClone()).ToList();
         if (state.SelectedSequences.Count < 1) {
             return;
         }

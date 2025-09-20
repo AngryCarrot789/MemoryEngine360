@@ -71,7 +71,7 @@ public class CopyScanResultsToClipboardCommand : Command {
             return;
         }
 
-        if (ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(e.ContextData, out ITopLevelComponentManager? topLevel)) {
+        if (ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel)) {
             if (topLevel.TryGetClipboard(out IClipboardService? clipboard)) {
                 await ActivityManager.Instance.RunTask(async () => {
                     ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Clipboard", "Copying to clipboard");

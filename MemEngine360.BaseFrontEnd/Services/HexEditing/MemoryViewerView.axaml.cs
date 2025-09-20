@@ -219,7 +219,8 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         this.endiannessBinder.Assign(this.PART_LittleEndian, Endianness.LittleEndian);
         this.endiannessBinder.Assign(this.PART_BigEndian, Endianness.BigEndian);
 
-        this.PART_CancelButton.Click += this.OnCancelButtonClicked;
+        this.PART_CancelButton.Command = new AsyncRelayCommand(() => this.Window!.RequestCloseAsync());
+        
         this.refreshDataCommand = new AsyncRelayCommand(async () => {
             await this.ReloadSelectionFromConsole();
         }, () => {
@@ -496,7 +497,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         this.PART_ControlsGrid.IsEnabled = false;
         byte[]? readBuffer = await info.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
             using CancellationTokenSource cts = new CancellationTokenSource();
-            ActivityTask<byte[]> activity = ActivityManager.Instance.RunTask(async () => {
+            Result<byte[]> result = await ActivityManager.Instance.RunTask(async () => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = "Refresh data for Hex Editor";
                 IFeatureIceCubes? iceCubes = c.GetFeatureOrDefault<IFeatureIceCubes>();
@@ -526,17 +527,16 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 return buffer;
             }, cts);
 
-            byte[]? buffer = await activity;
-            if (activity.Exception != null) {
-                if (activity.Exception is TimeoutException || activity.Exception is IOException) {
-                    await IMessageDialogService.Instance.ShowMessage(activity.Exception is IOException ? "Connection IO Error" : "Connection Timed Out", "Error uploading selection to console", activity.Exception.Message);
+            if (result.Exception != null) {
+                if (result.Exception is TimeoutException || result.Exception is IOException) {
+                    await IMessageDialogService.Instance.ShowMessage(result.Exception is IOException ? "Connection IO Error" : "Connection Timed Out", "Error uploading selection to console", result.Exception.Message);
                 }
                 else {
-                    await LogExceptionHelper.ShowMessageAndPrintToLogs("Connection Error", "Error uploading selection to console", activity.Exception);
+                    await LogExceptionHelper.ShowMessageAndPrintToLogs("Connection Error", "Error uploading selection to console", result.Exception);
                 }
             }
 
-            return buffer;
+            return result.Value;
         }, "Read data for Hex Editor");
 
         this.PART_ControlsGrid.IsEnabled = true;
@@ -701,14 +701,11 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         }
     }
 
-    private async Task OnConnectionAboutToChange(MemoryEngine sender, ulong frame) {
+    private async Task OnConnectionAboutToChange(MemoryEngine sender, ulong frame, IActivityProgress progress) {
+        progress.Caption = progress.Text = "Stopping auto-refresh";
         if (this.autoRefreshTask != null) {
             await this.autoRefreshTask.CancelAsync();
         }
-    }
-
-    private void OnCancelButtonClicked(object? sender, RoutedEventArgs e) {
-        this.Window!.Close();
     }
 
     private void UpdateAutoRefreshRange() {

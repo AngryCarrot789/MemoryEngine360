@@ -5,7 +5,6 @@
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing"
                  xmlns:act="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:sav="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cmd="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Commands"
@@ -15,6 +14,7 @@
                  xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                  xmlns:memEngine360="clr-namespace:MemEngine360;assembly=MemEngine360"
+                 xmlns:controls="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
                  mc:Ignorable="d"
                  d:DesignHeight="400" d:DesignWidth="800">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
@@ -24,12 +24,12 @@
                 <ColumnDefinition Width="1"/>
                 <ColumnDefinition Width="*" MinWidth="200"/>
             </Grid.ColumnDefinitions>
-            <c:GroupBox Grid.Column="0" Background="{DynamicResource ABrush.MemEngine.Sequencer.Sequences.Background}"
+            <controls:GroupBox Grid.Column="0" Background="{DynamicResource ABrush.MemEngine.Sequencer.Sequences.Background}"
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
                         sav:UIInputManager.FocusPath="SequencerWindow/SequenceList">
-                <c:GroupBox.Header>
+                <controls:GroupBox.Header>
                     <DockPanel HorizontalSpacing="2">
                         <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
                                         DockPanel.Dock="Right"
@@ -70,29 +70,29 @@
                         <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
                                         DockPanel.Dock="Right"
                                         Icon="{x:Static memEngine360:SimpleIcons.OpenFileXMLIcon}"
-                                        cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.LoadTaskSequencesCommand">
+                                        cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.OpenTaskSequencesFromFileCommand">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
                                     <TextBlock Text="Open an XML file containing task sequences" VerticalAlignment="Center"/>
-                                    <avc:ShortcutLabel CommandId="commands.sequencer.LoadTaskSequencesCommand"/>
+                                    <avc:ShortcutLabel CommandId="commands.sequencer.OpenTaskSequencesFromFileCommand"/>
                                 </StackPanel>
                             </tt:ToolTipEx.Tip>
                         </avc:IconButton>
                         <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
                                         DockPanel.Dock="Right"
                                         Icon="{x:Static memEngine360:SimpleIcons.SaveFileIcon}"
-                                        cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.SaveTaskSequencesCommand">
+                                        cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.SaveTaskSequencesToFileCommand">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
                                     <TextBlock Text="Save the selected sequences to an XML file" VerticalAlignment="Center"/>
-                                    <avc:ShortcutLabel CommandId="commands.sequencer.SaveTaskSequencesCommand"/>
+                                    <avc:ShortcutLabel CommandId="commands.sequencer.SaveTaskSequencesToFileCommand"/>
                                 </StackPanel>
                             </tt:ToolTipEx.Tip>
                         </avc:IconButton>
 
                         <TextBlock Text="Sequences" VerticalAlignment="Center"/>
                     </DockPanel>
-                </c:GroupBox.Header>
+                </controls:GroupBox.Header>
                 <local:SequenceListBox x:Name="PART_SequenceListBox"
                                        BorderThickness="0"
                                        FontFamily="{StaticResource FontOxanium}"
@@ -222,14 +222,14 @@
                         </ControlTheme>
                     </ListBox.ItemContainerTheme>
                 </local:SequenceListBox>
-            </c:GroupBox>
+            </controls:GroupBox>
 
-            <c:GroupBox Grid.Column="2" Background="Transparent"
+            <controls:GroupBox Grid.Column="2" Background="Transparent"
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
                         x:Name="PART_CurrentSequenceGroupBox">
-                <c:GroupBox.Header>
+                <controls:GroupBox.Header>
                     <DockPanel HorizontalSpacing="3">
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="3">
                             <Button Padding="5,2"
@@ -266,7 +266,7 @@
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"/>
                     </DockPanel>
-                </c:GroupBox.Header>
+                </controls:GroupBox.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="10*" MinHeight="100"/>
@@ -553,7 +553,7 @@
                     </Border>
                     <GridSplitter Grid.Row="1" Background="Transparent" Margin="181,-3,0,-20" Cursor="SizeNorthSouth"/>
                 </Grid>
-            </c:GroupBox>
+            </controls:GroupBox>
 
             <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="1"/>
             <local:GridSplitterNonHitListBoxItem Grid.Column="1" Margin="-5,0,-8,0" Background="Transparent" Cursor="SizeWestEast"/>

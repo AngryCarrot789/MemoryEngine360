@@ -115,10 +115,10 @@
             <Shortcut Name="StopSequence" CommandId="commands.sequencer.StopSelectedSequencesCommand">
                 <KeyStroke Key="F6"/>
             </Shortcut>
-            <Shortcut Name="SaveTaskSequences" CommandId="commands.sequencer.SaveTaskSequencesCommand">
+            <Shortcut Name="SaveTaskSequences" CommandId="commands.sequencer.SaveTaskSequencesToFileCommand">
                 <KeyStroke Mods="CTRL" Key="S"/>
             </Shortcut>
-            <Shortcut Name="LoadTaskSequences" CommandId="commands.sequencer.LoadTaskSequencesCommand">
+            <Shortcut Name="LoadTaskSequences" CommandId="commands.sequencer.OpenTaskSequencesFromFileCommand">
                 <KeyStroke Mods="CTRL" Key="O"/>
             </Shortcut>
         </Group>

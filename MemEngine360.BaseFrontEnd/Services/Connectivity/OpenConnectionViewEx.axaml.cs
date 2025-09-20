@@ -62,7 +62,7 @@ public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
         this.Window = null;
     }
 
-    public void Close() => this.Window?.Close(null);
+    public void Close() => this.Window?.RequestCloseAsync();
 
     public void Activate() => this.Window?.Activate();
 

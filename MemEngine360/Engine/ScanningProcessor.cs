@@ -350,7 +350,10 @@ public class ScanningProcessor {
         this.MemoryEngine.ConnectionAboutToChange += this.OnEngineConnectionAboutToChange;
     }
 
-    private async Task OnEngineConnectionAboutToChange(MemoryEngine sender, ulong frame) {
+    private async Task OnEngineConnectionAboutToChange(MemoryEngine sender, ulong frame, IActivityProgress progress) {
+        progress.Caption = "Scanning Engine";
+        progress.Text = "Stopping current scan...";
+        
         if (this.ScanningActivity != null && this.ScanningActivity.IsRunning) {
             if (this.ScanningActivity.TryCancel()) { // should always return true
                 await this.ScanningActivity;
@@ -440,7 +443,7 @@ public class ScanningProcessor {
 
             Debug.Assert(this.isScanning == false, "WTF");
 
-            ConcurrentActivityProgress progress = new ConcurrentActivityProgress {
+            DispatcherActivityProgress progress = new DispatcherActivityProgress {
                 Caption = "Memory Scan", Text = "Beginning scan..."
             };
 

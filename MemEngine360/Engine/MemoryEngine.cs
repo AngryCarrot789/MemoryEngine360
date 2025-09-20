@@ -19,7 +19,6 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
@@ -37,6 +36,7 @@ using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.History;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -46,7 +46,7 @@ namespace MemEngine360.Engine;
 
 public delegate void MemoryEngineEventHandler(MemoryEngine sender);
 
-public delegate Task MemoryEngineConnectionChangingEventHandler(MemoryEngine sender, ulong frame);
+public delegate Task MemoryEngineConnectionChangingEventHandler(MemoryEngine sender, ulong frame, IActivityProgress progress);
 
 public delegate void MemoryEngineConnectionChangedEventHandler(MemoryEngine sender, ulong frame, IConsoleConnection? oldConnection, IConsoleConnection? newConnection, ConnectionChangeCause cause);
 
@@ -56,7 +56,7 @@ public delegate void MemoryEngineConnectionChangedEventHandler(MemoryEngine send
 [DebuggerDisplay("IsBusy = {IsConnectionBusy}, Connection = {Connection}")]
 public class MemoryEngine : IComponentManager {
     public static readonly DataKey<MemoryEngine> EngineDataKey = DataKey<MemoryEngine>.Create("MemoryEngine");
-    
+
     /// <summary>
     /// A data key used by the connection change notification to tell whether a disconnection originated from the notification's "Disconnect" command
     /// </summary>
@@ -214,7 +214,7 @@ public class MemoryEngine : IComponentManager {
             UniqueID = "memoryengine.tools",
             Items = {
                 new CommandContextEntry("commands.memengine.ShowMemoryViewCommand", "Memory View", "Opens the memory viewer/hex editor"),
-                new CommandContextEntry("commands.memengine.OpenTaskSequencerCommand", "Task Sequencer", "Opens the task sequencer"),
+                new CommandContextEntry("commands.memengine.ShowTaskSequencerCommand", "Task Sequencer", "Opens the task sequencer"),
                 new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
                 new CommandContextEntry("commands.memengine.ShowPointerScannerCommand", "Pointer Scanner"),
                 new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer").
@@ -279,43 +279,65 @@ public class MemoryEngine : IComponentManager {
     }
 
     /// <summary>
-    /// Gets the connection while validating the token
-    /// </summary>
-    /// <param name="token">The token to validate</param>
-    /// <returns>The current connection</returns>
-    /// <exception cref="InvalidOperationException">Token is invalid in some way</exception>
-    public IConsoleConnection? GetConnection(IDisposable token) {
-        this.BusyLocker.ValidateToken(token);
-        return this.connection;
-    }
-
-    /// <summary>
     /// Fires our <see cref="ConnectionAboutToChange"/> event and waits for all handlers to complete.
     /// This method will not throw any exceptions encountered during the event handlers, instead,
     /// they're dispatched back to the main thread (excluding <see cref="OperationCanceledException"/>)
     /// </summary>
+    /// <param name="topLevel"></param>
     /// <param name="frame">The connection changing frame. See docs for <see cref="GetNextConnectionChangeFrame"/> for more info</param>
     /// <exception cref="Exception"></exception>
-    public async Task BroadcastConnectionAboutToChange(ulong frame) {
+    public async Task BroadcastConnectionAboutToChange(ITopLevel topLevel, ulong frame) {
         Delegate[]? list = this.ConnectionAboutToChange?.GetInvocationList();
-        if (list != null) {
-            Task[] tasks = new Task[list.Length];
-            for (int i = 0; i < list.Length; i++) {
-                MemoryEngineConnectionChangingEventHandler handler = (MemoryEngineConnectionChangingEventHandler) list[i];
-                tasks[i] = Task.Run(async () => {
-                    try {
-                        await handler(this, frame);
-                    }
-                    catch (OperationCanceledException) {
-                        // ignored
-                    }
-                    catch (Exception ex) {
-                        ApplicationPFX.Instance.Dispatcher.Post(() => ExceptionDispatchInfo.Throw(ex), DispatchPriority.Send);
-                    }
-                });
-            }
+        if (list == null || list.Length <= 0) {
+            return;
+        }
 
-            await Task.WhenAll(tasks);
+        List<(IActivityProgress Progress, TaskCompletionSource TCS)> progressions = new List<(IActivityProgress, TaskCompletionSource)>(list.Length);
+        Task[] tasks = new Task[list.Length];
+        for (int i = 0; i < list.Length; i++) {
+            MemoryEngineConnectionChangingEventHandler handler = (MemoryEngineConnectionChangingEventHandler) list[i];
+            DispatcherActivityProgress progress = new DispatcherActivityProgress();
+            TaskCompletionSource tcs = new TaskCompletionSource();
+            progressions.Add((progress, tcs));
+
+            tasks[i] = Task.Run(async () => {
+                progress.IsIndeterminate = true;
+                progress.Caption = "Disconnection Handler";
+                progress.Text = "Waiting";
+
+                try {
+                    await handler(this, frame, progress);
+                }
+                catch (OperationCanceledException) {
+                    // ignored
+                }
+                catch (Exception) {
+                    // also ignored
+                }
+
+                tcs.SetResult();
+            });
+        }
+
+        Task whenAllHandlersDoneTask = Task.WhenAll(tasks);
+        using (CancellationTokenSource cts = new CancellationTokenSource()) {
+            // Grace period for all activities to become cancelled
+            try {
+                await Task.WhenAny(Task.Delay(250, cts.Token), whenAllHandlersDoneTask);
+                await cts.CancelAsync();
+            }
+            catch (OperationCanceledException) {
+                // ignored
+            }
+        }
+
+        if (!whenAllHandlersDoneTask.IsCompleted) {
+            if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
+                await service.ShowMultipleProgressions(topLevel, progressions.Select(x => (x.Progress, x.TCS.Task)), CancellationToken.None);
+            }
+            else {
+                await whenAllHandlersDoneTask;
+            }
         }
     }
 
@@ -423,7 +445,7 @@ public class MemoryEngine : IComponentManager {
         if (token != null)
             return Task.FromResult<IDisposable?>(token);
 
-        return this.BusyLocker.BeginBusyOperationActivityAsync(new ConcurrentActivityProgress() {
+        return this.BusyLocker.BeginBusyOperationActivityAsync(new DispatcherActivityProgress() {
             Caption = caption, Text = message
         }, cancellationTokenSource);
     }
@@ -610,7 +632,7 @@ public class MemoryEngine : IComponentManager {
                 }
             };
 
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(ctx)) != true) {
                 return;
             }
 

@@ -58,15 +58,20 @@ public class RunSequenceCommand : Command {
         bool useEngineConnection = seq.UseEngineConnection;
 
         IConsoleConnection? connection = useEngineConnection ? seq.Manager.MemoryEngine.Connection : seq.DedicatedConnection;
-        if (connection == null || connection.IsClosed) {
+        if (connection == null) {
             await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine is not connected to a console" : "Not connected to a console");
+            return;
+        }
+
+        if (connection.IsClosed) {
+            await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine connection is no longer connected. Please reconnect" : "Connection is no longer connected. Please reconnect");
             return;
         }
 
         IDisposable? token = null;
         if (seq.HasBusyLockPriority && (token = seq.Manager.MemoryEngine.TryBeginBusyOperation()) == null) {
             using CancellationTokenSource cts = new CancellationTokenSource();
-            token = await ActivityManager.Instance.RunTask(() => {
+            Result<IDisposable?> tokenResult = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = $"Start '{seq.DisplayName}'";
                 task.Progress.Text = "Waiting for busy operations...";
@@ -74,7 +79,7 @@ public class RunSequenceCommand : Command {
             }, seq.Progress, cts);
 
             // User cancelled operation so don't run the sequence, since it wants busy lock priority
-            if (token == null) {
+            if ((token = tokenResult.HasException ? null : tokenResult.Value) == null) {
                 return;
             }
         }
@@ -82,7 +87,10 @@ public class RunSequenceCommand : Command {
         try {
             connection = useEngineConnection ? seq.Manager.MemoryEngine.Connection : seq.DedicatedConnection;
             if (connection == null || connection.IsClosed) {
-                await IMessageDialogService.Instance.ShowMessage("Not connected", "Not connected to a console");
+                await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine is not connected to a console" : "Not connected to a console");
+            }
+            else if (connection.IsClosed) {
+                await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine connection is no longer connected. Please reconnect" : "Connection is no longer connected. Please reconnect");
             }
             else {
                 await seq.Run(connection, token, !useEngineConnection);

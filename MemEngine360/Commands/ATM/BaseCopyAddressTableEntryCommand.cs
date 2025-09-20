@@ -35,7 +35,7 @@ public abstract class BaseCopyAddressTableEntryCommand : BaseSavedAddressSelecti
         if (exec != Executability.Valid)
             return exec;
         
-        if (!ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(e.ContextData, out ITopLevelComponentManager? topLevel))
+        if (!ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel))
             return Executability.Invalid;
         if (!IClipboardService.TryGet(topLevel, out _))
             return Executability.ValidButCannotExecute;
@@ -44,7 +44,7 @@ public abstract class BaseCopyAddressTableEntryCommand : BaseSavedAddressSelecti
     }
 
     protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
-        if (!ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(e.ContextData, out ITopLevelComponentManager? topLevel))
+        if (!ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel))
             return;
         if (!IClipboardService.TryGet(topLevel, out IClipboardService? clipboard))
             return;

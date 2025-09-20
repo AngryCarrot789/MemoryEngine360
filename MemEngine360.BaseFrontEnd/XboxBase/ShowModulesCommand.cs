@@ -26,6 +26,7 @@ using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Themes;
+using PFXToolKitUI.Utils;
 using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.XboxBase;
@@ -57,8 +58,13 @@ public class ShowModulesCommand : Command {
         using CancellationTokenSource cts = new CancellationTokenSource();
         ModuleViewer viewer = new ModuleViewer();
         
-        bool result = await ActivityManager.Instance.RunTask(async () => await ModuleViewer.TryFillModuleManager(engine, connection, viewer), cts);
-        if (result) { // may be null when cancelled
+        Result<bool> result = await ActivityManager.Instance.RunTask(async () => await ModuleViewer.TryFillModuleManager(engine, connection, viewer), cts);
+        if (result.Exception != null) {
+            if (!(result.Exception is OperationCanceledException)) {
+                await LogExceptionHelper.ShowMessageAndPrintToLogs("Error refreshing modules", result.Exception.Message, result.Exception);
+            }
+        }
+        else if (result.Value) {
             ModuleViewerView control = new ModuleViewerView() {
                 XboxModuleManager = viewer, MemoryEngine = engine
             };

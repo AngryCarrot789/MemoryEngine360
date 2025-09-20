@@ -70,7 +70,7 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
         BasicApplicationConfiguration.Instance.LastHostName = info.IpAddress;
         BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
 
-        ActivityTask<XboxConsole> task = ActivityManager.Instance.RunTask(() => {
+        Result<XboxConsole> result = await ActivityManager.Instance.RunTask(() => {
             this.xboxManager ??= new XboxManagerClass();
             
             IActivityProgress progress = ActivityManager.Instance.GetCurrentProgressOrEmpty();
@@ -83,12 +83,11 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
             return Task.FromResult(console);
         }, cancellation);
 
-        XboxConsole? result = await task;
-        if (result != null) {
-            return new XDevkitConsoleConnection(this.xboxManager!, result);
+        if (!result.HasException) {
+            return new XDevkitConsoleConnection(this.xboxManager!, result.Value);
         }
 
-        string msg = task.Exception is COMException com ? $"COMException {com.Message}" : (task.Exception?.Message ?? "(unknown error)");
+        string msg = result.Exception is COMException com ? $"COMException {com.Message}" : result.Exception!.Message;
         await IMessageDialogService.Instance.ShowMessage("Error", "Could not connect to Xbox 360: " + msg);
         return null;
     }

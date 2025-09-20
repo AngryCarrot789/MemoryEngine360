@@ -19,15 +19,12 @@
 
 using System.Xml;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.FilePicking;
-using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.Commands;
-
-public class LoadTaskSequencesCommand : Command {
+public class OpenTaskSequencesFromFileCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
@@ -42,35 +39,26 @@ public class LoadTaskSequencesCommand : Command {
             return;
         }
 
-        ActivityTask<XmlDocument> task = ActivityManager.Instance.RunTask(() => {
-            ActivityManager.Instance.GetCurrentProgressOrEmpty().IsIndeterminate = true;
+        Result<XmlDocument> result = await ActivityManager.Instance.RunTask(() => {
+            IActivityProgress progress = ActivityManager.Instance.CurrentTask.Progress;
+            progress.IsIndeterminate = true;
+            progress.Text = "Reading document...";
             XmlDocument document = new XmlDocument();
             document.Load(filePath);
             return Task.FromResult(document);
         });
-
-        XmlDocument? doc = await task;
-        if (doc == null) {
-            if (task.Exception != null) {
-                AppLogger.Instance.WriteLine("Error deserializing XML document");
-                AppLogger.Instance.WriteLine(task.Exception.GetToString());
-                await IMessageDialogService.Instance.ShowMessage("Error deserializing XML document", task.Exception.Message);
-            }
-
+        
+        if (result.Exception != null) {
+            await LogExceptionHelper.ShowMessageAndPrintToLogs("Error reading document", result.Exception.Message, result.Exception);
             return;
         }
 
-        List<TaskSequence> list;
-        try {
-            list = XmlTaskSequenceSerialization.DeserializeDocument(doc);
-        }
-        catch (Exception ex) {
-            AppLogger.Instance.WriteLine("Error deserializing XML document");
-            AppLogger.Instance.WriteLine(ex.GetToString());
-            await IMessageDialogService.Instance.ShowMessage("Error deserializing XML document", ex.Message);
+        Result<List<TaskSequence>> listResult = result.Map(XmlTaskSequenceSerialization.DeserializeDocument);
+        if (listResult.Exception != null) {
+            await LogExceptionHelper.ShowMessageAndPrintToLogs("Error parsing task sequences", listResult.Exception.Message, listResult.Exception);
             return;
         }
-
-        manager.Sequences.AddRange(list);
+        
+        manager.Sequences.AddRange(listResult.Value);
     }
 }

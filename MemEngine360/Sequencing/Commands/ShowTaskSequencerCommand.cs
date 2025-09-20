@@ -17,11 +17,26 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Collections.ObjectModel;
-using MemEngine360.Engine.Modes;
+using MemEngine360.Engine;
+using PFXToolKitUI;
+using PFXToolKitUI.CommandSystem;
 
-namespace MemEngine360.BaseFrontEnd;
+namespace MemEngine360.Sequencing.Commands;
 
-public static class CommonCollections {
-    public static ReadOnlyCollection<DataType> DataTypes { get; } = Enum.GetValues(typeof(DataType)).Cast<DataType>().ToList().AsReadOnly();
+public class ShowTaskSequencerCommand : Command {
+    protected override Executability CanExecuteCore(CommandEventArgs e) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+            return Executability.Invalid;
+        }
+
+        return Executability.Valid;
+    }
+
+    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+            return;
+        }
+
+        await ApplicationPFX.GetComponent<ITaskSequencerService>().OpenOrFocusWindow(engine);
+    }
 }

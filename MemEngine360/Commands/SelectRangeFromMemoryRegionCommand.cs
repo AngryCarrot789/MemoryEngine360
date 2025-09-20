@@ -22,6 +22,7 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -39,7 +40,7 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
-        List<MemoryRegion>? list;
+        Result<List<MemoryRegion>> result;
         using (IDisposable? token = await engine.BeginBusyOperationActivityAsync("Reading memory regions")) {
             if (token == null) {
                 return;
@@ -56,7 +57,7 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
                 return;
             }
 
-            ActivityTask<List<MemoryRegion>> activity = ActivityManager.Instance.RunTask(() => {
+            result = await ActivityManager.Instance.RunTask(() => {
                 IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
                 prog.Caption = "Memory Regions";
                 prog.Text = "Reading memory regions...";
@@ -64,31 +65,27 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
                 return regions.GetMemoryRegions(false, false);
             });
 
-            list = await activity;
-            if (list == null) {
-                if (activity.Exception != null) {
-                    if (activity.Exception is TimeoutException || activity.Exception is IOException) {
-                        await IMessageDialogService.Instance.ShowMessage("Timed out", activity.Exception.Message, "Please reconnect and try again");
-                    }
-                    else {
-                        await IMessageDialogService.Instance.ShowMessage("Error getting memory regions", activity.Exception.Message);
-                    }
-
-                    engine.CheckConnection(token);
+            if (result.Exception != null) {
+                if (result.Exception is TimeoutException || result.Exception is IOException) {
+                    await IMessageDialogService.Instance.ShowMessage("Timed out", result.Exception.Message, "Please reconnect and try again");
+                }
+                else {
+                    await IMessageDialogService.Instance.ShowMessage("Error getting memory regions", result.Exception.Message);
                 }
 
+                engine.CheckConnection(token);
                 return;
             }
         }
 
-        MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(list!) {
+        MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(result.Value) {
             Caption = "Change scan region",
             Message = "Select a memory region to set as the start/length fields",
             ConfirmText = "Select",
             RegionFlagsToTextConverter = MemoryRegionUserInputInfo.ConvertXboxFlagsToText
         };
-
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true && info.SelectedRegion != null) {
+        
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData)) == true && info.SelectedRegion != null) {
             engine.ScanningProcessor.SetScanRange(info.SelectedRegion.BaseAddress, info.SelectedRegion.Size);
         }
     }

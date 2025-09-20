@@ -259,7 +259,7 @@ public sealed class TaskSequence : IConditionsHost {
             BaseSequenceCondition.InternalSetOwner(newItem, this);
         };
 
-        this.Progress = new ConcurrentActivityProgress();
+        this.Progress = new DispatcherActivityProgress();
         this.Progress.Text = "Sequence not running";
     }
 

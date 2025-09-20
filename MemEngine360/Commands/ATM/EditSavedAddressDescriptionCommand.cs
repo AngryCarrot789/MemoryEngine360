@@ -20,6 +20,7 @@
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Commands.ATM;
@@ -32,7 +33,7 @@ public class EditSavedAddressDescriptionCommand : BaseSavedAddressSelectionComma
             Label = "New description"
         };
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData)) == true) {
             List<BaseAddressTableEntry> selection = entries.ToList();
             foreach (BaseAddressTableEntry entry in selection) {
                 entry.Description = info.Text;

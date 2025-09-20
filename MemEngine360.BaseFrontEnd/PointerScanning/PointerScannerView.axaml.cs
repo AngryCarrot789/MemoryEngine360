@@ -26,6 +26,7 @@ using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
@@ -101,14 +102,14 @@ public partial class PointerScannerView : UserControl {
                     }
                 };
 
-                if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
+                if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, IWindow.FromVisual(this)) != true) {
                     return;
                 }
 
                 uint baseAddress = uint.Parse(info.Text, NumberStyles.HexNumber);
                 scanner.DisposeMemoryDump();
                 Task loadDumpTask = scanner.LoadMemoryDump(file, baseAddress, resultIsLE == MessageBoxResult.Yes);
-                IActivityProgress progressTracker = new ConcurrentActivityProgress();
+                IActivityProgress progressTracker = new DispatcherActivityProgress();
                 
                 await ActivityManager.Instance.RunTask(async () => {
                     IActivityProgress prog = ActivityManager.Instance.GetCurrentProgressOrEmpty();

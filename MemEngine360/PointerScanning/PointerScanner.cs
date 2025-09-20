@@ -267,7 +267,7 @@ public class PointerScanner {
             catch (Exception e) {
                 await LogExceptionHelper.ShowMessageAndPrintToLogs("Pointer Scan Eror", "Error while scanning", e);
             }
-        }, new ConcurrentActivityProgress(DispatchPriority.Background), cts);
+        }, new DispatcherActivityProgress(DispatchPriority.Background), cts);
         this.IsScanRunning = false;
         this.scanCts = cts;
     }
@@ -368,7 +368,7 @@ public class PointerScanner {
         options.ActivityTask.CheckCancelled();
         PointerPrivate basePtr = chain[chain.Count - 1];
 
-        if (((ConcurrentActivityProgress) options.ActivityTask.Progress).IsTextClean) {
+        if (((DispatcherActivityProgress) options.ActivityTask.Progress).IsTextClean) {
             options.currentChain = (chain, currDepth);
         }
 

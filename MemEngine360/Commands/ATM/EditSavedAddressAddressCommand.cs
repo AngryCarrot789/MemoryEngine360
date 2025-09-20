@@ -21,6 +21,7 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Commands.ATM;
@@ -51,7 +52,7 @@ public class EditSavedAddressAddressCommand : BaseSavedAddressSelectionCommand {
             Footer = "Pointer format is Base->Offset 1->Offset N"
         };
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) == true) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input, ITopLevel.FromContext(e.ContextData)) == true) {
             _ = MemoryAddressUtils.TryParse(input.Text, out IMemoryAddress? memoryAddress);
             foreach (BaseAddressTableEntry ui in entries) {
                 AddressTableEntry entry = (AddressTableEntry) ui;

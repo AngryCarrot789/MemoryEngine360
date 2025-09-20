@@ -21,6 +21,7 @@ using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 
@@ -28,7 +29,7 @@ namespace MemEngine360.Commands;
 
 public class OpenConsoleConnectionDialogCommand : Command {
     public const string AlreadyOpenDialogName = "dialog.AlreadyConnectedToConsole";
-    
+
     private IOpenConnectionView? myDialog;
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
@@ -45,9 +46,10 @@ public class OpenConsoleConnectionDialogCommand : Command {
             return;
         }
 
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine))
             return;
-        }
+        if (!ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel))
+            return;
 
         ulong frame = engine.GetNextConnectionChangeFrame();
 
@@ -57,7 +59,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
                 return;
             }
 
-            if (!await DisconnectInActivity(engine, frame)) {
+            if (!await DisconnectInActivity(topLevel, engine, frame)) {
                 return;
             }
         }
@@ -68,7 +70,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
         if (this.myDialog != null) {
             if (lastInfo != null)
                 this.myDialog.SetUserInfoForConnectionType(lastInfo.ConnectionType.RegisteredId, lastInfo);
-            
+
             IDisposable? token = null;
             try {
                 IConsoleConnection? connection = await this.myDialog.WaitForClose();
@@ -94,16 +96,16 @@ public class OpenConsoleConnectionDialogCommand : Command {
     /// <param name="engine"></param>
     /// <param name="frame"></param>
     /// <returns>False when token could not be acquired</returns>
-    public static async Task<bool> DisconnectInActivity(MemoryEngine engine, ulong frame) {
+    public static async Task<bool> DisconnectInActivity(ITopLevel engineTopLevel, MemoryEngine engine, ulong frame) {
         using CancellationTokenSource cts = new CancellationTokenSource();
-        bool isOperationCancelled = await ActivityManager.Instance.RunTask(async () => {
+        Result<bool> result = await ActivityManager.Instance.RunTask(async () => {
             ActivityTask task = ActivityManager.Instance.CurrentTask;
             task.Progress.Caption = "Disconnect from connection";
             task.Progress.Text = "Stopping all tasks...";
 
             // ConnectionAboutToChange can be called at any time even if the connection isn't
             // about to change. It's purely just to signal tasks to stop
-            await engine.BroadcastConnectionAboutToChange(frame);
+            await engine.BroadcastConnectionAboutToChange(engineTopLevel, frame);
 
             task.Progress.Text = "Waiting for busy operations...";
             using IDisposable? token = await engine.BeginBusyOperationAsync(task.CancellationToken);
@@ -118,7 +120,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
                     if ((existingConnection = engine.Connection) != null) {
                         engine.SetConnection(token, frame, null, ConnectionChangeCause.User);
                     }
-                });
+                }, token: CancellationToken.None);
 
                 try {
                     existingConnection.Close();
@@ -130,7 +132,8 @@ public class OpenConsoleConnectionDialogCommand : Command {
 
             return true;
         }, cts);
-        return isOperationCancelled;
+
+        return result.GetValueOrDefault();
     }
 
     /// <summary>
@@ -163,7 +166,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
             // Somehow a connection was set before we got here and user doesn't want to overwrite it.
             // Maybe they opened two windows for some reason? Perhaps via the task sequencer and main window.
 
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName:AlreadyOpenDialogName);
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName: AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 try {
                     newConnection.Close();

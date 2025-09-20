@@ -18,11 +18,11 @@
 // 
 
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 
@@ -52,16 +52,11 @@ public partial class EditConditionOutputModeView : UserControl {
         this.binder.Assign(this.PART_ChangeToMetOnce, ConditionOutputMode.ChangeToMetOnce);
         this.binder.Assign(this.PART_ChangeToNotMetOnce, ConditionOutputMode.ChangeToNotMetOnce);
         this.binder.Attach(this);
-
-        this.PART_ConfirmButton.Click += this.OnConfirmButtonClicked;
-        this.PART_CancelButton.Click += this.OnCancelButtonClicked;
+        this.PART_ConfirmButton.Command = new AsyncRelayCommand(() => this.Window?.RequestCloseAsync(BoolBox.NullableTrue) ?? Task.CompletedTask);
+        this.PART_CancelButton.Command = new AsyncRelayCommand(() => this.Window?.RequestCloseAsync(BoolBox.NullableFalse) ?? Task.CompletedTask);
     }
 
     public EditConditionOutputModeView(ConditionOutputMode initialOutputMode) : this() {
         this.OutputMode = initialOutputMode;
     }
-
-    private void OnConfirmButtonClicked(object? sender, RoutedEventArgs e) => this.Window?.Close(BoolBox.NullableTrue);
-
-    private void OnCancelButtonClicked(object? sender, RoutedEventArgs e) => this.Window?.Close(BoolBox.NullableFalse);
 }

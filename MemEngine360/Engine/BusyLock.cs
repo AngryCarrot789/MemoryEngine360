@@ -164,7 +164,7 @@ public sealed class BusyLock {
     public async Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...", CancellationTokenSource? cancellationTokenSource = null) {
         IDisposable? token = this.TryBeginBusyOperation();
         if (token == null) {
-            return await this.BeginBusyOperationActivityAsync(new ConcurrentActivityProgress() { Caption = caption, Text = message }, cancellationTokenSource).ConfigureAwait(false);
+            return await this.BeginBusyOperationActivityAsync(new DispatcherActivityProgress() { Caption = caption, Text = message }, cancellationTokenSource).ConfigureAwait(false);
         }
 
         return token;
@@ -184,11 +184,12 @@ public sealed class BusyLock {
         IDisposable? token = this.TryBeginBusyOperation();
         if (token == null) {
             CancellationTokenSource cts = cancellationTokenSource ?? new CancellationTokenSource();
-            token = await ActivityManager.Instance.RunTask(() => {
+            Result<IDisposable?> result = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 return this.BeginBusyOperationAsync(task.CancellationToken);
             }, progress, cts);
-
+            
+            token = result.GetValueOrDefault();
             if (cancellationTokenSource == null) {
                 cts.Dispose();
             }

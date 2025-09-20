@@ -80,15 +80,15 @@ public partial class OpenConnectionView : UserControl {
         this.PART_ListBox.SelectionMode = SelectionMode.Single;
         this.PART_ListBox.SelectionChanged += this.PART_ListBoxOnSelectionChanged;
 
-        this.PART_CancelButton.Click += (sender, args) => {
+        this.PART_CancelButton.Command = new AsyncRelayCommand(async () => {
             this.UserConnectionInfoForCurrentConnection = null;
             if (this.Window != null) {
                 this.isClosingWindow = true;
-                this.Window.Close();
+                await this.Window.RequestCloseAsync();
                 this.isClosingWindow = false;
             }
-        };
-
+        });
+        
         this.PART_ConfirmButton.Command = new AsyncRelayCommand(async () => {
             this.isConnecting = true;
             this.PART_ListBox.IsEnabled = false;
@@ -111,7 +111,7 @@ public partial class OpenConnectionView : UserControl {
                     this.CurrentConnection = connection;
                     if (this.Window != null) {
                         this.isClosingWindow = true;
-                        this.Window.Close();
+                        await this.Window.RequestCloseAsync();
                         this.isClosingWindow = false;
                     }
                 }

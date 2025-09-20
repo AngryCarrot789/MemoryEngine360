@@ -181,7 +181,7 @@ public partial class EngineView : UserControl {
 
             info.TextChanged += UpdateFooter;
             UpdateFooter(info);
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, this.myOwnerWindow_onLoaded) == true) {
                 p.Alignment = NumberUtils.ParseHexOrRegular<uint>(info.Text);
             }
 
@@ -294,7 +294,7 @@ public partial class EngineView : UserControl {
         helpEntry.Items.Add(new CommandContextEntry("commands.application.ShowLogsCommand", "Show Logs"));
         helpEntry.Items.Add(new SeparatorEntry());
         helpEntry.Items.Add(new CustomLambdaContextEntry("Open Wiki", (c) => {
-            if (!ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(c, out ITopLevelComponentManager? topLevel))
+            if (!ITopLevel.TopLevelDataKey.TryGetContext(c, out ITopLevel? topLevel))
                 return Task.CompletedTask;
             if (!IWebLauncher.TryGet(topLevel, out IWebLauncher? webLauncher))
                 return Task.CompletedTask;
@@ -302,7 +302,7 @@ public partial class EngineView : UserControl {
             const string url = "https://github.com/AngryCarrot789/MemoryEngine360/wiki#quick-start";
             return webLauncher.LaunchUriAsync(new Uri(url));
         }, (c) => {
-            if (!ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(c, out ITopLevelComponentManager? window))
+            if (!ITopLevel.TopLevelDataKey.TryGetContext(c, out ITopLevel? window))
                 return false;
             if (!window.TryGetWebLauncher(out _))
                 return false;
@@ -524,7 +524,7 @@ public partial class EngineView : UserControl {
     private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
         TextNotification notification = this.connectionNotification ??= new TextNotification() {
             ContextData = new ContextData().Set(MemoryEngine.EngineDataKey, this.MemoryEngine).
-                                            Set(ITopLevelComponentManager.TLCManagerDataKey, this.myOwnerWindow_onLoaded)
+                                            Set(ITopLevel.TopLevelDataKey, this.myOwnerWindow_onLoaded)
         };
 
         if (newConn != null) {
@@ -532,8 +532,7 @@ public partial class EngineView : UserControl {
             notification.Text = $"Connected to '{newConn.ConnectionType.DisplayName}'";
             notification.Commands.Clear();
             notification.Commands.Add(this.connectionNotificationCommandGetStarted ??= new LambdaNotificationCommand("Get Started", static async (c) => {
-                if (!ITopLevelComponentManager.TLCManagerDataKey.TryGetContext(c.ContextData!, out ITopLevelComponentManager? topLevel))
-                    return;
+                ITopLevel topLevel = ITopLevel.TopLevelDataKey.GetContext(c.ContextData!)!;
                 if (!topLevel.TryGetWebLauncher(out IWebLauncher? launcher))
                     return;
 
@@ -542,11 +541,11 @@ public partial class EngineView : UserControl {
             }) { ToolTip = "Opens a link to MemoryEngine360's quick start guide on the wiki" });
 
             notification.Commands.Add(this.connectionNotificationCommandDisconnect ??= new LambdaNotificationCommand("Disconnect", static async (c) => {
-                // ContextData ensured non-null by LambdaNotificationCommand.requireContext
+                ITopLevel topLevel = ITopLevel.TopLevelDataKey.GetContext(c.ContextData!)!;
                 MemoryEngine engine = MemoryEngine.EngineDataKey.GetContext(c.ContextData!)!;
                 if (engine.Connection != null) {
                     ((ContextData) c.ContextData!).Set(MemoryEngine.IsDisconnectFromNotification, true);
-                    await OpenConsoleConnectionDialogCommand.DisconnectInActivity(engine, 0);
+                    await OpenConsoleConnectionDialogCommand.DisconnectInActivity(topLevel, engine, 0);
                     ((ContextData) c.ContextData!).Set(MemoryEngine.IsDisconnectFromNotification, null);
                 }
 
@@ -776,7 +775,7 @@ public partial class EngineView : UserControl {
                 LabelB = "Logo (search for XNotifyLogo)"
             };
 
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(context)) == true) {
                 XNotifyLogo logo = dpEnumInfo.TextToEnum[info.TextB];
                 await notifications.ShowNotification(logo, info.TextA);
             }

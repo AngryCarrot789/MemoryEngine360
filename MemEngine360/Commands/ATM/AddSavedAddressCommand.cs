@@ -24,6 +24,7 @@ using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Commands.ATM;
@@ -68,7 +69,8 @@ public class AddSavedAddressCommand : Command {
             Footer = "Pointer format is Base->Offset 1->Offset N"
         };
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(addrDescInfo) == true) {
+        ITopLevel? topLevel = ITopLevel.FromContext(e.ContextData);
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(addrDescInfo, topLevel) == true) {
             _ = MemoryAddressUtils.TryParse(addrDescInfo.TextA, out IMemoryAddress? memoryAddress, out _);
 
             AddressTableEntry result = new AddressTableEntry() {
@@ -79,7 +81,7 @@ public class AddSavedAddressCommand : Command {
                 Caption = "Modify data type"
             };
 
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(dataTypeInfo) == true) {
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(dataTypeInfo, topLevel) == true) {
                 if (dataTypeInfo.DataType.IsNumeric()) {
                     if (dataTypeInfo.DisplayAsHex) {
                         result.NumericDisplayType = NumericDisplayType.Hexadecimal;

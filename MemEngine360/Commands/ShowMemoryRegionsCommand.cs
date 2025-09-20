@@ -22,6 +22,7 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -46,13 +47,15 @@ public class ShowMemoryRegionsCommand : BaseMemoryEngineCommand {
                     return null;
                 }
                 
-                return await ActivityManager.Instance.RunTask(() => {
+                Result<List<MemoryRegion>> result = await ActivityManager.Instance.RunTask(() => {
                     IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
                     prog.Caption = "Memory Regions";
                     prog.Text = "Reading memory regions...";
                     prog.IsIndeterminate = true;
                     return regions.GetMemoryRegions(false, false);
                 });
+
+                return result.GetValueOrDefault();
             });
 
             if (list == null) {
@@ -65,7 +68,7 @@ public class ShowMemoryRegionsCommand : BaseMemoryEngineCommand {
                 RegionFlagsToTextConverter = MemoryRegionUserInputInfo.ConvertXboxFlagsToText
             };
 
-            await IUserInputDialogService.Instance.ShowInputDialogAsync(info);
+            await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData));
         }
     }
 }

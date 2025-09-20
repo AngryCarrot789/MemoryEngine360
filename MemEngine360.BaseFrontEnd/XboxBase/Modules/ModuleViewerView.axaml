@@ -2,13 +2,12 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                 xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd;assembly=MemEngine360.BaseFrontEnd"
-                 xmlns:memRegions="clr-namespace:MemEngine360.BaseFrontEnd.MemRegions;assembly=MemEngine360.BaseFrontEnd"
+                 xmlns:avs="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:mr="clr-namespace:MemEngine360.BaseFrontEnd.MemRegions;assembly=MemEngine360.BaseFrontEnd"
                  xmlns:modules="clr-namespace:MemEngine360.BaseFrontEnd.XboxBase.Modules"
                  xmlns:models="clr-namespace:MemEngine360.XboxBase.Modules;assembly=MemEngine360"
                  xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.BaseFrontEnd.XboxBase.Modules.ModuleViewerView">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
@@ -22,7 +21,7 @@
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
-                        avalonia:UIInputManager.FocusPath="ModuleViewer/ModuleList">
+                        avs:UIInputManager.FocusPath="ModuleViewer/ModuleList">
                 <c:GroupBox.Header>
                     <DockPanel HorizontalSpacing="2">
                         <!-- <Button Content="Refresh" DockPanel.Dock="Right" Padding="4,0" BorderBrush="{DynamicResource PanelBorderBrush}" Click="Button_Refresh_OnClick"/> -->
@@ -169,21 +168,21 @@
                                                         Header="Index" CanUserResize="False" IsReadOnly="True"
                                                         Binding="{Binding Index, Mode=OneWay}"/>
 
-                                    <cb:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="125"
+                                    <c:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="125"
                                                              Header="Name" CanUserResize="True" IsReadOnly="True"
                                                              Binding="{Binding Name, Mode=OneWay, Converter={x:Static modules:EmptyStringToTextConverter.Instance}, ConverterParameter='Unavailable'}"
                                                              CellDataKeyForDC="{x:Static models:ConsoleModuleSection.DataKey}"
                                                              DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
 
-                                    <cb:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="100"
+                                    <c:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="100"
                                                              Header="Base Address" CanUserResize="False" IsReadOnly="True"
                                                              Binding="{Binding BaseAddress, Mode=OneWay, StringFormat=X8}"
                                                              CellDataKeyForDC="{x:Static models:ConsoleModuleSection.DataKey}"
                                                              DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
 
-                                    <cb:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="150"
+                                    <c:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="150"
                                                              Header="Section Size" CanUserResize="False" IsReadOnly="True"
-                                                             Binding="{Binding Size, Mode=OneWay, Converter={x:Static memRegions:USizeToTextConverter.Instance}}"
+                                                             Binding="{Binding Size, Mode=OneWay, Converter={x:Static mr:USizeToTextConverter.Instance}}"
                                                              CellDataKeyForDC="{x:Static models:ConsoleModuleSection.DataKey}"
                                                              DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
 

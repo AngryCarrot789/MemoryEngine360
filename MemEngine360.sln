@@ -27,8 +27,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemEngine360.BaseFrontEnd",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AvaloniaHex.Base", "AvaloniaHex\src\AvaloniaHex.Base\AvaloniaHex.Base.csproj", "{ABC79FD9-C590-4221-B5AF-4F32D9C7DDC2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemEngine360.BaseFrontEnd.Desktop", "MemEngine360.BaseFrontEnd.Desktop\MemEngine360.BaseFrontEnd.Desktop.csproj", "{CF8713BE-E9C1-4002-980A-0D7D21562E19}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,10 +73,6 @@ Global
 		{ABC79FD9-C590-4221-B5AF-4F32D9C7DDC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ABC79FD9-C590-4221-B5AF-4F32D9C7DDC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ABC79FD9-C590-4221-B5AF-4F32D9C7DDC2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CF8713BE-E9C1-4002-980A-0D7D21562E19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CF8713BE-E9C1-4002-980A-0D7D21562E19}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CF8713BE-E9C1-4002-980A-0D7D21562E19}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CF8713BE-E9C1-4002-980A-0D7D21562E19}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

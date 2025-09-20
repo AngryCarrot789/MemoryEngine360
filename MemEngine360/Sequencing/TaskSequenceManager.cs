@@ -27,6 +27,7 @@ using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Sequencing;
@@ -69,8 +70,8 @@ public class TaskSequenceManager : IComponentManager {
                 if (item.Manager == this)
                     throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
                 if (item.Manager != null)
-                    throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
-                item.CheckNotRunning("Cannot add entry while it is running");
+                    throw new InvalidOperationException("Entry already exists in another sequence manager. It must be removed first");
+                Debug.Assert(!item.IsRunning, "Impossible for a sequence to run without a manager");
             }
         };
 
@@ -152,7 +153,9 @@ public class TaskSequenceManager : IComponentManager {
         }
     }
 
-    private async Task OnMemoryEngineConnectionAboutToChange(MemoryEngine sender, ulong frame) {
+    private async Task OnMemoryEngineConnectionAboutToChange(MemoryEngine sender, ulong frame, IActivityProgress progress) {
+        progress.Caption = "Stopping Sequences";
+        progress.Text = "Waiting for sequences to complete";
         List<TaskSequence> items = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.ActiveSequences.ToList());
         if (items.Count > 0) {
             bool isShuttingDown = sender.IsShuttingDown;

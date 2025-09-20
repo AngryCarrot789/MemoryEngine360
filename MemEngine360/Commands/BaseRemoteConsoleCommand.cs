@@ -24,6 +24,7 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Shortcuts;
@@ -63,7 +64,13 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
                 shortcuts = " Use the shortcut(s) to connect: " + Environment.NewLine + shortcuts;
 
             engine.CheckConnection(token);
-            await IMessageDialogService.Instance.ShowMessage("Disconnected", "Not connected to a console." + shortcuts);
+
+            if (connection == null) {
+                await IMessageDialogService.Instance.ShowMessage("Disconnected", "Not connected to a console");
+            }
+            else {
+                await IMessageDialogService.Instance.ShowMessage("Disconnected", "Connection is disconnected. Please reconnect");
+            }
         }
         else if (await this.TryBeginExecuteAsync(engine, connection, e)) {
             await ActivityManager.Instance.RunTask(async () => {
@@ -186,7 +193,7 @@ public abstract class BaseJRPC2Command : BaseRemoteConsoleCommand {
         if (exec != Executability.Valid) {
             return exec;
         }
-        
+
         return connection.HasFeature<IFeatureXboxJRPC2>() ? Executability.Valid : Executability.Invalid;
     }
 
@@ -281,7 +288,7 @@ public class TestRPCCommand : BaseJRPC2Command {
                 }
             };
 
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData)) == true) {
                 int index = int.Parse(info.TextA, NumberStyles.HexNumber); // cannot fail
                 string value = info.TextB;
                 await jrpc.CallVoid(0x822CB3E8, index, value);

@@ -2,20 +2,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Themes.Controls;assembly=PFXToolKitUI.Avalonia"
              xmlns:cmdu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
              xmlns:av1="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
              xmlns:engine="clr-namespace:MemEngine360.Engine;assembly=MemEngine360"
              xmlns:ams="clr-namespace:PFXToolKitUI.Avalonia.AdvancedMenuService;assembly=PFXToolKitUI.Avalonia"
              xmlns:aa="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
              xmlns:av2="clr-namespace:MemEngine360.Avalonia"
-             xmlns:ac="clr-namespace:MemEngine360.BaseFrontEnd.Commands;assembly=MemEngine360.BaseFrontEnd"
-             xmlns:cb="clr-namespace:MemEngine360.BaseFrontEnd;assembly=MemEngine360.BaseFrontEnd"
+             xmlns:cmds="clr-namespace:MemEngine360.BaseFrontEnd.Commands;assembly=MemEngine360.BaseFrontEnd"
+             xmlns:bfe="clr-namespace:MemEngine360.BaseFrontEnd;assembly=MemEngine360.BaseFrontEnd"
              xmlns:sa="clr-namespace:MemEngine360.BaseFrontEnd.SavedAddressing;assembly=MemEngine360.BaseFrontEnd"
              xmlns:notifications="clr-namespace:PFXToolKitUI.Avalonia.Notifications;assembly=PFXToolKitUI.Avalonia"
              xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
              xmlns:s="clr-namespace:MemEngine360;assembly=MemEngine360"
+             xmlns:c2="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
              mc:Ignorable="d"
              x:Class="MemEngine360.Avalonia.EngineView"
              Background="{DynamicResource ABrush.MemEngine.MainView.Background}">
@@ -58,7 +58,7 @@
                 <Border Grid.Column="3" Grid.Row="1">
                     <Grid RowDefinitions="Auto,5,Auto,5,*,Auto">
                         <Grid ColumnDefinitions="*,5,*,5,*" Grid.Row="0" Height="22">
-                            <Button Grid.Column="0" Content="First Scan" cmdu:CommandUsageManager.UsageClassType="{x:Type ac:FirstScanCommandUsage}">
+                            <Button Grid.Column="0" Content="First Scan" cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:FirstScanCommandUsage}">
                                 <tt:ToolTipEx.Tip>
                                     <StackPanel Orientation="Horizontal" Spacing="5">
                                         <TextBlock Text="Search the console memory for the value, and display all found results" VerticalAlignment="Center"/>
@@ -66,7 +66,7 @@
                                     </StackPanel>
                                 </tt:ToolTipEx.Tip>
                             </Button>
-                            <Button Grid.Column="2" Content="Next Scan" cmdu:CommandUsageManager.UsageClassType="{x:Type ac:NextScanCommandUsage}">
+                            <Button Grid.Column="2" Content="Next Scan" cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:NextScanCommandUsage}">
                                 <tt:ToolTipEx.Tip>
                                     <StackPanel Orientation="Horizontal" Spacing="5">
                                         <TextBlock Text="Search the scan result list for the value, and keeps results that still match" VerticalAlignment="Center"/>
@@ -74,7 +74,7 @@
                                     </StackPanel>
                                 </tt:ToolTipEx.Tip>
                             </Button>
-                            <Button Grid.Column="4" Content="Reset" cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ResetScanCommandUsage}">
+                            <Button Grid.Column="4" Content="Reset" cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:ResetScanCommandUsage}">
                                 <tt:ToolTipEx.Tip>
                                     <StackPanel Orientation="Horizontal" Spacing="5">
                                         <TextBlock Text="Clears the scan result list, allowing for the first scan to be performed again" VerticalAlignment="Center"/>
@@ -267,13 +267,13 @@
                             </Grid>
                         </Grid>
                         <ScrollViewer Grid.Row="5" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                            <c:GroupBox Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Background}"
+                            <c2:GroupBox Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Background}"
                                         BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Border}"
                                         HeaderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Header}"
                                         BorderThickness="1"
                                         HorizontalHeaderAlignment="Stretch"
                                         VerticalHeaderAlignment="Stretch">
-                                <c:GroupBox.Header>
+                                <c2:GroupBox.Header>
                                     <DockPanel HorizontalSpacing="4">
                                         <avc:IconButton DockPanel.Dock="Right"
                                                         Icon="{x:Static s:SimpleIcons.MemoryIconTable}"
@@ -282,7 +282,7 @@
                                                         Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
                                                         BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Border}"
                                                         Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Foreground}"
-                                                        cmdu:CommandUsageManager.UsageClassType="{x:Type ac:SelectRangeFromRegionCommandUsage}">
+                                                        cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:SelectRangeFromRegionCommandUsage}">
                                             <tt:ToolTipEx.Tip>
                                                 <TextBlock TextWrapping="Wrap">
                                                     <Run Text="Open a dialog with all available memory regions on the console"/>
@@ -299,7 +299,7 @@
                                                         Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
                                                         BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Border}"
                                                         Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Foreground}"
-                                                        cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ResetScanOptionsCommandUsage}">
+                                                        cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:ResetScanOptionsCommandUsage}">
                                             <tt:ToolTipEx.Tip>
                                                 <StackPanel Orientation="Horizontal" Spacing="5">
                                                     <TextBlock TextWrapping="Wrap" Text="Resets the Start, Length and Scan Memory Pages options to default" VerticalAlignment="Center"/>
@@ -309,7 +309,7 @@
                                         </avc:IconButton>
                                         <TextBlock Text="Additional Options" VerticalAlignment="Center"/>
                                     </DockPanel>
-                                </c:GroupBox.Header>
+                                </c2:GroupBox.Header>
                                 <StackPanel>
                                     <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,22,3,20,3,20" Margin="3">
                                         <TextBlock Grid.Column="0" Grid.Row="0" Text="Start" VerticalAlignment="Center" Padding="4,0"/>
@@ -415,21 +415,21 @@
                                         <!-- </CheckBox> -->
                                     </Grid>
                                 </StackPanel>
-                            </c:GroupBox>
+                            </c2:GroupBox>
                         </ScrollViewer>
 
                         <!-- Fills empty space -->
                         <Border Background="Transparent" Grid.Row="4"/>
                     </Grid>
                 </Border>
-                <c:GroupBox Background="{DynamicResource ABrush.MemEngine.MainView.ScanResults.Background}"
+                <c2:GroupBox Background="{DynamicResource ABrush.MemEngine.MainView.ScanResults.Background}"
                             BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanResults.Border}"
                             HeaderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanResults.Header}"
                             HorizontalHeaderAlignment="Stretch"
                             BorderThickness="1"
                             Grid.Column="1" Grid.Row="1"
                             av1:UIInputManager.FocusPath="EngineWindow/ScanResultList">
-                    <c:GroupBox.Header>
+                    <c2:GroupBox.Header>
                         <DockPanel>
                             <TextBlock Text="Scan Results" DockPanel.Dock="Left"/>
                             <TextBlock DockPanel.Dock="Right" Opacity="0.7">
@@ -437,31 +437,31 @@
                             </TextBlock>
                             <Border/>
                         </DockPanel>
-                    </c:GroupBox.Header>
+                    </c2:GroupBox.Header>
                     <DataGrid x:Name="PART_ScanListResults"
                               Background="Transparent"
                               BorderThickness="0"
                               CanUserResizeColumns="True"
                               ClipboardCopyMode="None">
                         <DataGrid.Columns>
-                            <cb:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
+                            <c2:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
                                                      Header="Address (hex)" Width="85" Binding="{Binding Address, Mode=OneTime, StringFormat=X}"
                                                      IsReadOnly="True" DoubleTapCommandId="commands.memengine.CopyScanResultsToClipboardCommand"
                                                      CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
                                                      CanUserResize="False" FontFamily="{StaticResource FontOxanium}"/> <!-- No need to resize since it's formatted to X8 (fixed length) -->
 
-                            <cb:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
+                            <c2:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
                                                      Header="Value" Width="85"
                                                      IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditScanResultValueCommand"
                                                      CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
                                                      CanUserResize="True" FontFamily="{StaticResource FontOxanium}">
-                                <cb:DataGridTextColumnEx.Binding>
+                                <c2:DataGridTextColumnEx.Binding>
                                     <MultiBinding Converter="{x:Static av2:ScanResultCurrentValueConverter.Instance}">
                                         <Binding Path="CurrentValue" Mode="OneWay"/>
                                         <Binding Path="NumericDisplayType" Mode="OneWay"/>
                                     </MultiBinding>
-                                </cb:DataGridTextColumnEx.Binding>
-                            </cb:DataGridTextColumnEx>
+                                </c2:DataGridTextColumnEx.Binding>
+                            </c2:DataGridTextColumnEx>
 
                             <DataGridTextColumn CanUserResize="True" Header="Previous" Width="85" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True">
                                 <DataGridTextColumn.Binding>
@@ -481,8 +481,8 @@
                             </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
-                </c:GroupBox>
-                <c:GroupBox Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Background}"
+                </c2:GroupBox>
+                <c2:GroupBox Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Background}"
                             BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Border}"
                             HeaderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Header}"
                             BorderThickness="1"
@@ -490,7 +490,7 @@
                             Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="3"
                             x:Name="PART_SavedAddressGroupBox"
                             av1:UIInputManager.FocusPath="EngineWindow/SavedAddressList" MinHeight="100">
-                    <c:GroupBox.Header>
+                    <c2:GroupBox.Header>
                         <DockPanel>
                             <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="5" Height="20">
@@ -558,7 +558,7 @@
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
-                                                cmdu:CommandUsageManager.UsageClassType="{x:Type ac:ShowCommandUsage}"
+                                                cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:ShowCommandUsage}"
                                                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                                                 Padding="2,1,2,2">
                                     <tt:ToolTipEx.Tip>
@@ -574,7 +574,7 @@
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
-                                                cmdu:CommandUsageManager.UsageClassType="{x:Type ac:AddSelectedScanResultsToSavedAddressListCommandUsage}">
+                                                cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:AddSelectedScanResultsToSavedAddressListCommandUsage}">
                                     <tt:ToolTipEx.Tip>
                                         <StackPanel Orientation="Horizontal" Spacing="5">
                                             <TextBlock Text="Adds the selected results into the saved address list. Does not add addresses that are already present" VerticalAlignment="Center"/>
@@ -587,7 +587,7 @@
                                         Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                         BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                         Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
-                                        cmdu:CommandUsageManager.UsageClassType="{x:Type ac:RefreshSavedAddressesCommandUsage}">
+                                        cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:RefreshSavedAddressesCommandUsage}">
                                     <tt:ToolTipEx.Tip>
                                         <StackPanel Orientation="Horizontal" Spacing="5">
                                             <TextBlock Text="Manually refresh the scan results and saved addresses values. Note, this will invalidate pointers' cached addresses (if used), so this may take longer than automatic refresh" VerticalAlignment="Center"/>
@@ -598,10 +598,10 @@
                             </StackPanel>
                             <Border/>
                         </DockPanel>
-                    </c:GroupBox.Header>
+                    </c2:GroupBox.Header>
                     <sa:AddressTableTreeView x:Name="PART_SavedAddressTree" Background="Transparent" BorderThickness="0"
                                              ColumnSeparatorBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.ColumnSeparator}"/>
-                </c:GroupBox>
+                </c2:GroupBox>
                 <GridSplitter Grid.Column="2" Grid.Row="1" Background="Transparent"/>
                 <GridSplitter Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="2" Background="Transparent"/>
             </Grid>
@@ -642,7 +642,7 @@
                                 <TextBlock Text="Background Activities" Padding="4,2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </DockPanel>
                         </Border>
-                        <aa:ActivityListControl x:Name="PART_ActivityList" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
+                        <aa:ActivityListBoxControl x:Name="PART_ActivityList" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
                     </DockPanel>
                 </Border>
             </StackPanel>
