@@ -22,9 +22,9 @@ using Avalonia.Controls;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI;
+using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Utils;
-using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
@@ -77,12 +77,14 @@ public partial class OpenConnectionView : UserControl {
 
     public OpenConnectionView() {
         this.InitializeComponent();
+        DataManager.GetContextData(this).Set(IOpenConnectionView.IsConnectingFromView, true);
+        
         this.PART_ListBox.SelectionMode = SelectionMode.Single;
         this.PART_ListBox.SelectionChanged += this.PART_ListBoxOnSelectionChanged;
 
         this.PART_CancelButton.Command = new AsyncRelayCommand(async () => {
             this.UserConnectionInfoForCurrentConnection = null;
-            if (this.Window != null) {
+            if (this.Window != null && this.Window.OpenState == OpenState.Open) {
                 this.isClosingWindow = true;
                 await this.Window.RequestCloseAsync();
                 this.isClosingWindow = false;
@@ -99,7 +101,7 @@ public partial class OpenConnectionView : UserControl {
                 this.currCts = new CancellationTokenSource();
                 IConsoleConnection? connection;
                 try {
-                    connection = await selection.RegisteredConsoleType.OpenConnection(selection.UserConnectionInfo, this.currCts);
+                    connection = await selection.RegisteredConsoleType.OpenConnection(selection.UserConnectionInfo, DataManager.GetFullContextData(this), this.currCts);
                 }
                 catch (Exception e) {
                     await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
@@ -109,7 +111,7 @@ public partial class OpenConnectionView : UserControl {
                 if (connection != null) {
                     this.UserConnectionInfoForCurrentConnection = selection.UserConnectionInfo;
                     this.CurrentConnection = connection;
-                    if (this.Window != null) {
+                    if (this.Window != null && this.Window.OpenState == OpenState.Open) {
                         this.isClosingWindow = true;
                         await this.Window.RequestCloseAsync();
                         this.isClosingWindow = false;
@@ -149,12 +151,10 @@ public partial class OpenConnectionView : UserControl {
 
     internal void OnWindowOpened(IWindow window) {
         this.Window = window;
-        IContextData context = new ContextData().Set(MemoryEngine.EngineDataKey, this.MemoryEngine);
-
         ConsoleTypeListBoxItem? selected = null;
         ConsoleConnectionManager service = ApplicationPFX.GetComponent<ConsoleConnectionManager>();
         foreach (RegisteredConnectionType type in service.RegisteredConsoleTypes) {
-            ConsoleTypeListBoxItem item = new ConsoleTypeListBoxItem(type, context);
+            ConsoleTypeListBoxItem item = new ConsoleTypeListBoxItem(type);
             if (selected == null && this.TypeToFocusOnOpened != null && type.RegisteredId == this.TypeToFocusOnOpened)
                 selected = item;
             this.PART_ListBox.Items.Add(item);

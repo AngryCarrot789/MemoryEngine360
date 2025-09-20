@@ -22,6 +22,7 @@ using Avalonia.Input;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI;
+using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
@@ -42,14 +43,15 @@ public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
         internal set => this.PART_ConnectToConsoleView.TypeToFocusOnOpened = value;
     }
 
+    public bool IsWindowOpen => this.Window != null && this.Window.OpenState == OpenState.Open;
+    
     public UserConnectionInfo? UserConnectionInfoForConnection => this.PART_ConnectToConsoleView.CurrentConnection == null ? null : this.PART_ConnectToConsoleView.UserConnectionInfoForCurrentConnection;
-
+    
     public IWindow? Window { get; private set; }
-
-    public bool IsClosed => this.Window == null || this.Window.IsClosed;
 
     public OpenConnectionViewEx() {
         this.InitializeComponent();
+        DataManager.GetContextData(this).Set(IOpenConnectionView.DataKey, this);
     }
 
     internal void OnWindowOpened(IWindow window) {
@@ -62,7 +64,11 @@ public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
         this.Window = null;
     }
 
-    public void Close() => this.Window?.RequestCloseAsync();
+    public void Close() {
+        if (this.Window != null && this.Window.OpenState == OpenState.Open) {
+            _ = this.Window.RequestCloseAsync();
+        }
+    }
 
     public void Activate() => this.Window?.Activate();
 
@@ -75,10 +81,10 @@ public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
         }
     }
 
-    public async Task<IConsoleConnection?> WaitForClose() {
+    public async Task<IConsoleConnection?> WaitForConnection(CancellationToken cancellation = default) {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
         if (this.Window != null) {
-            await this.Window.WaitForClosedAsync();
+            await this.Window.WaitForClosedAsync(cancellation);
         }
         
         return this.closedConnection;

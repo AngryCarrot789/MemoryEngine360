@@ -26,6 +26,8 @@ using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using MemEngine360.Xbox360XBDM.Views;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
@@ -87,77 +89,82 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
         }));
     }
 
-    public override UserConnectionInfo? CreateConnectionInfo(IContextData context) {
+    public override UserConnectionInfo? CreateConnectionInfo() {
         return new ConnectToXboxInfo();
     }
 
-    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, CancellationTokenSource cancellation) {
+    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData context, CancellationTokenSource cancellation) {
         ConnectToXboxInfo info = (ConnectToXboxInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.IpAddress)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid address", "Address cannot be an empty string");
             return null;
         }
 
+        bool isOpeningFromNormalDialog = IOpenConnectionView.IsConnectingFromView.TryGetContext(context, out bool isFromView) && isFromView;
+
         // %appdata%/MemEngine360/Options/application.xml
         BasicApplicationConfiguration.Instance.LastHostName = info.IpAddress;
         BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
 
-        try {
-            Result<XbdmConsoleConnection?> result = await ActivityManager.Instance.RunTask(async () => {
-                IActivityProgress progress = ActivityManager.Instance.GetCurrentProgressOrEmpty();
-                progress.Caption = "XBDM Connection";
-                progress.Text = "Connecting to console...";
-                progress.IsIndeterminate = true;
-                TcpClient client = new TcpClient() {
-                    ReceiveTimeout = 4000
-                };
+        ActivityTask<XbdmConsoleConnection> activity = ActivityManager.Instance.RunTask(async () => {
+            IActivityProgress progress = ActivityManager.Instance.GetCurrentProgressOrEmpty();
+            progress.Caption = "XBDM Connection";
+            progress.Text = "Connecting to console...";
+            progress.IsIndeterminate = true;
 
-                try {
-                    await client.ConnectAsync(info.IpAddress, 730, cancellation.Token);
-                }
-                catch (OperationCanceledException) {
-                    return null;
-                }
-                catch (SocketException e) {
-                    string message;
-                    switch (e.SocketErrorCode) {
-                        case SocketError.InvalidArgument:    message = "Console IP/hostname is invalid"; break;
-                        case SocketError.TooManyOpenSockets: message = "Too many sockets open"; break;
-                        case SocketError.TimedOut:           message = "Timeout while connecting. Is the console connected to the internet?"; break;
-                        case SocketError.ConnectionRefused:  message = "Connection refused. Is the console running xbdm?"; break;
-                        case SocketError.TryAgain:           message = "Could not identify hostname. Try again later"; break;
-                        default:                             message = e.Message; break;
-                    }
+            TcpClient client = new TcpClient();
+            client.ReceiveTimeout = 4000;
 
-                    await IMessageDialogService.Instance.ShowMessage("Socket Error: " + e.SocketErrorCode, message, defaultButton: MessageBoxResult.OK);
-                    return null;
-                }
+            await client.ConnectAsync(info.IpAddress, 730, cancellation.Token);
 
-                progress.Text = "Connected. Waiting for acknowledgement...";
-                StreamReader reader = new StreamReader(client.GetStream(), leaveOpen: true);
-                string? response = (await Task.Run(() => reader.ReadLine(), cancellation.Token))?.ToLower();
-                if (response == "201- connected") {
-                    XbdmConsoleConnection connection = new XbdmConsoleConnection(client, info.IpAddress);
-                    try {
-                        await connection.DetectDynamicFeatures();
-                    }
-                    catch (Exception e) when (e is IOException || e is TimeoutException) {
-                        await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => IMessageDialogService.Instance.ShowMessage("Feature detection", e.Message));
-                        return null;
-                    }
+            progress.Text = "Connected. Waiting for acknowledgement...";
+            StreamReader reader = new StreamReader(client.GetStream(), leaveOpen: true);
+            string? response = (await Task.Run(() => reader.ReadLine(), cancellation.Token))?.ToLower();
+            if (response != "201- connected") {
+                throw new Exception("Received invalid response from console: " + (response ?? ""));
+            }
 
-                    return connection;
-                }
+            XbdmConsoleConnection connection = new XbdmConsoleConnection(client, info.IpAddress);
+            try {
+                await connection.DetectDynamicFeatures();
+            }
+            catch (Exception e) when (e is IOException || e is TimeoutException) {
+                throw new Exception("Network error while detecting dynamic features");
+            }
+            catch {
+                throw new Exception("Unexpected error detecting dynamic features");
+            }
 
-                await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => IMessageDialogService.Instance.ShowMessage("Error", "Received invalid response from console: " + (response ?? "")));
-                return null;
-            }, cancellation);
+            return connection;
+        }, cancellation);
 
-            return result.GetValueOrDefault();
+        if (isOpeningFromNormalDialog && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
+            IWindow? window = WindowContextUtils.GetUsefulWindow();
+            if (window != null) {
+                await service.ShowActivity(window, activity);
+            }
         }
-        catch (Exception e) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "Could not connect to Xbox 360: " + e.Message);
+
+        Result<XbdmConsoleConnection> result = await activity;
+        if (result.Exception is SocketException ex) {
+            string message;
+            switch (ex.SocketErrorCode) {
+                case SocketError.InvalidArgument:    message = "Console IP/hostname is invalid"; break;
+                case SocketError.TooManyOpenSockets: message = "Too many sockets open"; break;
+                case SocketError.TimedOut:           message = "Timeout while connecting. Is the console connected to the internet?"; break;
+                case SocketError.ConnectionRefused:  message = "Connection refused. Is the console running xbdm?"; break;
+                case SocketError.TryAgain:           message = "Could not identify hostname. Try again later"; break;
+                default:                             message = ex.Message; break;
+            }
+
+            await IMessageDialogService.Instance.ShowMessage("Socket Error: " + ex.SocketErrorCode, message, defaultButton: MessageBoxResult.OK);
             return null;
         }
+        else if (result.Exception != null && !(result.Exception is OperationCanceledException)) {
+            await IMessageDialogService.Instance.ShowMessage("Error", result.Exception.Message, defaultButton: MessageBoxResult.OK);
+            return null;
+        }
+
+        return result.GetValueOrDefault();
     }
 }

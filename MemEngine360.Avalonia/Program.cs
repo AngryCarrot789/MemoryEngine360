@@ -17,6 +17,12 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+#if !DEBUG
+#define PROCESS_APP_EXCEPTION
+using System.Text;
+using PFXToolKitUI.Logging;
+#endif
+
 using System;
 using Avalonia;
 
@@ -28,14 +34,14 @@ class Program {
     // yet and stuff might break.
     [STAThread]
     public static void Main(string[] args) {
-#if !DEBUG
+#if PROCESS_APP_EXCEPTION
         try {
 #endif
-            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
-#if !DEBUG
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+#if PROCESS_APP_EXCEPTION
         }
 #endif
-#if !DEBUG
+#if PROCESS_APP_EXCEPTION
         catch (Exception e) {
             string? filePath = args.Length > 0 ? args[0] : null;
             if (string.IsNullOrEmpty(filePath)) {
@@ -47,9 +53,19 @@ class Program {
             string? dirPath = System.IO.Path.GetDirectoryName(filePath);
             if (!string.IsNullOrEmpty(dirPath) && System.IO.Directory.Exists(dirPath)) {
                 try {
-                    System.IO.File.WriteAllText(System.IO.Path.Combine(dirPath, "MemoryEngine360_LastCrashError.txt"), PFXToolKitUI.Utils.ExceptionUtils.GetToString(e));
+                    StringBuilder sb = new StringBuilder(2048);
+                    sb.AppendLine(PFXToolKitUI.Utils.ExceptionUtils.GetToString(e));
+                    sb.AppendLine();
+                    sb.AppendLine("App Logs");
+                    foreach (LogEntry entry in AppLogger.Instance.Entries) {
+                        sb.AppendLine(entry.ToString());
+                    }
+                    
+                    System.IO.File.WriteAllText(System.IO.Path.Combine(dirPath, "MemoryEngine360_LastCrashError.txt"), sb.ToString());
                 }
-                catch { /* ignored */ }
+                catch { 
+                    // ignored
+                }
             }
 
             throw;
@@ -62,6 +78,10 @@ class Program {
                       UsePlatformDetect().
                       WithInterFont().
                       // We use LowLatencyDxgiSwapChain so that we can use custom title bar close/minimize/etc buttons that allow mouse hit testing
-                      With(new Win32PlatformOptions() { CompositionMode = [Win32CompositionMode.LowLatencyDxgiSwapChain], RenderingMode = [Win32RenderingMode.AngleEgl], DpiAwareness = Win32DpiAwareness.PerMonitorDpiAware}).
+                      With(new Win32PlatformOptions() {
+                          CompositionMode = [Win32CompositionMode.LowLatencyDxgiSwapChain],
+                          RenderingMode = [Win32RenderingMode.AngleEgl],
+                          DpiAwareness = Win32DpiAwareness.PerMonitorDpiAware
+                      }).
                       LogToTrace();
 }

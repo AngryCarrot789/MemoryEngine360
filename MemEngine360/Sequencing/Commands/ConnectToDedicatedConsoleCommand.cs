@@ -60,7 +60,7 @@ public class ConnectToDedicatedConsoleCommand : Command {
         
         IConsoleConnection? newConnection;
         IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(sequence.Manager?.MemoryEngine);
-        if (dialog == null || (newConnection = await dialog.WaitForClose()) == null) {
+        if (dialog == null || (newConnection = await dialog.WaitForConnection()) == null) {
             return;
         }
         

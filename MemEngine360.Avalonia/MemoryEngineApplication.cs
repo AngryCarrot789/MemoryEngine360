@@ -472,7 +472,6 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     Width = 680, Height = 630,
                     // rely on default icon for the DesktopWindowManager
                     // Icon = new WindowIcon(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)),
-                    ShowTitleBarIcon = false,
                     TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.MainView.TitleBarBackground"),
                     BorderBrush = BrushManager.Instance.GetDynamicThemeBrush("PanelBorderBrush"),
                     MainWindow = true

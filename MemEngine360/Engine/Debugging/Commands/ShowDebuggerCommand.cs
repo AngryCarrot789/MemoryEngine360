@@ -40,7 +40,7 @@ public class ShowDebuggerCommand : Command {
             IDisposable? token = null;
 
             try {
-                IConsoleConnection? connection = await dialog.WaitForClose();
+                IConsoleConnection? connection = await dialog.WaitForConnection();
                 if (connection != null) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation

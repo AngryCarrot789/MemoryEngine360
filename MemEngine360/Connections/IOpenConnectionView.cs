@@ -17,6 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI.Interactivity.Contexts;
+
 namespace MemEngine360.Connections;
 
 /// <summary>
@@ -24,9 +26,23 @@ namespace MemEngine360.Connections;
 /// </summary>
 public interface IOpenConnectionView {
     /// <summary>
+    /// Gets the data key used to access the <see cref="IOpenConnectionView"/> from context data.
+    /// </summary>
+    static readonly DataKey<IOpenConnectionView> DataKey = DataKey<IOpenConnectionView>.Create(nameof(IOpenConnectionView));
+    
+    /// <summary>
+    /// Used to check if an attempt to open a connection is actually made from a <see cref="IOpenConnectionView"/>.
+    /// <para>
+    /// If the user clicks the "Reconnect" button in the notification in the engine's window when the connection is lost,
+    /// then this key will either not be present or be false in the context data provided to <see cref="RegisteredConnectionType.OpenConnection"/>
+    /// </para>
+    /// </summary>
+    static readonly DataKey<bool> IsConnectingFromView = DataKey<bool>.Create(nameof(IOpenConnectionView) + "_IsConnectingFromView");
+    
+    /// <summary>
     /// Returns true when this window was closed by the user clicking the close button, cancel, or it closed mysteriously (e.g. app or OS shutdown)
     /// </summary>
-    bool IsClosed { get; }
+    bool IsWindowOpen { get; }
 
     /// <summary>
     /// Gets the <see cref="UserConnectionInfo"/> that was used to configure the UI to open the <see cref="IConsoleConnection"/>
@@ -47,8 +63,9 @@ public interface IOpenConnectionView {
     /// Returns a task that completes when this window closes, passing the connection as a result.
     /// Not thread safe -- must be called on main thread, awaitable anywhere of course
     /// </summary>
-    /// <returns></returns>
-    Task<IConsoleConnection?> WaitForClose();
+    /// <param name="cancellation">A cancellation token that, when cancelled, will stop the waiting operation and return a null connection</param>
+    /// <returns>A task that contains the connection that was made just before the window closed</returns>
+    Task<IConsoleConnection?> WaitForConnection(CancellationToken cancellation = default);
 
     void SetUserInfoForConnectionType(string registeredId, UserConnectionInfo info);
 }

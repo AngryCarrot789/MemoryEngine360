@@ -61,5 +61,10 @@ public abstract class UserConnectionInfo : ITransferableData {
         info.OnHidden();
     }
 
-    public static bool InternalIsShown(UserConnectionInfo info) => info.isBeingViewed;
+    /// <summary>
+    /// Gets whether the user connection info is currently being presented in the <see cref="IOpenConnectionView"/> window.
+    /// </summary>
+    /// <param name="info"></param>
+    /// <returns></returns>
+    public static bool IsShownInView(UserConnectionInfo info) => info.isBeingViewed;
 }

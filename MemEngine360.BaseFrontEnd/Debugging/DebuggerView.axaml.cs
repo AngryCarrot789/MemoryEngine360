@@ -241,7 +241,7 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
 
         DataManager.GetContextData(this).Set(ConsoleDebugger.DataKey, newValue);
 
-        if (this.Window != null && this.Window.IsOpen) {
+        if (this.Window != null && this.Window.OpenState == OpenState.Open) {
             this.PART_EventViewer.BusyLock = newValue?.BusyLock;
             this.PART_EventViewer.ConsoleConnection = newValue?.Connection;
         }
@@ -250,7 +250,7 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
     }
 
     private void OnConsoleConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldConn, IConsoleConnection? newConn) {
-        if (this.Window != null && this.Window.IsOpen)
+        if (this.Window != null && this.Window.OpenState == OpenState.Open)
             this.SetSourceForConnection(newConn);
     }
 

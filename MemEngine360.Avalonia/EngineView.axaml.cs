@@ -594,7 +594,7 @@ public partial class EngineView : UserControl {
                             using CancellationTokenSource cts = new CancellationTokenSource();
                             IConsoleConnection? connection;
                             try {
-                                connection = await type.OpenConnection(engine.LastUserConnectionInfo, cts);
+                                connection = await type.OpenConnection(engine.LastUserConnectionInfo, c.ContextData!, cts);
                             }
                             catch (Exception e) {
                                 await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());

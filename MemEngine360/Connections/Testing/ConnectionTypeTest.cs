@@ -31,11 +31,11 @@ public class ConnectionTypeTest : RegisteredConnectionType {
 
     public override bool SupportsEvents => false;
     
-    public override UserConnectionInfo? CreateConnectionInfo(IContextData context) {
+    public override UserConnectionInfo? CreateConnectionInfo() {
         return new TestConnectionInfo(this);
     }
 
-    public override Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, CancellationTokenSource cancellation) {
+    public override Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData context, CancellationTokenSource cancellation) {
         return Task.FromResult<IConsoleConnection?>(new TestConsoleConnection(((TestConnectionInfo) _info!).Mode));
     }
 }

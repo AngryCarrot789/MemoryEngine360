@@ -19,7 +19,6 @@
 
 using System.Net;
 using System.Runtime.CompilerServices;
-using MemEngine360.Engine;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -95,14 +94,18 @@ public abstract class RegisteredConnectionType {
     /// <param name="_info">
     ///     Information that the user specified in the connection dialog. Value is null when <see cref="CreateConnectionInfo"/> returns null
     /// </param>
+    /// <param name="context">
+    ///     Additional context about how someone is attempting to open a connection. For example, this might contain the
+    ///     caller window which might contain additional flags to change the behaviour of what the connect operation does
+    /// </param>
     /// <param name="cancellation">
-    /// A reference to the CTS created by the Connect to console dialog. It is cancelled when either the user clicks the cancel
-    /// button in the activity status bar (or list) or when the user closes the connect to console window
+    ///     A reference to the CTS created by the Connect to console dialog. It is cancelled when either the user clicks the cancel
+    ///     button in the activity status bar (or list) or when the user closes the connect to console window
     /// </param>
     /// <returns>
     /// The valid console connection, or null if a connection could not be made, or cancellation was requested
     /// </returns>
-    public abstract Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, CancellationTokenSource cancellation);
+    public abstract Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData context, CancellationTokenSource cancellation);
 
     /// <summary>
     /// Creates an instance of <see cref="UserConnectionInfo"/> which is used by the front end to
@@ -113,11 +116,8 @@ public abstract class RegisteredConnectionType {
     /// sakes, then return null, and no control will be created
     /// </para>
     /// </summary>
-    /// <param name="context">
-    /// The context available when the open connection window was opened. Usually contains the memory engine via its <see cref="MemoryEngine.EngineDataKey"/>
-    /// </param>
     /// <returns>The info to pass to <see cref="OpenConnection"/>, or null if a custom control is not wanted</returns>
-    public virtual UserConnectionInfo? CreateConnectionInfo(IContextData context) {
+    public virtual UserConnectionInfo? CreateConnectionInfo() {
         return null;
     }
 

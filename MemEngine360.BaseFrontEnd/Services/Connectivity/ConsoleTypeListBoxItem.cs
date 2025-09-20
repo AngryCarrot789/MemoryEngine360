@@ -25,7 +25,6 @@ using PFXToolKitUI.Avalonia.AvControls;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.ToolTips;
 using PFXToolKitUI.Avalonia.Utils;
-using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
@@ -43,8 +42,6 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
 
     public RegisteredConnectionType RegisteredConsoleType { get; }
 
-    internal IContextData? ContextData { get; set; }
-
     public UserConnectionInfo? UserConnectionInfo { get; private set; }
 
     [Unstable("Throws. Use the other CTOR")]
@@ -53,10 +50,9 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
             throw new InvalidOperationException("Use the other constructor");
     }
 
-    public ConsoleTypeListBoxItem(RegisteredConnectionType type, IContextData context) {
-        this.ContextData = context;
+    public ConsoleTypeListBoxItem(RegisteredConnectionType type) {
         this.RegisteredConsoleType = type;
-        this.UserConnectionInfo = type.CreateConnectionInfo(this.ContextData ?? EmptyContext.Instance);
+        this.UserConnectionInfo = type.CreateConnectionInfo();
 
         this.iconBinder.AttachModel(type);
         this.displayNameBinder.AttachModel(type);

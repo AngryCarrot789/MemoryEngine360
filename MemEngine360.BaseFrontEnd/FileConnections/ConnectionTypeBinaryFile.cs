@@ -44,11 +44,11 @@ public class ConnectionTypeBinaryFile : RegisteredConnectionType {
         yield break;
     }
 
-    public override UserConnectionInfo? CreateConnectionInfo(IContextData context) {
+    public override UserConnectionInfo? CreateConnectionInfo() {
         return new OpenBinaryFileInfo();
     }
 
-    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, CancellationTokenSource cancellation) {
+    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData context, CancellationTokenSource cancellation) {
         OpenBinaryFileInfo info = (OpenBinaryFileInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.FilePath) || !File.Exists(info.FilePath)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid file", "File does not exist");

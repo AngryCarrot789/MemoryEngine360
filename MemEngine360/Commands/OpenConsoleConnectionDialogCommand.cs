@@ -41,7 +41,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (this.myDialog != null && !this.myDialog.IsClosed) {
+        if (this.myDialog != null && this.myDialog.IsWindowOpen) {
             this.myDialog.Activate();
             return;
         }
@@ -73,7 +73,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
 
             IDisposable? token = null;
             try {
-                IConsoleConnection? connection = await this.myDialog.WaitForClose();
+                IConsoleConnection? connection = await this.myDialog.WaitForConnection();
                 if (connection != null) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation

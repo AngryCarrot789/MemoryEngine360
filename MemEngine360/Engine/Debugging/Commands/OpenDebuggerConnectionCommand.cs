@@ -32,7 +32,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
     private IOpenConnectionView? myDialog;
 
     protected override async Task ExecuteCommandAsync(ConsoleDebugger debugger, CommandEventArgs e) {
-        if (this.myDialog != null && !this.myDialog.IsClosed) {
+        if (this.myDialog != null && this.myDialog.IsWindowOpen) {
             this.myDialog.Activate();
             return;
         }
@@ -51,7 +51,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
         this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(debugger.Engine);
         if (this.myDialog != null) {
             try {
-                IConsoleConnection? connection = await this.myDialog.WaitForClose();
+                IConsoleConnection? connection = await this.myDialog.WaitForConnection();
                 if (connection != null) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation

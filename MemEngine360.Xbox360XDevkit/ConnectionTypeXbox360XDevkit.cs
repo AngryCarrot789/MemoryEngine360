@@ -55,11 +55,11 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
         yield return new CommandContextEntry("commands.memengine.remote.DebugUnfreezeCommand", "Debug Un-freeze");
     }
 
-    public override UserConnectionInfo? CreateConnectionInfo(IContextData context) {
+    public override UserConnectionInfo? CreateConnectionInfo() {
         return new ConnectToXboxInfo();
     }
 
-    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, CancellationTokenSource cancellation) {
+    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData context, CancellationTokenSource cancellation) {
         ConnectToXboxInfo info = (ConnectToXboxInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.IpAddress)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid address", "Address cannot be an empty string");
