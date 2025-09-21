@@ -502,11 +502,11 @@ public class MemoryEngine : IComponentManager {
             }
         }
 
-        ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+        ApplicationPFX.Instance.Dispatcher.Post(() => {
             using IDisposable? token2 = this.TryBeginBusyOperation();
             if (token2 != null)
                 this.TryDisconnectForLostConnection(token2, likelyCause);
-        }, DispatchPriority.Background);
+        });
     }
 
     private void OnConnectionClosed(IConsoleConnection sender) {

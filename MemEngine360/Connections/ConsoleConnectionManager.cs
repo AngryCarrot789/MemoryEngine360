@@ -18,7 +18,6 @@
 // 
 
 using System.Diagnostics.CodeAnalysis;
-using MemEngine360.Engine;
 
 namespace MemEngine360.Connections;
 
@@ -75,10 +74,9 @@ public abstract class ConsoleConnectionManager {
     /// <summary>
     /// Opens a new window for  application's main dialog for connecting to a console
     /// </summary>
-    /// <param name="engine">The engine, if available</param>
     /// <param name="focusedTypeId">
     ///     The ID of the console type to focus on by default. When null, defaults to the first registered console type
     /// </param>
     /// <returns>The dialog, or null, if there's no windowing system</returns>
-    public abstract Task<IOpenConnectionView?> ShowOpenConnectionView(MemoryEngine? engine, string? focusedTypeId = "console.xbox360.xbdm-coreimpl");
+    public abstract Task<IOpenConnectionView?> ShowOpenConnectionView(string? focusedTypeId = "console.xbox360.xbdm-coreimpl");
 }

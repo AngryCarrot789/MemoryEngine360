@@ -267,9 +267,9 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
             if (restartAutoRefresh)
                 this.RestartAutoRefresh();
 
-            ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+            ApplicationPFX.Instance.Dispatcher.Post(() => {
                 this.PART_HexEditor.HexView.BringIntoView(this.PART_HexEditor.Caret.Location);
-            }, DispatchPriority.Default);
+            });
         }
     }
 

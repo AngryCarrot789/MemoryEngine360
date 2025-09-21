@@ -33,11 +33,6 @@ namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
     private IConsoleConnection? closedConnection;
 
-    public MemoryEngine? MemoryEngine {
-        get => this.PART_ConnectToConsoleView.MemoryEngine;
-        internal set => this.PART_ConnectToConsoleView.MemoryEngine = value;
-    }
-
     public string? TypeToFocusOnOpened {
         get => this.PART_ConnectToConsoleView.TypeToFocusOnOpened;
         internal set => this.PART_ConnectToConsoleView.TypeToFocusOnOpened = value;

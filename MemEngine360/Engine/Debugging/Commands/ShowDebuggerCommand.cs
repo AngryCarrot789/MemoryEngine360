@@ -20,6 +20,8 @@
 using MemEngine360.Connections;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
 
 namespace MemEngine360.Engine.Debugging.Commands;
 
@@ -29,29 +31,37 @@ public class ShowDebuggerCommand : Command {
             return;
 
         ConsoleDebugger debugger = engine.ConsoleDebugger;
+
         IDebuggerViewService service = ApplicationPFX.GetComponent<IDebuggerViewService>();
-        await service.ShowDebugger(debugger);
+        ITopLevel? topLevel = await service.ShowDebugger(debugger);
+        if (topLevel == null) {
+            return; // could not create window for some reason
+        }
+
         if (debugger.Connection == null) {
-            IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(debugger.Engine);
-            if (dialog == null) {
-                return;
-            }
+            // Run as command action to push the debugger view as the primary contextual top level
+            await CommandManager.Instance.RunActionAsync(async ex => {
+                IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView();
+                if (dialog == null) {
+                    return;
+                }
 
-            IDisposable? token = null;
+                IDisposable? token = null;
 
-            try {
-                IConsoleConnection? connection = await dialog.WaitForConnection();
-                if (connection != null) {
-                    // When returned token is null, close the connection since we can't
-                    // do anything else with the connection since the user cancelled the operation
-                    if (!await OpenDebuggerConnectionCommand.TrySetConnectionAndHandleProblems(debugger, connection)) {
-                        connection.Close();
+                try {
+                    IConsoleConnection? connection = await dialog.WaitForConnection();
+                    if (connection != null) {
+                        // When returned token is null, close the connection since we can't
+                        // do anything else with the connection since the user cancelled the operation
+                        if (!await OpenDebuggerConnectionCommand.TrySetConnectionAndHandleProblems(debugger, connection)) {
+                            connection.Close();
+                        }
                     }
                 }
-            }
-            finally {
-                token?.Dispose();
-            }
+                finally {
+                    token?.Dispose();
+                }
+            }, new ContextData().Set(ITopLevel.TopLevelDataKey, topLevel));
         }
 
         await debugger.UpdateAllThreads(CancellationToken.None);

@@ -478,11 +478,11 @@ public class ConsoleDebugger {
                 }
             }
 
-            ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+            ApplicationPFX.Instance.Dispatcher.Post(() => {
                 using IDisposable? token2 = this.BusyLock.TryBeginBusyOperation();
                 if (token2 != null)
                     this.TryDisconnectForLostConnection(token2);
-            }, DispatchPriority.Background);
+            });
         }
     }
 
@@ -524,7 +524,7 @@ public class ConsoleDebugger {
 
     private void OnHandleThreadEvent(ConsoleSystemEventArgs e, XbdmEventArgsThreadLife threadEvent) {
         bool isCreated = e is XbdmEventArgsCreateThread;
-        ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+        ApplicationPFX.Instance.Dispatcher.Post(async () => {
             if (isCreated) {
                 using IDisposable? token = await this.busyLocker.BeginBusyOperationActivityAsync("Read Info on Newly Created Thread");
                 if (token == null)
@@ -588,10 +588,10 @@ public class ConsoleDebugger {
             default: throw new ArgumentOutOfRangeException();
         }
 
-        ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+        ApplicationPFX.Instance.Dispatcher.Post(() => {
             this.ConsoleExecutionState = stateName;
             this.IsConsoleRunning = newRunState;
-        }, DispatchPriority.Background);
+        });
     }
 
     private void OnHandleStateChange(XbdmEventArgsExecutionState stateChanged) {

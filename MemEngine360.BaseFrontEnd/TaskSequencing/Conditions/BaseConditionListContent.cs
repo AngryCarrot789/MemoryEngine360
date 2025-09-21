@@ -88,7 +88,7 @@ public abstract class BaseConditionListContent : UserControl {
     }
 
     private void OnIsCurrentMetChanged(BaseSequenceCondition sender) {
-        ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.TransitionToMetState(sender.IsCurrentlyMet, false));
+        ApplicationPFX.Instance.Dispatcher.Post(() => this.TransitionToMetState(sender.IsCurrentlyMet, false));
     }
 
     private void UpdateOpacity() {

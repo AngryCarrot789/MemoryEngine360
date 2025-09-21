@@ -48,11 +48,6 @@ public partial class OpenConnectionView : UserControl {
     internal bool isConnecting, isClosingWindow;
     private ConsoleTypeListBoxItem? myCurrentSelection;
     
-    /// <summary>
-    /// Gets or sets the memory engine reference, if necessary
-    /// </summary>
-    public MemoryEngine? MemoryEngine { get; internal set; }
-    
     public string? TypeToFocusOnOpened { get; internal set; }
 
     public IWindow? Window { get; private set; }

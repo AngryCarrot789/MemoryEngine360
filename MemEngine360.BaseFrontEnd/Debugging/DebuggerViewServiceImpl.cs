@@ -1,6 +1,8 @@
 ﻿using MemEngine360.Engine.Debugging;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Themes;
 using SkiaSharp;
 
@@ -26,28 +28,32 @@ public class DebuggerViewServiceImpl : IDebuggerViewService {
     //     return Task.CompletedTask;
     // }
 
-    public Task ShowDebugger(ConsoleDebugger debugger) {
-        if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
-            DebuggerView control = new DebuggerView() {
-                ConsoleDebugger = debugger
-            };
-
-            IWindow window = manager.CreateWindow(new WindowBuilder() {
-                Title = "Console Debugger",
-                FocusPath = "DebuggerWindow",
-                Content = control,
-                TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone4.Background.Static"),
-                BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
-                MinWidth = 400, MinHeight = 400,
-                Width = 1280, Height = 720
-            });
-
-            window.WindowOpened += (sender, args) => ((DebuggerView) sender.Content!).OnWindowOpened(sender);
-            window.WindowClosingAsync += (sender, args) => ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => ((DebuggerView) sender.Content!).OnClosingAsync(args.Reason)).Unwrap();
-            window.WindowClosed += (sender, args) => ((DebuggerView) sender.Content!).OnWindowClosed();
-            return window.ShowAsync();
+    public async Task<ITopLevel?> ShowDebugger(ConsoleDebugger debugger) {
+        if (!WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out _)) {
+            if (!IWindowManager.TryGetInstance(out manager)) {
+                return null;
+            }
         }
 
-        return Task.CompletedTask;
+        DebuggerView control = new DebuggerView() {
+            ConsoleDebugger = debugger
+        };
+
+        IWindow window = manager.CreateWindow(new WindowBuilder() {
+            Title = "Console Debugger",
+            FocusPath = "DebuggerWindow",
+            Content = control,
+            TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone4.Background.Static"),
+            BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
+            MinWidth = 400, MinHeight = 400,
+            Width = 1280, Height = 720
+        });
+
+        window.WindowOpened += (sender, args) => ((DebuggerView) sender.Content!).OnWindowOpened(sender);
+        window.WindowClosingAsync += (sender, args) => ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => ((DebuggerView) sender.Content!).OnClosingAsync(args.Reason)).Unwrap();
+        window.WindowClosed += (sender, args) => ((DebuggerView) sender.Content!).OnWindowClosed();
+        await window.ShowAsync();
+
+        return window;
     }
 }

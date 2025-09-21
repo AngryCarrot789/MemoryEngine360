@@ -168,7 +168,7 @@ public partial class PointerScannerView : UserControl {
     }
 
     private void OnUpdateStartStopCommands(PointerScanner _) {
-        ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => ((AsyncRelayCommand) this.PART_StopScan.Command!).RaiseCanExecuteChanged(), DispatchPriority.Default);
-        ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => ((AsyncRelayCommand) this.PART_RunScan.Command!).RaiseCanExecuteChanged(), DispatchPriority.Default);
+        ApplicationPFX.Instance.Dispatcher.Post(() => ((AsyncRelayCommand) this.PART_StopScan.Command!).RaiseCanExecuteChanged());
+        ApplicationPFX.Instance.Dispatcher.Post(() => ((AsyncRelayCommand) this.PART_RunScan.Command!).RaiseCanExecuteChanged());
     }
 }

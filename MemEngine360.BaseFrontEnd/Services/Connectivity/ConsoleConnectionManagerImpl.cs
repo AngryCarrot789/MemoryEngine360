@@ -18,35 +18,36 @@
 // 
 
 using MemEngine360.Connections;
-using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Themes;
 using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
-    public override async Task<IOpenConnectionView?> ShowOpenConnectionView(MemoryEngine? engine, string? focusedTypeId = "console.xbox360.xbdm-coreimpl") {
-        if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
-            OpenConnectionViewEx view = new OpenConnectionViewEx() {
-                MemoryEngine = engine, TypeToFocusOnOpened = focusedTypeId
-            };
-            
-            IWindow window = manager.CreateWindow(new WindowBuilder() {
-                Title = "Connect to a console",
-                Content = view,
-                TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone6.Background.Static"),
-                BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
-                MinWidth = 600, MinHeight = 350,
-                Width = 700, Height = 450
-            });
-
-            window.WindowOpened += (sender, args) => ((OpenConnectionViewEx) sender.Content!).OnWindowOpened(sender);
-            window.WindowClosed += (sender, args) => ((OpenConnectionViewEx) sender.Content!).OnWindowClosed();
-            await window.ShowAsync();
-            return view;
+    public override async Task<IOpenConnectionView?> ShowOpenConnectionView(string? focusedTypeId = "console.xbox360.xbdm-coreimpl") {
+        if (!WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IWindow? parentWindow)) {
+            return null;
         }
-        
-        return null;
+
+        OpenConnectionViewEx view = new OpenConnectionViewEx() {
+            TypeToFocusOnOpened = focusedTypeId
+        };
+
+        IWindow window = manager.CreateWindow(new WindowBuilder() {
+            Title = "Connect to a console",
+            Content = view,
+            TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone6.Background.Static"),
+            BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
+            MinWidth = 600, MinHeight = 350,
+            Width = 700, Height = 450,
+            Parent = parentWindow
+        });
+
+        window.WindowOpened += (sender, args) => ((OpenConnectionViewEx) sender.Content!).OnWindowOpened(sender);
+        window.WindowClosed += (sender, args) => ((OpenConnectionViewEx) sender.Content!).OnWindowClosed();
+        await window.ShowAsync();
+        return view;
     }
 }

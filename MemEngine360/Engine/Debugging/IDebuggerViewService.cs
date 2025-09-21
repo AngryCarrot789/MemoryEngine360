@@ -17,8 +17,15 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI.Interactivity.Windowing;
+
 namespace MemEngine360.Engine.Debugging;
 
 public interface IDebuggerViewService {
-    Task ShowDebugger(ConsoleDebugger debugger);
+    /// <summary>
+    /// Shows a debugger view
+    /// </summary>
+    /// <param name="debugger"></param>
+    /// <returns></returns>
+    Task<ITopLevel?> ShowDebugger(ConsoleDebugger debugger);
 }
