@@ -410,6 +410,7 @@ public class PointerScanner {
     }
 
     private void AddPointerResult(DynamicAddress result) {
+        // Using Invoke is ok because we are not on the main thread
         ApplicationPFX.Instance.Dispatcher.Invoke(() => this.PointerChain.Add(result));
     }
 

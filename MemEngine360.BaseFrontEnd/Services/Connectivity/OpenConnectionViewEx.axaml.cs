@@ -20,7 +20,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using MemEngine360.Connections;
-using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
