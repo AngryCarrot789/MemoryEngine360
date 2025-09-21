@@ -23,9 +23,9 @@ namespace MemEngine360.Engine.Debugging;
 
 public interface IDebuggerViewService {
     /// <summary>
-    /// Shows a debugger view
+    /// Shows or focuses the debugger
     /// </summary>
     /// <param name="debugger"></param>
     /// <returns></returns>
-    Task<ITopLevel?> ShowDebugger(ConsoleDebugger debugger);
+    Task<ITopLevel?> OpenOrFocusWindow(ConsoleDebugger debugger);
 }

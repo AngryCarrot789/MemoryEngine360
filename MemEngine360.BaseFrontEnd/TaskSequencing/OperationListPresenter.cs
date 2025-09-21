@@ -28,13 +28,13 @@ using PFXToolKitUI.Interactivity.Selections;
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public class OperationListPresenter {
-    private readonly TaskSequencerWindow window;
+    private readonly TaskSequencerView window;
     private readonly IBinder<TaskSequence> selectedSequenceDisplayNameBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.DisplayNameChanged), (b) => ((TextBlock) b.Control).Text = b.Model.DisplayName);
     private SelectionModelBinder<BaseSequenceOperation>? operationSelectionHandler; 
 
     private TaskSequence? myPrimarySequence;
 
-    public OperationListPresenter(TaskSequencerWindow window) {
+    public OperationListPresenter(TaskSequencerView window) {
         this.window = window;
         this.window.WindowOpened += this.OnWindowOpened;
         this.window.WindowClosed += this.OnWindowClosed;

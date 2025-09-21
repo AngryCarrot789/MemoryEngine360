@@ -17,40 +17,50 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using MemEngine360.Engine;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Themes;
 using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public class TaskSequencerServiceImpl : ITaskSequencerService {
-    private IWindow? currentWindow;
+    private static readonly DataKey<IWindow> OpenedWindowKey = DataKey<IWindow>.Create(nameof(ITaskSequencerService) + "_OpenedSequencerWindow");
 
     public Task OpenOrFocusWindow(MemoryEngine engine) {
-        if (this.currentWindow != null) {
-            this.currentWindow.Activate();
+        if (OpenedWindowKey.TryGetContext(engine.UserData, out IWindow? sequencerWindow)) {
+            Debug.Assert(sequencerWindow.OpenState == OpenState.Open || sequencerWindow.OpenState == OpenState.TryingToClose);
+            
+            sequencerWindow.Activate();
             return Task.CompletedTask;
         }
 
         if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
-            IWindow window = this.currentWindow = manager.CreateWindow(new WindowBuilder() {
+            IWindow window = manager.CreateWindow(new WindowBuilder() {
                 Title = "Task Sequencer",
                 FocusPath = "SequencerWindow",
-                Content = new TaskSequencerWindow(engine.TaskSequenceManager),
+                Content = new TaskSequencerView(engine.TaskSequenceManager),
                 TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.Sequencer.TitleBarBackground"),
                 BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
                 MinWidth = 640, MinHeight = 400,
                 Width = 960, Height = 640
             });
 
-            window.WindowOpened += (sender, args) => ((TaskSequencerWindow) sender.Content!).OnWindowOpened(sender);
-            window.WindowClosed += (sender, args) => {
-                ((TaskSequencerWindow) sender.Content!).OnWindowClosed();
-                this.currentWindow = null;
+            window.WindowOpened += (sender, args) => ((TaskSequencerView) sender.Content!).OnWindowOpened(sender);
+            window.WindowClosing += (sender, args) => {
+                // prevent memory leak
+                TaskSequenceManager tsm = ((TaskSequencerView) sender.Content!).TaskSequenceManager;
+                tsm.MemoryEngine.UserData.Set(OpenedWindowKey, null);
             };
             
+            window.WindowClosed += (sender, args) => {
+                ((TaskSequencerView) sender.Content!).OnWindowClosed();
+            };
+            
+            engine.UserData.Set(OpenedWindowKey, window);
             return window.ShowAsync();
         }
 

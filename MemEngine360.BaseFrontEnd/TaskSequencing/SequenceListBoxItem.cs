@@ -80,7 +80,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e) {
-        if (this.ListBox?.GetVisualRoot() is TaskSequencerWindow window) {
+        if (this.ListBox?.GetVisualRoot() is TaskSequencerView window) {
             PointerPointProperties pointer = e.GetCurrentPoint(this).Properties;
             if (pointer.PointerUpdateKind == PointerUpdateKind.RightButtonPressed) {
                 if (!this.IsSelected) {

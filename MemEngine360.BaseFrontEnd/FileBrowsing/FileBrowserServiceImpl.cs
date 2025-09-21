@@ -17,39 +17,49 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using MemEngine360.Engine.FileBrowsing;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Themes;
 using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.FileBrowsing;
 
 public class FileBrowserServiceImpl : IFileBrowserService {
-    private IWindow? currentWindow;
+    private static readonly DataKey<IWindow> OpenedWindowKey = DataKey<IWindow>.Create(nameof(IFileBrowserService) + "_OpenedFileExplorerWindow");
 
     public Task ShowFileBrowser(FileTreeExplorer explorer) {
-        if (this.currentWindow != null) {
-            this.currentWindow.Activate();
+        if (OpenedWindowKey.TryGetContext(explorer.MemoryEngine.UserData, out IWindow? debuggerWindow)) {
+            Debug.Assert(debuggerWindow.OpenState == OpenState.Open || debuggerWindow.OpenState == OpenState.TryingToClose);
+            
+            debuggerWindow.Activate();
+            return Task.CompletedTask;
+        }
+        
+        if (!WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out _)) {
             return Task.CompletedTask;
         }
 
-        if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
-            FileTreeExplorerView control = new FileTreeExplorerView() {
-                PART_FileBrowser = { FileTreeManager = explorer }
-            };
+        FileTreeExplorerView control = new FileTreeExplorerView() {
+            PART_FileBrowser = { FileTreeManager = explorer }
+        };
 
-            this.currentWindow = manager.CreateWindow(new WindowBuilder() {
-                Title = "File Browser",
-                Content = control,
-                TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone4.Background.Static"),
-                BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
-                Width = 1024, Height = 768
-            });
+        IWindow window = manager.CreateWindow(new WindowBuilder() {
+            Title = "File Browser",
+            Content = control,
+            TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone4.Background.Static"),
+            BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
+            Width = 1024, Height = 768
+        });
 
-            this.currentWindow.WindowClosed += (sender, args) => this.currentWindow = null;
-            return this.currentWindow.ShowAsync();
-        }
-
-        return Task.CompletedTask;
+        window.WindowClosing += (sender, args) => {
+            FileTreeExplorer exp = ((FileTreeExplorerView) sender.Content!).FileTreeExplorer;
+            exp.MemoryEngine.UserData.Set(OpenedWindowKey, null);
+        };
+        
+        explorer.MemoryEngine.UserData.Set(OpenedWindowKey, window);
+        return window.ShowAsync();
     }
 }

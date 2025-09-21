@@ -37,7 +37,7 @@ using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
-public partial class TaskSequencerWindow : UserControl {
+public partial class TaskSequencerView : UserControl {
     private readonly IBinder<TaskSequence> useDedicatedConnectionBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.UseEngineConnectionChanged), (b) => ((CheckBox) b.Control).IsChecked = !b.Model.UseEngineConnection);
 
     private readonly IBinder<TaskSequence> currentConnectionTypeBinder = new MultiEventUpdateBinder<TaskSequence>([nameof(TaskSequence.UseEngineConnectionChanged), nameof(TaskSequence.DedicatedConnectionChanged)], (b) => {
@@ -53,21 +53,21 @@ public partial class TaskSequencerWindow : UserControl {
     public TaskSequenceManagerViewState State { get; }
 
     public IWindow? Window { get; private set; }
+    
+    public TaskSequenceManager TaskSequenceManager { get; }
 
     private readonly ConditionSourcePresenter conditionSourcePresenter;
     private readonly OperationListPresenter operationListPresenter;
-    private readonly TaskSequenceManager manager;
-
     private SelectionModelBinder<TaskSequence>? taskSequenceSelectionHandler;
 
     public event EventHandler? WindowOpened, WindowClosed;
 
-    public TaskSequencerWindow() : this(new TaskSequenceManager(new MemoryEngine())) {
+    public TaskSequencerView() : this(new TaskSequenceManager(new MemoryEngine())) {
     }
 
-    public TaskSequencerWindow(TaskSequenceManager manager) {
+    public TaskSequencerView(TaskSequenceManager manager) {
         this.InitializeComponent();
-        this.manager = manager;
+        this.TaskSequenceManager = manager;
         this.State = TaskSequenceManagerViewState.GetInstance(manager);
         this.PART_UseDedicatedConnection.Command = new RelayCommand(this.OnToggleUseDedicatedConnection, () => {
             TaskSequence? seqUI = this.State.PrimarySelectedSequence;
@@ -185,28 +185,28 @@ public partial class TaskSequencerWindow : UserControl {
 
     internal void OnWindowOpened(IWindow sender) {
         this.Window = sender;
-        DataManager.GetContextData(this).Set(TaskSequenceManager.DataKey, this.manager);
+        DataManager.GetContextData(this).Set(TaskSequenceManager.DataKey, this.TaskSequenceManager);
 
-        this.PART_SequenceListBox.TaskSequencerManager = this.manager;
+        this.PART_SequenceListBox.TaskSequencerManager = this.TaskSequenceManager;
         this.taskSequenceSelectionHandler = new SelectionModelBinder<TaskSequence>(this.PART_SequenceListBox.Selection, this.State.SelectedSequences);
 
-        this.manager.MemoryEngine.ConnectionChanged += this.OnEngineConnectionChanged;
+        this.TaskSequenceManager.MemoryEngine.ConnectionChanged += this.OnEngineConnectionChanged;
         this.State.PrimarySelectedSequenceChanged += this.OnPrimarySelectedSequenceChanged;
 
         if (this.State.PrimarySelectedSequence != null) {
             this.OnPrimarySequenceChanged(null, this.State.PrimarySelectedSequence);
         }
 
-        if (this.State.SelectedSequences.Count < 1 && this.manager.Sequences.Count > 0) {
-            this.State.SelectedSequences.SelectItem(this.manager.Sequences[0]);
+        if (this.State.SelectedSequences.Count < 1 && this.TaskSequenceManager.Sequences.Count > 0) {
+            this.State.SelectedSequences.SelectItem(this.TaskSequenceManager.Sequences[0]);
         }
-        
+
         this.WindowOpened?.Invoke(this, EventArgs.Empty);
     }
 
     internal void OnWindowClosed() {
         this.WindowClosed?.Invoke(this, EventArgs.Empty);
-        
+
         DataManager.GetContextData(this).Set(TaskSequenceManager.DataKey, null);
         this.taskSequenceSelectionHandler!.Dispose();
         this.PART_SequenceListBox.TaskSequencerManager = null;
@@ -216,7 +216,7 @@ public partial class TaskSequencerWindow : UserControl {
             this.OnPrimarySequenceChanged(this.State.PrimarySelectedSequence, null);
         }
 
-        this.manager.MemoryEngine.ConnectionChanged -= this.OnEngineConnectionChanged;
+        this.TaskSequenceManager.MemoryEngine.ConnectionChanged -= this.OnEngineConnectionChanged;
         this.Window = null;
     }
 }

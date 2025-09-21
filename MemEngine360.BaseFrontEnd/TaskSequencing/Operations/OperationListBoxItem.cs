@@ -64,7 +64,7 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
 
             base.OnPointerPressed(e);
 
-            if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed && this.ListBox.GetVisualRoot() is TaskSequencerWindow window) {
+            if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed && this.ListBox.GetVisualRoot() is TaskSequencerView window) {
                 // The condition source may currently be a task sequence. But since this operation was clicked
                 // and is already selected, a selection change won't be processed and the source won't get updated.
                 // So, we do it manually here

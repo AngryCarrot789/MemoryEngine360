@@ -27,12 +27,12 @@ using PFXToolKitUI.Interactivity.Selections;
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public class ConditionSourcePresenter {
-    private readonly TaskSequencerWindow window;
+    private readonly TaskSequencerView window;
     private TaskSequence? sourceSequence;
     private BaseSequenceOperation? sourceOperation;
     private SelectionModelBinder<BaseSequenceCondition>? conditionSelectionHandler;
 
-    public ConditionSourcePresenter(TaskSequencerWindow window) {
+    public ConditionSourcePresenter(TaskSequencerView window) {
         this.window = window;
         this.window.WindowClosed += this.WindowOnClosed;
         this.window.State.ConditionHostChanged += this.OnConditionHostChanged;

@@ -27,15 +27,15 @@ namespace MemEngine360.Engine.Debugging.Commands;
 
 public class ShowDebuggerCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine))
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return;
-
+        }
+        
         ConsoleDebugger debugger = engine.ConsoleDebugger;
-
         IDebuggerViewService service = ApplicationPFX.GetComponent<IDebuggerViewService>();
-        ITopLevel? topLevel = await service.ShowDebugger(debugger);
+        ITopLevel? topLevel = await service.OpenOrFocusWindow(debugger);
         if (topLevel == null) {
-            return; // could not create window for some reason
+            return; // could not find or create window for some reason
         }
 
         if (debugger.Connection == null) {
