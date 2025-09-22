@@ -19,6 +19,7 @@
 
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.AdvancedMenuService;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.Sequencing.Contexts;
 
@@ -34,8 +35,9 @@ public static class ConditionsContextRegistry {
         actions.AddCommand("commands.sequencer.ToggleConditionEnabledCommand", "Toggle Enabled").AddSimpleContextUpdate(TaskSequenceManager.DataKey, (e, ui) => {
             if (ui != null) {
                 TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
-                if (state.SelectedConditions != null && state.SelectedConditions.Count == 1) {
-                    e.DisplayName = state.SelectedConditions[0].IsEnabled ? "Disable" : "Enable";
+                ListSelectionModel<BaseSequenceCondition>? selection = state.SelectedConditionsFromHost;
+                if (selection != null && selection.Count == 1) {
+                    e.DisplayName = selection[0].IsEnabled ? "Disable" : "Enable";
                     return;
                 }
             }

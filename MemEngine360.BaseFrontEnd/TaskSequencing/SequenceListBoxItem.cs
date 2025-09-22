@@ -17,10 +17,10 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
-using Avalonia.VisualTree;
 using MemEngine360.Engine;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Contexts;
@@ -31,6 +31,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
@@ -80,11 +81,12 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e) {
-        if (this.ListBox?.GetVisualRoot() is TaskSequencerView window) {
+        TaskSequencerView? view = VisualTreeUtils.FindLogicalParent<TaskSequencerView>(this.ListBox);
+        if (view != null) {
             PointerPointProperties pointer = e.GetCurrentPoint(this).Properties;
             if (pointer.PointerUpdateKind == PointerUpdateKind.RightButtonPressed) {
                 if (!this.IsSelected) {
-                    this.ListBox.UnselectAll();
+                    this.ListBox!.UnselectAll();
                     this.IsSelected = true;
                 }
 
@@ -93,8 +95,10 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
 
             base.OnPointerPressed(e);
             if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed) {
-                if (window.State.SelectedSequences.Count == 1 && this.IsSelected) {
-                    window.State.ConditionHost = this.Model!;
+                ListSelectionModel<TaskSequence> selection = view.State.SelectedSequences;
+                if (selection.Count == 1 && selection.IsItemSelected(this.Model!) == true) {
+                    Debug.Assert(this.IsSelected);
+                    view.State.ConditionHost = this.Model!;
                 }
             }
         }

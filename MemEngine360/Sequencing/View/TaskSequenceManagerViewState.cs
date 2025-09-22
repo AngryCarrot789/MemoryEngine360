@@ -46,14 +46,22 @@ public sealed class TaskSequenceManagerViewState {
     public ListSelectionModel<TaskSequence> SelectedSequences { get; }
 
     /// <summary>
-    /// Gets the list of selected operations. This changes after <see cref="PrimarySelectedSequence"/> changes. This property is for convenience
+    /// Gets the selected operations from <see cref="PrimarySelectedSequence"/>. This is a convenience property
     /// </summary>
     public ListSelectionModel<BaseSequenceOperation>? SelectedOperations => this.PrimarySelectedSequence != null ? TaskSequenceViewState.GetInstance(this.PrimarySelectedSequence).SelectedOperations : null;
 
     /// <summary>
-    /// Gets the list of selected operations. This changes after <see cref="PrimarySelectedSequence"/> changes. This property is for convenience
+    /// Gets the selected conditions based on the <see cref="ConditionHost"/>. This is a convenience property
     /// </summary>
-    public ListSelectionModel<BaseSequenceCondition>? SelectedConditions => this.PrimarySelectedSequence != null ? TaskSequenceViewState.GetInstance(this.PrimarySelectedSequence).SelectedConditions : null;
+    public ListSelectionModel<BaseSequenceCondition>? SelectedConditionsFromHost {
+        get {
+            switch (this.conditionHost) {
+                case TaskSequence sequence:    return TaskSequenceViewState.GetInstance(sequence).SelectedConditions;
+                case BaseSequenceOperation op: return SequenceOperationViewState.GetInstance(op).SelectedConditions;
+                default:                       return null;
+            }
+        }
+    }
 
     /// <summary>
     /// Gets or sets the primary sequence, that is, the sequence whose operations are being presented

@@ -22,7 +22,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
-using Avalonia.VisualTree;
 using MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Contexts;
@@ -64,14 +63,17 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
 
             base.OnPointerPressed(e);
 
-            if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed && this.ListBox.GetVisualRoot() is TaskSequencerView window) {
-                // The condition source may currently be a task sequence. But since this operation was clicked
-                // and is already selected, a selection change won't be processed and the source won't get updated.
-                // So, we do it manually here
-                ListSelectionModel<BaseSequenceOperation>? selection = window.State.SelectedOperations;
-                if (selection != null && selection.Count == 1 && selection.IsItemSelected(this.Model!) == true) {
-                    Debug.Assert(this.IsSelected);
-                    window.State.ConditionHost = this.Model!;
+            if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed) {
+                TaskSequencerView? view = VisualTreeUtils.FindLogicalParent<TaskSequencerView>(this.ListBox);
+                if (view != null) {
+                    // The condition source may currently be a task sequence. But since this operation was clicked
+                    // and is already selected, a selection change won't be processed and the source won't get updated.
+                    // So, we do it manually here
+                    ListSelectionModel<BaseSequenceOperation>? selection = view.State.SelectedOperations;
+                    if (selection != null && selection.Count == 1 && selection.IsItemSelected(this.Model!) == true) {
+                        Debug.Assert(this.IsSelected);
+                        view.State.ConditionHost = this.Model!;
+                    }
                 }
             }
         }

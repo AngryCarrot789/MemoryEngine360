@@ -17,6 +17,10 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+#if DEBUG
+#define TRACK_TOKEN_CREATION_STACK_TRACE
+#endif
+
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using PFXToolKitUI.Tasks;
@@ -188,7 +192,7 @@ public sealed class BusyLock {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 return this.BeginBusyOperationAsync(task.CancellationToken);
             }, progress, cts);
-            
+
             token = result.GetValueOrDefault();
             if (cancellationTokenSource == null) {
                 cts.Dispose();
@@ -351,9 +355,10 @@ public sealed class BusyLock {
 
     private class BusyToken : IDisposable {
         public volatile BusyLock? myLock;
-#if DEBUG
+        
+#if TRACK_TOKEN_CREATION_STACK_TRACE
         // debugging stack trace, just in case the app locks up then the source is likely in here
-        public readonly string? creationTrace;
+        public string? creationTrace;
         public string? disposalTrace;
 #endif
 
@@ -361,7 +366,8 @@ public sealed class BusyLock {
             Debug.Assert(theLock.activeToken == null, "Active token already non-null");
             this.myLock = theLock;
             theLock.OnTokenCreatedUnderLock();
-#if DEBUG
+            
+#if TRACK_TOKEN_CREATION_STACK_TRACE
             this.creationTrace = new StackTrace(true).ToString();
 #endif
         }
@@ -373,7 +379,7 @@ public sealed class BusyLock {
                 return; // already disposed...
             }
 
-#if DEBUG
+#if TRACK_TOKEN_CREATION_STACK_TRACE
             string? oldDisposalTrace = this.disposalTrace;
             this.disposalTrace = new StackTrace(true).ToString();
 #endif

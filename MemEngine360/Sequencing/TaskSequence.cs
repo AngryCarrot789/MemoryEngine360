@@ -317,7 +317,7 @@ public sealed class TaskSequence : IConditionsHost {
             int remainingRunCount = this.runCount;
             while ((remainingRunCount < 0 || remainingRunCount != 0) && !token.IsCancellationRequested) {
                 if (this.Conditions.Count > 0) {
-                    this.Progress.Text = "Updating sequence conditions";
+                    this.Progress.Text = "Waiting for sequence conditions";
                     this.Progress.IsIndeterminate = true;
 
                     try {
@@ -363,20 +363,19 @@ public sealed class TaskSequence : IConditionsHost {
                             continue;
                         }
 
-
                         try {
                             bool canRunOperation = true;
                             if (operation.Conditions.Count > 0) {
                                 operation.State = OperationState.WaitingForConditions;
-                                this.Progress.Text = "Updating operation conditions";
+                                this.Progress.Text = "Waiting for operation conditions";
                                 this.Progress.IsIndeterminate = true;
-
+                                
                                 try {
                                     do {
                                         if (await this.UpdateConditionsAndCheckCanRun(operation, token)) {
                                             break;
                                         }
-
+                                
                                         switch (operation.ConditionBehaviour) {
                                             case OperationConditionBehaviour.Wait: await Task.Delay(10, token); break;
                                             case OperationConditionBehaviour.Skip: canRunOperation = false; break;
@@ -462,6 +461,18 @@ public sealed class TaskSequence : IConditionsHost {
         this.myTcs.TrySetResult();
         this.myTcs = null;
     }
+
+    public static async Task DoAwaitDogShit(Task<bool> task, Action callback) {
+        if (task.IsCompletedSuccessfully && task.Result)
+            return;
+
+        bool result = await task.ConfigureAwait(false);
+
+        if (!result) {
+            callback?.Invoke();
+        }
+    }
+
 
     private async Task<bool> UpdateConditionsAndCheckCanRun(IConditionsHost conditionsHost, CancellationToken cancellationToken) {
         CachedConditionData cache = new CachedConditionData();

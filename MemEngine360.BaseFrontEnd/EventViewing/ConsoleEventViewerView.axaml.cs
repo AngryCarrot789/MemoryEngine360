@@ -71,7 +71,7 @@ public partial class ConsoleEventViewerView : UserControl {
 
     private int lastStatusMessageType = -1;
     private bool isScrolledToBottomOfList;
-    private readonly BrushFlipFlopTimer timer;
+    private readonly BrushFlipFlopTimer statusAlarmTimer;
 
     static ConsoleEventViewerView() {
         EventTypeToDisplayControlRegistry = new ModelTypeControlRegistry<Control>();
@@ -98,7 +98,7 @@ public partial class ConsoleEventViewerView : UserControl {
         this.rldaInsertEvents = new RateLimitedDispatchAction(this.OnTickInsertEventsCallback, TimeSpan.FromMilliseconds(50)) { DebugName = nameof(ConsoleEventViewerView) };
         this.PART_EventListBox.SelectionChanged += this.OnSelectedItemChanged;
 
-        this.timer = new BrushFlipFlopTimer(TimeSpan.FromMilliseconds(250), SimpleIcons.DynamicForegroundBrush, new ConstantAvaloniaColourBrush(Brushes.Red));
+        this.statusAlarmTimer = new BrushFlipFlopTimer(TimeSpan.FromMilliseconds(250), SimpleIcons.DynamicForegroundBrush, new ConstantAvaloniaColourBrush(Brushes.Red));
     }
     
     private void OnConsoleConnectionChanged(IConsoleConnection? oldConnection, IConsoleConnection? newConnection) {
@@ -120,7 +120,7 @@ public partial class ConsoleEventViewerView : UserControl {
             }
         }
 
-        this.timer.SetTarget(this.PART_Status, TextBlock.ForegroundProperty);
+        this.statusAlarmTimer.SetTarget(this.PART_Status, TextBlock.ForegroundProperty);
         
         // ConsoleConnection may change after OnLoaded
         if (this.subscription == null && this.ConsoleConnection?.TryGetFeature(out IFeatureSystemEvents? events) == true) {
@@ -133,7 +133,7 @@ public partial class ConsoleEventViewerView : UserControl {
 
         this.isUnloadedState = 1;
         DisposableUtils.Dispose(ref this.subscription);
-        this.timer.ClearTarget();
+        this.statusAlarmTimer.ClearTarget();
         // this.myEvents.Clear();
         // lock (this.pendingInsertionEx) {
         //     this.pendingInsertionCount = 0;
@@ -169,7 +169,7 @@ public partial class ConsoleEventViewerView : UserControl {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
 
         this.PART_Status.Text = text;
-        this.timer.IsEnabled = isWarning && !string.IsNullOrWhiteSpace(text);
+        this.statusAlarmTimer.IsEnabled = isWarning && !string.IsNullOrWhiteSpace(text);
     }
 
     private async Task OnTickInsertEventsCallback() {

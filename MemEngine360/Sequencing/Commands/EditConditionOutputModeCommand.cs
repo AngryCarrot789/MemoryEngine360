@@ -20,6 +20,7 @@
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.Sequencing.Commands;
 
@@ -34,14 +35,15 @@ public class EditConditionOutputModeCommand : Command {
         }
 
         TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        if (state.SelectedConditions == null || state.SelectedConditions.Count < 1) {
+        ListSelectionModel<BaseSequenceCondition>? list = state.SelectedConditionsFromHost;
+        if (list == null || list.Count < 1) {
             return;
         }
 
         IEditConditionOutputModeService service = ApplicationPFX.GetComponent<IEditConditionOutputModeService>();
-        ConditionOutputMode? result = await service.EditTriggerMode(state.SelectedConditions[0].OutputMode);
-        if (result.HasValue && state.SelectedConditions != null && state.SelectedConditions.Count > 0) {
-            foreach (BaseSequenceCondition condition in state.SelectedConditions.SelectedItems) {
+        ConditionOutputMode? result = await service.EditTriggerMode(list[0].OutputMode);
+        if (result.HasValue && list.Count > 0 /* just in case selection somehow changes */) {
+            foreach (BaseSequenceCondition condition in list.SelectedItems) {
                 condition.OutputMode = result.Value;
             }
         }

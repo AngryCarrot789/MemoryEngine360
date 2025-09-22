@@ -17,6 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
+using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Selections;
@@ -41,17 +43,21 @@ public class DuplicateConditionsCommand : Command {
         }
 
         TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-
-        TaskSequence? sequence = state.PrimarySelectedSequence;
-        if (sequence == null || sequence.IsRunning) {
+        IConditionsHost? host = state.ConditionHost;
+        if (host?.TaskSequence == null || host.TaskSequence.IsRunning) {
             return Task.CompletedTask;
         }
 
-        ListSelectionModel<BaseSequenceCondition> selection = TaskSequenceViewState.GetInstance(sequence).SelectedConditions;
-        List<(BaseSequenceCondition Cond, int Idx)> clones = selection.SelectedItems.Select(x => (Cond: x.CreateClone(), Idx: x.TaskSequence!.Conditions.IndexOf(x))).OrderBy(x => x.Idx).ToList();
+        ListSelectionModel<BaseSequenceCondition> selection = state.SelectedConditionsFromHost!;
+        Debug.Assert(selection != null, "Selection could not be null since " + nameof(state.ConditionHost) + " is non-null");
+        if (selection.Count < 1) {
+            return Task.CompletedTask;
+        }
+        
+        List<(BaseSequenceCondition Cond, int Idx)> clones = selection.SelectedItems.Select(x => (Cond: x.CreateClone(), Idx: x.Owner!.Conditions.IndexOf(x))).OrderBy(x => x.Idx).ToList();
         int offset = 0;
         foreach ((BaseSequenceCondition Cond, int Idx) in clones) {
-            sequence.Conditions.Insert(offset + Idx + 1, Cond);
+            host.Conditions.Insert(offset + Idx + 1, Cond);
             offset++;
         }
 

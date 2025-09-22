@@ -34,7 +34,7 @@ public class ToggleConditionEnabledCommand : Command {
         }
 
         TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        ListSelectionModel<BaseSequenceCondition>? list = state.SelectedConditions;
+        ListSelectionModel<BaseSequenceCondition>? list = state.SelectedConditionsFromHost;
         if (list == null || list.Count < 1) {
             return;
         }

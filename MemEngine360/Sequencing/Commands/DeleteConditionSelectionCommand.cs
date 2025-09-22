@@ -45,18 +45,17 @@ public class DeleteConditionSelectionCommand : Command {
         // And for which is better, who knows.
         // Maybe option 1 for shortcuts, option 2 for context menu commands?
         
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out var manager)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return;
         }
 
         TaskSequenceManagerViewState viewState = TaskSequenceManagerViewState.GetInstance(manager);
-        IConditionsHost? conditionHost = viewState.ConditionHost;
-        if (conditionHost == null) {
+        if (viewState.ConditionHost == null) {
             Debug.Assert(!BaseSequenceCondition.DataKey.IsPresent(e.ContextData));
             return;
         }
 
-        TaskSequence? rootSequence = conditionHost.TaskSequence;
+        TaskSequence? rootSequence = viewState.ConditionHost.TaskSequence;
         if (rootSequence == null) {
             return;
         }
@@ -73,18 +72,11 @@ public class DeleteConditionSelectionCommand : Command {
             Debug.Assert(!rootSequence.IsRunning);
         }
 
-        ListSelectionModel<BaseSequenceCondition> selectionModel;
-        if (conditionHost is TaskSequence ownerSequence) {
-            selectionModel = TaskSequenceViewState.GetInstance(ownerSequence).SelectedConditions;
+        ListSelectionModel<BaseSequenceCondition>? selectionModel = viewState.SelectedConditionsFromHost;
+        if (selectionModel == null) {
+            return; // ConditionHost somehow changed
         }
-        else if (conditionHost is BaseSequenceOperation ownerOperation) {
-            selectionModel = SequenceOperationViewState.GetInstance(ownerOperation).SelectedConditions;
-        }
-        else {
-            Debug.Fail("What");
-            return;
-        }
-
+        
         List<IntRange> selection = selectionModel.ToIntRangeUnion().ToList();
         selectionModel.Clear();
         for (int i = selection.Count - 1; i >= 0; i--) {
