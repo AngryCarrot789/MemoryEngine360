@@ -35,7 +35,7 @@ public delegate void BaseAddressTableEntryManagerChangedEventHandler(BaseFileTre
 /// Base class for files within a file tree
 /// </summary>
 public abstract class BaseFileTreeNode {
-    public static readonly DataKey<BaseFileTreeNode> DataKey = DataKey<BaseFileTreeNode>.Create(nameof(BaseFileTreeNode));
+    public static readonly DataKey<BaseFileTreeNode> DataKey = DataKeys.Create<BaseFileTreeNode>(nameof(BaseFileTreeNode));
 
     private string? fileName, fullPath;
     private string? errorText;

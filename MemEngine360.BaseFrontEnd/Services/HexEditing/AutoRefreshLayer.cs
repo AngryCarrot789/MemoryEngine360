@@ -91,7 +91,7 @@ public class AutoRefreshLayer : Layer {
     /// <inheritdoc />
     public override LayerRenderMoments UpdateMoments => LayerRenderMoments.NoResizeRearrange;
 
-    public AutoRefreshLayer(AvaloniaHex.Async.Editing.Caret theCaret) {
+    public AutoRefreshLayer(Caret theCaret) {
         this.theCaret = theCaret;
     }
 

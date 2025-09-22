@@ -35,6 +35,7 @@ using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.History;
+using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
@@ -54,13 +55,13 @@ public delegate void MemoryEngineConnectionChangedEventHandler(MemoryEngine send
 /// The main manager class for a the memory engine window. Also provides utilities for reading/writing data values
 /// </summary>
 [DebuggerDisplay("IsBusy = {IsConnectionBusy}, Connection = {Connection}")]
-public class MemoryEngine : IComponentManager {
-    public static readonly DataKey<MemoryEngine> EngineDataKey = DataKey<MemoryEngine>.Create("MemoryEngine");
+public class MemoryEngine : IComponentManager, IUserLocalContext {
+    public static readonly DataKey<MemoryEngine> EngineDataKey = DataKeys.Create<MemoryEngine>("MemoryEngine");
 
     /// <summary>
     /// A data key used by the connection change notification to tell whether a disconnection originated from the notification's "Disconnect" command
     /// </summary>
-    public static readonly DataKey<bool> IsDisconnectFromNotification = DataKey<bool>.Create("IsDisconnectFromNotification");
+    public static readonly DataKey<bool> IsDisconnectFromNotification = DataKeys.Create<bool>("IsDisconnectFromNotification");
 
     private volatile IConsoleConnection? connection; // our connection object -- volatile in case JIT plays dirty tricks, i ain't no expert in wtf volatile does though
     private bool isShuttingDown;
@@ -129,10 +130,7 @@ public class MemoryEngine : IComponentManager {
 
     public ConsoleDebugger ConsoleDebugger { get; }
 
-    /// <summary>
-    /// Gets custom context data for this engine, which is used to store UI related things
-    /// </summary>
-    public ContextData UserData { get; } = new ContextData();
+    public IMutableContextData UserContext { get; } = new ContextData();
 
     /// <summary>
     /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working

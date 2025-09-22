@@ -26,7 +26,7 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.Engine;
 
 public class ScanResultViewModel : INotifyPropertyChanged {
-    public static readonly DataKey<ScanResultViewModel> DataKey = DataKey<ScanResultViewModel>.Create("ScanResultViewModel");
+    public static readonly DataKey<ScanResultViewModel> DataKey = DataKeys.Create<ScanResultViewModel>("ScanResultViewModel");
 
     private IDataValue currentValue, previousValue;
 

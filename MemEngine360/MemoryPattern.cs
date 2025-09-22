@@ -63,7 +63,7 @@ public readonly struct MemoryPattern {
     }
 
     public static void Main() {
-        MemoryPattern pattern = MemoryPattern.Compile("45 ? 25 ?? FF");
+        MemoryPattern pattern = Compile("45 ? 25 ?? FF");
     }
 
     private static void CheckChar(string pattern, char ch, int idx) {

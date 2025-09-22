@@ -27,7 +27,7 @@ namespace MemEngine360.Sequencing;
 public delegate void BaseSequenceConditionEventHandler(BaseSequenceCondition sender);
 
 public abstract class BaseSequenceCondition {
-    public static readonly DataKey<BaseSequenceCondition> DataKey = DataKey<BaseSequenceCondition>.Create(nameof(BaseSequenceCondition));
+    public static readonly DataKey<BaseSequenceCondition> DataKey = DataKeys.Create<BaseSequenceCondition>(nameof(BaseSequenceCondition));
     
     private bool isEnabled = true;
     private bool isCurrentlyMet;

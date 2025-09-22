@@ -38,7 +38,7 @@ using PFXToolKitUI.Utils.Commands;
 namespace MemEngine360.BaseFrontEnd.PointerScanning;
 
 public partial class PointerScannerView : UserControl {
-    public static readonly DataKey<PointerScanner> PointerScannerDataKey = DataKey<PointerScanner>.Create(nameof(PointerScanner));
+    public static readonly DataKey<PointerScanner> PointerScannerDataKey = DataKeys.Create<PointerScanner>(nameof(PointerScanner));
     
     public static readonly StyledProperty<PointerScanner?> PointerScannerProperty = AvaloniaProperty.Register<PointerScannerView, PointerScanner?>(nameof(PointerScanner));
     

@@ -99,7 +99,7 @@ public class XmlTaskSequenceSerialization {
         XmlElement element = (XmlElement) sequenceElement.AppendChild(document.CreateElement("Sequence"))!;
         element.SetAttribute("DisplayName", sequence.DisplayName);
         element.SetAttribute("RunCount", sequence.RunCount < 0 ? "Infinity" : sequence.RunCount.ToString());
-        element.SetAttribute("BusyLockPriority", sequence.HasBusyLockPriority ? "true" : "false");
+        element.SetAttribute("BusyLockPriority", sequence.HasEngineConnectionPriority ? "true" : "false");
         if (sequence.Conditions.Count > 0) {
             XmlElement xmlConditionList = (XmlElement) element.AppendChild(document.CreateElement("ConditionList"))!;
             foreach (BaseSequenceCondition condition in sequence.Conditions.ToList()) {
@@ -129,7 +129,7 @@ public class XmlTaskSequenceSerialization {
         TaskSequence sequence = new TaskSequence() {
             DisplayName = element.GetAttribute("DisplayName"),
             RunCount = runCount,
-            HasBusyLockPriority = busyLock
+            HasEngineConnectionPriority = busyLock
         };
 
         if (element.GetElementsByTagName("ConditionList").OfType<XmlElement>().FirstOrDefault() is XmlElement conditionListElement) {

@@ -18,7 +18,6 @@
 // 
 
 using System.Diagnostics;
-using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Selections;

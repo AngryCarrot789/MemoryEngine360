@@ -37,6 +37,6 @@ public class ShowTaskSequencerCommand : Command {
             return;
         }
 
-        await ApplicationPFX.GetComponent<ITaskSequencerService>().OpenOrFocusWindow(engine);
+        await ApplicationPFX.GetComponent<ITaskSequencerService>().OpenOrFocusWindow(engine.TaskSequenceManager);
     }
 }

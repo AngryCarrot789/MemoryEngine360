@@ -42,7 +42,7 @@ public delegate void ConsoleDebuggerEventHandler(ConsoleDebugger sender);
 /// The memory engine debugger
 /// </summary>
 public class ConsoleDebugger {
-    public static readonly DataKey<ConsoleDebugger> DataKey = DataKey<ConsoleDebugger>.Create(nameof(ConsoleDebugger));
+    public static readonly DataKey<ConsoleDebugger> DataKey = DataKeys.Create<ConsoleDebugger>(nameof(ConsoleDebugger));
 
     private readonly BusyLock busyLocker;
     private ThreadEntry? activeThread;

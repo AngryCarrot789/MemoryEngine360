@@ -39,12 +39,17 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
     private readonly IBinder<TaskSequence> nameBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.DisplayNameChanged), (b) => ((SequenceListBoxItem) b.Control).Content = b.Model.DisplayName);
 
-    private readonly IBinder<TaskSequence> busyLockPriorityBinder = new AvaloniaPropertyToEventPropertyBinder<TaskSequence>(CheckBox.IsCheckedProperty, nameof(TaskSequence.HasBusyLockPriorityChanged), (b) => {
-        ((CheckBox) b.Control).IsChecked = b.Model.HasBusyLockPriority;
-    }, (b) => {
-        if (!b.Model.IsRunning)
-            b.Model.HasBusyLockPriority = ((CheckBox) b.Control).IsChecked == true;
-    });
+    private readonly IBinder<TaskSequence> busyLockPriorityBinder =
+        new AvaloniaPropertyToMultiEventPropertyBinder<TaskSequence>(
+            CheckBox.IsCheckedProperty,
+            [nameof(TaskSequence.HasEngineConnectionPriorityChanged), nameof(TaskSequence.UseEngineConnectionChanged)],
+            (b) => {
+                ((CheckBox) b.Control).IsEnabled = b.Model.UseEngineConnection;
+                ((CheckBox) b.Control).IsChecked = b.Model.HasEngineConnectionPriority && b.Model.UseEngineConnection;
+            }, (b) => {
+                if (!b.Model.IsRunning && b.Model.UseEngineConnection)
+                    b.Model.HasEngineConnectionPriority = ((CheckBox) b.Control).IsChecked == true;
+            });
 
     private readonly IBinder<TaskSequence> runCountBinder = new TextBoxToEventPropertyBinder<TaskSequence>(nameof(TaskSequence.RunCountChanged), (b) => {
         int count = b.Model.RunCount;

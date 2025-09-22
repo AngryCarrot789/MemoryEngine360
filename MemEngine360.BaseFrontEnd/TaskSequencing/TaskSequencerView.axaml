@@ -138,10 +138,10 @@
                                                         </tt:ToolTipEx.Tip>
                                                     </TextBox>
                                                 </StackPanel>
-                                                <CheckBox x:Name="PART_ToggleBusyExclusive" DockPanel.Dock="Right" Content="Busy Priority">
+                                                <CheckBox x:Name="PART_ToggleBusyExclusive" DockPanel.Dock="Right" Content="Network Priority">
                                                     <tt:ToolTipEx.Tip>
                                                         <TextBlock>
-                                                            <Run Text="Makes this sequence take the busy lock before starting. By doing this, it means the sequence can run without interruption"/>
+                                                            <Run Text="Makes this sequence take priority over the engine's connection, meaning the sequence can run without interruption"/>
                                                             <LineBreak/>
                                                             <LineBreak/>
                                                             <Run Text="However, most engine functions (scan, hex editor, changing values, etc.) will be unavailable until you stop the sequence."/>

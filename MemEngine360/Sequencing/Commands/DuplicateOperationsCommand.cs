@@ -48,7 +48,7 @@ public class DuplicateOperationsCommand : Command {
 
         // Create list of clones, ordered by their index in the sequence list
         ListSelectionModel<BaseSequenceOperation> selection = TaskSequenceViewState.GetInstance(sequence).SelectedOperations;
-        List<(BaseSequenceOperation Op, int Idx)> clones = selection.SelectedItems.Select(x => (Op: x.CreateClone(), Idx: x.TaskSequence!.IndexOf(x))).OrderBy(x => x.Idx).ToList();
+        List<(BaseSequenceOperation Op, int Idx)> clones = selection.SelectedItems.Select(x => (Op: x.CreateClone(), Idx: x.TaskSequence!.Operations.IndexOf(x))).OrderBy(x => x.Idx).ToList();
         int offset = 1; // +1 to add after the existing item
         foreach ((BaseSequenceOperation Op, int Idx) item in clones) {
             sequence.Operations.Insert(offset + item.Idx, item.Op);

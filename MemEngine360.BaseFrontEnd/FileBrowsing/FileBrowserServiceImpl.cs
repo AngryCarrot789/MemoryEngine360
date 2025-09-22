@@ -28,10 +28,10 @@ using SkiaSharp;
 namespace MemEngine360.BaseFrontEnd.FileBrowsing;
 
 public class FileBrowserServiceImpl : IFileBrowserService {
-    private static readonly DataKey<IWindow> OpenedWindowKey = DataKey<IWindow>.Create(nameof(IFileBrowserService) + "_OpenedFileExplorerWindow");
+    private static readonly DataKey<IWindow> OpenedWindowKey = DataKeys.Create<IWindow>(nameof(IFileBrowserService) + "_OpenedFileExplorerWindow");
 
     public Task ShowFileBrowser(FileTreeExplorer explorer) {
-        if (OpenedWindowKey.TryGetContext(explorer.MemoryEngine.UserData, out IWindow? debuggerWindow)) {
+        if (OpenedWindowKey.TryGetContext(explorer.MemoryEngine.UserContext, out IWindow? debuggerWindow)) {
             Debug.Assert(debuggerWindow.OpenState == OpenState.Open || debuggerWindow.OpenState == OpenState.TryingToClose);
             
             debuggerWindow.Activate();
@@ -56,10 +56,10 @@ public class FileBrowserServiceImpl : IFileBrowserService {
 
         window.WindowClosing += (sender, args) => {
             FileTreeExplorer exp = ((FileTreeExplorerView) sender.Content!).FileTreeExplorer;
-            exp.MemoryEngine.UserData.Set(OpenedWindowKey, null);
+            exp.MemoryEngine.UserContext.Set(OpenedWindowKey, null);
         };
         
-        explorer.MemoryEngine.UserData.Set(OpenedWindowKey, window);
+        explorer.MemoryEngine.UserContext.Set(OpenedWindowKey, window);
         return window.ShowAsync();
     }
 }

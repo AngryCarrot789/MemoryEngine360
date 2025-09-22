@@ -36,7 +36,7 @@ public delegate void BaseAddressTableEntryManagerChangedEventHandler(BaseAddress
 /// The base class for an object in the entry hierarchy for a address table manager
 /// </summary>
 public abstract class BaseAddressTableEntry : ITransferableData {
-    public static readonly DataKey<BaseAddressTableEntry> DataKey = DataKey<BaseAddressTableEntry>.Create("BaseLayerTreeObject");
+    public static readonly DataKey<BaseAddressTableEntry> DataKey = DataKeys.Create<BaseAddressTableEntry>("BaseLayerTreeObject");
 
     private string? description;
 

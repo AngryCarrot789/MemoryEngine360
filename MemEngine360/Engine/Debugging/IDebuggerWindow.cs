@@ -22,7 +22,7 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.Engine.Debugging;
 
 public interface IDebuggerWindow {
-    static readonly DataKey<IDebuggerWindow> DataKey = DataKey<IDebuggerWindow>.Create(nameof(IDebuggerWindow));
+    static readonly DataKey<IDebuggerWindow> DataKey = DataKeys.Create<IDebuggerWindow>(nameof(IDebuggerWindow));
 
     void FocusGoToTextBox();
 }

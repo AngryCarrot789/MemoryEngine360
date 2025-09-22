@@ -42,7 +42,7 @@ public sealed class SequenceExecutionContext {
     public IConsoleConnection Connection { get; }
 
     /// <summary>
-    /// Gets the priority busy token, or null, if <see cref="TaskSequence.HasBusyLockPriority"/> is false
+    /// Gets the priority busy token, or null, if <see cref="TaskSequence.HasEngineConnectionPriority"/> is false
     /// </summary>
     public IDisposable? BusyToken { get; }
 

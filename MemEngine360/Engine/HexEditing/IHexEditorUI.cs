@@ -23,7 +23,7 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.Engine.HexEditing;
 
 public interface IHexEditorUI {
-    public static readonly DataKey<IHexEditorUI> DataKey = DataKey<IHexEditorUI>.Create("IHexDisplayView");
+    public static readonly DataKey<IHexEditorUI> DataKey = DataKeys.Create<IHexEditorUI>("IHexDisplayView");
 
     /// <summary>
     /// Gets the hex display info

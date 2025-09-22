@@ -26,6 +26,7 @@ using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Composition;
+using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Collections.Observable;
@@ -35,8 +36,8 @@ namespace MemEngine360.Sequencing;
 /// <summary>
 /// Manager of task sequences
 /// </summary>
-public class TaskSequenceManager : IComponentManager {
-    public static readonly DataKey<TaskSequenceManager> DataKey = DataKey<TaskSequenceManager>.Create(nameof(TaskSequenceManager));
+public class TaskSequenceManager : IComponentManager, IUserLocalContext {
+    public static readonly DataKey<TaskSequenceManager> DataKey = DataKeys.Create<TaskSequenceManager>(nameof(TaskSequenceManager));
 
     private readonly ObservableList<TaskSequence> activeSequences;
     private readonly ComponentStorage myComponentStorage;
@@ -56,6 +57,8 @@ public class TaskSequenceManager : IComponentManager {
     /// Gets the memory engine that owns this sequencer
     /// </summary>
     public MemoryEngine MemoryEngine { get; }
+    
+    public IMutableContextData UserContext { get; } = new ContextData();
 
     ComponentStorage IComponentManager.ComponentStorage => this.myComponentStorage;
 
@@ -167,16 +170,6 @@ public class TaskSequenceManager : IComponentManager {
             await Task.WhenAll(items.Select(x => x.WaitForCompletion()));
         }
     }
-
-    public int IndexOf(TaskSequence entry) {
-        if (!ReferenceEquals(entry.Manager, this))
-            return -1;
-        int idx = this.Sequences.IndexOf(entry);
-        Debug.Assert(idx != -1);
-        return idx;
-    }
-
-    public bool Contains(TaskSequence entry) => this.IndexOf(entry) != -1;
 
     internal static void InternalSetIsRunning(TaskSequenceManager tsm, TaskSequence sequence, bool isRunning) {
         if (isRunning) {

@@ -34,7 +34,7 @@ public delegate void BaseSequenceOperationStateChangedEventHandler(BaseSequenceO
 /// The base class for a sequencer operation
 /// </summary>
 public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost {
-    public static readonly DataKey<BaseSequenceOperation> DataKey = DataKey<BaseSequenceOperation>.Create(nameof(BaseSequenceOperation));
+    public static readonly DataKey<BaseSequenceOperation> DataKey = DataKeys.Create<BaseSequenceOperation>(nameof(BaseSequenceOperation));
     
     internal SequenceOperationViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using IComponentManager
 

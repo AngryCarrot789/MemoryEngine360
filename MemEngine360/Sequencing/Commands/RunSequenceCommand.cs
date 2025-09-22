@@ -47,54 +47,48 @@ public class RunSequenceCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequence.DataKey.TryGetContext(e.ContextData, out TaskSequence? seq)) {
+        if (!TaskSequence.DataKey.TryGetContext(e.ContextData, out TaskSequence? sequence))
             return;
-        }
-
-        if (seq.IsRunning || seq.Manager == null /* shouldn't be null... */) {
+        if (sequence.IsRunning || sequence.Manager == null /* shouldn't be null... */)
             return;
-        }
 
-        bool useEngineConnection = seq.UseEngineConnection;
-
-        IConsoleConnection? connection = useEngineConnection ? seq.Manager.MemoryEngine.Connection : seq.DedicatedConnection;
-        if (connection == null) {
-            await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine is not connected to a console" : "Not connected to a console");
-            return;
-        }
-
-        if (connection.IsClosed) {
-            await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine connection is no longer connected. Please reconnect" : "Connection is no longer connected. Please reconnect");
+        bool useEngineConnection = sequence.UseEngineConnection;
+        IConsoleConnection? connection = useEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection;
+        if (await HandleConnectionErrors(connection, useEngineConnection)) {
             return;
         }
 
         IDisposable? token = null;
-        if (seq.HasBusyLockPriority && (token = seq.Manager.MemoryEngine.TryBeginBusyOperation()) == null) {
+        if (sequence.HasEngineConnectionPriority && (token = sequence.Manager.MemoryEngine.TryBeginBusyOperation()) == null) {
             using CancellationTokenSource cts = new CancellationTokenSource();
             Result<IDisposable?> tokenResult = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
-                task.Progress.Caption = $"Start '{seq.DisplayName}'";
+                task.Progress.Caption = $"Start '{sequence.DisplayName}'";
                 task.Progress.Text = "Waiting for busy operations...";
-                return seq.Manager.MemoryEngine.BeginBusyOperationAsync(task.CancellationToken);
-            }, seq.Progress, cts);
+                return sequence.Manager.MemoryEngine.BeginBusyOperationAsync(task.CancellationToken);
+            }, sequence.Progress, cts);
 
             // User cancelled operation so don't run the sequence, since it wants busy lock priority
-            if ((token = tokenResult.HasException ? null : tokenResult.Value) == null) {
+            if ((token = tokenResult.GetValueOrDefault()) == null) {
                 return;
             }
         }
 
-        try {
-            connection = useEngineConnection ? seq.Manager.MemoryEngine.Connection : seq.DedicatedConnection;
-            if (connection == null || connection.IsClosed) {
-                await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine is not connected to a console" : "Not connected to a console");
-            }
-            else if (connection.IsClosed) {
-                await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine connection is no longer connected. Please reconnect" : "Connection is no longer connected. Please reconnect");
-            }
-            else {
-                await seq.Run(connection, token, !useEngineConnection);
-                Exception? except = seq.LastException;
+        connection = useEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection;
+        if (await HandleConnectionErrors(connection, useEngineConnection)) {
+            return;
+        }
+
+        Task runTask = sequence.Run(connection!, token, !useEngineConnection);
+        if (runTask.IsCompleted) {
+            await runTask;
+            token?.Dispose();
+            return;
+        }
+
+        _ = runTask.ContinueWith(async t => {
+            try {
+                Exception? except = sequence.LastException;
                 if (except != null) {
                     if (except is IOException || except is TimeoutException) {
                         await LogExceptionHelper.ShowMessageAndPrintToLogs("Network Error", except.Message, except);
@@ -104,32 +98,36 @@ public class RunSequenceCommand : Command {
                     }
                 }
 
-                if (seq.Manager != null) {
+                if (sequence.Manager != null) {
                     ConnectionChangeCause cause = except is IOException
                         ? ConnectionChangeCause.ConnectionError
                         : ConnectionChangeCause.LostConnection; // Use LostConnection even if not TimeoutException since it's the only other option that makes sense.
 
                     if (token != null) {
-                        seq.Manager.MemoryEngine.CheckConnection(token, cause);
+                        sequence.Manager.MemoryEngine.CheckConnection(token, cause);
                     }
                     else if (useEngineConnection) {
-                        seq.Manager.MemoryEngine.CheckConnection(cause);
+                        sequence.Manager.MemoryEngine.CheckConnection(cause);
                     }
-
-                    // Probably annoying to the user to force activate the window
-                    // await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                    //     if (useEngineConnection && sequence.Manager != null) {
-                    //         IConsoleConnection? currentConnection = sequence.Manager.MemoryEngine.Connection;
-                    //         if (currentConnection == null || currentConnection.IsClosed) {
-                    //             MemoryEngineViewState.GetInstance(sequence.Manager.MemoryEngine).RaiseRequestWindowFocus();
-                    //         }
-                    //     }
-                    // }, DispatchPriority.Background);
                 }
             }
+            finally {
+                token?.Dispose();
+            }
+        }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
+    private static async Task<bool> HandleConnectionErrors(IConsoleConnection? connection, bool useEngineConnection) {
+        if (connection == null) {
+            await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine is not connected to a console" : "Not connected to a console");
+            return true;
         }
-        finally {
-            token?.Dispose();
+
+        if (connection.IsClosed) {
+            await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine connection is no longer connected. Please reconnect" : "Connection is no longer connected. Please reconnect");
+            return true;
         }
+
+        return false;
     }
 }

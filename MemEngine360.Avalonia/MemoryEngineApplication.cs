@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
@@ -101,7 +102,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
     }
 
     private static void TaskSchedulerOnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) {
-        Instance.Dispatcher.Post(() => throw e.Exception, DispatchPriority.Send);
+        Instance.Dispatcher.Post(() => ExceptionDispatchInfo.Throw(e.Exception), DispatchPriority.Send);
     }
 
     protected override void RegisterCommands(CommandManager manager) {

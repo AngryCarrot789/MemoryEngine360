@@ -22,7 +22,7 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.Engine.FileBrowsing;
 
 public interface IFileTreeNodeUI {
-    public static readonly DataKey<IFileTreeNodeUI> DataKey = DataKey<IFileTreeNodeUI>.Create(nameof(IFileTreeNodeUI));
+    public static readonly DataKey<IFileTreeNodeUI> DataKey = DataKeys.Create<IFileTreeNodeUI>(nameof(IFileTreeNodeUI));
 
     bool IsSelected { get; set; }
 

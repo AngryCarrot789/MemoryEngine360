@@ -57,11 +57,11 @@ public partial class ConsoleEventViewerViewEx : UserControl {
 }
 
 public class ConsoleEventViewerServiceImpl : IConsoleEventViewerService {
-    private static readonly DataKey<SingletonWindow> EventViewerWindowKey = DataKey<SingletonWindow>.Create("EventViewerWindow");
+    private static readonly DataKey<SingletonWindow> EventViewerWindowKey = DataKeys.Create<SingletonWindow>("EventViewerWindow");
 
     public Task ShowOrFocus(MemoryEngine engine) {
-        if (!EventViewerWindowKey.TryGetContext(engine.UserData, out SingletonWindow? singletonWindow)) {
-            engine.UserData.Set(EventViewerWindowKey, singletonWindow = new SingletonWindow(manager => {
+        if (!EventViewerWindowKey.TryGetContext(engine.UserContext, out SingletonWindow? singletonWindow)) {
+            engine.UserContext.Set(EventViewerWindowKey, singletonWindow = new SingletonWindow(manager => {
                 IWindow win = manager.CreateWindow(new WindowBuilder() {
                     Title = "Event Viewer",
                     Content = new ConsoleEventViewerViewEx() {

@@ -11,10 +11,10 @@ using SkiaSharp;
 namespace MemEngine360.BaseFrontEnd.Debugging;
 
 public class DebuggerViewServiceImpl : IDebuggerViewService {
-    private static readonly DataKey<IWindow> OpenedWindowKey = DataKey<IWindow>.Create(nameof(IDebuggerViewService) + "_OpenedDebuggerWindow");
+    private static readonly DataKey<IWindow> OpenedWindowKey = DataKeys.Create<IWindow>(nameof(IDebuggerViewService) + "_OpenedDebuggerWindow");
     
     public async Task<ITopLevel?> OpenOrFocusWindow(ConsoleDebugger debugger) {
-        if (OpenedWindowKey.TryGetContext(debugger.Engine.UserData, out IWindow? debuggerWindow)) {
+        if (OpenedWindowKey.TryGetContext(debugger.Engine.UserContext, out IWindow? debuggerWindow)) {
             Debug.Assert(debuggerWindow.OpenState == OpenState.Open || debuggerWindow.OpenState == OpenState.TryingToClose);
             
             debuggerWindow.Activate();
@@ -44,7 +44,7 @@ public class DebuggerViewServiceImpl : IDebuggerViewService {
             return ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                 // prevent memory leak
                 DebuggerView view = (DebuggerView) sender.Content!;
-                view.ConsoleDebugger!.Engine.UserData.Set(OpenedWindowKey, null);
+                view.ConsoleDebugger!.Engine.UserContext.Set(OpenedWindowKey, null);
                 
                 return view.OnClosingAsync(args.Reason);
             }).Unwrap();
@@ -52,7 +52,7 @@ public class DebuggerViewServiceImpl : IDebuggerViewService {
         
         window.WindowClosed += (sender, args) => ((DebuggerView) sender.Content!).OnWindowClosed();
         
-        debugger.Engine.UserData.Set(OpenedWindowKey, window);
+        debugger.Engine.UserContext.Set(OpenedWindowKey, window);
         await window.ShowAsync();
 
         return window;

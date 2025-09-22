@@ -25,7 +25,7 @@ namespace MemEngine360.XboxBase.Modules;
 public delegate void ConsoleModuleSectionEventHandler(ConsoleModuleSection sender);
 
 public class ConsoleModuleSection : INotifyPropertyChanged {
-    public static readonly DataKey<ConsoleModuleSection> DataKey = DataKey<ConsoleModuleSection>.Create("XboxModuleSection");
+    public static readonly DataKey<ConsoleModuleSection> DataKey = DataKeys.Create<ConsoleModuleSection>("XboxModuleSection");
 
     private string? name;
     private uint baseAddress;

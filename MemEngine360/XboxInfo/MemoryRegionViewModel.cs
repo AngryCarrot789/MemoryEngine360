@@ -28,7 +28,7 @@ public class MemoryRegionViewModel : BaseTransferableDataViewModel {
     // This class needs a re-work. We shouldn't use a raw address like this,
     // since cheat engine doesn't appear to do that (since you have use base address + a list of offsets)
 
-    public static readonly DataKey<MemoryRegionViewModel> DataKey = DataKey<MemoryRegionViewModel>.Create("MemoryRegionViewModel");
+    public static readonly DataKey<MemoryRegionViewModel> DataKey = DataKeys.Create<MemoryRegionViewModel>("MemoryRegionViewModel");
 
     public static readonly DataParameter<uint> BaseAddressParameter = DataParameter.Register(new DataParameter<uint>(typeof(MemoryRegionViewModel), nameof(BaseAddress), 0, ValueAccessors.Reflective<uint>(typeof(MemoryRegionViewModel), nameof(baseAddress))));
     public static readonly DataParameter<uint> SizeParameter = DataParameter.Register(new DataParameter<uint>(typeof(MemoryRegionViewModel), nameof(Size), 0, ValueAccessors.Reflective<uint>(typeof(MemoryRegionViewModel), nameof(size))));

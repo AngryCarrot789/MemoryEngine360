@@ -17,10 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
-
 namespace MemEngine360.Sequencing;
 
 public interface ITaskSequencerService {
-    Task OpenOrFocusWindow(MemoryEngine engine);
+    Task OpenOrFocusWindow(TaskSequenceManager sequencer);
 }

@@ -23,6 +23,7 @@ using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI;
+using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
@@ -37,15 +38,15 @@ public delegate void TaskSequenceDedicatedConnectionChangedEventHandler(TaskSequ
 /// <summary>
 /// A sequence that contains a list of operations
 /// </summary>
-public sealed class TaskSequence : IConditionsHost {
-    public static readonly DataKey<TaskSequence> DataKey = DataKey<TaskSequence>.Create(nameof(TaskSequence));
+public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
+    public static readonly DataKey<TaskSequence> DataKey = DataKeys.Create<TaskSequence>(nameof(TaskSequence));
 
     internal TaskSequenceViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using IComponentManager
 
     internal TaskSequenceManager? myManager;
     private string displayName = "Empty Sequence";
     private int runCount = 1;
-    private bool hasBusyLockPriority;
+    private bool hasEngineConnectionPriority;
     private bool useEngineConnection = true;
     private IConsoleConnection? dedicatedConnection;
 
@@ -85,12 +86,12 @@ public sealed class TaskSequence : IConditionsHost {
         }
     }
 
-    public bool HasBusyLockPriority {
-        get => this.hasBusyLockPriority;
+    public bool HasEngineConnectionPriority {
+        get => this.hasEngineConnectionPriority;
         set {
             ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-            this.CheckNotRunning($"Cannot change {nameof(this.HasBusyLockPriority)} while running");
-            PropertyHelper.SetAndRaiseINE(ref this.hasBusyLockPriority, value, this, static t => t.HasBusyLockPriorityChanged?.Invoke(t));
+            this.CheckNotRunning($"Cannot change {nameof(this.HasEngineConnectionPriority)} while running");
+            PropertyHelper.SetAndRaiseINE(ref this.hasEngineConnectionPriority, value, this, static t => t.HasEngineConnectionPriorityChanged?.Invoke(t));
         }
     }
 
@@ -138,6 +139,8 @@ public sealed class TaskSequence : IConditionsHost {
     public ObservableList<BaseSequenceCondition> Conditions { get; }
 
     public IActivityProgress Progress { get; }
+    
+    public IMutableContextData UserContext { get; } = new ContextData();
 
     /// <summary>
     /// An event fired when our running state changes. When this fires, the first operation will not have run yet.
@@ -146,7 +149,7 @@ public sealed class TaskSequence : IConditionsHost {
 
     public event TaskSequenceEventHandler? DisplayNameChanged;
     public event TaskSequenceEventHandler? RunCountChanged;
-    public event TaskSequenceEventHandler? HasBusyLockPriorityChanged;
+    public event TaskSequenceEventHandler? HasEngineConnectionPriorityChanged;
     public event TaskSequenceEventHandler? UseEngineConnectionChanged;
 
     /// <summary>
@@ -271,7 +274,7 @@ public sealed class TaskSequence : IConditionsHost {
         TaskSequence sequence = new TaskSequence() {
             DisplayName = this.displayName,
             RunCount = this.runCount,
-            HasBusyLockPriority = this.hasBusyLockPriority
+            HasEngineConnectionPriority = this.hasEngineConnectionPriority
         };
 
         foreach (BaseSequenceCondition condition in this.Conditions)
@@ -398,7 +401,7 @@ public sealed class TaskSequence : IConditionsHost {
                                 this.Progress.Text = "Running operation(s)";
                                 if (operation is JumpToLabelOperation jump) {
                                     if (jump.IsEnabled && jump.CurrentTarget != null && jump.CurrentTarget.TaskSequence == this /* should be impossible to be null */) {
-                                        int idx = this.IndexOf(jump.CurrentTarget);
+                                        int idx = this.Operations.IndexOf(jump.CurrentTarget);
                                         Debug.Assert(idx != -1);
 
                                         i = idx - 1;
@@ -462,18 +465,6 @@ public sealed class TaskSequence : IConditionsHost {
         this.myTcs = null;
     }
 
-    public static async Task DoAwaitDogShit(Task<bool> task, Action callback) {
-        if (task.IsCompletedSuccessfully && task.Result)
-            return;
-
-        bool result = await task.ConfigureAwait(false);
-
-        if (!result) {
-            callback?.Invoke();
-        }
-    }
-
-
     private async Task<bool> UpdateConditionsAndCheckCanRun(IConditionsHost conditionsHost, CancellationToken cancellationToken) {
         CachedConditionData cache = new CachedConditionData();
         bool isConditionMet = true;
@@ -506,16 +497,6 @@ public sealed class TaskSequence : IConditionsHost {
         if (this.IsRunning)
             throw new InvalidOperationException(message);
     }
-
-    public int IndexOf(BaseSequenceOperation entry) {
-        if (!ReferenceEquals(entry.TaskSequence, this))
-            return -1;
-        int idx = this.Operations.IndexOf(entry);
-        Debug.Assert(idx != -1);
-        return idx;
-    }
-
-    public bool Contains(BaseSequenceOperation entry) => this.IndexOf(entry) != -1;
 
     /// <summary>
     /// Updates the target label for all jump operations. Used when a label's name changes or when a task sequence is deserialized
