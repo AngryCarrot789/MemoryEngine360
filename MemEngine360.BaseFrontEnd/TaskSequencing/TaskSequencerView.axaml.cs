@@ -30,6 +30,7 @@ using MemEngine360.Sequencing.View;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
+using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Tasks;
@@ -118,9 +119,14 @@ public partial class TaskSequencerView : UserControl {
             oldSeq.IsRunningChanged -= this.OnPrimarySequenceIsRunningChanged;
         }
 
+        IControlContextData context = DataManager.GetContextData(this.PART_CurrentSequenceGroupBox);
         if (newSeq != null) {
             newSeq.Progress.TextChanged += this.OnSequenceProgressTextChanged;
             newSeq.IsRunningChanged += this.OnPrimarySequenceIsRunningChanged;
+            context.Set(TaskSequence.DataKey, newSeq);
+        }
+        else {
+            context.Remove(TaskSequence.DataKey);
         }
 
         this.PART_CurrentSequenceGroupBox.IsEnabled = newSeq != null;
@@ -129,8 +135,6 @@ public partial class TaskSequencerView : UserControl {
         this.currentConnectionTypeBinder.SwitchModel(newSeq);
         this.OnSequenceProgressTextChanged(newSeq?.Progress);
         ((BaseRelayCommand) this.PART_UseDedicatedConnection.Command!).RaiseCanExecuteChanged();
-
-        DataManager.GetContextData(this.PART_CurrentSequenceGroupBox).Set(TaskSequence.DataKey, newSeq);
     }
 
     private void OnPrimarySequenceIsRunningChanged(TaskSequence sender) {
@@ -207,7 +211,7 @@ public partial class TaskSequencerView : UserControl {
     internal void OnWindowClosed() {
         this.WindowClosed?.Invoke(this, EventArgs.Empty);
 
-        DataManager.GetContextData(this).Set(TaskSequenceManager.DataKey, null);
+        DataManager.GetContextData(this).Remove(TaskSequenceManager.DataKey);
         this.taskSequenceSelectionHandler!.Dispose();
         this.PART_SequenceListBox.TaskSequencerManager = null;
 

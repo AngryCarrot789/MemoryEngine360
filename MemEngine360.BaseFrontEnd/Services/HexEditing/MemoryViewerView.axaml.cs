@@ -46,7 +46,6 @@ using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
 using PFXToolKitUI.Avalonia.Utils;
-using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -685,8 +684,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     internal void OnWindowOpened(IWindow sender) {
         this.Window = sender;
         UIInputManager.SetFocusPath(this.PART_HexEditor, "HexDisplayWindow/HexEditor");
-        using MultiChangeToken change = DataManager.GetContextData(this).BeginChange();
-        change.Context.Set(IHexEditorUI.DataKey, this);
+        DataManager.GetContextData(this).Set(IHexEditorUI.DataKey, this);
     }
     
     internal void OnWindowClosed() {

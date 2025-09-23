@@ -71,7 +71,7 @@ public partial class OpenConnectionView : UserControl {
 
     public OpenConnectionView() {
         this.InitializeComponent();
-        DataManager.GetContextData(this).Set(IOpenConnectionView.IsConnectingFromView, true);
+        DataManager.GetContextData(this).Set(IOpenConnectionView.IsConnectingFromViewDataKey, true);
         
         this.PART_ListBox.SelectionMode = SelectionMode.Single;
         this.PART_ListBox.SelectionChanged += this.PART_ListBoxOnSelectionChanged;

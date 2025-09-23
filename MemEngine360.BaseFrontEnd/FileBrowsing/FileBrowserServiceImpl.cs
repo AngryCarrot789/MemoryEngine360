@@ -56,7 +56,7 @@ public class FileBrowserServiceImpl : IFileBrowserService {
 
         window.WindowClosing += (sender, args) => {
             FileTreeExplorer exp = ((FileTreeExplorerView) sender.Content!).FileTreeExplorer;
-            exp.MemoryEngine.UserContext.Set(OpenedWindowKey, null);
+            exp.MemoryEngine.UserContext.Remove(OpenedWindowKey);
         };
         
         explorer.MemoryEngine.UserContext.Set(OpenedWindowKey, window);

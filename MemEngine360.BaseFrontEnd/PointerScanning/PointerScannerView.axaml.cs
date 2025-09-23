@@ -160,7 +160,11 @@ public partial class PointerScannerView : UserControl {
         this.binder_Alignment.SwitchModel(newValue);
         this.binder_StatusBar.SwitchModel(newValue);
         this.PART_ScanResults.ItemsSource = newValue?.PointerChain;
-        DataManager.GetContextData(this).Set(PointerScannerDataKey, newValue);
+        
+        if (newValue != null)
+            DataManager.GetContextData(this).Set(PointerScannerDataKey, newValue);
+        else 
+            DataManager.GetContextData(this).Remove(PointerScannerDataKey);
         
         if (oldValue != null) oldValue.IsScanRunningChanged -= this.OnUpdateStartStopCommands;
         if (newValue != null) newValue.IsScanRunningChanged += this.OnUpdateStartStopCommands;

@@ -144,7 +144,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
         this.Model!.IsRunningChanged -= this.OnIsRunningChanged;
         AdvancedContextMenu.SetContextRegistry(this, null);
 
-        DataManager.GetContextData(this).Set(TaskSequence.DataKey, null);
+        DataManager.GetContextData(this).Remove(TaskSequence.DataKey);
     }
 
     protected override void OnRemovedFromList() {

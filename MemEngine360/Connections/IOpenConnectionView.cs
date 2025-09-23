@@ -37,7 +37,7 @@ public interface IOpenConnectionView {
     /// then this key will either not be present or be false in the context data provided to <see cref="RegisteredConnectionType.OpenConnection"/>
     /// </para>
     /// </summary>
-    static readonly DataKey<bool> IsConnectingFromView = DataKeys.Create<bool>(nameof(IOpenConnectionView) + "_IsConnectingFromView");
+    static readonly DataKey<bool> IsConnectingFromViewDataKey = DataKeys.Create<bool>(nameof(IOpenConnectionView) + "_IsConnectingFromView");
     
     /// <summary>
     /// Returns true when this window was closed by the user clicking the close button, cancel, or it closed mysteriously (e.g. app or OS shutdown)

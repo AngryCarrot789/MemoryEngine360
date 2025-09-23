@@ -105,11 +105,11 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
 
         this.operatingStateBinder.Attach(this, this.Model!);
         AdvancedContextMenu.SetContextRegistry(this, OperationsContextRegistry.Registry);
-        DataManager.GetContextData(this).Set(BaseSequenceOperation.DataKey, this.Model);
+        DataManager.GetContextData(this).Set(BaseSequenceOperation.DataKey, this.Model!);
     }
 
     protected override void OnRemovingFromList() {
-        DataManager.GetContextData(this).Set(BaseSequenceOperation.DataKey, null);
+        DataManager.GetContextData(this).Remove(BaseSequenceOperation.DataKey);
         this.operatingStateBinder.Detach();
 
         AdvancedContextMenu.SetContextRegistry(this, null);

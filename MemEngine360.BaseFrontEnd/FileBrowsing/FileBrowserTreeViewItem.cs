@@ -150,7 +150,7 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
         }
 
         Binders.AttachModels(this.EntryObject!, this.fileNameBinder, this.fileSizeBinder, this.dateCreatedBinder, this.dateModifiedBinder);
-        DataManager.GetContextData(this).Set(BaseFileTreeNode.DataKey, this.EntryObject);
+        DataManager.GetContextData(this).Set(BaseFileTreeNode.DataKey, this.EntryObject!);
         AdvancedContextMenu.SetContextRegistry(this, AddressTableContextRegistry.Registry);
     }
 
@@ -164,7 +164,7 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
         // }
 
         Binders.DetachModels(this.fileNameBinder, this.fileSizeBinder, this.dateCreatedBinder, this.dateModifiedBinder);
-        DataManager.GetContextData(this).Set(BaseFileTreeNode.DataKey, null);
+        DataManager.GetContextData(this).Remove(BaseFileTreeNode.DataKey);
     }
 
     public void OnRemoved() {

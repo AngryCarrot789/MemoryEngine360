@@ -546,7 +546,7 @@ public partial class EngineView : UserControl {
                 if (engine.Connection != null) {
                     ((ContextData) c.ContextData!).Set(MemoryEngine.IsDisconnectFromNotification, true);
                     await OpenConsoleConnectionDialogCommand.DisconnectInActivity(topLevel, engine, 0);
-                    ((ContextData) c.ContextData!).Set(MemoryEngine.IsDisconnectFromNotification, null);
+                    ((ContextData) c.ContextData!).Remove(MemoryEngine.IsDisconnectFromNotification);
                 }
 
                 c.Notification?.Hide();

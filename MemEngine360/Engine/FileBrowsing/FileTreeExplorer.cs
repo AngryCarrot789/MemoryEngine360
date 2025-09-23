@@ -38,7 +38,7 @@ public class FileTreeExplorer {
     /// Gets the memory engine associated with this address table manager
     /// </summary>
     public MemoryEngine MemoryEngine { get; }
-    
+
     private readonly AsyncRelayCommand refreshRootCommand;
 
     public FileTreeExplorer(MemoryEngine memoryEngine) {
@@ -59,7 +59,7 @@ public class FileTreeExplorer {
             if (connection.TryGetFeature(out IFeatureFileSystemInfo? fs)) {
                 foreach (DriveEntry root in await fs.GetDriveList()) {
                     this.RootEntry.Items.Add(new FileTreeNodeDirectory() {
-                        FileName = root.Name + ":",
+                        FileName = root.Name,
                         Size = root.TotalSize
                     });
                 }
@@ -70,7 +70,7 @@ public class FileTreeExplorer {
     static FileTreeExplorer() {
 #if DEBUG
         DummyInstance_UITest.RootEntry.Items.Add(new FileTreeNodeDirectory() {
-            FileName = "C:\\",
+            FileName = "C:",
             Items = {
                 new FileTreeNodeDirectory() {
                     FileName = "Users",
@@ -97,7 +97,7 @@ public class FileTreeExplorer {
         });
 
         DummyInstance_UITest.RootEntry.Items.Add(new FileTreeNodeDirectory() {
-            FileName = "D:\\",
+            FileName = "D:",
             Items = {
                 new FileTreeNodeDirectory() {
                     FileName = "OK",
@@ -122,56 +122,47 @@ public class FileTreeExplorer {
         await this.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
             if (directory.ParentDirectory == null)
                 return;
-            
+
             if (!c.TryGetFeature(out IFeatureFileSystemInfo? info)) {
                 directory.HasLoadedContents = true;
                 return;
             }
-            
+
             FileTreeNodeDirectory parent = directory.ParentDirectory!;
-            (EnumFileSystemListResult, List<FileSystemEntry>?) result;
-            string path = directory.FullPath;
-            if (directory.IsTopLevelEntry) {
-                path += '\\';
-            }
-            
+            List<FileSystemEntry> result;
             try {
-                result = await info.GetFileSystemEntries(path);
+                result = await info.GetFileSystemEntries(directory.FullPath);
             }
-            catch (Exception e) {
-                await IMessageDialogService.Instance.ShowMessage("Error", "Error reading file system entries", e.Message);
+            catch (FileSystemAccessDeniedException e) {
+                await IMessageDialogService.Instance.ShowMessage("File System Error", "Access denied", e.Message);
+                return;
+            }
+            catch (FileSystemNoSuchDirectoryException e) {
+                if (!isFromFileNotFound)
+                    await IMessageDialogService.Instance.ShowMessage("File System Error", "No such directory", e.Message);
+                await this.LoadContentsCommand(parent, isFromFileNotFound: true);
+                return;
+            }
+            catch (Exception e) when (e is TimeoutException || e is IOException) {
+                await IMessageDialogService.Instance.ShowMessage("Network Error", "Network error reading file system entries", e.Message);
                 return;
             }
 
-            switch (result.Item1) {
-                case EnumFileSystemListResult.Success: {
-                    foreach (FileSystemEntry entry in result.Item2!.OrderByDescending(x => x.IsDirectory).ThenBy(x => x.Name)) {
-                        directory.Items.Add(entry.IsDirectory
-                            ? new FileTreeNodeDirectory() {
-                                FileName = entry.Name,
-                                CreationTimeUtc = entry.CreatedTime,
-                                ModifiedTimeUtc = entry.ModifiedTime,
-                                Size = entry.Size,
-                            }
-                            : new FileTreeNodeFile() {
-                                FileName = entry.Name,
-                                CreationTimeUtc = entry.CreatedTime,
-                                ModifiedTimeUtc = entry.ModifiedTime,
-                                Size = entry.Size,
-                            });
+            foreach (FileSystemEntry entry in result.OrderByDescending(x => x.IsDirectory).ThenBy(x => x.Name)) {
+                directory.Items.Add(entry.IsDirectory
+                    ? new FileTreeNodeDirectory() {
+                        FileName = entry.Name,
+                        CreationTimeUtc = entry.CreatedTime,
+                        ModifiedTimeUtc = entry.ModifiedTime,
+                        Size = entry.Size,
                     }
-
-                    break;
-                }
-                case EnumFileSystemListResult.AccessDenied: directory.ErrorText = "Access Denied"; break;
-                    // if (!isFromFileNotFound)
-                    //     await IMessageDialogService.Instance.ShowMessage("Access denied", "Access is denied to " + directory.FullPath); break;
-                case EnumFileSystemListResult.NoSuchDirectory: 
-                    if (!isFromFileNotFound)
-                        await IMessageDialogService.Instance.ShowMessage("No such directory", "This folder no longer exists " + directory.FullPath);
-                    await this.LoadContentsCommand(parent, isFromFileNotFound: true);
-                    break;
-                default:                                       break;
+                    : new FileTreeNodeFile() {
+                        FileName = entry.Name,
+                        CreationTimeUtc = entry.CreatedTime,
+                        ModifiedTimeUtc = entry.ModifiedTime,
+                        Size = entry.Size,
+                    }
+                );
             }
         }, "Load directory");
     }

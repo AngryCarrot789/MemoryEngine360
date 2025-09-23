@@ -60,7 +60,7 @@ public class ConditionsListBoxItem : ModelBasedListBoxItem<BaseSequenceCondition
 
     protected override void OnRemovingFromList() {
         AdvancedContextMenu.SetContextRegistry(this, null);
-        DataManager.GetContextData(this).Set(BaseSequenceCondition.DataKey, null);
+        DataManager.GetContextData(this).Remove(BaseSequenceCondition.DataKey);
         
         BaseConditionListContent content = (BaseConditionListContent) this.Content!;
         BaseSequenceCondition condition = content.Condition!;

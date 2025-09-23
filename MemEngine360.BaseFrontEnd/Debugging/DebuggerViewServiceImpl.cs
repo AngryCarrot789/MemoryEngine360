@@ -44,7 +44,7 @@ public class DebuggerViewServiceImpl : IDebuggerViewService {
             return ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                 // prevent memory leak
                 DebuggerView view = (DebuggerView) sender.Content!;
-                view.ConsoleDebugger!.Engine.UserContext.Set(OpenedWindowKey, null);
+                view.ConsoleDebugger!.Engine.UserContext.Remove(OpenedWindowKey);
                 
                 return view.OnClosingAsync(args.Reason);
             }).Unwrap();

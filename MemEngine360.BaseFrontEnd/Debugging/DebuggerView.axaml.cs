@@ -239,7 +239,10 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
         this.PART_RegistersListBox.ConsoleDebugger = newValue;
         this.PART_ThreadListBox.ConsoleDebugger = newValue;
 
-        DataManager.GetContextData(this).Set(ConsoleDebugger.DataKey, newValue);
+        if (newValue != null)
+            DataManager.GetContextData(this).Set(ConsoleDebugger.DataKey, newValue);
+        else 
+            DataManager.GetContextData(this).Remove(ConsoleDebugger.DataKey);
 
         if (this.Window != null && this.Window.OpenState == OpenState.Open) {
             this.PART_EventViewer.BusyLock = newValue?.BusyLock;

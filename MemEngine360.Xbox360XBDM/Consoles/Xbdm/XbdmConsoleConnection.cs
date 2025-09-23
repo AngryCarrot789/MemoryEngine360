@@ -332,10 +332,10 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     public async Task<List<XboxThread>> GetThreadDump(bool requireNames = true) {
         List<string> list = await this.SendCommandAndReceiveLines("threads");
         List<XboxThread> threads = new List<XboxThread>(list.Count);
-        
+
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
-        
+
         foreach (string threadId in list) {
             XboxThread tdInfo = new XboxThread {
                 id = (uint) int.Parse(threadId)
@@ -346,7 +346,7 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 VerifyResponse("threadinfo", response.ResponseType, XbdmResponseType.NoSuchThread);
                 continue;
             }
-            
+
             List<string> info = await this.InternalReadMultiLineResponse();
             Debug.Assert(info.Count > 0, "Info should have at least 1 line since it will be a multi-line response");
             if (info.Count != 1) {
@@ -396,22 +396,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         VerifyResponse("go", response.ResponseType, XbdmResponseType.NotStopped);
         return UnFreezeResult.AlreadyUnfrozen;
-    }
-
-    public async Task DeleteFile(string path) {
-        string[] lines = path.Split('\\');
-        StringBuilder dirSb = new StringBuilder();
-        for (int i = 0; i < lines.Length - 1; i++)
-            dirSb.Append(lines[i]).Append('\\');
-        await this.SendCommand("delete title=\"" + path + "\" dir=\"" + dirSb + "\"").ConfigureAwait(false);
-    }
-
-    public async Task LaunchFile(string path) {
-        string[] lines = path.Split('\\');
-        StringBuilder dirSb = new StringBuilder();
-        for (int i = 0; i < lines.Length - 1; i++)
-            dirSb.Append(lines[i]).Append('\\');
-        await this.SendCommand("magicboot title=\"" + path + "\" directory=\"" + dirSb + "\"").ConfigureAwait(false);
     }
 
     public async Task<string> GetConsoleID() {
@@ -1493,8 +1477,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                     continue;
                 }
 
-                DriveEntry entry = new DriveEntry { Name = driveName };
-                List<string> freeSpaceResponse = await this.connection.SendCommandAndReceiveLines($"drivefreespace name=\"{driveName}:\\\"");
+                DriveEntry entry = new DriveEntry { Name = driveName + ':' };
+                List<string> freeSpaceResponse = await this.connection.SendCommandAndReceiveLines($"drivefreespace name=\"{entry.Name}\\\"");
                 if (freeSpaceResponse.Count == 1) {
                     if (ParamUtils.GetDwParam(freeSpaceResponse[0], "totalbyteslo", true, out uint lo) &&
                         ParamUtils.GetDwParam(freeSpaceResponse[0], "totalbyteshi", true, out uint hi)) {
@@ -1513,21 +1497,21 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             return drives;
         }
 
-        public async Task<(EnumFileSystemListResult, List<FileSystemEntry>?)> GetFileSystemEntries(string directory) {
+        public async Task<List<FileSystemEntry>> GetFileSystemEntries(string fullPath) {
             this.connection.EnsureNotClosed();
             using BusyToken x = this.connection.CreateBusyToken();
 
-            if (string.IsNullOrEmpty(directory))
-                return (EnumFileSystemListResult.NoSuchDirectory, null);
+            if (string.IsNullOrEmpty(fullPath))
+                throw new FileSystemNoSuchDirectoryException(fullPath);
 
-            XbdmResponse response = await this.connection.InternalSendCommand($"dirlist name=\"{directory}\"").ConfigureAwait(false);
-            if (response.RawMessage.Contains("access denied")) {
-                return (EnumFileSystemListResult.AccessDenied, null);
-            }
+            if (fullPath[fullPath.Length - 1] != '\\')
+                fullPath += '\\';
 
-            if (response.ResponseType != XbdmResponseType.MultiResponse) {
-                return (EnumFileSystemListResult.NoSuchDirectory, null);
-            }
+            XbdmResponse response = await this.connection.InternalSendCommand($"dirlist name=\"{fullPath}\"").ConfigureAwait(false);
+            if (response.RawMessage.Contains("access denied"))
+                throw new FileSystemAccessDeniedException($"Access denied to {fullPath}");
+            if (response.ResponseType != XbdmResponseType.MultiResponse)
+                throw new FileSystemNoSuchDirectoryException(fullPath);
 
             List<FileSystemEntry> entries = new List<FileSystemEntry>();
             List<string> list = await this.connection.InternalReadMultiLineResponse();
@@ -1558,12 +1542,28 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
                 }
             });
 
-            return (EnumFileSystemListResult.Success, entries);
+            return entries;
         }
 
-        public Task DeleteFile(string path) => this.connection.DeleteFile(path);
+        public Stream OpenRead(string filePath) {
+            throw new NotImplementedException();
+        }
 
-        public Task LaunchFile(string path) => this.connection.LaunchFile(path);
+        public async Task DeleteFile(string path) {
+            string[] lines = path.Split('\\');
+            StringBuilder dirSb = new StringBuilder();
+            for (int i = 0; i < lines.Length - 1; i++)
+                dirSb.Append(lines[i]).Append('\\');
+            await this.connection.SendCommand("delete title=\"" + path + "\" dir=\"" + dirSb + "\"").ConfigureAwait(false);
+        }
+
+        public async Task LaunchFile(string path) {
+            string[] lines = path.Split('\\');
+            StringBuilder dirSb = new StringBuilder();
+            for (int i = 0; i < lines.Length - 1; i++)
+                dirSb.Append(lines[i]).Append('\\');
+            await this.connection.SendCommand("magicboot title=\"" + path + "\" directory=\"" + dirSb + "\"").ConfigureAwait(false);
+        }
 
         public Task<string> GetConsoleID() => this.connection.GetConsoleID();
 

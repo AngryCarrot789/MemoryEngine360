@@ -100,7 +100,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
             return null;
         }
 
-        bool isOpeningFromNormalDialog = IOpenConnectionView.IsConnectingFromView.TryGetContext(context, out bool isFromView) && isFromView;
+        bool isOpeningFromNormalDialog = IOpenConnectionView.IsConnectingFromViewDataKey.TryGetContext(context, out bool isFromView) && isFromView;
 
         // %appdata%/MemEngine360/Options/application.xml
         BasicApplicationConfiguration.Instance.LastHostName = info.IpAddress;

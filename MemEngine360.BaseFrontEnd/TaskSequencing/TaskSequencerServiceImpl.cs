@@ -18,7 +18,6 @@
 // 
 
 using System.Diagnostics;
-using MemEngine360.Engine;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -53,7 +52,7 @@ public class TaskSequencerServiceImpl : ITaskSequencerService {
             window.WindowClosing += (sender, args) => {
                 // prevent memory leak
                 TaskSequenceManager tsm = ((TaskSequencerView) sender.Content!).TaskSequenceManager;
-                tsm.UserContext.Set(OpenedWindowKey, null);
+                tsm.UserContext.Remove(OpenedWindowKey);
             };
             
             window.WindowClosed += (sender, args) => {

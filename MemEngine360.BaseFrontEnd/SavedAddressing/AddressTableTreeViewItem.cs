@@ -162,7 +162,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem {
             this.OnIsAutoRefreshEnabledChanged(entry);
         }
 
-        DataManager.GetContextData(this).Set(BaseAddressTableEntry.DataKey, this.EntryObject);
+        DataManager.GetContextData(this).Set(BaseAddressTableEntry.DataKey, this.EntryObject!);
         AdvancedContextMenu.SetContextRegistry(this, AddressTableContextRegistry.Registry);
     }
 
@@ -193,7 +193,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem {
             entry.IsAutoRefreshEnabledChanged -= this.OnIsAutoRefreshEnabledChanged;
         }
 
-        DataManager.GetContextData(this).Set(BaseAddressTableEntry.DataKey, null);
+        DataManager.GetContextData(this).Remove(BaseAddressTableEntry.DataKey);
     }
 
     public void OnRemoved() {

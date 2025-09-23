@@ -23,8 +23,6 @@ namespace MemEngine360.Connections.Features;
 /// A feature for a connection that can explore and modify the file system and launch files  
 /// </summary>
 public interface IFeatureFileSystemInfo : IConsoleFeature {
-    // TODO: file system navigation
-
     /// <summary>
     /// Gets a list of drives
     /// </summary>
@@ -34,10 +32,10 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// Gets a list of all file system entries within a directory, such as within a root obtained
     /// from <see cref="GetDriveList"/>. Returns a null list when the directory does not exist
     /// </summary>
-    /// <param name="directory">Directory path</param>
+    /// <param name="fullPath">Directory path</param>
     /// <returns>The entries</returns>
-    Task<(EnumFileSystemListResult, List<FileSystemEntry>?)> GetFileSystemEntries(string directory);
-
+    Task<List<FileSystemEntry>> GetFileSystemEntries(string fullPath);
+    
     /// <summary>
     /// Deletes a file on the console
     /// </summary>
@@ -52,10 +50,19 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
 }
 
 public struct FileSystemEntry {
+    /// <summary>The name of this entry, i.e. file or folder name</summary>
     public string Name;
+
+    /// <summary>The size of this entry. This is zero for folders, since it must be calculated dynamically</summary>
     public ulong Size;
+
+    /// <summary>The time that the entry was created</summary>
     public DateTime CreatedTime;
+
+    /// <summary>The time that the entry was last modified</summary>
     public DateTime ModifiedTime;
+
+    /// <summary>Whether this entry represents a directory</summary>
     public bool IsDirectory;
 }
 
@@ -65,8 +72,17 @@ public struct DriveEntry {
     public ulong FreeBytes;
 }
 
-public enum EnumFileSystemListResult {
-    Success,
-    NoSuchDirectory,
-    AccessDenied,
+public abstract class FileSystemException : Exception {
+    protected FileSystemException(string? message) : base(message) {
+    }
+}
+
+public sealed class FileSystemNoSuchDirectoryException : FileSystemException {
+    public FileSystemNoSuchDirectoryException(string directoryName) : base($"No such directory: {directoryName}") {
+    }
+}
+
+public sealed class FileSystemAccessDeniedException : FileSystemException {
+    public FileSystemAccessDeniedException(string message) : base(message) {
+    }
 }

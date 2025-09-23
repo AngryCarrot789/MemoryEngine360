@@ -84,7 +84,6 @@ using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Icons;
-using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services;
 using PFXToolKitUI.Services.Messaging;
@@ -500,9 +499,13 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
                 await window.ShowAsync();
 
-                // ActivityTask task1 = await ActivityManager.Instance.RunTask(() => RunTask("Task 1", "My cool task 1")).GetRunningAwaitable();
-                // ActivityTask task2 = await ActivityManager.Instance.RunTask(() => RunTask("Task 2", "My cool task 2")).GetRunningAwaitable();
-                // ActivityTask task3 = await ActivityManager.Instance.RunTask(() => RunTask("Task 3", "My cool task 3")).GetRunningAwaitable();
+                // using CancellationTokenSource taskCts1 = new CancellationTokenSource();
+                // using CancellationTokenSource taskCts2 = new CancellationTokenSource();
+                // using CancellationTokenSource taskCts3 = new CancellationTokenSource();
+                //
+                // ActivityTask task1 = await ActivityManager.Instance.RunTask(() => RunTask("Task 1", "My cool task 1"), taskCts1).GetRunningAwaitable();
+                // ActivityTask task2 = await ActivityManager.Instance.RunTask(() => RunTask("Task 2", "My cool task 2"), taskCts2).GetRunningAwaitable();
+                // ActivityTask task3 = await ActivityManager.Instance.RunTask(() => RunTask("Task 3", "My cool task 3"), taskCts3).GetRunningAwaitable();
                 // ActivityTask task4 = await ActivityManager.Instance.RunTask(() => RunTask("Task 4", "My cool task 4")).GetRunningAwaitable();
                 // ActivityTask task5 = await ActivityManager.Instance.RunTask(() => RunTask("Task 5", "My cool task 5")).GetRunningAwaitable();
                 //
@@ -519,14 +522,19 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 //     await foreground.WaitForActivity(window, task5, cts5.Token);
                 // }
                 //
+                // // if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? foreground)) {
+                // //     using CancellationTokenSource cts = new CancellationTokenSource(3000);
+                // //     await foreground.WaitForSubActivities(window, new[] { task1, task3, task5 }.Select(SubActivity.FromActivity), cts.Token);
+                // // }
+                //
                 // return;
                 //
                 // static Task RunTask(string caption, string desc) {
-                //     IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
-                //     prog.Caption = caption;
-                //     prog.Text = desc;
-                //     prog.IsIndeterminate = true;
-                //     return Task.Delay(12000);
+                //     ActivityTask task = ActivityManager.Instance.CurrentTask;
+                //     task.Progress.Caption = caption;
+                //     task.Progress.Text = desc;
+                //     task.Progress.IsIndeterminate = true;
+                //     return Task.Delay(12000, task.CancellationToken);
                 // }
             }
             else {
