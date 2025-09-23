@@ -38,6 +38,7 @@ using PFXToolKitUI.History;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
+using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -278,8 +279,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
 
     /// <summary>
     /// Fires our <see cref="ConnectionAboutToChange"/> event and waits for all handlers to complete.
-    /// This method will not throw any exceptions encountered during the event handlers, instead,
-    /// they're dispatched back to the main thread (excluding <see cref="OperationCanceledException"/>)
+    /// This method will not throw any exceptions encountered during the event handlers
     /// </summary>
     /// <param name="topLevel"></param>
     /// <param name="frame">The connection changing frame. See docs for <see cref="GetNextConnectionChangeFrame"/> for more info</param>
@@ -290,13 +290,13 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
             return;
         }
 
-        List<(IActivityProgress Progress, TaskCompletionSource TCS)> progressions = new List<(IActivityProgress, TaskCompletionSource)>(list.Length);
+        List<SubActivity> progressions = new List<SubActivity>(list.Length);
         Task[] tasks = new Task[list.Length];
         for (int i = 0; i < list.Length; i++) {
             MemoryEngineConnectionChangingEventHandler handler = (MemoryEngineConnectionChangingEventHandler) list[i];
             DispatcherActivityProgress progress = new DispatcherActivityProgress();
             TaskCompletionSource tcs = new TaskCompletionSource();
-            progressions.Add((progress, tcs));
+            progressions.Add(new SubActivity(progress, tcs.Task, null));
 
             tasks[i] = Task.Run(async () => {
                 progress.IsIndeterminate = true;
@@ -309,8 +309,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
                 catch (OperationCanceledException) {
                     // ignored
                 }
-                catch (Exception) {
-                    // also ignored
+                catch (Exception e) {
+                    AppLogger.Instance.WriteLine("Exception invoking connection changing handler: " + e.GetToString());
                 }
 
                 tcs.SetResult();
@@ -331,7 +331,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
 
         if (!whenAllHandlersDoneTask.IsCompleted) {
             if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
-                await service.ShowMultipleProgressions(topLevel, progressions.Select(x => (x.Progress, x.TCS.Task)), CancellationToken.None);
+                await service.WaitForSubActivities(topLevel, progressions, CancellationToken.None);
             }
             else {
                 await whenAllHandlersDoneTask;

@@ -84,6 +84,8 @@ using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Icons;
+using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
@@ -209,7 +211,10 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
     protected override void RegisterComponents(ComponentStorage manager) {
         if (this.Application.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime) {
             manager.AddComponent<IDesktopService>(new DesktopServiceImpl(this.Application));
-            manager.AddComponent<IWindowManager>(new DesktopWindowManager(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)));
+
+            DesktopWindowManager dwm = new DesktopWindowManager(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute));
+            manager.AddComponent<IWindowManager>(dwm);
+            manager.AddComponent<ITopLevelManager>(dwm);
             manager.AddComponent<IForegroundActivityService>(new DesktopForegroundActivityServiceImpl());
         }
 
@@ -457,10 +462,10 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
                 IDesktopService.TryGetInstance(out IDesktopService? desktop);
                 if (desktop != null)
-                    desktop.ApplicationLifetime.ShutdownMode = ShutdownMode.OnExplicitShutdown; 
-                
+                    desktop.ApplicationLifetime.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
                 (progress as SplashScreenWindow)?.Close();
-                
+
                 if (desktop != null)
                     desktop.ApplicationLifetime.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
@@ -486,7 +491,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.MemoryEngine);
                 };
 
-                window.TryCloseAsync += static (s, e) => Instance.Dispatcher.InvokeAsync(() => OnEngineWindowAboutToClose(s, e)).Unwrap();
+                window.WindowClosingAsync += static (s, e) => Instance.Dispatcher.InvokeAsync(() => OnEngineWindowAboutToClose(s)).Unwrap();
                 window.WindowClosed += static (s, e) => {
                     EngineView view = (EngineView) s.Content!;
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
@@ -494,13 +499,42 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 };
 
                 await window.ShowAsync();
+
+                // ActivityTask task1 = await ActivityManager.Instance.RunTask(() => RunTask("Task 1", "My cool task 1")).GetRunningAwaitable();
+                // ActivityTask task2 = await ActivityManager.Instance.RunTask(() => RunTask("Task 2", "My cool task 2")).GetRunningAwaitable();
+                // ActivityTask task3 = await ActivityManager.Instance.RunTask(() => RunTask("Task 3", "My cool task 3")).GetRunningAwaitable();
+                // ActivityTask task4 = await ActivityManager.Instance.RunTask(() => RunTask("Task 4", "My cool task 4")).GetRunningAwaitable();
+                // ActivityTask task5 = await ActivityManager.Instance.RunTask(() => RunTask("Task 5", "My cool task 5")).GetRunningAwaitable();
+                //
+                // await Task.Delay(2000);
+                //
+                // if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? foreground)) {
+                //     using CancellationTokenSource cts3 = new CancellationTokenSource(2000);
+                //     await foreground.WaitForActivity(window, task3, cts3.Token);
+                //  
+                //     using CancellationTokenSource cts1 = new CancellationTokenSource(2000);
+                //     await foreground.WaitForActivity(window, task1, cts1.Token);
+                //     
+                //     using CancellationTokenSource cts5 = new CancellationTokenSource(2000);
+                //     await foreground.WaitForActivity(window, task5, cts5.Token);
+                // }
+                //
+                // return;
+                //
+                // static Task RunTask(string caption, string desc) {
+                //     IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
+                //     prog.Caption = caption;
+                //     prog.Text = desc;
+                //     prog.IsIndeterminate = true;
+                //     return Task.Delay(12000);
+                // }
             }
             else {
                 Instance.Dispatcher.InvokeShutdown();
             }
         }
 
-        private static async Task OnEngineWindowAboutToClose(IWindow window, WindowCancelCloseEventArgs args) {
+        private static async Task OnEngineWindowAboutToClose(IWindow window) {
             EngineView view = (EngineView) window.Content!;
             MemoryEngine engine = view.MemoryEngine;
 
@@ -517,13 +551,9 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 ActivityTask? activity = engine.ScanningProcessor.ScanningActivity;
                 if (activity != null && activity.TryCancel()) {
                     await activity;
-
-                    if (engine.ScanningProcessor.IsScanning) {
-                        await IMessageDialogService.Instance.ShowMessage("Busy", "Rare: scan still busy");
-                        args.SetCancelled();
-                        return;
-                    }
                 }
+                
+                Debug.Assert(!engine.ScanningProcessor.IsScanning);
             }
 
             using (CancellationTokenSource cts = new CancellationTokenSource()) {
