@@ -84,6 +84,7 @@ using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Icons;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services;
 using PFXToolKitUI.Services.Messaging;
@@ -490,7 +491,11 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.MemoryEngine);
                 };
 
-                window.WindowClosingAsync += static (s, e) => Instance.Dispatcher.InvokeAsync(() => OnEngineWindowAboutToClose(s)).Unwrap();
+                window.WindowClosingAsync += static (s, e) => {
+                    return Instance.Dispatcher.InvokeAsync(() => {
+                        return CommandManager.Instance.RunActionAsync(_ => OnEngineWindowAboutToClose(s), s.LocalContextData);
+                    }).Unwrap();
+                };
                 window.WindowClosed += static (s, e) => {
                     EngineView view = (EngineView) s.Content!;
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
@@ -560,7 +565,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 if (activity != null && activity.TryCancel()) {
                     await activity;
                 }
-                
+
                 Debug.Assert(!engine.ScanningProcessor.IsScanning);
             }
 
@@ -591,7 +596,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     return; // force close - let tcp things timeout
                 }
 
-                token = await engine.BeginBusyOperationActivityAsync("Safely closing window");
+                token = await TryGetTokenWithForegroundDialog(window, engine.BusyLocker);
             }
 
             IConsoleConnection? connection = engine.Connection;
@@ -624,7 +629,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     return; // force close - let tcp things timeout
                 }
 
-                debuggerToken = await engine.ConsoleDebugger.BusyLock.BeginBusyOperationActivityAsync("Safely closing window");
+                debuggerToken = await TryGetTokenWithForegroundDialog(window, engine.ConsoleDebugger.BusyLock);
             }
 
             IConsoleConnection? debugConnection = engine.ConsoleDebugger.Connection;
@@ -640,6 +645,28 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             finally {
                 debuggerToken.Dispose();
             }
+        }
+
+        private static async Task<IDisposable?> TryGetTokenWithForegroundDialog(IWindow window, BusyLock busyLock) {
+            IDisposable? token;
+            if ((token = busyLock.TryBeginBusyOperation()) == null) {
+                using CancellationTokenSource cts = new CancellationTokenSource();
+                ActivityTask<IDisposable?> activity = ActivityManager.Instance.RunTask(() => {
+                    ActivityTask task = ActivityManager.Instance.CurrentTask;
+                    return busyLock.BeginBusyOperationAsync(task.CancellationToken);
+                }, new DispatcherActivityProgress() {
+                    Caption = "Safely disconnect", Text = "Waiting for busy operations...",
+                    IsIndeterminate = true
+                }, cts);
+
+                if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
+                    await service.WaitForActivity(window, activity, CancellationToken.None);
+                }
+
+                token = (await activity).GetValueOrDefault();
+            }
+
+            return token;
         }
     }
 
