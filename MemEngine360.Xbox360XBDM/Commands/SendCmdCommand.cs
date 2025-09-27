@@ -57,7 +57,7 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
             }
         };
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData)) == true) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
             using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Sending command");
             if (token != null) {
                 // XBDM appends \r\n for us so we remove it

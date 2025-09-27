@@ -19,7 +19,6 @@
 
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
@@ -48,7 +47,7 @@ public class NewSequenceCommand : Command {
         state.SelectedSequences.SelectItem(sequence);
         
         SingleUserInputInfo info = new SingleUserInputInfo("New sequence", "What do you want to call it?", sequence.DisplayName);
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData)) == true) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
             sequence.DisplayName = info.Text;
         }
     }

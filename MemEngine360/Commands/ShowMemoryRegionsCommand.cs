@@ -22,7 +22,6 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -69,7 +68,7 @@ public class ShowMemoryRegionsCommand : BaseMemoryEngineCommand {
                 RegionFlagsToTextConverter = MemoryRegionUserInputInfo.ConvertXboxFlagsToText
             };
 
-            await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData));
+            await IUserInputDialogService.Instance.ShowInputDialogAsync(info);
         }
     }
 }

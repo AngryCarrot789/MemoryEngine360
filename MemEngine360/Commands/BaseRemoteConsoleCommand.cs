@@ -24,7 +24,6 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Shortcuts;
@@ -288,7 +287,7 @@ public class TestRPCCommand : BaseJRPC2Command {
                 }
             };
 
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData)) == true) {
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
                 int index = int.Parse(info.TextA, NumberStyles.HexNumber); // cannot fail
                 string value = info.TextB;
                 await jrpc.CallVoid(0x822CB3E8, index, value);

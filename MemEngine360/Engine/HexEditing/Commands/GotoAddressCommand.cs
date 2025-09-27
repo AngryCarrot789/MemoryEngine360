@@ -20,7 +20,6 @@
 using System.Globalization;
 using AvaloniaHex.Base.Document;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Engine.HexEditing.Commands;
@@ -41,7 +40,7 @@ public class GotoAddressCommand : BaseHexEditorCommand {
             }
         };
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(singleInfo, ITopLevel.FromContext(e.ContextData)) == true) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(singleInfo) == true) {
             uint address = uint.Parse(singleInfo.Text, NumberStyles.HexNumber);
             BitLocation caret = new BitLocation(address, view.CaretLocation.BitIndex);
 

@@ -20,8 +20,7 @@
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Windowing;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Engine.FileBrowsing.Commands;
 
@@ -38,20 +37,27 @@ public class LaunchFileCommand : BaseFileExplorerCommand {
         }
 
         BaseFileTreeNode item = state.TreeSelection.SelectedItems.First();
-        if (item is FileTreeNodeFile file) {
-            IConsoleConnection? connection;
-            MemoryEngine engine = explorer.MemoryEngine;
-
-            Task<IDisposable?> task = TopLevelContextUtils.GetUsefulTopLevel() is ITopLevel topLevel
-                ? engine.BusyLocker.BeginBusyOperationWithForegroundActivityAsync(topLevel, "Launch File")
-                : engine.BusyLocker.BeginBusyOperationActivityAsync("Launch File");
-
-            using IDisposable? token = await task;
-            if (token != null && (connection = engine.Connection) != null) {
-                if (connection.TryGetFeature(out IFeatureFileSystemInfo? fsInfo)) {
-                    await fsInfo.LaunchFile(file.FullPath);
-                }
-            }
+        if (!(item is FileTreeNodeFile file)) {
+            return;
         }
+
+        IFeatureFileSystemInfo? fsInfo = null;
+        ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(explorer.MemoryEngine, x => x.BusyLocker, x => x.Connection)) {
+            ActivityCaption = "Launch File",
+            CanRetryOnConnectionChanged = false,
+            Setup = async (action, connection, hasConnectionChanged) => {
+                if (!connection.TryGetFeature(out fsInfo)) {
+                    await IMessageDialogService.Instance.ShowMessage("Unsupported", "This connection does not support File I/O");
+                    return false;
+                }
+
+                return true;
+            },
+            Execute = async (action, connection) => {
+                await fsInfo!.LaunchFile(file.FullPath);
+            }
+        };
+
+        await action.RunAsync();
     }
 }

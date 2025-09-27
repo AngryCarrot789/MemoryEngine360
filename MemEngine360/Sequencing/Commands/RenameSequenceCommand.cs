@@ -19,7 +19,6 @@
 
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Sequencing.Commands;
@@ -41,7 +40,7 @@ public class RenameSequenceCommand : Command {
         TaskSequence? sequence = state.PrimarySelectedSequence;
         if (sequence != null) {
             SingleUserInputInfo info = new SingleUserInputInfo("Rename sequence", null, "New Name", sequence.DisplayName);
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData)) == true) {
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
                 sequence.DisplayName = info.Text;
             }
         }

@@ -29,7 +29,7 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine;
 
-public delegate void RWBusyLockEventHandler(BusyLock busyLock);
+public delegate void BusyLockEventHandler(BusyLock busyLock);
 
 /// <summary>
 /// An asynchronous lock implementation, used primarily used by the <see cref="MemoryEngine"/>,
@@ -66,7 +66,7 @@ public sealed class BusyLock {
     /// the light of day, and the next handlers in the list will not be invoked, potentially leading to application wide corruption
     /// </para>
     /// </summary>
-    public event RWBusyLockEventHandler? IsBusyChanged;
+    public event BusyLockEventHandler? IsBusyChanged;
 
     public BusyLock() {
         this.busyLockAsyncWaiters = new LinkedList<CancellableTaskCompletionSource>();
@@ -206,7 +206,7 @@ public sealed class BusyLock {
     /// <summary>
     /// Tries to begin a busy operation. If we could not get the token immediately, we start a new activity and
     /// try to get it asynchronously, passing the given progress to the activity. We also start a timer that waits
-    /// <see cref="dialogTimeout"/> about of milliseconds, and if we still couldn't get the token, we show a foreground
+    /// <see cref="showDelay"/> about of milliseconds, and if we still couldn't get the token, we show a foreground
     /// dialog showing that we're trying to get the busy token
     /// <para>
     /// This method does not throw <see cref="OperationCanceledException"/> when cancelled, instead, the method returns a null token
@@ -215,12 +215,12 @@ public sealed class BusyLock {
     /// <param name="topLevel">The top level to be the parent of the foreground activity dialog</param>
     /// <param name="caption">The activity caption</param>
     /// <param name="message">The activity message</param>
-    /// <param name="dialogTimeout">A timeout for acquiring the token to showing the foreground dialog.</param>
+    /// <param name="showDelay">A delay between trying to acquire the token and actually showing the foreground dialog.</param>
     /// <param name="cancellationTokenSource">
     /// Used to cancel this operation. When cancelled, we stop waiting for the token, and we close the foreground dialog (if open)
     /// </param>
     /// <returns></returns>
-    public async Task<IDisposable?> BeginBusyOperationWithForegroundActivityAsync(ITopLevel topLevel, string caption = "New Operation", string message = "Waiting for busy operations...", int dialogTimeout = 250, CancellationTokenSource? cancellationTokenSource = null) {
+    public async Task<IDisposable?> BeginBusyOperationWithForegroundActivityAsync(ITopLevel topLevel, string caption = "New Operation", string message = "Waiting for busy operations...", int showDelay = 250, CancellationTokenSource? cancellationTokenSource = null) {
         IDisposable? token = this.TryBeginBusyOperation();
         if (token != null) {
             return token;
@@ -232,19 +232,8 @@ public sealed class BusyLock {
             return this.BeginBusyOperationAsync(task.CancellationToken);
         }, new DispatcherActivityProgress() { Caption = caption, Text = message, IsIndeterminate = true }, cts);
 
-        if (dialogTimeout > 0 && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
-            _ = Task.Run(async () => {
-                try {
-                    await Task.Delay(dialogTimeout, activity.CancellationToken);
-                }
-                catch (OperationCanceledException) {
-                    // ignored
-                }
-
-                if (!activity.IsCompleted && !activity.IsCancellationRequested) {
-                    await service.WaitForActivity(topLevel, activity, CancellationToken.None);
-                }
-            }, CancellationToken.None);
+        if (showDelay > 0 && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
+            await service.DelayedWaitForActivity(topLevel, activity, showDelay, CancellationToken.None);
         }
 
         Result<IDisposable?> result = await activity;

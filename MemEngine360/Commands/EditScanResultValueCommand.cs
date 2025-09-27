@@ -25,7 +25,6 @@ using MemEngine360.Engine.View;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -100,7 +99,7 @@ public class EditScanResultValueCommand : Command {
             }
         };
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input, ITopLevel.FromContext(e.ContextData)) != true) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) != true) {
             return;
         }
 

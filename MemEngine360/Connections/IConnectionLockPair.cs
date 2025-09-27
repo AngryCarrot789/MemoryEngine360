@@ -35,7 +35,7 @@ public interface IConnectionLockPair {
     /// </summary>
     IConsoleConnection? Connection { get; }
 
-    public async Task BeginBusyOperationActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
+    async Task BeginBusyOperationActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
         if (this.Connection == null)
             return; // short path -- save creating an activity
 
@@ -46,7 +46,7 @@ public interface IConnectionLockPair {
         }
     }
 
-    public async Task<TResult?> BeginBusyOperationActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
+    async Task<TResult?> BeginBusyOperationActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
         if (this.Connection == null)
             return default; // short path -- save creating an activity
 
@@ -58,11 +58,22 @@ public interface IConnectionLockPair {
 
         return default;
     }
+
+    static IConnectionLockPair Constant(BusyLock busyLock, IConsoleConnection? connection) => new ConnectionLockPair(busyLock, connection);
+    
+    static IConnectionLockPair Lambda(Func<BusyLock> lockProvider, Func<IConsoleConnection?> connectionProvider) => new LambdaConnectionLockPair(lockProvider, connectionProvider);
+    
+    static IConnectionLockPair Lambda<T>(T state, Func<T, BusyLock> lockProvider, Func<T, IConsoleConnection?> connectionProvider) => new LambdaConnectionLockPairEx<T>(state, lockProvider, connectionProvider);
 }
 
-public sealed class LambdaConnectionLockPair(Func<BusyLock> busyLockProvider, Func<IConsoleConnection?> connectionProvider) : IConnectionLockPair {
-    public BusyLock BusyLock => busyLockProvider();
+public sealed class LambdaConnectionLockPair(Func<BusyLock> lockProvider, Func<IConsoleConnection?> connectionProvider) : IConnectionLockPair {
+    public BusyLock BusyLock => lockProvider();
     public IConsoleConnection? Connection => connectionProvider();
+}
+
+public sealed class LambdaConnectionLockPairEx<T>(T state, Func<T, BusyLock> lockProvider, Func<T, IConsoleConnection?> connectionProvider) : IConnectionLockPair {
+    public BusyLock BusyLock => lockProvider(state);
+    public IConsoleConnection? Connection => connectionProvider(state);
 }
 
 public sealed class ConnectionLockPair(BusyLock busyLock, IConsoleConnection? connection) : IConnectionLockPair {

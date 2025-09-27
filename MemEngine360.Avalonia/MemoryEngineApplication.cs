@@ -660,7 +660,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 }, cts);
 
                 if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
-                    await service.WaitForActivity(window, activity, CancellationToken.None);
+                    await service.DelayedWaitForActivity(window, activity, 250, CancellationToken.None);
                 }
 
                 token = (await activity).GetValueOrDefault();

@@ -141,7 +141,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
         if (isOpeningFromNormalDialog && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
             IWindow? window = WindowContextUtils.GetUsefulWindow();
             if (window != null) {
-                await service.WaitForActivity(window, activity);
+                await service.DelayedWaitForActivity(window, activity, 500);
             }
         }
 

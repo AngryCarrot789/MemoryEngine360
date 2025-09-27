@@ -22,7 +22,6 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -86,7 +85,7 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
             RegionFlagsToTextConverter = MemoryRegionUserInputInfo.ConvertXboxFlagsToText
         };
         
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData)) == true && info.SelectedRegion != null) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true && info.SelectedRegion != null) {
             engine.ScanningProcessor.SetScanRange(info.SelectedRegion.BaseAddress, info.SelectedRegion.Size);
         }
     }

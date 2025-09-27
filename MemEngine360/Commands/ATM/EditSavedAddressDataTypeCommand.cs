@@ -21,7 +21,6 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils;
 
@@ -45,7 +44,7 @@ public class EditSavedAddressDataTypeCommand : BaseSavedAddressSelectionCommand 
             Caption = "Modify data type"
         };
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(e.ContextData)) == true) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
             // somehow disconnected from tree during dialog
             if (saved.AddressTableManager == null) {
                 return;
