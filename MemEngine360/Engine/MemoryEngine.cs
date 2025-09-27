@@ -439,13 +439,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
     public Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...", CancellationTokenSource? cancellationTokenSource = null) {
-        IDisposable? token = this.TryBeginBusyOperation();
-        if (token != null)
-            return Task.FromResult<IDisposable?>(token);
-
-        return this.BusyLocker.BeginBusyOperationActivityAsync(new DispatcherActivityProgress() {
-            Caption = caption, Text = message
-        }, cancellationTokenSource);
+        return this.BusyLocker.BeginBusyOperationActivityAsync(caption, message, cancellationTokenSource);
     }
 
     /// <summary>
@@ -461,6 +455,21 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         IConsoleConnection theConn; // save double volatile read
         if (token != null && (theConn = this.connection) != null) {
             await action(token, theConn);
+        }
+    }
+    
+    /// <summary>
+    /// Gets a busy token and invokes a callback if the connection is available
+    /// </summary>
+    /// <param name="action">The callback to invoke when we have the token</param>
+    /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
+    public async Task BeginBusyOperationWithForegroundActivityAsync(ITopLevel topLevel, Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
+        if (this.connection != null) {
+            using IDisposable? token = await this.BusyLocker.BeginBusyOperationWithForegroundActivityAsync(topLevel, caption, message);
+            IConsoleConnection theConn; // save double volatile read
+            if (token != null && (theConn = this.connection) != null) {
+                await action(token, theConn);
+            }
         }
     }
 

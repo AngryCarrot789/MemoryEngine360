@@ -26,7 +26,7 @@ namespace MemEngine360.Commands.ATM;
 
 public class DeleteSelectedSavedAddressesCommand : BaseSavedAddressSelectionCommand {
     protected override Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
-        MemoryEngineViewState.GetInstance(engine).AddressTableSelectionManager.Clear();
+        // MemoryEngineViewState.GetInstance(engine).AddressTableSelectionManager.Clear();
         foreach (BaseAddressTableEntry entry in entries) {
             entry.Parent?.Items.Remove(entry);
         }

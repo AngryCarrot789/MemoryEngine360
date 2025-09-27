@@ -34,7 +34,7 @@ using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.FileBrowsing;
 
-public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
+public sealed class FileBrowserTreeViewItem : TreeViewItem {
     public static readonly DirectProperty<FileBrowserTreeViewItem, bool> IsFolderItemProperty = AvaloniaProperty.RegisterDirect<FileBrowserTreeViewItem, bool>("IsFolderItem", o => o.IsFolderItem, null);
     public static readonly StyledProperty<bool> IsDroppableTargetOverProperty = AvaloniaProperty.Register<FileBrowserTreeViewItem, bool>(nameof(IsDroppableTargetOver));
     public static readonly StyledProperty<bool> HasContentsLoadedProperty = AvaloniaProperty.Register<FileBrowserTreeViewItem, bool>(nameof(HasContentsLoaded));
@@ -72,14 +72,9 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem, IFileTreeNodeUI {
     private TextBlock? PART_FileType;
     private TextBlock? PART_FileSize;
 
-    BaseFileTreeNode IFileTreeNodeUI.Entry => this.EntryObject ?? throw new Exception("Not connected to an entry");
-
-    bool IFileTreeNodeUI.IsValid => this.EntryObject != null;
-
     private readonly AsyncRelayCommand LoadContentsCommand;
 
     public FileBrowserTreeViewItem() {
-        DataManager.GetContextData(this).Set(IFileTreeNodeUI.DataKey, this);
         DragDrop.SetAllowDrop(this, true);
         this.Expanded += this.OnExpanded;
         this.LoadContentsCommand = new AsyncRelayCommand(async () => {
@@ -238,7 +233,11 @@ public static class AddressTableContextRegistry {
     static AddressTableContextRegistry() {
         // FixedContextGroup modEdit = Registry.GetFixedGroup("modify.edit");
         FixedContextGroup modGeneric = Registry.GetFixedGroup("modify.general");
+        modGeneric.AddCommand("commands.memengine.RenameFileCommand", "Rename", "Rename this item");
+        modGeneric.AddSeparator();
         modGeneric.AddCommand("commands.memengine.LaunchFileCommand", "Launch File", "Launches the file");
+        modGeneric.AddSeparator();
+        modGeneric.AddCommand("commands.memengine.DeleteFilesCommand", "Delete", "Deletes the selected items(s)");
         // modEdit.AddHeader("Modify");
         // modEdit.AddCommand("commands.memengine.EditSavedAddressAddressCommand", "Edit Address");
         // modEdit.AddCommand("commands.memengine.EditSavedAddressValueCommand", "Edit Value");

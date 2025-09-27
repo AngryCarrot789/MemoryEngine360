@@ -41,12 +41,37 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// </summary>
     /// <param name="path">The file path</param>
     Task DeleteFile(string path);
-
+    
     /// <summary>
     /// Launches an executable file, e.g. an XEX
     /// </summary>
     /// <param name="path"></param>
     Task LaunchFile(string path);
+    
+    /// <summary>
+    /// Moves a file from one location to another location.
+    /// </summary>
+    Task MoveFile(string oldPath, string newPath);
+
+    /// <summary>
+    /// Gets the directory path from a path
+    /// </summary>
+    string GetDirectoryPath(string path);
+
+    /// <summary>
+    /// Gets the file name (or directory name) of a path
+    /// </summary>
+    string GetFileName(string path);
+    
+    /// <summary>
+    /// Joins together multiple path parts into a final path
+    /// </summary>
+    string JoinPaths(params string[] paths);
+
+    /// <summary>
+    /// Checks whether the path is valid, as in, does not contain invalid characters or is not too long, etc
+    /// </summary>
+    bool IsPathValid(string path);
 }
 
 public struct FileSystemEntry {

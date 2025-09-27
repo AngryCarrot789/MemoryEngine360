@@ -1545,16 +1545,12 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             return entries;
         }
 
-        public Stream OpenRead(string filePath) {
-            throw new NotImplementedException();
-        }
-
         public async Task DeleteFile(string path) {
             string[] lines = path.Split('\\');
             StringBuilder dirSb = new StringBuilder();
             for (int i = 0; i < lines.Length - 1; i++)
                 dirSb.Append(lines[i]).Append('\\');
-            await this.connection.SendCommand("delete title=\"" + path + "\" dir=\"" + dirSb + "\"").ConfigureAwait(false);
+            await this.connection.SendCommand($"delete title=\"{path}\" dir=\"{dirSb}\"").ConfigureAwait(false);
         }
 
         public async Task LaunchFile(string path) {
@@ -1562,7 +1558,51 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             StringBuilder dirSb = new StringBuilder();
             for (int i = 0; i < lines.Length - 1; i++)
                 dirSb.Append(lines[i]).Append('\\');
-            await this.connection.SendCommand("magicboot title=\"" + path + "\" directory=\"" + dirSb + "\"").ConfigureAwait(false);
+            await this.connection.SendCommand($"magicboot title=\"{path}\" directory=\"{dirSb}\"").ConfigureAwait(false);
+        }
+
+        public async Task MoveFile(string oldPath, string newPath) {
+            await this.connection.SendCommand($"rename name=\"{oldPath}\" newname=\"{newPath}\"").ConfigureAwait(false);
+        }
+
+        public string GetDirectoryPath(string path) {
+            int index = path.LastIndexOf('\\');
+            if (index == -1)
+                return path;
+            return path.Substring(0, index);
+        }
+
+        public string GetFileName(string path) {
+            int index = path.LastIndexOf('\\');
+            if (index == -1)
+                return path;
+            return path.Substring(index + 1);
+        }
+
+        public string JoinPaths(params string[] paths) {
+            return Path.Join(paths);
+        }
+
+        public bool IsPathValid(string path) {
+            string[] parts = path.Split('\\');
+            char[] ch1 = Path.GetInvalidPathChars();
+            char[] ch2 = Path.GetInvalidFileNameChars();
+
+            int i = 0;
+            if (parts.Length > 1 && parts[0].Contains(':'))
+                i++;
+
+            for (; i < parts.Length; i++) {
+                string part = parts[i];
+                foreach (char ch in ch1)
+                    if (part.Contains(ch))
+                        return false;
+                foreach (char ch in ch2)
+                    if (part.Contains(ch))
+                        return false;
+            }
+
+            return true;
         }
 
         public Task<string> GetConsoleID() => this.connection.GetConsoleID();

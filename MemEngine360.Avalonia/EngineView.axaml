@@ -11,11 +11,11 @@
              xmlns:cmds="clr-namespace:MemEngine360.BaseFrontEnd.Commands;assembly=MemEngine360.BaseFrontEnd"
              xmlns:bfe="clr-namespace:MemEngine360.BaseFrontEnd;assembly=MemEngine360.BaseFrontEnd"
              xmlns:sa="clr-namespace:MemEngine360.BaseFrontEnd.SavedAddressing;assembly=MemEngine360.BaseFrontEnd"
-             xmlns:notifications="clr-namespace:PFXToolKitUI.Avalonia.Notifications;assembly=PFXToolKitUI.Avalonia"
              xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
              xmlns:s="clr-namespace:MemEngine360;assembly=MemEngine360"
              xmlns:c2="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:notifications="clr-namespace:PFXToolKitUI.Avalonia.Notifications;assembly=PFXToolKitUI.Avalonia"
              mc:Ignorable="d"
              x:Class="MemEngine360.Avalonia.EngineView"
              Background="{DynamicResource ABrush.MemEngine.MainView.Background}">

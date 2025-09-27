@@ -131,9 +131,9 @@ public partial class EngineView : UserControl {
     private IWindow? myOwnerWindow_onLoaded;
     private ObservableItemProcessorIndexing<Theme>? themeListHandler;
     private TextNotification? connectionNotification;
-    private LambdaNotificationCommand? connectionNotificationCommandGetStarted;
-    private LambdaNotificationCommand? connectionNotificationCommandDisconnect;
-    private LambdaNotificationCommand? connectionNotificationCommandReconnect;
+    private LambdaNotificationAction? connectionNotificationCommandGetStarted;
+    private LambdaNotificationAction? connectionNotificationCommandDisconnect;
+    private LambdaNotificationAction? connectionNotificationCommandReconnect;
     private readonly DataGridSelectionModelBinder<ScanResultViewModel> scanResultSelectionBinder;
     private readonly TreeViewSelectionModelBinder<BaseAddressTableEntry> addressTableSelectionBinder;
 
@@ -530,8 +530,8 @@ public partial class EngineView : UserControl {
         if (newConn != null) {
             notification.Caption = "Connected";
             notification.Text = $"Connected to '{newConn.ConnectionType.DisplayName}'";
-            notification.Commands.Clear();
-            notification.Commands.Add(this.connectionNotificationCommandGetStarted ??= new LambdaNotificationCommand("Get Started", static async (c) => {
+            notification.Actions.Clear();
+            notification.Actions.Add(this.connectionNotificationCommandGetStarted ??= new LambdaNotificationAction("Get Started", static async (c) => {
                 ITopLevel topLevel = ITopLevel.TopLevelDataKey.GetContext(c.ContextData!)!;
                 if (!topLevel.TryGetWebLauncher(out IWebLauncher? launcher))
                     return;
@@ -540,7 +540,7 @@ public partial class EngineView : UserControl {
                 await launcher.LaunchUriAsync(new Uri(url));
             }) { ToolTip = "Opens a link to MemoryEngine360's quick start guide on the wiki" });
 
-            notification.Commands.Add(this.connectionNotificationCommandDisconnect ??= new LambdaNotificationCommand("Disconnect", static async (c) => {
+            notification.Actions.Add(this.connectionNotificationCommandDisconnect ??= new LambdaNotificationAction("Disconnect", static async (c) => {
                 ITopLevel topLevel = ITopLevel.TopLevelDataKey.GetContext(c.ContextData!)!;
                 MemoryEngine engine = MemoryEngine.EngineDataKey.GetContext(c.ContextData!)!;
                 if (engine.Connection != null) {
@@ -571,10 +571,10 @@ public partial class EngineView : UserControl {
                         ? NotificationAlertMode.UntilUserInteraction
                         : NotificationAlertMode.None;
 
-                notification.Commands.Clear();
+                notification.Actions.Clear();
                 if (cause == ConnectionChangeCause.LostConnection || cause == ConnectionChangeCause.ConnectionError) {
                     notification.CanAutoHide = false;
-                    notification.Commands.Add(this.connectionNotificationCommandReconnect ??= new LambdaNotificationCommand("Reconnect", static async (c) => {
+                    notification.Actions.Add(this.connectionNotificationCommandReconnect ??= new LambdaNotificationAction("Reconnect", static async (c) => {
                         // ContextData ensured non-null by LambdaNotificationCommand.requireContext
                         MemoryEngine engine = MemoryEngine.EngineDataKey.GetContext(c.ContextData!)!;
                         if (engine.Connection != null) {

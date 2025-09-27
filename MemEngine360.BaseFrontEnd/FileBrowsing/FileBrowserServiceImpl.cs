@@ -43,7 +43,7 @@ public class FileBrowserServiceImpl : IFileBrowserService {
         }
 
         FileTreeExplorerView control = new FileTreeExplorerView() {
-            PART_FileBrowser = { FileTreeManager = explorer }
+            FileTreeExplorer = explorer
         };
 
         IWindow window = manager.CreateWindow(new WindowBuilder() {
@@ -54,9 +54,12 @@ public class FileBrowserServiceImpl : IFileBrowserService {
             Width = 1024, Height = 768
         });
 
-        window.WindowClosing += (sender, args) => {
-            FileTreeExplorer exp = ((FileTreeExplorerView) sender.Content!).FileTreeExplorer;
+        window.WindowClosing += static (sender, args) => {
+            FileTreeExplorerView content = (FileTreeExplorerView) sender.Content!;
+            FileTreeExplorer exp = content.FileTreeExplorer!;
             exp.MemoryEngine.UserContext.Remove(OpenedWindowKey);
+
+            content.FileTreeExplorer = null;
         };
         
         explorer.MemoryEngine.UserContext.Set(OpenedWindowKey, window);

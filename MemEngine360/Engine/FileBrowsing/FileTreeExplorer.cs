@@ -19,16 +19,24 @@
 
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
+using PFXToolKitUI.Composition;
+using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.Engine.FileBrowsing;
 
-public class FileTreeExplorer {
+public class FileTreeExplorer : IComponentManager {
+    public static readonly DataKey<FileTreeExplorer> DataKey = DataKeys.Create<FileTreeExplorer>(nameof(FileTreeExplorer));
+    
 #if DEBUG
     public static FileTreeExplorer DummyInstance_UITest { get; } = new FileTreeExplorer(new MemoryEngine());
 #endif
 
+    private readonly ComponentStorage myComponentStorage;
+    
     /// <summary>
     /// Gets the folder that stores this ATM's layer hierarchy
     /// </summary>
@@ -39,10 +47,13 @@ public class FileTreeExplorer {
     /// </summary>
     public MemoryEngine MemoryEngine { get; }
 
+    ComponentStorage IComponentManager.ComponentStorage => this.myComponentStorage;
+    
     private readonly AsyncRelayCommand refreshRootCommand;
 
     public FileTreeExplorer(MemoryEngine memoryEngine) {
-        this.MemoryEngine = memoryEngine;
+        this.MemoryEngine = memoryEngine ?? throw new ArgumentNullException(nameof(memoryEngine));
+        this.myComponentStorage = new ComponentStorage(this);
         this.RootEntry = FileTreeNodeDirectory.InternalCreateRoot(this);
 
         this.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;
@@ -119,7 +130,8 @@ public class FileTreeExplorer {
 
         directory.HasLoadedContents = false;
         directory.Items.Clear();
-        await this.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
+
+        async Task Action(IDisposable t, IConsoleConnection c) {
             if (directory.ParentDirectory == null)
                 return;
 
@@ -151,19 +163,20 @@ public class FileTreeExplorer {
             foreach (FileSystemEntry entry in result.OrderByDescending(x => x.IsDirectory).ThenBy(x => x.Name)) {
                 directory.Items.Add(entry.IsDirectory
                     ? new FileTreeNodeDirectory() {
-                        FileName = entry.Name,
-                        CreationTimeUtc = entry.CreatedTime,
-                        ModifiedTimeUtc = entry.ModifiedTime,
-                        Size = entry.Size,
+                        FileName = entry.Name, CreationTimeUtc = entry.CreatedTime, ModifiedTimeUtc = entry.ModifiedTime, Size = entry.Size,
                     }
                     : new FileTreeNodeFile() {
-                        FileName = entry.Name,
-                        CreationTimeUtc = entry.CreatedTime,
-                        ModifiedTimeUtc = entry.ModifiedTime,
-                        Size = entry.Size,
-                    }
-                );
+                        FileName = entry.Name, CreationTimeUtc = entry.CreatedTime, ModifiedTimeUtc = entry.ModifiedTime, Size = entry.Size,
+                    });
             }
-        }, "Load directory");
+        }
+
+        ITopLevel? topLevel = TopLevelContextUtils.GetUsefulTopLevel();
+        if (topLevel != null) {
+            await this.MemoryEngine.BeginBusyOperationWithForegroundActivityAsync(topLevel, Action, "Load directory");
+        }
+        else {
+            await this.MemoryEngine.BeginBusyOperationActivityAsync(Action, "Load directory");
+        }
     }
 }

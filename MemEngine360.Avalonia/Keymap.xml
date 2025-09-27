@@ -155,6 +155,18 @@
             <KeyStroke Mods="CTRL" Key="O"/>
         </Shortcut>
     </Group>
+    <Group Name="FileExplorer" DisplayName="The file explorer">
+        <Group Name="FileTree">
+            <Group Name="Node">
+                <Shortcut Name="RenameFile1" CommandId="commands.memengine.RenameFileCommand">
+                    <KeyStroke Mods="CTRL" Key="R"/>
+                </Shortcut>
+                <Shortcut Name="RenameFile2" CommandId="commands.memengine.RenameFileCommand">
+                    <KeyStroke Key="F2"/>
+                </Shortcut>
+            </Group>
+        </Group>
+    </Group>
     <Group Name="Configuration" DisplayName="Configuration window" Description="The configuration window">
         <Group Name="Tree" DisplayName="The tree of pages">
             <Group Name="TreeItem" DisplayName="A tree item that opens a page">

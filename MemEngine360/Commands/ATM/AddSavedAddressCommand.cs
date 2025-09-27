@@ -42,11 +42,11 @@ public class AddSavedAddressCommand : Command {
         uint initialAddress = 0;
         AddressTableGroupEntry? targetParent = null;
         MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(engine);
-        List<ScanResultViewModel> list = vs.SelectedScanResults.SelectedItems.ToList();
-        if (list.Count > 0)
-            initialAddress = list[list.Count - 1].Address;
+        IReadOnlyList<ScanResultViewModel> selection = vs.SelectedScanResults.SelectedItems;
+        if (selection.Count > 0)
+            initialAddress = selection[selection.Count - 1].Address;
 
-        if (vs.AddressTableSelectionManager.Count == 1) {
+        if (vs.AddressTableSelectionManager.HasOneSelectedItem) {
             BaseAddressTableEntry entry = vs.AddressTableSelectionManager.SelectedItems.First();
             if (entry is AddressTableGroupEntry) {
                 targetParent = (AddressTableGroupEntry) entry;

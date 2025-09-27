@@ -30,7 +30,7 @@ using PFXToolKitUI.Utils.Collections.Observable;
 namespace MemEngine360.BaseFrontEnd.FileBrowsing;
 
 public sealed class FileBrowserTreeView : TreeView {
-    public static readonly StyledProperty<FileTreeExplorer?> FileTreeManagerProperty = AvaloniaProperty.Register<FileBrowserTreeView, FileTreeExplorer?>("FileTreeManager");
+    public static readonly StyledProperty<FileTreeExplorer?> FileTreeExplorerProperty = AvaloniaProperty.Register<FileBrowserTreeView, FileTreeExplorer?>("FileTreeManager");
     public static readonly StyledProperty<IBrush?> ColumnSeparatorBrushProperty = AvaloniaProperty.Register<FileBrowserTreeView, IBrush?>(nameof(ColumnSeparatorBrush));
     
     internal readonly Stack<FileBrowserTreeViewItem> itemCache;
@@ -40,9 +40,9 @@ public sealed class FileBrowserTreeView : TreeView {
     
     public IModelControlMap<BaseFileTreeNode, FileBrowserTreeViewItem> ItemMap => this.itemMap;
 
-    public FileTreeExplorer? FileTreeManager {
-        get => this.GetValue(FileTreeManagerProperty);
-        set => this.SetValue(FileTreeManagerProperty, value);
+    public FileTreeExplorer? FileTreeExplorer {
+        get => this.GetValue(FileTreeExplorerProperty);
+        set => this.SetValue(FileTreeExplorerProperty, value);
     }
     
     public IBrush? ColumnSeparatorBrush {
@@ -58,7 +58,7 @@ public sealed class FileBrowserTreeView : TreeView {
         DragDrop.SetAllowDrop(this, true);
 #if DEBUG
         if (Design.IsDesignMode) {
-            this.FileTreeManager = FileTreeExplorer.DummyInstance_UITest;
+            this.FileTreeExplorer = FileTreeExplorer.DummyInstance_UITest;
         }
 #endif
     }
@@ -73,7 +73,7 @@ public sealed class FileBrowserTreeView : TreeView {
     }
 
     static FileBrowserTreeView() {
-        FileTreeManagerProperty.Changed.AddClassHandler<FileBrowserTreeView, FileTreeExplorer?>((o, e) => o.OnATMChanged(e));
+        FileTreeExplorerProperty.Changed.AddClassHandler<FileBrowserTreeView, FileTreeExplorer?>((o, e) => o.OnATMChanged(e));
         DragDrop.DragOverEvent.AddClassHandler<FileBrowserTreeView>((s, e) => s.OnDragOver(e), handledEventsToo: true /* required */);
     }
 

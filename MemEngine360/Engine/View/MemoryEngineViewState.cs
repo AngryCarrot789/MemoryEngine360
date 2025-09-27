@@ -59,9 +59,10 @@ public sealed class MemoryEngineViewState {
 
         AddressTableManager atm = engine.AddressTableManager;
         this.AddressTableSelectionManager = new TreeSelectionModel<BaseAddressTableEntry>(
-            atm.RootEntry.Items,
-            static arg => arg.Parent?.Parent == null ? null : arg.Parent,
-            static arg => arg is AddressTableGroupEntry g ? g.Items : Enumerable.Empty<BaseAddressTableEntry>());
+            atm.RootEntry,
+            static arg => arg.AddressTableManager != null,
+            static arg => arg.Parent,
+            static arg => arg is AddressTableGroupEntry g ? g.Items : null);
     }
 
     public void RaiseRequestWindowFocus() => this.RequestWindowFocus?.Invoke(this, EventArgs.Empty);

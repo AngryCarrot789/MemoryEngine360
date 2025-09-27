@@ -17,22 +17,48 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using Avalonia;
 using Avalonia.Controls;
 using MemEngine360.Engine.FileBrowsing;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Interactivity.Selecting;
-using PFXToolKitUI.Interactivity;
+using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 
 namespace MemEngine360.BaseFrontEnd.FileBrowsing;
 
-public partial class FileTreeExplorerView : UserControl, IFileExplorerUI {
-    public IListSelectionManager<IFileTreeNodeUI> SelectionManager { get; }
+public partial class FileTreeExplorerView : UserControl {
+    public static readonly StyledProperty<FileTreeExplorer?> FileTreeExplorerProperty = AvaloniaProperty.Register<FileTreeExplorerView, FileTreeExplorer?>(nameof(FileTreeExplorer));
 
-    public FileTreeExplorer FileTreeExplorer => this.PART_FileBrowser.FileTreeManager ?? throw new InvalidOperationException("Invalid window");
-    
+    public FileTreeExplorer? FileTreeExplorer {
+        get => this.GetValue(FileTreeExplorerProperty);
+        set => this.SetValue(FileTreeExplorerProperty, value);
+    }
+
+    private TreeViewSelectionModelBinder<BaseFileTreeNode>? selectionBinder;
+
     public FileTreeExplorerView() {
         this.InitializeComponent();
-        this.SelectionManager = new TreeViewSelectionManager<IFileTreeNodeUI>(this.PART_FileBrowser);
-        DataManager.GetContextData(this).Set(IFileExplorerUI.DataKey, this);
+    }
+
+    static FileTreeExplorerView() {
+        FileTreeExplorerProperty.Changed.AddClassHandler<FileTreeExplorerView, FileTreeExplorer?>((s, e) => s.OnFileTreeExplorerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+    }
+
+    private void OnFileTreeExplorerChanged(FileTreeExplorer? oldValue, FileTreeExplorer? newValue) {
+        this.PART_FileBrowser.FileTreeExplorer = newValue;
+
+        if (this.selectionBinder != null) {
+            this.selectionBinder.Dispose();
+            this.selectionBinder = null;
+        }
+
+        if (newValue != null) {
+            this.selectionBinder = new TreeViewSelectionModelBinder<BaseFileTreeNode>(
+                this.PART_FileBrowser,
+                FileTreeExplorerViewState.GetInstance(newValue).TreeSelection,
+                tvi => ((FileBrowserTreeViewItem) tvi).EntryObject!,
+                model => this.PART_FileBrowser.ItemMap.GetControl(model));
+        }
+        
+        DataManager.GetContextData(this).Set(FileTreeExplorer.DataKey, newValue);
     }
 }

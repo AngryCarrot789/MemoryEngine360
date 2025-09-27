@@ -84,7 +84,6 @@ using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Icons;
-using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services;
 using PFXToolKitUI.Services.Messaging;
@@ -137,6 +136,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.ShowMemoryViewCommand", new ShowMemoryViewCommand());
         manager.Register("commands.memengine.ShowFileBrowserCommand", new ShowFileBrowserCommand());
         manager.Register("commands.memengine.LaunchFileCommand", new LaunchFileCommand());
+        manager.Register("commands.memengine.RenameFileCommand", new RenameFileCommand());
         manager.Register("commands.memengine.DumpMemoryCommand", new DumpMemoryCommand());
         manager.Register("commands.memengine.GroupEntriesCommand", new GroupEntriesCommand());
         manager.Register("commands.memengine.OpenXMLFileCommand", new OpenXMLFileCommand());

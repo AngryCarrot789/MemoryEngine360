@@ -37,7 +37,7 @@
         <fb:FileBrowserTreeView ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                 ScrollViewer.VerticalScrollBarVisibility="Visible"
                                 Height="250"
-                                FileTreeManager="{x:Static fileBrowsing:FileTreeExplorer.DummyInstance_UITest}"/>
+                                FileTreeExplorer="{x:Static fileBrowsing:FileTreeExplorer.DummyInstance_UITest}"/>
     </Design.PreviewWith>
 
     <ControlTheme x:Key="{x:Type fb:FileBrowserTreeView}" TargetType="{x:Type fb:FileBrowserTreeView}" BasedOn="{StaticResource {x:Type TreeView}}">
@@ -51,7 +51,7 @@
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
         <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
         <Setter Property="ScrollViewer.IsScrollChainingEnabled" Value="True"/>
-        <Setter Property="sc:UIInputManager.FocusPath" Value="EngineWindow/FileTree"/>
+        <Setter Property="sc:UIInputManager.FocusPath" Value="FileExplorer/FileTree"/>
         <Setter Property="Grid.IsSharedSizeScope" Value="True"/>
         <Setter Property="Template">
             <ControlTemplate>
@@ -141,7 +141,7 @@
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
         <Setter Property="Margin" Value="0"/>
         <Setter Property="Padding" Value="0"/>
-        <Setter Property="sc:UIInputManager.FocusPath" Value="EngineWindow/FileTree/RowItem"/>
+        <Setter Property="sc:UIInputManager.FocusPath" Value="FileExplorer/FileTree/Node"/>
         <Setter Property="Template">
             <ControlTemplate>
                 <Panel>

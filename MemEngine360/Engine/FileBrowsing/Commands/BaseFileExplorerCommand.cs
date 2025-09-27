@@ -23,20 +23,20 @@ namespace MemEngine360.Engine.FileBrowsing.Commands;
 
 public abstract class BaseFileExplorerCommand : Command {
     protected sealed override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!IFileExplorerUI.DataKey.TryGetContext(e.ContextData, out IFileExplorerUI? explorer))
+        if (!FileTreeExplorer.DataKey.TryGetContext(e.ContextData, out FileTreeExplorer? explorer))
             return Executability.Invalid;
 
         return this.CanExecuteCore(explorer, e);
     }
 
     protected sealed override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!IFileExplorerUI.DataKey.TryGetContext(e.ContextData, out IFileExplorerUI? explorer))
+        if (!FileTreeExplorer.DataKey.TryGetContext(e.ContextData, out FileTreeExplorer? explorer))
             return Task.CompletedTask;
 
         return this.ExecuteCommandAsync(explorer, e);
     }
 
-    protected abstract Executability CanExecuteCore(IFileExplorerUI explorer, CommandEventArgs e);
+    protected abstract Executability CanExecuteCore(FileTreeExplorer explorer, CommandEventArgs e);
     
-    protected abstract Task ExecuteCommandAsync(IFileExplorerUI explorer, CommandEventArgs e);
+    protected abstract Task ExecuteCommandAsync(FileTreeExplorer explorer, CommandEventArgs e);
 }

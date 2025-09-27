@@ -23,6 +23,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
@@ -165,13 +166,13 @@ public sealed class BusyLock {
     /// <returns>
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
-    public async Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...", CancellationTokenSource? cancellationTokenSource = null) {
+    public Task<IDisposable?> BeginBusyOperationActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...", CancellationTokenSource? cancellationTokenSource = null) {
         IDisposable? token = this.TryBeginBusyOperation();
-        if (token == null) {
-            return await this.BeginBusyOperationActivityAsync(new DispatcherActivityProgress() { Caption = caption, Text = message }, cancellationTokenSource).ConfigureAwait(false);
+        if (token != null) {
+            return Task.FromResult<IDisposable?>(token);
         }
 
-        return token;
+        return this.BeginBusyOperationActivityAsync(new DispatcherActivityProgress() { Caption = caption, Text = message }, cancellationTokenSource);
     }
 
     /// <summary>
@@ -200,6 +201,58 @@ public sealed class BusyLock {
         }
 
         return token;
+    }
+
+    /// <summary>
+    /// Tries to begin a busy operation. If we could not get the token immediately, we start a new activity and
+    /// try to get it asynchronously, passing the given progress to the activity. We also start a timer that waits
+    /// <see cref="dialogTimeout"/> about of milliseconds, and if we still couldn't get the token, we show a foreground
+    /// dialog showing that we're trying to get the busy token
+    /// <para>
+    /// This method does not throw <see cref="OperationCanceledException"/> when cancelled, instead, the method returns a null token
+    /// </para>
+    /// </summary>
+    /// <param name="topLevel">The top level to be the parent of the foreground activity dialog</param>
+    /// <param name="caption">The activity caption</param>
+    /// <param name="message">The activity message</param>
+    /// <param name="dialogTimeout">A timeout for acquiring the token to showing the foreground dialog.</param>
+    /// <param name="cancellationTokenSource">
+    /// Used to cancel this operation. When cancelled, we stop waiting for the token, and we close the foreground dialog (if open)
+    /// </param>
+    /// <returns></returns>
+    public async Task<IDisposable?> BeginBusyOperationWithForegroundActivityAsync(ITopLevel topLevel, string caption = "New Operation", string message = "Waiting for busy operations...", int dialogTimeout = 250, CancellationTokenSource? cancellationTokenSource = null) {
+        IDisposable? token = this.TryBeginBusyOperation();
+        if (token != null) {
+            return token;
+        }
+
+        CancellationTokenSource cts = cancellationTokenSource ?? new CancellationTokenSource();
+        ActivityTask<IDisposable?> activity = ActivityManager.Instance.RunTask(() => {
+            ActivityTask task = ActivityManager.Instance.CurrentTask;
+            return this.BeginBusyOperationAsync(task.CancellationToken);
+        }, new DispatcherActivityProgress() { Caption = caption, Text = message, IsIndeterminate = true }, cts);
+
+        if (dialogTimeout > 0 && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
+            _ = Task.Run(async () => {
+                try {
+                    await Task.Delay(dialogTimeout, activity.CancellationToken);
+                }
+                catch (OperationCanceledException) {
+                    // ignored
+                }
+
+                if (!activity.IsCompleted && !activity.IsCancellationRequested) {
+                    await service.WaitForActivity(topLevel, activity, CancellationToken.None);
+                }
+            }, CancellationToken.None);
+        }
+
+        Result<IDisposable?> result = await activity;
+        if (cancellationTokenSource == null) {
+            cts.Dispose();
+        }
+
+        return result.GetValueOrDefault();
     }
 
     private async Task<IDisposable?> InternalBeginOperationLoop(CancellationToken cancellationToken) {
@@ -355,7 +408,7 @@ public sealed class BusyLock {
 
     private class BusyToken : IDisposable {
         public volatile BusyLock? myLock;
-        
+
 #if TRACK_TOKEN_CREATION_STACK_TRACE
         // debugging stack trace, just in case the app locks up then the source is likely in here
         public string? creationTrace;
@@ -366,7 +419,7 @@ public sealed class BusyLock {
             Debug.Assert(theLock.activeToken == null, "Active token already non-null");
             this.myLock = theLock;
             theLock.OnTokenCreatedUnderLock();
-            
+
 #if TRACK_TOKEN_CREATION_STACK_TRACE
             this.creationTrace = new StackTrace(true).ToString();
 #endif

@@ -20,24 +20,33 @@
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.FileBrowsing.Commands;
 
 public class LaunchFileCommand : BaseFileExplorerCommand {
-    protected override Executability CanExecuteCore(IFileExplorerUI explorer, CommandEventArgs e) {
-        return explorer.SelectionManager.Count == 1 ? Executability.Valid : Executability.ValidButCannotExecute;
+    protected override Executability CanExecuteCore(FileTreeExplorer explorer, CommandEventArgs e) {
+        FileTreeExplorerViewState state = FileTreeExplorerViewState.GetInstance(explorer);
+        return state.TreeSelection.HasOneSelectedItem ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
-    protected override async Task ExecuteCommandAsync(IFileExplorerUI explorer, CommandEventArgs e) {
-        if (explorer.SelectionManager.Count != 1) {
+    protected override async Task ExecuteCommandAsync(FileTreeExplorer explorer, CommandEventArgs e) {
+        FileTreeExplorerViewState state = FileTreeExplorerViewState.GetInstance(explorer);
+        if (!state.TreeSelection.HasOneSelectedItem) {
             return;
         }
 
-        IFileTreeNodeUI item = explorer.SelectionManager.SelectedItemList[0];
-        if (item.Entry is FileTreeNodeFile file) {
+        BaseFileTreeNode item = state.TreeSelection.SelectedItems.First();
+        if (item is FileTreeNodeFile file) {
             IConsoleConnection? connection;
-            MemoryEngine engine = explorer.FileTreeExplorer.MemoryEngine;
-            using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Launch File");
+            MemoryEngine engine = explorer.MemoryEngine;
+
+            Task<IDisposable?> task = TopLevelContextUtils.GetUsefulTopLevel() is ITopLevel topLevel
+                ? engine.BusyLocker.BeginBusyOperationWithForegroundActivityAsync(topLevel, "Launch File")
+                : engine.BusyLocker.BeginBusyOperationActivityAsync("Launch File");
+
+            using IDisposable? token = await task;
             if (token != null && (connection = engine.Connection) != null) {
                 if (connection.TryGetFeature(out IFeatureFileSystemInfo? fsInfo)) {
                     await fsInfo.LaunchFile(file.FullPath);
