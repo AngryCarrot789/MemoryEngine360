@@ -23,11 +23,10 @@ using MemEngine360.Connections.Features;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
-using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.FileBrowsing.Commands;
 
-public class RenameFileCommand : BaseFileExplorerCommand {
+public class MoveFileCommand : BaseFileExplorerCommand {
     protected override Executability CanExecuteCore(FileTreeExplorer explorer, CommandEventArgs e) {
         FileTreeExplorerViewState state = FileTreeExplorerViewState.GetInstance(explorer);
         IConsoleConnection? connection = state.Explorer.MemoryEngine.Connection;
@@ -51,65 +50,57 @@ public class RenameFileCommand : BaseFileExplorerCommand {
         MemoryEngine engine = explorer.MemoryEngine;
         BaseFileTreeNode item = state.TreeSelection.SelectedItems.First();
         if (item.IsTopLevelEntry) {
-            await IMessageDialogService.Instance.ShowMessage("Root Directory", "Root directories cannot be renamed");
+            await IMessageDialogService.Instance.ShowMessage("Root Directory", "Root directories cannot be moved");
             return;
         }
 
         FileTreeNodeDirectory parent = item.ParentDirectory!;
         Debug.Assert(parent != null);
+        FileTreeExplorer? fileTree = parent.FileTreeManager;
+        if (fileTree == null) {
+            return;
+        }
 
         string oldPath = item.FullPath;
-        string newPath = oldPath;
+        string? newPath = null;
         IFeatureFileSystemInfo? fsInfo = null;
-        
+
         ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(engine, x => x.BusyLocker, x => x.Connection)) {
-            ActivityCaption = "Rename File",
+            ActivityCaption = "Move File",
             Setup = async (action, connection, hasConnectionChanged) => {
                 if (!connection.TryGetFeature(out fsInfo)) {
                     await IMessageDialogService.Instance.ShowMessage("Unsupported", "This connection does not support File I/O");
                     return false;
                 }
 
-                string directory = fsInfo!.GetDirectoryPath(newPath);
-                SingleUserInputInfo info = new SingleUserInputInfo(fsInfo!.GetFileName(newPath)) {
-                    Caption = "Rename",
-                    Message = "Rename this " + (item is FileTreeNodeDirectory ? "directory" : "file") + $" located in {directory}",
-                    Label = "New file name",
-                    Validate = (args) => {
-                        // ReSharper disable once AccessToModifiedClosure
-                        if (!fsInfo.IsPathValid(args.Input))
-                            args.Errors.Add("Invalid file name");
+                if (newPath == null) {
+                    SingleUserInputInfo info = new SingleUserInputInfo(oldPath) {
+                        Caption = "Move",
+                        Message = "Move this " + (item is FileTreeNodeDirectory ? "directory" : "file"),
+                        Label = "New Path",
+                        MinimumDialogWidthHint = 500,
+                        Validate = (args) => {
+                            if (!fsInfo.IsPathValid(args.Input))
+                                args.Errors.Add("Invalid path");
+                        },
+                        Footer = "Tip: you can use this to rename something too"
+                    };
+                    
+                    if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
+                        return false;
                     }
-                };
-
-                if (hasConnectionChanged) {
-                    info.Footer = "Dialog shown again because the connection changed.";
+                    
+                    newPath = info.Text;
                 }
 
-                if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
-                    return false;
-                }
-
-                newPath = fsInfo.JoinPaths(directory, info.Text);
-                if (!fsInfo.IsPathValid(newPath)) {
-                    await IMessageDialogService.Instance.ShowMessage("Invalid path", "Path is invalid: " + newPath);
-                    return false;
-                }
-                
                 return true;
             },
             Execute = async (action, connection) => {
-                await fsInfo!.MoveFile(oldPath, newPath);
+                await fsInfo!.MoveFile(oldPath, newPath!);
+                await fileTree.SelectFilePath(newPath!, fsInfo, true);
             }
         };
 
-        if (await action.RunAsync() && parent.FileTreeManager != null && parent.ParentDirectory != null) {
-            await parent.FileTreeManager.ReloadDirectoryAsCommand(parent);
-         
-            BaseFileTreeNode? theItem = parent.Items.FirstOrDefault(x => x.FullPath.EqualsIgnoreCase(newPath));
-            if (theItem != null) {
-                state.TreeSelection.SetSelection(theItem);
-            }
-        }
+        await action.RunAsync();
     }
 }

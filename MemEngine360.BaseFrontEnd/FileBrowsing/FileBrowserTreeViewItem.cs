@@ -73,39 +73,32 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem {
     private TextBlock? PART_FileType;
     private TextBlock? PART_FileSize;
 
-    private readonly AsyncRelayCommand LoadContentsCommand;
+    private readonly AsyncRelayCommand<bool /* force */> LoadContentsCommand;
 
     public FileBrowserTreeViewItem() {
         DragDrop.SetAllowDrop(this, true);
         this.Expanded += this.OnExpanded;
-        this.Collapsed += this.OnCollapsed;
-        this.LoadContentsCommand = new AsyncRelayCommand(async () => {
-            if (!(this.EntryObject is FileTreeNodeDirectory dir)) {
+        this.LoadContentsCommand = new AsyncRelayCommand<bool>(async (force) => {
+            if (!(this.EntryObject is FileTreeNodeDirectory dir))
                 return;
-            }
-
-            if (dir.ParentDirectory == null || dir.HasLoadedContents) {
+            if (dir.ParentDirectory == null || (dir.HasLoadedContents && !force))
                 return;
-            }
 
+            bool isFocused = this.IsFocused;
             this.IsEnabled = false;
 
+            // Optimisation to deselect hierarchy if forcing refresh, since we will remove all descendents,
+            // and, due to how avalonia works, will remove selection one by one, which is slow asf
             FileTreeExplorerViewState state = FileTreeExplorerViewState.GetInstance(dir.FileTreeManager!);
             state.TreeSelection.DeselectHierarchy(dir);
 
-            await CommandManager.Instance.RunActionAsync((e) => state.Explorer.LoadContentsCommand(dir), DataManager.GetFullContextData(this));
+            await CommandManager.Instance.RunActionAsync((e) => state.Explorer.ReloadDirectoryAsCommand(dir), DataManager.GetFullContextData(this));
 
             this.IsEnabled = true;
+            if (isFocused) {
+                this.Focus();
+            }
         });
-    }
-
-    private void OnCollapsed(object? sender, RoutedEventArgs e) {
-        if (this.EntryObject?.FileTreeManager == null) {
-            return;
-        }
-        
-        FileTreeExplorerViewState state = FileTreeExplorerViewState.GetInstance(this.EntryObject!.FileTreeManager!);
-        state.TreeSelection.DeselectHierarchy(this.EntryObject);
     }
 
     protected override void OnKeyDown(KeyEventArgs e) {
@@ -113,13 +106,13 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem {
         if (!e.Handled && e.Key == Key.F5 && this.EntryObject is FileTreeNodeDirectory dir && !this.LoadContentsCommand.IsRunning) {
             e.Handled = true;
             dir.HasLoadedContents = false;
-            this.LoadContentsCommand.Execute(null);
+            this.LoadContentsCommand.Execute(true);
         }
     }
 
     private void OnExpanded(object? sender, RoutedEventArgs e) {
         if (this.EntryObject != null && this.IsExpanded) {
-            this.LoadContentsCommand.Execute(null);
+            this.LoadContentsCommand.Execute(false);
             e.Handled = true;
         }
     }
@@ -147,6 +140,7 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem {
         this.EntryObject = layer;
         this.IsFolderItem = layer is FileTreeNodeDirectory;
         this.ClearValue(IsSelectedProperty);
+        this.ClearValue(IsExpandedProperty);
     }
 
     public void OnAdded() {
@@ -248,9 +242,11 @@ public static class AddressTableContextRegistry {
     static AddressTableContextRegistry() {
         // FixedContextGroup modEdit = Registry.GetFixedGroup("modify.edit");
         FixedContextGroup modGeneric = Registry.GetFixedGroup("modify.general");
-        modGeneric.AddCommand("commands.memengine.RenameFileCommand", "Rename", "Rename this item");
+        modGeneric.AddCommand("commands.memengine.CreateDirectoryInDirectoryCommand", "Create directory...");
+        modGeneric.AddCommand("commands.memengine.RenameFileCommand", "Rename...", "Rename this item");
         modGeneric.AddSeparator();
         modGeneric.AddCommand("commands.memengine.LaunchFileCommand", "Launch File", "Launches the file");
+        modGeneric.AddCommand("commands.memengine.MoveFileCommand", "Move...", "Open a dialog to specify a new path");
         modGeneric.AddSeparator();
         modGeneric.AddCommand("commands.memengine.DeleteFilesCommand", "Delete", "Deletes the selected items(s)");
         // modEdit.AddHeader("Modify");

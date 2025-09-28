@@ -44,7 +44,7 @@ public sealed class FileTreeNodeDirectory : BaseFileTreeNode {
         this.Items.BeforeItemsAdded += (list, index, items) => {
             foreach (BaseFileTreeNode item in items) {
                 if (item == null)
-                    throw new ArgumentNullException(nameof(item), "Cannot add a null operation");
+                    throw new InvalidOperationException("Attempt to add null entry");
                 if (item.ParentDirectory == this)
                     throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
                 if (item.ParentDirectory != null)
@@ -54,18 +54,18 @@ public sealed class FileTreeNodeDirectory : BaseFileTreeNode {
 
         this.Items.BeforeItemReplace += (list, index, oldItem, newItem) => {
             if (newItem == null)
-                throw new ArgumentNullException(nameof(newItem), "Cannot replace operation with null");
+                throw new ArgumentNullException(nameof(newItem), "Cannot replace entry with null");
         };
 
         this.Items.ItemsAdded += (list, index, items) => {
-            foreach (BaseFileTreeNode? operation in items) {
-                InternalOnAddedToEntry(operation, this);
+            foreach (BaseFileTreeNode? node in items) {
+                InternalOnAddedToEntry(node, this);
             }
         };
 
         this.Items.ItemsRemoved += (list, index, removedItems) => {
-            foreach (BaseFileTreeNode? operation in removedItems) {
-                InternalOnRemovedFromEntry(operation, this);
+            foreach (BaseFileTreeNode? node in removedItems) {
+                InternalOnRemovedFromEntry(node, this);
             }
         };
 

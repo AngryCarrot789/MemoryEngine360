@@ -398,10 +398,6 @@ public sealed class AddressTableTreeViewItem : TreeViewItem {
 
     public const string DropKey = "MemoryEngine.ATEItem.Drop";
 
-    private void CompleteDragForDrop() {
-        this.hasCompletedDrop = true;
-    }
-
     private DropLocation GetDropLocation(Point pt, bool isFolder, bool isDropValid) {
         const double NormalBorder = 8.0;
         // Inside drop is only allowed when a folder and the drop is valid

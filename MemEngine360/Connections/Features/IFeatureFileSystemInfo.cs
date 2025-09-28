@@ -19,6 +19,8 @@
 
 namespace MemEngine360.Connections.Features;
 
+// TODO: use a FileSystem class that delegates to this feature under the hood?
+
 /// <summary>
 /// A feature for a connection that can explore and modify the file system and launch files  
 /// </summary>
@@ -52,6 +54,11 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// Moves a file from one location to another location.
     /// </summary>
     Task MoveFile(string oldPath, string newPath);
+    
+    /// <summary>
+    /// Creates a directory with the given path. All subdirectories will be created
+    /// </summary>
+    Task CreateDirectory(string path);
 
     /// <summary>
     /// Gets the directory path from a path
@@ -67,6 +74,12 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// Joins together multiple path parts into a final path
     /// </summary>
     string JoinPaths(params string[] paths);
+
+    /// <summary>
+    /// Reverse of <see cref="JoinPaths"/>
+    /// </summary>
+    string[] SplitPath(string filePath);
+    
 
     /// <summary>
     /// Checks whether the path is valid, as in, does not contain invalid characters or is not too long, etc

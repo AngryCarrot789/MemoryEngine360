@@ -21,13 +21,24 @@ using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Engine.FileBrowsing.Commands;
 
-public class LaunchFileCommand : BaseFileExplorerCommand {
+public class CreateDirectoryInDirectoryCommand : BaseFileExplorerCommand {
     protected override Executability CanExecuteCore(FileTreeExplorer explorer, CommandEventArgs e) {
+        if (explorer.MemoryEngine.Connection?.HasFeature<IFeatureFileSystemInfo>() != true)
+            return Executability.ValidButCannotExecute;
+
         FileTreeExplorerViewState state = FileTreeExplorerViewState.GetInstance(explorer);
-        return state.TreeSelection.HasOneSelectedItem ? Executability.Valid : Executability.ValidButCannotExecute;
+        if (!state.TreeSelection.HasOneSelectedItem)
+            return Executability.ValidButCannotExecute;
+        
+        BaseFileTreeNode item = state.TreeSelection.SelectedItems.First();
+        if (!(item is FileTreeNodeDirectory))
+            return Executability.ValidButCannotExecute;
+        
+        return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(FileTreeExplorer explorer, CommandEventArgs e) {
@@ -37,11 +48,15 @@ public class LaunchFileCommand : BaseFileExplorerCommand {
         }
 
         BaseFileTreeNode item = state.TreeSelection.SelectedItems.First();
-        if (!(item is FileTreeNodeFile file)) {
+        if (!(item is FileTreeNodeDirectory)) {
             return;
         }
+        
+        string parentDirPath = item.FullPath;
 
         IFeatureFileSystemInfo? fsInfo = null;
+        string? newPath = null;
+
         ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(explorer.MemoryEngine, x => x.BusyLocker, x => x.Connection)) {
             ActivityCaption = "Launch File",
             Setup = async (action, connection, hasConnectionChanged) => {
@@ -50,10 +65,37 @@ public class LaunchFileCommand : BaseFileExplorerCommand {
                     return false;
                 }
 
+                SingleUserInputInfo info = new SingleUserInputInfo("") {
+                    Caption = "Create Directory",
+                    Label = "Directory Name",
+                    MinimumDialogWidthHint = 500,
+                    Validate = (args) => {
+                        if (!fsInfo.IsPathValid(args.Input))
+                            args.Errors.Add("Invalid name");
+                    }
+                };
+
+                info.TextChanged += s => {
+                    s.Footer = "Full Path: " + fsInfo.JoinPaths(parentDirPath, s.Text);
+                };
+
+                info.Text = "New Directory";
+
+                if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
+                    return false;
+                }
+
+                newPath = fsInfo.JoinPaths(parentDirPath, info.Text);
+                if (!fsInfo.IsPathValid(newPath)) {
+                    await IMessageDialogService.Instance.ShowMessage("Invalid path", "Path is invalid: " + newPath);
+                    return false;
+                }
+                
                 return true;
             },
             Execute = async (action, connection) => {
-                await fsInfo!.LaunchFile(file.FullPath);
+                await fsInfo!.CreateDirectory(newPath!);
+                await state.Explorer.SelectFilePath(newPath!, fsInfo!, true);
             }
         };
 

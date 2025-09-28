@@ -32,8 +32,9 @@ public delegate Task ConnectionActionRunHandler(ConnectionAction action, IConsol
 /// <summary>
 /// Abstract an action that uses a connection, while handling common problems and annoyances (e.g. connection changes between acquiring busy token)
 /// </summary>
-public sealed class ConnectionAction {
+public class ConnectionAction {
     private readonly IConnectionLockPair connectionLockPair;
+    private bool isRunning;
 
     /// <summary>
     /// Gets or sets if we should run an activity to acquire the busy lock.
@@ -83,15 +84,15 @@ public sealed class ConnectionAction {
 
     /// <summary>
     /// Gets or sets if <see cref="Setup"/> should be invoked again if the connection changes between
-    /// the last setup and acquiring the busy token. Default value is true.
+    /// the last setup and acquiring the busy token. Default value is false.
     /// </summary>
-    public bool CanRetryOnConnectionChanged { get; init; } = true;
+    public bool CanRetryOnConnectionChanged { get; init; } = false;
 
     /// <summary>
     /// Gets the currently acquired busy token. This is at least non-null during a
     /// call to <see cref="PrepareConnection"/> and <see cref="Setup"/>
     /// </summary>
-    public IDisposable? BusyToken { get; private set; }
+    public IDisposable? CurrentBusyToken { get; private set; }
 
     /// <summary>
     /// Gets or sets the initial setup function. The provided connection will be non-null and not closed.
@@ -114,8 +115,9 @@ public sealed class ConnectionAction {
     /// </summary>
     public ErrorState Error { get; private set; }
 
-    public ConnectionAction(IConnectionLockPair connectionLockPair) {
+    public ConnectionAction(IConnectionLockPair connectionLockPair, IDisposable? initialBusyToken = null) {
         this.connectionLockPair = connectionLockPair;
+        this.CurrentBusyToken = initialBusyToken;
     }
 
     /// <summary>
@@ -124,37 +126,45 @@ public sealed class ConnectionAction {
     /// </summary>
     /// <returns>True if <see cref="Execute"/> was invoked, False otherwise</returns>
     public async Task<bool> RunAsync() {
+        if (this.isRunning) {
+            throw new InvalidOperationException("Already running");
+        }
+
+        this.isRunning = true;
         this.Error = ErrorState.None;
 
         IConsoleConnection? connection = this.connectionLockPair.Connection;
         if (!await this.CheckIsConnected(connection, false)) {
+            this.isRunning = false;
             return false;
         }
 
         Debug.Assert(connection != null);
         bool hasRunAgain = false;
+        bool hasInitialBusyToken = this.CurrentBusyToken != null;
         try {
             do {
                 if (!await this.RunSetupAsync(connection, hasRunAgain)) {
+                    this.Error = ErrorState.SetupFailed;
                     return false;
                 }
 
-                if (this.BusyToken == null) {
+                if (this.CurrentBusyToken == null) {
                     BusyLock busyLock = this.connectionLockPair.BusyLock;
                     if (this.UseActivityToGetLock) {
                         ITopLevel? topLevel;
                         if (this.UseForegroundActivity && (topLevel = TopLevelContextUtils.GetUsefulTopLevel()) != null) {
-                            this.BusyToken = await busyLock.BeginBusyOperationWithForegroundActivityAsync(topLevel, this.ActivityCaption, this.ActivityText, this.ForegroundDialogShowDelay);
+                            this.CurrentBusyToken = await busyLock.BeginBusyOperationWithForegroundActivityAsync(topLevel, this.ActivityCaption, this.ActivityText, this.ForegroundDialogShowDelay);
                         }
                         else {
-                            this.BusyToken = await busyLock.BeginBusyOperationActivityAsync(this.ActivityCaption, this.ActivityText);
+                            this.CurrentBusyToken = await busyLock.BeginBusyOperationActivityAsync(this.ActivityCaption, this.ActivityText);
                         }
                     }
                     else {
-                        this.BusyToken = await busyLock.BeginBusyOperationAsync(this.NonActivityBusyLockTimeout, this.NonActivityCancellationToken);
+                        this.CurrentBusyToken = await busyLock.BeginBusyOperationAsync(this.NonActivityBusyLockTimeout, this.NonActivityCancellationToken);
                     }
 
-                    if (this.BusyToken == null) {
+                    if (this.CurrentBusyToken == null) {
                         this.Error = ErrorState.BusyTokenAcquisitionCancelled;
                         return false;
                     }
@@ -189,37 +199,36 @@ public sealed class ConnectionAction {
             return true;
         }
         finally {
-            this.BusyToken?.Dispose();
-            this.BusyToken = null;
+            if (!hasInitialBusyToken) {
+                this.CurrentBusyToken?.Dispose();
+                this.CurrentBusyToken = null;
+            }
         }
     }
 
-    private async Task<bool> RunSetupAsync(IConsoleConnection connection, bool hasRunAgain) {
+    protected virtual async Task<bool> RunSetupAsync(IConsoleConnection connection, bool hasRunAgain) {
         if (this.Setup == null) {
             return true;
         }
 
         try {
             if (!await this.Setup(this, connection, hasRunAgain)) {
-                this.Error = ErrorState.SetupFailed;
                 return false;
             }
         }
         catch (TimeoutException e) {
             await IMessageDialogService.Instance.ShowMessage("Network Error", "Connection timed out", e.Message);
-            this.Error = ErrorState.SetupFailed;
             return false;
         }
         catch (IOException e) {
             await IMessageDialogService.Instance.ShowMessage("Network Error", "General network error", e.Message);
-            this.Error = ErrorState.SetupFailed;
             return false;
         }
 
         return true;
     }
-    
-    private async Task RunExecuteAsync(IConsoleConnection connection) {
+
+    protected virtual async Task RunExecuteAsync(IConsoleConnection connection) {
         try {
             await this.Execute(this, connection);
         }
@@ -231,7 +240,7 @@ public sealed class ConnectionAction {
         }
     }
 
-    private async Task<bool> CheckIsConnected(IConsoleConnection? connection, bool isAfterBusyTokenAcquisition) {
+    protected async Task<bool> CheckIsConnected(IConsoleConnection? connection, bool isAfterBusyTokenAcquisition) {
         string caption = isAfterBusyTokenAcquisition ? "Disconnected" : "Not Connected";
         if (connection == null) {
             this.Error = ErrorState.NoConnection;

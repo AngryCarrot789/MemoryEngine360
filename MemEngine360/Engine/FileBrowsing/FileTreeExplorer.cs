@@ -22,6 +22,7 @@ using MemEngine360.Connections.Features;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.Engine.FileBrowsing;
@@ -36,12 +37,12 @@ public class FileTreeExplorer : IComponentManager {
     private readonly ComponentStorage myComponentStorage;
 
     /// <summary>
-    /// Gets the folder that stores this ATM's layer hierarchy
+    /// Gets the folder that stores the file hierarchy
     /// </summary>
     public FileTreeNodeDirectory RootEntry { get; }
 
     /// <summary>
-    /// Gets the memory engine associated with this address table manager
+    /// Gets the memory engine
     /// </summary>
     public MemoryEngine MemoryEngine { get; }
 
@@ -55,14 +56,14 @@ public class FileTreeExplorer : IComponentManager {
         this.RootEntry = FileTreeNodeDirectory.InternalCreateRoot(this);
 
         this.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;
-        this.refreshRootCommand = new AsyncRelayCommand(this.RefreshRoot);
+        this.refreshRootCommand = new AsyncRelayCommand(this.RefreshRootDirectories);
     }
 
     private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
         this.refreshRootCommand.Execute(null);
     }
 
-    public async Task RefreshRoot() {
+    public async Task RefreshRootDirectories() {
         this.RootEntry.Clear();
         await this.MemoryEngine.BeginBusyOperationActivityAsync(async (t, connection) => {
             if (connection.TryGetFeature(out IFeatureFileSystemInfo? fs)) {
@@ -121,9 +122,9 @@ public class FileTreeExplorer : IComponentManager {
 #endif
     }
 
-    public async Task LoadContentsCommand(FileTreeNodeDirectory directory, bool isFromFileNotFound = false) {
+    public async Task ReloadDirectoryAsCommand(FileTreeNodeDirectory directory, bool isFromFileNotFound = false) {
         if (directory.ParentDirectory == null) {
-            return;
+            throw new InvalidOperationException("Attempt to load contents of the root directory");
         }
 
         directory.HasLoadedContents = false;
@@ -133,30 +134,63 @@ public class FileTreeExplorer : IComponentManager {
 
         ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(this.MemoryEngine, e => e.BusyLocker, e => e.Connection)) {
             ActivityCaption = "Load directory",
-            Setup = async (action, connection, hasConnectionChanged) => {
+            Setup = (action, connection, hasConnectionChanged) => {
                 if (directory.ParentDirectory == null) {
-                    return false;
+                    return Task.FromResult(false);
                 }
 
                 if (!connection.TryGetFeature(out fsInfo)) {
                     directory.HasLoadedContents = true;
-                    return false;
+                    return Task.FromResult(false);
                 }
 
-                return true;
+                return Task.FromResult(true);
             },
-            Execute = (action, connection) => LoadContentsInternal(directory, fsInfo!, isFromFileNotFound)
+            Execute = (action, connection) => this.ReloadContentsOrParent(directory, fsInfo!, isFromFileNotFound)
         };
 
         await action.RunAsync();
     }
 
-    private static async Task LoadContentsInternal(FileTreeNodeDirectory directory, IFeatureFileSystemInfo fsInfo, bool isFromFileNotFound = false) {
-        if (directory.ParentDirectory == null) {
-            return;
+    public async Task<bool> SelectFilePath(string filePath, IFeatureFileSystemInfo fsInfo, bool forceRefresh = false) {
+        string[] parts = fsInfo.SplitPath(filePath);
+
+        BaseFileTreeNode? node = this.RootEntry;
+        foreach (string fileName in parts) {
+            if (!(node is FileTreeNodeDirectory directory)) {
+                return false;
+            }
+
+            if ((!directory.HasLoadedContents || forceRefresh) && directory.ParentDirectory != null) {
+                await this.ReloadContentsOrParent(directory, fsInfo, false, true);
+            }
+            
+            node = directory.Items.FirstOrDefault(x => x.FileName != null && x.FileName.EqualsIgnoreCase(fileName));
         }
 
-        FileTreeNodeDirectory parent = directory.ParentDirectory!;
+        if (node != null) {
+            FileTreeExplorerViewState.GetInstance(this).TreeSelection.SetSelection(node);
+        }
+        
+        return node != null;
+    }
+
+    public async Task ReloadContentsOrParent(FileTreeNodeDirectory directory, IFeatureFileSystemInfo fsInfo, bool isFromFileNotFound, bool doNotReloadParents = false) {
+        FileTreeNodeDirectory? parent = directory.ParentDirectory;
+        if (parent == null) {
+            if (isFromFileNotFound && !doNotReloadParents) {
+                this.RootEntry.Clear();
+                foreach (DriveEntry root in await fsInfo.GetDriveList()) {
+                    this.RootEntry.Items.Add(new FileTreeNodeDirectory() {
+                        FileName = root.Name,
+                        Size = root.TotalSize
+                    });
+                }
+            }
+            
+            return; 
+        }
+
         List<FileSystemEntry> result;
         try {
             result = await fsInfo.GetFileSystemEntries(directory.FullPath);
@@ -168,7 +202,8 @@ public class FileTreeExplorer : IComponentManager {
         catch (FileSystemNoSuchDirectoryException e) {
             if (!isFromFileNotFound)
                 await IMessageDialogService.Instance.ShowMessage("File System Error", "No such directory", e.Message);
-            await LoadContentsInternal(parent, fsInfo, isFromFileNotFound: true);
+            if (!doNotReloadParents)
+                await this.ReloadContentsOrParent(parent, fsInfo, isFromFileNotFound: true);
             return;
         }
         catch (Exception e) when (e is TimeoutException || e is IOException) {
@@ -176,6 +211,7 @@ public class FileTreeExplorer : IComponentManager {
             return;
         }
 
+        directory.Items.Clear();
         foreach (FileSystemEntry entry in result.OrderByDescending(x => x.IsDirectory).ThenBy(x => x.Name)) {
             directory.Items.Add(entry.IsDirectory
                 ? new FileTreeNodeDirectory() {
@@ -185,5 +221,7 @@ public class FileTreeExplorer : IComponentManager {
                     FileName = entry.Name, CreationTimeUtc = entry.CreatedTime, ModifiedTimeUtc = entry.ModifiedTime, Size = entry.Size,
                 });
         }
+
+        directory.HasLoadedContents = true;
     }
 }

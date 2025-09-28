@@ -164,6 +164,9 @@
                 <Shortcut Name="RenameFile2" CommandId="commands.memengine.RenameFileCommand">
                     <KeyStroke Key="F2"/>
                 </Shortcut>
+                <Shortcut Name="DeleteFiles" CommandId="commands.memengine.DeleteFilesCommand">
+                    <KeyStroke Key="Delete"/>
+                </Shortcut>
             </Group>
         </Group>
     </Group>

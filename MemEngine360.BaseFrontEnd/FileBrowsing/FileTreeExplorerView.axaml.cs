@@ -19,9 +19,11 @@
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using MemEngine360.Engine.FileBrowsing;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
+using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.FileBrowsing;
 
@@ -35,8 +37,32 @@ public partial class FileTreeExplorerView : UserControl {
 
     private TreeViewSelectionModelBinder<BaseFileTreeNode>? selectionBinder;
 
+    private readonly AsyncRelayCommand refreshRootCommand;
+    
     public FileTreeExplorerView() {
         this.InitializeComponent();
+        this.Focusable = true;
+        this.refreshRootCommand = new AsyncRelayCommand(this.RefreshRootDirectories);
+    }
+
+    private Task RefreshRootDirectories() {
+        return this.FileTreeExplorer?.RefreshRootDirectories() ?? Task.CompletedTask;
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e) {
+        base.OnPointerPressed(e);
+
+        if (!e.Handled && this.selectionBinder != null) {
+            this.selectionBinder.Selection.Clear();
+            this.Focus();
+        }
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e) {
+        base.OnKeyDown(e);
+        if (!e.Handled && e.Key == Key.F5) {
+            this.refreshRootCommand.Execute(null);
+        } 
     }
 
     static FileTreeExplorerView() {

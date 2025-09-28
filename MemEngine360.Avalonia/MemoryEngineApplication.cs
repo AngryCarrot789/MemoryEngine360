@@ -137,6 +137,10 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.ShowFileBrowserCommand", new ShowFileBrowserCommand());
         manager.Register("commands.memengine.LaunchFileCommand", new LaunchFileCommand());
         manager.Register("commands.memengine.RenameFileCommand", new RenameFileCommand());
+        manager.Register("commands.memengine.DeleteFilesCommand", new DeleteFilesCommand());
+        manager.Register("commands.memengine.CreateAbsoluteDirectoryCommand", new CreateAbsoluteDirectoryCommand());
+        manager.Register("commands.memengine.CreateDirectoryInDirectoryCommand", new CreateDirectoryInDirectoryCommand());
+        manager.Register("commands.memengine.MoveFileCommand", new MoveFileCommand());
         manager.Register("commands.memengine.DumpMemoryCommand", new DumpMemoryCommand());
         manager.Register("commands.memengine.GroupEntriesCommand", new GroupEntriesCommand());
         manager.Register("commands.memengine.OpenXMLFileCommand", new OpenXMLFileCommand());

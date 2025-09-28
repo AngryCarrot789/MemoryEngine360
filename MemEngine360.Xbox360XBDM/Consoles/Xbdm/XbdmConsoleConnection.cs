@@ -1546,11 +1546,20 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
 
         public async Task DeleteFile(string path) {
-            string[] lines = path.Split('\\');
-            StringBuilder dirSb = new StringBuilder();
-            for (int i = 0; i < lines.Length - 1; i++)
-                dirSb.Append(lines[i]).Append('\\');
-            await this.connection.SendCommand($"delete title=\"{path}\" dir=\"{dirSb}\"").ConfigureAwait(false);
+            int startIndex = path.Length - 1;
+            if (path.EndsWith('\\'))
+                startIndex--;
+            if (startIndex < 0)
+                return;
+            
+            int index = path.LastIndexOf('\\', startIndex);
+            if (index == -1)
+                return;
+
+            ReadOnlySpan<char> name = path.AsSpan(index + 1);
+            ReadOnlySpan<char> directory = path.AsSpan(0, index);
+            
+            await this.connection.SendCommand($"delete name=\"{name}\" dir=\"{directory}\"").ConfigureAwait(false);
         }
 
         public async Task LaunchFile(string path) {
@@ -1563,6 +1572,10 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
         public async Task MoveFile(string oldPath, string newPath) {
             await this.connection.SendCommand($"rename name=\"{oldPath}\" newname=\"{newPath}\"").ConfigureAwait(false);
+        }
+
+        public async Task CreateDirectory(string path) {
+            await this.connection.SendCommand($"mkdir name=\"{path}\"").ConfigureAwait(false);
         }
 
         public string GetDirectoryPath(string path) {
@@ -1583,6 +1596,10 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             return Path.Join(paths);
         }
 
+        public string[] SplitPath(string filePath) {
+            return filePath.Split('\\');
+        }
+
         public bool IsPathValid(string path) {
             string[] parts = path.Split('\\');
             char[] ch1 = Path.GetInvalidPathChars();
@@ -1594,6 +1611,8 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
 
             for (; i < parts.Length; i++) {
                 string part = parts[i];
+                if (part == "\\")
+                    return false;
                 foreach (char ch in ch1)
                     if (part.Contains(ch))
                         return false;

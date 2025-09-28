@@ -21,39 +21,55 @@ using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Engine.FileBrowsing.Commands;
 
-public class LaunchFileCommand : BaseFileExplorerCommand {
+public class CreateAbsoluteDirectoryCommand : BaseFileExplorerCommand {
     protected override Executability CanExecuteCore(FileTreeExplorer explorer, CommandEventArgs e) {
-        FileTreeExplorerViewState state = FileTreeExplorerViewState.GetInstance(explorer);
-        return state.TreeSelection.HasOneSelectedItem ? Executability.Valid : Executability.ValidButCannotExecute;
+        return explorer.MemoryEngine.Connection?.HasFeature<IFeatureFileSystemInfo>() == true
+            ? Executability.Valid
+            : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(FileTreeExplorer explorer, CommandEventArgs e) {
         FileTreeExplorerViewState state = FileTreeExplorerViewState.GetInstance(explorer);
-        if (!state.TreeSelection.HasOneSelectedItem) {
-            return;
-        }
-
-        BaseFileTreeNode item = state.TreeSelection.SelectedItems.First();
-        if (!(item is FileTreeNodeFile file)) {
-            return;
-        }
-
+        
         IFeatureFileSystemInfo? fsInfo = null;
+        string? newPath = null;
+        
         ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(explorer.MemoryEngine, x => x.BusyLocker, x => x.Connection)) {
             ActivityCaption = "Launch File",
+            CanRetryOnConnectionChanged = true,
             Setup = async (action, connection, hasConnectionChanged) => {
                 if (!connection.TryGetFeature(out fsInfo)) {
                     await IMessageDialogService.Instance.ShowMessage("Unsupported", "This connection does not support File I/O");
                     return false;
                 }
 
+                if (newPath == null) {
+                    SingleUserInputInfo info = new SingleUserInputInfo("Hdd1:\\New Directory") {
+                        Caption = "Create Directory",
+                        Label = "Directory Path",
+                        MinimumDialogWidthHint = 500,
+                        Validate = (args) => {
+                            if (!fsInfo.IsPathValid(args.Input))
+                                args.Errors.Add("Invalid path");
+                        }
+                    };
+                    
+                    if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
+                        return false;
+                    }
+                    
+                    newPath = info.Text;
+                }
+
                 return true;
             },
             Execute = async (action, connection) => {
-                await fsInfo!.LaunchFile(file.FullPath);
+                await fsInfo!.CreateDirectory(newPath!);
+                await state.Explorer.SelectFilePath(newPath!, fsInfo!, true);
             }
         };
 
