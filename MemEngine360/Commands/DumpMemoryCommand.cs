@@ -62,7 +62,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             Caption = "Dump memory region",
             Message = "Select a memory region to read and dump to a file. There will be 2 more dialog prompts after this",
             Footer = "You can pause or cancel the operation at any time",
-            ConfirmText = "Start", DefaultButton = true,
+            ConfirmText = "Next", DefaultButton = true,
             LabelA = "Start address (hex)", LabelB = "Length (hex)",
             ValidateA = validateMemAddr, ValidateB = validateMemAddr,
             TextA = p.StartAddress.ToString("X8"),

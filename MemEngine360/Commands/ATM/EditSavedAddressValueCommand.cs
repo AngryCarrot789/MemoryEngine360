@@ -35,11 +35,10 @@ namespace MemEngine360.Commands.ATM;
 
 public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
     protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
-        IConsoleConnection? connection = engine.Connection;
-        if (connection == null || connection.IsClosed) {
+        if (engine.Connection == null || engine.Connection.IsClosed)
             return Executability.ValidButCannotExecute;
-        }
-
+        if (entries.All(x => x is AddressTableGroupEntry))
+            return Executability.ValidButCannotExecute;
         return Executability.Valid;
     }
 
@@ -99,10 +98,10 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
 
         using CancellationTokenSource cts = new CancellationTokenSource();
         Result<int> result = await ActivityManager.Instance.RunTask(async () => {
-            ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Edit value", "Editing values");
+            ActivityTask.Current.Progress.SetCaptionAndText("Edit value", "Editing values");
             int success = 0;
             foreach (AddressTableEntry scanResult in savedList) {
-                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                ActivityManager.Instance.CurrentTask.ThrowIfCancellationRequested();
                 uint? address = await scanResult.MemoryAddress.TryResolveAddress(connection);
                 if (!address.HasValue)
                     continue; // pointer could not be resolved

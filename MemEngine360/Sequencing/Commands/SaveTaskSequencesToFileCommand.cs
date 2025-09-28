@@ -50,7 +50,7 @@ public class SaveTaskSequencesToFileCommand : Command {
         }
         
         ActivityTask task = ActivityManager.Instance.RunTask(() => {
-            ActivityManager.Instance.GetCurrentProgressOrEmpty().IsIndeterminate = true;
+            ActivityTask.Current.Progress.IsIndeterminate = true;
             XmlDocument document = new XmlDocument();
             XmlTaskSequenceSerialization.SaveToDocument(document, itemsToSave);
             document.Save(filePath);

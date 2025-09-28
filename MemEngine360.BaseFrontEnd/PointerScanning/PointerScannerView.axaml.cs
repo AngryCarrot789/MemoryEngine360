@@ -112,7 +112,7 @@ public partial class PointerScannerView : UserControl {
                 IActivityProgress progressTracker = new DispatcherActivityProgress();
                 
                 await ActivityManager.Instance.RunTask(async () => {
-                    IActivityProgress prog = ActivityManager.Instance.GetCurrentProgressOrEmpty();
+                    IActivityProgress prog = ActivityTask.Current.Progress;
                     prog.IsIndeterminate = true;
                     prog.Caption = "Load Memory Dump";
                     prog.Text = "Loading memory...";

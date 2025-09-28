@@ -77,7 +77,7 @@ public class PluginXbox360XDevkit : Plugin {
         task.Progress.IsIndeterminate = true;
 
         foreach (IXboxModule module in connection.Console.DebugTarget.Modules) {
-            task.CheckCancelled();
+            task.ThrowIfCancellationRequested();
 
             XBOX_MODULE_INFO info = module.ModuleInfo;
             task.Progress.Text = "Processing " + info.Name;
@@ -103,7 +103,7 @@ public class PluginXbox360XDevkit : Plugin {
             }
 
             foreach (IXboxSection section in module.Sections) {
-                task.CheckCancelled();
+                task.ThrowIfCancellationRequested();
 
                 XBOX_SECTION_INFO secInf = section.SectionInfo;
                 consoleModule.Sections.Add(new ConsoleModuleSection() {

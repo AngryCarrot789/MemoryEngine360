@@ -29,7 +29,8 @@ public class EditSavedAddressDescriptionCommand : BaseSavedAddressSelectionComma
         SingleUserInputInfo info = new SingleUserInputInfo(entries[0].Description) {
             Caption = "Change description",
             DefaultButton = true,
-            Label = "New description" + (entries.Count > 1 ? $" for {entries.Count} rows" : "")
+            Label = "New description" + (entries.Count > 1 ? $" for {entries.Count} rows" : ""),
+            MinimumDialogWidthHint = 350
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {

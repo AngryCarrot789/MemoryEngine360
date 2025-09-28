@@ -28,6 +28,7 @@ using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Scanners;
 
@@ -311,16 +312,8 @@ public class AnyTypeScanningContext : ScanningContext {
         return null;
     }
 
-    internal override async Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken) {
-        FirstTypedScanTask task = new FirstTypedScanTask(this, connection, busyToken);
-        try {
-            await task.RunWithCurrentActivity();
-        }
-        catch (OperationCanceledException) {
-            // ignored
-        }
-
-        return task.BusyToken;
+    internal override async Task PerformFirstScan(IConsoleConnection connection, Reference<IDisposable?> busyTokenRef) {
+        await new FirstTypedScanTask(this, connection, busyTokenRef).RunWithCurrentActivity();
     }
 
     public override Task<bool> CanRunNextScan(List<ScanResultViewModel> srcList) {
@@ -333,16 +326,13 @@ public class AnyTypeScanningContext : ScanningContext {
     /// </summary>
     /// <param name="connection">The connection to read values from</param>
     /// <param name="srcList">The source list of items</param>
-    /// <param name="busyToken"></param>
-    internal override async Task<IDisposable?> PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, IDisposable busyToken) {
+    /// <param name="busyTokenRef"></param>
+    internal override async Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IDisposable?> busyTokenRef) {
         ActivityTask task = ActivityManager.Instance.CurrentTask;
         using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
             for (int i = 0; i < srcList.Count; i++) {
-                if (task.IsCancellationRequested) {
-                    return busyToken;
-                }
-
                 ScanResultViewModel res = srcList[i];
+                task.ThrowIfCancellationRequested();
                 task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
                 task.Progress.CompletionState.OnProgress(1.0);
 
@@ -391,7 +381,5 @@ public class AnyTypeScanningContext : ScanningContext {
                 }
             }
         }
-
-        return busyToken;
     }
 }

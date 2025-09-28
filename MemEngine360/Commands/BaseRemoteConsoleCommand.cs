@@ -73,7 +73,7 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
         }
         else if (await this.TryBeginExecuteAsync(engine, connection, e)) {
             await ActivityManager.Instance.RunTask(async () => {
-                IActivityProgress prog = ActivityManager.Instance.GetCurrentProgressOrEmpty();
+                IActivityProgress prog = ActivityTask.Current.Progress;
                 prog.Caption = "Remote Command";
                 prog.Text = this.ActivityText;
                 try {

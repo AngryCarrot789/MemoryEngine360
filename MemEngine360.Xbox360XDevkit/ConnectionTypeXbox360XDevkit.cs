@@ -74,7 +74,7 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
         Result<XboxConsole> result = await ActivityManager.Instance.RunTask(() => {
             this.xboxManager ??= new XboxManagerClass();
             
-            IActivityProgress progress = ActivityManager.Instance.GetCurrentProgressOrEmpty();
+            IActivityProgress progress = ActivityTask.Current.Progress;
             progress.Caption = "XDevkit";
             progress.Text = "Connecting to console...";
             progress.IsIndeterminate = true;

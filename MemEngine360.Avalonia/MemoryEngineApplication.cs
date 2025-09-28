@@ -473,11 +473,10 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 if (desktop != null)
                     desktop.ApplicationLifetime.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
-                EngineView view = new EngineView();
                 IWindow window = manager.CreateWindow(new WindowBuilder() {
                     Title = "Memory Engine 360 v1.1.8-dev",
                     FocusPath = "EngineWindow",
-                    Content = view,
+                    Content = new EngineView(),
                     MinWidth = 600, MinHeight = 520,
                     Width = 680, Height = 630,
                     // rely on default icon for the DesktopWindowManager
@@ -500,6 +499,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                         return CommandManager.Instance.RunActionAsync(_ => OnEngineWindowAboutToClose(s), s.LocalContextData);
                     }).Unwrap();
                 };
+
                 window.WindowClosed += static (s, e) => {
                     EngineView view = (EngineView) s.Content!;
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);

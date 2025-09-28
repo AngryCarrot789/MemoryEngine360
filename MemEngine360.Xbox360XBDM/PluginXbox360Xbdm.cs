@@ -92,7 +92,7 @@ public class PluginXbox360Xbdm : Plugin {
         using PopCompletionStateRangeToken completionState = completion.PushCompletionRange(0, 1.0 / modules.Count);
         
         foreach (string moduleLine in modules) {
-            task.CheckCancelled();
+            task.ThrowIfCancellationRequested();
 
             if (!ParamUtils.GetStrParam(moduleLine, "name", true, out string? name) ||
                 !ParamUtils.GetDwParam(moduleLine, "base", true, out uint modBase) ||
@@ -134,7 +134,7 @@ public class PluginXbox360Xbdm : Plugin {
             if (response.ResponseType != XbdmResponseType.FileNotFound) {
                 List<string> sections = await connection.ReadMultiLineResponse();
                 foreach (string sectionLine in sections) {
-                    task.CheckCancelled();
+                    task.ThrowIfCancellationRequested();
 
                     ParamUtils.GetStrParam(sectionLine, "name", true, out string? sec_name);
                     ParamUtils.GetDwParam(sectionLine, "base", true, out uint sec_base);

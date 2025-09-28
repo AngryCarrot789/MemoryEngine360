@@ -74,7 +74,7 @@ public class CopyScanResultsToClipboardCommand : Command {
         if (ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel)) {
             if (topLevel.TryGetClipboard(out IClipboardService? clipboard)) {
                 await ActivityManager.Instance.RunTask(async () => {
-                    ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Clipboard", "Copying to clipboard");
+                    ActivityTask.Current.Progress.SetCaptionAndText("Clipboard", "Copying to clipboard");
                     CancellationToken token = ActivityManager.Instance.CurrentTask.CancellationToken;
                     Task mainTask = clipboard.SetTextAsync(info.Message);
                     if (await Task.WhenAny(mainTask, Task.Delay(900, token)) != mainTask && !token.IsCancellationRequested) {

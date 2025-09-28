@@ -116,9 +116,9 @@ public class EditScanResultValueCommand : Command {
         
         using CancellationTokenSource cts = new CancellationTokenSource();
         await ActivityManager.Instance.RunTask(async () => {
-            ActivityManager.Instance.GetCurrentProgressOrEmpty().SetCaptionAndText("Edit value", "Editing values");
+            ActivityTask.Current.Progress.SetCaptionAndText("Edit value", "Editing values");
             foreach (ScanResultViewModel scanResult in scanResults) {
-                ActivityManager.Instance.CurrentTask.CheckCancelled();
+                ActivityManager.Instance.CurrentTask.ThrowIfCancellationRequested();
                 await MemoryEngine.WriteDataValue(conn, scanResult.Address, value!);
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     scanResult.CurrentValue = value;

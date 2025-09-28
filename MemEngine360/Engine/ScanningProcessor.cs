@@ -417,9 +417,11 @@ public class ScanningProcessor {
         if (connection == null)
             throw new InvalidOperationException("No console connection");
 
-        IDisposable? token = await this.MemoryEngine.BeginBusyOperationActivityAsync("Pre-Scan Setup");
-        if (token == null)
+        IDisposable? theCoolToken = await this.MemoryEngine.BeginBusyOperationActivityAsync("Pre-Scan Setup");
+        if (theCoolToken == null)
             return; // user cancelled token fetch
+        
+        Reference<IDisposable?> busyTokenRef = new Reference<IDisposable?>(theCoolToken);
 
         try {
             if ((connection = this.MemoryEngine.Connection) == null)
@@ -506,10 +508,10 @@ public class ScanningProcessor {
                                 if (canContinue) {
                                     try {
                                         result = true;
-                                        token = await context.PerformNextScan(connection, srcList, token);
+                                        await context.PerformNextScan(connection, srcList, busyTokenRef);
                                     }
                                     catch (OperationCanceledException) {
-                                        Debugger.Break(); // OCE should not be thrown
+                                        // ignored
                                     }
                                     catch (Exception e) when (e is IOException || e is TimeoutException) {
                                         await IMessageDialogService.Instance.ShowMessage(e is IOException ? "Connection IO Error" : "Connection Timed Out", "Connection error while performing next scan", e.Message);
@@ -542,12 +544,14 @@ public class ScanningProcessor {
                         else {
                             progress.Text = "Scanning...";
 
+                            // ScanningContext objects do not dispose of the token when they run to completion,
+                            // which means we do not have to reacquire it in this method
                             try {
                                 result = true;
-                                token = await context.PerformFirstScan(connection, token);
+                                await context.PerformFirstScan(connection, busyTokenRef);
                             }
                             catch (OperationCanceledException) {
-                                Debugger.Break(); // OCE should not be thrown
+                                // ignored
                             }
                             catch (Exception e) when (e is IOException || e is TimeoutException) {
                                 await IMessageDialogService.Instance.ShowMessage(e is IOException ? "Connection IO Error" : "Connection Timed Out", "Connection error while performing first scan", e.Message);
@@ -604,6 +608,7 @@ public class ScanningProcessor {
                     this.HasDoneFirstScan = result;
                     this.IsScanning = false;
                     if (!this.MemoryEngine.IsShuttingDown) { // another race condition i suppose
+                        IDisposable? token = busyTokenRef.Value;
                         if (this.MemoryEngine.BusyLocker.IsTokenValid(token)) {
                             this.MemoryEngine.CheckConnection(token);
                         }
@@ -622,7 +627,8 @@ public class ScanningProcessor {
             }
         }
         finally {
-            token?.Dispose();
+            busyTokenRef.Value?.Dispose();
+            busyTokenRef.Value = null;
         }
     }
 
@@ -775,7 +781,7 @@ public class ScanningProcessor {
 
             if (!readOperationTask.IsCompleted) {
                 await ActivityManager.Instance.RunTask(async () => {
-                    IActivityProgress p = ActivityManager.Instance.GetCurrentProgressOrEmpty();
+                    IActivityProgress p = ActivityTask.Current.Progress;
                     p.Caption = "Long refresh";
                     p.Text = $"Refreshing {grandTotalCount} value{Lang.S(grandTotalCount)}...";
                     p.IsIndeterminate = true;

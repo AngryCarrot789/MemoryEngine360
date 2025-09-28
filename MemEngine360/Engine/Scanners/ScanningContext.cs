@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Connections;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Scanners;
 
@@ -67,12 +68,11 @@ public abstract class ScanningContext {
     internal abstract Task<bool> SetupCore(IConsoleConnection connection);
 
     /// <summary>
-    /// Performs the first scan. The task must not throw <see cref="OperationCanceledException"/>, because the return value (new token) is required
+    /// Performs the first scan.
     /// </summary>
     /// <param name="connection">The connection to read values from</param>
-    /// <param name="busyToken">The busy token</param>
-    /// <returns>A task containing the busy token, or a new token if the one passed in the parameter was disposed (may be null when token could not be re-acquired)</returns>
-    internal abstract Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken);
+    /// <param name="busyTokenRef">A reference to the busy token</param>
+    internal abstract Task PerformFirstScan(IConsoleConnection connection, Reference<IDisposable?> busyTokenRef);
 
     /// <summary>
     /// Check whether the next scan is allowed to run based on the current scan results.
@@ -81,19 +81,16 @@ public abstract class ScanningContext {
     /// <param name="srcList"></param>
     /// <returns></returns>
     public abstract Task<bool> CanRunNextScan(List<ScanResultViewModel> srcList);
-    
+
     /// <summary>
     /// Performs a next scan. Requirements: the src list's items are guaranteed to have the
     /// same data types, and it equals our internal scanning data type
-    /// <para>
-    /// The task must not throw <see cref="OperationCanceledException"/>, because the return value (new token) is required
-    /// </para>
     /// </summary>
     /// <param name="connection">The connection to read values from</param>
     /// <param name="srcList">The source list of items</param>
-    /// <param name="busyToken">The busy token</param>
+    /// <param name="busyTokenRef"></param>
     /// <returns>A task containing the busy token, or a new token if the one passed in the parameter was disposed (may be null when token could not be re-acquired)</returns>
-    internal abstract Task<IDisposable?> PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, IDisposable busyToken);
+    internal abstract Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IDisposable?> busyTokenRef);
     
     internal abstract void ProcessMemoryBlockForFirstScan(uint baseAddress, ReadOnlySpan<byte> buffer);
 }

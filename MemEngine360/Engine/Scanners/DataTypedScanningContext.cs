@@ -29,6 +29,7 @@ using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Scanners;
 
@@ -131,7 +132,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 return false;
             }
         }
-        
+
         Debug.Assert(this.cbDataType > 0);
 
         IConsoleConnection connection = this.Processor.MemoryEngine.Connection!;
@@ -198,7 +199,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
     internal override void ProcessMemoryBlockForFirstScan(uint address, ReadOnlySpan<byte> buffer) {
         // by default, align is set to cbDataType except for string where it's 1. So in most cases, only check bounds for strings
         // There's also another issue with values between chunks, which we don't process because I can't get it to work...
-        
+
         bool checkBounds = this.alignment < this.cbDataType, isString;
         ReadOnlySpan<byte> memory;
         if (this.dataType.IsNumeric()) {
@@ -263,16 +264,8 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
     }
 
-    internal override async Task<IDisposable?> PerformFirstScan(IConsoleConnection connection, IDisposable busyToken) {
-        FirstTypedScanTask task = new FirstTypedScanTask(this, connection, busyToken);
-        try {
-            await task.RunWithCurrentActivity();
-        }
-        catch (OperationCanceledException) {
-            // ignored
-        }
-
-        return task.BusyToken;
+    internal override async Task PerformFirstScan(IConsoleConnection connection, Reference<IDisposable?> busyTokenRef) {
+        await new FirstTypedScanTask(this, connection, busyTokenRef).RunWithCurrentActivity();
     }
 
     public override async Task<bool> CanRunNextScan(List<ScanResultViewModel> srcList) {
@@ -300,15 +293,13 @@ public sealed class DataTypedScanningContext : ScanningContext {
         return true;
     }
 
-    internal override async Task<IDisposable?> PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, IDisposable busyToken) {
+    internal override async Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IDisposable?> busyTokenRef) {
         ActivityTask task = ActivityManager.Instance.CurrentTask;
         if (this.dataType.IsNumeric()) {
             using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
                 byte[] buffer = new byte[this.cbDataType];
                 for (int i = 0; i < srcList.Count; i++) {
-                    if (task.IsCancellationRequested) 
-                        return busyToken;
-                    
+                    task.ThrowIfCancellationRequested();
                     task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
                     task.Progress.CompletionState.OnProgress(1.0);
 
@@ -354,9 +345,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 byte[]? inputByteBuffer = useInputValue ? new byte[cbInputValue] : null;
                 char[]? inputCharBuffer = useInputValue ? new char[encoding.GetMaxCharCount(cbInputValue)] : null;
                 for (int i = 0; i < srcList.Count; i++) {
-                    if (task.IsCancellationRequested) 
-                        return busyToken;
-                    
+                    task.ThrowIfCancellationRequested();
                     task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
                     task.Progress.CompletionState.OnProgress(1.0);
 
@@ -401,9 +390,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
         else if (this.dataType == DataType.ByteArray) {
             using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
                 for (int i = 0; i < srcList.Count; i++) {
-                    if (task.IsCancellationRequested) 
-                        return busyToken;
-                    
+                    task.ThrowIfCancellationRequested();
                     task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
                     task.Progress.CompletionState.OnProgress(1.0);
 
@@ -429,8 +416,6 @@ public sealed class DataTypedScanningContext : ScanningContext {
         else {
             Debug.Fail("Missing data type");
         }
-
-        return busyToken;
     }
 
     private BaseNumericDataValue<T>? CompareInt<T>(ReadOnlySpan<byte> searchValueBytes) where T : unmanaged, IBinaryInteger<T> {
@@ -468,7 +453,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
 
         // We convert everything to doubles when comparing, for higher accuracy.
         // InputA and InputB are parsed as doubles, even when the DataType is Float
-        
+
         string str = this.nextScanUsesFirstValue || this.nextScanUsesPreviousValue ? "0.000000" : this.inputA;
         double valToCmp = GetDoubleFromReadValue(preProcessedValue, str, this.floatScanOption);
         double valA = Unsafe.As<ulong, double>(ref theInputA);

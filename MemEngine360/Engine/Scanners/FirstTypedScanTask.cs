@@ -22,6 +22,7 @@ using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Tasks.Pausable;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Scanners;
 
@@ -32,7 +33,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
     internal readonly ScanningContext ctx;
     internal readonly IConsoleConnection connection;
     private readonly IFeatureIceCubes? iceCubes;
-    private IDisposable? myBusyToken;
+    private readonly Reference<IDisposable?> myBusyTokenRef;
 
     // region scanning info
     private List<MemoryRegion>? myRegions;
@@ -47,18 +48,18 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
     private bool isProcessingCurrentRegion;
     private bool isAlreadyFrozen;
 
-    public IDisposable? BusyToken => this.myBusyToken;
+    public IDisposable? BusyToken => this.myBusyTokenRef.Value;
     
-    public FirstTypedScanTask(ScanningContext context, IConsoleConnection connection, IDisposable busyToken) : base(true) {
+    public FirstTypedScanTask(ScanningContext context, IConsoleConnection connection, Reference<IDisposable?> busyTokenRef) : base(true) {
         this.ctx = context ?? throw new ArgumentNullException(nameof(context));
         this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-        this.myBusyToken = busyToken ?? throw new ArgumentNullException(nameof(busyToken));
+        this.myBusyTokenRef = busyTokenRef ?? throw new ArgumentNullException(nameof(busyTokenRef));
         this.iceCubes = connection.GetFeatureOrDefault<IFeatureIceCubes>();
         this.rgIdx = 0;
     }
 
     protected override async Task RunFirst(CancellationToken pauseOrCancelToken) {
-        Debug.Assert(this.myBusyToken != null, "Busy token should not be null at this point");
+        Debug.Assert(this.myBusyTokenRef != null, "Busy token should not be null at this point");
 
         this.Activity.Progress.Text = "Scanning...";
         await this.RunScan(pauseOrCancelToken);
@@ -68,8 +69,8 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
         ActivityTask task = this.Activity;
         task.Progress.Text = "Scanning...";
         task.Progress.Text = "Waiting for busy operations...";
-        this.myBusyToken = await this.ctx.Processor.MemoryEngine.BeginBusyOperationAsync(pauseOrCancelToken);
-        if (this.myBusyToken == null) {
+        this.myBusyTokenRef.Value = await this.ctx.Processor.MemoryEngine.BeginBusyOperationAsync(pauseOrCancelToken);
+        if (this.BusyToken == null) {
             return;
         }
 
@@ -81,8 +82,8 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
         this.Activity.Progress.CompletionState.TotalCompletion = 0.0;
         await this.TrySetUnFrozen();
 
-        this.myBusyToken?.Dispose();
-        this.myBusyToken = null;
+        this.myBusyTokenRef.Value?.Dispose();
+        this.myBusyTokenRef.Value = null;
     }
 
     protected override async Task OnCompleted() {

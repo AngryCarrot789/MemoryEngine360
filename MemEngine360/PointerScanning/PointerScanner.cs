@@ -314,7 +314,7 @@ public class PointerScanner {
 #if DEBUG
                                 try {
 #endif
-                                    activity.CheckCancelled();
+                                    activity.ThrowIfCancellationRequested();
 
                                     PointerPrivate pBase = new PointerPrivate(this.baseAddress, entry.Key - this.baseAddress, entry.Value);
                                     // if (pBase.offset > this.maximumOffset) {
@@ -365,7 +365,7 @@ public class PointerScanner {
     }
 
     private void FindNearbyPointers(List<PointerPrivate> chain, byte currDepth, uint maxOffset, PointerScanThreadOptions options) {
-        options.ActivityTask.CheckCancelled();
+        options.ActivityTask.ThrowIfCancellationRequested();
         PointerPrivate basePtr = chain[chain.Count - 1];
 
         if (((DispatcherActivityProgress) options.ActivityTask.Progress).IsTextClean) {

@@ -73,8 +73,10 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     ~BaseConsoleConnection() {
-        if (this.isClosedState == 0)
+        if (this.isClosedState == 0) {
             AppLogger.Instance.WriteLine("Destructor called on " + nameof(BaseConsoleConnection) + " when still open");
+            Debug.Fail("Oops");
+        }
     }
 
     public virtual bool TryGetFeature<T>([NotNullWhen(true)] out T? feature) where T : class, IConsoleFeature {

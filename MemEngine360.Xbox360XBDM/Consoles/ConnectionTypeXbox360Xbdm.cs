@@ -107,7 +107,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
         BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
 
         ActivityTask<XbdmConsoleConnection> activity = ActivityManager.Instance.RunTask(async () => {
-            IActivityProgress progress = ActivityManager.Instance.GetCurrentProgressOrEmpty();
+            IActivityProgress progress = ActivityTask.Current.Progress;
             progress.Caption = "XBDM Connection";
             progress.Text = "Connecting to console...";
             progress.IsIndeterminate = true;

@@ -678,7 +678,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
                     List<ScanResultViewModel> list = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => engine.ScanningProcessor.GetScanResultsAndQueued());
                     using PopCompletionStateRangeToken token = prog.CompletionState.PushCompletionRange(0, 1.0 / list.Count);
                     foreach (ScanResultViewModel result in list) {
-                        activity.CheckCancelled();
+                        activity.ThrowIfCancellationRequested();
                         prog.CompletionState.OnProgress(1);
 
                         if (!(result.CurrentValue is DataValueFloat floatval)) {
@@ -698,7 +698,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
                     int chunkIdx = 0;
                     uint totalChunks = range.Length / 0x10000;
                     for (uint addr = range.BaseAddress, end = range.EndAddress; addr < end; addr += 0x10000) {
-                        activity.CheckCancelled();
+                        activity.ThrowIfCancellationRequested();
                         prog.CompletionState.OnProgress(0x10000);
                         prog.Text = $"Chunk {++chunkIdx}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(range.Length - (end - addr), false)}/{ValueScannerUtils.ByteFormatter.ToString(range.Length, false)})";
                         await c.ReadBytes(addr, buffer, 0, buffer.Length);
