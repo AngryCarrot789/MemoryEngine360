@@ -44,12 +44,13 @@ public partial class FileTreeExplorerView : UserControl {
     }
 
     private void OnFileTreeExplorerChanged(FileTreeExplorer? oldValue, FileTreeExplorer? newValue) {
-        this.PART_FileBrowser.FileTreeExplorer = newValue;
-
+        // Disconnect the selection binder first, so that, changes to the actual tree won't modify the selection
         if (this.selectionBinder != null) {
             this.selectionBinder.Dispose();
             this.selectionBinder = null;
         }
+
+        this.PART_FileBrowser.FileTreeExplorer = newValue;
 
         if (newValue != null) {
             this.selectionBinder = new TreeViewSelectionModelBinder<BaseFileTreeNode>(
@@ -58,7 +59,7 @@ public partial class FileTreeExplorerView : UserControl {
                 tvi => ((FileBrowserTreeViewItem) tvi).EntryObject!,
                 model => this.PART_FileBrowser.ItemMap.GetControl(model));
         }
-        
+
         DataManager.GetContextData(this).Set(FileTreeExplorer.DataKey, newValue);
     }
 }

@@ -271,8 +271,8 @@ public partial class EngineView : UserControl {
 
         // ### File ###
         ContextEntryGroup fileEntry = new ContextEntryGroup("File");
-        fileEntry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
-        fileEntry.Items.Add(new CommandContextEntry("comm®╨╨╓ands.memengine.DumpMemoryCommand", "Memory Dump...", icon: SimpleIcons.DownloadMemoryIcon));
+        fileEntry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "_Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
+        fileEntry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory _Dump...", icon: SimpleIcons.DownloadMemoryIcon));
         fileEntry.Items.Add(new SeparatorEntry());
         fileEntry.Items.Add(new CommandContextEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command...", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
         fileEntry.Items.Add(new SendXboxNotificationCommandEntry("Test Notification (XBDM)", null, null));

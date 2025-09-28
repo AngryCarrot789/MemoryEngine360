@@ -172,7 +172,7 @@ public sealed class BusyLock {
             return Task.FromResult<IDisposable?>(token);
         }
 
-        return this.BeginBusyOperationActivityAsync(new DispatcherActivityProgress() { Caption = caption, Text = message }, cancellationTokenSource);
+        return this.BeginBusyOperationActivityAsync(new DispatcherActivityProgress() { Caption = caption, Text = message, IsIndeterminate = true }, cancellationTokenSource);
     }
 
     /// <summary>
@@ -187,20 +187,30 @@ public sealed class BusyLock {
     /// </returns>
     public async Task<IDisposable?> BeginBusyOperationActivityAsync(IActivityProgress progress, CancellationTokenSource? cancellationTokenSource = null) {
         IDisposable? token = this.TryBeginBusyOperation();
-        if (token == null) {
-            CancellationTokenSource cts = cancellationTokenSource ?? new CancellationTokenSource();
-            Result<IDisposable?> result = await ActivityManager.Instance.RunTask(() => {
-                ActivityTask task = ActivityManager.Instance.CurrentTask;
-                return this.BeginBusyOperationAsync(task.CancellationToken);
-            }, progress, cts);
+        if (token != null) {
+            return token;
+        }
 
-            token = result.GetValueOrDefault();
+        CancellationTokenSource cts = cancellationTokenSource ?? new CancellationTokenSource();
+
+        try {
+            Task<IDisposable?> operationTask = this.BeginBusyOperationAsync(cts.Token);
+
+            // Wait a short amount of time before starting an activity, to prevent it flashing on-screen
+            await Task.WhenAny(operationTask, Task.Delay(25, cts.Token));
+
+            if (operationTask.IsCompleted) {
+                return await operationTask;
+            }
+
+            Result<IDisposable?> result = await ActivityManager.Instance.RunTask(() => operationTask, progress, cts);
+            return result.GetValueOrDefault();
+        }
+        finally {
             if (cancellationTokenSource == null) {
                 cts.Dispose();
             }
         }
-
-        return token;
     }
 
     /// <summary>
@@ -227,21 +237,30 @@ public sealed class BusyLock {
         }
 
         CancellationTokenSource cts = cancellationTokenSource ?? new CancellationTokenSource();
-        ActivityTask<IDisposable?> activity = ActivityManager.Instance.RunTask(() => {
-            ActivityTask task = ActivityManager.Instance.CurrentTask;
-            return this.BeginBusyOperationAsync(task.CancellationToken);
-        }, new DispatcherActivityProgress() { Caption = caption, Text = message, IsIndeterminate = true }, cts);
 
-        if (showDelay > 0 && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
-            await service.DelayedWaitForActivity(topLevel, activity, showDelay, CancellationToken.None);
+        try {
+            Task<IDisposable?> operationTask = this.BeginBusyOperationAsync(cts.Token);
+
+            // Wait a short amount of time before starting an activity, to prevent it flashing on-screen
+            await Task.WhenAny(operationTask, Task.Delay(25, cts.Token));
+
+            if (operationTask.IsCompleted) {
+                return await operationTask;
+            }
+
+            DispatcherActivityProgress progress = new DispatcherActivityProgress() { Caption = caption, Text = message, IsIndeterminate = true };
+            ActivityTask<IDisposable?> activity = ActivityManager.Instance.RunTask(() => operationTask, progress, cts);
+            if (showDelay > 0 && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
+                await service.DelayedWaitForActivity(topLevel, activity, showDelay, CancellationToken.None);
+            }
+
+            return (await activity).GetValueOrDefault();
         }
-
-        Result<IDisposable?> result = await activity;
-        if (cancellationTokenSource == null) {
-            cts.Dispose();
+        finally {
+            if (cancellationTokenSource == null) {
+                cts.Dispose();
+            }
         }
-
-        return result.GetValueOrDefault();
     }
 
     private async Task<IDisposable?> InternalBeginOperationLoop(CancellationToken cancellationToken) {

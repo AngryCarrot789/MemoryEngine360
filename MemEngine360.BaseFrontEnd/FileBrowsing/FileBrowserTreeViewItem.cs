@@ -29,6 +29,7 @@ using PFXToolKitUI.Avalonia.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Commands;
 
@@ -77,6 +78,7 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem {
     public FileBrowserTreeViewItem() {
         DragDrop.SetAllowDrop(this, true);
         this.Expanded += this.OnExpanded;
+        this.Collapsed += this.OnCollapsed;
         this.LoadContentsCommand = new AsyncRelayCommand(async () => {
             if (!(this.EntryObject is FileTreeNodeDirectory dir)) {
                 return;
@@ -88,15 +90,27 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem {
 
             this.IsEnabled = false;
 
-            await dir.FileTreeManager!.LoadContentsCommand(dir);
+            FileTreeExplorerViewState state = FileTreeExplorerViewState.GetInstance(dir.FileTreeManager!);
+            state.TreeSelection.DeselectHierarchy(dir);
+
+            await CommandManager.Instance.RunActionAsync((e) => state.Explorer.LoadContentsCommand(dir), DataManager.GetFullContextData(this));
 
             this.IsEnabled = true;
         });
     }
 
+    private void OnCollapsed(object? sender, RoutedEventArgs e) {
+        if (this.EntryObject?.FileTreeManager == null) {
+            return;
+        }
+        
+        FileTreeExplorerViewState state = FileTreeExplorerViewState.GetInstance(this.EntryObject!.FileTreeManager!);
+        state.TreeSelection.DeselectHierarchy(this.EntryObject);
+    }
+
     protected override void OnKeyDown(KeyEventArgs e) {
         base.OnKeyDown(e);
-        if (e.Key == Key.F5 && this.EntryObject is FileTreeNodeDirectory dir && !this.LoadContentsCommand.IsRunning) {
+        if (!e.Handled && e.Key == Key.F5 && this.EntryObject is FileTreeNodeDirectory dir && !this.LoadContentsCommand.IsRunning) {
             e.Handled = true;
             dir.HasLoadedContents = false;
             this.LoadContentsCommand.Execute(null);
@@ -132,6 +146,7 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem {
         this.ParentNode = parentNode;
         this.EntryObject = layer;
         this.IsFolderItem = layer is FileTreeNodeDirectory;
+        this.ClearValue(IsSelectedProperty);
     }
 
     public void OnAdded() {

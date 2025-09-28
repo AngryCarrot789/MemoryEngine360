@@ -21,22 +21,20 @@ using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity.Contexts;
-using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.Engine.FileBrowsing;
 
 public class FileTreeExplorer : IComponentManager {
     public static readonly DataKey<FileTreeExplorer> DataKey = DataKeys.Create<FileTreeExplorer>(nameof(FileTreeExplorer));
-    
+
 #if DEBUG
     public static FileTreeExplorer DummyInstance_UITest { get; } = new FileTreeExplorer(new MemoryEngine());
 #endif
 
     private readonly ComponentStorage myComponentStorage;
-    
+
     /// <summary>
     /// Gets the folder that stores this ATM's layer hierarchy
     /// </summary>
@@ -48,7 +46,7 @@ public class FileTreeExplorer : IComponentManager {
     public MemoryEngine MemoryEngine { get; }
 
     ComponentStorage IComponentManager.ComponentStorage => this.myComponentStorage;
-    
+
     private readonly AsyncRelayCommand refreshRootCommand;
 
     public FileTreeExplorer(MemoryEngine memoryEngine) {
@@ -131,52 +129,61 @@ public class FileTreeExplorer : IComponentManager {
         directory.HasLoadedContents = false;
         directory.Items.Clear();
 
-        async Task Action(IDisposable t, IConsoleConnection c) {
-            if (directory.ParentDirectory == null)
-                return;
+        IFeatureFileSystemInfo? fsInfo = null;
 
-            if (!c.TryGetFeature(out IFeatureFileSystemInfo? info)) {
-                directory.HasLoadedContents = true;
-                return;
-            }
+        ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(this.MemoryEngine, e => e.BusyLocker, e => e.Connection)) {
+            ActivityCaption = "Load directory",
+            Setup = async (action, connection, hasConnectionChanged) => {
+                if (directory.ParentDirectory == null) {
+                    return false;
+                }
 
-            FileTreeNodeDirectory parent = directory.ParentDirectory!;
-            List<FileSystemEntry> result;
-            try {
-                result = await info.GetFileSystemEntries(directory.FullPath);
-            }
-            catch (FileSystemAccessDeniedException e) {
-                await IMessageDialogService.Instance.ShowMessage("File System Error", "Access denied", e.Message);
-                return;
-            }
-            catch (FileSystemNoSuchDirectoryException e) {
-                if (!isFromFileNotFound)
-                    await IMessageDialogService.Instance.ShowMessage("File System Error", "No such directory", e.Message);
-                await this.LoadContentsCommand(parent, isFromFileNotFound: true);
-                return;
-            }
-            catch (Exception e) when (e is TimeoutException || e is IOException) {
-                await IMessageDialogService.Instance.ShowMessage("Network Error", "Network error reading file system entries", e.Message);
-                return;
-            }
+                if (!connection.TryGetFeature(out fsInfo)) {
+                    directory.HasLoadedContents = true;
+                    return false;
+                }
 
-            foreach (FileSystemEntry entry in result.OrderByDescending(x => x.IsDirectory).ThenBy(x => x.Name)) {
-                directory.Items.Add(entry.IsDirectory
-                    ? new FileTreeNodeDirectory() {
-                        FileName = entry.Name, CreationTimeUtc = entry.CreatedTime, ModifiedTimeUtc = entry.ModifiedTime, Size = entry.Size,
-                    }
-                    : new FileTreeNodeFile() {
-                        FileName = entry.Name, CreationTimeUtc = entry.CreatedTime, ModifiedTimeUtc = entry.ModifiedTime, Size = entry.Size,
-                    });
-            }
+                return true;
+            },
+            Execute = (action, connection) => LoadContentsInternal(directory, fsInfo!, isFromFileNotFound)
+        };
+
+        await action.RunAsync();
+    }
+
+    private static async Task LoadContentsInternal(FileTreeNodeDirectory directory, IFeatureFileSystemInfo fsInfo, bool isFromFileNotFound = false) {
+        if (directory.ParentDirectory == null) {
+            return;
         }
 
-        ITopLevel? topLevel = TopLevelContextUtils.GetUsefulTopLevel();
-        if (topLevel != null) {
-            await this.MemoryEngine.BeginBusyOperationWithForegroundActivityAsync(topLevel, Action, "Load directory");
+        FileTreeNodeDirectory parent = directory.ParentDirectory!;
+        List<FileSystemEntry> result;
+        try {
+            result = await fsInfo.GetFileSystemEntries(directory.FullPath);
         }
-        else {
-            await this.MemoryEngine.BeginBusyOperationActivityAsync(Action, "Load directory");
+        catch (FileSystemAccessDeniedException e) {
+            await IMessageDialogService.Instance.ShowMessage("File System Error", "Access denied", e.Message);
+            return;
+        }
+        catch (FileSystemNoSuchDirectoryException e) {
+            if (!isFromFileNotFound)
+                await IMessageDialogService.Instance.ShowMessage("File System Error", "No such directory", e.Message);
+            await LoadContentsInternal(parent, fsInfo, isFromFileNotFound: true);
+            return;
+        }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            await IMessageDialogService.Instance.ShowMessage("Network Error", "Network error reading file system entries", e.Message);
+            return;
+        }
+
+        foreach (FileSystemEntry entry in result.OrderByDescending(x => x.IsDirectory).ThenBy(x => x.Name)) {
+            directory.Items.Add(entry.IsDirectory
+                ? new FileTreeNodeDirectory() {
+                    FileName = entry.Name, CreationTimeUtc = entry.CreatedTime, ModifiedTimeUtc = entry.ModifiedTime, Size = entry.Size,
+                }
+                : new FileTreeNodeFile() {
+                    FileName = entry.Name, CreationTimeUtc = entry.CreatedTime, ModifiedTimeUtc = entry.ModifiedTime, Size = entry.Size,
+                });
         }
     }
 }

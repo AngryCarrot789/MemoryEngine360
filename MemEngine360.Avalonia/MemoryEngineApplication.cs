@@ -650,20 +650,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         private static async Task<IDisposable?> TryGetTokenWithForegroundDialog(IWindow window, BusyLock busyLock) {
             IDisposable? token;
             if ((token = busyLock.TryBeginBusyOperation()) == null) {
-                using CancellationTokenSource cts = new CancellationTokenSource();
-                ActivityTask<IDisposable?> activity = ActivityManager.Instance.RunTask(() => {
-                    ActivityTask task = ActivityManager.Instance.CurrentTask;
-                    return busyLock.BeginBusyOperationAsync(task.CancellationToken);
-                }, new DispatcherActivityProgress() {
-                    Caption = "Safely disconnect", Text = "Waiting for busy operations...",
-                    IsIndeterminate = true
-                }, cts);
-
-                if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
-                    await service.DelayedWaitForActivity(window, activity, 250, CancellationToken.None);
-                }
-
-                token = (await activity).GetValueOrDefault();
+                token = busyLock.BeginBusyOperationWithForegroundActivityAsync(window, "Safely disconnect");
             }
 
             return token;
