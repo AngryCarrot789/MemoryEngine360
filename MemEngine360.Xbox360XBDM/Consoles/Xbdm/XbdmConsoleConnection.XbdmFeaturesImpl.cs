@@ -139,21 +139,13 @@ public partial class XbdmConsoleConnection {
             return entries;
         }
 
-        public async Task DeleteFile(string path) {
-            int startIndex = path.Length - 1;
-            if (path.EndsWith('\\'))
-                startIndex--;
-            if (startIndex < 0)
-                return;
+        public async Task<bool> DeleteFileSystemEntry(string path) {
+            XbdmResponse response = await this.connection.SendCommand($"delete name=\"{path}\"");
+            if (response.ResponseType == XbdmResponseType.AccessDenied) {
+                response = await this.connection.SendCommand($"delete name=\"{path}\" dir");
+            }
 
-            int index = path.LastIndexOf('\\', startIndex);
-            if (index == -1)
-                return;
-
-            ReadOnlySpan<char> name = path.AsSpan(index + 1);
-            ReadOnlySpan<char> directory = path.AsSpan(0, index);
-
-            await this.connection.SendCommand($"delete name=\"{name}\" dir=\"{directory}\"").ConfigureAwait(false);
+            return response.ResponseType == XbdmResponseType.SingleResponse;
         }
 
         public async Task LaunchFile(string path) {

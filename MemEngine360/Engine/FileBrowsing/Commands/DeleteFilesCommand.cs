@@ -43,7 +43,7 @@ public class DeleteFilesCommand : BaseFileExplorerCommand {
         IFeatureFileSystemInfo? fsInfo = null;
         List<string>? paths = null;
         List<FileTreeNodeDirectory>? refreshParents = null;
-        
+
         ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(explorer.MemoryEngine, x => x.BusyLocker, x => x.Connection)) {
             ActivityCaption = "Launch File",
             Setup = async (action, connection, hasConnectionChanged) => {
@@ -51,7 +51,7 @@ public class DeleteFilesCommand : BaseFileExplorerCommand {
                     await IMessageDialogService.Instance.ShowMessage("Unsupported", "This connection does not support File I/O");
                     return false;
                 }
-                
+
                 List<BaseFileTreeNode> allSelectedItems = state.TreeSelection.SelectedItems.ToList();
                 Dictionary<FileTreeNodeDirectory, List<(BaseFileTreeNode, int)>> trueSelection =
                     HierarchicalDuplicationUtils.GetEffectiveOrderedDuplication(allSelectedItems, x => x.ParentDirectory, x => x.ParentDirectory!.IndexOf(x));
@@ -63,7 +63,9 @@ public class DeleteFilesCommand : BaseFileExplorerCommand {
                     paths.AddRange(entry.Value.Select(tuple => tuple.Item1.FullPath));
                 }
 
-                MessageBoxInfo info = new MessageBoxInfo($"Delete {paths.Count} item{Lang.S(paths.Count)}", "Are you sure you want to delete these items", string.Join(Environment.NewLine, paths)) {
+                MessageBoxInfo info = new MessageBoxInfo {
+                    Caption = $"Delete {paths.Count} item{Lang.S(paths.Count)}",
+                    Message = "Delete these items and all of their contents?" + Environment.NewLine + string.Join(Environment.NewLine, paths),
                     YesOkText = "Delete",
                     Buttons = MessageBoxButton.OKCancel
                 };
@@ -74,12 +76,12 @@ public class DeleteFilesCommand : BaseFileExplorerCommand {
                 ActivityTask activity = ActivityManager.Instance.RunTask(async () => {
                     IActivityProgress progress = ActivityManager.Instance.CurrentTask.Progress;
                     progress.Caption = $"Deleting {paths!.Count} item{Lang.S(paths.Count)}";
-                    
+
                     using PopCompletionStateRangeToken token = progress.CompletionState.PushCompletionRange(0, 1.0 / paths.Count);
                     foreach (string path in paths!) {
                         progress.Text = path;
-                        await fsInfo!.DeleteFile(path);
                         progress.CompletionState.OnProgress(1);
+                        await fsInfo!.DeleteFileSystemEntryRecursive(path);
                     }
                 });
 

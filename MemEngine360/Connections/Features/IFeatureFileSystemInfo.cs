@@ -17,6 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI.Utils;
+
 namespace MemEngine360.Connections.Features;
 
 // TODO: use a FileSystem class that delegates to this feature under the hood?
@@ -37,12 +39,41 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// <param name="fullPath">Directory path</param>
     /// <returns>The entries</returns>
     Task<List<FileSystemEntry>> GetFileSystemEntries(string fullPath);
+
+    /// <summary>
+    /// Deletes a file system entry on the console. Returns false if attempting to delete a non-empty folder
+    /// </summary>
+    /// <param name="path">The path</param>
+    Task<bool> DeleteFileSystemEntry(string path);
     
     /// <summary>
-    /// Deletes a file on the console
+    /// Deletes a file system entry while also deleting any and all folder contents.
     /// </summary>
-    /// <param name="path">The file path</param>
-    Task DeleteFile(string path);
+    /// <param name="path">The path</param>
+    /// <returns>True if the path was deleted successfully</returns>
+    async Task<bool> DeleteFileSystemEntryRecursive(string path) {
+        // Try to delete the raw entry, hopefully it's a file.
+        if (await this.DeleteFileSystemEntry(path)) {
+            return true;
+        }
+        
+        Result<List<FileSystemEntry>> result = await Results.RunAsync(() => this.GetFileSystemEntries(path));
+        if (result.HasException) {
+            return false; // ???
+        }
+
+        foreach (FileSystemEntry entry in result.Value) {
+            string entryPath = this.JoinPaths(path, entry.Name);
+            if (entry.IsDirectory) {
+                await this.DeleteFileSystemEntryRecursive(entryPath);
+            }
+            else {
+                await this.DeleteFileSystemEntry(entryPath);
+            }
+        }
+
+        return await this.DeleteFileSystemEntry(path);
+    }
     
     /// <summary>
     /// Launches an executable file, e.g. an XEX
