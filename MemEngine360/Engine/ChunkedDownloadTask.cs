@@ -33,7 +33,7 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
     private readonly bool freezeConsole;
     private readonly IConsoleConnection connection;
     private readonly IFeatureIceCubes? iceCubes;
-    
+
     private readonly BusyLock busyLock;
     private readonly SimpleCompletionState downloadCompletion;
     private PopCompletionStateRangeToken downloadCompletionToken;
@@ -81,48 +81,23 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
         this.downloadCompletionToken = this.downloadCompletion.PushCompletionRange(0.0, 1.0 / this.countBytes);
     }
 
-    protected override async Task RunFirst(CancellationToken pauseOrCancelToken) {
-        // Update initial text
-        this.downloadCompletion.OnCompletionValueChanged();
-
+    protected override async Task RunOperation(CancellationToken pauseOrCancelToken, bool isFirstRun) {
         this.Activity.Progress.Caption = "Memory Dump";
-        await this.RunDownloadLoop(true, pauseOrCancelToken);
-    }
-
-    protected override async Task Continue(CancellationToken pauseOrCancelToken) {
-        ActivityTask task = this.Activity;
-        task.Progress.Text = "Waiting for busy operations...";
-        this.busyToken = await this.busyLock.BeginBusyOperationAsync(pauseOrCancelToken);
-        if (this.busyToken == null) {
+        if (isFirstRun) {
+            // Update initial text
+            this.downloadCompletion.OnCompletionValueChanged();
+        }
+        else if ((this.busyToken = await this.busyLock.BeginBusyOperationFromActivityAsync(pauseOrCancelToken)) == null) {
             return;
         }
 
-        await this.RunDownloadLoop(false, pauseOrCancelToken);
-    }
+        Task taskDownload = Task.Run(Download, CancellationToken.None);
+        Task taskFileIO = Task.Run(WriteToFile, CancellationToken.None);
+        await Task.WhenAll(taskDownload, taskFileIO);
+        return;
 
-    protected override Task OnPaused(bool isFirst) {
-        ActivityTask task = this.Activity;
-        task.Progress.Text += " (paused)";
-        this.fileOutput?.Dispose();
-        this.busyToken?.Dispose();
-        this.busyToken = null;
-        return Task.CompletedTask;
-    }
-
-    protected override Task OnCompleted() {
-        this.fileOutput?.Dispose();
-        this.busyToken?.Dispose();
-        this.busyToken = null;
-        this.downloadCompletionToken.Dispose();
-        this.downloadCompletionToken = default;
-        return Task.CompletedTask;
-    }
-
-    protected abstract Task DownloadNext();
-
-    private async Task RunDownloadLoop(bool isFirst, CancellationToken pauseOrCancelToken) {
         // We don't handle the exception here
-        Task taskDownload = Task.Run(async () => {
+        async Task? Download() {
             if (this.connection.IsClosed) {
                 return;
             }
@@ -177,9 +152,9 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
                 this.FailNow(pauseOrCancelToken);
 
             this.isDoneDownloading = true;
-        }, CancellationToken.None);
+        }
 
-        Task taskFileIO = Task.Run(async () => {
+        async Task? WriteToFile() {
             while (!this.isDoneDownloading || !this.buffers.IsEmpty) {
                 while (!pauseOrCancelToken.IsCancellationRequested && this.buffers.TryDequeue(out (byte[] buffer, uint cbBuffer) data)) {
                     try {
@@ -195,10 +170,28 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
                 pauseOrCancelToken.ThrowIfCancellationRequested();
                 await Task.Delay(50, pauseOrCancelToken);
             }
-        }, CancellationToken.None);
-
-        await Task.WhenAll(taskDownload, taskFileIO);
+        }
     }
+
+    protected override Task OnPaused(bool isFirst) {
+        ActivityTask task = this.Activity;
+        task.Progress.Text += " (paused)";
+        this.fileOutput?.Dispose();
+        this.busyToken?.Dispose();
+        this.busyToken = null;
+        return Task.CompletedTask;
+    }
+
+    protected override Task OnCompleted() {
+        this.fileOutput?.Dispose();
+        this.busyToken?.Dispose();
+        this.busyToken = null;
+        this.downloadCompletionToken.Dispose();
+        this.downloadCompletionToken = default;
+        return Task.CompletedTask;
+    }
+
+    protected abstract Task DownloadNext();
 
     private void FailNow(CancellationToken pauseOrCancelToken) {
         bool cancelled = this.RequestCancellation();

@@ -1,15 +1,15 @@
 ﻿<UserControl xmlns="https://github.com/avaloniaui"
-                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                 xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexEditing"
-                 xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:hex="clr-namespace:AvaloniaHex.Async;assembly=AvaloniaHex"
-                 xmlns:memEngine360="clr-namespace:MemEngine360;assembly=MemEngine360"
-                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
-                 x:Class="MemEngine360.BaseFrontEnd.Services.HexEditing.MemoryViewerView">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
+             xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexEditing"
+             xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+             xmlns:hex="clr-namespace:AvaloniaHex.Async;assembly=AvaloniaHex"
+             xmlns:memEngine360="clr-namespace:MemEngine360;assembly=MemEngine360"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
+             x:Class="MemEngine360.BaseFrontEnd.Services.HexEditing.MemoryViewerView">
     <Grid RowDefinitions="Auto,*,42">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -148,113 +148,26 @@
                 BorderThickness="0,1,1,1">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                 <hex:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
-                                      Background="{DynamicResource ABrush.Tone2.Background.Static}"
-                                      BorderThickness="0"
-                                      ResetSelectionOnDocumentChange="False"/>
+                                    Background="{DynamicResource ABrush.Tone2.Background.Static}"
+                                    BorderThickness="0"
+                                    ResetSelectionOnDocumentChange="False"/>
             </ScrollViewer>
         </Border>
         <GridSplitter Grid.Column="1" Grid.Row="1" Background="{DynamicResource ABrush.Tone4.Background.Static}" Focusable="False"/>
-        <ScrollViewer Grid.Column="2" Grid.Row="1" DockPanel.Dock="Right" Background="{DynamicResource PanelBackground4}" MinWidth="200">
-            <Grid RowDefinitions="Auto,20,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,*"
-                  ColumnDefinitions="0,75,1,*,5"
-                  Background="Transparent" Focusable="True">
-                <!-- Make grid focusable so the user can click anywhere in it to unfocus the text boxes -->
-                <TextBlock Text="Data Inspector" Padding="5"
-                           VerticalAlignment="Center" HorizontalAlignment="Left"
-                           FontFamily="{StaticResource FontOxanium}" Grid.ColumnSpan="5"
-                           TextDecorations="Underline"
-                           FontSize="12"/>
 
-                <Grid ColumnDefinitions="Auto,5,Auto" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3">
-                    <RadioButton Grid.Column="0" x:Name="PART_LittleEndian" Content="Little Endian"
-                                 tt:ToolTipEx.Tip="Interpret the data in the editor as Little Endian"/>
-                    <RadioButton Grid.Column="2" x:Name="PART_BigEndian" Content="Big Endian"
-                                 tt:ToolTipEx.Tip="Interpret the data in the editor as Big Endian. This is the default for Xbox 360"/>
-                </Grid>
 
-                <TextBlock Text="Binary8" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="Int8" Grid.Row="5" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="UInt8" Grid.Row="7" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="Int16" Grid.Row="9" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="UInt16" Grid.Row="11" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="Int32" Grid.Row="13" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="UInt32" Grid.Row="15" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="Int64" Grid.Row="17" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="UInt64" Grid.Row="19" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="Float32" Grid.Row="21" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="Double64" Grid.Row="23" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="ASCII" Grid.Row="25" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="UTF16 LE" Grid.Row="27" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="UTF16 BE" Grid.Row="29" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="UTF32 LE" Grid.Row="31" Grid.Column="1" VerticalAlignment="Center"/>
-                <TextBlock Text="UTF32 BE" Grid.Row="33" Grid.Column="1" VerticalAlignment="Center"/>
-
-                <TextBox x:Name="PART_Binary8" FontFamily="{StaticResource FontOxanium}" Grid.Row="3" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
-                <TextBox x:Name="PART_Int8" FontFamily="{StaticResource FontOxanium}" Grid.Row="5" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
-                <TextBox x:Name="PART_UInt8" FontFamily="{StaticResource FontOxanium}" Grid.Row="7" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
-                <TextBox x:Name="PART_Int16" FontFamily="{StaticResource FontOxanium}" Grid.Row="9" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
-                <TextBox x:Name="PART_UInt16" FontFamily="{StaticResource FontOxanium}" Grid.Row="11" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
-                <TextBox x:Name="PART_Int32" FontFamily="{StaticResource FontOxanium}" Grid.Row="13" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1" Margin="0,0,16,0"/>
-                <TextBox x:Name="PART_UInt32" FontFamily="{StaticResource FontOxanium}" Grid.Row="15" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
-                <TextBox x:Name="PART_Int64" FontFamily="{StaticResource FontOxanium}" Grid.Row="17" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
-                <TextBox x:Name="PART_UInt64" FontFamily="{StaticResource FontOxanium}" Grid.Row="19" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
-                <TextBox x:Name="PART_Float" FontFamily="{StaticResource FontOxanium}" Grid.Row="21" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
-                <TextBox x:Name="PART_Double" FontFamily="{StaticResource FontOxanium}" Grid.Row="23" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,1"/>
-                <TextBox x:Name="PART_CharUTF8" Grid.Row="25" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
-                <TextBox x:Name="PART_CharUTF16LE" Grid.Row="27" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
-                <TextBox x:Name="PART_CharUTF16BE" Grid.Row="29" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
-                <TextBox x:Name="PART_CharUTF32LE" Grid.Row="31" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
-                <TextBox x:Name="PART_CharUTF32BE" Grid.Row="33" Grid.Column="3" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="4,0"/>
-
-                <Border Grid.Row="5" Grid.Column="1" VerticalAlignment="Stretch" Background="{DynamicResource ABrush.Tone5.Border.Static}" HorizontalAlignment="Right" Margin="0,0,-1,0" Width="43"/>
-                <Border Grid.Row="9" Grid.Column="1" VerticalAlignment="Stretch" Background="{DynamicResource ABrush.Tone5.Border.Static}" HorizontalAlignment="Right" Margin="0,0,-1,0" Width="43"/>
-                <Border Grid.Row="13" Grid.Column="1" VerticalAlignment="Stretch" Background="{DynamicResource ABrush.Tone5.Border.Static}" HorizontalAlignment="Right" Margin="0,0,-1,0" Width="43"/>
-                <Border Grid.Row="17" Grid.Column="1" VerticalAlignment="Stretch" Background="{DynamicResource ABrush.Tone5.Border.Static}" HorizontalAlignment="Right" Margin="0,0,-1,0" Width="43"/>
-
-                <Button Focusable="False" x:Name="PART_BtnFwdInt8" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move forwards 1 byte" Grid.Row="5" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&gt;"/>
-                <Button Focusable="False" x:Name="PART_BtnFwdInt16" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move forwards 2 bytes" Grid.Row="9" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&gt;"/>
-                <Button Focusable="False" x:Name="PART_BtnFwdInt32" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move forwards 4 bytes" Grid.Row="13" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&gt;"/>
-                <Button Focusable="False" x:Name="PART_BtnFwdInt64" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move forwards 8 bytes" Grid.Row="17" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&gt;"/>
-                <Button Focusable="False" x:Name="PART_BtnBackInt8" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move backwards 1 byte" Grid.Row="5" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
-                <Button Focusable="False" x:Name="PART_BtnBackInt16" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move backwards 2 bytes" Grid.Row="9" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
-                <Button Focusable="False" x:Name="PART_BtnBackInt32" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move backwards 4 bytes" Grid.Row="13" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
-                <Button Focusable="False" x:Name="PART_BtnBackInt64" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Move backwards 8 bytes" Grid.Row="17" Grid.Column="1" BorderThickness="0" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="20" Content="&lt;" Margin="0,0,21,0"/>
-                <Button Focusable="False" x:Name="PART_BtnGoToPointerInt32" FontFamily="{StaticResource FontOxanium}" tt:ToolTipEx.Tip="Treat this value as a memory address, and go to it" Grid.Row="13" Grid.Column="3" BorderThickness="1" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" Width="16" Content="*" Padding="0,0,0,-1"/>
-
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="10" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="12" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="14" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="16" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="18" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="20" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="22" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="24" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="26" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="28" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="30" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="32" Grid.Column="1" Grid.ColumnSpan="3"/>
-                <Border Height="1" Background="{DynamicResource ABrush.Tone5.Border.Static}" Grid.Row="34" Grid.Column="1" Grid.ColumnSpan="3"/>
-
-                <DockPanel Grid.Row="37" Grid.Column="1" Grid.ColumnSpan="3">
-                    <CheckBox x:Name="PART_DisplayIntAsHex"
-                              Content="Display Integers as Hex"
-                              DockPanel.Dock="Bottom"
-                              Padding="2,2">
-                        <tt:ToolTipEx.Tip>
-                            <TextBlock Padding="4">
-                                <Run Text="Displays the integers as hexadecimal. "/>
-                                <LineBreak/>
-                                <Run Text="Floats remain displayed as floating point, since their hex representation is the exact same as integers"/>
-                            </TextBlock>
-                        </tt:ToolTipEx.Tip>
-                    </CheckBox>
-                    <Border Background="Transparent"/>
-                </DockPanel>
-            </Grid>
-        </ScrollViewer>
+        <!-- Make it focusable so the user can click anywhere in it to unfocus the text boxes -->
+        <Grid Background="{DynamicResource PanelBackground4}" MinWidth="200"
+              Grid.Column="2" Grid.Row="1" DockPanel.Dock="Right" 
+              RowDefinitions="Auto,0,*" Focusable="True">
+            <TextBlock Grid.Row="0" Text="Data Inspector" Padding="5"
+                       VerticalAlignment="Center" HorizontalAlignment="Left"
+                       FontFamily="{StaticResource FontOxanium}"
+                       TextDecorations="Underline"
+                       FontSize="12"/>
+            <ScrollViewer Grid.Row="2">
+                <local:DataInspectorControl x:Name="PART_Inspector" Background="Transparent"/>
+            </ScrollViewer>
+        </Grid>
     </Grid>
 </UserControl>

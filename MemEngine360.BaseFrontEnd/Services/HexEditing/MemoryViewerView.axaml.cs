@@ -17,15 +17,10 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using AvaloniaHex.Async.Editing;
 using AvaloniaHex.Async.Rendering;
@@ -40,12 +35,10 @@ using MemEngine360.Engine.Scanners;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
-using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
-using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Tasks;
@@ -139,15 +132,9 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         return false;
     });
 
-    private readonly EventPropertyEnumBinder<Endianness> endiannessBinder = new EventPropertyEnumBinder<Endianness>(typeof(MemoryViewer), nameof(MemoryViewer.InspectorEndiannessChanged), engine => ((MemoryViewer) engine).InspectorEndianness, (engine, value) => ((MemoryViewer) engine).InspectorEndianness = value);
-
     #endregion
 
     private readonly AsyncRelayCommand refreshDataCommand, uploadDataCommand;
-
-    private readonly record struct UploadTextBoxInfo(TextBox TextBox, DataType DataType, bool IsUnsigned);
-
-    private readonly AsyncRelayCommand<UploadTextBoxInfo> parseTextBoxAndUploadCommand;
 
     private AutoRefreshTask? autoRefreshTask;
     private bool flagRestartAutoRefresh;
@@ -213,11 +200,6 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         view.Layers.InsertBefore<TextLayer>(this.autoRefreshLayer = new AutoRefreshLayer(this.PART_HexEditor.Caret));
         this.changeManager = new HexEditorChangeManager(this.PART_HexEditor);
 
-        this.PART_DisplayIntAsHex.IsCheckedChanged += (sender, args) => this.UpdateDataInspector();
-
-        this.endiannessBinder.Assign(this.PART_LittleEndian, Endianness.LittleEndian);
-        this.endiannessBinder.Assign(this.PART_BigEndian, Endianness.BigEndian);
-
         this.PART_CancelButton.Command = new AsyncRelayCommand(() => this.Window!.RequestCloseAsync());
 
         this.refreshDataCommand = new AsyncRelayCommand(async () => {
@@ -248,30 +230,6 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         this.PART_HexEditor.Caret.PrimaryColumnChanged += (sender, args) => this.UpdateCaretText();
         this.PART_HexEditor.Selection.RangeChanged += (sender, args) => this.UpdateSelectionText();
 
-        this.PART_BtnFwdInt8.Click += (s, e) => this.MoveCursorForDataType(1);
-        this.PART_BtnFwdInt16.Click += (s, e) => this.MoveCursorForDataType(2);
-        this.PART_BtnFwdInt32.Click += (s, e) => this.MoveCursorForDataType(4);
-        this.PART_BtnFwdInt64.Click += (s, e) => this.MoveCursorForDataType(8);
-        this.PART_BtnBackInt8.Click += (s, e) => this.MoveCursorForDataType(-1);
-        this.PART_BtnBackInt16.Click += (s, e) => this.MoveCursorForDataType(-2);
-        this.PART_BtnBackInt32.Click += (s, e) => this.MoveCursorForDataType(-4);
-        this.PART_BtnBackInt64.Click += (s, e) => this.MoveCursorForDataType(-8);
-
-        EventHandler<KeyEventArgs> keyDownHandler = this.OnDataInspectorNumericTextBoxKeyDown;
-        this.PART_Int8.KeyDown += keyDownHandler;
-        this.PART_UInt8.KeyDown += keyDownHandler;
-        this.PART_Int16.KeyDown += keyDownHandler;
-        this.PART_UInt16.KeyDown += keyDownHandler;
-        this.PART_Int32.KeyDown += keyDownHandler;
-        this.PART_UInt32.KeyDown += keyDownHandler;
-        this.PART_Int64.KeyDown += keyDownHandler;
-        this.PART_UInt64.KeyDown += keyDownHandler;
-        this.PART_Float.KeyDown += keyDownHandler;
-        this.PART_Double.KeyDown += keyDownHandler;
-
-        this.parseTextBoxAndUploadCommand = new AsyncRelayCommand<UploadTextBoxInfo>(this.ParseTextBoxAndUpload, isParamRequired: true);
-
-        this.PART_BtnGoToPointerInt32.Click += (s, e) => this.NavigateToPointer();
         this.PART_ToggleAutoRefreshButton.Command = this.runAutoRefreshCommand = new AsyncRelayCommand(async () => {
             if (this.autoRefreshTask != null) {
                 // We are running, so stop it
@@ -323,34 +281,31 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         });
 
         this.UpdateAutoRefreshButtonsAndTextBoxes();
+
+        this.PART_Inspector.ReadDataProcedure = array => {
+            if (this.myBinarySource != null)
+                return this.myBinarySource.ReadAvailableData(this.SelectionRange.Start.ByteIndex, array);
+            return 0;
+        };
+
+        this.PART_Inspector.GoToAddressProcedure = (address, length) => {
+            BitLocation caret = new BitLocation(address);
+            this.CaretLocation = caret;
+            this.SelectionRange = new BitRange(caret, new BitLocation(Maths.SumAndClampOverflow(address, length)));
+        };
+
+        this.PART_Inspector.MoveCaretProcedure = incr => {
+            BitLocation caret = new BitLocation(Maths.SumAndClampOverflow(this.CaretLocation.ByteIndex, incr));
+            this.CaretLocation = caret;
+            this.SelectionRange = new BitRange(caret, new BitLocation(Maths.SumAndClampOverflow(caret.ByteIndex, (ulong) Math.Abs(incr))));
+        };
+
+        this.PART_Inspector.UploadTextBoxText = this.ParseTextBoxAndUpload;
     }
 
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
         this.PART_HexEditor.HexView.ScrollToByteOffset(0x82600000, out _);
-    }
-
-    private void OnDataInspectorNumericTextBoxKeyDown(object? sender, KeyEventArgs e) {
-        TextBox tb = (TextBox) sender!;
-        if (e.Key == Key.Escape) {
-            VisualTreeUtils.TryMoveFocusUpwards(tb);
-            return;
-        }
-
-        if (e.Key == Key.Enter) {
-            switch (tb.Name) {
-                case nameof(this.PART_Int8):   this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Byte, false)); break;
-                case nameof(this.PART_UInt8):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Byte, true)); break;
-                case nameof(this.PART_Int16):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int16, false)); break;
-                case nameof(this.PART_UInt16): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int16, true)); break;
-                case nameof(this.PART_Int32):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int32, false)); break;
-                case nameof(this.PART_UInt32): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int32, true)); break;
-                case nameof(this.PART_Int64):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int64, false)); break;
-                case nameof(this.PART_UInt64): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Int64, true)); break;
-                case nameof(this.PART_Float):  this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Float, false)); break;
-                case nameof(this.PART_Double): this.parseTextBoxAndUploadCommand.Execute(new UploadTextBoxInfo(tb, DataType.Double, false)); break;
-            }
-        }
     }
 
     private async Task ParseTextBoxAndUpload(UploadTextBoxInfo info) {
@@ -362,7 +317,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             return;
         }
 
-        NumericDisplayType intNdt = info.DataType.IsInteger() && this.PART_DisplayIntAsHex.IsChecked == true ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
+        NumericDisplayType intNdt = info.DataType.IsInteger() && this.PART_Inspector.DisplayIntegersAsHex ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
 
         string input = info.TextBox.Text ?? "";
         // Custom case for signed byte. Why TF did I add a signed byte row to the data inspector???
@@ -412,7 +367,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             }
         });
 
-        this.UpdateDataInspector();
+        this.PART_Inspector.UpdateFields();
     }
 
     private async Task PerformOperationBetweenAutoRefresh(Func<Task> operation) {
@@ -425,54 +380,13 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         }
     }
 
-    private bool IsPointerInRange(uint value) => true;
-
-    private void NavigateToPointer() {
-        MemoryViewer? info = this.HexDisplayInfo;
-        if (this.myBinarySource == null || info == null) {
-            return;
-        }
-
-        ulong caretIndex = this.SelectionRange.Start.ByteIndex;
-        int cbRemaining = (int) (uint.MaxValue - caretIndex);
-        if (cbRemaining < 4) {
-            return;
-        }
-
-        Span<byte> buffer = stackalloc byte[4];
-        int read = this.myBinarySource.ReadAvailableData(caretIndex, buffer);
-        if (read >= 4) {
-            uint val32 = MemoryMarshal.Read<uint>(buffer);
-            bool displayAsLE = info.InspectorEndianness == Endianness.LittleEndian;
-            if (displayAsLE != BitConverter.IsLittleEndian) {
-                val32 = BinaryPrimitives.ReverseEndianness(val32);
-            }
-
-            if (this.IsPointerInRange(val32)) {
-                this.MoveCursor(val32, 4);
-            }
-        }
-    }
-
-    private void MoveCursorForDataType(int incr) {
-        int len = incr < 0 ? -incr : incr;
-        BitLocation caret = this.CaretLocation;
-        this.MoveCursor(Maths.SumAndClampOverflow(caret.ByteIndex, incr), len);
-    }
-
-    private void MoveCursor(ulong location, long selectionLength) {
-        BitLocation caret = new BitLocation(location);
-        this.CaretLocation = caret;
-        this.SelectionRange = new BitRange(caret, caret.AddBytes((ulong) selectionLength));
-    }
-
     public void SetBinarySource(IConnectionLockPair? lockPair) {
         this.PART_HexEditor.BinarySource = this.myBinarySource = lockPair != null ? new ConsoleHexBinarySource(lockPair) : null;
         this.changeManager.Clear();
         this.changeManager.OnBinarySourceChanged(this.myBinarySource);
         this.UpdateSelectionText();
         this.UpdateCaretText();
-        this.UpdateDataInspector();
+        this.PART_Inspector.UpdateFields();
     }
 
     public Task ReloadSelectionFromConsole() {
@@ -632,7 +546,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             this.PART_SelectionText.Text = $"{sel.Range.ByteLength} bytes ({sel.Range.Start.ByteIndex:X8} -> {(end > 0 ? (end - 1) : 0):X8})";
         }
 
-        this.UpdateDataInspector();
+        this.PART_Inspector.UpdateFields();
         this.UpdateAutoRefreshSelectionDependentShit();
     }
 
@@ -640,7 +554,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         Caret caret = this.PART_HexEditor.Caret;
         BitLocation pos = caret.Location;
         this.PART_CaretText.Text = $"{pos.ByteIndex:X8} ({pos.ByteIndex:X} from start)";
-        this.UpdateDataInspector();
+        this.PART_Inspector.UpdateFields();
         this.UpdateAutoRefreshSelectionDependentShit();
     }
 
@@ -658,7 +572,6 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             oldData.MemoryEngine.ConnectionAboutToChange -= this.OnConnectionAboutToChange;
             oldData.MemoryEngine.ConnectionChanged -= this.OnConnectionChanged;
             oldData.InspectorEndiannessChanged -= this.OnEndiannessModeChanged;
-            this.endiannessBinder.Detach();
             this.SetBinarySource(null);
             oldData.BinarySource = null;
         }
@@ -668,10 +581,11 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             newData.MemoryEngine.ConnectionAboutToChange += this.OnConnectionAboutToChange;
             newData.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;
             newData.InspectorEndiannessChanged += this.OnEndiannessModeChanged;
-            this.endiannessBinder.Attach(newData);
             this.PART_CancelButton.Focus();
             this.SetBinarySource(new ConnectionLockPair(newData.MemoryEngine.BusyLocker, newData.MemoryEngine.Connection));
             newData.BinarySource = this.myBinarySource;
+
+            this.PART_Inspector.IsLittleEndian = newData.InspectorEndianness == Endianness.LittleEndian;
         }
     }
 
@@ -680,7 +594,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     }
 
     private void OnEndiannessModeChanged(MemoryViewer sender) {
-        this.UpdateDataInspector();
+        this.PART_Inspector.IsLittleEndian = sender.InspectorEndianness == Endianness.LittleEndian;
     }
 
     internal void OnWindowOpened(IWindow sender) {
@@ -713,99 +627,6 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         if (info != null) {
             this.autoRefreshLayer.SetRange(new BitRange(info.AutoRefreshStartAddress, info.AutoRefreshStartAddress + info.AutoRefreshLength));
         }
-    }
-
-    private void UpdateDataInspector() {
-        ulong caretIndex = this.SelectionRange.Start.ByteIndex;
-        MemoryViewer? info = this.HexDisplayInfo;
-        if (this.myBinarySource == null || info == null) {
-            return;
-        }
-
-        ulong cbAvailable = uint.MaxValue - caretIndex;
-        byte[] daBuf = new byte[8];
-        if (cbAvailable > 0) {
-            cbAvailable = (ulong) this.myBinarySource.ReadAvailableData(caretIndex, new Span<byte>(daBuf, 0, (int) Math.Min(8, cbAvailable)));
-        }
-
-        // The console is big-endian. If we want to display as little endian, we need to reverse the bytes
-        byte val08 = cbAvailable >= 1 ? daBuf[0] : default;
-        ushort val16 = cbAvailable >= 2 ? MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(daBuf, 0, 2)) : default, raw_val16 = val16;
-        uint val32 = cbAvailable >= 4 ? MemoryMarshal.Read<uint>(new ReadOnlySpan<byte>(daBuf, 0, 4)) : 0, raw_val32 = val32;
-        ulong val64 = cbAvailable >= 8 ? MemoryMarshal.Read<ulong>(new ReadOnlySpan<byte>(daBuf, 0, 8)) : 0, raw_val64 = val64;
-
-        // Rather than use something like BinaryPrimitives.ReadUInt32BigEndian, we just
-        // reverse the endianness here so that we aren't reversing possibly twice if the user
-        // wants to display in LE for some reason
-        bool isDataLE = info.InspectorEndianness == Endianness.LittleEndian;
-        if (isDataLE != BitConverter.IsLittleEndian) {
-            val16 = BinaryPrimitives.ReverseEndianness(val16);
-            val32 = BinaryPrimitives.ReverseEndianness(val32);
-            val64 = BinaryPrimitives.ReverseEndianness(val64);
-        }
-
-        bool asHex = this.PART_DisplayIntAsHex.IsChecked == true;
-        this.PART_Binary8.Text = val08.ToString("B8");
-        if (!this.PART_Int8.IsKeyboardFocusWithin) {
-            this.PART_Int8.Text = asHex
-                ? (sbyte) val08 < 0
-                    ? "-" + (-(sbyte) val08).ToString("X2")
-                    : ((sbyte) val08).ToString("X2")
-                : ((sbyte) val08).ToString();
-        }
-
-        if (!this.PART_UInt8.IsKeyboardFocusWithin) {
-            this.PART_UInt8.Text = asHex ? val08.ToString("X2") : val08.ToString();
-        }
-
-        if (!this.PART_Int16.IsKeyboardFocusWithin) {
-            this.PART_Int16.Text = asHex
-                ? (short) val16 < 0
-                    ? "-" + (-(short) val16).ToString("X4")
-                    : ((short) val16).ToString("X4")
-                : ((short) val16).ToString();
-        }
-
-        if (!this.PART_UInt16.IsKeyboardFocusWithin) {
-            this.PART_UInt16.Text = asHex ? val16.ToString("X4") : val16.ToString();
-        }
-
-        if (!this.PART_Int32.IsKeyboardFocusWithin) {
-            this.PART_Int32.Text = asHex
-                ? (int) val32 < 0
-                    ? "-" + (-(int) val32).ToString("X8")
-                    : ((int) val32).ToString("X8")
-                : ((int) val32).ToString();
-        }
-
-        if (!this.PART_UInt32.IsKeyboardFocusWithin) {
-            this.PART_UInt32.Text = asHex ? val32.ToString("X8") : val32.ToString();
-        }
-
-        if (!this.PART_Int64.IsKeyboardFocusWithin) {
-            this.PART_Int64.Text = asHex ? (long) val64 < 0 ? "-" + (-(long) val64).ToString("X16") : ((long) val64).ToString("X16") : ((long) val64).ToString();
-        }
-
-        if (!this.PART_UInt64.IsKeyboardFocusWithin) {
-            this.PART_UInt64.Text = asHex ? val64.ToString("X16") : val64.ToString();
-        }
-
-        if (!this.PART_Float.IsKeyboardFocusWithin) {
-            this.PART_Float.Text = Unsafe.As<uint, float>(ref val32).ToString();
-        }
-
-        if (!this.PART_Double.IsKeyboardFocusWithin) {
-            this.PART_Double.Text = Unsafe.As<ulong, double>(ref val64).ToString();
-        }
-
-        this.PART_CharUTF8.Text = ((char) val08).ToString();
-        this.PART_CharUTF16LE.Text = ((char) raw_val16).ToString();
-        this.PART_CharUTF16BE.Text = ((char) BinaryPrimitives.ReverseEndianness(raw_val16)).ToString();
-        this.PART_CharUTF32LE.Text = Encoding.GetEncoding(12000).GetString(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<uint, byte>(ref raw_val32), 4));
-
-        uint tmpval32 = BinaryPrimitives.ReverseEndianness(raw_val32);
-        this.PART_CharUTF32BE.Text = Encoding.GetEncoding(12001).GetString(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<uint, byte>(ref tmpval32), 4));
-        this.PART_BtnGoToPointerInt32.IsEnabled = this.IsPointerInRange(val32);
     }
 
     private void UpdateAutoRefreshButtonsAndTextBoxes() {
@@ -842,85 +663,38 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             this.myBuffer = new byte[this.cbRange];
         }
 
-        protected override async Task RunFirst(CancellationToken pauseOrCancelToken) {
-            if (this.info == null || this.myDocument == null) {
-                this.isInvalidOnFirstRun = true;
-                return;
-            }
-
-            ActivityTask task = this.Activity;
-            task.Progress.Caption = "Auto refresh";
-            task.Progress.Text = "Updating UI...";
-            await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                this.control.PART_ControlsGrid.IsEnabled = false;
-
-                this.control.autoRefreshLayer.SetRange(new BitRange(this.startAddress, this.startAddress + this.cbRange));
-                this.control.autoRefreshLayer.IsActive = true;
-                this.control.UpdateAutoRefreshButtonsAndTextBoxes();
-
-                this.control.refreshDataCommand.RaiseCanExecuteChanged();
-                this.control.uploadDataCommand.RaiseCanExecuteChanged();
-            });
-
-            task.Progress.Text = "Waiting for busy operations...";
-            this.busyToken = await this.info.MemoryEngine.BeginBusyOperationAsync(this.CancellationToken);
-            if (this.busyToken == null) {
-                return;
-            }
-
-            task.Progress.Text = "Auto refresh in progress";
-            task.Progress.IsIndeterminate = true;
-            await this.RunUpdateLoop(pauseOrCancelToken);
-        }
-
-        protected override async Task Continue(CancellationToken pauseOrCancelToken) {
-            ActivityTask task = this.Activity;
-            task.Progress.Text = "Waiting for busy operations...";
-            this.busyToken = await this.info!.MemoryEngine.BeginBusyOperationAsync(this.CancellationToken);
-            if (this.busyToken == null) {
-                return;
-            }
-
-            task.Progress.Text = "Auto refresh in progress";
-            task.Progress.IsIndeterminate = true;
-            await this.RunUpdateLoop(pauseOrCancelToken);
-        }
-
-        protected override async Task OnPaused(bool isFirst) {
-            ActivityTask task = this.Activity;
-            task.Progress.Text = "Auto refresh paused";
-            task.Progress.IsIndeterminate = false;
-            task.Progress.CompletionState.TotalCompletion = 0.0;
-            this.busyToken?.Dispose();
-            this.busyToken = null;
-        }
-
-        protected override async Task OnCompleted() {
-            if (this.isInvalidOnFirstRun) {
-                return;
-            }
-
-            this.busyToken?.Dispose();
-            this.busyToken = null;
-
-            await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                this.control.PART_ControlsGrid.IsEnabled = true;
-
-                this.control.autoRefreshLayer.IsActive = false;
-                this.control.autoRefreshTask = null;
-                this.control.UpdateAutoRefreshButtonsAndTextBoxes();
-
-                this.control.refreshDataCommand.RaiseCanExecuteChanged();
-                this.control.uploadDataCommand.RaiseCanExecuteChanged();
-
-                if (this.control.flagRestartAutoRefresh) {
-                    this.control.flagRestartAutoRefresh = false;
-                    this.control.runAutoRefreshCommand.Execute(null);
+        protected override async Task RunOperation(CancellationToken pauseOrCancelToken, bool isFirstRun) {
+            this.Activity.Progress.Caption = "Auto refresh";
+            this.Activity.Progress.IsIndeterminate = true;
+            if (isFirstRun) {
+                if (this.info == null || this.myDocument == null) {
+                    this.isInvalidOnFirstRun = true;
+                    return;
                 }
-            });
-        }
 
-        private async Task RunUpdateLoop(CancellationToken pauseOrCancelToken) {
+                this.Activity.Progress.Text = "Updating UI...";
+                await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                    this.control.PART_ControlsGrid.IsEnabled = false;
+
+                    this.control.autoRefreshLayer.SetRange(new BitRange(this.startAddress, this.startAddress + this.cbRange));
+                    this.control.autoRefreshLayer.IsActive = true;
+                    this.control.UpdateAutoRefreshButtonsAndTextBoxes();
+
+                    this.control.refreshDataCommand.RaiseCanExecuteChanged();
+                    this.control.uploadDataCommand.RaiseCanExecuteChanged();
+                }, token: CancellationToken.None);
+            }
+            else {
+                Debug.Assert(this.info != null);
+            }
+
+            this.busyToken = await this.info!.MemoryEngine.BusyLocker.BeginBusyOperationFromActivityAsync(this.CancellationToken);
+            if (this.busyToken == null) {
+                return;
+            }
+
+            this.Activity.Progress.Text = "Auto refresh in progress";
+            
             BasicApplicationConfiguration settings = BasicApplicationConfiguration.Instance;
             while (true) {
                 pauseOrCancelToken.ThrowIfCancellationRequested();
@@ -973,6 +747,40 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
 
                 this.Activity.Progress.Text = $"Auto refresh in progress ({Math.Round(1.0 / (DateTime.Now - startTime).TotalSeconds, 1)} upd/s)";
             }
+        }
+
+        protected override async Task OnPaused(bool isFirst) {
+            ActivityTask task = this.Activity;
+            task.Progress.Text = "Auto refresh paused";
+            task.Progress.IsIndeterminate = false;
+            task.Progress.CompletionState.TotalCompletion = 0.0;
+            this.busyToken?.Dispose();
+            this.busyToken = null;
+        }
+
+        protected override async Task OnCompleted() {
+            if (this.isInvalidOnFirstRun) {
+                return;
+            }
+
+            this.busyToken?.Dispose();
+            this.busyToken = null;
+
+            await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                this.control.PART_ControlsGrid.IsEnabled = true;
+
+                this.control.autoRefreshLayer.IsActive = false;
+                this.control.autoRefreshTask = null;
+                this.control.UpdateAutoRefreshButtonsAndTextBoxes();
+
+                this.control.refreshDataCommand.RaiseCanExecuteChanged();
+                this.control.uploadDataCommand.RaiseCanExecuteChanged();
+
+                if (this.control.flagRestartAutoRefresh) {
+                    this.control.flagRestartAutoRefresh = false;
+                    this.control.runAutoRefreshCommand.Execute(null);
+                }
+            });
         }
     }
 }

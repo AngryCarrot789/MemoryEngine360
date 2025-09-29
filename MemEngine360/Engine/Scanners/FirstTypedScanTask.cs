@@ -49,7 +49,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
     private bool isAlreadyFrozen;
 
     public IDisposable? BusyToken => this.myBusyTokenRef.Value;
-    
+
     public FirstTypedScanTask(ScanningContext context, IConsoleConnection connection, Reference<IDisposable?> busyTokenRef) : base(true) {
         this.ctx = context ?? throw new ArgumentNullException(nameof(context));
         this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
@@ -58,51 +58,18 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
         this.rgIdx = 0;
     }
 
-    protected override async Task RunFirst(CancellationToken pauseOrCancelToken) {
-        Debug.Assert(this.myBusyTokenRef != null, "Busy token should not be null at this point");
-
+    protected override async Task RunOperation(CancellationToken pauseOrCancelToken, bool isFirstRun) {
         this.Activity.Progress.Text = "Scanning...";
-        await this.RunScan(pauseOrCancelToken);
-    }
-
-    protected override async Task Continue(CancellationToken pauseOrCancelToken) {
-        ActivityTask task = this.Activity;
-        task.Progress.Text = "Scanning...";
-        task.Progress.Text = "Waiting for busy operations...";
-        this.myBusyTokenRef.Value = await this.ctx.Processor.MemoryEngine.BeginBusyOperationAsync(pauseOrCancelToken);
-        if (this.BusyToken == null) {
-            return;
+        if (isFirstRun) {
+            Debug.Assert(this.myBusyTokenRef != null, "Busy token should not be null at this point");
         }
-
-        await this.RunScan(pauseOrCancelToken);
-    }
-
-    protected override async Task OnPaused(bool isFirst) {
-        this.Activity.Progress.Text += " (paused)";
-        this.Activity.Progress.CompletionState.TotalCompletion = 0.0;
-        await this.TrySetUnFrozen();
-
-        this.myBusyTokenRef.Value?.Dispose();
-        this.myBusyTokenRef.Value = null;
-    }
-
-    protected override async Task OnCompleted() {
-        await this.TrySetUnFrozen();
-        // do not dispose busy token after completed since the scanner may still need it
-    }
-
-    private async Task TrySetUnFrozen() {
-        if (!this.isAlreadyFrozen && this.ctx.pauseConsoleDuringScan && this.iceCubes != null) {
-            try {
-                await this.iceCubes.DebugUnFreeze();
-            }
-            catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
-                this.ctx.ConnectionException = ex;
+        else {
+            this.myBusyTokenRef.Value = await this.ctx.Processor.MemoryEngine.BusyLocker.BeginBusyOperationFromActivityAsync(pauseOrCancelToken);
+            if (this.BusyToken == null) {
+                return;
             }
         }
-    }
 
-    private async Task RunScan(CancellationToken pauseOrCancelToken) {
         if (this.ctx.HasConnectionError || this.connection.IsClosed) {
             return;
         }
@@ -116,10 +83,10 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
                 return;
             }
         }
-        
+
         Debug.Assert(!this.connection.IsClosed);
         IActivityProgress progress = ActivityManager.Instance.CurrentTask.Progress;
-        
+
         uint overlap = this.ctx.Overlap;
         byte[] tmpBuffer = new byte[DataTypedScanningContext.ChunkSize + overlap];
         if (this.ctx.scanMemoryPages && this.connection.TryGetFeature(out IFeatureMemoryRegions? memRegionFeature)) {
@@ -242,6 +209,31 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
             }
 
             this.isProcessingCurrentRegion = false;
+        }
+    }
+
+    protected override async Task OnPaused(bool isFirst) {
+        this.Activity.Progress.Text += " (paused)";
+        this.Activity.Progress.CompletionState.TotalCompletion = 0.0;
+        await this.TrySetUnFrozen();
+
+        this.myBusyTokenRef.Value?.Dispose();
+        this.myBusyTokenRef.Value = null;
+    }
+
+    protected override async Task OnCompleted() {
+        await this.TrySetUnFrozen();
+        // do not dispose busy token after completed since the scanner may still need it
+    }
+
+    private async Task TrySetUnFrozen() {
+        if (!this.isAlreadyFrozen && this.ctx.pauseConsoleDuringScan && this.iceCubes != null) {
+            try {
+                await this.iceCubes.DebugUnFreeze();
+            }
+            catch (Exception ex) when (ex is IOException || ex is TimeoutException) {
+                this.ctx.ConnectionException = ex;
+            }
         }
     }
 }

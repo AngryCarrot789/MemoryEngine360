@@ -158,46 +158,18 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             this.downloadCompletionToken = this.downloadCompletion.PushCompletionRange(0.0, 1.0 / this.countBytes);
         }
 
-        protected override async Task RunFirst(CancellationToken pauseOrCancelToken) {
-            // Update initial text
-            this.downloadCompletion.OnCompletionValueChanged();
-
-            this.Activity.Progress.Caption = "Memory Dump";
-            await this.RunDownloadLoop(true, pauseOrCancelToken);
-        }
-
-        protected override async Task Continue(CancellationToken pauseOrCancelToken) {
-            ActivityTask task = this.Activity;
-            task.Progress.Text = "Waiting for busy operations...";
-            this.busyToken = await this.engine.BeginBusyOperationAsync(pauseOrCancelToken);
-            if (this.busyToken == null) {
+        protected override async Task RunOperation(CancellationToken pauseOrCancelToken, bool isFirstRun) {
+            if (isFirstRun) {
+                // Update initial text
+                this.downloadCompletion.OnCompletionValueChanged();
+                this.Activity.Progress.Caption = "Memory Dump";
+            }
+            else if ((this.busyToken = await this.engine.BusyLocker.BeginBusyOperationFromActivityAsync(pauseOrCancelToken)) == null) {
                 return;
             }
 
-            await this.RunDownloadLoop(false, pauseOrCancelToken);
-        }
-
-        protected override Task OnPaused(bool isFirst) {
-            ActivityTask task = this.Activity;
-            task.Progress.Text += " (paused)";
-            this.fileOutput?.Dispose();
-            this.busyToken?.Dispose();
-            this.busyToken = null;
-            return Task.CompletedTask;
-        }
-
-        protected override Task OnCompleted() {
-            this.fileOutput?.Dispose();
-            this.busyToken?.Dispose();
-            this.busyToken = null;
-            this.downloadCompletionToken.Dispose();
-            this.downloadCompletionToken = default;
-            return Task.CompletedTask;
-        }
-
-        private async Task RunDownloadLoop(bool isFirst, CancellationToken pauseOrCancelToken) {
             // We don't handle the exception here
-            this.fileOutput = new FileStream(this.filePath, isFirst ? FileMode.Create : FileMode.Append, FileAccess.Write, FileShare.Read);
+            this.fileOutput = new FileStream(this.filePath, isFirstRun ? FileMode.Create : FileMode.Append, FileAccess.Write, FileShare.Read);
             Task taskDownload = Task.Run(async () => {
                 IConsoleConnection? connection = this.engine.Connection;
                 if (this.engine.IsShuttingDown || connection == null || connection.IsClosed) {
@@ -278,6 +250,24 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             }, CancellationToken.None);
 
             await Task.WhenAll(taskDownload, taskFileIO);
+        }
+
+        protected override Task OnPaused(bool isFirst) {
+            ActivityTask task = this.Activity;
+            task.Progress.Text += " (paused)";
+            this.fileOutput?.Dispose();
+            this.busyToken?.Dispose();
+            this.busyToken = null;
+            return Task.CompletedTask;
+        }
+
+        protected override Task OnCompleted() {
+            this.fileOutput?.Dispose();
+            this.busyToken?.Dispose();
+            this.busyToken = null;
+            this.downloadCompletionToken.Dispose();
+            this.downloadCompletionToken = default;
+            return Task.CompletedTask;
         }
 
         private void FailNow(CancellationToken pauseOrCancelToken) {
