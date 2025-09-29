@@ -50,7 +50,7 @@ public class ShowModulesCommand : Command {
         }
 
         IConsoleConnection? connection;
-        using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Begin reading modules");
+        using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Begin reading modules");
         if (token == null || (connection = engine.Connection) == null || connection.IsClosed) {
             return;
         }

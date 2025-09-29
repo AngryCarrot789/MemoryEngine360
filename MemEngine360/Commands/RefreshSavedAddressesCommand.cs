@@ -40,7 +40,7 @@ public class RefreshSavedAddressesCommand : Command {
             return;
         }
 
-        using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Refreshing values");
+        using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Refreshing values");
         if (token == null) {
             return;
         }

@@ -31,7 +31,7 @@ public class ShowXbeInfoCommand : BaseMemoryEngineCommand {
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
-        await engine.BeginBusyOperationActivityAsync(async (t, c) => {
+        await engine.BeginBusyOperationUsingActivityAsync(async (t, c) => {
             if (c is XbdmConsoleConnection xbox) {
                 string? path = await xbox.GetXbeInfo(null);
                 if (!string.IsNullOrEmpty(path)) {

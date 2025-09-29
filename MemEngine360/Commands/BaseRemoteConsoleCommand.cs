@@ -49,7 +49,7 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
     }
 
     protected sealed override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
-        using IDisposable? token = await engine.BeginBusyOperationActivityAsync(this.ActivityText);
+        using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync(this.ActivityText);
         if (token == null) {
             return;
         }

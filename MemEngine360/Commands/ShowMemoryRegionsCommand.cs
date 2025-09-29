@@ -41,34 +41,31 @@ public class ShowMemoryRegionsCommand : BaseMemoryEngineCommand {
 
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
         if (engine.Connection?.HasFeature<IFeatureMemoryRegions>() == true) {
-            List<MemoryRegion>? list = await engine.BeginBusyOperationActivityAsync(async (t, c) => {
-                if (!c.TryGetFeature(out IFeatureMemoryRegions? regions)) {
-                    await IMessageDialogService.Instance.ShowMessage("Unsupported", "This console does not support memory region querying");
-                    return null;
-                }
+            Result<Optional<List<MemoryRegion>?>> myResult = await ActivityManager.Instance.RunTask(async () => {
+                IActivityProgress p = ActivityTask.Current.Progress;
+                p.Caption = "Memory Regions";
+                p.Text = "Reading memory regions...";
+                p.IsIndeterminate = true;
                 
-                Result<List<MemoryRegion>> result = await ActivityManager.Instance.RunTask(() => {
-                    IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
-                    prog.Caption = "Memory Regions";
-                    prog.Text = "Reading memory regions...";
-                    prog.IsIndeterminate = true;
-                    return regions.GetMemoryRegions(false, false);
-                });
+                return await engine.BeginBusyOperationFromActivityAsync(static async (_, c) => {
+                    if (!c.TryGetFeature(out IFeatureMemoryRegions? feature)) {
+                        await IMessageDialogService.Instance.ShowMessage("Unsupported", "This console does not support memory region querying");
+                        return null;
+                    }
 
-                return result.GetValueOrDefault();
+                    return await feature.GetMemoryRegions(false, false);
+                });
             });
 
-            if (list == null) {
-                return;
+            if (myResult.GetValueOrDefault().GetValueOrDefault() is List<MemoryRegion> regions) {
+                MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(regions) {
+                    Caption = "Memory Regions",
+                    ConfirmText = "Epic", CancelText = "Close", // UserInputDialog limitation -- cannot disable OK :-)
+                    RegionFlagsToTextConverter = MemoryRegionUserInputInfo.ConvertXboxFlagsToText
+                };
+
+                await IUserInputDialogService.Instance.ShowInputDialogAsync(info);
             }
-
-            MemoryRegionUserInputInfo info = new MemoryRegionUserInputInfo(list) {
-                Caption = "Memory Regions",
-                ConfirmText = "Epic", CancelText = "Close", // UserInputDialog limitation -- cannot disable OK :-)
-                RegionFlagsToTextConverter = MemoryRegionUserInputInfo.ConvertXboxFlagsToText
-            };
-
-            await IUserInputDialogService.Instance.ShowInputDialogAsync(info);
         }
     }
 }

@@ -1,15 +1,15 @@
 ﻿<UserControl xmlns="https://github.com/avaloniaui"
-                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                 xmlns:avs="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:mr="clr-namespace:MemEngine360.BaseFrontEnd.MemRegions;assembly=MemEngine360.BaseFrontEnd"
-                 xmlns:modules="clr-namespace:MemEngine360.BaseFrontEnd.XboxBase.Modules"
-                 xmlns:models="clr-namespace:MemEngine360.XboxBase.Modules;assembly=MemEngine360"
-                 xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
-                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-                 x:Class="MemEngine360.BaseFrontEnd.XboxBase.Modules.ModuleViewerView">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:avs="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+             xmlns:mr="clr-namespace:MemEngine360.BaseFrontEnd.MemRegions;assembly=MemEngine360.BaseFrontEnd"
+             xmlns:modules="clr-namespace:MemEngine360.BaseFrontEnd.XboxBase.Modules"
+             xmlns:models="clr-namespace:MemEngine360.XboxBase.Modules;assembly=MemEngine360"
+             xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+             xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MemEngine360.BaseFrontEnd.XboxBase.Modules.ModuleViewerView">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
         <Grid>
             <Grid.ColumnDefinitions>
@@ -29,12 +29,12 @@
                     </DockPanel>
                 </c:GroupBox.Header>
                 <modules:ModuleListBox x:Name="PART_ModuleListBox"
-                                     BorderThickness="0"
-                                     FontFamily="{StaticResource FontOxanium}"
-                                     Background="Transparent"
-                                     SelectionMode="Multiple"
-                                     CanDragItemPosition="True"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                       BorderThickness="0"
+                                       FontFamily="{StaticResource FontOxanium}"
+                                       Background="Transparent"
+                                       SelectionMode="Multiple"
+                                       CanDragItemPosition="True"
+                                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.Theme>
                         <ControlTheme TargetType="{x:Type modules:ModuleListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
                     </ListBox.Theme>
@@ -132,7 +132,17 @@
                                 <TextBox IsReadOnly="true" x:Name="PART_TB_Timestamp" Grid.Column="2" Grid.Row="6" Text="Timestamp" Watermark="(Unavailable)" Padding="4,3" VerticalAlignment="Center" Background="{DynamicResource ABrush.Tone2.Background.Static}"/>
                             </Grid>
                         </c:GroupBox>
-                        <c:GroupBox Header="Addressing and sizes">
+                        <c:GroupBox>
+                            <c:GroupBox.Header>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="Addressing and sizes" VerticalAlignment="Center"/>
+                                    <Button x:Name="PART_CopyStuffToScanner" 
+                                            Content="Copy Address+Size to Scanner"
+                                            Padding="4,1"
+                                            Background="{DynamicResource ABrush.Tone6.Background.Static}"
+                                            BorderBrush="{DynamicResource PanelBorderBrush}"/>
+                                </StackPanel>
+                            </c:GroupBox.Header>
                             <Grid ColumnDefinitions="80,0,*" RowDefinitions="Auto,2,Auto,2,Auto,2,Auto" Margin="2">
                                 <TextBlock Grid.Column="0" Grid.Row="0" Text="Base Address" Padding="4,0" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="0" Grid.Row="2" Text="Entry Point" Padding="4,0" VerticalAlignment="Center"/>
@@ -169,22 +179,22 @@
                                                         Binding="{Binding Index, Mode=OneWay}"/>
 
                                     <c:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="125"
-                                                             Header="Name" CanUserResize="True" IsReadOnly="True"
-                                                             Binding="{Binding Name, Mode=OneWay, Converter={x:Static modules:EmptyStringToTextConverter.Instance}, ConverterParameter='Unavailable'}"
-                                                             CellDataKeyForDC="{x:Static models:ConsoleModuleSection.DataKey}"
-                                                             DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
+                                                            Header="Name" CanUserResize="True" IsReadOnly="True"
+                                                            Binding="{Binding Name, Mode=OneWay, Converter={x:Static modules:EmptyStringToTextConverter.Instance}, ConverterParameter='Unavailable'}"
+                                                            CellDataKeyForDC="{x:Static models:ConsoleModuleSection.DataKey}"
+                                                            DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
 
                                     <c:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="100"
-                                                             Header="Base Address" CanUserResize="False" IsReadOnly="True"
-                                                             Binding="{Binding BaseAddress, Mode=OneWay, StringFormat=X8}"
-                                                             CellDataKeyForDC="{x:Static models:ConsoleModuleSection.DataKey}"
-                                                             DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
+                                                            Header="Base Address" CanUserResize="False" IsReadOnly="True"
+                                                            Binding="{Binding BaseAddress, Mode=OneWay, StringFormat=X8}"
+                                                            CellDataKeyForDC="{x:Static models:ConsoleModuleSection.DataKey}"
+                                                            DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
 
                                     <c:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="150"
-                                                             Header="Section Size" CanUserResize="False" IsReadOnly="True"
-                                                             Binding="{Binding Size, Mode=OneWay, Converter={x:Static mr:USizeToTextConverter.Instance}}"
-                                                             CellDataKeyForDC="{x:Static models:ConsoleModuleSection.DataKey}"
-                                                             DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
+                                                            Header="Section Size" CanUserResize="False" IsReadOnly="True"
+                                                            Binding="{Binding Size, Mode=OneWay, Converter={x:Static mr:USizeToTextConverter.Instance}}"
+                                                            CellDataKeyForDC="{x:Static models:ConsoleModuleSection.DataKey}"
+                                                            DoubleTapCommandId="commands.moduleviewer.ShowModuleSectionInfoInDialogCommand"/>
 
                                     <DataGridTextColumn x:DataType="{x:Type models:ConsoleModuleSection}" Width="150"
                                                         Header="Flags" CanUserResize="True" IsReadOnly="True"

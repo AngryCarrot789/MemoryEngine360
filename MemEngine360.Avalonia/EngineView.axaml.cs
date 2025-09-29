@@ -583,7 +583,7 @@ public partial class EngineView : UserControl {
                         }
 
                         // oh...
-                        using IDisposable? busyToken = await engine.BeginBusyOperationActivityAsync("Reconnect to console");
+                        using IDisposable? busyToken = await engine.BeginBusyOperationUsingActivityAsync("Reconnect to console");
                         if (busyToken == null) {
                             return;
                         }
@@ -749,7 +749,7 @@ public partial class EngineView : UserControl {
             }
 
             IConsoleConnection? connection;
-            using IDisposable? token = await engine.BeginBusyOperationActivityAsync();
+            using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync();
             if (token == null || (connection = engine.Connection) == null) {
                 return;
             }

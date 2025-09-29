@@ -82,7 +82,7 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             return;
         }
 
-        using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Edit scan result value");
+        using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Edit scan result value");
         if (token == null) {
             return;
         }

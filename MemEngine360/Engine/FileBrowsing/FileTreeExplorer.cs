@@ -65,7 +65,7 @@ public class FileTreeExplorer : IComponentManager {
 
     public async Task RefreshRootDirectories() {
         this.RootEntry.Clear();
-        await this.MemoryEngine.BeginBusyOperationActivityAsync(async (t, connection) => {
+        await this.MemoryEngine.BeginBusyOperationUsingActivityAsync(async (t, connection) => {
             if (connection.TryGetFeature(out IFeatureFileSystemInfo? fs)) {
                 foreach (DriveEntry root in await fs.GetDriveList()) {
                     this.RootEntry.Items.Add(new FileTreeNodeDirectory() {

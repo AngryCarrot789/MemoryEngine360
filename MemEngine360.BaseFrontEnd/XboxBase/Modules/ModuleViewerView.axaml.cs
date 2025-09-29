@@ -20,6 +20,7 @@
 using System.Text;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using MemEngine360.Commands;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
@@ -64,7 +65,7 @@ public partial class ModuleViewerView : UserControl {
     public ModuleViewerView() {
         this.InitializeComponent();
         this.PART_ModuleListBox.SelectionChanged += this.OnSelectionChanged;
-
+        this.PART_CopyStuffToScanner.Click += PART_CopyStuffToScannerOnClick;
         this.shortNameBinder.AttachControl(this.PART_TB_ShortName);
         this.fullNameBinder.AttachControl(this.PART_TB_FullName);
         this.peModuleNameBinder.AttachControl(this.PART_TB_PEModuleName);
@@ -83,7 +84,7 @@ public partial class ModuleViewerView : UserControl {
                 return;
             }
 
-            using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Dump memory");
+            using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Dump memory");
             if (token == null) {
                 return;
             }
@@ -156,6 +157,19 @@ public partial class ModuleViewerView : UserControl {
                     }
                 }
             };
+        }
+    }
+
+    private void PART_CopyStuffToScannerOnClick(object? sender, RoutedEventArgs e) {
+        ConsoleModule? selection = this.selectedModule;
+        MemoryEngine? engine = this.MemoryEngine;
+        ModuleViewer? manager = this.XboxModuleManager;
+        if (selection != null && manager != null && engine != null && !engine.ScanningProcessor.IsScanning) {
+            if ((selection.BaseAddress + selection.ModuleSize) < selection.BaseAddress) {
+                return;
+            }
+            
+            engine.ScanningProcessor.SetScanRange(selection.BaseAddress, selection.ModuleSize);
         }
     }
 

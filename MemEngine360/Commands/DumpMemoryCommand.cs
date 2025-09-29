@@ -41,7 +41,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
-        using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Dump memory");
+        using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Dump memory");
         if (token == null) {
             return;
         }

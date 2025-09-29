@@ -103,7 +103,7 @@ public class EditScanResultValueCommand : Command {
             return;
         }
 
-        using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Edit scan result value");
+        using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Edit scan result value");
         IConsoleConnection? conn;
         if (token == null || (conn = engine.Connection) == null) {
             return;

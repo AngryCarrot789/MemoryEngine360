@@ -153,7 +153,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(newConnection);
 
-        IDisposable? token = await engine.BeginBusyOperationActivityAsync("Change connection");
+        IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Change connection");
         if (token == null) {
             return null;
         }

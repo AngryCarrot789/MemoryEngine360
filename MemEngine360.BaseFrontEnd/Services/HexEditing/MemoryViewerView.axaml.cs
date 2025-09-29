@@ -140,9 +140,9 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     });
 
     private readonly EventPropertyEnumBinder<Endianness> endiannessBinder = new EventPropertyEnumBinder<Endianness>(typeof(MemoryViewer), nameof(MemoryViewer.InspectorEndiannessChanged), engine => ((MemoryViewer) engine).InspectorEndianness, (engine, value) => ((MemoryViewer) engine).InspectorEndianness = value);
-    
+
     #endregion
-    
+
     private readonly AsyncRelayCommand refreshDataCommand, uploadDataCommand;
 
     private readonly record struct UploadTextBoxInfo(TextBox TextBox, DataType DataType, bool IsUnsigned);
@@ -204,7 +204,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
 
         this.autoRefreshAddrBinder.AttachControl(this.PART_AutoRefresh_From);
         this.autoRefreshLenBinder.AttachControl(this.PART_AutoRefresh_Count);
-        
+
         AsyncHexView view = this.PART_HexEditor.HexView;
         view.BytesPerLine = 32;
         view.Columns.Add(new OffsetColumn());
@@ -219,7 +219,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         this.endiannessBinder.Assign(this.PART_BigEndian, Endianness.BigEndian);
 
         this.PART_CancelButton.Command = new AsyncRelayCommand(() => this.Window!.RequestCloseAsync());
-        
+
         this.refreshDataCommand = new AsyncRelayCommand(async () => {
             await this.ReloadSelectionFromConsole();
         }, () => {
@@ -385,7 +385,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         ulong caretIndex = this.SelectionRange.Start.ByteIndex;
         await this.PerformOperationBetweenAutoRefresh(async () => {
             IConsoleConnection connection;
-            using IDisposable? token = await engine.BeginBusyOperationActivityAsync("Upload DI value");
+            using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Upload DI value");
             if (token != null && (connection = engine.Connection) != null && !connection.IsClosed) {
                 await MemoryEngine.WriteDataValue(connection, (uint) caretIndex, value);
                 if (this.PART_ToggleShowChanges.IsChecked == true && this.myBinarySource != null) {
@@ -494,12 +494,14 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         }
 
         this.PART_ControlsGrid.IsEnabled = false;
-        byte[]? readBuffer = await info.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
-            using CancellationTokenSource cts = new CancellationTokenSource();
-            Result<byte[]> result = await ActivityManager.Instance.RunTask(async () => {
-                ActivityTask task = ActivityManager.Instance.CurrentTask;
-                task.Progress.Caption = "Refresh data for Hex Editor";
-                IFeatureIceCubes? iceCubes = c.GetFeatureOrDefault<IFeatureIceCubes>();
+
+        using CancellationTokenSource cts = new CancellationTokenSource();
+        Result<Optional<byte[]>> result = await ActivityManager.Instance.RunTask(() => {
+            ActivityTask.Current.Progress.Caption = "Refresh data for Hex Editor";
+            return info.MemoryEngine.BeginBusyOperationFromActivityAsync(async (_, connection) => {
+                ActivityTask task = ActivityTask.Current;
+
+                IFeatureIceCubes? iceCubes = connection.GetFeatureOrDefault<IFeatureIceCubes>();
 
                 bool isAlreadyFrozen = false;
                 if (iceCubes != null && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
@@ -516,7 +518,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 // Update initial text
                 completion.OnCompletionValueChanged();
                 byte[] buffer = new byte[length];
-                await c.ReadBytes(address, buffer, 0, length, 0x10000, completion, task.CancellationToken);
+                await connection.ReadBytes(address, buffer, 0, length, 0x10000, completion, task.CancellationToken);
 
                 if (!isAlreadyFrozen && iceCubes != null && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Unfreezing console...";
@@ -524,22 +526,22 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 }
 
                 return buffer;
-            }, cts);
+            }, CancellationToken.None);
+        }, cts);
 
-            if (result.Exception != null) {
-                if (result.Exception is TimeoutException || result.Exception is IOException) {
-                    await IMessageDialogService.Instance.ShowMessage(result.Exception is IOException ? "Connection IO Error" : "Connection Timed Out", "Error uploading selection to console", result.Exception.Message);
-                }
-                else {
-                    await LogExceptionHelper.ShowMessageAndPrintToLogs("Connection Error", "Error uploading selection to console", result.Exception);
-                }
+        if (result.Exception != null) {
+            if (result.Exception is TimeoutException || result.Exception is IOException) {
+                await IMessageDialogService.Instance.ShowMessage(result.Exception is IOException ? "Connection IO Error" : "Connection Timed Out", "Error uploading selection to console", result.Exception.Message);
+            }
+            else {
+                await LogExceptionHelper.ShowMessageAndPrintToLogs("Connection Error", "Error uploading selection to console", result.Exception);
             }
 
-            return result.Value;
-        }, "Read data for Hex Editor");
+            return;
+        }
 
         this.PART_ControlsGrid.IsEnabled = true;
-        if (readBuffer != null) {
+        if (result.GetValueOrDefault().GetValueOrDefault() is byte[] readBuffer) {
             if (this.PART_ToggleShowChanges.IsChecked == true) {
                 this.changeManager.ProcessChanges(address, readBuffer);
             }
@@ -566,23 +568,23 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
 
         this.PART_ControlsGrid.IsEnabled = false;
         uint start = (uint) selection.Start.ByteIndex;
-        await info.MemoryEngine.BeginBusyOperationActivityAsync(async (t, c) => {
-            using CancellationTokenSource cts = new CancellationTokenSource();
-            ActivityTask activity = ActivityManager.Instance.RunTask(async () => {
-                ActivityTask task = ActivityManager.Instance.CurrentTask;
-                task.Progress.Caption = "Write data from Hex Editor";
-                IFeatureIceCubes? iceCubes = c.GetFeatureOrDefault<IFeatureIceCubes>();
 
+        using CancellationTokenSource cts = new CancellationTokenSource();
+        ActivityTask activity = ActivityManager.Instance.RunTask(async () => {
+            IActivityProgress progress = ActivityManager.Instance.CurrentTask.Progress;
+            progress.SetCaptionAndText("Write data from Hex Editor");
+            await info.MemoryEngine.BeginBusyOperationFromActivityAsync(async (_, c) => {
                 bool isAlreadyFrozen = false;
+                IFeatureIceCubes? iceCubes = c.GetFeatureOrDefault<IFeatureIceCubes>();
                 if (iceCubes != null && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
-                    task.Progress.Text = "Freezing console...";
+                    progress.Text = "Freezing console...";
                     isAlreadyFrozen = await iceCubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
                 }
 
                 SimpleCompletionState completion = new SimpleCompletionState();
                 completion.CompletionValueChanged += state => {
-                    task.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
-                    task.Progress.Text = $"Writing {ValueScannerUtils.ByteFormatter.ToString(selection.ByteLength * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(selection.ByteLength, false)}";
+                    progress.CompletionState.TotalCompletion = state.TotalCompletion;
+                    progress.Text = $"Writing {ValueScannerUtils.ByteFormatter.ToString(selection.ByteLength * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(selection.ByteLength, false)}";
                 };
 
                 // Update initial text
@@ -590,24 +592,24 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
 
                 byte[] buffer = new byte[count];
                 int read = this.myBinarySource!.ReadAvailableData(start, buffer);
-                await c.WriteBytes(start, buffer, 0, read, 0x10000, completion, task.CancellationToken);
+                await c.WriteBytes(start, buffer, 0, read, 0x10000, completion, ActivityManager.Instance.CurrentTask.CancellationToken);
 
                 if (!isAlreadyFrozen && iceCubes != null && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
-                    task.Progress.Text = "Unfreezing console...";
+                    progress.Text = "Unfreezing console...";
                     await iceCubes.DebugUnFreeze();
                 }
-            }, cts);
+            }, CancellationToken.None);
+        });
 
-            await activity;
-            if (activity.Exception != null) {
-                if (activity.Exception is TimeoutException || activity.Exception is IOException) {
-                    await IMessageDialogService.Instance.ShowMessage(activity.Exception is IOException ? "Connection IO Error" : "Connection Timed Out", "Error uploading selection to console", activity.Exception.Message);
-                }
-                else {
-                    await LogExceptionHelper.ShowMessageAndPrintToLogs("Connection Error", "Error uploading selection to console", activity.Exception);
-                }
+        await activity;
+        if (activity.Exception != null) {
+            if (activity.Exception is TimeoutException || activity.Exception is IOException) {
+                await IMessageDialogService.Instance.ShowMessage(activity.Exception is IOException ? "Connection IO Error" : "Connection Timed Out", "Error uploading selection to console", activity.Exception.Message);
             }
-        }, "Write Hex Editor Data");
+            else {
+                await LogExceptionHelper.ShowMessageAndPrintToLogs("Connection Error", "Error uploading selection to console", activity.Exception);
+            }
+        }
 
         this.PART_ControlsGrid.IsEnabled = true;
     }
@@ -686,7 +688,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         UIInputManager.SetFocusPath(this.PART_HexEditor, "HexDisplayWindow/HexEditor");
         DataManager.GetContextData(this).Set(IHexEditorUI.DataKey, this);
     }
-    
+
     internal void OnWindowClosed() {
         this.autoRefreshTask?.RequestCancellation();
         this.HexDisplayInfo = null;
