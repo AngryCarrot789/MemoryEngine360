@@ -151,16 +151,20 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public async Task ReadBytes(uint address, byte[] buffer, int offset, int count) {
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+
+        await this.InternalReadBytes(address, buffer, offset, count);
+    }
+
+    protected async Task InternalReadBytes(uint address, byte[] buffer, int offset, int count) {
         if (count < 0)
             throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
         if (offset < 0)
             throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
         if (count == 0)
             return;
-
-        this.EnsureNotClosed();
-        using BusyToken x = this.CreateBusyToken();
-
+        
         try {
             await this.ReadBytesCore(address, buffer, offset, count).ConfigureAwait(false);
         }
@@ -377,7 +381,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         byte[] bytes = size > 8 ? new byte[size] : this.sharedByteArray8;
         Unsafe.As<byte, T>(ref MemoryMarshal.GetArrayDataReference(bytes)) = value;
         if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
-            Array.Reverse(bytes);
+            Array.Reverse(bytes, 0, size);
         }
 
         return this.WriteBytes(address, bytes, 0, size);

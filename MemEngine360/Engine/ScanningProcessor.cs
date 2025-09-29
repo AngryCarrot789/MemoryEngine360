@@ -353,7 +353,7 @@ public class ScanningProcessor {
     private async Task OnEngineConnectionAboutToChange(MemoryEngine sender, ulong frame, IActivityProgress progress) {
         progress.Caption = "Scanning Engine";
         progress.Text = "Stopping current scan...";
-        
+
         if (this.ScanningActivity != null && this.ScanningActivity.IsRunning) {
             if (this.ScanningActivity.TryCancel()) { // should always return true
                 await this.ScanningActivity;
@@ -420,7 +420,7 @@ public class ScanningProcessor {
         IDisposable? theCoolToken = await this.MemoryEngine.BeginBusyOperationActivityAsync("Pre-Scan Setup");
         if (theCoolToken == null)
             return; // user cancelled token fetch
-        
+
         Reference<IDisposable?> busyTokenRef = new Reference<IDisposable?>(theCoolToken);
 
         try {
@@ -734,21 +734,25 @@ public class ScanningProcessor {
                 token.ThrowIfCancellationRequested();
 
                 if (savedList != null) {
+                    int count = 0;
                     IDataValue?[] values = new IDataValue?[savedList.Count];
-                    await Task.Run(async () => {
-                        for (int i = 0; i < values.Length; i++) {
-                            token.ThrowIfCancellationRequested();
-                            AddressTableEntry item = savedList[i];
-                            if (item.IsAutoRefreshEnabled) { // may change between dispatcher callbacks
-                                uint? addr = await item.MemoryAddress.TryResolveAddress(connection, invalidateCaches);
-                                values[i] = addr.HasValue ? await MemoryEngine.ReadDataValue(connection, addr.Value, item.DataType, item.StringType, item.StringLength, item.ArrayLength) : null;
-                            }
+                    for (int i = 0; i < values.Length; i++) {
+                        if (token.IsCancellationRequested) {
+                            break;
                         }
-                    }, token);
+
+                        AddressTableEntry item = savedList[i];
+                        if (item.IsAutoRefreshEnabled) { // may change between dispatcher callbacks
+                            uint? addr = await item.MemoryAddress.TryResolveAddress(connection, invalidateCaches);
+                            values[i] = addr.HasValue ? await MemoryEngine.ReadDataValue(connection, addr.Value, item.DataType, item.StringType, item.StringLength, item.ArrayLength) : null;
+                        }
+
+                        count++;
+                    }
 
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         // Only <=100 values to update, so not too UI intensive
-                        for (int i = 0; i < values.Length; i++) {
+                        for (int i = 0; i < count; i++) {
                             AddressTableEntry address = savedList[i];
                             if (address.IsAutoRefreshEnabled) // may change between dispatcher callbacks
                                 address.Value = values[i];
@@ -759,18 +763,21 @@ public class ScanningProcessor {
                 // safety net -- we still need to implement logic to notify view models when they're visible in the
                 // UI, although this does kind of break the MVVM pattern but oh well
                 if (list != null) {
+                    int count = 0;
                     IDataValue[] values = new IDataValue[list.Count];
-                    await Task.Run(async () => {
-                        for (int i = 0; i < values.Length; i++) {
-                            token.ThrowIfCancellationRequested();
-                            ScanResultViewModel item = list[i];
-                            values[i] = await MemoryEngine.ReadDataValue(connection, item.Address, item.DataType, item.StringType, item.CurrentStringLength, item.CurrentArrayLength);
+                    for (int i = 0; i < values.Length; i++) {
+                        if (token.IsCancellationRequested) {
+                            break;
                         }
-                    }, token);
+                        
+                        ScanResultViewModel item = list[i];
+                        values[i] = await MemoryEngine.ReadDataValue(connection, item.Address, item.DataType, item.StringType, item.CurrentStringLength, item.CurrentArrayLength);
+                        count++;
+                    }
 
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         // Only <=100 values to update, so not too UI intensive
-                        for (int i = 0; i < list.Count; i++) {
+                        for (int i = 0; i < count; i++) {
                             list[i].CurrentValue = values[i];
                         }
                     }, token: CancellationToken.None);
@@ -832,19 +839,24 @@ public sealed class UnknownDataTypeOptions {
     /// Do not add/remove items!!! Only move them
     /// </summary>
     public ObservableList<ScanningOrderModel> Orders { get; }
+    
+    private readonly ScanningOrderModel orderByte;
+    private readonly ScanningOrderModel orderInt16;
+    private readonly ScanningOrderModel orderInt32;
+    private readonly ScanningOrderModel orderInt64;
 
     private bool canSearchForFloat = true;
     private bool canSearchForDouble = true;
     private bool canSearchForString = true;
     private bool canRunNextScanForByteArray = true;
 
-    public bool CanSearchForByte => this.Orders[0].IsEnabled;
+    public bool CanSearchForByte => this.orderByte.IsEnabled;
 
-    public bool CanSearchForShort => this.Orders[1].IsEnabled;
+    public bool CanSearchForShort => this.orderInt16.IsEnabled;
 
-    public bool CanSearchForInt => this.Orders[2].IsEnabled;
+    public bool CanSearchForInt => this.orderInt32.IsEnabled;
 
-    public bool CanSearchForLong => this.Orders[3].IsEnabled;
+    public bool CanSearchForLong => this.orderInt64.IsEnabled;
 
     public bool CanSearchForFloat {
         get => this.canSearchForFloat;
@@ -873,14 +885,15 @@ public sealed class UnknownDataTypeOptions {
 
     public UnknownDataTypeOptions() {
         this.Orders = new ObservableList<ScanningOrderModel>() {
-            new ScanningOrderModel(DataType.Int32),
-            new ScanningOrderModel(DataType.Int16),
-            new ScanningOrderModel(DataType.Byte),
-            new ScanningOrderModel(DataType.Int64),
+            (this.orderInt32 = new ScanningOrderModel(DataType.Int32)),
+            (this.orderInt16 = new ScanningOrderModel(DataType.Int16)),
+            (this.orderByte = new ScanningOrderModel(DataType.Byte)),
+            (this.orderInt64 = new ScanningOrderModel(DataType.Int64)),
         };
 
         this.Orders.BeforeItemsAdded += (list, index, items) => throw new InvalidOperationException("Items cannot be added to this list");
         this.Orders.BeforeItemsRemoved += (list, index, count) => throw new InvalidOperationException("Items cannot be removed from this list");
+        this.Orders.BeforeItemReplace += (list, index, oldItem, newItem) => throw new InvalidOperationException("Items cannot be replaced in this list");
     }
 
     /// <summary>

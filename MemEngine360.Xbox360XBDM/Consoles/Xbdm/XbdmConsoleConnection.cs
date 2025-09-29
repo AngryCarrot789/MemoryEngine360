@@ -34,19 +34,13 @@ using MemEngine360.XboxBase;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Destroying;
 using ConsoleColor = MemEngine360.Connections.Features.ConsoleColor;
 using RegisterContext = MemEngine360.Connections.Features.RegisterContext;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
-public class XbdmConsoleConnection : BaseConsoleConnection {
-    private enum EnumEventThreadMode {
-        Inactive, // Thread not running
-        Starting, // Thread starting
-        Running, // (SET BY THREAD) Loop running
-        Stopping // Notify thread loop to stop
-    }
-
+public partial class XbdmConsoleConnection : BaseConsoleConnection {
     private readonly struct ThreadedBinaryReadInfo(byte[] dstBuffer, int offset, int count, TaskCompletionSource completion, CancellationToken cancellation) {
         public readonly byte[] dstBuffer = dstBuffer;
         public readonly int offset = offset;
@@ -72,11 +66,10 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
     private readonly CancellationTokenSource ctsCheckClosed;
     private readonly bool isEventConnection;
 
-    private volatile int systemEventSubscribeCount;
-    private readonly Lock systemEventThreadLock = new Lock();
-    private EnumEventThreadMode systemEventMode = EnumEventThreadMode.Inactive;
-    private Thread? systemEventThread;
     private readonly List<ConsoleSystemEventHandler> systemEventHandlers = new List<ConsoleSystemEventHandler>();
+    private readonly Lock debugHelperLock = new Lock();
+    private int systemEventSubscribeCount;
+    private ThreadedEventListener? threadedDebugHelper;
 
     private bool isWaitingForNewLine;
     private int idxBeginLnBuf, idxEndLnBuf;
@@ -521,194 +514,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         return false;
     }
 
-    public Task AddBreakpoint(uint address) {
-        return this.SetBreakpoint(address, false);
-    }
-
-    public Task AddDataBreakpoint(uint address, XboxBreakpointType type, uint size) {
-        return this.SetDataBreakpoint(address, type, size, false);
-    }
-
-    public Task RemoveBreakpoint(uint address) {
-        return this.SetBreakpoint(address, true);
-    }
-
-    public Task RemoveDataBreakpoint(uint address, XboxBreakpointType type, uint size) {
-        return this.SetDataBreakpoint(address, type, size, true);
-    }
-
-    public async Task<RegisterContext?> GetRegisters(uint threadId) {
-        this.EnsureNotClosed();
-        using BusyToken x = this.CreateBusyToken();
-
-        XbdmResponse response = await this.InternalSendCommand($"getcontext thread=0x{threadId:X8} control int fp").ConfigureAwait(false); /* full */
-        if (response.ResponseType == XbdmResponseType.NoSuchThread) {
-            return null;
-        }
-
-        VerifyResponse("getcontext", response.ResponseType, XbdmResponseType.MultiResponse);
-        RegisterContext ctx = new RegisterContext();
-        await Task.Run(async () => {
-            List<string> lines = await this.InternalReadMultiLineResponse().ConfigureAwait(false);
-            foreach (string line in lines) {
-                int split = line.IndexOf('=');
-                if (split == -1) {
-                    continue;
-                }
-
-                string name = line.Substring(0, split).ToUpperInvariant();
-                string value = line.Substring(split + 1);
-                if (value.StartsWith("0x")) {
-                    if (uint.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out uint value32)) {
-                        ctx.SetUInt32(name, value32);
-                    }
-                }
-                else if (value.StartsWith("0q")) {
-                    if (ulong.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out ulong value64)) {
-                        ctx.SetUInt64(name, value64);
-                    }
-                }
-            }
-        });
-
-        return ctx;
-    }
-
-    public Task SuspendThread(uint threadId) => this.SendCommand($"suspend thread=0x{threadId:X8}");
-
-    public Task ResumeThread(uint threadId) => this.SendCommand($"resume thread=0x{threadId:X8}");
-
-    public async Task StepThread(uint threadId) {
-        // todo
-    }
-
-    public async Task<ConsoleModule?> GetModuleForAddress(uint address, bool bNeedSections) {
-        List<string> modules = await this.SendCommandAndReceiveLines("modules");
-        foreach (string moduleLine in modules) {
-            if (!ParamUtils.GetStrParam(moduleLine, "name", true, out string? name) ||
-                !ParamUtils.GetDwParam(moduleLine, "base", true, out uint modBase) ||
-                !ParamUtils.GetDwParam(moduleLine, "size", true, out uint modSize)) {
-                continue;
-            }
-
-            if (address < modBase || address >= modBase + modSize) {
-                continue;
-            }
-
-            // ParamUtils.GetDwParam(moduleLine, "timestamp", true, out uint modTimestamp);
-            // ParamUtils.GetDwParam(moduleLine, "check", true, out uint modChecksum);
-            ParamUtils.GetDwParam(moduleLine, "osize", true, out uint modOriginalSize);
-            ParamUtils.GetDwParam(moduleLine, "timestamp", true, out uint timestamp);
-
-            ConsoleModule consoleModule = new ConsoleModule() {
-                Name = name,
-                FullName = null, // unavailable until I can figure out how to get xbeinfo to work
-                BaseAddress = modBase,
-                ModuleSize = modSize,
-                OriginalModuleSize = modOriginalSize,
-                Timestamp = DateTimeOffset.FromUnixTimeSeconds(timestamp).DateTime
-                // EntryPoint = module.GetEntryPointAddress()
-            };
-
-            // 0x10100 = entry point for most things, apart from xboxkrnl.exe
-            // format: 
-            //   fieldsize=0x<size in uint32 hex>
-            //   <value>
-            // may return ResponseType.XexFieldNotFound
-            XbdmResponse entryPointResponse = await this.SendCommand($"xexfield module=\"{name}\" field=0x10100");
-            if (entryPointResponse.ResponseType == XbdmResponseType.MultiResponse) {
-                List<string> lines = await this.ReadMultiLineResponse();
-                if (lines.Count == 2 && uint.TryParse(lines[1], NumberStyles.HexNumber, null, out uint entryPoint)) {
-                    consoleModule.EntryPoint = entryPoint;
-                }
-            }
-
-            if (bNeedSections) {
-                XbdmResponse response = await this.SendCommand($"modsections name=\"{name}\"");
-                if (response.ResponseType != XbdmResponseType.FileNotFound) {
-                    List<string> sections = await this.ReadMultiLineResponse();
-                    foreach (string sectionLine in sections) {
-                        ParamUtils.GetStrParam(sectionLine, "name", true, out string? sec_name);
-                        ParamUtils.GetDwParam(sectionLine, "base", true, out uint sec_base);
-                        ParamUtils.GetDwParam(sectionLine, "size", true, out uint sec_size);
-                        ParamUtils.GetDwParam(sectionLine, "index", true, out uint sec_index);
-                        ParamUtils.GetDwParam(sectionLine, "flags", true, out uint sec_flags);
-
-                        consoleModule.Sections.Add(new ConsoleModuleSection() {
-                            Name = string.IsNullOrWhiteSpace(sec_name) ? null : sec_name,
-                            BaseAddress = sec_base,
-                            Size = sec_size,
-                            Index = sec_index,
-                            Flags = (XboxSectionInfoFlags) sec_flags,
-                        });
-                    }
-                }
-            }
-
-            return consoleModule;
-        }
-
-        return null;
-    }
-
-    public async Task<FunctionCallEntry?[]> FindFunctions(uint[] iar) {
-        if (iar.Length < 1) {
-            return [];
-        }
-
-        int resolvedCount = 0;
-        FunctionCallEntry?[] entries = new FunctionCallEntry?[iar.Length];
-
-        List<string> modules = await this.SendCommandAndReceiveLines("modules");
-        foreach (string moduleLine in modules) {
-            if (!ParamUtils.GetStrParam(moduleLine, "name", true, out string? modName)) {
-                continue;
-            }
-
-            XbdmResponse response = await this.SendCommand($"modsections name=\"{modName}\"");
-            if (response.ResponseType == XbdmResponseType.FileNotFound) {
-                continue;
-            }
-
-            List<string> sections = await this.ReadMultiLineResponse();
-            foreach (string sectionLine in sections) {
-                ParamUtils.GetStrParam(sectionLine, "name", true, out string? sec_name);
-                if (sec_name != ".pdata") {
-                    continue;
-                }
-
-                ParamUtils.GetDwParam(sectionLine, "base", true, out uint sec_base);
-                ParamUtils.GetDwParam(sectionLine, "size", true, out uint sec_size);
-                byte[] buffer = await this.ReadBytes(sec_base, (int) sec_size);
-                ReadOnlySpan<byte> rosBuffer = new ReadOnlySpan<byte>(buffer);
-
-                int functionCount = (int) (sec_size / 16);
-
-                uint startAddress = BinaryPrimitives.ReadUInt32BigEndian(rosBuffer);
-                for (int j = 0, offset = 8; j < functionCount; j++, offset += 16) {
-                    uint endAddress = BinaryPrimitives.ReadUInt32BigEndian(rosBuffer.Slice(offset, 4));
-                    uint unwindStuff = BinaryPrimitives.ReadUInt32BigEndian(rosBuffer.Slice(offset, 8));
-                    for (int k = 0; k < iar.Length; k++) {
-                        if (entries[k] == null && RUNTIME_FUNCTION.Contains(iar[k], startAddress, endAddress)) {
-                            entries[k] = new FunctionCallEntry(modName, startAddress, endAddress - startAddress, unwindStuff);
-                            resolvedCount++;
-                        }
-                    }
-
-                    if (resolvedCount == iar.Length) {
-                        return entries;
-                    }
-
-                    startAddress = endAddress;
-                }
-
-                break;
-            }
-        }
-
-        return entries;
-    }
-
     [StructLayout(LayoutKind.Explicit)]
     private struct RUNTIME_FUNCTION {
         [FieldOffset(0)] public uint BeginAddress;
@@ -734,28 +539,6 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         public override string ToString() {
             return $"{this.BeginAddress:X8} -> {this.EndAddress:X8} (Length: {this.EndAddress - this.BeginAddress:X})";
         }
-    }
-
-    public async Task SetBreakpoint(uint address, bool clear) {
-        await this.SendCommand($"break addr=0x{address:X8}{(clear ? " clear" : "")}");
-    }
-
-    public async Task SetDataBreakpoint(uint address, XboxBreakpointType type, uint size, bool clear) {
-        string strType;
-        switch (type) {
-            case XboxBreakpointType.None:
-            case XboxBreakpointType.OnWrite:
-                strType = "write";
-                break;
-            case XboxBreakpointType.OnReadWrite: strType = "read"; break;
-            case XboxBreakpointType.OnExecuteHW:
-            case XboxBreakpointType.OnExecute:
-                strType = "execute";
-                break;
-            default: throw new ArgumentOutOfRangeException(nameof(type), type, null);
-        }
-
-        await this.SendCommand($"break {strType}=0x{address:X8} size=0x{size:X8}{(clear ? " clear" : "")}");
     }
 
     protected override async Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
@@ -1265,143 +1048,15 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
     }
 
-    private void EventListenerThreadMain() {
-        TcpClient? tcpClient = null;
-        try {
-            lock (this.systemEventThreadLock) {
-                Debug.WriteLine("Event Listener Thread Started");
-                this.systemEventMode = EnumEventThreadMode.Running;
-            }
-
-            // This method is extremely janky and needs a rewrite. We shouldn't use a delegate
-            // XbdmConsoleConnection, but instead make some static methods that take TcpClient that XbdmConsoleConnection use
-
-            using TcpClient theClient = new TcpClient();
-            theClient.ReceiveTimeout = 0;
-            theClient.Connect(this.originalConnectionAddress, 730);
-            tcpClient = theClient;
-
-            using StreamReader cmdReader = new StreamReader(theClient.GetStream(), Encoding.ASCII);
-            string? strresponse = cmdReader.ReadLine()?.ToLower();
-            if (strresponse != "201- connected") {
-                throw new Exception("Borken");
-            }
-
-            XbdmConsoleConnection delegateConnection = new XbdmConsoleConnection(theClient, this.originalConnectionAddress);
-
-            // DEBUGGER CONNECT PORT=0x<PORT_HERE> override user=<COMPUTER_NAME_HERE> name="MemEngine360"
-            XbdmResponse response = delegateConnection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"").GetAwaiter().GetResult();
-            if (response.ResponseType != XbdmResponseType.SingleResponse) {
-                throw new Exception($"Failed to enable debugger. Response = {response.ToString()}");
-            }
-
-            // we must repeat this since if the xbox is spewing events, it seems like it does it in the background. So even if we use
-            // delegateConnection.SendMultipleCommands, there's still a chance we get one of the events in the responses.
-            // 
-            // Also, the xbox sends the current execution state as soon as we connect the debugger,
-            // so this list will most likely contain that event
-            List<XbdmEventArgs> preRunEvents = new List<XbdmEventArgs>();
-
-            // no idea what reconnectport does, surely it's not the port it tries to reconnect on
-            delegateConnection.SendCommandOnly("notify reconnectport=12345 reverse").GetAwaiter().GetResult();
-            while (true) {
-                string responseText = delegateConnection.GetResponseAsTextOnly().GetAwaiter().GetResult();
-                if (XbdmResponse.TryParseFromLine(responseText, out response)) {
-                    if (response.ResponseType != XbdmResponseType.DedicatedConnection) {
-                        throw new Exception($"Failed to setup notifications. Response type is not {nameof(XbdmResponseType.DedicatedConnection)}: {response.RawMessage}");
-                    }
-
-                    break;
-                }
-
-                preRunEvents.Add(XbdmEventUtils.ParseSpecial(responseText) ?? new XbdmEventArgs(responseText));
-            }
-
-            lock (this.systemEventThreadLock) {
-                if (this.systemEventMode == EnumEventThreadMode.Stopping) {
-                    goto CloseConnection;
-                }
-            }
-
-            List<ConsoleSystemEventHandler> eventHandlerList;
-            if (preRunEvents.Count > 0) {
-                lock (this.systemEventHandlers) {
-                    eventHandlerList = this.systemEventHandlers.ToList();
-                }
-
-                foreach (XbdmEventArgs tmpEvent in preRunEvents) {
-                    foreach (ConsoleSystemEventHandler handler in eventHandlerList) {
-                        handler(this, tmpEvent);
-                    }
-                }
-            }
-
-            while (!delegateConnection.IsClosed) {
-                lock (this.systemEventThreadLock) {
-                    if (this.systemEventMode == EnumEventThreadMode.Stopping) {
-                        goto CloseConnection;
-                    }
-                }
-
-                if (delegateConnection.client.Available < 1) {
-                    Thread.Sleep(10);
-                }
-
-                if (delegateConnection.client.Available < 1) {
-                    continue;
-                }
-
-                string line;
-                try {
-                    line = delegateConnection.ReadLineFromStream().GetAwaiter().GetResult();
-                }
-                catch (Exception) {
-                    continue;
-                }
-
-                Debug.Assert(line != null);
-                XbdmEventArgs e = XbdmEventUtils.ParseSpecial(line) ?? new XbdmEventArgs(line);
-                lock (this.systemEventHandlers) {
-                    eventHandlerList = this.systemEventHandlers.ToList();
-                }
-
-                foreach (ConsoleSystemEventHandler handler in eventHandlerList) {
-                    handler(this, e);
-                }
-            }
-
-            CloseConnection:
-            Debug.WriteLine("Stopping Event Listener Thread");
-            theClient.Close();
-        }
-        catch (Exception e) {
-            AppLogger.Instance.WriteLine("Exception in " + Thread.CurrentThread.Name);
-            AppLogger.Instance.WriteLine(e.GetToString());
-            tcpClient?.Close();
-            tcpClient?.Dispose();
-        }
-    }
-
     public IDisposable SubscribeToEvents(ConsoleSystemEventHandler handler) {
         ArgumentNullException.ThrowIfNull(handler);
         if (this.isEventConnection)
             throw new InvalidOperationException("Attempt to subscribe to events on an event connection");
 
-        if (Interlocked.Increment(ref this.systemEventSubscribeCount) == 1) {
-            lock (this.systemEventThreadLock) {
-                switch (this.systemEventMode) {
-                    case EnumEventThreadMode.Inactive:
-                    case EnumEventThreadMode.Stopping: {
-                        this.systemEventMode = EnumEventThreadMode.Starting;
-                        this.systemEventThread = new Thread(this.EventListenerThreadMain) {
-                            IsBackground = true, Name = "Xbdm Event Listener Thread",
-                            Priority = ThreadPriority.BelowNormal
-                        };
-
-                        this.systemEventThread.Start();
-                        break;
-                    }
-                }
+        lock (this.debugHelperLock) {
+            if (++this.systemEventSubscribeCount == 1) {
+                Debug.Assert(this.threadedDebugHelper == null);
+                this.threadedDebugHelper = new ThreadedEventListener(this, this.originalConnectionAddress);
             }
         }
 
@@ -1417,8 +1072,11 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
             this.systemEventHandlers.Remove(handler);
         }
 
-        if (Interlocked.Decrement(ref this.systemEventSubscribeCount) == 0) {
-            this.systemEventMode = EnumEventThreadMode.Stopping;
+        lock (this.debugHelperLock) {
+            if (--this.systemEventSubscribeCount == 0) {
+                this.threadedDebugHelper!.SignalStop();
+                this.threadedDebugHelper = null;
+            }
         }
     }
 
@@ -1437,233 +1095,151 @@ public class XbdmConsoleConnection : BaseConsoleConnection {
         }
     }
 
-    private class XbdmFeaturesImpl : IConsoleFeature, IFeatureXbox360Xbdm, IFeatureXboxDebugging, IFeatureSystemEvents {
+    private class ThreadedEventListener {
+        private readonly string originalConnectionAddress;
         private readonly XbdmConsoleConnection connection;
+        private CancellationTokenSource? ctsStop;
+        private readonly CancellationToken tokenStopThread;
 
-        public IConsoleConnection Connection => this.connection;
-
-        public XbdmFeaturesImpl(XbdmConsoleConnection connection) {
+        public ThreadedEventListener(XbdmConsoleConnection connection, string originalConnectionAddress) {
+            this.originalConnectionAddress = originalConnectionAddress;
             this.connection = connection;
+            this.ctsStop = new CancellationTokenSource();
+            this.tokenStopThread = this.ctsStop.Token;
+            new Thread(this.EventListenerThreadMain) {
+                IsBackground = true, Name = "Xbdm Event Listener Thread"
+            }.Start();
         }
 
-        public Task<XboxThread> GetThreadInfo(uint threadId, bool requireName = true) {
-            return this.connection.GetThreadInfo(threadId, requireName);
+        public void SignalStop() {
+            CancellationTokenSource? cts = Interlocked.Exchange(ref this.ctsStop, null);
+            cts?.Cancel();
         }
 
-        public async Task<List<XboxThread>> GetThreadDump(bool requireNames = true) {
-            return await this.connection.GetThreadDump(requireNames);
-        }
-
-        public Task RebootConsole(bool cold = true) => this.connection.RebootConsole(cold);
-
-        public Task ShutdownConsole() => this.connection.ShutdownConsole();
-
-        public Task EjectDisk() => this.connection.SendCommand("dvdeject");
-
-        public Task<FreezeResult> DebugFreeze() => this.connection.DebugFreeze();
-
-        public Task<UnFreezeResult> DebugUnFreeze() => this.connection.DebugUnFreeze();
-
-        public async Task<bool> IsFrozen() {
-            XboxExecutionState state = await this.GetExecutionState();
-            return state == XboxExecutionState.Stop;
-        }
-
-        public async Task<List<DriveEntry>> GetDriveList() {
-            List<DriveEntry> drives = new List<DriveEntry>();
-            List<string> list = await this.connection.SendCommandAndReceiveLines("drivelist").ConfigureAwait(false);
-            foreach (string drive in list) {
-                if (!ParamUtils.GetStrParam(drive, "drivename", true, out string? driveName)) {
-                    continue;
-                }
-
-                DriveEntry entry = new DriveEntry { Name = driveName + ':' };
-                List<string> freeSpaceResponse = await this.connection.SendCommandAndReceiveLines($"drivefreespace name=\"{entry.Name}\\\"");
-                if (freeSpaceResponse.Count == 1) {
-                    if (ParamUtils.GetDwParam(freeSpaceResponse[0], "totalbyteslo", true, out uint lo) &&
-                        ParamUtils.GetDwParam(freeSpaceResponse[0], "totalbyteshi", true, out uint hi)) {
-                        entry.TotalSize = ((ulong) hi << 32) | lo;
-                    }
-
-                    if (ParamUtils.GetDwParam(freeSpaceResponse[0], "totalfreebyteslo", true, out lo) &&
-                        ParamUtils.GetDwParam(freeSpaceResponse[0], "totalfreebyteshi", true, out hi)) {
-                        entry.FreeBytes = ((ulong) hi << 32) | lo;
-                    }
-                }
-
-                drives.Add(entry);
+        private void EventListenerThreadMain() {
+            TcpClient? tcpClient = null;
+            CancellationTokenSource? cts = this.ctsStop;
+            if (cts == null) {
+                AppLogger.Instance.WriteLine("Event Listener Thread stopped before it started");
+                return;
             }
 
-            return drives;
-        }
+            try {
+                AppLogger.Instance.WriteLine("Event Listener Thread Started");
+                // This method is extremely janky and needs a rewrite. We shouldn't use a delegate
+                // XbdmConsoleConnection, but instead make some static methods that take TcpClient that XbdmConsoleConnection use
 
-        public async Task<List<FileSystemEntry>> GetFileSystemEntries(string fullPath) {
-            this.connection.EnsureNotClosed();
-            using BusyToken x = this.connection.CreateBusyToken();
+                tcpClient = new TcpClient();
+                tcpClient.ReceiveTimeout = 0;
+                tcpClient.Connect(this.originalConnectionAddress, 730);
 
-            if (string.IsNullOrEmpty(fullPath))
-                throw new FileSystemNoSuchDirectoryException(fullPath);
-
-            if (fullPath[fullPath.Length - 1] != '\\')
-                fullPath += '\\';
-
-            XbdmResponse response = await this.connection.InternalSendCommand($"dirlist name=\"{fullPath}\"").ConfigureAwait(false);
-            if (response.RawMessage.Contains("access denied"))
-                throw new FileSystemAccessDeniedException($"Access denied to {fullPath}");
-            if (response.ResponseType != XbdmResponseType.MultiResponse)
-                throw new FileSystemNoSuchDirectoryException(fullPath);
-
-            List<FileSystemEntry> entries = new List<FileSystemEntry>();
-            List<string> list = await this.connection.InternalReadMultiLineResponse();
-            await Task.Run(() => {
-                foreach (string entryText in list) {
-                    if (!ParamUtils.GetStrParam(entryText, "name", true, out string? name))
-                        continue;
-
-                    FileSystemEntry entry = new FileSystemEntry() { Name = name };
-                    if (ParamUtils.GetDwParam(entryText, "sizelo", true, out uint sizeLo) &&
-                        ParamUtils.GetDwParam(entryText, "sizehi", true, out uint sizeHi)) {
-                        entry.Size = ((ulong) sizeHi << 32) | sizeLo;
+                using (StreamReader cmdReader = new StreamReader(tcpClient.GetStream(), Encoding.ASCII, leaveOpen: true)) {
+                    string? text = cmdReader.ReadLine()?.ToLower();
+                    if (text != "201- connected") {
+                        AppLogger.Instance.WriteLine(Thread.CurrentThread.Name + " failed to start: acknowledgement incorrect");
+                        return;
                     }
-
-                    if (ParamUtils.GetDwParam(entryText, "createlo", true, out uint createLo) &&
-                        ParamUtils.GetDwParam(entryText, "createhi", true, out uint createHi)) {
-                        entry.CreatedTime = DateTime.FromFileTimeUtc((long) (((ulong) createHi << 32) | createLo));
-                    }
-
-                    if (ParamUtils.GetDwParam(entryText, "changelo", true, out uint changeLo) &&
-                        ParamUtils.GetDwParam(entryText, "changehi", true, out uint changeHi)) {
-                        entry.ModifiedTime = DateTime.FromFileTimeUtc((long) (((ulong) changeHi << 32) | changeLo));
-                    }
-
-                    entry.IsDirectory = ParamUtils.GetOffsetToValue(entryText, "directory", false, true) != -1;
-
-                    entries.Add(entry);
                 }
-            });
 
-            return entries;
+                XbdmConsoleConnection delegateConnection = new XbdmConsoleConnection(tcpClient, this.originalConnectionAddress);
+
+                // DEBUGGER CONNECT PORT=0x<PORT_HERE> override user=<COMPUTER_NAME_HERE> name="MemEngine360"
+                XbdmResponse response = delegateConnection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"").GetAwaiter().GetResult();
+                if (response.ResponseType != XbdmResponseType.SingleResponse) {
+                    throw new Exception($"Failed to enable debugger. Response = {response.ToString()}");
+                }
+
+                // we must repeat this since if the xbox is spewing events, it seems like it does it in the background. So even if we use
+                // delegateConnection.SendMultipleCommands, there's still a chance we get one of the events in the responses.
+                // 
+                // Also, the xbox sends the current execution state as soon as we connect the debugger,
+                // so this list will most likely contain that event
+                List<XbdmEventArgs>? initialEvents = new List<XbdmEventArgs>();
+
+                // no idea what reconnectport does, surely it's not the port it tries to reconnect on
+                delegateConnection.SendCommandOnly("notify reconnectport=12345 reverse").GetAwaiter().GetResult();
+                while (true) {
+                    string responseText = delegateConnection.GetResponseAsTextOnly().GetAwaiter().GetResult();
+                    if (XbdmResponse.TryParseFromLine(responseText, out response)) {
+                        if (response.ResponseType != XbdmResponseType.DedicatedConnection) {
+                            throw new Exception($"Failed to setup notifications. Response type is not {nameof(XbdmResponseType.DedicatedConnection)}: {response.RawMessage}");
+                        }
+
+                        break;
+                    }
+
+                    initialEvents.Add(XbdmEventUtils.ParseSpecial(responseText) ?? new XbdmEventArgs(responseText));
+                }
+
+                if (this.tokenStopThread.IsCancellationRequested) {
+                    return;
+                }
+
+                if (initialEvents.Count > 0) {
+                    // Run event handlers in a task to prevent them accessing
+                    // the current thread and potentially interrupting it
+                    this.InvokeHandlersAndWait(initialEvents.ToArray());
+                    initialEvents = null;
+                }
+
+                while (!delegateConnection.IsClosed && !this.tokenStopThread.IsCancellationRequested) {
+                    if (tcpClient.Available < 1)
+                        Thread.Sleep(10);
+                    if (this.tokenStopThread.IsCancellationRequested)
+                        return;
+
+                    if (tcpClient.Available > 0) {
+                        string line;
+                        try {
+                            line = delegateConnection.ReadLineFromStream(cts.Token).GetAwaiter().GetResult();
+                        }
+                        catch (OperationCanceledException) {
+                            return; // stop requested
+                        }
+                        catch (Exception) {
+                            continue;
+                        }
+
+                        Debug.Assert(line != null);
+                        XbdmEventArgs e = XbdmEventUtils.ParseSpecial(line) ?? new XbdmEventArgs(line);
+                        this.InvokeHandlersAndWait(e);
+                    }
+                }
+            }
+            catch (OperationCanceledException) {
+                // ignored
+            }
+            catch (Exception e) {
+                AppLogger.Instance.WriteLine("Exception in " + Thread.CurrentThread.Name);
+                AppLogger.Instance.WriteLine(e.GetToString());
+            }
+            finally {
+                this.ctsStop = null;
+                cts.Dispose();
+
+                AppLogger.Instance.WriteLine("Stopping Event Listener Thread");
+
+                try {
+                    tcpClient?.Dispose();
+                }
+                catch (Exception e) {
+                    AppLogger.Instance.WriteLine("Exception closing TCP socket in " + Thread.CurrentThread.Name);
+                    AppLogger.Instance.WriteLine(e.GetToString());
+                }
+            }
         }
 
-        public async Task DeleteFile(string path) {
-            int startIndex = path.Length - 1;
-            if (path.EndsWith('\\'))
-                startIndex--;
-            if (startIndex < 0)
-                return;
-            
-            int index = path.LastIndexOf('\\', startIndex);
-            if (index == -1)
-                return;
-
-            ReadOnlySpan<char> name = path.AsSpan(index + 1);
-            ReadOnlySpan<char> directory = path.AsSpan(0, index);
-            
-            await this.connection.SendCommand($"delete name=\"{name}\" dir=\"{directory}\"").ConfigureAwait(false);
-        }
-
-        public async Task LaunchFile(string path) {
-            string[] lines = path.Split('\\');
-            StringBuilder dirSb = new StringBuilder();
-            for (int i = 0; i < lines.Length - 1; i++)
-                dirSb.Append(lines[i]).Append('\\');
-            await this.connection.SendCommand($"magicboot title=\"{path}\" directory=\"{dirSb}\"").ConfigureAwait(false);
-        }
-
-        public async Task MoveFile(string oldPath, string newPath) {
-            await this.connection.SendCommand($"rename name=\"{oldPath}\" newname=\"{newPath}\"").ConfigureAwait(false);
-        }
-
-        public async Task CreateDirectory(string path) {
-            await this.connection.SendCommand($"mkdir name=\"{path}\"").ConfigureAwait(false);
-        }
-
-        public string GetDirectoryPath(string path) {
-            int index = path.LastIndexOf('\\');
-            if (index == -1)
-                return path;
-            return path.Substring(0, index);
-        }
-
-        public string GetFileName(string path) {
-            int index = path.LastIndexOf('\\');
-            if (index == -1)
-                return path;
-            return path.Substring(index + 1);
-        }
-
-        public string JoinPaths(params string[] paths) {
-            return Path.Join(paths);
-        }
-
-        public string[] SplitPath(string filePath) {
-            return filePath.Split('\\');
-        }
-
-        public bool IsPathValid(string path) {
-            string[] parts = path.Split('\\');
-            char[] ch1 = Path.GetInvalidPathChars();
-            char[] ch2 = Path.GetInvalidFileNameChars();
-
-            int i = 0;
-            if (parts.Length > 1 && parts[0].Contains(':'))
-                i++;
-
-            for (; i < parts.Length; i++) {
-                string part = parts[i];
-                if (part == "\\")
-                    return false;
-                foreach (char ch in ch1)
-                    if (part.Contains(ch))
-                        return false;
-                foreach (char ch in ch2)
-                    if (part.Contains(ch))
-                        return false;
+        private void InvokeHandlersAndWait(params ReadOnlySpan<XbdmEventArgs> preRunEvents) {
+            List<ConsoleSystemEventHandler> eventHandlerList;
+            lock (this.connection.systemEventHandlers) {
+                eventHandlerList = this.connection.systemEventHandlers.ToList();
             }
 
-            return true;
+            foreach (XbdmEventArgs tmpEvent in preRunEvents) {
+                foreach (ConsoleSystemEventHandler handler in eventHandlerList) {
+                    handler(this.connection, tmpEvent);
+                }
+            }
         }
-
-        public Task<string> GetConsoleID() => this.connection.GetConsoleID();
-
-        public Task<string> GetDebugName() => this.connection.GetDebugName();
-
-        public Task<string?> GetXbeInfo(string? executable) => this.connection.GetXbeInfo(executable);
-
-        public Task<List<MemoryRegion>> GetMemoryRegions(bool willRead, bool willWrite) => this.connection.GetMemoryRegions(willRead, willWrite);
-
-        public Task<XboxExecutionState> GetExecutionState() => this.connection.GetExecutionState();
-
-        public Task<XboxHardwareInfo> GetHardwareInfo() => this.connection.GetHardwareInfo();
-
-        public Task<uint> GetProcessID() => this.connection.GetProcessID();
-
-        public Task<IPAddress> GetTitleIPAddress() => this.connection.GetTitleIPAddress();
-
-        public Task SetConsoleColor(ConsoleColor colour) => this.connection.SetConsoleColor(colour);
-
-        public Task SetDebugName(string newName) => this.connection.SetDebugName(newName);
-
-        public Task AddBreakpoint(uint address) => this.connection.AddBreakpoint(address);
-
-        public Task AddDataBreakpoint(uint address, XboxBreakpointType type, uint size) => this.connection.AddDataBreakpoint(address, type, size);
-
-        public Task RemoveBreakpoint(uint address) => this.connection.RemoveBreakpoint(address);
-
-        public Task RemoveDataBreakpoint(uint address, XboxBreakpointType type, uint size) => this.connection.RemoveDataBreakpoint(address, type, size);
-
-        public Task<RegisterContext?> GetThreadRegisters(uint threadId) => this.connection.GetRegisters(threadId);
-
-        public Task SuspendThread(uint threadId) => this.connection.SuspendThread(threadId);
-
-        public Task ResumeThread(uint threadId) => this.connection.ResumeThread(threadId);
-
-        public Task StepThread(uint threadId) => this.connection.StepThread(threadId);
-
-        public Task<ConsoleModule?> GetModuleForAddress(uint address, bool bNeedSections) => this.connection.GetModuleForAddress(address, bNeedSections);
-
-        public Task<FunctionCallEntry?[]> FindFunctions(uint[] iar) => this.connection.FindFunctions(iar);
-
-        public IDisposable SubscribeToEvents(ConsoleSystemEventHandler handler) => this.connection.SubscribeToEvents(handler);
     }
 }

@@ -89,7 +89,6 @@ public abstract class ScanningContext {
     /// <param name="connection">The connection to read values from</param>
     /// <param name="srcList">The source list of items</param>
     /// <param name="busyTokenRef"></param>
-    /// <returns>A task containing the busy token, or a new token if the one passed in the parameter was disposed (may be null when token could not be re-acquired)</returns>
     internal abstract Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IDisposable?> busyTokenRef);
     
     internal abstract void ProcessMemoryBlockForFirstScan(uint baseAddress, ReadOnlySpan<byte> buffer);
