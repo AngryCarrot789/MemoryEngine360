@@ -41,7 +41,7 @@ using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Composition;
@@ -128,7 +128,7 @@ public partial class EngineView : UserControl {
     public TopLevelMenuRegistry TopLevelMenuRegistry => MemoryEngineViewState.GetInstance(this.MemoryEngine).TopLevelMenuRegistry;
 
     private readonly ContextEntryGroup themesSubList;
-    private IWindow? myOwnerWindow_onLoaded;
+    private IDesktopWindow? myOwnerWindow_onLoaded;
     private ObservableItemProcessorIndexing<Theme>? themeListHandler;
     private TextNotification? connectionNotification;
     private LambdaNotificationAction? connectionNotificationCommandGetStarted;
@@ -377,7 +377,7 @@ public partial class EngineView : UserControl {
 
         this.PART_OrderListBox.SetScanningProcessor(processor);
 
-        if (IWindowManager.TryGetWindow(this, out IWindow? window)) {
+        if (IWindowManager.TryGetWindow(this, out IDesktopWindow? window)) {
             this.myOwnerWindow_onLoaded = window;
             this.titleBarToMenuBackgroundBrushHandler.SetTarget(this.PART_TopLevelMenu);
             this.titleBarToMenuBackgroundBrushHandler.Brush = this.myOwnerWindow_onLoaded.TitleBarBrush;
@@ -400,7 +400,7 @@ public partial class EngineView : UserControl {
     }
 
     private void OnRequestWindowFocus(object? sender, EventArgs e) {
-        if (IWindowManager.TryGetWindow(this, out IWindow? window)) {
+        if (IWindowManager.TryGetWindow(this, out IDesktopWindow? window)) {
             window.Activate();
         }
     }

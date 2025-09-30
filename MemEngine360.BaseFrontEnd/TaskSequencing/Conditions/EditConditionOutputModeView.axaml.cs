@@ -37,7 +37,7 @@ public partial class EditConditionOutputModeView : UserControl {
         set => PropertyHelper.SetAndRaiseINE(ref this.outputMode, value, this, static t => t.TriggerModeChanged?.Invoke(t));
     }
 
-    public IWindow? Window { get; set; }
+    public IWindowBase? Window { get; set; }
 
     public event EditConditionOutputModeWindowEventHandler? TriggerModeChanged;
 

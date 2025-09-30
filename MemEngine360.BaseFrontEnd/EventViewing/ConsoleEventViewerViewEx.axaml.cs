@@ -21,7 +21,7 @@ using Avalonia;
 using Avalonia.Controls;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Themes;
@@ -62,7 +62,7 @@ public class ConsoleEventViewerServiceImpl : IConsoleEventViewerService {
     public Task ShowOrFocus(MemoryEngine engine) {
         if (!EventViewerWindowKey.TryGetContext(engine.UserContext, out SingletonWindow? singletonWindow)) {
             engine.UserContext.Set(EventViewerWindowKey, singletonWindow = new SingletonWindow(manager => {
-                IWindow win = manager.CreateWindow(new WindowBuilder() {
+                IDesktopWindow win = manager.CreateWindow(new WindowBuilder() {
                     Title = "Event Viewer",
                     Content = new ConsoleEventViewerViewEx() {
                         MemoryEngine = engine
@@ -71,12 +71,12 @@ public class ConsoleEventViewerServiceImpl : IConsoleEventViewerService {
                     TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone7.Background.Static"),
                 });
 
-                win.WindowOpened += static (sender, args) => {
+                win.Opened += static (sender, args) => {
                     ConsoleEventViewerViewEx view = (ConsoleEventViewerViewEx) sender.Content!;
                     view.PART_EventViewer.BusyLock = view.MemoryEngine!.BusyLocker;
                     view.PART_EventViewer.ConsoleConnection = view.MemoryEngine!.Connection;
                 };
-                win.WindowClosed += static (sender, args) => {
+                win.Closed += static (sender, args) => {
                     ConsoleEventViewerViewEx view = (ConsoleEventViewerViewEx) sender.Content!;
                     view.PART_EventViewer.BusyLock = null;
                     view.PART_EventViewer.ConsoleConnection = null;

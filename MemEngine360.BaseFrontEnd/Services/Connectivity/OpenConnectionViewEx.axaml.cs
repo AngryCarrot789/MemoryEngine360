@@ -23,6 +23,7 @@ using MemEngine360.Connections;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
@@ -41,14 +42,14 @@ public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
     
     public UserConnectionInfo? UserConnectionInfoForConnection => this.PART_ConnectToConsoleView.CurrentConnection == null ? null : this.PART_ConnectToConsoleView.UserConnectionInfoForCurrentConnection;
     
-    public IWindow? Window { get; private set; }
+    public IDesktopWindow? Window { get; private set; }
 
     public OpenConnectionViewEx() {
         this.InitializeComponent();
         DataManager.GetContextData(this).Set(IOpenConnectionView.DataKey, this);
     }
 
-    internal void OnWindowOpened(IWindow window) {
+    internal void OnWindowOpened(IDesktopWindow window) {
         this.PART_ConnectToConsoleView.OnWindowOpened(this.Window = window);
     }
 

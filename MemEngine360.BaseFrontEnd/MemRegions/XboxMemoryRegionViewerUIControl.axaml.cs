@@ -17,10 +17,12 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using Avalonia;
 using Avalonia.Controls;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI.Avalonia.Bindings;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Overlays;
 using PFXToolKitUI.Avalonia.Services.UserInputs;
 using PFXToolKitUI.Services.UserInputs;
 
@@ -62,13 +64,15 @@ public partial class XboxMemoryRegionViewerUIControl : UserControl, IUserInputCo
     }
 
     public void OnWindowOpening() {
-        WindowSizingInfo sizing = this.myDialog!.Window!.SizingInfo;
-        sizing.SizeToContent = SizeToContent.Manual;
-        sizing.CanResize = true;
-        sizing.MinHeight = 400;
-        sizing.MinWidth = 800;
-        sizing.Height = 400;
-        sizing.Width = 800;
+        if (this.myDialog!.OwnerWindow is IDesktopWindow window) {
+            WindowSizingInfo sizing = window.SizingInfo;
+            sizing.SizeToContent = SizeToContent.Manual;
+            sizing.CanResize = true;
+            sizing.MinHeight = 400;
+            sizing.MinWidth = 800;
+            sizing.Height = 400;
+            sizing.Width = 800;
+        }
     }
 
     public void OnWindowOpened() {

@@ -35,7 +35,7 @@ public delegate void BaseSequenceOperationStateChangedEventHandler(BaseSequenceO
 /// </summary>
 public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost {
     public static readonly DataKey<BaseSequenceOperation> DataKey = DataKeys.Create<BaseSequenceOperation>(nameof(BaseSequenceOperation));
-    
+
     internal SequenceOperationViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using IComponentManager
 
     private OperationState state = OperationState.NotRunning;
@@ -88,24 +88,52 @@ public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost
     public event BaseSequenceOperationEventHandler? IsEnabledChanged;
     public event BaseSequenceOperationEventHandler? ConditionBehaviourChanged;
 
+    private const string CheckNotRunningMessage = "Cannot modify condition list of an operation while its owner sequence is running";
+
     protected BaseSequenceOperation() {
         this.TransferableData = new TransferableData(this);
         this.RandomTriggerHelper = new RandomTriggerHelper();
         this.Conditions = new ObservableList<BaseSequenceCondition>();
+        this.Conditions.BeforeItemsAdded += (list, index, items) => {
+            foreach (BaseSequenceCondition item in items) {
+                CheckAddCondition(this, item);
+            }
+        };
+
+        this.Conditions.BeforeItemsRemoved += (list, index, count) => this.TaskSequence?.CheckNotRunning(CheckNotRunningMessage);
+        this.Conditions.BeforeItemMoved += (list, oldIdx, newIdx, item) => this.TaskSequence?.CheckNotRunning(CheckNotRunningMessage);
+        this.Conditions.BeforeItemReplace += (list, index, oldItem, newItem) => {
+            CheckAddCondition(this, newItem);
+        };
+
         this.Conditions.ItemsAdded += (list, index, items) => {
             foreach (BaseSequenceCondition condition in items) {
                 BaseSequenceCondition.InternalSetOwner(condition, this);
             }
         };
+
         this.Conditions.ItemsRemoved += (list, index, items) => {
             foreach (BaseSequenceCondition condition in items) {
                 BaseSequenceCondition.InternalSetOwner(condition, null);
             }
         };
+
         this.Conditions.ItemReplaced += (list, index, oldItem, newItem) => {
             BaseSequenceCondition.InternalSetOwner(oldItem, null);
             BaseSequenceCondition.InternalSetOwner(newItem, this);
         };
+        
+        return;
+
+        static void CheckAddCondition(BaseSequenceOperation self, BaseSequenceCondition item) {
+            if (item == null)
+                throw new ArgumentNullException(nameof(item), "Cannot add a null condition");
+            if (item.Owner == self)
+                throw new InvalidOperationException("Condition already exists in this operation. It must be removed first");
+            if (item.Owner != null)
+                throw new InvalidOperationException("Condition already exists in another container. It must be removed first");
+            self.TaskSequence?.CheckNotRunning(CheckNotRunningMessage);
+        }
     }
 
     /// <summary>

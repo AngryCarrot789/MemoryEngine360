@@ -23,6 +23,7 @@ using MemEngine360.Connections;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
@@ -49,7 +50,7 @@ public partial class OpenConnectionView : UserControl {
     
     public string? TypeToFocusOnOpened { get; internal set; }
 
-    public IWindow? Window { get; private set; }
+    public IDesktopWindow? Window { get; private set; }
 
     public IConsoleConnection? CurrentConnection {
         get => this.currentConnection;
@@ -143,7 +144,7 @@ public partial class OpenConnectionView : UserControl {
         }
     }
 
-    internal void OnWindowOpened(IWindow window) {
+    internal void OnWindowOpened(IDesktopWindow window) {
         this.Window = window;
         ConsoleTypeListBoxItem? selected = null;
         ConsoleConnectionManager service = ApplicationPFX.GetComponent<ConsoleConnectionManager>();

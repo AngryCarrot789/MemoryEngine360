@@ -19,7 +19,7 @@
 
 using MemEngine360.Engine;
 using MemEngine360.PointerScanning;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Themes;
 using SkiaSharp;
@@ -28,11 +28,11 @@ namespace MemEngine360.BaseFrontEnd.PointerScanning;
 
 public class PointerScanServiceImpl : IPointerScanService {
     public Task ShowPointerScan(MemoryEngine engine) {
-        if (!WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IWindow? parentWindow)) {
+        if (!WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IDesktopWindow? parentWindow)) {
             return Task.CompletedTask;
         }
 
-        IWindow window = manager.CreateWindow(new WindowBuilder() {
+        IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
             Title = "Pointer Scanner",
             Content = new PointerScannerView() {
                 PointerScanner = engine.PointerScanner
@@ -44,7 +44,7 @@ public class PointerScanServiceImpl : IPointerScanService {
             Parent = parentWindow
         });
 
-        window.WindowClosed += static (sender, args) => {
+        window.Closed += static (sender, args) => {
             PointerScannerView view = (PointerScannerView) sender.Content!;
             if (view.PointerScanner is PointerScanner scanner) {
                 scanner.DisposeMemoryDump();

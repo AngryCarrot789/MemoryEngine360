@@ -33,6 +33,7 @@
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/AvControls/ControlStyles.axaml"/>
+                <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Interactivity/Windowing/Overlays/Impl/OverlayWindowStyles.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/AvControls/Dragger/NumberDraggerStyles.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Shortcuts/Trees/ShortcutTreeThemes.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/PropertyEditing/PropertyEditorGridStyles.axaml"/>

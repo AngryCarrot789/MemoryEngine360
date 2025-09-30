@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using MemEngine360.Engine.FileBrowsing;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Themes;
@@ -28,10 +29,10 @@ using SkiaSharp;
 namespace MemEngine360.BaseFrontEnd.FileBrowsing;
 
 public class FileBrowserServiceImpl : IFileBrowserService {
-    private static readonly DataKey<IWindow> OpenedWindowKey = DataKeys.Create<IWindow>(nameof(IFileBrowserService) + "_OpenedFileExplorerWindow");
+    private static readonly DataKey<IDesktopWindow> OpenedWindowKey = DataKeys.Create<IDesktopWindow>(nameof(IFileBrowserService) + "_OpenedFileExplorerWindow");
 
     public Task ShowFileBrowser(FileTreeExplorer explorer) {
-        if (OpenedWindowKey.TryGetContext(explorer.MemoryEngine.UserContext, out IWindow? debuggerWindow)) {
+        if (OpenedWindowKey.TryGetContext(explorer.MemoryEngine.UserContext, out IDesktopWindow? debuggerWindow)) {
             Debug.Assert(debuggerWindow.OpenState == OpenState.Open || debuggerWindow.OpenState == OpenState.TryingToClose);
             
             debuggerWindow.Activate();
@@ -46,7 +47,7 @@ public class FileBrowserServiceImpl : IFileBrowserService {
             FileTreeExplorer = explorer
         };
 
-        IWindow window = manager.CreateWindow(new WindowBuilder() {
+        IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
             Title = "File Browser",
             Content = control,
             TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone4.Background.Static"),
@@ -54,7 +55,7 @@ public class FileBrowserServiceImpl : IFileBrowserService {
             Width = 1024, Height = 768
         });
 
-        window.WindowClosing += static (sender, args) => {
+        window.Closing += static (sender, args) => {
             FileTreeExplorerView content = (FileTreeExplorerView) sender.Content!;
             FileTreeExplorer exp = content.FileTreeExplorer!;
             exp.MemoryEngine.UserContext.Remove(OpenedWindowKey);

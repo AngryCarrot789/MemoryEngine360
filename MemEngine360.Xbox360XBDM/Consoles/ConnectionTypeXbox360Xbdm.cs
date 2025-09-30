@@ -25,10 +25,9 @@ using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using MemEngine360.Xbox360XBDM.Views;
 using PFXToolKitUI.AdvancedMenuService;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
-using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
@@ -139,9 +138,9 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
         }, cancellation);
 
         if (isOpeningFromNormalDialog && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
-            IWindow? window = WindowContextUtils.GetUsefulWindow();
-            if (window != null) {
-                await service.DelayedWaitForActivity(window, activity, 500);
+            ITopLevel? topLevel = TopLevelContextUtils.GetTopLevelFromContext();
+            if (topLevel != null) {
+                await service.DelayedWaitForActivity(topLevel, activity, 500);
             }
         }
 

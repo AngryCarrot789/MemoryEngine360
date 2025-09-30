@@ -159,6 +159,9 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
     public event TaskSequenceDedicatedConnectionChangedEventHandler? DedicatedConnectionChanged;
 
     public TaskSequence() {
+        this.Progress = new DispatcherActivityProgress();
+        this.Progress.Text = "Sequence not running";
+        
         this.Operations = new ObservableList<BaseSequenceOperation>();
         this.Operations.BeforeItemsAdded += (list, index, items) => {
             foreach (BaseSequenceOperation item in items) {
@@ -194,6 +197,7 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
                 this.UpdateAllJumpTargets();
             }
         };
+        
         this.Operations.ItemsRemoved += (list, index, removedItems) => {
             List<LabelOperation>? removedLabels = null;
 
@@ -231,11 +235,13 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
         this.Conditions = new ObservableList<BaseSequenceCondition>();
         this.Conditions.BeforeItemsAdded += (list, i, items) => {
             foreach (BaseSequenceCondition item in items) {
-                this.CheckNotRunning("Cannot add conditions while running");
+                if (item == null)
+                    throw new InvalidOperationException("Cannot add null condition");
                 if (item.TaskSequence == this)
                     throw new InvalidOperationException("Condition already added to this sequence");
                 if (item.TaskSequence != null)
                     throw new InvalidOperationException("Condition already exists in another sequence");
+                this.CheckNotRunning("Cannot add conditions while running");
             }
         };
 
@@ -243,7 +249,7 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
         this.Conditions.BeforeItemMoved += (list, oldIdx, newIdx, item) => this.CheckNotRunning("Cannot move conditions while running");
         this.Conditions.BeforeItemReplace += (list, index, oldItem, newItem) => {
             if (newItem == null)
-                throw new ArgumentNullException(nameof(newItem), "Cannot replace condition with null");
+                throw new InvalidOperationException("Cannot replace condition with null");
             this.CheckNotRunning("Cannot replace condition while running");
         };
 
@@ -252,18 +258,17 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
                 BaseSequenceCondition.InternalSetOwner(condition, this);
             }
         };
+        
         this.Conditions.ItemsRemoved += (list, index, items) => {
             foreach (BaseSequenceCondition condition in items) {
                 BaseSequenceCondition.InternalSetOwner(condition, null);
             }
         };
+        
         this.Conditions.ItemReplaced += (list, index, oldItem, newItem) => {
             BaseSequenceCondition.InternalSetOwner(oldItem, null);
             BaseSequenceCondition.InternalSetOwner(newItem, this);
         };
-
-        this.Progress = new DispatcherActivityProgress();
-        this.Progress.Text = "Sequence not running";
     }
 
     /// <summary>

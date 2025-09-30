@@ -20,10 +20,9 @@
 using MemEngine360.Commands;
 using MemEngine360.Engine;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
@@ -117,9 +116,9 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
                             data = dataResult.GetValueOrDefault();
                         }
 
-                        if (data != null && WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IWindow? parentWindow)) {
+                        if (data != null && WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IDesktopWindow? parentWindow)) {
                             BinaryHexEditorView view = new BinaryHexEditorView();
-                            IWindow window = manager.CreateWindow(new WindowBuilder() {
+                            IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
                                 Title = "Hex Editor",
                                 Content = view,
                                 BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),

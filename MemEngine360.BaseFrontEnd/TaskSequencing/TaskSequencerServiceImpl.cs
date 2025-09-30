@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Themes;
 using SkiaSharp;
@@ -27,10 +28,10 @@ using SkiaSharp;
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public class TaskSequencerServiceImpl : ITaskSequencerService {
-    private static readonly DataKey<IWindow> OpenedWindowKey = DataKeys.Create<IWindow>(nameof(ITaskSequencerService) + "_OpenedSequencerWindow");
+    private static readonly DataKey<IDesktopWindow> OpenedWindowKey = DataKeys.Create<IDesktopWindow>(nameof(ITaskSequencerService) + "_OpenedSequencerWindow");
 
     public Task OpenOrFocusWindow(TaskSequenceManager sequencer) {
-        if (OpenedWindowKey.TryGetContext(sequencer.UserContext, out IWindow? sequencerWindow)) {
+        if (OpenedWindowKey.TryGetContext(sequencer.UserContext, out IDesktopWindow? sequencerWindow)) {
             Debug.Assert(sequencerWindow.OpenState == OpenState.Open || sequencerWindow.OpenState == OpenState.TryingToClose);
             
             sequencerWindow.Activate();
@@ -38,7 +39,7 @@ public class TaskSequencerServiceImpl : ITaskSequencerService {
         }
 
         if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
-            IWindow window = manager.CreateWindow(new WindowBuilder() {
+            IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
                 Title = "Task Sequencer",
                 FocusPath = "SequencerWindow",
                 Content = new TaskSequencerView(sequencer),
@@ -48,14 +49,14 @@ public class TaskSequencerServiceImpl : ITaskSequencerService {
                 Width = 960, Height = 640
             });
 
-            window.WindowOpened += (sender, args) => ((TaskSequencerView) sender.Content!).OnWindowOpened(sender);
-            window.WindowClosing += (sender, args) => {
+            window.Opened += (sender, args) => ((TaskSequencerView) sender.Content!).OnWindowOpened(sender);
+            window.Closing += (sender, args) => {
                 // prevent memory leak
                 TaskSequenceManager tsm = ((TaskSequencerView) sender.Content!).TaskSequenceManager;
                 tsm.UserContext.Remove(OpenedWindowKey);
             };
             
-            window.WindowClosed += (sender, args) => {
+            window.Closed += (sender, args) => {
                 ((TaskSequencerView) sender.Content!).OnWindowClosed();
             };
             

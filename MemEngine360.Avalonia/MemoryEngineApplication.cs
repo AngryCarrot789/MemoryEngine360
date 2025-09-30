@@ -74,8 +74,10 @@ using PFXToolKitUI;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Configurations.Pages;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing.DesktopImpl;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop.Impl;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Overlays;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Overlays.Impl;
 using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Services.UserInputs;
 using PFXToolKitUI.Avalonia.Themes;
@@ -473,10 +475,12 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 if (desktop != null)
                     desktop.ApplicationLifetime.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
-                IWindow window = manager.CreateWindow(new WindowBuilder() {
+                IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
                     Title = "Memory Engine 360 v1.1.8-dev",
                     FocusPath = "EngineWindow",
-                    Content = new EngineView(),
+                    Content = new PopupOverlayContentHost() {
+                        Content = new EngineView()
+                    },
                     MinWidth = 600, MinHeight = 520,
                     Width = 680, Height = 630,
                     // rely on default icon for the DesktopWindowManager
@@ -486,22 +490,24 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     MainWindow = true
                 });
 
-                window.WindowOpened += static (s, e) => {
-                    EngineView view = (EngineView) s.Content!;
+                // Instance.ComponentStorage.AddComponent<IOverlayWindowManager>(new OverlayWindowManagerImpl((PopupOverlayContentHost) window.Content!));
+
+                window.Opened += static (s, e) => {
+                    EngineView view = (EngineView) ((PopupOverlayContentHost) s.Content!).Content!;
                     MemoryEngineViewState.GetInstance(view.MemoryEngine).IsActivityListVisible = false;
                     DataManager.GetContextData(s.Control).Set(MemoryEngine.EngineDataKey, view.MemoryEngine);
 
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.MemoryEngine);
                 };
 
-                window.WindowClosingAsync += static (s, e) => {
+                window.ClosingAsync += static (s, e) => {
                     return Instance.Dispatcher.InvokeAsync(() => {
                         return CommandManager.Instance.RunActionAsync(_ => OnEngineWindowAboutToClose(s), s.LocalContextData);
                     }).Unwrap();
                 };
 
-                window.WindowClosed += static (s, e) => {
-                    EngineView view = (EngineView) s.Content!;
+                window.Closed += static (s, e) => {
+                    EngineView view = (EngineView) ((PopupOverlayContentHost) s.Content!).Content!;
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
                     DataManager.GetContextData(s.Control).Remove(MemoryEngine.EngineDataKey);
                 };
@@ -551,8 +557,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             }
         }
 
-        private static async Task OnEngineWindowAboutToClose(IWindow window) {
-            EngineView view = (EngineView) window.Content!;
+        private static async Task OnEngineWindowAboutToClose(IDesktopWindow window) {
+            EngineView view = (EngineView) ((PopupOverlayContentHost) window.Content!).Content!;
             MemoryEngine engine = view.MemoryEngine;
 
             engine.IsShuttingDown = true;
@@ -651,7 +657,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             }
         }
 
-        private static async Task<IDisposable?> TryGetTokenWithForegroundDialog(IWindow window, BusyLock busyLock) {
+        private static async Task<IDisposable?> TryGetTokenWithForegroundDialog(IDesktopWindow window, BusyLock busyLock) {
             IDisposable? token;
             if ((token = busyLock.TryBeginBusyOperation()) == null) {
                 token = busyLock.BeginBusyOperationWithForegroundActivityAsync(window, "Safely disconnect");
@@ -663,18 +669,21 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
     private class AboutServiceImpl : IAboutService {
         public Task ShowDialog() {
-            if (WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IWindow? parentWindow)) {
-                IWindow window = manager.CreateWindow(new WindowBuilder() {
-                    Title = "About MemoryEngine360",
-                    Content = new AboutView(),
-                    TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone7.Background.Static"),
-                    BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
-                    MinWidth = 500, MinHeight = 200,
-                    Width = 600, Height = 250,
-                    Parent = parentWindow
-                });
+            ITopLevel? topLevel = TopLevelContextUtils.GetTopLevelFromContext();
+            if (topLevel != null) {
+                if (WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IDesktopWindow? parentWindow)) {
+                    IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
+                        Title = "About MemoryEngine360",
+                        Content = new AboutView(),
+                        TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone7.Background.Static"),
+                        BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
+                        MinWidth = 500, MinHeight = 200,
+                        Width = 600, Height = 250,
+                        Parent = parentWindow
+                    });
 
-                return window.ShowAsync();
+                    return window.ShowAsync();
+                }
             }
 
             return Task.CompletedTask;

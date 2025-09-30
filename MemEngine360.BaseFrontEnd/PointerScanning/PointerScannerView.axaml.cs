@@ -26,7 +26,7 @@ using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
@@ -102,7 +102,7 @@ public partial class PointerScannerView : UserControl {
                     }
                 };
 
-                if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, IWindow.FromVisual(this)) != true) {
+                if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, IDesktopWindow.FromVisual(this)) != true) {
                     return;
                 }
 

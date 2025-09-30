@@ -21,7 +21,7 @@ using MemEngine360.BaseFrontEnd.XboxBase.Modules;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.XboxBase.Modules;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
@@ -69,7 +69,7 @@ public class ShowModulesCommand : Command {
                 XboxModuleManager = viewer, MemoryEngine = engine
             };
 
-            IWindow window = manager.CreateWindow(new WindowBuilder() {
+            IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
                 Title = "Memory Viewer",
                 Content = control,
                 TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone6.Background.Static"),
@@ -79,7 +79,7 @@ public class ShowModulesCommand : Command {
                 FocusPath = "ModuleViewerWindow"
             });
 
-            window.WindowClosed += static (sender, args) => {
+            window.Closed += static (sender, args) => {
                 ((ModuleViewerView) sender.Content!).XboxModuleManager = null;
                 ((ModuleViewerView) sender.Content!).MemoryEngine = null;
             };

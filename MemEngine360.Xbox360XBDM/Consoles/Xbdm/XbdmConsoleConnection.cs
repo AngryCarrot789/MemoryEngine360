@@ -28,15 +28,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
-using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.Events.XbdmEvents;
-using MemEngine360.XboxBase;
-using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
-using PFXToolKitUI.Utils.Destroying;
 using ConsoleColor = MemEngine360.Connections.Features.ConsoleColor;
-using RegisterContext = MemEngine360.Connections.Features.RegisterContext;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 

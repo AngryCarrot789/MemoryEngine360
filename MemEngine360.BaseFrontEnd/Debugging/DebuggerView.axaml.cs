@@ -37,6 +37,7 @@ using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Themes.BrushFactories;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Logging;
@@ -51,7 +52,7 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
         set => this.SetValue(ConsoleDebuggerProperty, value);
     }
     
-    public IWindow? Window { get; private set; }
+    public IDesktopWindow? Window { get; private set; }
 
     private readonly IBinder<ConsoleDebugger> autoRefreshBinder = new AvaloniaPropertyToEventPropertyBinder<ConsoleDebugger>(ToggleButton.IsCheckedProperty, nameof(ConsoleDebugger.RefreshRegistersOnActiveThreadChangeChanged), (b) => b.Control.SetValue(ToggleButton.IsCheckedProperty, b.Model.RefreshRegistersOnActiveThreadChange), b => b.Model.RefreshRegistersOnActiveThreadChange = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ConsoleDebugger> autoAddRemoveThreadsBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.AutoAddOrRemoveThreadsChanged), (b) => b.Control.SetValue(CheckBox.IsCheckedProperty, b.Model.AutoAddOrRemoveThreads));
@@ -152,7 +153,7 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
         ConsoleDebuggerProperty.Changed.AddClassHandler<DebuggerView, ConsoleDebugger?>((s, e) => s.OnConsoleDebuggerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
-    internal void OnWindowOpened(IWindow window) {
+    internal void OnWindowOpened(IDesktopWindow window) {
         this.Window = window;
         
         if (this.ConsoleDebugger != null) {

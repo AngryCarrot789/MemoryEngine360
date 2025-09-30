@@ -20,28 +20,49 @@
 using MemEngine360.Sequencing;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Overlays;
 using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Interactivity.Windowing;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 
 public class EditConditionOutputModeServiceImpl : IEditConditionOutputModeService {
     public async Task<ConditionOutputMode?> EditTriggerMode(ConditionOutputMode initialMode) {
         return await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-            IWindow? parentWindow = WindowContextUtils.GetUsefulWindow();
-            if (parentWindow != null) {
-                EditConditionOutputModeView view = new EditConditionOutputModeView(initialMode);
-                IWindow window = parentWindow.WindowManager.CreateWindow(new WindowBuilder() {
-                    Title = "Edit output mode",
-                    Content = view,
-                    Width = 260, Height = 290,
-                    Parent = parentWindow
-                });
+            ITopLevel? parent = TopLevelContextUtils.GetTopLevelFromContext();
+            if (parent != null) {
+                IWindowBase? window = WindowContextUtils.CreateWindow(parent,
+                    (w) => {
+                        EditConditionOutputModeView view = new EditConditionOutputModeView(initialMode);
+                        return w.WindowManager.CreateWindow(new WindowBuilder() {
+                            Title = "Edit output mode",
+                            Content = view,
+                            Width = 260, Height = 290,
+                            Parent = w
+                        });
+                    },
+                    (m, w) => {
+                        EditConditionOutputModeView view = new EditConditionOutputModeView(initialMode);
+                        return m.CreateWindow(new OverlayWindowBuilder() {
+                            TitleBar = new OverlayWindowTitleBarInfo() {
+                                Title = "Edit output mode",
+                            },
+                            Width = 260, Height = 290,
+                            Content = view,
+                            Parent = w
+                        });
+                    });
 
-                view.Window = window;
-                bool? result = await window.ShowDialogAsync() as bool?;
-                view.Window = null;
-                if (result == true) {
-                    return view.OutputMode;
+                if (window != null) {
+                    EditConditionOutputModeView view = (EditConditionOutputModeView) window.Content!;
+                    view.Window = window;
+                    bool? result = await window.ShowDialogAsync() as bool?;
+                    view.Window = null;
+                    if (result == true) {
+                        return ((EditConditionOutputModeView) window.Content!).OutputMode;
+                    }
                 }
             }
 

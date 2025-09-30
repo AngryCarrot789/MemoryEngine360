@@ -18,7 +18,7 @@
 // 
 
 using MemEngine360.Engine.HexEditing;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Themes;
 using SkiaSharp;
 
@@ -32,7 +32,7 @@ public class MemoryViewerViewServiceImpl : IMemoryViewerViewService {
                 HexDisplayInfo = info
             };
 
-            IWindow window = manager.CreateWindow(new WindowBuilder() {
+            IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
                 Title = "Memory Viewer",
                 Content = control,
                 TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone4.Background.Static"),
@@ -42,8 +42,8 @@ public class MemoryViewerViewServiceImpl : IMemoryViewerViewService {
                 FocusPath = "HexDisplayWindow"
             });
 
-            window.WindowOpened += static (sender, args) => ((MemoryViewerView) sender.Content!).OnWindowOpened(sender);
-            window.WindowClosed += static (sender, args) => ((MemoryViewerView) sender.Content!).OnWindowClosed();
+            window.Opened += static (sender, args) => ((MemoryViewerView) sender.Content!).OnWindowOpened(sender);
+            window.Closed += static (sender, args) => ((MemoryViewerView) sender.Content!).OnWindowClosed();
             return window.ShowAsync();
         }
 

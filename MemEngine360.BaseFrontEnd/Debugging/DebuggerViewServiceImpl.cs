@@ -2,6 +2,7 @@
 using MemEngine360.Engine.Debugging;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
@@ -11,10 +12,10 @@ using SkiaSharp;
 namespace MemEngine360.BaseFrontEnd.Debugging;
 
 public class DebuggerViewServiceImpl : IDebuggerViewService {
-    private static readonly DataKey<IWindow> OpenedWindowKey = DataKeys.Create<IWindow>(nameof(IDebuggerViewService) + "_OpenedDebuggerWindow");
+    private static readonly DataKey<IDesktopWindow> OpenedWindowKey = DataKeys.Create<IDesktopWindow>(nameof(IDebuggerViewService) + "_OpenedDebuggerWindow");
     
     public async Task<ITopLevel?> OpenOrFocusWindow(ConsoleDebugger debugger) {
-        if (OpenedWindowKey.TryGetContext(debugger.Engine.UserContext, out IWindow? debuggerWindow)) {
+        if (OpenedWindowKey.TryGetContext(debugger.Engine.UserContext, out IDesktopWindow? debuggerWindow)) {
             Debug.Assert(debuggerWindow.OpenState == OpenState.Open || debuggerWindow.OpenState == OpenState.TryingToClose);
             
             debuggerWindow.Activate();
@@ -29,7 +30,7 @@ public class DebuggerViewServiceImpl : IDebuggerViewService {
             ConsoleDebugger = debugger
         };
 
-        IWindow window = manager.CreateWindow(new WindowBuilder() {
+        IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
             Title = "Console Debugger",
             FocusPath = "DebuggerWindow",
             Content = control,
@@ -39,8 +40,8 @@ public class DebuggerViewServiceImpl : IDebuggerViewService {
             Width = 1280, Height = 720
         });
 
-        window.WindowOpened += (sender, args) => ((DebuggerView) sender.Content!).OnWindowOpened(sender);
-        window.WindowClosingAsync += (sender, args) => {
+        window.Opened += (sender, args) => ((DebuggerView) sender.Content!).OnWindowOpened(sender);
+        window.ClosingAsync += (sender, args) => {
             return ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                 // prevent memory leak
                 DebuggerView view = (DebuggerView) sender.Content!;
@@ -50,7 +51,7 @@ public class DebuggerViewServiceImpl : IDebuggerViewService {
             }).Unwrap();
         };
         
-        window.WindowClosed += (sender, args) => ((DebuggerView) sender.Content!).OnWindowClosed();
+        window.Closed += (sender, args) => ((DebuggerView) sender.Content!).OnWindowClosed();
         
         debugger.Engine.UserContext.Set(OpenedWindowKey, window);
         await window.ShowAsync();

@@ -37,7 +37,7 @@ using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
@@ -169,7 +169,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     /// <summary>
     /// Gets the window that this memory viewer is open in
     /// </summary>
-    public IWindow? Window { get; private set; }
+    public IDesktopWindow? Window { get; private set; }
 
     public MemoryViewerView() {
         this.InitializeComponent();
@@ -597,7 +597,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         this.PART_Inspector.IsLittleEndian = sender.InspectorEndianness == Endianness.LittleEndian;
     }
 
-    internal void OnWindowOpened(IWindow sender) {
+    internal void OnWindowOpened(IDesktopWindow sender) {
         this.Window = sender;
         UIInputManager.SetFocusPath(this.PART_HexEditor, "HexDisplayWindow/HexEditor");
         DataManager.GetContextData(this).Set(IHexEditorUI.DataKey, this);

@@ -18,7 +18,7 @@
 // 
 
 using MemEngine360.Connections;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Themes;
 using SkiaSharp;
@@ -27,7 +27,7 @@ namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
     public override async Task<IOpenConnectionView?> ShowOpenConnectionView(string? focusedTypeId = "console.xbox360.xbdm-coreimpl") {
-        if (!WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IWindow? parentWindow)) {
+        if (!WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IDesktopWindow? parentWindow)) {
             return null;
         }
 
@@ -35,7 +35,7 @@ public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
             TypeToFocusOnOpened = focusedTypeId
         };
 
-        IWindow window = manager.CreateWindow(new WindowBuilder() {
+        IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
             Title = "Connect to a console",
             Content = view,
             TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone6.Background.Static"),
@@ -45,8 +45,8 @@ public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
             Parent = parentWindow
         });
 
-        window.WindowOpened += (sender, args) => ((OpenConnectionViewEx) sender.Content!).OnWindowOpened(sender);
-        window.WindowClosed += (sender, args) => ((OpenConnectionViewEx) sender.Content!).OnWindowClosed();
+        window.Opened += (sender, args) => ((OpenConnectionViewEx) sender.Content!).OnWindowOpened(sender);
+        window.Closed += (sender, args) => ((OpenConnectionViewEx) sender.Content!).OnWindowClosed();
         await window.ShowAsync();
         return view;
     }

@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Diagnostics;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using PFXToolKitUI.CommandSystem;
@@ -86,7 +85,7 @@ public class DeleteFilesCommand : BaseFileExplorerCommand {
                 });
 
                 if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
-                    ITopLevel? topLevel = TopLevelContextUtils.GetUsefulTopLevel();
+                    ITopLevel? topLevel = TopLevelContextUtils.GetTopLevelFromContext();
                     if (topLevel != null) {
                         await service.DelayedWaitForActivity(topLevel, activity, 100);
                     }

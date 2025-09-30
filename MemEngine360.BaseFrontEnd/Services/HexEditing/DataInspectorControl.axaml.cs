@@ -24,12 +24,9 @@ using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Input.TextInput;
 using Avalonia.Interactivity;
-using AvaloniaHex.Base.Document;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Avalonia.Utils;
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;

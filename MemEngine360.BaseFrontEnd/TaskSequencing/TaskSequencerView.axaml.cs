@@ -32,7 +32,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Commands;
 
@@ -53,7 +53,7 @@ public partial class TaskSequencerView : UserControl {
 
     public TaskSequenceManagerViewState State { get; }
 
-    public IWindow? Window { get; private set; }
+    public IDesktopWindow? Window { get; private set; }
     
     public TaskSequenceManager TaskSequenceManager { get; }
 
@@ -187,7 +187,7 @@ public partial class TaskSequencerView : UserControl {
         }
     }
 
-    internal void OnWindowOpened(IWindow sender) {
+    internal void OnWindowOpened(IDesktopWindow sender) {
         this.Window = sender;
         DataManager.GetContextData(this).Set(TaskSequenceManager.DataKey, this.TaskSequenceManager);
 

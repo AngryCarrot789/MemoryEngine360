@@ -153,7 +153,7 @@ public class ConnectionAction {
                     BusyLock busyLock = this.connectionLockPair.BusyLock;
                     if (this.UseActivityToGetLock) {
                         ITopLevel? topLevel;
-                        if (this.UseForegroundActivity && (topLevel = TopLevelContextUtils.GetUsefulTopLevel()) != null) {
+                        if (this.UseForegroundActivity && (topLevel = TopLevelContextUtils.GetTopLevelFromContext()) != null) {
                             this.CurrentBusyToken = await busyLock.BeginBusyOperationWithForegroundActivityAsync(topLevel, this.ActivityCaption, this.ActivityText, this.ForegroundDialogShowDelay);
                         }
                         else {
