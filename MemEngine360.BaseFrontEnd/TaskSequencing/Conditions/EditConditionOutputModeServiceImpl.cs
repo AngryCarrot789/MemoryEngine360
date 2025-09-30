@@ -31,29 +31,31 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 public class EditConditionOutputModeServiceImpl : IEditConditionOutputModeService {
     public async Task<ConditionOutputMode?> EditTriggerMode(ConditionOutputMode initialMode) {
         return await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-            ITopLevel? parent = TopLevelContextUtils.GetTopLevelFromContext();
-            if (parent != null) {
-                IWindowBase? window = WindowContextUtils.CreateWindow(parent,
-                    (w) => {
-                        EditConditionOutputModeView view = new EditConditionOutputModeView(initialMode);
-                        return w.WindowManager.CreateWindow(new WindowBuilder() {
-                            Title = "Edit output mode",
-                            Content = view,
-                            Width = 260, Height = 290,
-                            Parent = w
-                        });
-                    },
-                    (m, w) => {
-                        EditConditionOutputModeView view = new EditConditionOutputModeView(initialMode);
-                        return m.CreateWindow(new OverlayWindowBuilder() {
-                            TitleBar = new OverlayWindowTitleBarInfo() {
-                                Title = "Edit output mode",
-                            },
-                            Width = 260, Height = 290,
-                            Content = view,
-                            Parent = w
-                        });
+            ITopLevel? topLevel = TopLevelContextUtils.GetTopLevelFromContext();
+            if (topLevel != null) {
+                IDesktopWindow DesktopFactory(IDesktopWindow parent) {
+                    EditConditionOutputModeView view = new EditConditionOutputModeView(initialMode);
+                    return parent.WindowManager.CreateWindow(new WindowBuilder() {
+                        Title = "Edit output mode",
+                        Content = view,
+                        Width = 260,
+                        Height = 290,
+                        Parent = parent
                     });
+                }
+
+                IOverlayWindow OverlayFactory(IOverlayWindowManager manager, IOverlayWindow? parent) {
+                    EditConditionOutputModeView view = new EditConditionOutputModeView(initialMode);
+                    return manager.CreateWindow(new OverlayWindowBuilder() {
+                        TitleBar = new OverlayWindowTitleBarInfo() { Title = "Edit output mode", },
+                        Width = 260,
+                        Height = 290,
+                        Content = view,
+                        Parent = parent
+                    });
+                }
+
+                IWindowBase? window = WindowContextUtils.CreateWindow(topLevel, DesktopFactory, OverlayFactory);
 
                 if (window != null) {
                     EditConditionOutputModeView view = (EditConditionOutputModeView) window.Content!;

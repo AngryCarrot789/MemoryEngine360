@@ -478,7 +478,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
                     Title = "Memory Engine 360 v1.1.8-dev",
                     FocusPath = "EngineWindow",
-                    Content = new PopupOverlayContentHost() {
+                    Content = new OverlayContentHostRoot() {
                         Content = new EngineView()
                     },
                     MinWidth = 600, MinHeight = 520,
@@ -493,7 +493,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 // Instance.ComponentStorage.AddComponent<IOverlayWindowManager>(new OverlayWindowManagerImpl((PopupOverlayContentHost) window.Content!));
 
                 window.Opened += static (s, e) => {
-                    EngineView view = (EngineView) ((PopupOverlayContentHost) s.Content!).Content!;
+                    EngineView view = (EngineView) ((OverlayContentHostRoot) s.Content!).Content!;
                     MemoryEngineViewState.GetInstance(view.MemoryEngine).IsActivityListVisible = false;
                     DataManager.GetContextData(s.Control).Set(MemoryEngine.EngineDataKey, view.MemoryEngine);
 
@@ -507,7 +507,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 };
 
                 window.Closed += static (s, e) => {
-                    EngineView view = (EngineView) ((PopupOverlayContentHost) s.Content!).Content!;
+                    EngineView view = (EngineView) ((OverlayContentHostRoot) s.Content!).Content!;
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
                     DataManager.GetContextData(s.Control).Remove(MemoryEngine.EngineDataKey);
                 };
@@ -558,7 +558,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         }
 
         private static async Task OnEngineWindowAboutToClose(IDesktopWindow window) {
-            EngineView view = (EngineView) ((PopupOverlayContentHost) window.Content!).Content!;
+            EngineView view = (EngineView) ((OverlayContentHostRoot) window.Content!).Content!;
             MemoryEngine engine = view.MemoryEngine;
 
             engine.IsShuttingDown = true;
