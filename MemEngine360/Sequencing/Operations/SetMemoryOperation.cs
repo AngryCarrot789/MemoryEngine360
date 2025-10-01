@@ -120,13 +120,14 @@ public class SetMemoryOperation : BaseSequenceOperation {
 
         IDisposable? busyToken = ctx.BusyToken;
         if (busyToken == null && !ctx.IsConnectionDedicated) {
-            ctx.Progress.Text = "Waiting for busy operations...";
+            ctx.Progress.Text = BusyLock.WaitingMessage;
             if ((busyToken = await ctx.Sequence.Manager!.MemoryEngine.BeginBusyOperationAsync(token)) == null) {
                 return;
             }
         }
 
         try {
+            ctx.Progress.Text = "Resolving address";
             uint resolvedAddress = await this.address.TryResolveAddress(ctx.Connection) ?? 0;
             if (resolvedAddress == 0) {
                 return;

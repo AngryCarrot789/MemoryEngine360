@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using MemEngine360.Connections;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
@@ -43,6 +44,12 @@ public class ConnectionAction {
     public bool UseActivityToGetLock { get; init; } = true;
 
     /// <summary>
+    /// Gets or sets if we should start a new activity when <see cref="UseActivityToGetLock"/> is true,
+    /// even if <see cref="RunAsync"/> is called from within an activity.
+    /// </summary>
+    public bool UseNewActivity { get; init; }
+    
+    /// <summary>
     /// Gets or sets if we should show the activity as a foreground process.
     /// Only used when <see cref="UseActivityToGetLock"/> is true. Default value is true.
     /// </summary>
@@ -51,9 +58,9 @@ public class ConnectionAction {
     /// <summary>
     /// Gets or sets the amount of time to wait before actually showing the foreground dialog.
     /// This is useful to prevent the dialog flashing onscreen if the application isn't busy and we acquire the token quickly.
-    /// Default value is 250 milliseconds.
+    /// Default value is <see cref="BusyLock.DefaultForegroundDelay"/> milliseconds.
     /// </summary>
-    public int ForegroundDialogShowDelay { get; init; } = 250;
+    public int ForegroundDialogShowDelay { get; init; } = BusyLock.DefaultForegroundDelay;
 
     /// <summary>
     /// Gets or sets the timeout for trying to acquire the busy lock when <see cref="UseActivityToGetLock"/> is false.
@@ -70,11 +77,6 @@ public class ConnectionAction {
     /// Gets or sets the caption used for the activity. Only used when <see cref="UseActivityToGetLock"/> is true
     /// </summary>
     public string ActivityCaption { get; init; } = "New Operation";
-
-    /// <summary>
-    /// Gets or sets the text used for the activity. Only used when <see cref="UseActivityToGetLock"/> is true
-    /// </summary>
-    public string ActivityText { get; init; } = "Waiting for busy operations...";
 
     /// <summary>
     /// Gets or sets the error message to show if the connection changes between acquiring the busy
@@ -154,10 +156,24 @@ public class ConnectionAction {
                     if (this.UseActivityToGetLock) {
                         ITopLevel? topLevel;
                         if (this.UseForegroundActivity && (topLevel = TopLevelContextUtils.GetTopLevelFromContext()) != null) {
-                            this.CurrentBusyToken = await busyLock.BeginBusyOperationWithForegroundActivityAsync(topLevel, this.ActivityCaption, this.ActivityText, this.ForegroundDialogShowDelay);
+                            if (!this.UseNewActivity && ActivityManager.Instance.TryGetCurrentTask(out ActivityTask? currentActivity)) {
+                                // We're currently inside another activity, so try show the foreground from within
+                                using (currentActivity.Progress.SaveState(Optional<string?>.Empty, this.ActivityCaption))
+                                    this.CurrentBusyToken = await busyLock.BeginBusyOperationWithForegroundFromActivityAsync(topLevel, this.ForegroundDialogShowDelay, CancellationToken.None);
+                            }
+                            else {
+                                this.CurrentBusyToken = await busyLock.BeginBusyOperationInForegroundUsingActivityAsync(topLevel, this.ActivityCaption, showDelay: this.ForegroundDialogShowDelay);
+                            }
                         }
                         else {
-                            this.CurrentBusyToken = await busyLock.BeginBusyOperationActivityAsync(this.ActivityCaption, this.ActivityText);
+                            if (!this.UseNewActivity && ActivityManager.Instance.TryGetCurrentTask(out ActivityTask? currentActivity)) {
+                                // We're currently inside another activity, so try show the foreground from within
+                                using (currentActivity.Progress.SaveState(Optional<string?>.Empty, this.ActivityCaption))
+                                    this.CurrentBusyToken = await busyLock.BeginBusyOperationFromActivityAsync(CancellationToken.None);
+                            }
+                            else {
+                                this.CurrentBusyToken = await busyLock.BeginBusyOperationUsingActivityAsync(this.ActivityCaption);
+                            }
                         }
                     }
                     else {

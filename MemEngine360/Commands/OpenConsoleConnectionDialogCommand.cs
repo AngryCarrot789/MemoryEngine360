@@ -20,10 +20,10 @@
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands;
@@ -109,8 +109,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
             // about to change. It's purely just to signal tasks to stop
             await engine.BroadcastConnectionAboutToChange(engineTopLevel, frame);
 
-            task.Progress.Text = "Waiting for busy operations...";
-            using IDisposable? token = await engine.BeginBusyOperationAsync(task.CancellationToken);
+            using IDisposable? token = await engine.BusyLocker.BeginBusyOperationFromActivityAsync(CancellationToken.None);
             if (token == null) {
                 return false;
             }

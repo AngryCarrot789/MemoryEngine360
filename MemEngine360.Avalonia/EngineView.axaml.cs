@@ -35,11 +35,13 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.View;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
+using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
@@ -53,7 +55,6 @@ using PFXToolKitUI.Notifications;
 using PFXToolKitUI.PropertyEditing.DataTransfer.Enums;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
-using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Themes;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
@@ -544,9 +545,9 @@ public partial class EngineView : UserControl {
                 ITopLevel topLevel = ITopLevel.TopLevelDataKey.GetContext(c.ContextData!)!;
                 MemoryEngine engine = MemoryEngine.EngineDataKey.GetContext(c.ContextData!)!;
                 if (engine.Connection != null) {
-                    ((ContextData) c.ContextData!).Set(MemoryEngine.IsDisconnectFromNotification, true);
+                    ((IMutableContextData) c.ContextData!).Set(MemoryEngine.IsDisconnectFromNotification, true);
                     await OpenConsoleConnectionDialogCommand.DisconnectInActivity(topLevel, engine, 0);
-                    ((ContextData) c.ContextData!).Remove(MemoryEngine.IsDisconnectFromNotification);
+                    ((IMutableContextData) c.ContextData!).Remove(MemoryEngine.IsDisconnectFromNotification);
                 }
 
                 c.Notification?.Hide();
@@ -630,6 +631,12 @@ public partial class EngineView : UserControl {
 
     private void CloseActivityListButtonClicked(object? sender, RoutedEventArgs e) {
         MemoryEngineViewState.GetInstance(this.MemoryEngine).IsActivityListVisible = false;
+    }
+    
+    private void OnHeaderPointerClicked(object? sender, PointerPressedEventArgs e) {
+        if (e.GetCurrentPoint(this).Properties.PointerUpdateKind == PointerUpdateKind.MiddleButtonPressed) {
+            MemoryEngineViewState.GetInstance(this.MemoryEngine).IsActivityListVisible = false;
+        }
     }
 
     private static async Task<bool> ParseAndUpdateScanAddress(IBinder<ScanningProcessor> b, string x) {

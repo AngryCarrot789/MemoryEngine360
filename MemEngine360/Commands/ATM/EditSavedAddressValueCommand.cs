@@ -25,10 +25,11 @@ using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
-using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands.ATM;
@@ -48,7 +49,7 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
             return;
         }
-        
+
         if (connection.IsClosed) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Connection is no longer connected. Please reconnect");
             return;
@@ -69,12 +70,14 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
         }
 
         AddressTableEntry lastResult = savedList[count - 1];
+        NumericDisplayType ndt = lastResult.NumericDisplayType;
+        StringType strType = lastResult.StringType;
         SingleUserInputInfo input = new SingleUserInputInfo(
             $"Change {count} value{Lang.S(count)}",
             $"Immediately change the value at {Lang.ThisThese(count)} address{Lang.Es(count)}", "Value",
             lastResult.Value != null ? DataValueUtils.GetStringFromDataValue(lastResult, lastResult.Value) : "") {
             Validate = (args) => {
-                DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out _);
+                DataValueUtils.TryParseTextAsDataValue(args, dataType, ndt, strType, out _);
             }
         };
 
@@ -82,51 +85,63 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             return;
         }
 
-        using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Edit scan result value");
-        if (token == null) {
-            return;
-        }
+        IDataValue value = DataValueUtils.ParseTextAsDataValue(input.Text, dataType, ndt, strType);
 
         if ((connection = engine.Connection) == null || connection.IsClosed) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Console was disconnected while trying to edit values. Nothing was modified. Please reconnect.");
             return;
         }
+        
+        // TODO: use ConnectionAction
 
-        ValidationArgs args = new ValidationArgs(input.Text, new List<string>(), false);
-        bool parsed = DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out IDataValue? value);
-        Debug.Assert(parsed && value != null);
-
+        ITopLevel? parentTopLevel = ITopLevel.FromContext(e.ContextData);
         using CancellationTokenSource cts = new CancellationTokenSource();
-        Result<int> result = await ActivityManager.Instance.RunTask(async () => {
-            ActivityTask.Current.Progress.SetCaptionAndText("Edit value", "Editing values");
-            int success = 0;
-            foreach (AddressTableEntry scanResult in savedList) {
-                ActivityManager.Instance.CurrentTask.ThrowIfCancellationRequested();
-                uint? address = await scanResult.MemoryAddress.TryResolveAddress(connection);
-                if (!address.HasValue)
-                    continue; // pointer could not be resolved
+        Result<Optional<int>> result = await ActivityManager.Instance.RunTask(async () => {
+            IActivityProgress progress = ActivityTask.Current.Progress;
+            progress.Caption = "Edit Saved Result value";
 
-                success++;
-                await MemoryEngine.WriteDataValue(connection, address.Value, value);
-                IDataValue actualValue = await MemoryEngine.ReadDataValue(connection, address.Value, value);
-                await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                    if (actualValue is DataValueString str) {
-                        lastResult.StringType = str.StringType;
-                        lastResult.StringLength = str.Value.Length;
-                    }
-                    else if (actualValue is DataValueByteArray arr) {
-                        lastResult.ArrayLength = arr.Value.Length;
-                    }
-
-                    scanResult.DataType = actualValue.DataType;
-                    scanResult.Value = actualValue;
-                }, token: CancellationToken.None);
+            Optional<int> result;
+            if (parentTopLevel != null) {
+                result = await engine.BeginBusyOperationWithForegroundFromActivityAsync(parentTopLevel, UseConnection, busyCancellation: CancellationToken.None);
+            }
+            else {
+                result = await engine.BeginBusyOperationFromActivityAsync(UseConnection, CancellationToken.None);
             }
 
-            return success;
-        }, cts);
+            return result;
 
-        if (!result.HasException && result.Value != count) {
+            async Task<int> UseConnection(IDisposable _, IConsoleConnection conn) {
+                ActivityTask.Current.Progress.SetCaptionAndText("Edit value", "Editing values");
+                int success = 0;
+                foreach (AddressTableEntry scanResult in savedList) {
+                    ActivityManager.Instance.CurrentTask.ThrowIfCancellationRequested();
+                    uint? address = await scanResult.MemoryAddress.TryResolveAddress(connection);
+                    if (!address.HasValue)
+                        continue; // pointer could not be resolved
+
+                    success++;
+                    await MemoryEngine.WriteDataValue(connection, address.Value, value);
+                    IDataValue actualValue = await MemoryEngine.ReadDataValue(connection, address.Value, value);
+                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                        if (actualValue is DataValueString str) {
+                            lastResult.StringType = str.StringType;
+                            lastResult.StringLength = str.Value.Length;
+                        }
+                        else if (actualValue is DataValueByteArray arr) {
+                            lastResult.ArrayLength = arr.Value.Length;
+                        }
+
+                        scanResult.DataType = actualValue.DataType;
+                        scanResult.Value = actualValue;
+                    }, token: CancellationToken.None);
+                }
+
+                return success;
+            }
+        }, cts);
+        
+        // result.Value will be Empty if we couldn't get the busy token
+        if (!result.HasException && result.Value.HasValue && result.Value.Value != count) {
             await IMessageDialogService.Instance.ShowMessage("Not all values updated",
                 $"Only {result.Value}/{count} were updated. The others' addresses could not be resolved",
                 defaultButton: MessageBoxResult.OK,

@@ -25,9 +25,9 @@ using MemEngine360.Xbox360XDevkit.Commands;
 using MemEngine360.Xbox360XDevkit.Views;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Plugins;
-using PFXToolKitUI.Tasks;
 using XDevkit;
 
 namespace MemEngine360.Xbox360XDevkit;

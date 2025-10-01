@@ -39,18 +39,6 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
     private readonly IBinder<TaskSequence> nameBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.DisplayNameChanged), (b) => ((SequenceListBoxItem) b.Control).Content = b.Model.DisplayName);
 
-    private readonly IBinder<TaskSequence> busyLockPriorityBinder =
-        new AvaloniaPropertyToMultiEventPropertyBinder<TaskSequence>(
-            CheckBox.IsCheckedProperty,
-            [nameof(TaskSequence.HasEngineConnectionPriorityChanged), nameof(TaskSequence.UseEngineConnectionChanged)],
-            (b) => {
-                ((CheckBox) b.Control).IsEnabled = b.Model.UseEngineConnection;
-                ((CheckBox) b.Control).IsChecked = b.Model.HasEngineConnectionPriority && b.Model.UseEngineConnection;
-            }, (b) => {
-                if (!b.Model.IsRunning && b.Model.UseEngineConnection)
-                    b.Model.HasEngineConnectionPriority = ((CheckBox) b.Control).IsChecked == true;
-            });
-
     private readonly IBinder<TaskSequence> runCountBinder = new TextBoxToEventPropertyBinder<TaskSequence>(nameof(TaskSequence.RunCountChanged), (b) => {
         int count = b.Model.RunCount;
         return count < 0 ? "Infinity" : count.ToString();
@@ -75,14 +63,13 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
     private IconButton? PART_CancelActivityButton;
     private IconButton? PART_RunButton;
     private TextBox? PART_RunCountTextBox;
-    private CheckBox? PART_ToggleBusyExclusive;
     private MemoryEngine? myEngine;
 
     public TaskSequence TaskSequence => this.Model ?? throw new Exception("Not connected to a model");
 
     public SequenceListBoxItem() {
         this.nameBinder.AttachControl(this);
-        this.AddBinderForModel(this.nameBinder, this.busyLockPriorityBinder, this.runCountBinder);
+        this.AddBinderForModel(this.nameBinder, this.runCountBinder);
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e) {
@@ -122,9 +109,6 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
         this.PART_RunCountTextBox = e.NameScope.GetTemplateChild<TextBox>(nameof(this.PART_RunCountTextBox));
         this.runCountBinder.AttachControl(this.PART_RunCountTextBox);
 
-        this.PART_ToggleBusyExclusive = e.NameScope.GetTemplateChild<CheckBox>(nameof(this.PART_ToggleBusyExclusive));
-        this.busyLockPriorityBinder.AttachControl(this.PART_ToggleBusyExclusive);
-
         this.UpdateControlsForIsRunning();
     }
 
@@ -153,16 +137,8 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
     private void OnIsRunningChanged(TaskSequence sender) => this.UpdateControlsForIsRunning();
 
     private void UpdateControlsForIsRunning() {
-        if (this.PART_ToggleBusyExclusive == null) {
-            return;
+        if (this.PART_RunCountTextBox != null && this.Model != null) {
+            this.PART_RunCountTextBox.IsEnabled = !this.Model.IsRunning;
         }
-
-        TaskSequence? model = this.Model;
-        if (model == null) {
-            return;
-        }
-
-        this.PART_ToggleBusyExclusive!.IsEnabled = !model.IsRunning;
-        this.PART_RunCountTextBox!.IsEnabled = !model.IsRunning;
     }
 }

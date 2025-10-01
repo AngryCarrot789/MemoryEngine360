@@ -32,6 +32,7 @@ using MemEngine360.PointerScanning;
 using MemEngine360.Sequencing;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.History;
@@ -41,7 +42,6 @@ using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
-using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine;
@@ -406,26 +406,25 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// </para>
     /// </summary>
     /// <returns>A token to dispose when the operation is completed. Returns null if currently busy</returns>
-    public IDisposable? TryBeginBusyOperation() {
-        return this.BusyLocker.TryBeginBusyOperation();
-    }
+    public IDisposable? TryBeginBusyOperation() => this.BusyLocker.TryBeginBusyOperation();
 
     /// <summary>
-    /// Begins a busy operation, waiting for existing busy operations to finish 
+    /// Begins a busy operation that uses the <see cref="Connection"/>, by waiting for existing busy operations to finish 
     /// </summary>
     /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
     /// <param name="timeoutMilliseconds">An optional timeout value. When the amount of time elapses, we return null</param>
-    /// <returns>The acquired token, or null if the task was cancelled</returns>
+    /// <returns>The acquired token, or null if the task was cancelled. Dispose to finish the busy operation</returns>
     public Task<IDisposable?> BeginBusyOperationAsync(CancellationToken cancellationToken) {
         return this.BusyLocker.BeginBusyOperationAsync(cancellationToken);
     }
 
     /// <summary>
-    /// Begins a busy operation, waiting for existing busy operations to finish or the timeout period elapsed, in which case this method returns null
+    /// Begins a busy operation that uses the <see cref="Connection"/>. Waits for existing busy operations to finish,
+    /// or for the timeout period to elapse or the cancellation token to become cancelled, in which case this method returns null
     /// </summary>
     /// <param name="timeoutMilliseconds">The maximum amount of time to wait to try and begin the operations</param>
     /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
-    /// <returns></returns>
+    /// <returns>The token, or null, if the timeout elapsed or the cancellation token becomes cancelled</returns>
     public Task<IDisposable?> BeginBusyOperationAsync(int timeoutMilliseconds, CancellationToken cancellationToken = default) {
         return this.BusyLocker.BeginBusyOperationAsync(timeoutMilliseconds, cancellationToken);
     }
@@ -438,8 +437,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <returns>
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
-    public Task<IDisposable?> BeginBusyOperationUsingActivityAsync(string caption = "New Operation", string message = "Waiting for busy operations...", CancellationTokenSource? cancellationTokenSource = null) {
-        return this.BusyLocker.BeginBusyOperationActivityAsync(caption, message, cancellationTokenSource);
+    public Task<IDisposable?> BeginBusyOperationUsingActivityAsync(string caption = "New Operation", string message = BusyLock.WaitingMessage, CancellationTokenSource? cancellationTokenSource = null) {
+        return this.BusyLocker.BeginBusyOperationUsingActivityAsync(caption, message, cancellationTokenSource);
     }
 
     /// <summary>
@@ -447,7 +446,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// </summary>
     /// <param name="action">The callback to invoke when we have the token</param>
     /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
-    public async Task<bool> BeginBusyOperationUsingActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
+    public async Task<bool> BeginBusyOperationUsingActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = BusyLock.WaitingMessage) {
         if (this.connection == null) {
             return false;
         }
@@ -469,7 +468,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
     /// <typeparam name="TResult">The result of the callback task</typeparam>
     /// <returns>The task containing the result of action, or default if we couldn't get the token or connection was null</returns>
-    public async Task<Optional<TResult>> BeginBusyOperationUsingActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string caption = "New Operation", string message = "Waiting for busy operations...") {
+    public async Task<Optional<TResult>> BeginBusyOperationUsingActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string caption = "New Operation", string message = BusyLock.WaitingMessage) {
         if (this.connection == null)
             return default; // short path -- save creating an activity
 
@@ -487,13 +486,13 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// when we have a connection after the busy token is acquired
     /// </summary>
     /// <param name="function">The callback to run with the token and open connection</param>
-    /// <param name="cancellationToken">A cancellation token used to stop trying to acquire the busy token</param>
-    public async Task<bool> BeginBusyOperationFromActivityAsync(Func<IDisposable, IConsoleConnection, Task> function, CancellationToken cancellationToken = default) {
+    /// <param name="busyCancellation">A cancellation token used to stop trying to acquire the busy token</param>
+    public async Task<bool> BeginBusyOperationFromActivityAsync(Func<IDisposable, IConsoleConnection, Task> function, CancellationToken busyCancellation = default) {
         if (this.connection == null) {
             return false;
         }
 
-        using IDisposable? token = await this.BusyLocker.BeginBusyOperationFromActivityAsync(cancellationToken);
+        using IDisposable? token = await this.BusyLocker.BeginBusyOperationFromActivityAsync(busyCancellation);
         IConsoleConnection theConn; // save double volatile read
         if (token == null || (theConn = this.connection) == null || theConn.IsClosed) {
             return false;
@@ -508,18 +507,47 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// when we have a connection after the busy token is acquired
     /// </summary>
     /// <param name="function">The callback to run with the token and open connection</param>
-    /// <param name="cancellationToken">A cancellation token used to stop trying to acquire the busy token</param>
+    /// <param name="busyCancellation">A cancellation token used to stop trying to acquire the busy token</param>
     /// <typeparam name="T">The type of value the callback returns</typeparam>
     /// <returns>
     /// A task containing the result of the function, or <see cref="Optional{T}.Empty"/> if
     /// it could not be called (i.e. not connected or could not begin busy operation)
     /// #</returns>
-    public async Task<Optional<T>> BeginBusyOperationFromActivityAsync<T>(Func<IDisposable, IConsoleConnection, Task<T>> function, CancellationToken cancellationToken = default) {
+    public async Task<Optional<T>> BeginBusyOperationFromActivityAsync<T>(Func<IDisposable, IConsoleConnection, Task<T>> function, CancellationToken busyCancellation = default) {
         if (this.connection == null) {
             return default;
         }
 
-        using IDisposable? token = await this.BusyLocker.BeginBusyOperationFromActivityAsync(cancellationToken);
+        using IDisposable? token = await this.BusyLocker.BeginBusyOperationFromActivityAsync(busyCancellation);
+        IConsoleConnection theConn; // save double volatile read
+        if (token != null && (theConn = this.connection) != null && !theConn.IsClosed) {
+            return await function(token, theConn);
+        }
+
+        return default;
+    }
+
+    public async Task<bool> BeginBusyOperationWithForegroundFromActivityAsync(ITopLevel parentTopLevel, Func<IDisposable, IConsoleConnection, Task> function, int showDelay = BusyLock.DefaultForegroundDelay, CancellationToken busyCancellation = default) {
+        if (this.connection == null) {
+            return false;
+        }
+
+        using IDisposable? token = await this.BusyLocker.BeginBusyOperationWithForegroundFromActivityAsync(parentTopLevel, showDelay, busyCancellation);
+        IConsoleConnection theConn; // save double volatile read
+        if (token == null || (theConn = this.connection) == null || theConn.IsClosed) {
+            return false;
+        }
+
+        await function(token, theConn);
+        return true;
+    }
+
+    public async Task<Optional<T>> BeginBusyOperationWithForegroundFromActivityAsync<T>(ITopLevel parentTopLevel, Func<IDisposable, IConsoleConnection, Task<T>> function, int showDelay = BusyLock.DefaultForegroundDelay, CancellationToken busyCancellation = default) {
+        if (this.connection == null) {
+            return default;
+        }
+
+        using IDisposable? token = await this.BusyLocker.BeginBusyOperationWithForegroundFromActivityAsync(parentTopLevel, showDelay, busyCancellation);
         IConsoleConnection theConn; // save double volatile read
         if (token != null && (theConn = this.connection) != null && !theConn.IsClosed) {
             return await function(token, theConn);

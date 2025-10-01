@@ -20,8 +20,8 @@
 using System.Diagnostics;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
-using PFXToolKitUI.Tasks;
-using PFXToolKitUI.Tasks.Pausable;
+using PFXToolKitUI.Activities;
+using PFXToolKitUI.Activities.Pausable;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Scanners;

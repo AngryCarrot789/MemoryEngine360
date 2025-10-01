@@ -35,7 +35,7 @@ public class DebugStepCommand : BaseDebuggerCommand {
         if (debugger.Connection == null)
             return;
 
-        using IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Unfreeze Console");
+        using IDisposable? token = await debugger.BusyLock.BeginBusyOperationUsingActivityAsync("Unfreeze Console");
         if (token != null && debugger.Connection != null) {
             if (debugger.ActiveThread == null)
                 return;

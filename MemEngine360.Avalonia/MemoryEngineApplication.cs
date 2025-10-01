@@ -71,6 +71,7 @@ using MemEngine360.Xbox360XDevkit;
 using MemEngine360.XboxBase;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Configurations.Pages;
 using PFXToolKitUI.Avalonia.Interactivity;
@@ -88,7 +89,6 @@ using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Themes;
 using PFXToolKitUI.Utils;
 using SkiaSharp;
@@ -552,7 +552,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 // }
             }
             else {
-                Instance.Dispatcher.InvokeShutdown();
+                Instance.Dispatcher.Shutdown();
             }
         }
 
@@ -659,7 +659,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         private static async Task<IDisposable?> TryGetTokenWithForegroundDialog(IDesktopWindow window, BusyLock busyLock) {
             IDisposable? token;
             if ((token = busyLock.TryBeginBusyOperation()) == null) {
-                token = busyLock.BeginBusyOperationWithForegroundActivityAsync(window, "Safely disconnect");
+                token = await busyLock.BeginBusyOperationInForegroundUsingActivityAsync(window, "Safely disconnect");
             }
 
             return token;

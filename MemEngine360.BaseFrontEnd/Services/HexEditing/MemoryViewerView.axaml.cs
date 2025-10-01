@@ -34,6 +34,8 @@ using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.Scanners;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
+using PFXToolKitUI.Activities;
+using PFXToolKitUI.Activities.Pausable;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
@@ -41,8 +43,6 @@ using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Shortcuts.Avalonia;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
-using PFXToolKitUI.Tasks;
-using PFXToolKitUI.Tasks.Pausable;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 using AsciiColumn = AvaloniaHex.Async.Rendering.AsciiColumn;
@@ -58,6 +58,9 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     #region Binders
 
     private readonly TextBoxToEventPropertyBinder<MemoryViewer> offsetBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.OffsetChanged), (b) => b.Model.Offset.ToString("X8"), async (b, x) => {
+        if (x.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            x = x.Substring(2);
+        
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
             b.Model.Offset = value;
             return true;
@@ -86,13 +89,16 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             }
         }
         else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer", defaultButton: MessageBoxResult.OK);
         }
 
         return false;
     });
 
     private readonly IBinder<MemoryViewer> autoRefreshAddrBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.AutoRefreshStartAddressChanged), (p) => p.Model.AutoRefreshStartAddress.ToString("X8"), async (b, x) => {
+        if (x.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            x = x.Substring(2);
+        
         if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint newStartAddress)) {
             if ((ulong) newStartAddress + b.Model.AutoRefreshLength > uint.MaxValue) {
                 await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Address causes scan to exceed applicable memory range");
@@ -381,12 +387,29 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     }
 
     public void SetBinarySource(IConnectionLockPair? lockPair) {
+        if (this.myBinarySource != null)
+            this.myBinarySource.ValidRanges.IndicesChanged -= this.OnValidRangesChanged;
+        
         this.PART_HexEditor.BinarySource = this.myBinarySource = lockPair != null ? new ConsoleHexBinarySource(lockPair) : null;
+        
+        if (this.myBinarySource != null)
+            this.myBinarySource.ValidRanges.IndicesChanged += this.OnValidRangesChanged;
+        
         this.changeManager.Clear();
         this.changeManager.OnBinarySourceChanged(this.myBinarySource);
         this.UpdateSelectionText();
         this.UpdateCaretText();
         this.PART_Inspector.UpdateFields();
+    }
+
+    private void OnValidRangesChanged(IObservableULongRangeUnion sender, IList<ULongRange> added, IList<ULongRange> removed) {
+        ApplicationPFX.Instance.Dispatcher.Post(() => {
+            ULongRange range = ULongRange.FromLength(this.SelectionRange.Start.ByteIndex, 8);
+            // ignore removed ranges to maintain previous data in the inspector
+            if (added.Any(x => x.Overlaps(range))) {
+                this.PART_Inspector.UpdateFields();
+            }
+        });
     }
 
     public Task ReloadSelectionFromConsole() {

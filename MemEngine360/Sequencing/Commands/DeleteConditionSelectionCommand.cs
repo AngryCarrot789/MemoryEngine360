@@ -76,10 +76,10 @@ public class DeleteConditionSelectionCommand : Command {
             return; // ConditionHost somehow changed
         }
         
-        List<IntRange> selection = selectionModel.ToIntRangeUnion().ToList();
+        List<LongRange> selection = selectionModel.ToLongRangeUnion().ToList();
         selectionModel.Clear();
         for (int i = selection.Count - 1; i >= 0; i--) {
-            selectionModel.SourceList.RemoveRange(selection[i].Start, selection[i].Length);
+            selectionModel.SourceList.RemoveRange((int) selection[i].Start, (int) selection[i].Length);
         }
     }
 }

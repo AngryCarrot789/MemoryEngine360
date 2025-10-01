@@ -23,6 +23,7 @@ using Avalonia;
 using Avalonia.Controls;
 using MemEngine360.PointerScanning;
 using PFXToolKitUI;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
@@ -31,7 +32,6 @@ using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
-using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 

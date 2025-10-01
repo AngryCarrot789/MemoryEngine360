@@ -28,33 +28,64 @@ using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.Sequencing.View;
 using MemEngine360.ValueAbstraction;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
-using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public partial class TaskSequencerView : UserControl {
-    private readonly IBinder<TaskSequence> useDedicatedConnectionBinder = new EventUpdateBinder<TaskSequence>(nameof(TaskSequence.UseEngineConnectionChanged), (b) => ((CheckBox) b.Control).IsChecked = !b.Model.UseEngineConnection);
+    private readonly IBinder<TaskSequence> useDedicatedConnectionBinder = 
+        new MultiEventUpdateBinder<TaskSequence>(
+            [
+                nameof(TaskSequence.UseEngineConnectionChanged),
+                nameof(TaskSequence.IsRunningChanged),
+            ], 
+            (b) => {
+                ((CheckBox) b.Control).IsEnabled = !b.Model.IsRunning;
+                ((CheckBox) b.Control).IsChecked = !b.Model.UseEngineConnection;
+            });
 
-    private readonly IBinder<TaskSequence> currentConnectionTypeBinder = new MultiEventUpdateBinder<TaskSequence>([nameof(TaskSequence.UseEngineConnectionChanged), nameof(TaskSequence.DedicatedConnectionChanged)], (b) => {
-        ((TextBlock) b.Control).Opacity = b.Model.UseEngineConnection ? 0.6 : 1.0;
-        if (b.Model.UseEngineConnection) {
-            ((TextBlock) b.Control).Text = (b.Model.Manager?.MemoryEngine.Connection?.ConnectionType.DisplayName ?? "No Engine Connection");
-        }
-        else {
-            ((TextBlock) b.Control).Text = (b.Model.DedicatedConnection?.ConnectionType.DisplayName ?? "Not Connected");
-        }
-    });
+    private readonly IBinder<TaskSequence> currentConnectionTypeBinder =
+        new MultiEventUpdateBinder<TaskSequence>(
+            [
+                nameof(TaskSequence.UseEngineConnectionChanged),
+                nameof(TaskSequence.DedicatedConnectionChanged)
+            ],
+            (b) => {
+                ((TextBlock) b.Control).Opacity = b.Model.UseEngineConnection ? 0.6 : 1.0;
+                if (b.Model.UseEngineConnection) {
+                    ((TextBlock) b.Control).Text = (b.Model.Manager?.MemoryEngine.Connection?.ConnectionType.DisplayName ?? "No Engine Connection");
+                }
+                else {
+                    ((TextBlock) b.Control).Text = (b.Model.DedicatedConnection?.ConnectionType.DisplayName ?? "Not Connected");
+                }
+            });
+
+    private readonly IBinder<TaskSequence> busyLockPriorityBinder =
+        new AvaloniaPropertyToMultiEventPropertyBinder<TaskSequence>(
+            CheckBox.IsCheckedProperty,
+            [
+                nameof(TaskSequence.HasEngineConnectionPriorityChanged),
+                nameof(TaskSequence.UseEngineConnectionChanged),
+                nameof(TaskSequence.IsRunningChanged)
+            ],
+            (b) => {
+                ((CheckBox) b.Control).IsEnabled = b.Model.UseEngineConnection && !b.Model.IsRunning;
+                ((CheckBox) b.Control).IsChecked = b.Model.HasEngineConnectionPriority && b.Model.UseEngineConnection;
+            }, (b) => {
+                if (!b.Model.IsRunning && b.Model.UseEngineConnection)
+                    b.Model.HasEngineConnectionPriority = ((CheckBox) b.Control).IsChecked == true;
+            });
 
     public TaskSequenceManagerViewState State { get; }
 
     public IDesktopWindow? Window { get; private set; }
-    
+
     public TaskSequenceManager TaskSequenceManager { get; }
 
     private readonly ConditionSourcePresenter conditionSourcePresenter;
@@ -77,6 +108,7 @@ public partial class TaskSequencerView : UserControl {
 
         this.useDedicatedConnectionBinder.AttachControl(this.PART_UseDedicatedConnection);
         this.currentConnectionTypeBinder.AttachControl(this.PART_ActiveConnectionTextBoxRO);
+        this.busyLockPriorityBinder.AttachControl(this.PART_ToggleBusyExclusive);
 
         this.conditionSourcePresenter = new ConditionSourcePresenter(this);
         this.operationListPresenter = new OperationListPresenter(this);
@@ -133,6 +165,7 @@ public partial class TaskSequencerView : UserControl {
 
         this.useDedicatedConnectionBinder.SwitchModel(newSeq);
         this.currentConnectionTypeBinder.SwitchModel(newSeq);
+        this.busyLockPriorityBinder.SwitchModel(newSeq);
         this.OnSequenceProgressTextChanged(newSeq?.Progress);
         ((BaseRelayCommand) this.PART_UseDedicatedConnection.Command!).RaiseCanExecuteChanged();
     }
@@ -146,7 +179,7 @@ public partial class TaskSequencerView : UserControl {
     }
 
     private void PART_ClearOperationsClick(object? sender, RoutedEventArgs e) {
-        TaskSequence? sequence = this.State?.PrimarySelectedSequence;
+        TaskSequence? sequence = this.State.PrimarySelectedSequence;
         if (sequence != null && !sequence.IsRunning) {
             sequence.Operations.Clear();
         }

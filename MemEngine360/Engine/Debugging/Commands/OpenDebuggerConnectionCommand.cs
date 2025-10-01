@@ -22,9 +22,9 @@ using MemEngine360.Commands;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using PFXToolKitUI;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Debugging.Commands;
@@ -86,8 +86,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             bool oldIsActive = debugger.IsWindowVisible;
             debugger.IsWindowVisible = false;
 
-            task.Progress.Text = "Waiting for busy operations...";
-            using IDisposable? token = await debugger.BusyLock.BeginBusyOperationAsync(task.CancellationToken);
+            using IDisposable? token = await debugger.BusyLock.BeginBusyOperationFromActivityAsync(CancellationToken.None);
             if (token != null) {
                 IConsoleConnection? oldConnection = debugger.Connection;
                 if (oldConnection != null) {
@@ -124,7 +123,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
         ArgumentNullException.ThrowIfNull(debugger);
         ArgumentNullException.ThrowIfNull(newConnection);
 
-        using IDisposable? token = await debugger.BusyLock.BeginBusyOperationActivityAsync("Change connection");
+        using IDisposable? token = await debugger.BusyLock.BeginBusyOperationUsingActivityAsync("Change connection");
         if (token == null) {
             return false;
         }

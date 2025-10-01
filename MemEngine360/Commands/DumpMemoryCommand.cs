@@ -26,12 +26,12 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Scanners;
+using PFXToolKitUI.Activities;
+using PFXToolKitUI.Activities.Pausable;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
-using PFXToolKitUI.Tasks;
-using PFXToolKitUI.Tasks.Pausable;
 
 namespace MemEngine360.Commands;
 

@@ -103,7 +103,7 @@ public class CompareMemoryCondition : BaseSequenceCondition {
                 BusyLock busyLock = ctx.Sequence.Manager!.MemoryEngine.BusyLocker;
                 // ReSharper disable once MethodHasAsyncOverloadWithCancellation
                 if ((busyToken = busyLock.TryBeginBusyOperation()) == null) {
-                    ctx.Progress.Text = "Waiting for busy operations...";
+                    ctx.Progress.Text = BusyLock.WaitingMessage;
                     if ((busyToken = await busyLock.BeginBusyOperationAsync(cancellationToken)) == null) {
                         // only reached if token is cancelled
                         Debug.Assert(cancellationToken.IsCancellationRequested);

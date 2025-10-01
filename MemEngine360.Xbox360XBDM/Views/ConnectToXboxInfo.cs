@@ -20,8 +20,8 @@
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Xbox360XBDM.Consoles;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.DataTransfer;
-using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils.Accessing;
 using PFXToolKitUI.Utils.Collections.Observable;
 

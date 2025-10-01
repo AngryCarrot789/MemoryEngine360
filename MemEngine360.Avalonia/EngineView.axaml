@@ -633,7 +633,8 @@
                     <DockPanel>
                         <Border DockPanel.Dock="Top" Height="24"
                                 BorderBrush="{DynamicResource ABrush.Tone7.Border.Static}"
-                                BorderThickness="0,0,0,1">
+                                BorderThickness="0,0,0,1" Background="Transparent"
+                                PointerPressed="OnHeaderPointerClicked">
                             <DockPanel>
                                 <Button Content="X" Click="CloseActivityListButtonClicked"
                                         Padding="0" DockPanel.Dock="Right"

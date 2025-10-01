@@ -32,11 +32,17 @@ public class ConsoleHexBinarySource : IBinarySource {
     private readonly BitRangeUnion availableRanges = new BitRangeUnion();
     private readonly IConnectionLockPair pair;
     private readonly Lock memoryLock = new Lock();
+    private readonly ULongRangeUnionEx validRanges = new ULongRangeUnionEx();
 
     // We cannot use ((ulong) uint.MaxValue) + 1 because for some reason XBDM cannot
     // read 16 bytes at 0xFFFFFFF0. It can read 15 bytes no problem.
     // But when you read 16, it just returns a blank line for the data.
     public BitRange ApplicableRange => new BitRange(0, uint.MaxValue);
+
+    /// <summary>
+    /// Gets the IntRange union of valid ranges 
+    /// </summary>
+    public IObservableULongRangeUnion ValidRanges => this.validRanges;
 
     public bool CanWriteBackInto => true;
 
@@ -88,6 +94,7 @@ public class ConsoleHexBinarySource : IBinarySource {
             using (this.memoryLock.EnterScope()) {
                 this.cachedMemory.Write(range.Start.ByteIndex, buffer);
                 this.availableRanges.Add(BitRange.FromLength(range.Start.ByteIndex, (ulong) buffer.Length));
+                this.validRanges.Add(new ULongRange(range.Start.ByteIndex, range.Start.ByteIndex + (ulong) buffer.Length));
             }
         }
 
@@ -108,6 +115,7 @@ public class ConsoleHexBinarySource : IBinarySource {
                 this.requestedRanges.Remove(range);
                 this.cachedMemory.Clear(offset, count);
                 this.availableRanges.Remove(range);
+                this.validRanges.Remove(new ULongRange(range.Start.ByteIndex, range.Start.ByteIndex + range.ByteLength));
             }
         }
     }

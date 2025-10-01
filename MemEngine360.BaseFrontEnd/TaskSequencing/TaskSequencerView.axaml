@@ -14,7 +14,7 @@
                  xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                  xmlns:memEngine360="clr-namespace:MemEngine360;assembly=MemEngine360"
-                 xmlns:controls="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
                  mc:Ignorable="d"
                  d:DesignHeight="400" d:DesignWidth="800">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
@@ -24,12 +24,12 @@
                 <ColumnDefinition Width="1"/>
                 <ColumnDefinition Width="*" MinWidth="200"/>
             </Grid.ColumnDefinitions>
-            <controls:GroupBox Grid.Column="0" Background="{DynamicResource ABrush.MemEngine.Sequencer.Sequences.Background}"
+            <c:GroupBox Grid.Column="0" Background="{DynamicResource ABrush.MemEngine.Sequencer.Sequences.Background}"
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
                         sav:UIInputManager.FocusPath="SequencerWindow/SequenceList">
-                <controls:GroupBox.Header>
+                <c:GroupBox.Header>
                     <DockPanel HorizontalSpacing="2">
                         <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
                                         DockPanel.Dock="Right"
@@ -92,7 +92,7 @@
 
                         <TextBlock Text="Sequences" VerticalAlignment="Center"/>
                     </DockPanel>
-                </controls:GroupBox.Header>
+                </c:GroupBox.Header>
                 <local:SequenceListBox x:Name="PART_SequenceListBox"
                                        BorderThickness="0"
                                        FontFamily="{StaticResource FontOxanium}"
@@ -138,18 +138,6 @@
                                                         </tt:ToolTipEx.Tip>
                                                     </TextBox>
                                                 </StackPanel>
-                                                <CheckBox x:Name="PART_ToggleBusyExclusive" DockPanel.Dock="Right" Content="Network Priority">
-                                                    <tt:ToolTipEx.Tip>
-                                                        <TextBlock>
-                                                            <Run Text="Makes this sequence take priority over the engine's connection, meaning the sequence can run without interruption"/>
-                                                            <LineBreak/>
-                                                            <LineBreak/>
-                                                            <Run Text="However, most engine functions (scan, hex editor, changing values, etc.) will be unavailable until you stop the sequence."/>
-                                                            <LineBreak/>
-                                                            <Run Text="You also won't be able to run other busy priority sequences at the same time; they'll just sit there waiting for the first one to finish"/>
-                                                        </TextBlock>
-                                                    </tt:ToolTipEx.Tip>
-                                                </CheckBox>
                                                 <Border Background="Transparent"/>
                                             </DockPanel>
 
@@ -222,14 +210,14 @@
                         </ControlTheme>
                     </ListBox.ItemContainerTheme>
                 </local:SequenceListBox>
-            </controls:GroupBox>
+            </c:GroupBox>
 
-            <controls:GroupBox Grid.Column="2" Background="Transparent"
+            <c:GroupBox Grid.Column="2" Background="Transparent"
                         HorizontalHeaderAlignment="Stretch" BorderThickness="0"
                         BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
                         HeaderBrush="{DynamicResource ABrush.Tone6.Background.Static}"
                         x:Name="PART_CurrentSequenceGroupBox">
-                <controls:GroupBox.Header>
+                <c:GroupBox.Header>
                     <DockPanel HorizontalSpacing="3">
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="3">
                             <Button Padding="5,2"
@@ -266,7 +254,7 @@
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"/>
                     </DockPanel>
-                </controls:GroupBox.Header>
+                </c:GroupBox.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="10*" MinHeight="100"/>
@@ -543,6 +531,18 @@
                                     </TextBlock>
                                 </tt:ToolTipEx.Tip>
                             </CheckBox>
+                            <CheckBox x:Name="PART_ToggleBusyExclusive" Content="Network Priority">
+                                <tt:ToolTipEx.Tip>
+                                    <TextBlock>
+                                        <Run Text="Makes this sequence take priority over the engine's connection, meaning the sequence can run without interruption"/>
+                                        <LineBreak/>
+                                        <LineBreak/>
+                                        <Run Text="However, most engine functions (scan, hex editor, changing values, etc.) will be unavailable until you stop the sequence."/>
+                                        <LineBreak/>
+                                        <Run Text="You also won't be able to run other busy priority sequences at the same time; they'll just sit there waiting for the first one to finish"/>
+                                    </TextBlock>
+                                </tt:ToolTipEx.Tip>
+                            </CheckBox>
                             <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="1,3"/>
                             <TextBlock x:Name="PART_ActivityStatusText"
                                        Text="Caption here"
@@ -553,7 +553,7 @@
                     </Border>
                     <GridSplitter Grid.Row="1" Background="Transparent" Margin="181,-3,0,-20" Cursor="SizeNorthSouth"/>
                 </Grid>
-            </controls:GroupBox>
+            </c:GroupBox>
 
             <Border Background="{DynamicResource ABrush.Tone1.Border.Static}" Grid.Column="1"/>
             <local:GridSplitterNonHitListBoxItem Grid.Column="1" Margin="-5,0,-8,0" Background="Transparent" Cursor="SizeWestEast"/>

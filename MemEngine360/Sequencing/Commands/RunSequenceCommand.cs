@@ -19,11 +19,11 @@
 
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.Commands;
@@ -66,8 +66,7 @@ public class RunSequenceCommand : Command {
             Result<IDisposable?> tokenResult = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = $"Start '{sequence.DisplayName}'";
-                task.Progress.Text = "Waiting for busy operations...";
-                return sequence.Manager.MemoryEngine.BeginBusyOperationAsync(task.CancellationToken);
+                return sequence.Manager.MemoryEngine.BusyLocker.BeginBusyOperationFromActivityAsync(CancellationToken.None);
             }, sequence.Progress, cts);
 
             // User cancelled operation so don't run the sequence, since it wants busy lock priority

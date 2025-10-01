@@ -19,6 +19,7 @@
 
 using System.Net;
 using System.Runtime.CompilerServices;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -86,7 +87,7 @@ public abstract class RegisteredConnectionType {
     /// show a dialog requesting an IP address, it might show a dialog with list of local devices the user can select,
     /// or it may just simply connect to a hardcoded address in the background.
     /// <para>
-    /// This procedure should ideally create an activity task via <see cref="PFXToolKitUI.Tasks.ActivityManager"/> or some
+    /// This procedure should ideally create an activity task via <see cref="ActivityManager"/> or some
     /// sort of notification window to show the user what's going on and maybe give them the option to cancel the operation
     /// (and return null from this method).
     /// </para> 

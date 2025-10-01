@@ -19,6 +19,7 @@
 
 using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.View;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Utils;
@@ -177,7 +178,7 @@ public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost
     }
 
     /// <summary>
-    /// Runs this operation
+    /// Runs this operation. This method is called in a background thread and is NOT running in an <see cref="ActivityTask"/>
     /// </summary>
     /// <param name="ctx">Sequence execution information (containing progress, connection and more)</param>
     /// <param name="token">A token used to indicate whether the user wants to stop the sequence executing</param>

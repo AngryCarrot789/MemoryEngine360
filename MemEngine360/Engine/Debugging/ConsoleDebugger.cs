@@ -210,7 +210,7 @@ public class ConsoleDebugger {
 
     public async Task UpdateAllThreads(CancellationToken busyCancellationToken) {
         using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(busyCancellationToken);
-        using IDisposable? token = await this.busyLocker.BeginBusyOperationActivityAsync("", cancellationTokenSource: cts);
+        using IDisposable? token = await this.busyLocker.BeginBusyOperationUsingActivityAsync("", cancellationTokenSource: cts);
         if (token == null || cts.IsCancellationRequested || this.ignoreActiveThreadChange) {
             return;
         }
@@ -261,7 +261,7 @@ public class ConsoleDebugger {
         if (this.Connection == null || this.Connection.IsClosed)
             return null;
 
-        using IDisposable? token = await this.busyLocker.BeginBusyOperationActivityAsync("Read Info on Newly Created Thread");
+        using IDisposable? token = await this.busyLocker.BeginBusyOperationUsingActivityAsync("Read Info on Newly Created Thread");
         if (token == null) {
             return null;
         }
@@ -526,7 +526,7 @@ public class ConsoleDebugger {
         bool isCreated = e is XbdmEventArgsCreateThread;
         ApplicationPFX.Instance.Dispatcher.Post(async () => {
             if (isCreated) {
-                using IDisposable? token = await this.busyLocker.BeginBusyOperationActivityAsync("Read Info on Newly Created Thread");
+                using IDisposable? token = await this.busyLocker.BeginBusyOperationUsingActivityAsync("Read Info on Newly Created Thread");
                 if (token == null)
                     return;
 
