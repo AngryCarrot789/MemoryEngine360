@@ -483,8 +483,8 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
         return isConditionMet;
     }
 
-    public async Task WaitForCompletion() {
-        await (this.myTcs?.Task ?? Task.CompletedTask).ConfigureAwait(false);
+    public Task WaitForCompletion() {
+        return this.myTcs?.Task ?? Task.CompletedTask;
     }
 
     /// <summary>

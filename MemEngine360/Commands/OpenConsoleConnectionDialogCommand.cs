@@ -54,7 +54,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
 
         ulong frame = engine.GetNextConnectionChangeFrame();
 
-        if (engine.Connection != null) {
+        if (engine.Connection != null && !engine.Connection.IsClosed) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName: AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 return;
@@ -69,8 +69,9 @@ public class OpenConsoleConnectionDialogCommand : Command {
         string focusedTypeId = lastInfo != null ? lastInfo.ConnectionType.RegisteredId : "console.xbox360.xbdm-coreimpl";
         this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(focusedTypeId);
         if (this.myDialog != null) {
-            if (lastInfo != null)
+            if (lastInfo != null) {
                 this.myDialog.SetUserInfoForConnectionType(lastInfo.ConnectionType.RegisteredId, lastInfo);
+            }
 
             IDisposable? token = null;
             try {
@@ -163,7 +164,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
             return token;
         }
 
-        if (oldConnection != null) {
+        if (oldConnection != null && !oldConnection.IsClosed) {
             // Somehow a connection was set before we got here and user doesn't want to overwrite it.
             // Maybe they opened two windows for some reason? Perhaps via the task sequencer and main window.
 

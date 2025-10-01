@@ -25,7 +25,6 @@ using PFXToolKitUI.Logging;
 
 using System;
 using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
 
 namespace MemEngine360.Avalonia;
 

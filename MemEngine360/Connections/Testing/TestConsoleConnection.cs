@@ -48,11 +48,15 @@ public class TestConsoleConnection : BaseConsoleConnection {
     protected override Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) => this.GetTask();
     
     private Task GetTask() {
-        return this.mode switch {
-            TestConnectionMode.TimeoutError => Task.FromException(new TimeoutException("Connection timed out (TestConnection)")), 
-            TestConnectionMode.IOError => Task.FromException(new IOException("IO Error (TestConnection)")), 
-            _ => Task.CompletedTask
-        };
+        switch (this.mode) {
+            case TestConnectionMode.TimeoutError: 
+                this.Close();
+                return Task.FromException(new TimeoutException("Connection timed out (TestConnection)"));
+            case TestConnectionMode.IOError:      
+                this.Close();
+                return Task.FromException(new IOException("IO Error (TestConnection)"));
+            default:                              return Task.CompletedTask;
+        }
     }
 }
 

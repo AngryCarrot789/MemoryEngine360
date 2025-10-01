@@ -50,7 +50,7 @@ public class DeleteSequenceSelectionCommand : Command {
                     : "Some of these sequences are still running. Do you want to stop them and then delete?")) {
             state.SelectedSequences.Clear();
 
-            ObservableList<TaskSequence> sequenceList = state.Manager.Sequences;
+            ObservableList<TaskSequence> sequenceList = state.TaskSequenceManager.Sequences;
             List<(int Index, TaskSequence Sequence)> remove = CollectionUtils.CreateIndexMap(sequenceList, selection);
             for (int i = remove.Count - 1; i >= 0; i--) {
                 sequenceList.RemoveAt(remove[i].Item1);

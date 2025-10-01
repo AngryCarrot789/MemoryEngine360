@@ -38,7 +38,7 @@ public sealed class TaskSequenceManagerViewState {
     /// <summary>
     /// Gets the task sequence manager for this state
     /// </summary>
-    public TaskSequenceManager Manager { get; }
+    public TaskSequenceManager TaskSequenceManager { get; }
 
     /// <summary>
     /// Gets the observable list of selected sequences
@@ -86,9 +86,9 @@ public sealed class TaskSequenceManagerViewState {
 
     public event TaskSequenceManagerViewStateConditionHostChangedEventHandler? ConditionHostChanged;
 
-    private TaskSequenceManagerViewState(TaskSequenceManager manager) {
-        this.Manager = manager;
-        this.SelectedSequences = new ListSelectionModel<TaskSequence>(this.Manager.Sequences);
+    private TaskSequenceManagerViewState(TaskSequenceManager taskSequenceManager) {
+        this.TaskSequenceManager = taskSequenceManager;
+        this.SelectedSequences = new ListSelectionModel<TaskSequence>(this.TaskSequenceManager.Sequences);
         this.SelectedSequences.SelectionChanged += this.OnSelectedSequencesCollectionChanged;
     }
 

@@ -42,7 +42,7 @@ public class DuplicateSequencesCommand : Command {
                   Select(x => (Seq: x.Value.CreateClone(), Idx: x.Key)).
                   OrderBy(x => x.Idx).ToList();
 
-        ObservableList<TaskSequence> sequences = state.Manager.Sequences;
+        ObservableList<TaskSequence> sequences = state.TaskSequenceManager.Sequences;
         SortedList<int, TaskSequence> tmpSortedList = new SortedList<int, TaskSequence>();
 
         int offset = 0;

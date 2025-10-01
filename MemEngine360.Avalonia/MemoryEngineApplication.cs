@@ -76,7 +76,6 @@ using PFXToolKitUI.Avalonia.Configurations.Pages;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop.Impl;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing.Overlays;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Overlays.Impl;
 using PFXToolKitUI.Avalonia.Services;
 using PFXToolKitUI.Avalonia.Services.UserInputs;

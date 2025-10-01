@@ -17,12 +17,10 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using Avalonia;
 using Avalonia.Controls;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing.Overlays;
 using PFXToolKitUI.Avalonia.Services.UserInputs;
 using PFXToolKitUI.Services.UserInputs;
 

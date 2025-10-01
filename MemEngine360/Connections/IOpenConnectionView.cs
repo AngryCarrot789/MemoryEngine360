@@ -40,10 +40,10 @@ public interface IOpenConnectionView {
     static readonly DataKey<bool> IsConnectingFromViewDataKey = DataKeys.Create<bool>(nameof(IOpenConnectionView) + "_IsConnectingFromView");
     
     /// <summary>
-    /// Returns true when this window was closed by the user clicking the close button, cancel, or it closed mysteriously (e.g. app or OS shutdown)
+    /// Returns true when this window is still open.
     /// </summary>
     bool IsWindowOpen { get; }
-
+    
     /// <summary>
     /// Gets the <see cref="UserConnectionInfo"/> that was used to configure the UI to open the <see cref="IConsoleConnection"/>
     /// </summary>
@@ -52,7 +52,7 @@ public interface IOpenConnectionView {
     /// <summary>
     /// Closes the view
     /// </summary>
-    void Close();
+    void RequestClose();
 
     /// <summary>
     /// Activates the view, bringing it to the foreground

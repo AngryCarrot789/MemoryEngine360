@@ -38,7 +38,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             return;
         }
 
-        if (debugger.Connection != null) {
+        if (debugger.Connection != null && !debugger.Connection.IsClosed) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 return;
@@ -132,7 +132,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
         IConsoleConnection? oldConnection = debugger.Connection;
         Debug.Assert(oldConnection != newConnection);
 
-        if (oldConnection != null) {
+        if (oldConnection != null && !oldConnection.IsClosed) {
             // Somehow a connection was set before we got here and user doesn't want to overwrite it.
             // Maybe they opened two windows for some reason? Perhaps via the task sequencer and main window.
 

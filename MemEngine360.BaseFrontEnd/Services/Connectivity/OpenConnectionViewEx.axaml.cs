@@ -38,7 +38,7 @@ public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
         internal set => this.PART_ConnectToConsoleView.TypeToFocusOnOpened = value;
     }
 
-    public bool IsWindowOpen => this.Window != null && this.Window.OpenState == OpenState.Open;
+    public bool IsWindowOpen => this.Window != null && this.Window.OpenState.IsOpenOrTryingToClose();
     
     public UserConnectionInfo? UserConnectionInfoForConnection => this.PART_ConnectToConsoleView.CurrentConnection == null ? null : this.PART_ConnectToConsoleView.UserConnectionInfoForCurrentConnection;
     
@@ -59,9 +59,9 @@ public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
         this.Window = null;
     }
 
-    public void Close() {
+    public void RequestClose() {
         if (this.Window != null && this.Window.OpenState == OpenState.Open) {
-            _ = this.Window.RequestCloseAsync();
+            this.Window.RequestClose();
         }
     }
 
@@ -71,7 +71,7 @@ public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
         base.OnKeyDown(e);
         if (e.Key == Key.Escape) {
             this.PART_ConnectToConsoleView.isClosingWindow = true;
-            this.Close();
+            this.RequestClose();
             this.PART_ConnectToConsoleView.isClosingWindow = false;
         }
     }

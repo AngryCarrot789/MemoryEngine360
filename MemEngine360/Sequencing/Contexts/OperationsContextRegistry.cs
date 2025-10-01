@@ -24,8 +24,14 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.Sequencing.Contexts;
 
 public static class OperationsContextRegistry {
-    private static readonly DataKey<BaseSequenceOperation> CurrentOperationDataKey = DataKeys.Create<BaseSequenceOperation>(nameof(OperationsContextRegistry) + "_internal_" + nameof(CurrentOperationDataKey));
-    
+    private readonly struct CurrentOperationInfo(BaseSequenceOperation operation, BaseSequenceOperationEventHandler isEnabledHandler) {
+        public readonly BaseSequenceOperation Operation = operation;
+        public readonly BaseSequenceOperationEventHandler IsEnabledHandler = isEnabledHandler;
+    }
+
+    private static readonly DataKey<CurrentOperationInfo> CurrentOperationDataKey = DataKeys.Create<CurrentOperationInfo>(nameof(OperationsContextRegistry) + "_internal_" + nameof(CurrentOperationDataKey));
+    private static readonly DataKey<BaseContextEntry> IsEnabledEntryDataKey = DataKeys.Create<BaseContextEntry>(nameof(OperationsContextRegistry) + "_internal_" + nameof(IsEnabledEntryDataKey));
+
     public static readonly ContextRegistry Registry = new ContextRegistry("Operation");
 
     static OperationsContextRegistry() {
@@ -33,57 +39,7 @@ public static class OperationsContextRegistry {
         actions.AddCommand("commands.sequencer.DuplicateOperationsCommand", "Duplicate");
 
         CommandContextEntry entry1 = actions.AddCommand("commands.sequencer.ToggleOperationEnabledCommand", "Toggle Enabled");
-        entry1.AddContextChangeHandler(TaskSequenceManager.DataKey, (entry, oldManager, newManager) => {
-            if (oldManager != null)
-                TaskSequenceManagerViewState.GetInstance(oldManager).PrimarySelectedSequenceChanged -= OnPrimarySelectedSequenceChanged;
-            if (newManager != null)
-                TaskSequenceManagerViewState.GetInstance(newManager).PrimarySelectedSequenceChanged += OnPrimarySelectedSequenceChanged;
-
-            OnSelectionChanged(newManager != null ? TaskSequenceManagerViewState.GetInstance(newManager) : null);
-            return;
-
-            void OnPrimarySelectedSequenceChanged(TaskSequenceManagerViewState sender, TaskSequence? oldSeq, TaskSequence? newSeq) {
-                OnSelectionChanged(sender);
-            }
-
-            void OnSelectionChanged(TaskSequenceManagerViewState? sender) {
-                if (CurrentOperationDataKey.TryGetContext(entry.UserContext, out BaseSequenceOperation? currentOperation)) {
-                    entry.UserContext.Remove(CurrentOperationDataKey);
-                    entry.DisplayName = "Toggle Enabled";
-                    entry.IsCheckedFunction = null;
-                    currentOperation.IsEnabledChanged -= OnIsOperationEnabledChanged;
-                }
-
-                if (sender != null && sender.SelectedOperations != null && sender.SelectedOperations.Count == 1) {
-                    BaseSequenceOperation newOp = sender.SelectedOperations[0];
-                    entry.UserContext.Set(CurrentOperationDataKey, newOp);
-                    entry.DisplayName = "Is Enabled";
-                    entry.IsCheckedFunction = static e => CurrentOperationDataKey.GetContext(e.UserContext)!.IsEnabled;
-                    newOp.IsEnabledChanged += OnIsOperationEnabledChanged;
-                }
-                
-                return;
-
-                void OnIsOperationEnabledChanged(BaseSequenceOperation op) => entry.RaiseIsCheckedChanged();
-            }
-        });
-
-        // actions.AddDynamicSubGroup((group, ctx, items) => {
-        //     if (!TaskSequenceManager.DataKey.TryGetContext(ctx, out TaskSequenceManager? ui)) {
-        //         return;
-        //     }
-        //
-        //     TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
-        //     if (state.SelectedOperations != null && state.SelectedOperations.Count > 0) {
-        //         if (state.SelectedOperations.Count == 1) {
-        //             BaseSequenceOperation item = state.SelectedOperations[0];
-        //             items.Add(new CommandContextEntry("commands.sequencer.ToggleOperationEnabledCommand", item.IsEnabled ? "Disable" : "Enable"));
-        //         }
-        //         else {
-        //             items.Add(new CommandContextEntry("commands.sequencer.ToggleOperationEnabledCommand", "Toggle Enabled"));
-        //         }
-        //     }
-        // });
+        entry1.AddContextChangeHandler(TaskSequenceManager.DataKey, ToggleEnabled_TaskSequenceManagerChanged);
 
         CommandContextEntry entry = actions.AddCommand("commands.sequencer.ToggleOperationConditionBehaviourCommand", "Skip when conditions not met", "Skips over this operation when conditions not met, otherwise, wait until they are met");
         entry.AddIsCheckedChangeUpdaterForEvent(BaseSequenceOperation.DataKey, nameof(BaseSequenceOperation.ConditionBehaviourChanged));
@@ -97,5 +53,57 @@ public static class OperationsContextRegistry {
 
         actions.AddSeparator();
         actions.AddCommand("commands.sequencer.DeleteOperationSelectionCommand", "Delete");
+    }
+
+    private static void ToggleEnabled_TaskSequenceManagerChanged(BaseContextEntry ctxEntry, TaskSequenceManager? oldManager, TaskSequenceManager? newManager) {
+        // We need both CurrentOperationDataKey and IsEnabledEntryDataKey to prevent "blind" closure allocations,
+        // which are closures that capture local variables for a specific call frame.
+        // 
+        // In this case, it would have been OnPrimarySelectedSequenceChanged because it has to capture the `ctxEntry` parameter.
+        // So to get around this, we make TaskSequenceManager inherit IUserLocalContext, and we create a data key,
+        // IsEnabledEntryDataKey, to store the ctxEntry inside the TSM, so we can access it while the context menu is open. 
+
+        if (oldManager != null) {
+            TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(oldManager);
+            state.PrimarySelectedSequenceChanged -= OnPrimarySelectedSequenceChanged;
+            state.TaskSequenceManager.UserContext.Remove(IsEnabledEntryDataKey);
+        }
+
+        if (newManager != null) {
+            TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(newManager);
+            state.TaskSequenceManager.UserContext.Set(IsEnabledEntryDataKey, ctxEntry);
+            state.PrimarySelectedSequenceChanged += OnPrimarySelectedSequenceChanged;
+        }
+
+        OnSelectionChanged(ctxEntry, newManager != null ? TaskSequenceManagerViewState.GetInstance(newManager) : null);
+        return;
+
+        static void OnPrimarySelectedSequenceChanged(TaskSequenceManagerViewState sender, TaskSequence? oldSeq, TaskSequence? newSeq) {
+            OnSelectionChanged(IsEnabledEntryDataKey.GetContext(sender.TaskSequenceManager.UserContext)!, sender);
+        }
+
+        static void OnSelectionChanged(BaseContextEntry ctxEntry, TaskSequenceManagerViewState? sender) {
+            // Because the handler to IsEnabledChanged requires accessing the ctxEntry, it either has
+            // to be a closure (like it is now) or BaseOperationSequence stores the ctxEntry via a DataKey.
+            // In this case it's simpler to just store the operation itself and
+            // its event handler closure inside the ctxEntry via a data key,
+            // since it's also accessed by the IsCheckedFunction too
+            
+            if (CurrentOperationDataKey.TryGetContext(ctxEntry.UserContext, out CurrentOperationInfo currentOperation)) {
+                ctxEntry.UserContext.Remove(CurrentOperationDataKey);
+                ctxEntry.DisplayName = "Toggle Enabled";
+                ctxEntry.IsCheckedFunction = null;
+                currentOperation.Operation.IsEnabledChanged -= currentOperation.IsEnabledHandler;
+            }
+
+            if (sender?.SelectedOperations is { Count: 1 }) {
+                BaseSequenceOperation newOp = sender.SelectedOperations[0];
+                CurrentOperationInfo info = new CurrentOperationInfo(newOp, op => ctxEntry.RaiseIsCheckedChanged());
+                ctxEntry.UserContext.Set(CurrentOperationDataKey, info);
+                ctxEntry.DisplayName = "Is Enabled";
+                ctxEntry.IsCheckedFunction = static e => CurrentOperationDataKey.GetContext(e.UserContext).Operation.IsEnabled;
+                newOp.IsEnabledChanged += info.IsEnabledHandler;
+            }
+        }
     }
 }

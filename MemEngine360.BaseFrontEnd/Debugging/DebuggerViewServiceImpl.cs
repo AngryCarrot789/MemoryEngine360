@@ -16,7 +16,7 @@ public class DebuggerViewServiceImpl : IDebuggerViewService {
     
     public async Task<ITopLevel?> OpenOrFocusWindow(ConsoleDebugger debugger) {
         if (OpenedWindowKey.TryGetContext(debugger.Engine.UserContext, out IDesktopWindow? debuggerWindow)) {
-            Debug.Assert(debuggerWindow.OpenState == OpenState.Open || debuggerWindow.OpenState == OpenState.TryingToClose);
+            Debug.Assert(debuggerWindow.OpenState.IsOpenOrTryingToClose());
             
             debuggerWindow.Activate();
             return debuggerWindow;

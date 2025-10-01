@@ -20,6 +20,8 @@
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Tasks;
 using PFXToolKitUI.Utils;
@@ -79,22 +81,40 @@ public class RunSequenceCommand : Command {
             return;
         }
 
-        Task runTask = sequence.Run(connection!, token, !useEngineConnection);
-        if (runTask.IsCompleted) {
-            await runTask;
-            token?.Dispose();
-            return;
+        Task runTask;
+        bool disposeToken = true;
+        try {
+            runTask = sequence.Run(connection!, token, !useEngineConnection);
+            if (runTask.IsCompleted) {
+                await runTask; // will most likely throw
+                return;
+            }
+
+            disposeToken = false;
+        }
+        finally {
+            if (disposeToken)
+                token?.Dispose();
         }
 
         _ = runTask.ContinueWith(async t => {
             try {
                 Exception? except = sequence.LastException;
+                TaskSequenceManager? manager = sequence.Manager;
                 if (except != null) {
-                    if (except is IOException || except is TimeoutException) {
-                        await LogExceptionHelper.ShowMessageAndPrintToLogs("Network Error", except.Message, except);
-                    }
-                    else {
-                        await LogExceptionHelper.ShowMessageAndPrintToLogs("Unexpected Error", "An exception occured while running sequence: " + except.Message, except);
+                    // When the task sequencer window is shown, the window is placed inside UserContext
+                    ITopLevel? topLevel = manager?.UserContext != null ? ITopLevel.FromContext(manager.UserContext) : null;
+                    using (CommandManager.LocalContextManager.PushGlobalContext(new ContextData().Set(ITopLevel.TopLevelDataKey, topLevel))) {
+                        if (except is IOException || except is TimeoutException) {
+                            await LogExceptionHelper.ShowMessageAndPrintToLogs("Task Sequencer",
+                                useEngineConnection
+                                    ? $"'{sequence.DisplayName}' engine connection timed out while running sequence"
+                                    : $"'{sequence.DisplayName}' connection timed out while running sequence"
+                                , except);
+                        }
+                        else {
+                            await LogExceptionHelper.ShowMessageAndPrintToLogs("Task Sequencer", $"'{sequence.DisplayName}': An exception occured while running sequence", except);
+                        }
                     }
                 }
 

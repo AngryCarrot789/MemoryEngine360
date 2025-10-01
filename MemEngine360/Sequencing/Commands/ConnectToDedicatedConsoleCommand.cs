@@ -40,7 +40,7 @@ public class ConnectToDedicatedConsoleCommand : Command {
             return;
 
         IConsoleConnection? oldConnection = sequence.DedicatedConnection;
-        if (oldConnection != null) {
+        if (oldConnection != null && !oldConnection.IsClosed) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
             if (result != MessageBoxResult.OK) {
                 return;
@@ -50,20 +50,21 @@ public class ConnectToDedicatedConsoleCommand : Command {
             if (sequence.IsRunning) {
                 return;
             }
-            
+
             // just in case it changes between dialog which is possible
             if ((oldConnection = sequence.DedicatedConnection) != null) {
                 oldConnection.Close();
                 sequence.DedicatedConnection = null;
             }
         }
-        
+
+
         IConsoleConnection? newConnection;
         IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView();
         if (dialog == null || (newConnection = await dialog.WaitForConnection()) == null) {
             return;
         }
-        
+
         // just in case it somehow starts running, quickly escape
         if (sequence.IsRunning) {
             newConnection.Close();
