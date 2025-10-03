@@ -72,7 +72,7 @@ public abstract class ConsoleConnectionManager {
     }
 
     /// <summary>
-    /// Opens a new window for  application's main dialog for connecting to a console
+    /// Opens a new window for connecting to a console
     /// </summary>
     /// <param name="focusedTypeId">
     ///     The ID of the console type to focus on by default. When null, defaults to the first registered console type

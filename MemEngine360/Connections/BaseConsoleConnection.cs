@@ -22,13 +22,13 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Connections.Features;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Logging;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Connections;
 
@@ -113,37 +113,28 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public abstract Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);
 
     public void Close() {
+        // Should we use a closing and closed state? Or stick with closed?
         if (Interlocked.CompareExchange(ref this.isClosedState, 1, 0) != 0) {
             return; // already closed
         }
 
 #pragma warning disable CA1816
-        GC.SuppressFinalize(this);
+        GC.SuppressFinalize(this); // we use a finalizer but do not implement IDisposable
 #pragma warning restore CA1816
 
-        ExceptionDispatchInfo? closeException = null, eventException = null;
+        using ErrorList list = new ErrorList("One or more exceptions occurred while closing connection", throwOnDispose: true, tryUseFirstException: false);
         try {
             this.CloseOverride();
         }
         catch (Exception e) {
-            closeException = ExceptionDispatchInfo.Capture(e);
+            list.Add(e);
         }
 
         try {
             this.Closed?.Invoke(this);
         }
         catch (Exception e) {
-            eventException = ExceptionDispatchInfo.Capture(e);
-        }
-
-        if (closeException != null) {
-            if (eventException != null)
-                throw new AggregateException("Exception occurred while closing connection and also raising " + nameof(this.Closed) + " event", closeException.SourceException, eventException.SourceException);
-
-            closeException.Throw();
-        }
-        else if (eventException != null) {
-            eventException.Throw();
+            list.Add(e);
         }
     }
 

@@ -315,8 +315,9 @@ public interface IConsoleConnection {
     Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);
 
     /// <summary>
-    /// Closes this connection, making <see cref="IsClosed"/> become true and <see cref="Closed"/> is fired. May throw <see cref="AggregateException"/>
+    /// Closes this connection, making <see cref="IsClosed"/> become true and <see cref="Closed"/> is fired.
     /// </summary>
+    /// <exception cref="AggregateException">One ore more exception occurred while closing this connection</exception>
     void Close();
 
     /// <summary>

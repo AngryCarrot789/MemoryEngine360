@@ -25,6 +25,8 @@ using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
@@ -72,7 +74,6 @@ public partial class OpenConnectionView : UserControl {
 
     public OpenConnectionView() {
         this.InitializeComponent();
-        DataManager.GetContextData(this).Set(IOpenConnectionView.IsConnectingFromViewDataKey, true);
         
         this.PART_ListBox.SelectionMode = SelectionMode.Single;
         this.PART_ListBox.SelectionChanged += this.PART_ListBoxOnSelectionChanged;
@@ -86,42 +87,46 @@ public partial class OpenConnectionView : UserControl {
             }
         });
         
-        this.PART_ConfirmButton.Command = new AsyncRelayCommand(async () => {
-            this.isConnecting = true;
-            this.PART_ListBox.IsEnabled = false;
-            this.UpdateConnectButton();
+        this.PART_ConfirmButton.Command = new AsyncRelayCommand(() => CommandManager.Instance.RunActionAsync(this.TryConnectToConsoleAsCommandAsync, DataManager.GetFullContextData(this)));
+    }
 
-            ConsoleTypeListBoxItem? selection = ((ConsoleTypeListBoxItem?) this.PART_ListBox.SelectedItem);
-            if (selection != null) {
-                this.currCts = new CancellationTokenSource();
-                IConsoleConnection? connection;
-                try {
-                    connection = await selection.RegisteredConsoleType.OpenConnection(selection.UserConnectionInfo, DataManager.GetFullContextData(this), this.currCts);
-                }
-                catch (Exception e) {
-                    await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
-                    connection = null;
-                }
+    private async Task TryConnectToConsoleAsCommandAsync(CommandEventArgs args) {
+        this.isConnecting = true;
+        this.PART_ListBox.IsEnabled = false;
+        this.UpdateConnectButton();
 
-                if (connection != null) {
-                    this.UserConnectionInfoForCurrentConnection = selection.UserConnectionInfo;
-                    this.CurrentConnection = connection;
-                    if (this.Window != null && this.Window.OpenState == OpenState.Open) {
-                        this.isClosingWindow = true;
-                        await this.Window.RequestCloseAsync();
-                        this.isClosingWindow = false;
-                    }
-                }
+        ConsoleTypeListBoxItem? selection = ((ConsoleTypeListBoxItem?) this.PART_ListBox.SelectedItem);
+        if (selection != null) {
+            this.currCts = new CancellationTokenSource();
 
-                // may get disposed and set to null during window close
-                this.currCts?.Dispose();
-                this.currCts = null;
+            IConsoleConnection? connection;
+            try {
+                ContextData context = new ContextData().Set(IOpenConnectionView.IsConnectingFromViewDataKey, true);
+                connection = await selection.RegisteredConsoleType.OpenConnection(selection.UserConnectionInfo, context, this.currCts);
+            }
+            catch (Exception e) {
+                await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
+                connection = null;
             }
 
-            this.isConnecting = false;
-            this.PART_ListBox.IsEnabled = true;
-            this.UpdateConnectButton();
-        });
+            if (connection != null) {
+                this.UserConnectionInfoForCurrentConnection = selection.UserConnectionInfo;
+                this.CurrentConnection = connection;
+                if (this.Window != null && this.Window.OpenState == OpenState.Open) {
+                    this.isClosingWindow = true;
+                    await this.Window.RequestCloseAsync();
+                    this.isClosingWindow = false;
+                }
+            }
+
+            // may get disposed and set to null during window close
+            this.currCts?.Dispose();
+            this.currCts = null;
+        }
+
+        this.isConnecting = false;
+        this.PART_ListBox.IsEnabled = true;
+        this.UpdateConnectButton();
     }
 
     static OpenConnectionView() {

@@ -60,7 +60,7 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
         return new ConnectToXboxInfo();
     }
 
-    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData context, CancellationTokenSource cancellation) {
+    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData additionalContext, CancellationTokenSource cancellation) {
         ConnectToXboxInfo info = (ConnectToXboxInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.IpAddress)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid address", "Address cannot be an empty string");

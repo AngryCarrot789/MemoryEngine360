@@ -173,13 +173,13 @@ public sealed class BusyLock {
     /// <returns>
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
-    public Task<IDisposable?> BeginBusyOperationUsingActivityAsync(string caption = "New Operation", string message = WaitingMessage, CancellationTokenSource? cancellationTokenSource = null) {
+    public Task<IDisposable?> BeginBusyOperationUsingActivityAsync(string caption = "New Operation", string message = WaitingMessage, CancellationToken cancellationToken = default) {
         IDisposable? token = this.TryBeginBusyOperation();
         if (token != null) {
             return Task.FromResult<IDisposable?>(token);
         }
 
-        return this.BeginBusyOperationUsingActivityAsync(new DispatcherActivityProgress() { Caption = caption, Text = message, IsIndeterminate = true }, cancellationTokenSource);
+        return this.BeginBusyOperationUsingActivityAsync(new DispatcherActivityProgress() { Caption = caption, Text = message, IsIndeterminate = true }, cancellationToken);
     }
 
     /// <summary>
@@ -192,31 +192,24 @@ public sealed class BusyLock {
     /// <returns>
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
-    public async Task<IDisposable?> BeginBusyOperationUsingActivityAsync(IActivityProgress progress, CancellationTokenSource? cancellationTokenSource = null) {
+    public async Task<IDisposable?> BeginBusyOperationUsingActivityAsync(IActivityProgress progress, CancellationToken cancellationToken = default) {
         IDisposable? token = this.TryBeginBusyOperation();
         if (token != null) {
             return token;
         }
 
-        CancellationTokenSource cts = cancellationTokenSource ?? new CancellationTokenSource();
+        // A CTS that can be cancelled by the activity itself or via 'cancellationToken'
+        using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        Task<IDisposable?> operationTask = this.InternalBeginBusyOperationLoop(cts.Token);
 
-        try {
-            Task<IDisposable?> operationTask = this.InternalBeginBusyOperationLoop(cts.Token);
-
-            // Wait a short amount of time before starting an activity, to prevent it flashing on-screen
-            await Task.WhenAny(operationTask, Task.Delay(25, cts.Token));
-            if (operationTask.IsCompleted) {
-                return await operationTask;
-            }
-
-            Result<IDisposable?> result = await ActivityManager.Instance.RunTask(() => operationTask, progress, cts);
-            return result.GetValueOrDefault();
+        // Wait a short amount of time before starting an activity, to prevent it flashing on-screen
+        await Task.WhenAny(operationTask, Task.Delay(25, cts.Token));
+        if (operationTask.IsCompleted) {
+            return await operationTask;
         }
-        finally {
-            if (cancellationTokenSource == null) {
-                cts.Dispose();
-            }
-        }
+
+        Result<IDisposable?> result = await ActivityManager.Instance.RunTask(() => operationTask, progress, cts);
+        return result.GetValueOrDefault();
     }
 
     /// <summary>
@@ -294,7 +287,7 @@ public sealed class BusyLock {
                 WaitForActivityResult result = await service.DelayedWaitForActivity(new WaitForActivityOptions(topLevel, activity) {
                     CanMinimizeIntoBackgroundActivity = true
                 }, showDelay);
-                
+
                 // If transitioning into a background activity, don't force-cancel the token acquisition process
                 if (!result.TransitionToBackground && !operationTask.IsCompleted) {
                     await cts.CancelAsync();

@@ -209,9 +209,8 @@ public class ConsoleDebugger {
     }
 
     public async Task UpdateAllThreads(CancellationToken busyCancellationToken) {
-        using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(busyCancellationToken);
-        using IDisposable? token = await this.busyLocker.BeginBusyOperationUsingActivityAsync("", cancellationTokenSource: cts);
-        if (token == null || cts.IsCancellationRequested || this.ignoreActiveThreadChange) {
+        using IDisposable? token = await this.busyLocker.BeginBusyOperationUsingActivityAsync("", cancellationToken: busyCancellationToken);
+        if (token == null || busyCancellationToken.IsCancellationRequested || this.ignoreActiveThreadChange) {
             return;
         }
 

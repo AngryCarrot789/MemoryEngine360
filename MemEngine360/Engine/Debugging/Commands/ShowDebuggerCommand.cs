@@ -30,7 +30,7 @@ public class ShowDebuggerCommand : Command {
         if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return;
         }
-        
+
         ConsoleDebugger debugger = engine.ConsoleDebugger;
         IDebuggerViewService service = ApplicationPFX.GetComponent<IDebuggerViewService>();
         ITopLevel? topLevel = await service.OpenOrFocusWindow(debugger);
@@ -46,20 +46,13 @@ public class ShowDebuggerCommand : Command {
                     return;
                 }
 
-                IDisposable? token = null;
-
-                try {
-                    IConsoleConnection? connection = await dialog.WaitForConnection();
-                    if (connection != null) {
-                        // When returned token is null, close the connection since we can't
-                        // do anything else with the connection since the user cancelled the operation
-                        if (!await OpenDebuggerConnectionCommand.TrySetConnectionAndHandleProblems(debugger, connection)) {
-                            connection.Close();
-                        }
+                IConsoleConnection? connection = await dialog.WaitForConnection();
+                if (connection != null) {
+                    // When returned token is null, close the connection since we can't
+                    // do anything else with the connection since the user cancelled the operation
+                    if (!await OpenDebuggerConnectionCommand.TrySetConnectionAndHandleProblems(debugger, connection)) {
+                        connection.Close();
                     }
-                }
-                finally {
-                    token?.Dispose();
                 }
             }, new ContextData().Set(ITopLevel.TopLevelDataKey, topLevel));
         }

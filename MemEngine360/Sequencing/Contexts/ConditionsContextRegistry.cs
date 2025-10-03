@@ -19,11 +19,19 @@
 
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.AdvancedMenuService;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.Sequencing.Contexts;
 
 public static class ConditionsContextRegistry {
+    private readonly struct CurrentConditionInfo(BaseSequenceCondition condition, BaseSequenceConditionEventHandler isEnabledHandler) {
+        public readonly BaseSequenceCondition Condition = condition;
+        public readonly BaseSequenceConditionEventHandler IsEnabledHandler = isEnabledHandler;
+    }
+
+    private static readonly DataKey<CurrentConditionInfo> CurrentConditionDataKey = DataKeys.Create<CurrentConditionInfo>(nameof(ConditionsContextRegistry) + "_internal_" + nameof(CurrentConditionDataKey));
+    
     public static readonly ContextRegistry Registry = new ContextRegistry("Condition");
 
     static ConditionsContextRegistry() {
@@ -32,17 +40,25 @@ public static class ConditionsContextRegistry {
         actions.AddCommand("commands.sequencer.EditConditionOutputModeCommand", "Edit output mode");
         actions.AddHeader("General");
         actions.AddCommand("commands.sequencer.DuplicateConditionsCommand", "Duplicate");
-        actions.AddCommand("commands.sequencer.ToggleConditionEnabledCommand", "Toggle Enabled").AddSimpleContextUpdate(TaskSequenceManager.DataKey, (e, ui) => {
-            if (ui != null) {
-                TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
-                ListSelectionModel<BaseSequenceCondition>? selection = state.SelectedConditionsFromHost;
-                if (selection != null && selection.Count == 1) {
-                    e.DisplayName = selection[0].IsEnabled ? "Disable" : "Enable";
-                    return;
-                }
+        actions.AddCommand("commands.sequencer.ToggleConditionEnabledCommand", "Toggle Enabled").AddContextChangeHandler(TaskSequenceManager.DataKey, (entry, oldManager, newManager) => {
+            if (CurrentConditionDataKey.TryGetContext(entry.UserContext, out CurrentConditionInfo current)) {
+                current.Condition.IsEnabledChanged -= current.IsEnabledHandler;
+                entry.UserContext.Remove(CurrentConditionDataKey);
+                entry.DisplayName = "Toggle Enabled";
+                entry.IsCheckedFunction = null;
             }
 
-            e.DisplayName = "Toggle Enabled";
+            if (newManager != null) {
+                ListSelectionModel<BaseSequenceCondition>? conditions = TaskSequenceManagerViewState.GetInstance(newManager).SelectedConditionsFromHost;
+                if (conditions != null && conditions.Count == 1) {
+                    BaseSequenceCondition newCond = conditions[0];
+                    CurrentConditionInfo info = new CurrentConditionInfo(newCond, _ => entry.RaiseIsCheckedChanged());
+                    entry.UserContext.Set(CurrentConditionDataKey, info);
+                    entry.DisplayName = "Is Enabled";
+                    entry.IsCheckedFunction = static e => CurrentConditionDataKey.GetContext(e.UserContext).Condition.IsEnabled;
+                    newCond.IsEnabledChanged += info.IsEnabledHandler;
+                }
+            }
         });
 
         actions.AddSeparator();

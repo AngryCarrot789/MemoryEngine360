@@ -365,6 +365,10 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
 
         if (oldConnection != null)
             oldConnection.Closed -= this.OnConnectionClosed;
+        
+        // Even if Closed is called right as we add the handler, unless Closed is maliciously implemented,
+        // it cannot be invoked in this call frame. But it could be invoked on a background thread just before
+        // we obtain the lock, but it would have to go through the dispatcher to call SetConnection
         if (newConnection != null)
             newConnection.Closed += this.OnConnectionClosed;
 
@@ -376,6 +380,10 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
 
             this.ConnectionChanged?.Invoke(this, frame, oldConnection, newConnection, cause);
         }
+        
+        // Try to disconnect in the future, just in case the connection was immediately closed.
+        // It's generally safer to do it this way than to not actually set the connection in SetConnection
+        ApplicationPFX.Instance.Dispatcher.Post(static en => ((MemoryEngine) en!).CheckConnection(), this, DispatchPriority.Background);
     }
 
     /// <summary>
@@ -433,12 +441,14 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// Tries to begin a busy operation. If we could not get the token immediately, we start
     /// a new activity and try to get it asynchronously with the text 'waiting for busy operations' 
     /// </summary>
+    /// <param name="caption">The caption set as the <see cref="IActivityProgress.Caption"/> property</param>
     /// <param name="message">The message set as the <see cref="IActivityProgress.Text"/> property</param>
+    /// <param name="cancellationToken">Additional cancellation source for the activity</param>
     /// <returns>
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
-    public Task<IDisposable?> BeginBusyOperationUsingActivityAsync(string caption = "New Operation", string message = BusyLock.WaitingMessage, CancellationTokenSource? cancellationTokenSource = null) {
-        return this.BusyLocker.BeginBusyOperationUsingActivityAsync(caption, message, cancellationTokenSource);
+    public Task<IDisposable?> BeginBusyOperationUsingActivityAsync(string caption = "New Operation", string message = BusyLock.WaitingMessage, CancellationToken cancellationToken = default) {
+        return this.BusyLocker.BeginBusyOperationUsingActivityAsync(caption, message, cancellationToken);
     }
 
     /// <summary>
@@ -446,19 +456,21 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// </summary>
     /// <param name="action">The callback to invoke when we have the token</param>
     /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
-    public async Task<bool> BeginBusyOperationUsingActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = BusyLock.WaitingMessage) {
+    /// <param name="cancellationToken">Additional cancellation source for the activity</param>
+    /// <returns>True if the callback action was run, otherwise False meaning we couldn't get the token or the connection was null/closed</returns>
+    public async Task<bool> BeginBusyOperationUsingActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = BusyLock.WaitingMessage, CancellationToken cancellationToken = default) {
         if (this.connection == null) {
             return false;
         }
 
-        using IDisposable? token = await this.BeginBusyOperationUsingActivityAsync(caption, message);
+        using IDisposable? token = await this.BeginBusyOperationUsingActivityAsync(caption, message, cancellationToken);
         IConsoleConnection c;
-        if (token == null || (c = this.connection) == null || c.IsClosed) {
-            return false;
+        if (token != null && (c = this.connection) != null && !c.IsClosed) {
+            await action(token, c);
+            return true;
         }
 
-        await action(token, c);
-        return true;
+        return false;
     }
 
     /// <summary>
@@ -473,9 +485,9 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
             return default; // short path -- save creating an activity
 
         using IDisposable? token = await this.BeginBusyOperationUsingActivityAsync(caption, message);
-        IConsoleConnection theConn; // save double volatile read
-        if (token != null && (theConn = this.connection) != null) {
-            return await action(token, theConn);
+        IConsoleConnection c;
+        if (token != null && (c = this.connection) != null) {
+            return await action(token, c);
         }
 
         return default;
@@ -493,13 +505,13 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         }
 
         using IDisposable? token = await this.BusyLocker.BeginBusyOperationFromActivityAsync(busyCancellation);
-        IConsoleConnection theConn; // save double volatile read
-        if (token == null || (theConn = this.connection) == null || theConn.IsClosed) {
-            return false;
+        IConsoleConnection c;
+        if (token != null && (c = this.connection) != null && !c.IsClosed) {
+            await function(token, c);
+            return true;
         }
 
-        await function(token, theConn);
-        return true;
+        return false;
     }
 
     /// <summary>
@@ -519,9 +531,9 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         }
 
         using IDisposable? token = await this.BusyLocker.BeginBusyOperationFromActivityAsync(busyCancellation);
-        IConsoleConnection theConn; // save double volatile read
-        if (token != null && (theConn = this.connection) != null && !theConn.IsClosed) {
-            return await function(token, theConn);
+        IConsoleConnection c;
+        if (token != null && (c = this.connection) != null && !c.IsClosed) {
+            return await function(token, c);
         }
 
         return default;
@@ -533,13 +545,13 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         }
 
         using IDisposable? token = await this.BusyLocker.BeginBusyOperationWithForegroundFromActivityAsync(parentTopLevel, showDelay, busyCancellation);
-        IConsoleConnection theConn; // save double volatile read
-        if (token == null || (theConn = this.connection) == null || theConn.IsClosed) {
-            return false;
+        IConsoleConnection c;
+        if (token != null && (c = this.connection) != null && !c.IsClosed) {
+            await function(token, c);
+            return true;
         }
 
-        await function(token, theConn);
-        return true;
+        return false;
     }
 
     public async Task<Optional<T>> BeginBusyOperationWithForegroundFromActivityAsync<T>(ITopLevel parentTopLevel, Func<IDisposable, IConsoleConnection, Task<T>> function, int showDelay = BusyLock.DefaultForegroundDelay, CancellationToken busyCancellation = default) {
@@ -548,9 +560,9 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         }
 
         using IDisposable? token = await this.BusyLocker.BeginBusyOperationWithForegroundFromActivityAsync(parentTopLevel, showDelay, busyCancellation);
-        IConsoleConnection theConn; // save double volatile read
-        if (token != null && (theConn = this.connection) != null && !theConn.IsClosed) {
-            return await function(token, theConn);
+        IConsoleConnection c;
+        if (token != null && (c = this.connection) != null && !c.IsClosed) {
+            return await function(token, c);
         }
 
         return default;
@@ -561,22 +573,22 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         // disconnected internally, therefore, we don't need over the top synchronization,
         // because any code that actually tries to read/write will be async and can handle
         // the timeout exceptions
-        IConsoleConnection? conn = this.connection;
-        if (conn == null || !conn.IsClosed) {
-            return;
-        }
-
-        using (IDisposable? token1 = this.TryBeginBusyOperation()) {
-            if (token1 != null && this.TryDisconnectForLostConnection(token1, likelyCause)) {
-                return;
+        IConsoleConnection? c = this.connection;
+        if (c != null && c.IsClosed) {
+            if (ApplicationPFX.Instance.Dispatcher.CheckAccess()) {
+                using IDisposable? t = this.TryBeginBusyOperation();
+                if (t != null && this.TryDisconnectForLostConnection(t, likelyCause)) {
+                    return;
+                }
             }
-        }
 
-        ApplicationPFX.Instance.Dispatcher.Post(() => {
-            using IDisposable? token2 = this.TryBeginBusyOperation();
-            if (token2 != null)
-                this.TryDisconnectForLostConnection(token2, likelyCause);
-        });
+            ApplicationPFX.Instance.Dispatcher.Post(() => {
+                using IDisposable? t = this.TryBeginBusyOperation();
+                if (t != null) {
+                    this.TryDisconnectForLostConnection(t, likelyCause);
+                }
+            });
+        }
     }
 
     private void OnConnectionClosed(IConsoleConnection sender) {

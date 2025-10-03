@@ -21,6 +21,7 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.AdvancedMenuService;
+using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Contexts;
 
@@ -32,7 +33,7 @@ namespace MemEngine360.Connections;
 /// </summary>
 public abstract class RegisteredConnectionType {
     internal string? internalRegisteredId;
-    
+
     /// <summary>
     /// Gets a readable string which is the name of this console type, e.g. "Xbox 360 (XBDM)".
     /// This is typically shown in the list box of possible consoles to connect to.
@@ -90,14 +91,18 @@ public abstract class RegisteredConnectionType {
     /// This procedure should ideally create an activity task via <see cref="ActivityManager"/> or some
     /// sort of notification window to show the user what's going on and maybe give them the option to cancel the operation
     /// (and return null from this method).
-    /// </para> 
+    /// </para>
+    /// <para>
+    /// This function should ideally be called from within a command or <see cref="CommandManager.RunActionAsync"/>,
+    /// so that information such as caller window is available to the implementor (to show message dialogs for errors).
+    /// </para>
     /// </summary>
     /// <param name="_info">
     ///     Information that the user specified in the connection dialog. Value is null when <see cref="CreateConnectionInfo"/> returns null
     /// </param>
-    /// <param name="context">
-    ///     Additional context about how someone is attempting to open a connection. For example, this might contain the
-    ///     caller window which might contain additional flags to change the behaviour of what the connect operation does
+    /// <param name="additionalContext">
+    ///     Additional context about how someone is attempting to open a connection. For example, this might contain
+    ///     a flag to change the behaviour of what this function does (e.g. do not show a "connecting..." dialog)
     /// </param>
     /// <param name="cancellation">
     ///     A reference to the CTS created by the Connect to console dialog. It is cancelled when either the user clicks the cancel
@@ -106,7 +111,7 @@ public abstract class RegisteredConnectionType {
     /// <returns>
     /// The valid console connection, or null if a connection could not be made, or cancellation was requested
     /// </returns>
-    public abstract Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData context, CancellationTokenSource cancellation);
+    public abstract Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData additionalContext, CancellationTokenSource cancellation);
 
     /// <summary>
     /// Creates an instance of <see cref="UserConnectionInfo"/> which is used by the front end to

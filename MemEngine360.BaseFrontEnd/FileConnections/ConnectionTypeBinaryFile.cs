@@ -48,7 +48,7 @@ public class ConnectionTypeBinaryFile : RegisteredConnectionType {
         return new OpenBinaryFileInfo();
     }
 
-    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData context, CancellationTokenSource cancellation) {
+    public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData additionalContext, CancellationTokenSource cancellation) {
         OpenBinaryFileInfo info = (OpenBinaryFileInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.FilePath) || !File.Exists(info.FilePath)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid file", "File does not exist");

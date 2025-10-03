@@ -41,7 +41,6 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
-using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
@@ -590,22 +589,24 @@ public partial class EngineView : UserControl {
                         }
 
                         if (engine.LastUserConnectionInfo != null) {
-                            RegisteredConnectionType type = engine.LastUserConnectionInfo.ConnectionType;
+                            await CommandManager.Instance.RunActionAsync(async _ => {
+                                RegisteredConnectionType type = engine.LastUserConnectionInfo.ConnectionType;
 
-                            using CancellationTokenSource cts = new CancellationTokenSource();
-                            IConsoleConnection? connection;
-                            try {
-                                connection = await type.OpenConnection(engine.LastUserConnectionInfo, c.ContextData!, cts);
-                            }
-                            catch (Exception e) {
-                                await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
-                                connection = null;
-                            }
+                                using CancellationTokenSource cts = new CancellationTokenSource();
+                                IConsoleConnection? connection;
+                                try {
+                                    connection = await type.OpenConnection(engine.LastUserConnectionInfo, EmptyContext.Instance, cts);
+                                }
+                                catch (Exception e) {
+                                    await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
+                                    connection = null;
+                                }
 
-                            if (connection != null) {
-                                c.Notification?.Hide();
-                                engine.SetConnection(busyToken, 0, connection, ConnectionChangeCause.User, engine.LastUserConnectionInfo);
-                            }
+                                if (connection != null) {
+                                    c.Notification?.Hide();
+                                    engine.SetConnection(busyToken, 0, connection, ConnectionChangeCause.User, engine.LastUserConnectionInfo);
+                                }
+                            }, c.ContextData!);
                         }
                         else {
                             c.Notification?.Hide();

@@ -103,7 +103,7 @@ public class RunSequenceCommand : Command {
                 if (except != null) {
                     // When the task sequencer window is shown, the window is placed inside UserContext
                     ITopLevel? topLevel = manager?.UserContext != null ? ITopLevel.FromContext(manager.UserContext) : null;
-                    using (CommandManager.LocalContextManager.PushGlobalContext(new ContextData().Set(ITopLevel.TopLevelDataKey, topLevel))) {
+                    using (CommandManager.LocalContextManager.PushContext(new ContextData().Set(ITopLevel.TopLevelDataKey, topLevel))) {
                         if (except is IOException || except is TimeoutException) {
                             await LogExceptionHelper.ShowMessageAndPrintToLogs("Task Sequencer",
                                 useEngineConnection

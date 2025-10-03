@@ -35,7 +35,7 @@ public class ConnectionTypeTest : RegisteredConnectionType {
         return new TestConnectionInfo(this);
     }
 
-    public override Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData context, CancellationTokenSource cancellation) {
+    public override Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData additionalContext, CancellationTokenSource cancellation) {
         return Task.FromResult<IConsoleConnection?>(new TestConsoleConnection(((TestConnectionInfo) _info!).Mode));
     }
 }
