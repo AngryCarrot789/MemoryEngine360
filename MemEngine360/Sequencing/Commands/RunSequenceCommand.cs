@@ -136,7 +136,7 @@ public class RunSequenceCommand : Command {
         }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
-    private static async Task<bool> HandleConnectionErrors(IConsoleConnection? connection, bool useEngineConnection) {
+    public static async Task<bool> HandleConnectionErrors(IConsoleConnection? connection, bool useEngineConnection) {
         if (connection == null) {
             await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine is not connected to a console" : "Not connected to a console");
             return true;

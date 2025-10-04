@@ -19,12 +19,23 @@
 
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Scripting.Commands;
 
 public class RunScriptCommand : Command {
+    protected override Executability CanExecuteCore(CommandEventArgs e) {
+        if (!Script.DataKey.TryGetContext(e.ContextData, out Script? script) || script.Manager == null) {
+            return Executability.Invalid;
+        }
+
+        return !script.IsRunning
+            ? Executability.Valid
+            : Executability.ValidButCannotExecute;
+    }
+
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!Script.DataKey.TryGetContext(e.ContextData, out Script? script)) {
+        if (!Script.DataKey.TryGetContext(e.ContextData, out Script? script) || script.Manager == null) {
             return;
         }
 
@@ -33,8 +44,14 @@ public class RunScriptCommand : Command {
             return;
         }
 
-        if (!await script.StartCommand()) {
-            await IMessageDialogService.Instance.ShowMessage("Script", "Script compiling failed.", defaultButton: MessageBoxResult.OK);
+        // IConsoleConnection? connection = script.DedicatedConnection;
+        // if (await RunSequenceCommand.HandleConnectionErrors(connection, false)) {
+        //     return;
+        // }
+
+        Result result = await script.StartCommand();
+        if (result.HasException) {
+            await IMessageDialogService.Instance.ShowMessage("Script", "Script compiling failed: " + result.Exception!.Message, defaultButton: MessageBoxResult.OK);
         }
     }
 }

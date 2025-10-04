@@ -34,16 +34,20 @@ public class ScriptViewState {
 
     public string ScriptText {
         get => this.scriptText;
-        set => PropertyHelper.SetAndRaiseINE(ref this.scriptText, value, this, static t => {
-            t.ScriptTextChanged?.Invoke(t);
-            t.Script.SetSourceCode(t.ScriptText);
-        });
+        set {
+            ArgumentNullException.ThrowIfNull(value);
+            PropertyHelper.SetAndRaiseINE(ref this.scriptText, value, this, static t => {
+                t.ScriptTextChanged?.Invoke(t);
+                t.Script.SetSourceCode(t.ScriptText);
+            });
+        }
     }
 
     public event ScriptViewStateEventHandler? ScriptTextChanged;
 
     private ScriptViewState(Script script) {
         this.Script = script;
+        this.scriptText = script.SourceCode ?? "";
     }
 
     public static ScriptViewState GetInstance(Script manager) {

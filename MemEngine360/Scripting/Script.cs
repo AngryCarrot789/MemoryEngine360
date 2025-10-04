@@ -22,6 +22,8 @@ using Lua;
 using Lua.CodeAnalysis.Compilation;
 using Lua.CodeAnalysis.Syntax;
 using Lua.Runtime;
+using MemEngine360.Connections;
+using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Composition;
@@ -35,6 +37,8 @@ namespace MemEngine360.Scripting;
 
 public delegate void ScriptEventHandler(Script sender);
 
+public delegate void ScriptDedicatedConnectionChangedEventHandler(Script sender, IConsoleConnection? oldDedicatedConnection, IConsoleConnection? newDedicatedConnection);
+
 public class Script : IComponentManager, IUserLocalContext {
     public static readonly DataKey<Script> DataKey = DataKeys.Create<Script>(nameof(Script));
 
@@ -43,13 +47,15 @@ public class Script : IComponentManager, IUserLocalContext {
     private bool isRunning;
     private bool isTryingToStop;
     private bool hasUnsavedChanges;
+    private IConsoleConnection? dedicatedConnection;
 
     // Lua
     private Chunk? myChunk;
-    private ThreadedLuaScript? myLuaScript;
+    private LuaScriptMachine? myLuaScript;
+    private TaskCompletionSource? myDelegateTcs;
 
     public IMutableContextData UserContext { get; } = new ContextData();
-    
+
     /// <summary>
     /// Gets or sets the name of this script. This is set as the file name of the opened script file
     /// </summary>
@@ -82,6 +88,20 @@ public class Script : IComponentManager, IUserLocalContext {
         set => PropertyHelper.SetAndRaiseINE(ref this.hasUnsavedChanges, value, this, static t => t.HasUnsavedChangesChanged?.Invoke(t));
     }
 
+    public IConsoleConnection? DedicatedConnection {
+        get => this.dedicatedConnection;
+        set {
+            ApplicationPFX.Instance.Dispatcher.VerifyAccess();
+            this.CheckNotRunning("Cannot change dedicated connection while running");
+            PropertyHelper.SetAndRaiseINE(ref this.dedicatedConnection, value, this, static (t, a, b) => t.DedicatedConnectionChanged?.Invoke(t, a, b));
+        }
+    }
+
+    /// <summary>
+    /// Gets the busy lock used to synchronize access to <see cref="DedicatedConnection"/>
+    /// </summary>
+    public BusyLock BusyLock { get; } = new BusyLock();
+
     /// <summary>
     /// Gets the source code for this script. Null when unloaded, empty when just empty
     /// </summary>
@@ -94,9 +114,8 @@ public class Script : IComponentManager, IUserLocalContext {
 
     /// <summary>
     /// Gets the task that represents the script. Returns <see cref="Task.CompletedTask"/> when the script is not running.
-    /// Task may be faulted with the exception encountered on the lua thread.
     /// </summary>
-    public Task ScriptTask { get; private set; } = Task.CompletedTask;
+    public Task ScriptTask => this.myDelegateTcs?.Task ?? Task.CompletedTask;
 
     /// <summary>
     /// Gets the observable list of console lines. Has a limit of 500 lines
@@ -107,6 +126,7 @@ public class Script : IComponentManager, IUserLocalContext {
     public event ScriptEventHandler? IsRunningChanged;
     public event ScriptEventHandler? IsTryingToStopChanged;
     public event ScriptEventHandler? HasUnsavedChangesChanged;
+    public event ScriptDedicatedConnectionChangedEventHandler? DedicatedConnectionChanged;
 
     private readonly Lock consoleQueueLock = new Lock();
     private readonly List<string> queuedLines = new List<string>();
@@ -155,49 +175,54 @@ public class Script : IComponentManager, IUserLocalContext {
     /// <summary>
     /// Compiles the source code, if not already compiled, then runs the script in a new thread
     /// </summary>
-    public async Task<bool> StartCommand() {
+    public async Task<Result> StartCommand() {
         Debug.Assert((this.IsRunning && this.myLuaScript != null) || (!this.IsRunning && this.myLuaScript == null));
         this.CheckNotRunning();
         if (this.myChunk == null) {
             using CancellationTokenSource cts = new CancellationTokenSource();
-            ActivityTask<Chunk> activity = ActivityManager.Instance.RunTask(() => {
+            Result<Chunk> result = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask activity = ActivityTask.Current;
-                activity.Progress.Caption = "Compile Lua";
+                activity.Progress.SetCaptionAndText("Compile Lua");
                 activity.Progress.IsIndeterminate = true;
                 return CompileSource(this.SourceCode ?? "", activity.Progress, activity.CancellationToken);
             }, cts);
 
-            this.myChunk = (await activity).GetValueOrDefault();
+            this.myChunk = result.GetValueOrDefault();
             if (this.myChunk == null) {
-                return false;
+                return Result.FromException(result.Exception!);
             }
         }
 
-        this.myLuaScript = new ThreadedLuaScript(this, this.myChunk);
+        this.ConsoleLines.Clear();
+        this.myDelegateTcs = new TaskCompletionSource();
+        this.myLuaScript = new LuaScriptMachine(this, this.myChunk);
         this.myLuaScript.LinePrinted += this.OnLuaLinePrinted;
-
-        this.ScriptTask = this.myLuaScript.CompletionTask;
         this.IsRunning = true;
-        return true;
+        return Result.Success;
     }
 
-    private void OnLuaThreadFinished(Exception? exception) {
-        if (exception != null) {
-            this.myLuaScript!.Print(exception.GetToString());
-        }
-        else if (this.myLuaScript!.CompletionTask.IsCompletedSuccessfully) {
-            LuaValue[] values = this.myLuaScript!.CompletionTask.GetAwaiter().GetResult();
+    private void OnLuaThreadFinished() {
+        Task<LuaValue[]> task = this.myLuaScript!.CompletionTask;
+        try {
+            LuaValue[] values = task.GetAwaiter().GetResult();
             if (values.Length > 0) {
                 foreach (LuaValue value in values) {
                     this.myLuaScript!.Print(value + Environment.NewLine);
                 }
             }
         }
+        catch (OperationCanceledException) {
+            // ignored
+        }
+        catch (Exception ex) {
+            this.myLuaScript!.Print(ex.ToString());
+        }
 
         this.myLuaScript = null;
-        this.ScriptTask = Task.CompletedTask;
         this.IsTryingToStop = false;
         this.IsRunning = false;
+        this.myDelegateTcs!.SetResult();
+        this.myDelegateTcs = null;
     }
 
     private void OnLuaLinePrinted(string obj) {
@@ -224,8 +249,8 @@ public class Script : IComponentManager, IUserLocalContext {
     }
 
     // Invoked when the lua thread is about to exit. The exception will originate from the lua machine
-    internal static void InternalOnStopped(Script script, Exception? exception) {
-        ApplicationPFX.Instance.Dispatcher.Post(() => script.OnLuaThreadFinished(exception), DispatchPriority.Normal);
+    internal static void InternalOnStopped(Script script) {
+        ApplicationPFX.Instance.Dispatcher.Post((t) => ((Script) t!).OnLuaThreadFinished(), script, DispatchPriority.Send);
     }
 
     /// <summary>

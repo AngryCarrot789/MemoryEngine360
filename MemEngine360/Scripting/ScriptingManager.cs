@@ -78,8 +78,26 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
         };
 
         this.Scripts.Add(new Script() {
-            Name = "My Cool Script.lua",
-            ConsoleLines = { "line 1", "line 2", "Line 3!!!" }
+            Name = "My Cool Script.lua"
         });
+
+        const string text = "-- read BO2 ammo count of primary weapon\n" +
+                            "local ammo = engine.readnumber(\"83551E4C\", \"int\")\n" +
+                            "\n" +
+                            "-- add 20 to the primary ammo, slowly\n" +
+                            "local num = 0\n" +
+                            "while true do\n" +
+                            "    num = num + 1\n" +
+                            "    engine.writenumber(\"83551E4C\", \"int\", ammo + num)\n" +
+                            "    sleep(0.1)\n" +
+                            "    if (num == 20) then\n" +
+                            "        return\n" +
+                            "    end\n" +
+                            "end";
+
+        this.Scripts[0].SetSourceCode(text);
+        // this.Scripts[0].SetSourceCode("print(\"hello!\")" + Environment.NewLine +
+        //                               "sleep(2)" + Environment.NewLine +
+        //                               "print(\"slept.\")");
     }
 }

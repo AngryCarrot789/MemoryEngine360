@@ -25,36 +25,21 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Scripting.Commands;
 
 public class CloseScriptCommand : Command {
+    protected override Executability CanExecuteCore(CommandEventArgs e) {
+        if (!Script.DataKey.TryGetContext(e.ContextData, out Script? script) || script.Manager == null) {
+            return Executability.Invalid;
+        }
+
+        return Executability.Valid;
+    }
+    
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!Script.DataKey.TryGetContext(e.ContextData, out Script? script)) {
             return;
         }
 
-        if (script.IsRunning) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Script is running", "The script is still running, so it will be stopped.", MessageBoxButton.OKCancel, MessageBoxResult.OK);
-            if (result != MessageBoxResult.OK) {
-                return;
-            }
-
-            script.RequestStop(false);
-
-            // wait 2 seconds for the script to complete normally
-            await Task.WhenAll(script.ScriptTask, Task.Delay(2000));
-            if (script.IsRunning) {
-                MessageBoxResult result2 = await IMessageDialogService.Instance.ShowMessage("Script still running", $"The script is still running. Force kill the script?{Environment.NewLine}{Environment.NewLine}Note, due to .NET restrictions, the lua thread cannot be 'killed' safely.", MessageBoxButton.OKCancel, MessageBoxResult.OK);
-                if (result2 != MessageBoxResult.OK) {
-                    return;
-                }
-
-                script.RequestStop(true);
-            }
-
-            // Wait 2 seconds for the script to complete normally
-            await Task.WhenAll(script.ScriptTask, Task.Delay(2000));
-            if (script.IsRunning) {
-                await IMessageDialogService.Instance.ShowMessage("Script still running", $"Could not stop the script! Please try again later.", MessageBoxButton.OKCancel, MessageBoxResult.OK);
-                return;
-            }
+        if (!await StopScriptCommand.StopScriptAsync(script, true)) {
+            return;
         }
 
         if (script.HasUnsavedChanges) {
