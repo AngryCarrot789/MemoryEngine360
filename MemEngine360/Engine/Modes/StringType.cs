@@ -54,7 +54,15 @@ public static class StringTypeExtensions {
         }
     }
 
-    public static uint GetByteCount(this StringType stringType, string value, bool isLittleEndian) {
-        return (uint) stringType.ToEncoding(isLittleEndian).GetByteCount(value);
+    /// <summary>
+    /// Gets the number of bytes the string takes up when converted to bytes in its specific encoding type
+    /// </summary>
+    /// <param name="stringType">The string encoding type</param>
+    /// <param name="value">The string value</param>
+    /// <param name="isLittleEndian">Whether to use little or big endian (UTF16) encoding</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentOutOfRangeException">The string is too long to fit the char count into an integer</exception>
+    public static int GetByteCount(this StringType stringType, string value, bool isLittleEndian) {
+        return stringType.ToEncoding(isLittleEndian).GetByteCount(value);
     }
 }

@@ -35,14 +35,14 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
         b.Model.isUpdatingProviderValues = true;
         IDataValue? result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(text, b.Model.DataType, b.Model);
         if (result != null) {
-            BaseNumericDataValue? max;
-            BaseNumericDataValue? newMin = (BaseNumericDataValue?) result;
+            DataValueNumeric? max;
+            DataValueNumeric? newMin = (DataValueNumeric?) result;
             if (newMin != null && (max = b.Model.Provider.Maximum) != null) {
                 if (max.DataType != newMin.DataType) {
                     b.Model.Provider.Maximum = null;
                     b.Model.Provider.Minimum = null;
                     b.Model.Provider.DataType = newMin.DataType;
-                    b.Model.Provider.Maximum = max = (BaseNumericDataValue?) IDataValue.TryConvertDataValue(max, newMin.DataType, StringType.ASCII);
+                    b.Model.Provider.Maximum = max = (DataValueNumeric?) IDataValue.TryConvertDataValue(max, newMin.DataType, StringType.ASCII);
                 }
 
                 if (max != null && newMin.CompareTo(max) > 0) {
@@ -63,14 +63,14 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
         b.Model.isUpdatingProviderValues = true;
         IDataValue? result = await BinderParsingUtils.TryParseTextAsDataValueAndModify(text, b.Model.DataType, b.Model);
         if (result != null) {
-            BaseNumericDataValue? min;
-            BaseNumericDataValue? newMax = (BaseNumericDataValue?) result;
+            DataValueNumeric? min;
+            DataValueNumeric? newMax = (DataValueNumeric?) result;
             if (newMax != null && (min = b.Model.Provider.Minimum) != null) {
                 if (min.DataType != newMax.DataType) {
                     b.Model.Provider.Maximum = null;
                     b.Model.Provider.Minimum = null;
                     b.Model.Provider.DataType = newMax.DataType;
-                    b.Model.Provider.Minimum = min = (BaseNumericDataValue?) IDataValue.TryConvertDataValue(min, newMax.DataType, StringType.ASCII);
+                    b.Model.Provider.Minimum = min = (DataValueNumeric?) IDataValue.TryConvertDataValue(min, newMax.DataType, StringType.ASCII);
                 }
                 
                 if (min != null && newMax.CompareTo(min) < 0) {
@@ -119,7 +119,7 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
     }
 
     public void UpdateTextFromMinimumValue() {
-        BaseNumericDataValue? value = this.Provider.Minimum;
+        DataValueNumeric? value = this.Provider.Minimum;
         this.ParsingMinimumText = value != null
             ? DataValueUtils.GetStringFromDataValue(value,
                 this.DataType.IsInteger() && this.ParseIntAsHex
@@ -129,7 +129,7 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
     }
 
     public void UpdateTextFromMaximumValue() {
-        BaseNumericDataValue? value = this.Provider.Maximum;
+        DataValueNumeric? value = this.Provider.Maximum;
         this.ParsingMaximumText = value != null
             ? DataValueUtils.GetStringFromDataValue(value,
                 this.DataType.IsInteger() && this.ParseIntAsHex
@@ -172,12 +172,12 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
 
     private void OnProviderDataTypeChanged(RandomNumberDataProvider sender) {
         lock (sender.Lock) {
-            BaseNumericDataValue? oldMin = sender.Minimum, oldMax = sender.Maximum;
+            DataValueNumeric? oldMin = sender.Minimum, oldMax = sender.Maximum;
             sender.Minimum = sender.Maximum = null;
             this.DataType = sender.DataType;
             this.isUpdatingProviderValues = true;
-            sender.Minimum = (BaseNumericDataValue?) IDataValue.TryConvertDataValue(oldMin, this.DataType, default) ?? IDataValue.CreateDefaultNumeric(this.DataType);
-            sender.Maximum = (BaseNumericDataValue?) IDataValue.TryConvertDataValue(oldMax, this.DataType, default) ?? IDataValue.CreateDefaultNumeric(this.DataType);
+            sender.Minimum = (DataValueNumeric?) IDataValue.TryConvertDataValue(oldMin, this.DataType, default) ?? IDataValue.CreateDefaultNumeric(this.DataType);
+            sender.Maximum = (DataValueNumeric?) IDataValue.TryConvertDataValue(oldMax, this.DataType, default) ?? IDataValue.CreateDefaultNumeric(this.DataType);
             this.isUpdatingProviderValues = false;
 
             this.UpdateTextFromMinimumValue();

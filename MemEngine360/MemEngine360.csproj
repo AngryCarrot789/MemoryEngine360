@@ -24,4 +24,8 @@
 	  <Folder Include="Connections\Utils\" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <PackageReference Include="LuaCSharp" Version="0.4.2" />
+	</ItemGroup>
+
 </Project>

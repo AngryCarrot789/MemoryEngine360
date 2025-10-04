@@ -1,0 +1,87 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.Scripting"
+             xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MemEngine360.BaseFrontEnd.Scripting.ScriptingManagerView">
+    <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
+        <DockPanel>
+            <local:ScriptTabControl DockPanel.Dock="Top"
+                                    x:Name="PART_TabControl"
+                                    BorderThickness="0" 
+                                    BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}">
+                <local:ScriptTabControl.ItemContainerTheme>
+                    <ControlTheme TargetType="{x:Type local:ScriptTabItem}">
+                        <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
+                        <Setter Property="Background" Value="{DynamicResource ABrush.Tone6.Background.Static}"/>
+                        <Setter Property="BorderBrush" Value="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=TabControl}, Path=BorderBrush}"/>
+                        <Setter Property="Margin" Value="-1,-1,-1,0"/>
+                        <Setter Property="Padding" Value="8,4,8,4"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Template">
+                            <ControlTemplate>
+                                <Grid x:Name="templateRoot">
+                                    <Border x:Name="mainBorder"
+                                            Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="1,1,1,1"
+                                            Margin="0">
+                                    </Border>
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Content="X" Background="Transparent" BorderThickness="0" Padding="5,1" Margin="2,3"
+                                                x:Name="PART_CloseTabButton"/>
+                                        <ContentPresenter x:Name="PART_ContentPresenter"
+                                                          Margin="{TemplateBinding Padding}"
+                                                          HorizontalAlignment="Stretch"
+                                                          VerticalAlignment="Center"
+                                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                          Content="{TemplateBinding Header}"
+                                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                                          CornerRadius="{TemplateBinding CornerRadius}"/>
+                                    </DockPanel>
+                                    <Border x:Name="PART_SelectionLine" IsVisible="False"
+                                            Background="{DynamicResource ABrush.ColourfulGlyph.Static}"
+                                            VerticalAlignment="Bottom" Height="3" Margin="0"/>
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter>
+                        <Style Selector="^:pointerover /template/ Border#mainBorder">
+                            <Setter Property="Background" Value="{DynamicResource TabItem.MouseOver.Background}"/>
+                        </Style>
+                        <Style Selector="^:selected">
+                            <Setter Property="ZIndex" Value="1"/>
+                            <Style Selector="^ /template/ Border#mainBorder">
+                                <Setter Property="Background" Value="{DynamicResource TabItem.Selected.Background}"/>
+                            </Style>
+                            <Style Selector="^ /template/ Border#PART_SelectionLine">
+                                <Setter Property="IsVisible" Value="True"/>
+                            </Style>
+                        </Style>
+                        <Style Selector="^[TabStripPlacement=Left]">
+                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                        </Style>
+                        <Style Selector="^[TabStripPlacement=Right]">
+                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                        </Style>
+                    </ControlTheme>
+                </local:ScriptTabControl.ItemContainerTheme>
+            </local:ScriptTabControl>
+            <Border Background="Transparent" x:Name="PART_ScriptPanel">
+                <DockPanel>
+                    <Border DockPanel.Dock="Bottom" Height="24">
+                        <Grid>
+                            <Button Content="Run Script" cu:CommandUsageManager.SimpleButtonCommandId="commands.scripting.RunScriptCommand"
+                                    HorizontalAlignment="Left" Padding="8,0"/>
+                        </Grid>
+                    </Border>
+                    <ListBox x:Name="PART_ConsoleTextList" DockPanel.Dock="Bottom" Height="150"/>
+                    <TextBox x:Name="PART_CodeEditor" AcceptsReturn="True" FontFamily="Consolas"/>
+                </DockPanel>
+            </Border>
+        </DockPanel>
+    </Border>
+</UserControl>

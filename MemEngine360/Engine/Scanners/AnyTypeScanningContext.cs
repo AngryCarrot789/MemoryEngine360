@@ -265,7 +265,7 @@ public class AnyTypeScanningContext : ScanningContext {
         }
     }
 
-    private BaseNumericDataValue<T>? CompareInt<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IBinaryInteger<T> {
+    private DataValueNumeric<T>? CompareInt<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IBinaryInteger<T> {
         T valA = Unsafe.As<ulong, T>(ref theInputA), valB;
         switch (this.numericScanType) {
             case NumericScanType.Equals:              return value == valA ? IDataValue.CreateNumeric(value) : null;
@@ -286,7 +286,7 @@ public class AnyTypeScanningContext : ScanningContext {
         }
     }
 
-    private BaseFloatDataValue<T>? CompareFloat<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T> {
+    private DataValueFloatingPoint<T>? CompareFloat<T>(T value, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T> {
         // We convert everything to doubles when comparing, for higher accuracy
         double dblVal = DataTypedScanningContext.GetDoubleFromReadValue(value, this.inputA, this.floatScanOption);
         double valA = Unsafe.As<ulong, double>(ref theInputA);

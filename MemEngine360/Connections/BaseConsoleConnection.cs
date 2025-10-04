@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Buffers.Binary;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -435,6 +436,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
                 Span<byte> span = this.sharedByteArray8.AsSpan(0, sizeof(uint));
                 if (reverse)
                     span.Reverse();
+
+                BinaryPrimitives.ReadInt32LittleEndian(span);
 
                 uint deref = Unsafe.ReadUnaligned<uint>(ref span.GetPinnableReference());
                 address = Math.Max((long) deref + offset, 0);

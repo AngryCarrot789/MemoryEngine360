@@ -142,8 +142,8 @@ public class CompareMemoryCondition : BaseSequenceCondition {
             case DataType.Int64:
             case DataType.Float:
             case DataType.Double: {
-                BaseNumericDataValue cmpNumber = (BaseNumericDataValue) cmpVal;
-                BaseNumericDataValue consoleNumber = (BaseNumericDataValue) consoleValue;
+                DataValueNumeric cmpNumber = (DataValueNumeric) cmpVal;
+                DataValueNumeric consoleNumber = (DataValueNumeric) consoleValue;
                 int cmp = consoleNumber.CompareTo(cmpNumber);
                 switch (this.CompareType) {
                     case CompareType.Equals:              return cmp == 0;

@@ -36,6 +36,7 @@ using MemEngine360.BaseFrontEnd.FileBrowsing;
 using MemEngine360.BaseFrontEnd.FileConnections;
 using MemEngine360.BaseFrontEnd.MemRegions;
 using MemEngine360.BaseFrontEnd.PointerScanning;
+using MemEngine360.BaseFrontEnd.Scripting;
 using MemEngine360.BaseFrontEnd.Services;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.BaseFrontEnd.Services.HexEditing;
@@ -60,6 +61,8 @@ using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.View;
 using MemEngine360.PointerScanning;
+using MemEngine360.Scripting;
+using MemEngine360.Scripting.Commands;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Commands;
 using MemEngine360.Sequencing.Conditions;
@@ -207,6 +210,11 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.debugger.SuspendThreadCommand", new SuspendThreadCommand());
         manager.Register("commands.debugger.ResumeThreadCommand", new ResumeThreadCommand());
         manager.Register("commands.debugger.GoToDebugMemoryCommand", new GoToDebugMemoryCommand());
+        
+        // scripting
+        manager.Register("commands.scripting.ShowScriptingWindowCommand", new ShowScriptingWindowCommand());
+        manager.Register("commands.scripting.RunScriptCommand", new RunScriptCommand());
+        manager.Register("commands.scripting.CloseScriptCommand", new CloseScriptCommand());
 
         // History
         // manager.Register("commands.application.UndoCommand", new UndoCommand());
@@ -237,6 +245,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.AddComponent<IConsoleEventViewerService>(new ConsoleEventViewerServiceImpl());
         manager.AddComponent<IDebuggerViewService>(new DebuggerViewServiceImpl());
         manager.AddComponent<IFileBrowserService>(new FileBrowserServiceImpl());
+        manager.AddComponent<IScriptingService>(new ScriptingServiceImpl());
 
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }
@@ -438,9 +447,9 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 provider.AppendNullCharToString = GetOptionalAttribute(randElement, "AppendNullCharToString", bool.Parse, provider.AppendNullCharToString);
                 provider.ParseIntAsHex = GetOptionalAttribute(randElement, "ParseIntInputAsHex", bool.Parse, provider.ParseIntAsHex);
                 if (randElement.GetElementsByTagName("MinNumber").OfType<XmlElement>().FirstOrDefault() is XmlElement minElement)
-                    provider.Minimum = (BaseNumericDataValue) XmlTaskSequenceSerialization.DeserializeDataValue(minElement);
+                    provider.Minimum = (DataValueNumeric) XmlTaskSequenceSerialization.DeserializeDataValue(minElement);
                 if (randElement.GetElementsByTagName("MaxNumber").OfType<XmlElement>().FirstOrDefault() is XmlElement maxElement)
-                    provider.Maximum = (BaseNumericDataValue) XmlTaskSequenceSerialization.DeserializeDataValue(maxElement);
+                    provider.Maximum = (DataValueNumeric) XmlTaskSequenceSerialization.DeserializeDataValue(maxElement);
             }
         });
     }

@@ -29,6 +29,7 @@ using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.Scanners;
 using MemEngine360.PointerScanning;
+using MemEngine360.Scripting;
 using MemEngine360.Sequencing;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
@@ -130,6 +131,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     public PointerScanner PointerScanner { get; }
 
     public ConsoleDebugger ConsoleDebugger { get; }
+    
+    public ScriptingManager ScriptingManager { get; }
 
     public IMutableContextData UserContext { get; } = new ContextData();
 
@@ -208,6 +211,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         this.TaskSequenceManager = new TaskSequenceManager(this);
         this.PointerScanner = new PointerScanner(this);
         this.ConsoleDebugger = new ConsoleDebugger(this);
+        this.ScriptingManager = new ScriptingManager(this);
 
         this.ToolsMenu = new ContextEntryGroup("Tools") {
             UniqueID = "memoryengine.tools",
@@ -224,6 +228,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
                             : "Event Viewer";
                         entry.RaiseCanExecuteChanged();
                     }),
+                new CommandContextEntry("commands.scripting.ShowScriptingWindowCommand", "Scripting"),
                 new SeparatorEntry(),
                 new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Explorer", "Opens a window which presents the modules"),
                 new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),
@@ -685,9 +690,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
             case DataType.Float:  await connection.WriteValue(address, ((DataValueFloat) value).Value).ConfigureAwait(false); break;
             case DataType.Double: await connection.WriteValue(address, ((DataValueDouble) value).Value).ConfigureAwait(false); break;
             case DataType.String: {
-                byte[] array = new byte[value.ByteCount + (appendNullCharForString ? 1 : 0)];
-                ((DataValueString) value).GetBytes(array, connection.IsLittleEndian);
-                await connection.WriteBytes(address, array).ConfigureAwait(false);
+                byte[] array = ((DataValueString) value).GetBytes(connection.IsLittleEndian, appendNullCharForString, out int length);
+                await connection.WriteBytes(address, array, 0, length).ConfigureAwait(false);
                 break;
             }
             case DataType.ByteArray: await connection.WriteBytes(address, ((DataValueByteArray) value).Value).ConfigureAwait(false); break;

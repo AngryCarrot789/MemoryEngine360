@@ -27,7 +27,7 @@ public delegate void RandomNumberDataProviderEventHandler(RandomNumberDataProvid
 
 public sealed class RandomNumberDataProvider : DataValueProvider {
     private readonly Random random;
-    private BaseNumericDataValue? minimum, maximum;
+    private DataValueNumeric? minimum, maximum;
 
     private DataType dataType = DataType.Int32;
     private bool parseIntAsHex;
@@ -48,7 +48,7 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
         set => PropertyHelper.SetAndRaiseINE(ref this.parseIntAsHex, value, this, static t => t.ParseIntAsHexChanged?.Invoke(t));
     }
 
-    public BaseNumericDataValue? Minimum {
+    public DataValueNumeric? Minimum {
         get => this.minimum;
         set {
             if (value != null && value.DataType != this.DataType)
@@ -58,7 +58,7 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
         }
     }
 
-    public BaseNumericDataValue? Maximum {
+    public DataValueNumeric? Maximum {
         get => this.maximum;
         set {
             if (value != null && value.DataType != this.DataType)
@@ -76,14 +76,14 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
         this.random = new Random();
     }
 
-    public RandomNumberDataProvider(DataType dataType, BaseNumericDataValue minimum, BaseNumericDataValue maximum) : this() {
+    public RandomNumberDataProvider(DataType dataType, DataValueNumeric minimum, DataValueNumeric maximum) : this() {
         this.DataType = dataType;
         this.Minimum = minimum;
         this.Maximum = maximum;
     }
 
     public override IDataValue? Provide() {
-        BaseNumericDataValue? theMin, theMax;
+        DataValueNumeric? theMin, theMax;
 
         lock (this.Lock) {
             if ((theMin = this.minimum) == null || (theMax = this.maximum) == null) {

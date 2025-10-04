@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -133,8 +134,8 @@ public class SetMemoryOperation : BaseSequenceOperation {
                 return;
             }
 
-            if (this.writeMode != SetMemoryWriteMode.Set && value is BaseNumericDataValue numVal) {
-                BaseNumericDataValue consoleVal = (BaseNumericDataValue) await MemoryEngine.ReadDataValue(ctx.Connection, resolvedAddress, numVal);
+            if (this.writeMode != SetMemoryWriteMode.Set && value is DataValueNumeric numVal) {
+                DataValueNumeric consoleVal = (DataValueNumeric) await MemoryEngine.ReadDataValue(ctx.Connection, resolvedAddress, numVal);
                 if (numVal.DataType.IsFloatingPoint()) {
                     double dval;
                     switch (this.writeMode) {
@@ -209,21 +210,29 @@ public class SetMemoryOperation : BaseSequenceOperation {
     }
 
     private static byte[]? GetDataBuffer(bool littleEndian, IDataValue value, bool shouldAppendNullChar, uint iterate) {
-        uint byteCount = value.ByteCount;
+        int byteCount = value.ByteCount;
         if (byteCount == 0 || (iterate > (int.MaxValue / byteCount)) /* overflow check */) {
             return null;
         }
 
-        Span<byte> bytes = stackalloc byte[(int) byteCount];
-        value.GetBytes(bytes, littleEndian);
-        
-        bool appendNullChar = value.DataType == DataType.String && shouldAppendNullChar;
-        byte[] buffer = new byte[bytes.Length * iterate + (appendNullChar ? 1 : 0)];
-        ref byte bufferAddress = ref MemoryMarshal.GetArrayDataReference(buffer);
-        for (int i = 0, j = 0; i < iterate; i++, j += bytes.Length) {
-            bytes.CopyTo(MemoryMarshal.CreateSpan(ref Unsafe.AddByteOffset(ref bufferAddress, j), bytes.Length));
-        }
+        byte[]? heapArray = null;
+        try {
+            Span<byte> tmpBytes = byteCount <= 1024 ? stackalloc byte[byteCount] : (Span<byte>) (heapArray = ArrayPool<byte>.Shared.Rent(byteCount));
+            Span<byte> srcBuffer = tmpBytes.Slice(0, value.GetBytes(tmpBytes, littleEndian));
 
-        return buffer;
+            bool appendNullChar = value.DataType == DataType.String && shouldAppendNullChar;
+            byte[] dstBuffer = new byte[srcBuffer.Length * iterate + (appendNullChar ? 1 : 0)];
+            ref byte bufferAddress = ref MemoryMarshal.GetArrayDataReference(dstBuffer);
+            for (int i = 0, j = 0; i < iterate; i++, j += srcBuffer.Length) {
+                srcBuffer.CopyTo(MemoryMarshal.CreateSpan(ref Unsafe.AddByteOffset(ref bufferAddress, j), srcBuffer.Length));
+            }
+
+            return dstBuffer;
+        }
+        finally {
+            if (heapArray != null) {
+                ArrayPool<byte>.Shared.Return(heapArray);
+            }
+        }
     }
 }

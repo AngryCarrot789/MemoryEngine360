@@ -418,11 +418,11 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
     }
 
-    private BaseNumericDataValue<T>? CompareInt<T>(ReadOnlySpan<byte> searchValueBytes) where T : unmanaged, IBinaryInteger<T> {
+    private DataValueNumeric<T>? CompareInt<T>(ReadOnlySpan<byte> searchValueBytes) where T : unmanaged, IBinaryInteger<T> {
         return this.CompareInt<T>(searchValueBytes, this.numericInputA, this.numericInputB);
     }
 
-    private BaseNumericDataValue<T>? CompareInt<T>(ReadOnlySpan<byte> searchValueBytes, ulong theInputA, ulong theInputB) where T : unmanaged, IBinaryInteger<T> {
+    private DataValueNumeric<T>? CompareInt<T>(ReadOnlySpan<byte> searchValueBytes, ulong theInputA, ulong theInputB) where T : unmanaged, IBinaryInteger<T> {
         T value = ValueScannerUtils.CreateNumberFromBytes<T>(searchValueBytes, this.isConnectionLittleEndian);
         T valA = Unsafe.As<ulong, T>(ref theInputA), valB;
         switch (this.numericScanType) {
@@ -444,11 +444,11 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
     }
 
-    private BaseFloatDataValue<T>? CompareFloat<T>(ReadOnlySpan<byte> searchValueBytes) where T : unmanaged, IFloatingPoint<T> {
+    private DataValueFloatingPoint<T>? CompareFloat<T>(ReadOnlySpan<byte> searchValueBytes) where T : unmanaged, IFloatingPoint<T> {
         return this.CompareFloat<T>(searchValueBytes, this.numericInputA, this.numericInputB);
     }
 
-    private BaseFloatDataValue<T>? CompareFloat<T>(ReadOnlySpan<byte> searchValueBytes, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T> {
+    private DataValueFloatingPoint<T>? CompareFloat<T>(ReadOnlySpan<byte> searchValueBytes, ulong theInputA, ulong theInputB) where T : unmanaged, IFloatingPoint<T> {
         T preProcessedValue = ValueScannerUtils.CreateFloat<T>(searchValueBytes, this.isConnectionLittleEndian);
 
         // We convert everything to doubles when comparing, for higher accuracy.

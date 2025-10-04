@@ -63,6 +63,8 @@ public class TaskSequenceManager : IComponentManager, IUserLocalContext {
     ComponentStorage IComponentManager.ComponentStorage => this.myComponentStorage;
 
     public TaskSequenceManager(MemoryEngine engine) {
+        Console.WriteLine();
+        
         this.MemoryEngine = engine ?? throw new ArgumentNullException(nameof(engine));
         this.myComponentStorage = new ComponentStorage(this);
         this.Sequences = new ObservableList<TaskSequence>();

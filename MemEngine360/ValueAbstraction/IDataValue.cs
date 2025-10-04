@@ -42,9 +42,9 @@ public interface IDataValue : IEquatable<IDataValue> {
     object BoxedValue { get; }
 
     /// <summary>
-    /// Gets the amount of bytes this data value takes up. This is used for calls to <see cref="GetBytes(System.Span{byte})"/>
+    /// Gets the amount of bytes this data value takes up. This is used for calls to <see cref="GetBytes(System.Span{byte},bool)"/>
     /// </summary>
-    uint ByteCount { get; }
+    int ByteCount { get; }
 
     /// <summary>
     /// Writes this data value into the buffer. Callers must ensure the buffer contains enough bytes.
@@ -52,20 +52,24 @@ public interface IDataValue : IEquatable<IDataValue> {
     /// </summary>
     /// <param name="buffer">The dst buffer</param>
     /// <param name="littleEndian">
-    /// True to specify the data must be written as little endian relative to the system endianness.
-    /// May be ignored for data types where endianness isn't applicable (e.g. byte array or byte)
+    ///     True to specify the data must be written as little endian relative to the system endianness.
+    ///     May be ignored for data types where endianness isn't applicable (e.g. byte array or byte)
     /// </param>
-    void GetBytes(Span<byte> buffer, bool littleEndian);
+    /// <returns>
+    /// The number of bytes written into the span. Usually equals <see cref="ByteCount"/>
+    /// </returns>
+    int GetBytes(Span<byte> buffer, bool littleEndian);
 
     /// <summary>
     /// A helper method for getting the bytes of this data value as an array. This creates an array
     /// of <see cref="ByteCount"/> length and passes it to <see cref="GetBytes(System.Span{byte})"/>.
     /// </summary>
     /// <param name="littleEndian">True to specify the data must be written as little endian relative to the system endianness</param>
+    /// <param name="bytesWritten">The amount of bytes actually used. The returned array may be larger than this value</param>
     /// <returns>An array containing <see cref="ByteCount"/> elements representing the underlying value this object stores</returns>
-    byte[] GetBytes(bool littleEndian) {
+    byte[] GetBytes(bool littleEndian, out int bytesWritten) {
         byte[] buffer = new byte[this.ByteCount];
-        this.GetBytes(buffer.AsSpan(), littleEndian);
+        bytesWritten = this.GetBytes(buffer.AsSpan(), littleEndian);
         return buffer;
     }
 
@@ -93,27 +97,28 @@ public interface IDataValue : IEquatable<IDataValue> {
 
     static IDataValue CreateDefault(DataType dataType, StringType stringType) {
         switch (dataType) {
-            case DataType.Byte:      
-            case DataType.Int16:     
-            case DataType.Int32:     
-            case DataType.Int64:     
-            case DataType.Float:     
-            case DataType.Double:    return CreateDefaultNumeric(dataType);
+            case DataType.Byte:
+            case DataType.Int16:
+            case DataType.Int32:
+            case DataType.Int64:
+            case DataType.Float:
+            case DataType.Double:
+                return CreateDefaultNumeric(dataType);
             case DataType.String:    return new DataValueString("", stringType);
             case DataType.ByteArray: return new DataValueByteArray([]);
             default:                 throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
         }
     }
-    
-    static BaseNumericDataValue CreateDefaultNumeric(DataType dataType) {
+
+    static DataValueNumeric CreateDefaultNumeric(DataType dataType) {
         switch (dataType) {
-            case DataType.Byte:      return new DataValueByte(0);
-            case DataType.Int16:     return new DataValueInt16(0);
-            case DataType.Int32:     return new DataValueInt32(0);
-            case DataType.Int64:     return new DataValueInt64(0);
-            case DataType.Float:     return new DataValueFloat(0);
-            case DataType.Double:    return new DataValueDouble(0);
-            default:                 throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
+            case DataType.Byte:   return new DataValueByte(0);
+            case DataType.Int16:  return new DataValueInt16(0);
+            case DataType.Int32:  return new DataValueInt32(0);
+            case DataType.Int64:  return new DataValueInt64(0);
+            case DataType.Float:  return new DataValueFloat(0);
+            case DataType.Double: return new DataValueDouble(0);
+            default:              throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
         }
     }
 
@@ -124,19 +129,19 @@ public interface IDataValue : IEquatable<IDataValue> {
     /// <typeparam name="T">The type of number</typeparam>
     /// <returns>The data value</returns>
     /// <exception cref="ArgumentOutOfRangeException">Unsupported type of <see cref="T"/></exception>
-    static BaseNumericDataValue<T> CreateNumeric<T>(T value) where T : unmanaged, INumber<T> {
+    static DataValueNumeric<T> CreateNumeric<T>(T value) where T : unmanaged, INumber<T> {
         if (typeof(T) == typeof(byte))
-            return Unsafe.As<BaseNumericDataValue<T>>(new DataValueByte(Unsafe.As<T, byte>(ref value)));
+            return Unsafe.As<DataValueNumeric<T>>(new DataValueByte(Unsafe.As<T, byte>(ref value)));
         if (typeof(T) == typeof(short))
-            return Unsafe.As<BaseNumericDataValue<T>>(new DataValueInt16(Unsafe.As<T, short>(ref value)));
+            return Unsafe.As<DataValueNumeric<T>>(new DataValueInt16(Unsafe.As<T, short>(ref value)));
         if (typeof(T) == typeof(int))
-            return Unsafe.As<BaseNumericDataValue<T>>(new DataValueInt32(Unsafe.As<T, int>(ref value)));
+            return Unsafe.As<DataValueNumeric<T>>(new DataValueInt32(Unsafe.As<T, int>(ref value)));
         if (typeof(T) == typeof(long))
-            return Unsafe.As<BaseNumericDataValue<T>>(new DataValueInt64(Unsafe.As<T, long>(ref value)));
+            return Unsafe.As<DataValueNumeric<T>>(new DataValueInt64(Unsafe.As<T, long>(ref value)));
         if (typeof(T) == typeof(float))
-            return Unsafe.As<BaseNumericDataValue<T>>(new DataValueFloat(Unsafe.As<T, float>(ref value)));
+            return Unsafe.As<DataValueNumeric<T>>(new DataValueFloat(Unsafe.As<T, float>(ref value)));
         if (typeof(T) == typeof(double))
-            return Unsafe.As<BaseNumericDataValue<T>>(new DataValueDouble(Unsafe.As<T, double>(ref value)));
+            return Unsafe.As<DataValueNumeric<T>>(new DataValueDouble(Unsafe.As<T, double>(ref value)));
         throw new ArgumentOutOfRangeException(nameof(value), value, "Unsupported value type: " + typeof(T));
     }
 
@@ -147,11 +152,11 @@ public interface IDataValue : IEquatable<IDataValue> {
     /// <typeparam name="T">The type of floating point number</typeparam>
     /// <returns>The data value</returns>
     /// <exception cref="ArgumentOutOfRangeException">Unsupported type of <see cref="T"/></exception>
-    static BaseFloatDataValue<T> CreateFloat<T>(T value) where T : unmanaged, IFloatingPoint<T> {
+    static DataValueFloatingPoint<T> CreateFloat<T>(T value) where T : unmanaged, IFloatingPoint<T> {
         if (typeof(T) == typeof(float))
-            return Unsafe.As<BaseFloatDataValue<T>>(new DataValueFloat(Unsafe.As<T, float>(ref value)));
+            return Unsafe.As<DataValueFloatingPoint<T>>(new DataValueFloat(Unsafe.As<T, float>(ref value)));
         if (typeof(T) == typeof(double))
-            return Unsafe.As<BaseFloatDataValue<T>>(new DataValueDouble(Unsafe.As<T, double>(ref value)));
+            return Unsafe.As<DataValueFloatingPoint<T>>(new DataValueDouble(Unsafe.As<T, double>(ref value)));
         throw new ArgumentOutOfRangeException(nameof(value), value, "Unsupported value type: " + typeof(T));
     }
 
@@ -193,7 +198,7 @@ public interface IDataValue : IEquatable<IDataValue> {
             }
 
             // Try convert into another numeric type
-            return ((BaseNumericDataValue) value).TryConvertTo(newDataType, out BaseNumericDataValue? newValue) ? newValue : null;
+            return ((DataValueNumeric) value).TryConvertTo(newDataType, out DataValueNumeric? newValue) ? newValue : null;
         }
 
         // Old value is string or pattern... or another if more were added since this comment.

@@ -26,7 +26,6 @@ using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using MemEngine360.Xbox360XBDM.Views;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.AdvancedMenuService;
-using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
