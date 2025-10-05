@@ -61,7 +61,7 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
         this.Scripts.BeforeItemsRemoved += (list, index, count) => {
             for (int i = 0; i < count; i++) {
                 list[index + i].CheckNotRunning("Cannot remove sequence while it's running");
-                if (list[index + 1].IsCompiling)
+                if (list[index + i].IsCompiling)
                     Debug.Fail("Script is still compiling but attempted to remove it");
             }
         };
