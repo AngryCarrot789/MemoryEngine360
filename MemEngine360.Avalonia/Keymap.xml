@@ -145,6 +145,24 @@
             </Shortcut>
         </Group>
     </Group>
+    <Group Name="ScriptingWindow">
+        <Group Name="Tab">
+        </Group>
+        <Group Name="ContentPanel">
+            <Group Name="CodeEditor">
+                
+            </Group>
+            <Group Name="Console">
+                
+            </Group>
+        </Group>
+        <Shortcut Name="RunScript" CommandId="commands.scripting.RunScriptCommand">
+            <KeyStroke Key="F5"/>
+        </Shortcut>
+        <Shortcut Name="ConnectToConsole" CommandId="commands.scripting.ConnectScriptToConsoleCommand">
+            <KeyStroke Mods="CTRL" Key="O"/>
+        </Shortcut>
+    </Group>
     <Group Name="DebuggerWindow" DisplayName="Debugger Window">
         <Group Name="MemoryHexEditor">
             <Shortcut Name="FocusGoToTextBox" CommandId="commands.debugger.GoToDebugMemoryCommand">

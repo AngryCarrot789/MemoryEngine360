@@ -48,7 +48,4 @@
     
     <Color x:Key="ABrush.MemEngine.Sequencer.OperationRunning.Gradient1.Color">DodgerBlue</Color>
     <SolidColorBrush x:Key="ABrush.MemEngine.Sequencer.OperationRunning.Gradient1" Color="{StaticResource ABrush.MemEngine.Sequencer.OperationRunning.Gradient1.Color}"/>
-    
-    <SolidColorBrush x:Key="ABrush.MemEngine.Scripting.TitleBarBackground"                              Color="{StaticResource ABrush.Tone6.Background.Static.Color}"/>
-    <SolidColorBrush x:Key="ABrush.MemEngine.Scripting.ScriptList.Background"                            Color="{StaticResource ABrush.Tone4.Background.Static.Color}"/>
 </ResourceDictionary>

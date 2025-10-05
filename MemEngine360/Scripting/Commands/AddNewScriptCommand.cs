@@ -17,32 +17,33 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 
-namespace MemEngine360.Sequencing.Commands;
+namespace MemEngine360.Scripting.Commands;
 
-public class NewSequenceCommand : Command {
+public class AddNewScriptCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
-    }
+        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager)) {
+            return Executability.Invalid;
+        }
 
+        return Executability.Valid;
+    }
+    
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager)) {
             return;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        state.SelectedSequences.Clear();
-        
-        ObservableList<TaskSequence> sequences = manager.Sequences;
-        TaskSequence sequence = new TaskSequence() {
-            DisplayName = TextIncrement.GetIncrementableString(x => sequences.All(y => y.DisplayName != x), "New Sequence", out string? output, true) ? output : "New Sequence"
+        ObservableList<Script> scripts = manager.Scripts;
+        Script script = new Script() {
+            Name = TextIncrement.GetIncrementableString(x => scripts.All(y => y.Name != x), "New Script", out string? output, true) ? output : "New Script"
         };
-
-        sequences.Add(sequence);
-        state.SelectedSequences.SelectItem(sequence);
+        
+        ScriptingManagerViewState state = ScriptingManagerViewState.GetInstance(manager);
+        scripts.Add(script);
+        state.SelectedScript = script;
     }
 }

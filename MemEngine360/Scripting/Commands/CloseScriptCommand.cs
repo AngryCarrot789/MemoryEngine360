@@ -50,6 +50,8 @@ public class CloseScriptCommand : Command {
                     return;
                 }
 
+                ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
+                
                 try {
                     await File.WriteAllTextAsync(path, script.SourceCode);
                 }

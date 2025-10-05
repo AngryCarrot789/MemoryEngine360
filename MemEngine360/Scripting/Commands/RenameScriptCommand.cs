@@ -17,32 +17,32 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Utils;
-using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Services.UserInputs;
 
-namespace MemEngine360.Sequencing.Commands;
+namespace MemEngine360.Scripting.Commands;
 
-public class NewSequenceCommand : Command {
+public class RenameScriptCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
+        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager)) {
+            return Executability.Invalid;
+        }
+
+        return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager)) {
             return;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        state.SelectedSequences.Clear();
-        
-        ObservableList<TaskSequence> sequences = manager.Sequences;
-        TaskSequence sequence = new TaskSequence() {
-            DisplayName = TextIncrement.GetIncrementableString(x => sequences.All(y => y.DisplayName != x), "New Sequence", out string? output, true) ? output : "New Sequence"
-        };
-
-        sequences.Add(sequence);
-        state.SelectedSequences.SelectItem(sequence);
+        ScriptingManagerViewState state = ScriptingManagerViewState.GetInstance(manager);
+        Script? script = state.SelectedScript;
+        if (script != null) {
+            SingleUserInputInfo info = new SingleUserInputInfo("Rename script", "What do you want to call it?", script.Name);
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
+                script.Name = info.Text;
+            }
+        }
     }
 }

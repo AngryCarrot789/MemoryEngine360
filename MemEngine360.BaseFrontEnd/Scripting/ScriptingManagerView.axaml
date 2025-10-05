@@ -9,6 +9,8 @@
              xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              xmlns:cmd="clr-namespace:MemEngine360.BaseFrontEnd.Scripting.Commands"
              xmlns:me360="clr-namespace:MemEngine360;assembly=MemEngine360"
+             xmlns:attached="clr-namespace:PFXToolKitUI.Avalonia.Themes.Attached;assembly=PFXToolKitUI.Avalonia"
+             xmlns:ae="https://github.com/avaloniaui/avaloniaedit"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MemEngine360.BaseFrontEnd.Scripting.ScriptingManagerView">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
@@ -17,6 +19,12 @@
                                     x:Name="PART_TabControl"
                                     BorderThickness="0"
                                     BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}">
+                <attached:TabControlStripExtras.RightContent>
+                    <Button Padding="2,0" Margin="3,1,1,1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            cu:CommandUsageManager.SimpleButtonCommandId="commands.scripting.AddNewScriptCommand">
+                        <TextBlock Text="+" Margin="0,-2,0,0"/>
+                    </Button>
+                </attached:TabControlStripExtras.RightContent>
                 <local:ScriptTabControl.ItemContainerTheme>
                     <ControlTheme TargetType="{x:Type local:ScriptTabItem}">
                         <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
@@ -36,8 +44,10 @@
                                             Margin="0">
                                     </Border>
                                     <DockPanel>
-                                        <Button DockPanel.Dock="Right" Content="X" Background="Transparent" BorderThickness="0" Padding="5,1" Margin="2,3"
-                                                x:Name="PART_CloseTabButton"/>
+                                        <Button DockPanel.Dock="Right" Content="X" Background="Transparent"
+                                                BorderThickness="0" Padding="5,1" Margin="2,3"
+                                                x:Name="PART_CloseTabButton"
+                                                cu:CommandUsageManager.SimpleButtonCommandId="commands.scripting.CloseScriptCommand"/>
                                         <ContentPresenter x:Name="PART_ContentPresenter"
                                                           Margin="{TemplateBinding Padding}"
                                                           HorizontalAlignment="Stretch"
@@ -132,11 +142,16 @@
                                     </StackPanel>
                                 </tt:ToolTipEx.Tip>
                             </avc:IconButton>
+                            <CheckBox Content="Clear console on each run" tt:ToolTipEx.Tip="Clear the console each time you run the script"
+                                      x:Name="PART_ClearConsoleOnEachRun"/>
                             <Border/>
                         </DockPanel>
                     </Border>
                     <Grid RowDefinitions="*,1,150">
-                        <TextBox Grid.Row="0" x:Name="PART_CodeEditor" AcceptsReturn="True" FontFamily="Consolas" BorderThickness="0"/>
+                        <ae:TextEditor Grid.Row="0" x:Name="PART_CodeEditor"
+                                       ShowLineNumbers="True"
+                                       FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
+                                       BorderThickness="0"/>
                         <ListBox Grid.Row="2" x:Name="PART_ConsoleTextList" BorderThickness="0"/>
                         <Border Background="{DynamicResource PanelBorderBrush}" Grid.Row="1"/>
                         <GridSplitter Grid.Row="1" Background="Transparent" Margin="0,-5"/>

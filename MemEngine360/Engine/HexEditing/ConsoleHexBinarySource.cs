@@ -94,7 +94,7 @@ public class ConsoleHexBinarySource : IBinarySource {
             using (this.memoryLock.EnterScope()) {
                 this.cachedMemory.Write(range.Start.ByteIndex, buffer);
                 this.availableRanges.Add(BitRange.FromLength(range.Start.ByteIndex, (ulong) buffer.Length));
-                this.validRanges.Add(new ULongRange(range.Start.ByteIndex, range.Start.ByteIndex + (ulong) buffer.Length));
+                this.validRanges.Add(ULongRange.FromStartAndEnd(range.Start.ByteIndex, range.Start.ByteIndex + (ulong) buffer.Length));
             }
         }
 
@@ -115,7 +115,7 @@ public class ConsoleHexBinarySource : IBinarySource {
                 this.requestedRanges.Remove(range);
                 this.cachedMemory.Clear(offset, count);
                 this.availableRanges.Remove(range);
-                this.validRanges.Remove(new ULongRange(range.Start.ByteIndex, range.Start.ByteIndex + range.ByteLength));
+                this.validRanges.Remove(ULongRange.FromStartAndEnd(range.Start.ByteIndex, range.Start.ByteIndex + range.ByteLength));
             }
         }
     }

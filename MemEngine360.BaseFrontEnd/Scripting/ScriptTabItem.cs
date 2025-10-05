@@ -22,6 +22,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using MemEngine360.Scripting;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
 
 namespace MemEngine360.BaseFrontEnd.Scripting;
@@ -49,11 +50,11 @@ public class ScriptTabItem : TabItem {
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
         base.OnApplyTemplate(e);
         this.PART_CloseTabButton = e.NameScope.GetTemplateChild<Button>("PART_CloseTabButton");
-        this.PART_CloseTabButton.Command = new DataManagerCommandWrapper(this, "commands.scripting.CloseScriptCommand");
+        this.PART_CloseTabButton.Command = new DataManagerCommandWrapper(this, "commands.scripting.CloseScriptCommand", true);
     }
     
     private void OnScriptChanged(Script? oldValue, Script? newValue) {
         this.nameBinder.SwitchModel(newValue);
-        ((DataManagerCommandWrapper?) this.PART_CloseTabButton?.Command)?.RaiseCanExecuteChanged();
+        DataManager.GetContextData(this).Set(Script.DataKey, newValue);
     }
 }

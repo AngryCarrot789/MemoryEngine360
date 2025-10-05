@@ -39,20 +39,23 @@ public delegate void ScriptEventHandler(Script sender);
 
 public delegate void ScriptDedicatedConnectionChangedEventHandler(Script sender, IConsoleConnection? oldDedicatedConnection, IConsoleConnection? newDedicatedConnection);
 
+public delegate void ScriptSourceCodeChangedEventHandler(Script sender, string oldSourceCode, string newSourceCode);
+
 public class Script : IComponentManager, IUserLocalContext {
     public static readonly DataKey<Script> DataKey = DataKeys.Create<Script>(nameof(Script));
 
     internal ScriptingManager? myManager;
     private string? name;
-    private bool isRunning;
     private bool isTryingToStop;
     private bool hasUnsavedChanges;
+    private bool clearConsoleOnRun = true;
     private IConsoleConnection? dedicatedConnection;
+    private string sourceCode = "";
 
     // Lua
     private Chunk? myChunk;
     private LuaScriptMachine? myLuaScript;
-    private TaskCompletionSource? myDelegateTcs;
+    private TaskCompletionSource? myRunningTcs;
 
     public IMutableContextData UserContext { get; } = new ContextData();
 
@@ -65,12 +68,11 @@ public class Script : IComponentManager, IUserLocalContext {
     }
 
     /// <summary>
-    /// Gets whether this script is currently running
+    /// Gets whether this script is currently running. This checks whether <see cref="ScriptTask"/> is running or not.
+    /// This value only changes on the main application thread, and <see cref="IsRunningChanged"/>
+    /// will be fired shortly after it actually does change
     /// </summary>
-    public bool IsRunning {
-        get => this.isRunning;
-        private set => PropertyHelper.SetAndRaiseINE(ref this.isRunning, value, this, static t => t.IsRunningChanged?.Invoke(t));
-    }
+    public bool IsRunning => !this.ScriptTask.IsCompleted;
 
     /// <summary>
     /// Gets whether the user is trying to stop the script from running
@@ -88,12 +90,34 @@ public class Script : IComponentManager, IUserLocalContext {
         set => PropertyHelper.SetAndRaiseINE(ref this.hasUnsavedChanges, value, this, static t => t.HasUnsavedChangesChanged?.Invoke(t));
     }
 
+    public bool ClearConsoleOnRun {
+        get => this.clearConsoleOnRun;
+        set => PropertyHelper.SetAndRaiseINE(ref this.clearConsoleOnRun, value, this, static t => t.ClearConsoleOnRunChanged?.Invoke(t));
+    }
+
+    /// <summary>
+    /// Gets or sets the dedicated connection that this script will use
+    /// </summary>
     public IConsoleConnection? DedicatedConnection {
         get => this.dedicatedConnection;
+        set => PropertyHelper.SetAndRaiseINE(ref this.dedicatedConnection, value, this, static (t, a, b) => t.DedicatedConnectionChanged?.Invoke(t, a, b));
+    }
+    
+    /// <summary>
+    /// Gets or sets the source code of the script. This may not be immediately set when the user types text into the UI
+    /// </summary>
+    public string SourceCode {
+        get => this.sourceCode;
         set {
-            ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-            this.CheckNotRunning("Cannot change dedicated connection while running");
-            PropertyHelper.SetAndRaiseINE(ref this.dedicatedConnection, value, this, static (t, a, b) => t.DedicatedConnectionChanged?.Invoke(t, a, b));
+            ArgumentNullException.ThrowIfNull(value);
+            
+            string oldValue = this.sourceCode;
+            if (!ReferenceEquals(oldValue, value) /* we don't really care about true equality */) {
+                this.myChunk = null;
+                this.sourceCode = value;
+                this.SourceCodeChanged?.Invoke(this, oldValue, value);
+                this.HasUnsavedChanges = true;
+            }
         }
     }
 
@@ -103,11 +127,6 @@ public class Script : IComponentManager, IUserLocalContext {
     public BusyLock BusyLock { get; } = new BusyLock();
 
     /// <summary>
-    /// Gets the source code for this script. Null when unloaded, empty when just empty
-    /// </summary>
-    public string? SourceCode { get; private set; }
-
-    /// <summary>
     /// Gets the scripting manager that this script exists in
     /// </summary>
     public ScriptingManager? Manager => this.myManager;
@@ -115,7 +134,7 @@ public class Script : IComponentManager, IUserLocalContext {
     /// <summary>
     /// Gets the task that represents the script. Returns <see cref="Task.CompletedTask"/> when the script is not running.
     /// </summary>
-    public Task ScriptTask => this.myDelegateTcs?.Task ?? Task.CompletedTask;
+    public Task ScriptTask => this.myRunningTcs?.Task ?? Task.CompletedTask;
 
     /// <summary>
     /// Gets the observable list of console lines. Has a limit of 500 lines
@@ -126,7 +145,9 @@ public class Script : IComponentManager, IUserLocalContext {
     public event ScriptEventHandler? IsRunningChanged;
     public event ScriptEventHandler? IsTryingToStopChanged;
     public event ScriptEventHandler? HasUnsavedChangesChanged;
+    public event ScriptEventHandler? ClearConsoleOnRunChanged;
     public event ScriptDedicatedConnectionChangedEventHandler? DedicatedConnectionChanged;
+    public event ScriptSourceCodeChangedEventHandler? SourceCodeChanged;
 
     private readonly Lock consoleQueueLock = new Lock();
     private readonly List<string> queuedLines = new List<string>();
@@ -152,12 +173,6 @@ public class Script : IComponentManager, IUserLocalContext {
         this.rldaPrintToConsole.DebugName = "Lua Print to Console";
     }
 
-    public void SetSourceCode(string? sourceCode) {
-        this.myChunk = null;
-        this.SourceCode = sourceCode;
-        this.HasUnsavedChanges = true;
-    }
-
     /// <summary>
     /// Requests the script to stop
     /// </summary>
@@ -179,12 +194,13 @@ public class Script : IComponentManager, IUserLocalContext {
         Debug.Assert((this.IsRunning && this.myLuaScript != null) || (!this.IsRunning && this.myLuaScript == null));
         this.CheckNotRunning();
         if (this.myChunk == null) {
+            string code = this.SourceCode;
             using CancellationTokenSource cts = new CancellationTokenSource();
             Result<Chunk> result = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask activity = ActivityTask.Current;
                 activity.Progress.SetCaptionAndText("Compile Lua");
                 activity.Progress.IsIndeterminate = true;
-                return CompileSource(this.SourceCode ?? "", activity.Progress, activity.CancellationToken);
+                return CompileSource(code, this.name ?? "Script", activity.Progress, activity.CancellationToken);
             }, cts);
 
             this.myChunk = result.GetValueOrDefault();
@@ -193,26 +209,32 @@ public class Script : IComponentManager, IUserLocalContext {
             }
         }
 
-        this.ConsoleLines.Clear();
-        this.myDelegateTcs = new TaskCompletionSource();
+        if (this.ClearConsoleOnRun)
+            this.ConsoleLines.Clear();
+
+        this.myRunningTcs = new TaskCompletionSource();
         this.myLuaScript = new LuaScriptMachine(this, this.myChunk);
         this.myLuaScript.LinePrinted += this.OnLuaLinePrinted;
-        this.IsRunning = true;
+        this.myLuaScript.Start();
+        this.IsRunningChanged?.Invoke(this);
         return Result.Success;
     }
 
-    private void OnLuaThreadFinished() {
+    private void OnLuaScriptCompleted() {
         Task<LuaValue[]> task = this.myLuaScript!.CompletionTask;
         try {
             LuaValue[] values = task.GetAwaiter().GetResult();
             if (values.Length > 0) {
-                foreach (LuaValue value in values) {
-                    this.myLuaScript!.Print(value + Environment.NewLine);
-                }
+                this.myLuaScript!.Print(string.Join(", ", values));
             }
         }
         catch (OperationCanceledException) {
             // ignored
+        }
+        catch (LuaRuntimeException ex) {
+            string message = ex.Message;
+            string traceback = ex.LuaTraceback.StackFrames.Length > 0 ? ex.LuaTraceback.ToString() : "";
+            this.myLuaScript!.Print(message + (string.IsNullOrEmpty(traceback) ? "" : Environment.NewLine + traceback));
         }
         catch (Exception ex) {
             this.myLuaScript!.Print(ex.ToString());
@@ -220,13 +242,18 @@ public class Script : IComponentManager, IUserLocalContext {
 
         this.myLuaScript = null;
         this.IsTryingToStop = false;
-        this.IsRunning = false;
-        this.myDelegateTcs!.SetResult();
-        this.myDelegateTcs = null;
+        this.myRunningTcs!.SetResult(); // notify continuations
+        this.myRunningTcs = null;
+        this.IsRunningChanged?.Invoke(this);
     }
 
     private void OnLuaLinePrinted(string obj) {
         lock (this.consoleQueueLock) {
+            if (this.queuedLines.Count > 500) {
+                // remove some lines. Lost data, but it's not like they'll see it anyway
+                this.queuedLines.RemoveRange(0, 200);
+            }
+            
             this.queuedLines.Add(obj);
             this.rldaPrintToConsole.InvokeAsync();
         }
@@ -238,19 +265,18 @@ public class Script : IComponentManager, IUserLocalContext {
     }
 
     // Invoked when lua thread starts
-    internal static void InternalOnLuaStarting(Script script) {
-        // ApplicationPFX.Instance.Dispatcher.Post(static s => ((Script) s!).IsRunning = true, script, DispatchPriority.Normal);
+    internal static void InternalOnLuaMachineStarting(Script script) {
     }
 
     // Invoked when lua machine is fully booted and about to start running code.
     // May not be called if the user somehow manages to stop the script so quickly that
     // it never fully boots up.
-    internal static void InternalOnLuaRunning(Script script) {
+    internal static void InternalOnLuaMachineRunning(Script script) {
     }
 
-    // Invoked when the lua thread is about to exit. The exception will originate from the lua machine
-    internal static void InternalOnStopped(Script script) {
-        ApplicationPFX.Instance.Dispatcher.Post((t) => ((Script) t!).OnLuaThreadFinished(), script, DispatchPriority.Send);
+    // Invoked when the lua thread is about to exit.
+    internal static void InternalOnLuaMachineStopped(Script script) {
+        ApplicationPFX.Instance.Dispatcher.Post(t => ((Script) t!).OnLuaScriptCompleted(), script, DispatchPriority.Send);
     }
 
     /// <summary>
@@ -260,7 +286,7 @@ public class Script : IComponentManager, IUserLocalContext {
     /// <param name="progress">Optional compilation progress</param>
     /// <param name="cancellationToken">Cancel the compilation process</param>
     /// <returns>The compiled chunk</returns>
-    public static async Task<Chunk> CompileSource(string source, IActivityProgress? progress, CancellationToken cancellationToken) {
+    public static async Task<Chunk> CompileSource(string source, string chunkName, IActivityProgress? progress, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         TaskCompletionSource<Chunk> tcs = new TaskCompletionSource<Chunk>();
         Thread threadParseAndCompile = new Thread(() => {
@@ -270,13 +296,12 @@ public class Script : IComponentManager, IUserLocalContext {
                 if (progress != null)
                     progress.Text = "[Lexer] Parsing...";
 
-                const string ChunkName = "Source_Code";
                 Lexer lexer = new Lexer() {
                     Source = source.AsMemory(),
-                    ChunkName = ChunkName
+                    ChunkName = chunkName
                 };
 
-                Parser parser = new Parser() { ChunkName = ChunkName };
+                Parser parser = new Parser() { ChunkName = chunkName };
                 while (lexer.MoveNext()) {
                     cancellationToken.ThrowIfCancellationRequested();
                     parser.Add(lexer.Current);
@@ -286,7 +311,7 @@ public class Script : IComponentManager, IUserLocalContext {
                     progress.Text = "Creating syntax tree...";
 
                 LuaSyntaxTree syntaxTree = parser.Parse();
-                Chunk compilationResult = LuaCompiler.Default.Compile(syntaxTree, ChunkName);
+                Chunk compilationResult = LuaCompiler.Default.Compile(syntaxTree, chunkName);
                 tcs.TrySetResult(compilationResult);
                 hasResult = true;
             }

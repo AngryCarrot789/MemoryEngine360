@@ -28,6 +28,8 @@ using PFXToolKitUI.Utils.Collections.Observable;
 namespace MemEngine360.Scripting;
 
 public class ScriptingManager : IComponentManager, IUserLocalContext {
+    public static readonly DataKey<ScriptingManager> DataKey = DataKeys.Create<ScriptingManager>(nameof(ScriptingManager));
+    
     private readonly ComponentStorage componentStorage;
     ComponentStorage IComponentManager.ComponentStorage => this.componentStorage;
 
@@ -95,7 +97,7 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
                             "    end\n" +
                             "end";
 
-        this.Scripts[0].SetSourceCode(text);
+        this.Scripts[0].SourceCode = text;
         // this.Scripts[0].SetSourceCode("print(\"hello!\")" + Environment.NewLine +
         //                               "sleep(2)" + Environment.NewLine +
         //                               "print(\"slept.\")");

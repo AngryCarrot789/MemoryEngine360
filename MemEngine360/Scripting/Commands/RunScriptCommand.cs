@@ -40,7 +40,8 @@ public class RunScriptCommand : Command {
         }
 
         if (script.IsRunning) {
-            await IMessageDialogService.Instance.ShowMessage("Script is running", "The script already running", defaultButton: MessageBoxResult.OK);
+            if (e.Shortcut == null)
+                await IMessageDialogService.Instance.ShowMessage("Script is running", "The script already running", defaultButton: MessageBoxResult.OK);
             return;
         }
 
@@ -48,10 +49,17 @@ public class RunScriptCommand : Command {
         // if (await RunSequenceCommand.HandleConnectionErrors(connection, false)) {
         //     return;
         // }
-
+        
+        ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
         Result result = await script.StartCommand();
         if (result.HasException) {
             await IMessageDialogService.Instance.ShowMessage("Script", "Script compiling failed: " + result.Exception!.Message, defaultButton: MessageBoxResult.OK);
         }
+    }
+
+    protected override Task OnAlreadyExecuting(CommandEventArgs args) {
+        return args.Shortcut != null 
+            ? Task.CompletedTask // do not show already running message when activated on shortcut 
+            : base.OnAlreadyExecuting(args);
     }
 }

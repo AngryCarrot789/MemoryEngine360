@@ -404,7 +404,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
 
     private void OnValidRangesChanged(IObservableULongRangeUnion sender, IList<ULongRange> added, IList<ULongRange> removed) {
         ApplicationPFX.Instance.Dispatcher.Post(() => {
-            ULongRange range = ULongRange.FromLength(this.SelectionRange.Start.ByteIndex, 8);
+            ULongRange range = ULongRange.FromStartAndLength(this.SelectionRange.Start.ByteIndex, 8);
             // ignore removed ranges to maintain previous data in the inspector
             if (added.Any(x => x.Overlaps(range))) {
                 this.PART_Inspector.UpdateFields();

@@ -23,12 +23,11 @@ using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Scripting;
 
-public delegate void ScriptingManagerViewStateScriptEventHandler(ScriptingManagerViewState sender, Script script);
 public delegate void ScriptingManagerViewStateSelectedScriptChangedEventHandler(ScriptingManagerViewState sender, Script? oldSelectedScript, Script? newSelectedScript);
 
 public class ScriptingManagerViewState {
     private Script? selectedScript;
-    
+
     /// <summary>
     /// Gets the task sequence manager for this state
     /// </summary>
@@ -43,7 +42,7 @@ public class ScriptingManagerViewState {
     }
 
     public event ScriptingManagerViewStateSelectedScriptChangedEventHandler? SelectedScriptChanged;
-    
+
     private ScriptingManagerViewState(ScriptingManager ScriptingManager) {
         this.ScriptingManager = ScriptingManager;
         this.ScriptingManager.Scripts.BeforeItemsRemoved += this.SourceListBeforeItemsRemoved;
@@ -54,11 +53,29 @@ public class ScriptingManagerViewState {
     }
 
     private void SourceListBeforeItemsRemoved(IObservableList<Script> observableList, int index, int count) {
-        this.SelectedScript = null;
+        if (observableList.Count - count == 0) {
+            this.SelectedScript = null;
+            return;
+        }
+
+        for (int i = 0; i < count; i++) {
+            if (observableList[index + i] == this.SelectedScript) {
+                this.SelectedScript = index > 0
+                    ? observableList[index - 1]
+                    : observableList[index + count];
+                return;
+            }
+        }
     }
 
     private void SourceListBeforeItemReplaced(IObservableList<Script> observableList, int index, Script oldItem, Script newItem) {
-        this.SelectedScript = null;
+        if (this.SelectedScript == oldItem) {
+            this.SelectedScript = index > 0
+                ? observableList[index - 1]
+                : observableList.Count != 1
+                    ? observableList[index + 1]
+                    : null;
+        }
     }
 
     public static ScriptingManagerViewState GetInstance(ScriptingManager manager) {

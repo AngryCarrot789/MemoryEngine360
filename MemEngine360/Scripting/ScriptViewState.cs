@@ -18,38 +18,34 @@
 // 
 
 using PFXToolKitUI.Composition;
-using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Scripting;
 
 public delegate void ScriptViewStateEventHandler(ScriptViewState sender);
 
 public class ScriptViewState {
-    private string scriptText;
-
     /// <summary>
     /// Gets the task sequence manager for this state
     /// </summary>
     public Script Script { get; }
-
-    public string ScriptText {
-        get => this.scriptText;
-        set {
-            ArgumentNullException.ThrowIfNull(value);
-            PropertyHelper.SetAndRaiseINE(ref this.scriptText, value, this, static t => {
-                t.ScriptTextChanged?.Invoke(t);
-                t.Script.SetSourceCode(t.ScriptText);
-            });
-        }
-    }
-
-    public event ScriptViewStateEventHandler? ScriptTextChanged;
+    
+    // Workaround for the fact AvaloniaEdit has no "core" project libraries, so we cannot access
+    // TextDocument. Maybe we should just do without core projects deliberately not referencing avalonia...
+    
+    // The current impl uses a DataKey<TextDocument> to store the document itself in the script, lazily created,
+    // and then simply writes the document text into the script source code
+    
+    /// <summary>
+    /// Requests the UI to flush the code editor to the script's <see cref="Scripting.Script.SourceCode"/>
+    /// </summary>
+    public event ScriptViewStateEventHandler? FlushEditorToScript;
 
     private ScriptViewState(Script script) {
         this.Script = script;
-        this.scriptText = script.SourceCode ?? "";
     }
 
+    public void RaiseFlushEditorToScript() => this.FlushEditorToScript?.Invoke(this);
+    
     public static ScriptViewState GetInstance(Script manager) {
         return ((IComponentManager) manager).GetOrCreateComponent((t) => new ScriptViewState((Script) t));
     }

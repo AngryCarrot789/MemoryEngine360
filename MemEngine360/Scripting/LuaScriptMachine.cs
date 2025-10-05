@@ -17,7 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 using System.Globalization;
 using Lua;
 using Lua.Runtime;
@@ -36,6 +36,7 @@ public sealed class LuaScriptMachine {
     private CancellationTokenSource? killCts;
     private readonly TaskCompletionSource<LuaValue[]> tcsCompletion;
     private LuaState? luaState;
+    private int state;
 
     /// <summary>
     /// Gets the cancellation token that becomes cancelled when stopping the script is requested
@@ -65,10 +66,13 @@ public sealed class LuaScriptMachine {
         this.tcsCompletion = new TaskCompletionSource<LuaValue[]>();
         this.CancellationToken = this.initialCts.Token;
         this.KillCancellationToken = this.killCts.Token;
-        Task.Run(this.RunLuaMachine);
+    }
 
-        // this.thread = new Thread(static t => ((ThreadedLuaScript) t!).ScriptMain());
-        // this.thread.Start(this);
+    public void Start() {
+        if (Interlocked.CompareExchange(ref this.state, 1, 0) != 0)
+            throw new InvalidOperationException("Already started");
+
+        Task.Run(this.RunLuaMachine, CancellationToken.None);
     }
 
     /// <summary>
@@ -82,7 +86,10 @@ public sealed class LuaScriptMachine {
     }
 
     private async Task RunLuaMachine() {
-        Script.InternalOnLuaStarting(this.ownerScript);
+        Debug.Assert(this.state == 1);
+        this.state = 2;
+        
+        Script.InternalOnLuaMachineStarting(this.ownerScript);
 
         try {
             this.CancellationToken.ThrowIfCancellationRequested();
@@ -99,7 +106,7 @@ public sealed class LuaScriptMachine {
             this.OpenConnectionLibrary(this.luaState);
             this.CancellationToken.ThrowIfCancellationRequested();
 
-            Script.InternalOnLuaRunning(this.ownerScript);
+            Script.InternalOnLuaMachineRunning(this.ownerScript);
             LuaValue[] values = new LuaValue[1024];
 
             Task<int> op = this.luaState!.RunAsync(this.sourceChunk, values, this.CancellationToken).AsTask();
@@ -121,10 +128,11 @@ public sealed class LuaScriptMachine {
             this.tcsCompletion.SetException(e);
         }
         finally {
+            this.state = 3;
             this.luaState = null;
             Interlocked.Exchange(ref this.initialCts, null)?.Dispose();
             Interlocked.Exchange(ref this.killCts, null)?.Dispose();
-            Script.InternalOnStopped(this.ownerScript);
+            Script.InternalOnLuaMachineStopped(this.ownerScript);
         }
     }
 
@@ -202,7 +210,7 @@ public sealed class LuaScriptMachine {
         DataType dataType = GetDataTypeFromString(ref context, context.GetArgument<string>(1));
         IConsoleConnection? conn = this.ownerScript.DedicatedConnection;
         if (conn == null || conn.IsClosed) {
-            throw InvalidOperation(context, "Connection disconnected.");
+            throw InvalidOperation(context, "Not connected to console");
         }
 
         using IDisposable? token = await this.ownerScript.BusyLock.BeginBusyOperationAsync(ct);
@@ -263,7 +271,7 @@ public sealed class LuaScriptMachine {
 
         IConsoleConnection? conn = this.ownerScript.DedicatedConnection;
         if (conn == null || conn.IsClosed) {
-            throw InvalidOperation(context, "Connection disconnected.");
+            throw InvalidOperation(context, "Not connected to console");
         }
 
         using IDisposable? token = await this.ownerScript.BusyLock.BeginBusyOperationAsync(ct);

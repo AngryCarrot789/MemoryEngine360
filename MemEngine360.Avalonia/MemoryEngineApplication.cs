@@ -213,6 +213,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         
         // scripting
         manager.Register("commands.scripting.ShowScriptingWindowCommand", new ShowScriptingWindowCommand());
+        manager.Register("commands.scripting.AddNewScriptCommand", new AddNewScriptCommand());
+        manager.Register("commands.scripting.RenameScriptCommand", new RenameScriptCommand());
         manager.Register("commands.scripting.RunScriptCommand", new RunScriptCommand());
         manager.Register("commands.scripting.StopScriptCommand", new StopScriptCommand());
         manager.Register("commands.scripting.CloseScriptCommand", new CloseScriptCommand());
