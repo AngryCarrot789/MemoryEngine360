@@ -38,9 +38,8 @@ public class AddNewScriptCommand : Command {
         }
 
         ObservableList<Script> scripts = manager.Scripts;
-        Script script = new Script() {
-            Name = TextIncrement.GetIncrementableString(x => scripts.All(y => y.Name != x), "New Script", out string? output, true) ? output : "New Script"
-        };
+        Script script = new Script();
+        script.SetCustomNameWithoutPath(TextIncrement.GetIncrementableString(x => scripts.All(y => y.Name != x), "New Script", out string? output, true) ? output : "New Script");
         
         ScriptingManagerViewState state = ScriptingManagerViewState.GetInstance(manager);
         scripts.Add(script);

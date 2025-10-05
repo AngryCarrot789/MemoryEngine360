@@ -18,9 +18,7 @@
 // 
 
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Scripting.Commands;
 
@@ -42,25 +40,13 @@ public class CloseScriptCommand : Command {
             return;
         }
 
+        ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
         if (script.HasUnsavedChanges) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Unsaved changes", "You still have saved changes. Do you want to save to a file?", MessageBoxButton.YesNoCancel, MessageBoxResult.Yes);
             if (result == MessageBoxResult.Yes) {
-                string? path = await IFilePickDialogService.Instance.SaveFile("Save script", [Filters.Lua, Filters.All]);
-                if (path == null) {
+                if (!await SaveScriptCommand.SaveScriptAsync(script, false)) {
                     return;
                 }
-
-                ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
-                
-                try {
-                    await File.WriteAllTextAsync(path, script.SourceCode);
-                }
-                catch (Exception ex) {
-                    await IMessageDialogService.Instance.ShowMessage("File Error", "Error saving contents to path", ex.Message);
-                }
-
-                // Mark just because why not
-                script.HasUnsavedChanges = false;
             }
             else if (result != MessageBoxResult.No) {
                 return; // user clicked cancel or closed dialog

@@ -44,17 +44,9 @@ public class RunScriptCommand : Command {
                 await IMessageDialogService.Instance.ShowMessage("Script is running", "The script already running", defaultButton: MessageBoxResult.OK);
             return;
         }
-
-        // IConsoleConnection? connection = script.DedicatedConnection;
-        // if (await RunSequenceCommand.HandleConnectionErrors(connection, false)) {
-        //     return;
-        // }
         
         ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
-        Result result = await script.StartCommand();
-        if (result.HasException) {
-            await IMessageDialogService.Instance.ShowMessage("Script", "Script compiling failed: " + result.Exception!.Message, defaultButton: MessageBoxResult.OK);
-        }
+        await script.StartCommand();
     }
 
     protected override Task OnAlreadyExecuting(CommandEventArgs args) {

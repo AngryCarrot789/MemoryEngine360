@@ -21,6 +21,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using MemEngine360.Scripting;
+using PFXToolKitUI.Avalonia.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
@@ -35,7 +36,7 @@ public class ScriptTabItem : TabItem {
         set => this.SetValue(ScriptProperty, value);
     }
 
-    private readonly IBinder<Script> nameBinder = new EventUpdateBinder<Script>(nameof(Script.NameChanged), b => ((ScriptTabItem) b.Control).Header = b.Model.Name ?? "(unnammed script)");
+    private readonly IBinder<Script> nameBinder = new MultiEventUpdateBinder<Script>([nameof(Script.FilePathChanged), nameof(Script.HasUnsavedChangesChanged)], b => ((ScriptTabItem) b.Control).Header = (b.Model.Name ?? "(unnammed script)") + (b.Model.HasUnsavedChanges ? "*" : ""));
 
     private Button? PART_CloseTabButton;
 
@@ -54,7 +55,13 @@ public class ScriptTabItem : TabItem {
     }
     
     private void OnScriptChanged(Script? oldValue, Script? newValue) {
+        if (oldValue != null)
+            AdvancedContextMenu.SetContextRegistry(this, null);
+        
         this.nameBinder.SwitchModel(newValue);
         DataManager.GetContextData(this).Set(Script.DataKey, newValue);
+        
+        if (newValue != null)
+            AdvancedContextMenu.SetContextRegistry(this, ScriptTabContextRegistry.Registry);
     }
 }

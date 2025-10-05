@@ -159,6 +159,12 @@
         <Shortcut Name="RunScript" CommandId="commands.scripting.RunScriptCommand">
             <KeyStroke Key="F5"/>
         </Shortcut>
+        <Shortcut Name="SaveScript" CommandId="commands.scripting.SaveScriptCommand">
+            <KeyStroke Mods="CTRL" Key="S"/>
+        </Shortcut>
+        <Shortcut Name="SaveAllScripts" CommandId="commands.scripting.SaveAllScriptsCommand">
+            <KeyStroke Mods="CTRL+SHIFT" Key="S"/>
+        </Shortcut>
         <Shortcut Name="ConnectToConsole" CommandId="commands.scripting.ConnectScriptToConsoleCommand">
             <KeyStroke Mods="CTRL" Key="O"/>
         </Shortcut>

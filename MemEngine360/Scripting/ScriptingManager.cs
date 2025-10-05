@@ -79,9 +79,7 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
             newItem.myManager = this;
         };
 
-        this.Scripts.Add(new Script() {
-            Name = "My Cool Script.lua"
-        });
+        this.Scripts.Add(new Script());
 
         const string text = "-- read BO2 ammo count of primary weapon\n" +
                             "local ammo = engine.readnumber(\"83551E4C\", \"int\")\n" +
@@ -97,6 +95,7 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
                             "    end\n" +
                             "end";
 
+        this.Scripts[0].SetCustomNameWithoutPath("Cool Script.lua");
         this.Scripts[0].SourceCode = text;
         // this.Scripts[0].SetSourceCode("print(\"hello!\")" + Environment.NewLine +
         //                               "sleep(2)" + Environment.NewLine +

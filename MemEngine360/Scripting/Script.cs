@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using Lua;
+using Lua.CodeAnalysis;
 using Lua.CodeAnalysis.Compilation;
 using Lua.CodeAnalysis.Syntax;
 using Lua.Runtime;
@@ -41,11 +42,12 @@ public delegate void ScriptDedicatedConnectionChangedEventHandler(Script sender,
 
 public delegate void ScriptSourceCodeChangedEventHandler(Script sender, string oldSourceCode, string newSourceCode);
 
+public delegate void ScriptCompilationFailureEventHandler(Script sender, string? chunkName, SourcePosition sourcePosition);
+
 public class Script : IComponentManager, IUserLocalContext {
     public static readonly DataKey<Script> DataKey = DataKeys.Create<Script>(nameof(Script));
 
     internal ScriptingManager? myManager;
-    private string? name;
     private bool isTryingToStop;
     private bool hasUnsavedChanges;
     private bool clearConsoleOnRun = true;
@@ -60,12 +62,20 @@ public class Script : IComponentManager, IUserLocalContext {
     public IMutableContextData UserContext { get; } = new ContextData();
 
     /// <summary>
-    /// Gets or sets the name of this script. This is set as the file name of the opened script file
+    /// Gets the name of this script. This is set as the file name of the opened script file, or can be set as custom when no file path is present.
+    /// <para>
+    /// This will either be null or contain actual characters that are not just whitespaces
+    /// </para>
     /// </summary>
-    public string? Name {
-        get => this.name;
-        set => PropertyHelper.SetAndRaiseINE(ref this.name, value, this, static t => t.NameChanged?.Invoke(t));
-    }
+    public string? Name { get; private set; }
+
+    /// <summary>
+    /// Gets the file path for this script.
+    /// <para>
+    /// This will either be null or contain actual characters that are not just whitespaces
+    /// </para>
+    /// </summary>
+    public string? FilePath { get; private set; }
 
     /// <summary>
     /// Gets whether this script is currently running. This checks whether <see cref="ScriptTask"/> is running or not.
@@ -102,7 +112,7 @@ public class Script : IComponentManager, IUserLocalContext {
         get => this.dedicatedConnection;
         set => PropertyHelper.SetAndRaiseINE(ref this.dedicatedConnection, value, this, static (t, a, b) => t.DedicatedConnectionChanged?.Invoke(t, a, b));
     }
-    
+
     /// <summary>
     /// Gets or sets the source code of the script. This may not be immediately set when the user types text into the UI
     /// </summary>
@@ -110,7 +120,7 @@ public class Script : IComponentManager, IUserLocalContext {
         get => this.sourceCode;
         set {
             ArgumentNullException.ThrowIfNull(value);
-            
+
             string oldValue = this.sourceCode;
             if (!ReferenceEquals(oldValue, value) /* we don't really care about true equality */) {
                 this.myChunk = null;
@@ -141,13 +151,18 @@ public class Script : IComponentManager, IUserLocalContext {
     /// </summary>
     public ObservableList<string> ConsoleLines { get; } = new ObservableList<string>();
 
-    public event ScriptEventHandler? NameChanged;
+    /// <summary>
+    /// Fired when <see cref="Name"/> or <see cref="FilePath"/> changes
+    /// </summary>
+    public event ScriptEventHandler? FilePathChanged;
+
     public event ScriptEventHandler? IsRunningChanged;
     public event ScriptEventHandler? IsTryingToStopChanged;
     public event ScriptEventHandler? HasUnsavedChangesChanged;
     public event ScriptEventHandler? ClearConsoleOnRunChanged;
     public event ScriptDedicatedConnectionChangedEventHandler? DedicatedConnectionChanged;
     public event ScriptSourceCodeChangedEventHandler? SourceCodeChanged;
+    public event ScriptCompilationFailureEventHandler? CompilationFailure;
 
     private readonly Lock consoleQueueLock = new Lock();
     private readonly List<string> queuedLines = new List<string>();
@@ -173,6 +188,27 @@ public class Script : IComponentManager, IUserLocalContext {
         this.rldaPrintToConsole.DebugName = "Lua Print to Console";
     }
 
+    public void SetFilePath(string? newFilePath) {
+        if (string.IsNullOrWhiteSpace(newFilePath))
+            newFilePath = null;
+
+        this.Name = Path.GetFileName(newFilePath);
+        if (string.IsNullOrWhiteSpace(this.Name))
+            this.Name = null;
+
+        this.FilePath = newFilePath;
+        this.FilePathChanged?.Invoke(this);
+    }
+
+    public void SetCustomNameWithoutPath(string? customName) {
+        if (string.IsNullOrWhiteSpace(customName))
+            customName = null;
+
+        this.Name = customName;
+        this.FilePath = null;
+        this.FilePathChanged?.Invoke(this);
+    }
+
     /// <summary>
     /// Requests the script to stop
     /// </summary>
@@ -190,9 +226,14 @@ public class Script : IComponentManager, IUserLocalContext {
     /// <summary>
     /// Compiles the source code, if not already compiled, then runs the script in a new thread
     /// </summary>
-    public async Task<Result> StartCommand() {
+    public async Task<bool> StartCommand() {
         Debug.Assert((this.IsRunning && this.myLuaScript != null) || (!this.IsRunning && this.myLuaScript == null));
         this.CheckNotRunning();
+
+        if (this.ClearConsoleOnRun) {
+            this.ConsoleLines.Clear();
+        }
+
         if (this.myChunk == null) {
             string code = this.SourceCode;
             using CancellationTokenSource cts = new CancellationTokenSource();
@@ -200,24 +241,37 @@ public class Script : IComponentManager, IUserLocalContext {
                 ActivityTask activity = ActivityTask.Current;
                 activity.Progress.SetCaptionAndText("Compile Lua");
                 activity.Progress.IsIndeterminate = true;
-                return CompileSource(code, this.name ?? "Script", activity.Progress, activity.CancellationToken);
+                return CompileSource(code, this.Name ?? "Script", activity.Progress, activity.CancellationToken);
             }, cts);
 
             this.myChunk = result.GetValueOrDefault();
             if (this.myChunk == null) {
-                return Result.FromException(result.Exception!);
+                if (result.Exception is OperationCanceledException) {
+                    this.PrintToConsole("Compilation cancelled");
+                }
+                else {
+                    this.PrintToConsole("Failed to compile script");
+                    if (result.Exception is LuaParseException lpe) {
+                        this.PrintToConsole(lpe.Message);
+                        if (lpe.Position is SourcePosition pos) {
+                            this.CompilationFailure?.Invoke(this, lpe.ChunkName, pos);
+                        }
+                    }
+                    else {
+                        this.PrintToConsole(result.Exception!.ToString());
+                    }
+                }
+
+                return false;
             }
         }
-
-        if (this.ClearConsoleOnRun)
-            this.ConsoleLines.Clear();
 
         this.myRunningTcs = new TaskCompletionSource();
         this.myLuaScript = new LuaScriptMachine(this, this.myChunk);
         this.myLuaScript.LinePrinted += this.OnLuaLinePrinted;
         this.myLuaScript.Start();
         this.IsRunningChanged?.Invoke(this);
-        return Result.Success;
+        return true;
     }
 
     private void OnLuaScriptCompleted() {
@@ -253,9 +307,16 @@ public class Script : IComponentManager, IUserLocalContext {
                 // remove some lines. Lost data, but it's not like they'll see it anyway
                 this.queuedLines.RemoveRange(0, 200);
             }
-            
+
             this.queuedLines.Add(obj);
             this.rldaPrintToConsole.InvokeAsync();
+        }
+    }
+
+    public void PrintToConsole(string line) {
+        string[] subLines = line.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
+        foreach (string subLine in subLines) {
+            this.OnLuaLinePrinted(subLine);
         }
     }
 

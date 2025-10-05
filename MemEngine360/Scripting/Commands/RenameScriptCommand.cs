@@ -18,6 +18,7 @@
 // 
 
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Scripting.Commands;
@@ -38,11 +39,38 @@ public class RenameScriptCommand : Command {
 
         ScriptingManagerViewState state = ScriptingManagerViewState.GetInstance(manager);
         Script? script = state.SelectedScript;
-        if (script != null) {
-            SingleUserInputInfo info = new SingleUserInputInfo("Rename script", "What do you want to call it?", script.Name);
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-                script.Name = info.Text;
+        if (script == null) {
+            return;
+        }
+
+        SingleUserInputInfo info = new SingleUserInputInfo("Rename script", script.FilePath != null ? "New file name" : "New name", script.Name) {
+            Validate = args => {
+                if (string.IsNullOrWhiteSpace(args.Input))
+                    args.Errors.Add("File name cannot be an empty string or just whitespaces");
             }
+        };
+
+        if (script.FilePath != null) {
+            info.Footer = "This will also rename the file";
+        }
+
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true || script.Name == info.Text) {
+            return;
+        }
+
+        if (script.FilePath != null) {
+            string? dir = Path.GetDirectoryName(script.FilePath);
+            string newPath = !string.IsNullOrWhiteSpace(dir) ? Path.Join(dir, info.Text) : info.Text;
+            try {
+                File.Move(script.FilePath, newPath);
+                script.SetFilePath(newPath);
+            }
+            catch (Exception ex) {
+                await IMessageDialogService.Instance.ShowMessage("File Error", $"Error moving file to {newPath}{Environment.NewLine}{Environment.NewLine}: {ex.Message}", defaultButton: MessageBoxResult.OK);
+            }
+        }
+        else {
+            script.SetCustomNameWithoutPath(info.Text);
         }
     }
 }
