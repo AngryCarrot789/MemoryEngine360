@@ -327,18 +327,19 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             throw new ArgumentOutOfRangeException(nameof(offset), offset, "Value must be within the bounds of the array");
         if (count < 0)
             throw new ArgumentOutOfRangeException(nameof(offset), offset, "Count cannot be negative");
-        if (count == 0)
-            return;
-
+        
+        // Check+Obtain token before checking if count is zero, to maintain fail-fast behaviour
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        try {
-            await this.WriteBytesCore(address, buffer, offset, count).ConfigureAwait(false);
-        }
-        catch (Exception e) when (e is TimeoutException || e is IOException) {
-            this.Close();
-            throw;
+        if (count > 0) {
+            try {
+                await this.WriteBytesCore(address, buffer, offset, count).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is TimeoutException || e is IOException) {
+                this.Close();
+                throw;
+            }
         }
     }
 
@@ -347,13 +348,14 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
         if (offset < 0)
             throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
-        if (count == 0)
-            return;
-
+        
+        // Check+Obtain token before checking if count is zero, to maintain fail-fast behaviour
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        await this.WriteBytesInChunksUnderBusyLock(address, buffer, offset, count, chunkSize, completion, cancellationToken).ConfigureAwait(false);
+        if (count > 0) {
+            await this.WriteBytesInChunksUnderBusyLock(address, buffer, offset, count, chunkSize, completion, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public async Task WriteByte(uint address, byte value) {
@@ -437,9 +439,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
                 if (reverse)
                     span.Reverse();
 
-                BinaryPrimitives.ReadInt32LittleEndian(span);
-
-                uint deref = Unsafe.ReadUnaligned<uint>(ref span.GetPinnableReference());
+                uint deref = Unsafe.ReadUnaligned<uint>(ref MemoryMarshal.GetReference(span));
                 address = Math.Max((long) deref + offset, 0);
                 if (address <= 0 || address > uint.MaxValue) {
                     return null;

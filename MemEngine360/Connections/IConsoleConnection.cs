@@ -151,6 +151,7 @@ public interface IConsoleConnection {
     /// <param name="address">The address to read from</param>
     /// <param name="count">The number of chars to read</param>
     /// <param name="removeNull">Removes null characters</param>
+    /// <exception cref="ArgumentOutOfRangeException">Count is negative</exception>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
     Task<string> ReadStringASCII(uint address, int count, bool removeNull = true);
@@ -254,6 +255,7 @@ public interface IConsoleConnection {
     /// </summary>
     /// <param name="address">The address to write to</param>
     /// <param name="value">The string value to write</param>
+    /// <exception cref="ArgumentNullException">Value is null</exception>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
     Task WriteString(uint address, string value);
