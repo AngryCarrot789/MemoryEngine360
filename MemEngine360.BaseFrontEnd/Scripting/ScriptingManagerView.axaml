@@ -11,6 +11,7 @@
              xmlns:me360="clr-namespace:MemEngine360;assembly=MemEngine360"
              xmlns:attached="clr-namespace:PFXToolKitUI.Avalonia.Themes.Attached;assembly=PFXToolKitUI.Avalonia"
              xmlns:ae="https://github.com/avaloniaui/avaloniaedit"
+             xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MemEngine360.BaseFrontEnd.Scripting.ScriptingManagerView">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
@@ -34,6 +35,7 @@
                         <Setter Property="Padding" Value="8,4,8,4"/>
                         <Setter Property="HorizontalContentAlignment" Value="Left"/>
                         <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                        <Setter Property="avalonia:UIInputManager.FocusPath" Value="ScriptingWindow/Tab"/>
                         <Setter Property="Template">
                             <ControlTemplate>
                                 <Grid x:Name="templateRoot">
@@ -85,7 +87,8 @@
                     </ControlTheme>
                 </local:ScriptTabControl.ItemContainerTheme>
             </local:ScriptTabControl>
-            <Border Background="Transparent" x:Name="PART_ScriptPanel">
+            <Border Background="Transparent" x:Name="PART_ScriptPanel"
+                    avalonia:UIInputManager.FocusPath="ScriptingWindow/ContentPanel">
                 <DockPanel>
                     <Border DockPanel.Dock="Bottom" Height="23" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0">
                         <DockPanel HorizontalSpacing="1" Margin="2,0">
@@ -151,8 +154,10 @@
                         <ae:TextEditor Grid.Row="0" x:Name="PART_CodeEditor"
                                        ShowLineNumbers="True"
                                        FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
-                                       BorderThickness="0"/>
-                        <ListBox Grid.Row="2" x:Name="PART_ConsoleTextList" BorderThickness="0" FontFamily="Consolas,Cascadia Code,Menlo,Monospace">
+                                       BorderThickness="0"
+                                       avalonia:UIInputManager.FocusPath="ScriptingWindow/ContentPanel/CodeEditor"/>
+                        <ListBox Grid.Row="2" x:Name="PART_ConsoleTextList" BorderThickness="0" FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
+                                 avalonia:UIInputManager.FocusPath="ScriptingWindow/ContentPanel/Console">
                             <ListBox.ItemContainerTheme>
                                 <ControlTheme TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                                     <Setter Property="BorderThickness" Value="0"/>

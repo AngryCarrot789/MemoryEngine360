@@ -35,7 +35,7 @@ public sealed class LuaEngineFunctions {
     }
 
     public void Install(LuaState state) {
-        LuaTable luaTable = new LuaTable(0, 12);
+        LuaTable luaTable = new LuaTable(0, 14);
         AssignFunction(luaTable, new LuaFunction("readnumber", this.ReadNumber));
         AssignFunction(luaTable, new LuaFunction("writenumber", this.WriteNumber));
         AssignFunction(luaTable, new LuaFunction("readstring", this.ReadString));

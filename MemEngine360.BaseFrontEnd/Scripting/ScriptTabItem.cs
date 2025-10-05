@@ -20,6 +20,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using MemEngine360.Scripting;
 using PFXToolKitUI.Avalonia.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
@@ -46,6 +47,14 @@ public class ScriptTabItem : TabItem {
 
     static ScriptTabItem() {
         ScriptProperty.Changed.AddClassHandler<ScriptTabItem, Script?>((s, e) => s.OnScriptChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e) {
+        base.OnPointerPressed(e);
+        if (e.GetCurrentPoint(this).Properties.PointerUpdateKind == PointerUpdateKind.MiddleButtonPressed) {
+            e.Handled = true;
+            ((DataManagerCommandWrapper?) this.PART_CloseTabButton?.Command)?.Execute(null);
+        }
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
