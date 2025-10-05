@@ -18,22 +18,20 @@
 // 
 
 using System.Globalization;
-using System.Security.Cryptography.X509Certificates;
 using Lua;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
-using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Scripting;
 
 public sealed class LuaEngineFunctions {
-    private readonly Script script;
+    private readonly LuaScriptMachine machine;
 
-    public LuaEngineFunctions(Script script) {
-        this.script = script;
+    public LuaEngineFunctions(LuaScriptMachine machine) {
+        this.machine = machine;
     }
 
     public void Install(LuaState state) {
@@ -61,12 +59,12 @@ public sealed class LuaEngineFunctions {
     public async ValueTask<int> ReadNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
         uint address = GetAddressFromValue(ref context, context.GetArgument(0));
         DataType dataType = GetDataTypeFromString(ref context, context.GetArgument<string>(1));
-        IConsoleConnection? conn = this.script.DedicatedConnection;
+        IConsoleConnection? conn = this.machine.Connection;
         if (conn == null || conn.IsClosed) {
             throw InvalidOperation(context, "Not connected to console");
         }
 
-        using IDisposable? token = await this.script.BusyLock.BeginBusyOperationAsync(ct);
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw InvalidOperation(context, "Failed to obtain network busy token");
@@ -122,12 +120,12 @@ public sealed class LuaEngineFunctions {
             default:              throw new ArgumentOutOfRangeException();
         }
 
-        IConsoleConnection? conn = this.script.DedicatedConnection;
+        IConsoleConnection? conn = this.machine.Connection;
         if (conn == null || conn.IsClosed) {
             throw InvalidOperation(context, "Not connected to console");
         }
 
-        using IDisposable? token = await this.script.BusyLock.BeginBusyOperationAsync(ct);
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw InvalidOperation(context, "Failed to obtain network busy token");
@@ -148,18 +146,19 @@ public sealed class LuaEngineFunctions {
             return 1;
         }
 
-        IConsoleConnection? conn = this.script.DedicatedConnection;
+        IConsoleConnection? conn = this.machine.Connection;
         if (conn == null || conn.IsClosed) {
             throw InvalidOperation(context, "Not connected to console");
         }
 
-        using IDisposable? token = await this.script.BusyLock.BeginBusyOperationAsync(ct);
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw InvalidOperation(context, "Failed to obtain network busy token");
         }
 
-        buffer.Span[0] = (LuaValue) await conn.ReadStringASCII(address, count, removeNull: true);
+        string result = await conn.ReadStringASCII(address, count, removeNull: true);
+        buffer.Span[0] = (LuaValue) result;
         return 1;
     }
 
@@ -170,12 +169,12 @@ public sealed class LuaEngineFunctions {
             return 0; // no point in writing "", since nothing would change
         }
 
-        IConsoleConnection? conn = this.script.DedicatedConnection;
+        IConsoleConnection? conn = this.machine.Connection;
         if (conn == null || conn.IsClosed) {
             throw InvalidOperation(context, "Not connected to console");
         }
 
-        using IDisposable? token = await this.script.BusyLock.BeginBusyOperationAsync(ct);
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw InvalidOperation(context, "Failed to obtain network busy token");
@@ -187,7 +186,7 @@ public sealed class LuaEngineFunctions {
 
     public async ValueTask<int> SetIsFrozen(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
         bool freeze = context.GetArgument<bool>(0);
-        IConsoleConnection? conn = this.script.DedicatedConnection;
+        IConsoleConnection? conn = this.machine.Connection;
         if (conn == null || conn.IsClosed) {
             throw InvalidOperation(context, "Not connected to console");
         }
@@ -196,7 +195,7 @@ public sealed class LuaEngineFunctions {
             throw InvalidOperation(context, "Console does not support freezing and unfreezing");
         }
 
-        using IDisposable? token = await this.script.BusyLock.BeginBusyOperationAsync(ct);
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw InvalidOperation(context, "Failed to obtain network busy token");
@@ -215,7 +214,7 @@ public sealed class LuaEngineFunctions {
     }
 
     public async ValueTask<int> GetIsFrozen(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        IConsoleConnection? conn = this.script.DedicatedConnection;
+        IConsoleConnection? conn = this.machine.Connection;
         if (conn == null || conn.IsClosed) {
             throw InvalidOperation(context, "Not connected to console");
         }
@@ -224,13 +223,14 @@ public sealed class LuaEngineFunctions {
             throw InvalidOperation(context, "Console does not support querying the frozen state");
         }
 
-        using IDisposable? token = await this.script.BusyLock.BeginBusyOperationAsync(ct);
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw InvalidOperation(context, "Failed to obtain network busy token");
         }
 
-        buffer.Span[0] = await cubes.IsFrozen();
+        bool result = await cubes.IsFrozen();
+        buffer.Span[0] = result;
         return 1;
     }
 
@@ -239,9 +239,9 @@ public sealed class LuaEngineFunctions {
         if (!Enum.TryParse(type, true, out XNotifyLogo logoType)) {
             throw InvalidOperation(context, "Invalid XNotifyLogo: " + type);
         }
-        
+
         string? message = context.HasArgument(1) ? context.GetArgument<string>(1) : null;
-        IConsoleConnection? conn = this.script.DedicatedConnection;
+        IConsoleConnection? conn = this.machine.Connection;
         if (conn == null || conn.IsClosed) {
             throw InvalidOperation(context, "Not connected to console");
         }
@@ -250,7 +250,7 @@ public sealed class LuaEngineFunctions {
             throw InvalidOperation(context, "Connection does not support showing xbox notifications. Is JRPC installed?");
         }
 
-        using IDisposable? token = await this.script.BusyLock.BeginBusyOperationAsync(ct);
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw InvalidOperation(context, "Failed to obtain network busy token");
@@ -259,15 +259,15 @@ public sealed class LuaEngineFunctions {
         await notifications.ShowNotification(logoType, message);
         return 0;
     }
-    
+
     private async ValueTask<int> GetDriveList(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        IConsoleConnection? conn = this.script.DedicatedConnection;
+        IConsoleConnection? conn = this.machine.Connection;
         if (conn == null || conn.IsClosed)
             throw InvalidOperation(context, "Not connected to console");
         if (!conn.TryGetFeature(out IFeatureFileSystemInfo? fsInfo))
             throw InvalidOperation(context, "Connection does not support remote file system interactivity");
 
-        using IDisposable? token = await this.script.BusyLock.BeginBusyOperationAsync(ct);
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw InvalidOperation(context, "Failed to obtain network busy token");
@@ -283,35 +283,36 @@ public sealed class LuaEngineFunctions {
         buffer.Span[0] = table;
         return 1;
     }
-    
+
     private async ValueTask<int> DeleteFileOrFolder(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
         string path = context.GetArgument<string>(0);
-        
-        IConsoleConnection? conn = this.script.DedicatedConnection;
+
+        IConsoleConnection? conn = this.machine.Connection;
         if (conn == null || conn.IsClosed)
             throw InvalidOperation(context, "Not connected to console");
         if (!conn.TryGetFeature(out IFeatureFileSystemInfo? fsInfo))
             throw InvalidOperation(context, "Connection does not support remote file system interactivity");
 
-        using IDisposable? token = await this.script.BusyLock.BeginBusyOperationAsync(ct);
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw InvalidOperation(context, "Failed to obtain network busy token");
         }
 
-        buffer.Span[0] = await fsInfo.DeleteFileSystemEntryRecursive(path);
+        bool result = await fsInfo.DeleteFileSystemEntryRecursive(path);
+        buffer.Span[0] = result;
         return 1;
     }
-    
+
     private async ValueTask<int> LaunchFile(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
         string path = context.GetArgument<string>(0);
-        IConsoleConnection? conn = this.script.DedicatedConnection;
+        IConsoleConnection? conn = this.machine.Connection;
         if (conn == null || conn.IsClosed)
             throw InvalidOperation(context, "Not connected to console");
         if (!conn.TryGetFeature(out IFeatureFileSystemInfo? fsInfo))
             throw InvalidOperation(context, "Connection does not support remote file system interactivity");
 
-        using IDisposable? token = await this.script.BusyLock.BeginBusyOperationAsync(ct);
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw InvalidOperation(context, "Failed to obtain network busy token");
@@ -320,17 +321,17 @@ public sealed class LuaEngineFunctions {
         await fsInfo.LaunchFile(path);
         return 0;
     }
-    
+
     private async ValueTask<int> MoveFile(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
         string oldPath = context.GetArgument<string>(0);
         string newPath = context.GetArgument<string>(1);
-        IConsoleConnection? conn = this.script.DedicatedConnection;
+        IConsoleConnection? conn = this.machine.Connection;
         if (conn == null || conn.IsClosed)
             throw InvalidOperation(context, "Not connected to console");
         if (!conn.TryGetFeature(out IFeatureFileSystemInfo? fsInfo))
             throw InvalidOperation(context, "Connection does not support remote file system interactivity");
 
-        using IDisposable? token = await this.script.BusyLock.BeginBusyOperationAsync(ct);
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw InvalidOperation(context, "Failed to obtain network busy token");
@@ -338,17 +339,17 @@ public sealed class LuaEngineFunctions {
 
         await fsInfo.MoveFile(oldPath, newPath);
         return 0;
-    }    
-    
+    }
+
     private async ValueTask<int> CreateDirectory(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
         string dirPath = context.GetArgument<string>(0);
-        IConsoleConnection? conn = this.script.DedicatedConnection;
+        IConsoleConnection? conn = this.machine.Connection;
         if (conn == null || conn.IsClosed)
             throw InvalidOperation(context, "Not connected to console");
         if (!conn.TryGetFeature(out IFeatureFileSystemInfo? fsInfo))
             throw InvalidOperation(context, "Connection does not support remote file system interactivity");
 
-        using IDisposable? token = await this.script.BusyLock.BeginBusyOperationAsync(ct);
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw InvalidOperation(context, "Failed to obtain network busy token");
@@ -357,7 +358,7 @@ public sealed class LuaEngineFunctions {
         await fsInfo.CreateDirectory(dirPath);
         return 0;
     }
-    
+
     private static LuaRuntimeException InvalidOperation(LuaFunctionExecutionContext ctx, string message) {
         return new LuaRuntimeException(ctx.State.GetTraceback(), message + " | Function = '" + ctx.Thread.GetCurrentFrame().Function.Name + "'");
     }

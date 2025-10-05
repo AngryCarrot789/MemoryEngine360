@@ -19,7 +19,6 @@
 
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Scripting.Commands;
 
@@ -42,6 +41,11 @@ public class RunScriptCommand : Command {
         if (script.IsRunning) {
             if (e.Shortcut == null)
                 await IMessageDialogService.Instance.ShowMessage("Script is running", "The script already running", defaultButton: MessageBoxResult.OK);
+            return;
+        }
+        else if (script.IsCompiling) {
+            if (e.Shortcut == null)
+                await IMessageDialogService.Instance.ShowMessage("Script is compiling", "The script currently compiling. Please wait or cancel the compilation", defaultButton: MessageBoxResult.OK);
             return;
         }
         

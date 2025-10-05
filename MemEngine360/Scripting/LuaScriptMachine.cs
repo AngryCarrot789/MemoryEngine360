@@ -18,14 +18,11 @@
 // 
 
 using System.Diagnostics;
-using System.Globalization;
 using Lua;
 using Lua.Runtime;
 using Lua.Standard;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
-using MemEngine360.Engine.Modes;
-using MemEngine360.ValueAbstraction;
 
 namespace MemEngine360.Scripting;
 
@@ -54,13 +51,25 @@ public sealed class LuaScriptMachine {
     public Task<LuaValue[]> CompletionTask => this.tcsCompletion.Task;
 
     /// <summary>
+    /// Gets the connection this lua machine should use for network operations.
+    /// </summary>
+    public IConsoleConnection? Connection { get; }
+    
+    /// <summary>
+    /// Gets the busy lock this lua machine should use for guarding <see cref="Connection"/> against concurrent network operations
+    /// </summary>
+    public BusyLock BusyLock { get; }
+
+    /// <summary>
     /// An event fired when a line is printed from the lua script. 
     /// </summary>
     public event Action<string>? LinePrinted;
 
-    public LuaScriptMachine(Script script, Chunk sourceChunk) {
-        this.ownerScript = script;
-        this.sourceChunk = sourceChunk;
+    public LuaScriptMachine(Script script, Chunk sourceChunk, IConsoleConnection? connection, BusyLock busyLock) {
+        this.ownerScript = script ?? throw new ArgumentNullException(nameof(script));
+        this.sourceChunk = sourceChunk ?? throw new ArgumentNullException(nameof(sourceChunk));
+        this.BusyLock = busyLock ?? throw new ArgumentNullException(nameof(busyLock));
+        this.Connection = connection;
         this.initialCts = new CancellationTokenSource();
         this.killCts = new CancellationTokenSource();
         this.tcsCompletion = new TaskCompletionSource<LuaValue[]>();
@@ -194,7 +203,7 @@ public sealed class LuaScriptMachine {
     }
 
     private void OpenConnectionLibrary(LuaState theState) {
-        LuaEngineFunctions functions = new LuaEngineFunctions(this.ownerScript);
+        LuaEngineFunctions functions = new LuaEngineFunctions(this);
         functions.Install(theState);
     }
 

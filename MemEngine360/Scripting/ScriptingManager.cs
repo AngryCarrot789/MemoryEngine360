@@ -59,16 +59,21 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
         };
 
         this.Scripts.BeforeItemsRemoved += (list, index, count) => {
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < count; i++) {
                 list[index + i].CheckNotRunning("Cannot remove sequence while it's running");
+                if (list[index + 1].IsCompiling)
+                    Debug.Fail("Script is still compiling but attempted to remove it");
+            }
         };
 
-        this.Scripts.BeforeItemMoved += (list, oldIdx, newIdx, item) => item.CheckNotRunning("Cannot move sequence while it's running");
         this.Scripts.BeforeItemReplace += (list, index, oldItem, newItem) => {
             if (newItem == null)
                 throw new ArgumentNullException(nameof(newItem), "Cannot replace sequence with null");
 
             oldItem.CheckNotRunning("Cannot replace item while it's running");
+            if (oldItem.IsCompiling)
+                Debug.Fail("Script is still compiling but attempted to replace it");
+            
             newItem.CheckNotRunning("Replacement item cannot be running");
         };
 
@@ -80,25 +85,19 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
         };
 
         this.Scripts.Add(new Script());
-
-        const string text = "-- read BO2 ammo count of primary weapon\n" +
-                            "local ammo = engine.readnumber(\"83551E4C\", \"int\")\n" +
-                            "\n" +
-                            "-- add 20 to the primary ammo, slowly\n" +
-                            "local num = 0\n" +
-                            "while true do\n" +
-                            "    num = num + 1\n" +
-                            "    engine.writenumber(\"83551E4C\", \"int\", ammo + num)\n" +
-                            "    sleep(0.1)\n" +
-                            "    if (num == 20) then\n" +
-                            "        return\n" +
-                            "    end\n" +
-                            "end";
-
         this.Scripts[0].SetCustomNameWithoutPath("Cool Script.lua");
-        this.Scripts[0].SourceCode = text;
-        // this.Scripts[0].SetSourceCode("print(\"hello!\")" + Environment.NewLine +
-        //                               "sleep(2)" + Environment.NewLine +
-        //                               "print(\"slept.\")");
+        this.Scripts[0].SourceCode = "-- read BO2 ammo count of primary weapon\n" +
+                                     "local ammo = engine.readnumber(\"83551E50\", \"int\")\n" +
+                                     "\n" +
+                                     "-- add 20 to the primary ammo, slowly\n" +
+                                     "local num = 0\n" +
+                                     "while true do\n" +
+                                     "    num = num + 1\n" +
+                                     "    engine.writenumber(\"83551E50\", \"int\", ammo + num)\n" +
+                                     "    sleep(0.1)\n" +
+                                     "    if (num == 20) then\n" +
+                                     "        return\n" +
+                                     "    end\n" +
+                                     "end";
     }
 }

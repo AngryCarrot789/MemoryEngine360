@@ -17,8 +17,10 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Scripting.Commands;
 
@@ -40,6 +42,29 @@ public class CloseScriptCommand : Command {
             return;
         }
 
+        if (script.IsCompiling) {
+            // Create a CTS that gets cancelled when the compilation finishes, regardless of successful or cancelled
+            using CancellationTokenSource cts = TaskUtils.CreateCompletionSource(script.CompileTask);
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Compiling", "Script is still compiling. Cancel the compilation?", MessageBoxButton.OKCancel, MessageBoxResult.OK, dialogCancellation: cts.Token);
+            if (result != MessageBoxResult.OK && script.IsCompiling) {
+                // In this case, the user either said do not cancel or something caused
+                // the window to close that wasn't the compilation completing (via cts)
+                return;
+            }
+
+            if (script.IsCompiling) {
+                script.RequestCancelCompilation();
+
+                try {
+                    await script.CompileTask;
+                }
+                catch (OperationCanceledException) {
+                    // compilation cancelled
+                }
+            }
+        }
+
+        Debug.Assert(!script.IsCompiling);
         ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
         if (script.HasUnsavedChanges) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Unsaved changes", "You still have saved changes. Do you want to save to a file?", MessageBoxButton.YesNoCancel, MessageBoxResult.Yes);
@@ -55,6 +80,11 @@ public class CloseScriptCommand : Command {
 
         if (script.IsRunning) {
             await IMessageDialogService.Instance.ShowMessage("Unexpected", "Script running again for some reason. Please try again.");
+            return;
+        }
+        
+        if (script.IsCompiling) {
+            await IMessageDialogService.Instance.ShowMessage("Unexpected", "Script compiling again for some reason. Please try again.");
             return;
         }
 

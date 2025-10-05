@@ -137,7 +137,7 @@
                                             cu:CommandUsageManager.UsageClassType="{x:Type cmd:ConnectScriptToConsoleCommandUsage}">
                                 <tt:ToolTipEx.Tip>
                                     <StackPanel Orientation="Horizontal" Spacing="5">
-                                        <TextBlock Text="Connect the script to a console" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Connect using a dedicated connection instead of using the engine's connection" VerticalAlignment="Center"/>
                                         <avc:ShortcutLabel CommandId="commands.scripting.ConnectScriptToConsoleCommand"/>
                                     </StackPanel>
                                 </tt:ToolTipEx.Tip>

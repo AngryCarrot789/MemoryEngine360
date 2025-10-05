@@ -30,6 +30,7 @@ using PFXToolKitUI.Activities;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.RDA;
@@ -53,6 +54,7 @@ public class Script : IComponentManager, IUserLocalContext {
     private bool clearConsoleOnRun = true;
     private IConsoleConnection? dedicatedConnection;
     private string sourceCode = "";
+    private CancellationTokenSource? ctsCompile;
 
     // Lua
     private Chunk? myChunk;
@@ -60,7 +62,7 @@ public class Script : IComponentManager, IUserLocalContext {
     private TaskCompletionSource? myRunningTcs;
 
     public IMutableContextData UserContext { get; } = new ContextData();
-
+    
     /// <summary>
     /// Gets the name of this script. This is set as the file name of the opened script file, or can be set as custom when no file path is present.
     /// <para>
@@ -83,6 +85,11 @@ public class Script : IComponentManager, IUserLocalContext {
     /// will be fired shortly after it actually does change
     /// </summary>
     public bool IsRunning => !this.ScriptTask.IsCompleted;
+
+    /// <summary>
+    /// Gets whether we are currently compiling the lua script. <see cref="IsRunning"/> will not be true at this time.
+    /// </summary>
+    public bool IsCompiling => this.ctsCompile != null;
 
     /// <summary>
     /// Gets whether the user is trying to stop the script from running
@@ -134,7 +141,7 @@ public class Script : IComponentManager, IUserLocalContext {
     /// <summary>
     /// Gets the busy lock used to synchronize access to <see cref="DedicatedConnection"/>
     /// </summary>
-    public BusyLock BusyLock { get; } = new BusyLock();
+    public BusyLock DedicatedBusyLock { get; } = new BusyLock();
 
     /// <summary>
     /// Gets the scripting manager that this script exists in
@@ -150,6 +157,15 @@ public class Script : IComponentManager, IUserLocalContext {
     /// Gets the observable list of console lines. Has a limit of 500 lines
     /// </summary>
     public ObservableList<string> ConsoleLines { get; } = new ObservableList<string>();
+
+    /// <summary>
+    /// Gets the task that represents the compile operation.
+    /// When not compiling, <see cref="CompilationCancellation"/> will be null and this returns a completed task.
+    /// <para>
+    /// This may represent a cancelled task when compilation is cancelled.
+    /// </para>
+    /// </summary>
+    public Task CompileTask { get; private set; }
 
     /// <summary>
     /// Fired when <see cref="Name"/> or <see cref="FilePath"/> changes
@@ -224,50 +240,82 @@ public class Script : IComponentManager, IUserLocalContext {
     }
 
     /// <summary>
+    /// Requests to cancel the current compilation operation. This will most likely make <see cref="StartCommand"/> returns false.
+    /// </summary>
+    public void RequestCancelCompilation() {
+        this.ctsCompile?.Cancel();
+    }
+    
+    /// <summary>
     /// Compiles the source code, if not already compiled, then runs the script in a new thread
     /// </summary>
     public async Task<bool> StartCommand() {
         Debug.Assert((this.IsRunning && this.myLuaScript != null) || (!this.IsRunning && this.myLuaScript == null));
         this.CheckNotRunning();
-
-        if (this.ClearConsoleOnRun) {
+        if (this.Manager == null)
+            throw new InvalidOperationException("Cannot start script not associated with a manager");
+        if (this.ctsCompile != null)
+            throw new InvalidOperationException("Currently compiling");
+        
+        if (this.ClearConsoleOnRun)
             this.ConsoleLines.Clear();
-        }
 
         if (this.myChunk == null) {
             string code = this.SourceCode;
-            using CancellationTokenSource cts = new CancellationTokenSource();
-            Result<Chunk> result = await ActivityManager.Instance.RunTask(() => {
-                ActivityTask activity = ActivityTask.Current;
-                activity.Progress.SetCaptionAndText("Compile Lua");
-                activity.Progress.IsIndeterminate = true;
-                return CompileSource(code, this.Name ?? "Script", activity.Progress, activity.CancellationToken);
-            }, cts);
+            TaskCompletionSource tcs = new TaskCompletionSource();
+            this.ctsCompile = new CancellationTokenSource();
+            this.CompileTask = tcs.Task;
+            
+            try {
+                Result<Chunk> result = await ActivityManager.Instance.RunTask(() => {
+                    ActivityTask activity = ActivityTask.Current;
+                    activity.Progress.SetCaptionAndText("Compile Lua");
+                    activity.Progress.IsIndeterminate = true;
+                    return CompileSource(code, this.Name ?? "Script", activity.Progress, activity.CancellationToken);
+                }, this.ctsCompile);
 
-            this.myChunk = result.GetValueOrDefault();
-            if (this.myChunk == null) {
-                if (result.Exception is OperationCanceledException) {
-                    this.PrintToConsole("Compilation cancelled");
-                }
-                else {
-                    this.PrintToConsole("Failed to compile script");
-                    if (result.Exception is LuaParseException lpe) {
-                        this.PrintToConsole(lpe.Message);
-                        if (lpe.Position is SourcePosition pos) {
-                            this.CompilationFailure?.Invoke(this, lpe.ChunkName, pos);
-                        }
+                this.myChunk = result.GetValueOrDefault();
+                if (this.myChunk == null) {
+                    if (result.Exception is OperationCanceledException) {
+                        this.PrintToConsole("Compilation cancelled");
                     }
                     else {
-                        this.PrintToConsole(result.Exception!.ToString());
+                        this.PrintToConsole("Failed to compile script");
+                        if (result.Exception is LuaParseException lpe) {
+                            this.PrintToConsole(lpe.Message);
+                            if (lpe.Position is SourcePosition pos) {
+                                this.CompilationFailure?.Invoke(this, lpe.ChunkName, pos);
+                            }
+                        }
+                        else {
+                            this.PrintToConsole(result.Exception!.ToString());
+                        }
                     }
-                }
 
+                    return false;
+                }
+            }
+            finally {
+                this.CompileTask = Task.CompletedTask;
+                CancellationTokenSource cts = this.ctsCompile!;
+                this.ctsCompile = null;
+                tcs.SetResult();
+                cts.Dispose();
+            }
+
+            if (this.Manager == null) {
+                AppLogger.Instance.WriteLine("Script was deleted during compilation");
+                Debugger.Break();
                 return false;
             }
         }
 
         this.myRunningTcs = new TaskCompletionSource();
-        this.myLuaScript = new LuaScriptMachine(this, this.myChunk);
+
+        IConsoleConnection? connection = this.dedicatedConnection ?? this.Manager!.MemoryEngine.Connection;
+        BusyLock busyLock = this.dedicatedConnection != null ? this.DedicatedBusyLock : this.Manager!.MemoryEngine.BusyLocker;
+        
+        this.myLuaScript = new LuaScriptMachine(this, this.myChunk, connection, busyLock);
         this.myLuaScript.LinePrinted += this.OnLuaLinePrinted;
         this.myLuaScript.Start();
         this.IsRunningChanged?.Invoke(this);
