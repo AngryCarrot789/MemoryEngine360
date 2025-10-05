@@ -116,6 +116,12 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// Checks whether the path is valid, as in, does not contain invalid characters or is not too long, etc
     /// </summary>
     bool IsPathValid(string path);
+
+    /// <summary>
+    /// Gets the char used to separate path elements. This is <c>\</c> on xbox. On a Unix-based console this will most likely be <c>/</c>
+    /// </summary>
+    /// <returns></returns>
+    char GetPathSeparatorChar();
 }
 
 public struct FileSystemEntry {

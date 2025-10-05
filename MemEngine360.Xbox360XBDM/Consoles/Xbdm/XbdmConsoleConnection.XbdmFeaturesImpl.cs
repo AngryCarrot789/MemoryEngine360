@@ -210,6 +210,10 @@ public partial class XbdmConsoleConnection {
             return true;
         }
 
+        public char GetPathSeparatorChar() {
+            return '\\';
+        }
+
         public Task<string> GetConsoleID() => this.connection.GetConsoleID();
 
         public Task<string> GetDebugName() => this.connection.GetDebugName();

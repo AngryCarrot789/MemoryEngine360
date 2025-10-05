@@ -44,10 +44,12 @@ public sealed class LuaEngineFunctions {
         AssignFunction(luaTable, new LuaFunction("isfrozen", this.GetIsFrozen));
         AssignFunction(luaTable, new LuaFunction("sendnotification", this.SendNotification));
         AssignFunction(luaTable, new LuaFunction("drivelist", this.GetDriveList));
+        AssignFunction(luaTable, new LuaFunction("getfiles", this.GetFileSystemEntries));
         AssignFunction(luaTable, new LuaFunction("deleterecursive", this.DeleteFileOrFolder));
         AssignFunction(luaTable, new LuaFunction("launchfile", this.LaunchFile));
         AssignFunction(luaTable, new LuaFunction("movefile", this.MoveFile));
         AssignFunction(luaTable, new LuaFunction("mkdir", this.CreateDirectory));
+        AssignFunction(luaTable, new LuaFunction("pathseparator", this.GetPathSeparator));
         state.Environment[(LuaValue) "engine"] = (LuaValue) luaTable;
         state.LoadedModules[(LuaValue) "engine"] = (LuaValue) luaTable;
     }
@@ -275,9 +277,59 @@ public sealed class LuaEngineFunctions {
 
         List<DriveEntry> result = await fsInfo.GetDriveList();
 
+        string ch = fsInfo.GetPathSeparatorChar().ToString();
         LuaTable table = new LuaTable(result.Count, 0);
         for (int i = 0; i < result.Count; i++) {
-            table.Insert(i + 1, result[i].Name);
+            string name = result[i].Name;
+            if (!name.EndsWith(ch)) {
+                name += ch;
+            }
+            
+            table.Insert(i + 1, name);
+        }
+
+        buffer.Span[0] = table;
+        return 1;
+    }
+
+    private async ValueTask<int> GetFileSystemEntries(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+        string path = context.GetArgument<string>(0);
+        bool files = context.GetArgument<bool>(1);
+        bool directories = context.GetArgument<bool>(2);
+        if (!files && !directories) {
+            buffer.Span[0] = new LuaTable(0, 0);
+            return 1;
+        }
+
+        IConsoleConnection? conn = this.machine.Connection;
+        if (conn == null || conn.IsClosed)
+            throw InvalidOperation(context, "Not connected to console");
+        if (!conn.TryGetFeature(out IFeatureFileSystemInfo? fsInfo))
+            throw InvalidOperation(context, "Connection does not support remote file system interactivity");
+
+        using IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
+        if (token == null) {
+            ct.ThrowIfCancellationRequested();
+            throw InvalidOperation(context, "Failed to obtain network busy token");
+        }
+
+        List<FileSystemEntry> results = await fsInfo.GetFileSystemEntries(path);
+        int count = files && !directories
+            ? results.Count(x => !x.IsDirectory)
+            : !files && directories
+                ? results.Count(x => x.IsDirectory)
+                : results.Count;
+
+        string ch = fsInfo.GetPathSeparatorChar().ToString();
+        LuaTable table = new LuaTable(count, 0);
+        for (int i = 0; i < results.Count; i++) {
+            FileSystemEntry entry = results[i];
+            string name = entry.Name;
+            if (entry.IsDirectory && !name.EndsWith(ch)) {
+                name += ch;
+            }
+            
+            table.Insert(i + 1, name);
         }
 
         buffer.Span[0] = table;
@@ -357,6 +409,17 @@ public sealed class LuaEngineFunctions {
 
         await fsInfo.CreateDirectory(dirPath);
         return 0;
+    }
+    
+    private ValueTask<int> GetPathSeparator(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+        IConsoleConnection? conn = this.machine.Connection;
+        if (conn == null || conn.IsClosed)
+            throw InvalidOperation(context, "Not connected to console");
+        if (!conn.TryGetFeature(out IFeatureFileSystemInfo? fsInfo))
+            throw InvalidOperation(context, "Connection does not support remote file system interactivity");
+
+        buffer.Span[0] = fsInfo.GetPathSeparatorChar().ToString();
+        return ValueTask.FromResult(1);
     }
 
     private static LuaRuntimeException InvalidOperation(LuaFunctionExecutionContext ctx, string message) {
