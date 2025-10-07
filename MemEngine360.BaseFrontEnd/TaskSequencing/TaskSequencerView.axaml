@@ -1,22 +1,24 @@
 ﻿<UserControl x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.TaskSequencerView"
-                 xmlns="https://github.com/avaloniaui"
-                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                 xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing"
-                 xmlns:act="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:sav="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:cmd="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Commands"
-                 xmlns:ops="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations"
-                 xmlns:ctain="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.Containers"
-                 xmlns:cond="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Conditions"
-                 xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
-                 xmlns:memEngine360="clr-namespace:MemEngine360;assembly=MemEngine360"
-                 xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
-                 mc:Ignorable="d"
-                 d:DesignHeight="400" d:DesignWidth="800">
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing"
+             xmlns:act="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
+             xmlns:sav="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+             xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
+             xmlns:cmd="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Commands"
+             xmlns:ops="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations"
+             xmlns:ctain="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.Containers"
+             xmlns:cond="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Conditions"
+             xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+             xmlns:me360="clr-namespace:MemEngine360;assembly=MemEngine360"
+             xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:attached="clr-namespace:PFXToolKitUI.Avalonia.Themes.Attached;assembly=PFXToolKitUI.Avalonia"
+             xmlns:pfxToolKitUi="clr-namespace:PFXToolKitUI;assembly=PFXToolKitUI"
+             mc:Ignorable="d"
+             d:DesignHeight="400" d:DesignWidth="800">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
         <Grid>
             <Grid.ColumnDefinitions>
@@ -31,9 +33,11 @@
                         sav:UIInputManager.FocusPath="SequencerWindow/SequenceList">
                 <c:GroupBox.Header>
                     <DockPanel HorizontalSpacing="2">
-                        <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                        <avc:IconButton Width="20" Height="20"
+                                        Background="Transparent" BorderThickness="0"
+                                        CornerRadius="2"
                                         DockPanel.Dock="Right"
-                                        Icon="{x:Static memEngine360:SimpleIcons.DeleteAllRowsIcon}"
+                                        Icon="{x:Static me360:SimpleIcons.DeleteAllRowsIcon}"
                                         cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.ClearSequencesCommand">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
@@ -43,9 +47,11 @@
                             </tt:ToolTipEx.Tip>
                         </avc:IconButton>
 
-                        <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                        <avc:IconButton Width="20" Height="20"
+                                        Background="Transparent" BorderThickness="0"
+                                        CornerRadius="2"
                                         DockPanel.Dock="Right"
-                                        Icon="{x:Static memEngine360:SimpleIcons.GreenPlusIcon}"
+                                        Icon="{x:Static pfxToolKitUi:StandardIcons.LargeGreenAddIcon}"
                                         cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.NewSequenceCommand">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
@@ -55,9 +61,11 @@
                             </tt:ToolTipEx.Tip>
                         </avc:IconButton>
 
-                        <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                        <avc:IconButton Width="20" Height="20"
+                                        Background="Transparent" BorderThickness="0"
+                                        CornerRadius="2"
                                         DockPanel.Dock="Right"
-                                        Icon="{x:Static memEngine360:SimpleIcons.ConnectToConsoleIcon}"
+                                        Icon="{x:Static me360:SimpleIcons.ConnectToConsoleIcon}"
                                         cu:CommandUsageManager.UsageClassType="{x:Type cmd:OpenConsoleConnectionInSequencerCommandUsage}">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
@@ -67,9 +75,11 @@
                             </tt:ToolTipEx.Tip>
                         </avc:IconButton>
 
-                        <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                        <avc:IconButton Width="20" Height="20"
+                                        Background="Transparent" BorderThickness="0"
+                                        CornerRadius="2"
                                         DockPanel.Dock="Right"
-                                        Icon="{x:Static memEngine360:SimpleIcons.OpenFileXMLIcon}"
+                                        Icon="{x:Static me360:SimpleIcons.OpenFileXMLIcon}"
                                         cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.OpenTaskSequencesFromFileCommand">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
@@ -78,9 +88,11 @@
                                 </StackPanel>
                             </tt:ToolTipEx.Tip>
                         </avc:IconButton>
-                        <avc:IconButton Padding="2" Width="20" Background="Transparent" BorderThickness="0"
+                        <avc:IconButton Height="20"
+                                        Background="Transparent" BorderThickness="0"
                                         DockPanel.Dock="Right"
-                                        Icon="{x:Static memEngine360:SimpleIcons.SaveFileIcon}"
+                                        Icon="{x:Static me360:SimpleIcons.SaveFileIcon}"
+                                        Content="Save Selection"
                                         cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.SaveTaskSequencesToFileCommand">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
@@ -123,7 +135,7 @@
                                             <DockPanel DockPanel.Dock="Bottom" Margin="2,0">
                                                 <Border x:Name="PART_DragGrip" Background="Transparent" Width="16" DockPanel.Dock="Right"
                                                         tt:ToolTipEx.Tip="Click and drag this grip to move the sequence around.">
-                                                    <avc:IconControl Icon="{x:Static memEngine360:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
+                                                    <avc:IconControl Icon="{x:Static pfxToolKitUi:StandardIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Orientation="Horizontal" Spacing="3" Margin="0,1,0,2">
                                                     <TextBlock Text="Run Count" VerticalAlignment="Center"/>
@@ -150,14 +162,19 @@
                                             <avc:IconButton x:Name="PART_CancelActivityButton"
                                                             DockPanel.Dock="Right" VerticalAlignment="Top"
                                                             Width="16" Height="16"
-                                                            Padding="4,1" Margin="0,2,2,0"
+                                                            Margin="0,2,2,0"
                                                             BorderThickness="0"
                                                             CornerRadius="2"
-                                                            Icon="{x:Static act:ActivityStatusBarControl.CancelIcon}"
-                                                            IconMaxHeight="12" IconMaxWidth="12"
-                                                            VerticalContentAlignment="Center"
-                                                            HorizontalContentAlignment="Center"
-                                                            cu:CommandUsageManager.UsageClassType="{x:Type cmd:StopSpecificSequenceCommandUsage}">
+                                                            cu:CommandUsageManager.UsageClassType="{x:Type cmd:StopSpecificSequenceCommandUsage}"
+                                                            ToolTip.ShowOnDisabled="True">
+                                                <avc:IconButton.Styles>
+                                                    <Style Selector="avc|IconButton[IsEnabled=False]">
+                                                        <Setter Property="Icon" Value="{x:Static pfxToolKitUi:StandardIcons.StopIcon}"/>
+                                                    </Style>
+                                                    <Style Selector="avc|IconButton[IsEnabled=True]">
+                                                        <Setter Property="Icon" Value="{x:Static pfxToolKitUi:StandardIcons.StopIconColourful}"/>
+                                                    </Style>
+                                                </avc:IconButton.Styles>
                                                 <tt:ToolTipEx.Tip>
                                                     <StackPanel Orientation="Horizontal" Spacing="5">
                                                         <TextBlock Text="Stop the sequence" VerticalAlignment="Center"/>
@@ -170,14 +187,19 @@
                                             <avc:IconButton x:Name="PART_RunButton"
                                                             DockPanel.Dock="Right" VerticalAlignment="Top"
                                                             Width="16" Height="16"
-                                                            Padding="4,1" Margin="0,2,2,0"
+                                                            Margin="0,2,2,0"
                                                             BorderThickness="0"
                                                             CornerRadius="2"
-                                                            Icon="{x:Static act:ActivityStatusBarControl.ContinueActivityIcon}"
-                                                            IconMaxHeight="12" IconMaxWidth="12"
-                                                            VerticalContentAlignment="Center"
-                                                            HorizontalContentAlignment="Center"
-                                                            cu:CommandUsageManager.UsageClassType="{x:Type cmd:RunSequenceCommandUsage}">
+                                                            cu:CommandUsageManager.UsageClassType="{x:Type cmd:RunSequenceCommandUsage}"
+                                                            ToolTip.ShowOnDisabled="True">
+                                                <avc:IconButton.Styles>
+                                                    <Style Selector="avc|IconButton[IsEnabled=False]">
+                                                        <Setter Property="Icon" Value="{x:Static pfxToolKitUi:StandardIcons.SmallContinueActivityIcon}"/>
+                                                    </Style>
+                                                    <Style Selector="avc|IconButton[IsEnabled=True]">
+                                                        <Setter Property="Icon" Value="{x:Static pfxToolKitUi:StandardIcons.SmallContinueActivityIconColourful}"/>
+                                                    </Style>
+                                                </avc:IconButton.Styles>
                                                 <tt:ToolTipEx.Tip>
                                                     <StackPanel Orientation="Horizontal" Spacing="5">
                                                         <TextBlock Text="Starts this sequence" VerticalAlignment="Center"/>
@@ -244,9 +266,9 @@
                                     BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                     Content="Stop Seq" tt:ToolTipEx.Tip="Adds an operation that stops the sequence. Ideally should be used with labels and jumps"
                                     Click="Button_InsertStopSequence"/>
-                            <avc:IconButton Padding="2" Width="24" BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
+                            <avc:IconButton Width="24" Height="24" BorderThickness="1" BorderBrush="{DynamicResource PanelBorderBrush}"
                                             tt:ToolTipEx.Tip="Clears all operations"
-                                            Icon="{x:Static memEngine360:SimpleIcons.DeleteAllRowsIcon}"
+                                            Icon="{x:Static me360:SimpleIcons.DeleteAllRowsIcon}"
                                             Click="PART_ClearOperationsClick"/>
                         </StackPanel>
                         <TextBlock x:Name="PART_OperationGroupBoxHeaderTextBlock" Text="Current Operation"
@@ -296,7 +318,7 @@
                                             <DockPanel>
                                                 <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right"
                                                         tt:ToolTipEx.Tip="Click and drag this grip to move the operation around. This cannot be done while the sequence is running.">
-                                                    <avc:IconControl Icon="{x:Static memEngine360:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
+                                                    <avc:IconControl Icon="{x:Static pfxToolKitUi:StandardIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
                                                 </Border>
                                                 <ContentPresenter x:Name="PART_ContentPresenter"
                                                                   HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -334,7 +356,7 @@
                                         </Setter.Value>
                                     </Setter>
                                 </Style>
-                                
+
                                 <Style Selector="^[OperationState=Running] /template/ Border#PART_RootBorder">
                                     <Setter Property="Background">
                                         <Setter.Value>
@@ -473,7 +495,7 @@
                                                         <DockPanel>
                                                             <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right"
                                                                     tt:ToolTipEx.Tip="Click and drag this grip to move the condition around. This cannot be done while the sequence is running.">
-                                                                <avc:IconControl Icon="{x:Static memEngine360:SimpleIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
+                                                                <avc:IconControl Icon="{x:Static pfxToolKitUi:StandardIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
                                                             </Border>
                                                             <ContentPresenter x:Name="PART_ContentPresenter"
                                                                               HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -506,11 +528,10 @@
                     </TabControl>
                     <Border Grid.Row="3" BorderThickness="0" BorderBrush="{DynamicResource PanelBorderBrush}">
                         <DockPanel HorizontalSpacing="3" LastChildFill="False">
-                            <avc:IconButton Padding="2" Width="24" Height="24"
-                                            IconMaxWidth="16" IconMaxHeight="16"
+                            <avc:IconButton Width="20" Height="20" Margin="2,0,0,0" CornerRadius="2"
                                             Background="Transparent" BorderThickness="0"
                                             tt:ToolTipEx.Tip="Open a dedicated connection"
-                                            Icon="{x:Static memEngine360:SimpleIcons.ConnectToConsoleDedicatedIcon}"
+                                            Icon="{x:Static me360:SimpleIcons.ConnectToConsoleDedicatedIcon}"
                                             cu:CommandUsageManager.UsageClassType="{x:Type cmd:ConnectToDedicatedConsoleCommandUsage}"/>
                             <Border Background="{DynamicResource ABrush.Tone4.Background.Static}"
                                     BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"

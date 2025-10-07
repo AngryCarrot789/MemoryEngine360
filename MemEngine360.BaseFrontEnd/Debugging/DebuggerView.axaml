@@ -11,6 +11,7 @@
                  xmlns:av2="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
                  xmlns:memEngine360="clr-namespace:MemEngine360;assembly=MemEngine360"
                  xmlns:controls="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
+                 xmlns:pfxToolKitUi="clr-namespace:PFXToolKitUI;assembly=PFXToolKitUI"
                  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                  x:Class="MemEngine360.BaseFrontEnd.Debugging.DebuggerView"
                  Background="{DynamicResource ABrush.Tone2.Background.Static}">
@@ -141,10 +142,8 @@
                     <DockPanel>
                         <TextBlock Text="Registers" DockPanel.Dock="Left" VerticalAlignment="Center"/>
                         <av:IconButton DockPanel.Dock="Right"
-                                       Icon="{x:Static memEngine360:SimpleIcons.ResetIcon}"
+                                       Icon="{x:Static pfxToolKitUi:StandardIcons.ResetIcon}"
                                        Width="20" Height="20"
-                                       IconMaxWidth="12" IconMaxHeight="12"
-                                       Padding="2"
                                        Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
                                        BorderBrush="{DynamicResource PanelBorderBrush}"
                                        Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Foreground}"
@@ -181,8 +180,7 @@
                 BorderThickness="0"
                 BorderBrush="{DynamicResource PanelBorderBrush}">
             <DockPanel HorizontalSpacing="3" LastChildFill="False">
-                <av:IconButton Padding="2" Width="24" Height="24"
-                               IconMaxWidth="16" IconMaxHeight="16"
+                <av:IconButton Width="24" Height="24"
                                Background="Transparent" BorderThickness="0"
                                tt:ToolTipEx.Tip="Open a dedicated connection"
                                Icon="{x:Static memEngine360:SimpleIcons.ConnectToConsoleDedicatedIcon}"

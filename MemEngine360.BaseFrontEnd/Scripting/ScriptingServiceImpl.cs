@@ -42,7 +42,7 @@ public class ScriptingServiceImpl : IScriptingService {
             IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
                 Title = "Scripting",
                 FocusPath = "ScriptingWindow",
-                Content = new ScriptingManagerView() {
+                Content = new ScriptingView() {
                     ScriptingManager = scriptingManager,
                 },
                 TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.Sequencer.TitleBarBackground"),
@@ -51,13 +51,13 @@ public class ScriptingServiceImpl : IScriptingService {
                 Width = 960, Height = 640
             });
 
-            window.Opened += (sender, args) => ((ScriptingManagerView) sender.Content!).OnWindowOpened(sender);
+            window.Opened += (sender, args) => ((ScriptingView) sender.Content!).OnWindowOpened(sender);
             window.Closing += (sender, args) => {
-                ScriptingManager tsm = ((ScriptingManagerView) sender.Content!).ScriptingManager!;
+                ScriptingManager tsm = ((ScriptingView) sender.Content!).ScriptingManager!;
                 tsm.UserContext.Remove(ITopLevel.TopLevelDataKey);
             };
 
-            window.Closed += (sender, args) => ((ScriptingManagerView) sender.Content!).OnWindowClosed();
+            window.Closed += (sender, args) => ((ScriptingView) sender.Content!).OnWindowClosed();
 
             scriptingManager.UserContext.Set(ITopLevel.TopLevelDataKey, window);
             return window.ShowAsync();

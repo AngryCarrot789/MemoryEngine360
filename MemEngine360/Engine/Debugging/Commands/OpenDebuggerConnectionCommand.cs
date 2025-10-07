@@ -131,6 +131,11 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
         IConsoleConnection? oldConnection = debugger.Connection;
         Debug.Assert(oldConnection != newConnection);
 
+        if (!newConnection.TryGetFeature(out IFeatureXboxDebugging? debugging)) {
+            await IMessageDialogService.Instance.ShowMessage("Incompatible connection", "Connection does not support debug features", MessageBoxButton.OK, MessageBoxResult.OK);
+            return false;
+        }
+        
         if (oldConnection != null && !oldConnection.IsClosed) {
             // Somehow a connection was set before we got here and user doesn't want to overwrite it.
             // Maybe they opened two windows for some reason? Perhaps via the task sequencer and main window.
@@ -139,11 +144,6 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             if (result != MessageBoxResult.OK) {
                 return false;
             }
-        }
-
-        if (!newConnection.TryGetFeature(out IFeatureXboxDebugging? debugging)) {
-            await IMessageDialogService.Instance.ShowMessage("Incompatible connection", "Connection does not support debug features", MessageBoxButton.OK, MessageBoxResult.OK);
-            return false;
         }
 
         XboxExecutionState exec;

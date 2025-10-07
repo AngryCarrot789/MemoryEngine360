@@ -159,6 +159,9 @@
         <Shortcut Name="RunScript" CommandId="commands.scripting.RunScriptCommand">
             <KeyStroke Key="F5"/>
         </Shortcut>
+        <Shortcut Name="StopScript" CommandId="commands.scripting.StopScriptCommand">
+            <KeyStroke Key="F6"/>
+        </Shortcut>
         <Shortcut Name="SaveScript" CommandId="commands.scripting.SaveScriptCommand">
             <KeyStroke Mods="CTRL" Key="S"/>
         </Shortcut>

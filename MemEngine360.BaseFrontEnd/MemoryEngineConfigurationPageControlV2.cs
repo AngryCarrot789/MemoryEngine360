@@ -88,7 +88,7 @@ public class MemoryEngineConfigurationPageControlV2 : BaseConfigurationPageContr
         this.LogicalChildren.Add(stackPanel = new StackPanel() {
             Children = {
                 new TextBlock() { Padding = new Thickness(2), Text = "Saved/Scan Results Refresh interval (in milliseconds)" },
-                new TextBlock() { Padding = new Thickness(2, 0, 2, 2), Text = "Default is the minimum of 250ms (updates 4 times a second)", FontSize = 10, [!ForegroundProperty] = new DynamicResourceExtension("ABrush.Foreground.Disabled") },
+                new TextBlock() { Padding = new Thickness(2, 0, 2, 2), Text = "Default is the minimum of 250ms (updates 4 times a second)", FontSize = 10, [!ForegroundProperty] = new DynamicResourceExtension("ABrush.Foreground.Deeper") },
                 new DockPanel() {
                     Children = {
                         this.PART_ToggleRefreshEnabled,

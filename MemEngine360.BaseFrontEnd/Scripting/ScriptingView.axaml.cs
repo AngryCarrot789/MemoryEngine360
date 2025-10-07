@@ -39,10 +39,10 @@ using TextMateSharp.Grammars;
 
 namespace MemEngine360.BaseFrontEnd.Scripting;
 
-public partial class ScriptingManagerView : UserControl {
+public partial class ScriptingView : UserControl {
     public static readonly DataKey<TextDocument> ScriptTextDocumentDataKey = DataKeys.Create<TextDocument>(nameof(ScriptTextDocumentDataKey));
     private static readonly DataKey<CompilationFailureRenderer> CompilationFailureRendererDataKey = DataKeys.Create<CompilationFailureRenderer>(nameof(CompilationFailureRendererDataKey));
-    public static readonly StyledProperty<ScriptingManager?> ScriptingManagerProperty = AvaloniaProperty.Register<ScriptingManagerView, ScriptingManager?>(nameof(ScriptingManager));
+    public static readonly StyledProperty<ScriptingManager?> ScriptingManagerProperty = AvaloniaProperty.Register<ScriptingView, ScriptingManager?>(nameof(ScriptingManager));
 
     public ScriptingManager? ScriptingManager {
         get => this.GetValue(ScriptingManagerProperty);
@@ -68,13 +68,13 @@ public partial class ScriptingManagerView : UserControl {
 
     public IDesktopWindow? Window { get; private set; }
 
-    public ScriptingManagerView() {
+    public ScriptingView() {
         this.InitializeComponent();
         this.PART_TabControl.SelectionChanged += this.PART_TabControlOnSelectionChanged;
         this.PART_CodeEditor.TextChanged += this.PART_CodeEditorOnTextChanged;
         this.PART_CodeEditor.LostFocus += this.OnTextEditorLostFocus;
         this.binderClearConsoleOnEachRun.AttachControl(this.PART_ClearConsoleOnEachRun);
-        this.debounceFlushText = new TimerDispatcherDebouncer(TimeSpan.FromSeconds(2), static t => ((ScriptingManagerView) t!).FlushCurrentDocumentToScript(), this);
+        this.debounceFlushText = new TimerDispatcherDebouncer(TimeSpan.FromSeconds(2), static t => ((ScriptingView) t!).FlushCurrentDocumentToScript(), this);
 
         RegistryOptions options = new RegistryOptions(ThemeName.Dark);
         this.myTextMate = this.PART_CodeEditor.InstallTextMate(options);
@@ -84,8 +84,8 @@ public partial class ScriptingManagerView : UserControl {
         this.PART_CodeEditor.TextArea.TextView.BackgroundRenderers.Add(this.myCompilationFailureMarkerService);
     }
 
-    static ScriptingManagerView() {
-        ScriptingManagerProperty.Changed.AddClassHandler<ScriptingManagerView, ScriptingManager?>((s, e) => s.OnScriptingManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+    static ScriptingView() {
+        ScriptingManagerProperty.Changed.AddClassHandler<ScriptingView, ScriptingManager?>((s, e) => s.OnScriptingManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     protected override void OnLoaded(RoutedEventArgs e) {
@@ -94,7 +94,7 @@ public partial class ScriptingManagerView : UserControl {
         ApplicationPFX.Instance.Dispatcher.Post(static t => {
             // Force redraw view port. For some reason without this, the text editor
             // colours do not apply until you type something or switch tabs
-            ScriptingManagerView self = (ScriptingManagerView) t!;
+            ScriptingView self = (ScriptingView) t!;
             self.myTextMate.EditorModel.InvalidateViewPortLines();
             self.PART_CodeEditor.TextArea.TextView.Redraw();
         }, this, DispatchPriority.Background);
@@ -276,7 +276,7 @@ public partial class ScriptingManagerView : UserControl {
         this.Window = null;
     }
 
-    private class CompilationFailureRenderer(ScriptingManagerView view) : IBackgroundRenderer {
+    private class CompilationFailureRenderer(ScriptingView view) : IBackgroundRenderer {
         private static Pen? s_Pen;
         private TextSegment? myMarker;
 

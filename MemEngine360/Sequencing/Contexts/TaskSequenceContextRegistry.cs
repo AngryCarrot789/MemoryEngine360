@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Sequencing.View;
+using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 
 namespace MemEngine360.Sequencing.Contexts;
@@ -35,30 +36,27 @@ public static class TaskSequenceContextRegistry {
                     items.Add(new CommandContextEntry("commands.sequencer.RenameSequenceCommand", "Rename"));
             }
         });
-        
+
         edit.AddCommand("commands.sequencer.DuplicateSequenceCommand", "Duplicate");
-        
+
         FixedContextGroup actions = Registry.GetFixedGroup("operations");
         actions.AddHeader("General");
-        actions.AddCommand("commands.sequencer.RunSequenceCommand", "Run");
+        actions.AddEntry(new CommandContextEntry("commands.sequencer.RunSequenceCommand", "Run") { Icon = StandardIcons.SmallContinueActivityIconColourful, DisabledIcon = StandardIcons.SmallContinueActivityIconDisabled });
         actions.AddDynamicSubGroup((group, ctx, items) => {
             if (TaskSequenceManager.DataKey.TryGetContext(ctx, out TaskSequenceManager? ui)) {
                 TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
-                if (state.SelectedSequences.Count == 1) {
-                    items.Add(new CommandContextEntry("commands.sequencer.StopSpecificSequenceCommand", "Cancel"));
-                }
-                else {
-                    items.Add(new CommandContextEntry("commands.sequencer.StopSpecificSequenceCommand", "Cancel"));
+                items.Add(new CommandContextEntry("commands.sequencer.StopSpecificSequenceCommand", "Stop") { Icon = StandardIcons.StopIconColourful, DisabledIcon = StandardIcons.StopIconDisabled });
+                if (state.SelectedSequences.Count > 1) {
                     items.Add(new SeparatorEntry());
-                    items.Add(new CommandContextEntry("commands.sequencer.StopSelectedSequencesCommand", "Cancel All"));
+                    items.Add(new CommandContextEntry("commands.sequencer.StopSelectedSequencesCommand", "Stop All"));
                 }
             }
         });
 
-        actions.AddCommand("commands.sequencer.ConnectToDedicatedConsoleCommand", "Connect to dedicated console...");
-        
+        actions.AddCommand("commands.sequencer.ConnectToDedicatedConsoleCommand", "Connect to dedicated console...", icon: SimpleIcons.ConnectToConsoleDedicatedIcon);
+
         FixedContextGroup destruction = Registry.GetFixedGroup("destruction");
-        
+
         // Hook onto context changed instead of using dynamic context entries, because they're slightly expensive and
         // also sometimes buggy with no hope of being truly fixed because i'm not smart enough to figure it out.
         // Check out the method AdvancedMenuService.RemoveItemNodesWithDynamicSupport for nightmare fuel

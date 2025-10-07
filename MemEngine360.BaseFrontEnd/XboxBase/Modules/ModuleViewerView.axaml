@@ -73,7 +73,7 @@
                                                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                                        FontFamily="{StaticResource FontOxanium}"
                                                        TextWrapping="NoWrap" TextTrimming="PrefixCharacterEllipsis" Padding="3,1"
-                                                       FontSize="10" Foreground="{DynamicResource ABrush.Foreground.Disabled}">
+                                                       FontSize="10" Foreground="{DynamicResource ABrush.Foreground.Deeper}">
                                                 <tt:ToolTipEx.Tip>
                                                     <TextBlock>
                                                         <Run Text="The 'FullName' property of the module"/>

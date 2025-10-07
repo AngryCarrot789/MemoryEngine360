@@ -98,8 +98,8 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
         this.PART_HexEditor.Selection.RangeChanged += (sender, args) => this.UpdateSelectionText();
 
         this.timer = new MultiBrushFlipFlopTimer(TimeSpan.FromMilliseconds(500), [
-            new BrushExchange(this.PART_RunningState, ForegroundProperty, SimpleIcons.DynamicForegroundBrush, new ConstantAvaloniaColourBrush(Brushes.Black)),
-            new BrushExchange(this.PART_RunningState, BackgroundProperty, SimpleIcons.ConstantTransparentBrush, new ConstantAvaloniaColourBrush(Brushes.Yellow)),
+            new BrushExchange(this.PART_RunningState, ForegroundProperty, StandardIcons.ForegroundBrush, new ConstantAvaloniaColourBrush(Brushes.Black)),
+            new BrushExchange(this.PART_RunningState, BackgroundProperty, StandardIcons.TransparentBrush, new ConstantAvaloniaColourBrush(Brushes.Yellow)),
         ]) { LevelChangesToStop = 7 /* stop on HIGH state */, StartHigh = true };
 
         DataManager.GetContextData(this).Set(IDebuggerWindow.DataKey, this);

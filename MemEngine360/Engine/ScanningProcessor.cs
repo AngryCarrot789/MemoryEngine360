@@ -450,7 +450,13 @@ public class ScanningProcessor {
             };
 
             using CancellationTokenSource cts = new CancellationTokenSource();
-            this.ScanningActivity = ActivityManager.Instance.RunTask(async () => {
+
+            this.ScanningActivity = ActivityManager.Instance.RunTask(RunScanInAction, progress, cts);
+            await this.ScanningActivity;
+            this.ScanningActivity = null;
+            return;
+
+            async Task RunScanInAction() {
                 ActivityTask thisTask = ActivityManager.Instance.CurrentTask;
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     // If for some reason it gets force disconnected in an already scheduled
@@ -473,7 +479,8 @@ public class ScanningProcessor {
 
                         if (this.hasDoneFirstScan) {
                             progress.Text = "Accumulating scan results...";
-                            List<ScanResultViewModel>? srcList = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+
+                            async Task<List<ScanResultViewModel>?> TrySetupScan() {
                                 List<ScanResultViewModel> items = this.ScanResults.ToList();
                                 items.AddRange(this.resultBuffer);
                                 if (!await context.CanRunNextScan(items)) {
@@ -483,8 +490,9 @@ public class ScanningProcessor {
                                 this.ScanResults.Clear();
                                 this.resultBuffer.Clear();
                                 return items;
-                            }).Unwrap();
+                            }
 
+                            List<ScanResultViewModel>? srcList = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(TrySetupScan).Unwrap();
                             if (srcList != null) {
                                 bool canContinue = false;
                                 progress.Text = "Scanning...";
@@ -617,13 +625,6 @@ public class ScanningProcessor {
                         }
                     }
                 }, token: CancellationToken.None);
-            }, progress, cts);
-
-            try {
-                await this.ScanningActivity;
-            }
-            finally {
-                this.ScanningActivity = null;
             }
         }
         finally {
@@ -769,7 +770,7 @@ public class ScanningProcessor {
                         if (token.IsCancellationRequested) {
                             break;
                         }
-                        
+
                         ScanResultViewModel item = list[i];
                         values[i] = await MemoryEngine.ReadDataValue(connection, item.Address, item.DataType, item.StringType, item.CurrentStringLength, item.CurrentArrayLength);
                         count++;
@@ -839,7 +840,7 @@ public sealed class UnknownDataTypeOptions {
     /// Do not add/remove items!!! Only move them
     /// </summary>
     public ObservableList<ScanningOrderModel> Orders { get; }
-    
+
     private readonly ScanningOrderModel orderByte;
     private readonly ScanningOrderModel orderInt16;
     private readonly ScanningOrderModel orderInt32;

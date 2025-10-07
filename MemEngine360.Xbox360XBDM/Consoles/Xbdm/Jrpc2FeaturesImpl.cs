@@ -130,6 +130,19 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
             return RPCDataType.Uint64;
     }
 
+    public async Task<uint> ResolveFunction(string moduleName, uint ordinal) {
+        string? txt = await this.SendCommand($"consolefeatures ver=2 type=9 params=\"A\\0\\A\\2\\" +
+                                             $"{(int) RPCDataType.String}/{moduleName.Length}\\" +
+                                             $"{NumberUtils.ConvertStringToHex(moduleName, Encoding.ASCII)}\\" +
+                                             $"{(int) RPCDataType.Int}\\{ordinal}\\\"");
+        int index;
+        if (txt == null || (index = txt.IndexOf(' ')) == -1)
+            return 0;
+        if (!uint.TryParse(txt.AsSpan(index + 1), NumberStyles.HexNumber, null, out uint address))
+            return 0;
+        return address;
+    }
+
     public async Task<T> Call<T>(uint address, params object[] Arguments) where T : struct {
         return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), null, 0, address, 0, false, Arguments);
     }
@@ -451,7 +464,7 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
 
     private static string CreateParams(bool vm, object[] arguments, ref uint argc) {
         Span<byte> bytes8 = stackalloc byte[8];
-        
+
         StringBuilder sb = new StringBuilder(128);
         foreach (object obj in arguments) {
             switch (obj) {
@@ -488,7 +501,7 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
                                 dstArray[i] = (int) uintArray[i];
                             }
                         }
-                        
+
                         foreach (int value in dstArray) {
                             sb.Append((uint) RPCDataType.Int).Append('\\' + value).Append('\\');
                             argc += 1;

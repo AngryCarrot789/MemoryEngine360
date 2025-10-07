@@ -45,10 +45,11 @@ public sealed class BusyLock {
 
     private volatile int busyCount; // this is a boolean. 0 = no token, 1 = token acquired. any other value is invalid
     private volatile BusyToken? activeToken;
+    private volatile string? lastHandlingTokenCreatedOrDisposedStackTrace;
 
     // A list of TCSes that are signal when the busy lock becomes available.
     // They are custom in that they also support a CancellationToken to signal them too
-    private readonly LinkedList<CancellableTaskCompletionSource> busyLockAsyncWaiters;
+    private readonly LinkedList<DelegateTaskCompletionSource> busyLockAsyncWaiters;
 
     /// <summary>
     /// Gets the lock used to synchronize taking and returning the busy lock.
@@ -72,7 +73,7 @@ public sealed class BusyLock {
     public event BusyLockEventHandler? IsBusyChanged;
 
     public BusyLock() {
-        this.busyLockAsyncWaiters = new LinkedList<CancellableTaskCompletionSource>();
+        this.busyLockAsyncWaiters = new LinkedList<DelegateTaskCompletionSource>();
     }
 
     /// <summary>
@@ -358,7 +359,7 @@ public sealed class BusyLock {
         int waitState = 0;
 
         do {
-            LinkedListNode<CancellableTaskCompletionSource>? tcs = this.EnqueueAsyncWaiter(cancellationToken);
+            LinkedListNode<DelegateTaskCompletionSource>? tcs = this.EnqueueAsyncWaiter(cancellationToken);
             if (tcs == null) {
                 if (this.busyCount != 0) {
                     // Either CriticalLock is acquired on another thread and the busy token is still taken,
@@ -399,7 +400,7 @@ public sealed class BusyLock {
                             if (tcs.List != null) {
                                 // We only need to remove on cancelled, because when it
                                 // completes normally, the list gets cleared anyway
-                                tcs.List!.Remove(tcs);
+                                tcs.List.Remove(tcs);
                                 tcs.Value.Dispose();
                             }
                         }
@@ -449,7 +450,7 @@ public sealed class BusyLock {
         return theLock == this && this.activeToken == busy;
     }
 
-    private LinkedListNode<CancellableTaskCompletionSource>? EnqueueAsyncWaiter(CancellationToken token) {
+    private LinkedListNode<DelegateTaskCompletionSource>? EnqueueAsyncWaiter(CancellationToken token) {
         bool lockTaken = false;
         Lock lockObj = this.CriticalLock;
 
@@ -462,7 +463,8 @@ public sealed class BusyLock {
                 return null;
             }
 
-            return this.busyLockAsyncWaiters.AddLast(new CancellableTaskCompletionSource(token));
+            Debug.Assert(lockObj.IsHeldByCurrentThread, "Busy lock not acquired");
+            return this.busyLockAsyncWaiters.AddLast(new DelegateTaskCompletionSource(token));
         }
         finally {
             if (lockTaken)
@@ -471,6 +473,12 @@ public sealed class BusyLock {
     }
 
     private void OnTokenCreatedUnderLock() {
+        Debug.Assert(this.CriticalLock.IsHeldByCurrentThread, "Busy lock not acquired");
+        string? oldTrace = Interlocked.CompareExchange(ref this.lastHandlingTokenCreatedOrDisposedStackTrace, Environment.StackTrace, null);
+        if (oldTrace != null) {
+            Debug.Fail("Reentrancy of " + nameof(this.OnTokenDisposedUnderLock) + "; " + oldTrace);
+        }
+        
         if (Interlocked.Increment(ref this.busyCount) == 1) {
             try {
                 this.IsBusyChanged?.Invoke(this);
@@ -479,9 +487,17 @@ public sealed class BusyLock {
                 Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
             }
         }
+
+        this.lastHandlingTokenCreatedOrDisposedStackTrace = null;
     }
 
     private void OnTokenDisposedUnderLock() {
+        Debug.Assert(this.CriticalLock.IsHeldByCurrentThread, "Busy lock not acquired");
+        string? oldTrace = Interlocked.CompareExchange(ref this.lastHandlingTokenCreatedOrDisposedStackTrace, Environment.StackTrace, null);
+        if (oldTrace != null) {
+            Debug.Fail("Reentrancy of " + nameof(this.OnTokenDisposedUnderLock) + "; " + oldTrace);
+        }
+        
         this.activeToken = null;
         if (Interlocked.Decrement(ref this.busyCount) == 0) {
             try {
@@ -492,16 +508,13 @@ public sealed class BusyLock {
             }
         }
 
-        foreach (CancellableTaskCompletionSource tcs in this.busyLockAsyncWaiters) {
-            try {
-                tcs.TrySetResult();
-            }
-            finally {
-                tcs.Dispose();
-            }
+        foreach (DelegateTaskCompletionSource tcs in this.busyLockAsyncWaiters) {
+            tcs.TrySetResult();
+            tcs.Dispose();
         }
 
         this.busyLockAsyncWaiters.Clear();
+        this.lastHandlingTokenCreatedOrDisposedStackTrace = null;
     }
 
     private class BusyToken : IDisposable {
@@ -509,8 +522,9 @@ public sealed class BusyLock {
 
 #if TRACK_TOKEN_CREATION_STACK_TRACE
         // debugging stack trace, just in case the app locks up then the source is likely in here
-        public string? creationTrace;
-        public string? disposalTrace;
+        public string creationStackTrace;
+        public string disposalStackTrace;
+        
 #endif
 
         public BusyToken(BusyLock theLock) {
@@ -519,7 +533,7 @@ public sealed class BusyLock {
             theLock.OnTokenCreatedUnderLock();
 
 #if TRACK_TOKEN_CREATION_STACK_TRACE
-            this.creationTrace = new StackTrace(true).ToString();
+            this.creationStackTrace = new StackTrace(true).ToString();
 #endif
         }
 
@@ -531,14 +545,116 @@ public sealed class BusyLock {
             }
 
 #if TRACK_TOKEN_CREATION_STACK_TRACE
-            string? oldDisposalTrace = this.disposalTrace;
-            this.disposalTrace = new StackTrace(true).ToString();
+            string oldDisposalTrace = this.disposalStackTrace;
+            this.disposalStackTrace = new StackTrace(true).ToString();
+            Debug.Assert(oldDisposalTrace == null);
 #endif
-
+            
             lock (theLock.CriticalLock) {
                 Debug.Assert(theLock.activeToken == this, "Different active token references");
                 theLock.OnTokenDisposedUnderLock();
             }
+        }
+    }
+
+    private class DelegateTaskCompletionSource {
+        private readonly TaskCompletionSource src;
+        private readonly CancellationToken token;
+        private readonly CancellationTokenRegistration registration;
+
+        public Task Task => this.src.Task;
+
+        public DelegateTaskCompletionSource(CancellationToken token) {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] Pre Constructor (token can cancel = {token.CanBeCanceled})");
+            this.src = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            this.token = token;
+            if (token.CanBeCanceled) {
+                if (token.IsCancellationRequested) {
+                    Debug.WriteLine($"[DelegateTaskCompletionSource] Constructor - Token already cancelled");
+                }
+                else {
+                    this.registration = token.Register(static t => ((DelegateTaskCompletionSource) t!).OnTokenCancelled(), this);
+                    if (token.IsCancellationRequested) {
+                        this.OnTokenCancelled();
+                        Debug.WriteLine($"[DelegateTaskCompletionSource] Constructor - Token cancelled after callback registered");
+                    }
+                }
+            }
+
+            Debug.WriteLine($"[DelegateTaskCompletionSource] Constructor (token can cancel = {token.CanBeCanceled})");
+        }
+
+        private void OnTokenCancelled() {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] OnTokenCancelled()");
+            this.TrySetCanceled(this.registration.Token);
+            this.registration.Dispose();
+        }
+
+        public void SetCanceled() {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] SetCanceled()");
+            this.src.SetCanceled(CancellationToken.None);
+        }
+
+        public void SetCanceled(CancellationToken cancellationToken) {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] SetCanceled()");
+            this.src.SetCanceled(cancellationToken);
+        }
+
+        public void SetException(IEnumerable<Exception> exceptions) {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] SetException()");
+            this.src.SetException(exceptions);
+        }
+
+        public void SetException(Exception exception) {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] SetException()");
+            this.src.SetException(exception);
+        }
+
+        public void SetFromTask(Task completedTask) {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] SetFromTask()");
+            this.src.SetFromTask(completedTask);
+        }
+
+        public void SetResult() {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] SetResult()");
+            this.src.SetResult();
+        }
+
+        public bool TrySetCanceled() {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] TrySetCanceled()");
+            return this.src.TrySetCanceled();
+        }
+
+        public bool TrySetCanceled(CancellationToken cancellationToken) {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] TrySetCanceled()");
+            return this.src.TrySetCanceled(cancellationToken);
+        }
+
+        public bool TrySetException(IEnumerable<Exception> exceptions) {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] TrySetException()");
+            return this.src.TrySetException(exceptions);
+        }
+
+        public bool TrySetException(Exception exception) {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] TrySetException()");
+            return this.src.TrySetException(exception);
+        }
+
+        public bool TrySetFromTask(Task completedTask) {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] TrySetFromTask()");
+            return this.src.TrySetFromTask(completedTask);
+        }
+
+        public bool TrySetResult() {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] TrySetResult()");
+            return this.src.TrySetResult();
+        }
+
+        public void Dispose() {
+            Debug.WriteLine($"[DelegateTaskCompletionSource] Dispose() [will fail = {!this.src.Task.IsCompleted}]");
+            Debug.Assert(this.src.Task.IsCompleted);
+
+            this.registration.Dispose();
         }
     }
 }

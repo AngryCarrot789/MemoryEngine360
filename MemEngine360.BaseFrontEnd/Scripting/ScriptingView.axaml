@@ -1,0 +1,196 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.Scripting"
+             xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
+             xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:act="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
+             xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+             xmlns:cmd="clr-namespace:MemEngine360.BaseFrontEnd.Scripting.Commands"
+             xmlns:me360="clr-namespace:MemEngine360;assembly=MemEngine360"
+             xmlns:attached="clr-namespace:PFXToolKitUI.Avalonia.Themes.Attached;assembly=PFXToolKitUI.Avalonia"
+             xmlns:ae="https://github.com/avaloniaui/avaloniaedit"
+             xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+             xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:pfx="clr-namespace:PFXToolKitUI;assembly=PFXToolKitUI"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MemEngine360.BaseFrontEnd.Scripting.ScriptingView">
+    <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
+        <DockPanel>
+            <local:ScriptTabControl DockPanel.Dock="Top"
+                                    x:Name="PART_TabControl"
+                                    BorderThickness="0"
+                                    BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}">
+                <attached:TabControlStripExtras.RightContent>
+                    <Button Margin="3" Padding="4,1"
+                            HorizontalAlignment="Center" 
+                            VerticalAlignment="Center" CornerRadius="2"
+                            cu:CommandUsageManager.SimpleButtonCommandId="commands.scripting.AddNewScriptCommand">
+                        <TextBlock Text="+" Margin="0,-1,0,0"/>
+                    </Button>
+                </attached:TabControlStripExtras.RightContent>
+                <local:ScriptTabControl.ItemContainerTheme>
+                    <ControlTheme TargetType="{x:Type local:ScriptTabItem}">
+                        <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
+                        <Setter Property="Background" Value="{DynamicResource ABrush.Tone6.Background.Static}"/>
+                        <Setter Property="BorderBrush" Value="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=TabControl}, Path=BorderBrush}"/>
+                        <Setter Property="Margin" Value="-1,-1,-1,0"/>
+                        <Setter Property="Padding" Value="8,4,8,4"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                        <Setter Property="avalonia:UIInputManager.FocusPath" Value="ScriptingWindow/Tab"/>
+                        <Setter Property="Template">
+                            <ControlTemplate>
+                                <Grid x:Name="templateRoot">
+                                    <Border x:Name="mainBorder"
+                                            Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="1,1,1,1"
+                                            Margin="0">
+                                    </Border>
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Content="X" Background="Transparent"
+                                                BorderThickness="0" Padding="5,1" Margin="2,3"
+                                                x:Name="PART_CloseTabButton"
+                                                cu:CommandUsageManager.SimpleButtonCommandId="commands.scripting.CloseScriptCommand"/>
+                                        <ContentPresenter x:Name="PART_ContentPresenter"
+                                                          Margin="{TemplateBinding Padding}"
+                                                          HorizontalAlignment="Stretch"
+                                                          VerticalAlignment="Center"
+                                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                          Content="{TemplateBinding Header}"
+                                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                                          CornerRadius="{TemplateBinding CornerRadius}"/>
+                                    </DockPanel>
+                                    <Border x:Name="PART_SelectionLine" IsVisible="False"
+                                            Background="{DynamicResource ABrush.ColourfulGlyph.Static}"
+                                            VerticalAlignment="Bottom" Height="3" Margin="0"/>
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter>
+                        <Style Selector="^:pointerover /template/ Border#mainBorder">
+                            <Setter Property="Background" Value="{DynamicResource TabItem.MouseOver.Background}"/>
+                        </Style>
+                        <Style Selector="^:selected">
+                            <Setter Property="ZIndex" Value="1"/>
+                            <Style Selector="^ /template/ Border#mainBorder">
+                                <Setter Property="Background" Value="{DynamicResource TabItem.Selected.Background}"/>
+                            </Style>
+                            <Style Selector="^ /template/ Border#PART_SelectionLine">
+                                <Setter Property="IsVisible" Value="True"/>
+                            </Style>
+                        </Style>
+                        <Style Selector="^[TabStripPlacement=Left]">
+                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                        </Style>
+                        <Style Selector="^[TabStripPlacement=Right]">
+                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                        </Style>
+                    </ControlTheme>
+                </local:ScriptTabControl.ItemContainerTheme>
+            </local:ScriptTabControl>
+            <Grid RowDefinitions="*,1,180"
+                  Background="Transparent"
+                  x:Name="PART_ScriptPanel"
+                  avalonia:UIInputManager.FocusPath="ScriptingWindow/ContentPanel">
+                <ae:TextEditor Grid.Row="0" x:Name="PART_CodeEditor"
+                               ShowLineNumbers="True"
+                               FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
+                               BorderThickness="0"
+                               avalonia:UIInputManager.FocusPath="ScriptingWindow/ContentPanel/CodeEditor"/>
+                <c:GroupBox Grid.Row="2" BorderThickness="0" BorderBrush="{DynamicResource PanelBorderBrush}"
+                            HorizontalHeaderAlignment="Stretch" VerticalHeaderAlignment="Stretch" HeaderPadding="0">
+                    <c:GroupBox.Header>
+                        <DockPanel>
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="4,2" Spacing="2">
+                                <TextBlock Text="Console" VerticalAlignment="Center" Padding="2,0"/>
+                                <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,2"/>
+                                <avc:IconButton x:Name="PART_RunButton"
+                                                DockPanel.Dock="Left" VerticalAlignment="Center"
+                                                Width="20" Height="20"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                CornerRadius="2"
+                                                cu:CommandUsageManager.UsageClassType="{x:Type cmd:RunScriptCommandUsage}"
+                                                attached:DisabledButtonExtras.IgnoreDisabledBackground="True"
+                                                ToolTip.ShowOnDisabled="True"
+                                                Stretch="None">
+                                    <avc:IconButton.Styles>
+                                        <Style Selector="avc|IconButton[IsEnabled=False]">
+                                            <Setter Property="Icon" Value="{x:Static pfx:StandardIcons.LargeContinueActivityIconDisabled}"/>
+                                        </Style>
+                                        <Style Selector="avc|IconButton[IsEnabled=True]">
+                                            <Setter Property="Icon" Value="{x:Static pfx:StandardIcons.LargeContinueActivityIconColourful}"/>
+                                        </Style>
+                                    </avc:IconButton.Styles>
+                                    <tt:ToolTipEx.Tip>
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <TextBlock Text="Run the script" VerticalAlignment="Center"/>
+                                            <avc:ShortcutLabel CommandId="commands.scripting.RunScriptCommand"/>
+                                        </StackPanel>
+                                    </tt:ToolTipEx.Tip>
+                                </avc:IconButton>
+                                <avc:IconButton x:Name="PART_StopScriptButton"
+                                                DockPanel.Dock="Left" VerticalAlignment="Center"
+                                                Width="20" Height="20"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                CornerRadius="2"
+                                                cu:CommandUsageManager.UsageClassType="{x:Type cmd:StopScriptCommandUsage}"
+                                                ToolTip.ShowOnDisabled="True"
+                                                Stretch="None">
+                                    <avc:IconButton.Styles>
+                                        <Style Selector="avc|IconButton[IsEnabled=False]">
+                                            <Setter Property="Icon" Value="{x:Static pfx:StandardIcons.StopIconDisabled}"/>
+                                        </Style>
+                                        <Style Selector="avc|IconButton[IsEnabled=True]">
+                                            <Setter Property="Icon" Value="{x:Static pfx:StandardIcons.StopIconColourful}"/>
+                                        </Style>
+                                    </avc:IconButton.Styles>
+                                    <tt:ToolTipEx.Tip>
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <TextBlock Text="Stop the script" VerticalAlignment="Center"/>
+                                            <avc:ShortcutLabel CommandId="commands.scripting.StopScriptCommand"/>
+                                        </StackPanel>
+                                    </tt:ToolTipEx.Tip>
+                                </avc:IconButton>
+                                <avc:IconButton DockPanel.Dock="Left" VerticalAlignment="Center"
+                                                Width="20" Height="20"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                CornerRadius="2"
+                                                Icon="{x:Static me360:SimpleIcons.ConnectToConsoleIcon}"
+                                                cu:CommandUsageManager.UsageClassType="{x:Type cmd:ConnectScriptToConsoleCommandUsage}">
+                                    <tt:ToolTipEx.Tip>
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <TextBlock Text="Connect using a dedicated connection instead of using the engine's connection" VerticalAlignment="Center"/>
+                                            <avc:ShortcutLabel CommandId="commands.scripting.ConnectScriptToConsoleCommand"/>
+                                        </StackPanel>
+                                    </tt:ToolTipEx.Tip>
+                                </avc:IconButton>
+                            </StackPanel>
+                            <CheckBox x:Name="PART_ClearConsoleOnEachRun" 
+                                      Content="Clear console on each run" 
+                                      tt:ToolTipEx.Tip="Clear the console each time you run the script"
+                                      DockPanel.Dock="Right" 
+                                      Margin="5,0" VerticalAlignment="Center"/>
+                            <c:TargetingGridSplitter TargetGrid="{Binding ElementName=PART_ScriptPanel}" TargetRow="1" ResizeDirection="Rows"/>
+                        </DockPanel>
+                    </c:GroupBox.Header>
+                    <ListBox x:Name="PART_ConsoleTextList" BorderThickness="0" FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
+                             avalonia:UIInputManager.FocusPath="ScriptingWindow/ContentPanel/Console">
+                        <ListBox.ItemContainerTheme>
+                            <ControlTheme TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                <Setter Property="BorderThickness" Value="0"/>
+                            </ControlTheme>
+                        </ListBox.ItemContainerTheme>
+                    </ListBox>
+                </c:GroupBox>
+                <Border Background="{DynamicResource PanelBorderBrush}" Grid.Row="1"/>
+                <GridSplitter Grid.Row="1" Background="Transparent" Margin="0,-7,0,-3"/>
+            </Grid>
+        </DockPanel>
+    </Border>
+</UserControl>

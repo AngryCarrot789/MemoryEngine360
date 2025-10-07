@@ -58,7 +58,7 @@ public class Script : IComponentManager, IUserLocalContext {
 
     // Lua
     private Chunk? myChunk;
-    private LuaScriptMachine? myLuaScript;
+    private LuaScriptMachine? myRunningMachine;
     private TaskCompletionSource? myRunningTcs;
 
     public IMutableContextData UserContext { get; } = new ContextData();
@@ -92,7 +92,7 @@ public class Script : IComponentManager, IUserLocalContext {
     public bool IsCompiling => this.ctsCompile != null;
 
     /// <summary>
-    /// Gets whether the user is trying to stop the script from running
+    /// Gets whether the user is trying to stop the script from running, rather than the script stopping on its own
     /// </summary>
     public bool IsTryingToStop {
         get => this.isTryingToStop;
@@ -233,9 +233,9 @@ public class Script : IComponentManager, IUserLocalContext {
     /// becomes false, but it will no longer be in our control.
     /// </param>
     public void RequestStop(bool force) {
-        if (this.myLuaScript != null) {
+        if (this.myRunningMachine != null) {
             this.IsTryingToStop = true;
-            this.myLuaScript.RequestStop(force);
+            this.myRunningMachine.RequestStop(force);
         }
     }
 
@@ -250,7 +250,7 @@ public class Script : IComponentManager, IUserLocalContext {
     /// Compiles the source code, if not already compiled, then runs the script in a new thread
     /// </summary>
     public async Task<bool> StartCommand() {
-        Debug.Assert((this.IsRunning && this.myLuaScript != null) || (!this.IsRunning && this.myLuaScript == null));
+        Debug.Assert((this.IsRunning && this.myRunningMachine != null) || (!this.IsRunning && this.myRunningMachine == null));
         this.CheckNotRunning();
         if (this.Manager == null)
             throw new InvalidOperationException("Cannot start script not associated with a manager");
@@ -315,19 +315,19 @@ public class Script : IComponentManager, IUserLocalContext {
         IConsoleConnection? connection = this.dedicatedConnection ?? this.Manager!.MemoryEngine.Connection;
         BusyLock busyLock = this.dedicatedConnection != null ? this.DedicatedBusyLock : this.Manager!.MemoryEngine.BusyLocker;
         
-        this.myLuaScript = new LuaScriptMachine(this, this.myChunk, connection, busyLock);
-        this.myLuaScript.LinePrinted += this.OnLuaLinePrinted;
-        this.myLuaScript.Start();
+        this.myRunningMachine = new LuaScriptMachine(this, this.myChunk, connection, busyLock);
+        this.myRunningMachine.LinePrinted += this.OnLuaLinePrinted;
+        this.myRunningMachine.Start();
         this.IsRunningChanged?.Invoke(this);
         return true;
     }
 
     private void OnLuaScriptCompleted() {
-        Task<LuaValue[]> task = this.myLuaScript!.CompletionTask;
+        Task<LuaValue[]> task = this.myRunningMachine!.CompletionTask;
         try {
             LuaValue[] values = task.GetAwaiter().GetResult();
             if (values.Length > 0) {
-                this.myLuaScript!.Print(string.Join(", ", values));
+                this.myRunningMachine!.Print(string.Join(", ", values));
             }
         }
         catch (OperationCanceledException) {
@@ -336,17 +336,17 @@ public class Script : IComponentManager, IUserLocalContext {
         catch (LuaRuntimeException ex) {
             string message = ex.Message;
             string traceback = ex.LuaTraceback.StackFrames.Length > 0 ? ex.LuaTraceback.ToString() : "";
-            this.myLuaScript!.Print(message + (string.IsNullOrEmpty(traceback) ? "" : Environment.NewLine + traceback));
+            this.myRunningMachine!.Print(message + (string.IsNullOrEmpty(traceback) ? "" : Environment.NewLine + traceback));
         }
         catch (Exception ex) {
-            this.myLuaScript!.Print(ex.ToString());
+            this.myRunningMachine!.Print(ex.ToString());
         }
 
-        this.myLuaScript = null;
-        this.IsTryingToStop = false;
+        this.myRunningMachine = null;
         this.myRunningTcs!.SetResult(); // notify continuations
         this.myRunningTcs = null;
         this.IsRunningChanged?.Invoke(this);
+        this.IsTryingToStop = false;
     }
 
     private void OnLuaLinePrinted(string obj) {

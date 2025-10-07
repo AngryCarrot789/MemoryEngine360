@@ -66,6 +66,7 @@ public interface IFeatureXboxJRPC2 : IConsoleFeature, IFeatureXboxNotifications 
     /// <param name="p4">Player 4 LED</param>
     Task SetLEDs(bool p1, bool p2, bool p3, bool p4);
 
+    Task<uint> ResolveFunction(string moduleName, uint ordinal);
     Task<T> Call<T>(uint address, params object[] Arguments) where T : struct;
     Task<T> Call<T>(string module, int ordinal, params object[] args) where T : struct;
     Task<T> Call<T>(ThreadType thread, uint address, params object[] args) where T : struct;

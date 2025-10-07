@@ -141,7 +141,7 @@ public partial class EngineView : UserControl {
 
     public EngineView() {
         this.InitializeComponent();
-
+        
         this.themesSubList = new ContextEntryGroup("Themes");
         this.MemoryEngine = new MemoryEngine();
         this.SetupMainMenu();
@@ -579,12 +579,6 @@ public partial class EngineView : UserControl {
                         MemoryEngine engine = MemoryEngine.EngineDataKey.GetContext(c.ContextData!)!;
                         if (engine.Connection != null) {
                             c.Notification?.Hide();
-                            return;
-                        }
-
-                        // oh...
-                        using IDisposable? busyToken = await engine.BeginBusyOperationUsingActivityAsync("Reconnect to console");
-                        if (busyToken == null) {
                             return;
                         }
 

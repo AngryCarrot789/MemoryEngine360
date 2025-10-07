@@ -17,15 +17,13 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\AvaloniaHex\src\AvaloniaHex.Base\AvaloniaHex.Base.csproj" />
+	  <ProjectReference Include="..\Lua-CSharp\src\Lua\Lua.csproj" />
 	  <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <Folder Include="Connections\Utils\" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <PackageReference Include="LuaCSharp" Version="0.4.2" />
+	  <Folder Include="Scripting\LuaFeatures\" />
 	</ItemGroup>
 
 </Project>

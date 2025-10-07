@@ -98,7 +98,7 @@ public partial class ConsoleEventViewerView : UserControl {
         this.rldaInsertEvents = new RateLimitedDispatchAction(this.OnTickInsertEventsCallback, TimeSpan.FromMilliseconds(50)) { DebugName = nameof(ConsoleEventViewerView) };
         this.PART_EventListBox.SelectionChanged += this.OnSelectedItemChanged;
 
-        this.statusAlarmTimer = new BrushFlipFlopTimer(TimeSpan.FromMilliseconds(250), SimpleIcons.DynamicForegroundBrush, new ConstantAvaloniaColourBrush(Brushes.Red));
+        this.statusAlarmTimer = new BrushFlipFlopTimer(TimeSpan.FromMilliseconds(250), StandardIcons.ForegroundBrush, new ConstantAvaloniaColourBrush(Brushes.Red));
     }
     
     private void OnConsoleConnectionChanged(IConsoleConnection? oldConnection, IConsoleConnection? newConnection) {

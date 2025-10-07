@@ -54,7 +54,7 @@ public sealed class LuaScriptMachine {
     /// Gets the connection this lua machine should use for network operations.
     /// </summary>
     public IConsoleConnection? Connection { get; }
-    
+
     /// <summary>
     /// Gets the busy lock this lua machine should use for guarding <see cref="Connection"/> against concurrent network operations
     /// </summary>
@@ -97,7 +97,7 @@ public sealed class LuaScriptMachine {
     private async Task RunLuaMachine() {
         Debug.Assert(this.state == 1);
         this.state = 2;
-        
+
         Script.InternalOnLuaMachineStarting(this.ownerScript);
 
         try {
@@ -105,14 +105,32 @@ public sealed class LuaScriptMachine {
             this.luaState = LuaState.Create();
             this.CancellationToken.ThrowIfCancellationRequested();
 
+            // Use custom basics library, to remove functions that can modify the OS,
+            // run files or shutdown the app forcefully
             this.OpenBasicLibrary(this.luaState);
+
+            // coroutines are slightly buggy and can result in the script being unstoppable
+            // without killing the native thread, which isn't possible via managed code
+            // this.luaState.OpenCoroutineLibrary();
+
             this.luaState.OpenBitwiseLibrary();
-            this.luaState.OpenCoroutineLibrary();
             this.luaState.OpenMathLibrary();
             this.luaState.OpenStringLibrary();
             this.luaState.OpenTableLibrary();
-            OpenOSLibrary(this.luaState);
-            this.OpenConnectionLibrary(this.luaState);
+
+            {
+                // Use custom OpenOSLibrary implementation, to remove things like changing OS things
+                LuaTable luaTable = new LuaTable(0, 3);
+                AssignFunction(luaTable, new LuaFunction("clock", OperatingSystemLibrary.Instance.Clock));
+                AssignFunction(luaTable, new LuaFunction("date", OperatingSystemLibrary.Instance.Date));
+                AssignFunction(luaTable, new LuaFunction("time", OperatingSystemLibrary.Instance.Time));
+                this.luaState.Environment[(LuaValue) "os"] = (LuaValue) luaTable;
+                this.luaState.LoadedModules[(LuaValue) "os"] = (LuaValue) luaTable;
+            }
+
+            LuaEngineFunctions functions = new LuaEngineFunctions(this);
+            functions.Install(this.luaState);
+
             this.CancellationToken.ThrowIfCancellationRequested();
 
             Script.InternalOnLuaMachineRunning(this.ownerScript);
@@ -132,6 +150,9 @@ public sealed class LuaScriptMachine {
         }
         catch (OperationCanceledException e) {
             this.tcsCompletion.SetCanceled(e.CancellationToken);
+        }
+        catch (LuaRuntimeException e) when (e.InnerException is OperationCanceledException oce) {
+            this.tcsCompletion.SetCanceled(oce.CancellationToken);
         }
         catch (Exception e) {
             this.tcsCompletion.SetException(e);
@@ -191,20 +212,6 @@ public sealed class LuaScriptMachine {
             await Task.Delay(TimeSpan.FromSeconds(sec), ct);
             return 0;
         });
-    }
-
-    private static void OpenOSLibrary(LuaState theState) {
-        LuaTable luaTable = new LuaTable(0, 3);
-        AssignFunction(luaTable, new LuaFunction("clock", OperatingSystemLibrary.Instance.Clock));
-        AssignFunction(luaTable, new LuaFunction("date", OperatingSystemLibrary.Instance.Date));
-        AssignFunction(luaTable, new LuaFunction("time", OperatingSystemLibrary.Instance.Time));
-        theState.Environment[(LuaValue) "os"] = (LuaValue) luaTable;
-        theState.LoadedModules[(LuaValue) "os"] = (LuaValue) luaTable;
-    }
-
-    private void OpenConnectionLibrary(LuaState theState) {
-        LuaEngineFunctions functions = new LuaEngineFunctions(this);
-        functions.Install(theState);
     }
 
     private static void AssignFunction(LuaTable luaTable, LuaFunction function) {
