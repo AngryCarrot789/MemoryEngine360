@@ -589,6 +589,12 @@ public partial class EngineView : UserControl {
                         }
 
                         if (engine.LastUserConnectionInfo != null) {
+                            // oh...
+                            using IDisposable? busyToken = await engine.BeginBusyOperationUsingActivityAsync("Reconnect to console");
+                            if (busyToken == null) {
+                                return;
+                            }
+                            
                             await CommandManager.Instance.RunActionAsync(async _ => {
                                 RegisteredConnectionType type = engine.LastUserConnectionInfo.ConnectionType;
 
