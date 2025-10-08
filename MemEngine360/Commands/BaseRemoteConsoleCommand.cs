@@ -60,15 +60,15 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
             IEnumerable<ShortcutEntry> scList = ShortcutManager.Instance.GetShortcutsByCommandId("commands.memengine.OpenConsoleConnectionDialogCommand") ?? ReadOnlyCollection<ShortcutEntry>.Empty;
             string shortcuts = string.Join(Environment.NewLine, scList.Select(x => x.Shortcut.ToString()));
             if (!string.IsNullOrEmpty(shortcuts))
-                shortcuts = " Use the shortcut(s) to connect: " + Environment.NewLine + shortcuts;
+                shortcuts = Environment.NewLine + " Use the shortcut(s) to connect: " + Environment.NewLine + shortcuts;
 
             engine.CheckConnection(token);
 
             if (connection == null) {
-                await IMessageDialogService.Instance.ShowMessage("Disconnected", "Not connected to a console");
+                await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_NoConnection, StandardEngineMessages.Message_NoConnection + shortcuts);
             }
             else {
-                await IMessageDialogService.Instance.ShowMessage("Disconnected", "Connection is disconnected. Please reconnect");
+                await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_ConnectionClosed, StandardEngineMessages.Message_ConnectionClosed + shortcuts);
             }
         }
         else if (await this.TryBeginExecuteAsync(engine, connection, e)) {

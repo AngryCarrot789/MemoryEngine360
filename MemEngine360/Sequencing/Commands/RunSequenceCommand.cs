@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Commands;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI.Activities;
@@ -138,12 +139,12 @@ public class RunSequenceCommand : Command {
 
     public static async Task<bool> HandleConnectionErrors(IConsoleConnection? connection, bool useEngineConnection) {
         if (connection == null) {
-            await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine is not connected to a console" : "Not connected to a console");
+            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_NoConnection, useEngineConnection ? "Engine is not connected to a console" : "Not connected to a console");
             return true;
         }
 
         if (connection.IsClosed) {
-            await IMessageDialogService.Instance.ShowMessage("Not connected", useEngineConnection ? "Engine connection is no longer connected. Please reconnect" : "Connection is no longer connected. Please reconnect");
+            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_ConnectionClosed, useEngineConnection ? "Engine connection is no longer connected. Please reconnect" : "Connection is no longer connected. Please reconnect");
             return true;
         }
 

@@ -25,7 +25,9 @@ using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
@@ -41,16 +43,22 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             return Executability.ValidButCannotExecute;
         return Executability.Valid;
     }
-
+    
+    protected override DisabledHintInfo? ProvideDisabledHintOverride(MemoryEngine engine, IContextData context, ContextRegistry? sourceContextMenu) {
+        if (BaseMemoryEngineCommand.TryProvideNotConnectedDisabledHintInfo(engine, out DisabledHintInfo? hintInfo))
+            return hintInfo;
+        return null;
+    }
+    
     protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
         IConsoleConnection? connection = engine.Connection;
         if (connection == null) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
+            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_NoConnection, StandardEngineMessages.Message_NoConnection);
             return;
         }
 
         if (connection.IsClosed) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "Connection is no longer connected. Please reconnect");
+            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_ConnectionClosed, StandardEngineMessages.Message_ConnectionClosed);
             return;
         }
 

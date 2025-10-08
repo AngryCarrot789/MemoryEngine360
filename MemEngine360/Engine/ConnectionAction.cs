@@ -18,6 +18,7 @@
 // 
 
 using System.Diagnostics;
+using MemEngine360.Commands;
 using MemEngine360.Connections;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Interactivity.Windowing;
@@ -273,16 +274,15 @@ public class ConnectionAction {
     }
 
     protected async Task<bool> CheckIsConnected(IConsoleConnection? connection, bool isAfterBusyTokenAcquisition) {
-        string caption = isAfterBusyTokenAcquisition ? "Disconnected" : "Not Connected";
         if (connection == null) {
             this.Error = ErrorState.NoConnection;
-            await IMessageDialogService.Instance.ShowMessage(caption, "Not connected to a console");
+            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_NoConnection, StandardEngineMessages.Message_NoConnection);
             return false;
         }
 
         if (connection.IsClosed) {
             this.Error = ErrorState.ConnectionClosed;
-            await IMessageDialogService.Instance.ShowMessage(caption, "Connection is closed. Please reconnect");
+            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_ConnectionClosed, StandardEngineMessages.Message_ConnectionClosed);
             return false;
         }
 

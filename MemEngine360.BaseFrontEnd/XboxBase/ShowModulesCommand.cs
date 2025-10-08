@@ -18,12 +18,15 @@
 // 
 
 using MemEngine360.BaseFrontEnd.XboxBase.Modules;
+using MemEngine360.Commands;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Activities;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Themes;
 using PFXToolKitUI.Utils;
@@ -31,20 +34,18 @@ using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.XboxBase;
 
-public class ShowModulesCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
-            return Executability.Invalid;
-        }
-
+public class ShowModulesCommand : BaseMemoryEngineCommand {
+    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
         return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
+    
+    protected override DisabledHintInfo? ProvideDisabledHintOverride(MemoryEngine engine, IContextData context, ContextRegistry? sourceContextMenu) {
+        if (TryProvideNotConnectedDisabledHintInfo(engine, out DisabledHintInfo? hintInfo))
+            return hintInfo;
+        return null;
+    }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
-            return;
-        }
-
+    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
         if (!IWindowManager.TryGetInstance(out IWindowManager? manager)) {
             return;
         }

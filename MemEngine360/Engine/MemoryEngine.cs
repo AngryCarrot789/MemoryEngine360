@@ -35,6 +35,7 @@ using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.AdvancedMenuService;
+using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.History;
 using PFXToolKitUI.Interactivity;
@@ -220,14 +221,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
                 new CommandContextEntry("commands.memengine.ShowTaskSequencerCommand", "Task Sequencer", "Opens the task sequencer"),
                 new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
                 new CommandContextEntry("commands.memengine.ShowPointerScannerCommand", "Pointer Scanner"),
-                new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer").
-                    AddContextValueChangeHandlerWithEvent(EngineDataKey, nameof(this.ConnectionChanged), (entry, engine) => {
-                        // Maybe this should be shown via a popup instead of changing the actual menu entry
-                        entry.DisplayName = engine?.Connection != null && !engine.Connection.HasFeature<IFeatureSystemEvents>()
-                            ? "Event Viewer (console unsupported)"
-                            : "Event Viewer";
-                        entry.RaiseCanExecuteChanged();
-                    }),
+                new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer", "Shows the event viewer window for viewing console system events"),
                 new CommandContextEntry("commands.scripting.ShowScriptingWindowCommand", "Scripting"),
                 new SeparatorEntry(),
                 new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Explorer", "Opens a window which presents the modules"),
@@ -246,7 +240,16 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         // update all tools when connection changes, since most if not all tools rely on a connection
         this.ToolsMenu.AddCanExecuteChangeUpdaterForEvent(EngineDataKey, nameof(this.ConnectionChanged));
 
-        this.RemoteControlsMenu = new ContextEntryGroup("Remote Controls");
+        this.RemoteControlsMenu = new ContextEntryGroup("Remote Controls") {
+            ProvideDisabledHint = (ctx, registry) => {
+                if (!EngineDataKey.TryGetContext(ctx, out MemoryEngine? engine))
+                    return null;
+                if (engine.Connection == null)
+                    return new SimpleDisabledHintInfo("Not connected", "Connect to a console to use remote commands");
+                return null;
+            }
+        };
+        
         this.ConnectionChanged += this.OnConnectionChanged;
 
         Task.Run(async () => {

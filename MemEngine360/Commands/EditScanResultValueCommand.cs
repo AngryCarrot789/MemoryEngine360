@@ -71,12 +71,12 @@ public class EditScanResultValueCommand : Command {
         }
 
         if (engine.Connection == null) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
+            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_NoConnection, StandardEngineMessages.Message_NoConnection);
             return;
         }
 
         if (engine.Connection.IsClosed) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "Connection is no longer connected. Please reconnect");
+            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_ConnectionClosed, StandardEngineMessages.Message_ConnectionClosed);
             return;
         }
 

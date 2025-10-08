@@ -20,13 +20,17 @@
 using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using PFXToolKitUI;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Commands;
 
-public class ShowConsoleEventViewerCommand : BaseMemoryEngineCommand {
+public class ShowConsoleEventViewerCommand : BaseMemoryEngineCommand, IDisabledHintProvider {
     protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
-        return engine.Connection?.HasFeature<IFeatureSystemEvents>() == true ? Executability.Valid : Executability.ValidButCannotExecute;
+        if (engine.Connection == null || !engine.Connection.HasFeature<IFeatureSystemEvents>())
+            return Executability.ValidButCannotExecute;
+        return Executability.Valid;
     }
 
     protected override Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
@@ -35,5 +39,13 @@ public class ShowConsoleEventViewerCommand : BaseMemoryEngineCommand {
         }
 
         return Task.CompletedTask;
+    }
+
+    protected override DisabledHintInfo? ProvideDisabledHintOverride(MemoryEngine engine, IContextData context, ContextRegistry? sourceContextMenu) {
+        if (TryProvideNotConnectedDisabledHintInfo(engine, out DisabledHintInfo? hintInfo))
+            return hintInfo;
+        if (!engine.Connection!.HasFeature<IFeatureSystemEvents>())
+            return new SimpleDisabledHintInfo("Unsupported", "This connection does not support system event notifications");
+        return null;
     }
 }

@@ -28,7 +28,9 @@ using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Scanners;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Activities.Pausable;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
@@ -38,6 +40,12 @@ namespace MemEngine360.Commands;
 public class DumpMemoryCommand : BaseMemoryEngineCommand {
     protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
         return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
+    }
+    
+    protected override DisabledHintInfo? ProvideDisabledHintOverride(MemoryEngine engine, IContextData context, ContextRegistry? sourceContextMenu) {
+        if (TryProvideNotConnectedDisabledHintInfo(engine, out DisabledHintInfo? hintInfo))
+            return hintInfo;
+        return null;
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {

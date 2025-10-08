@@ -21,14 +21,16 @@ using System.Diagnostics;
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.View;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Commands.ATM;
 
 /// <summary>
 /// Base class for a command that uses the selected saved address entry or entries
 /// </summary>
-public abstract class BaseSavedAddressSelectionCommand : Command {
+public abstract class BaseSavedAddressSelectionCommand : Command, IDisabledHintProvider {
     /// <summary>
     /// The minimum number of selected items required. Default is 1.
     /// </summary>
@@ -108,4 +110,23 @@ public abstract class BaseSavedAddressSelectionCommand : Command {
     /// <param name="engine">The engine available via the command context</param>
     /// <param name="e">The command args</param>
     protected abstract Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e);
+
+    public virtual DisabledHintInfo? ProvideDisabledHint(IContextData context, ContextRegistry? sourceContextMenu) {
+        if (MemoryEngine.EngineDataKey.TryGetContext(context, out MemoryEngine? engine)) {
+            return this.ProvideDisabledHintOverride(engine, context, sourceContextMenu);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Provide a disabled hint with the memory engine reference too
+    /// </summary>
+    /// <param name="engine">The engine</param>
+    /// <param name="context">The available context</param>
+    /// <param name="sourceContextMenu">The context menu this method was invoked from</param>
+    /// <returns>The disabled hint info</returns>
+    protected virtual DisabledHintInfo? ProvideDisabledHintOverride(MemoryEngine engine, IContextData context, ContextRegistry? sourceContextMenu) {
+        return null;
+    }
 }

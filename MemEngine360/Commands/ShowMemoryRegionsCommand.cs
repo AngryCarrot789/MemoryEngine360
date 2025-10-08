@@ -22,7 +22,9 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI.Activities;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils;
@@ -37,6 +39,14 @@ public class ShowMemoryRegionsCommand : BaseMemoryEngineCommand {
 
         // limitation of commands API -- this is where we have to add/remove buttons dynamically to get around this
         return Executability.ValidButCannotExecute;
+    }
+    
+    protected override DisabledHintInfo? ProvideDisabledHintOverride(MemoryEngine engine, IContextData context, ContextRegistry? sourceContextMenu) {
+        if (TryProvideNotConnectedDisabledHintInfo(engine, out DisabledHintInfo? hintInfo))
+            return hintInfo;
+        if (!engine.Connection!.HasFeature<IFeatureMemoryRegions>())
+            return new SimpleDisabledHintInfo("Unsupported", "This connection does not support reading memory regions");
+        return null;
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
