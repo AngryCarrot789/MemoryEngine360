@@ -30,6 +30,7 @@ using AvaloniaHex.Async.Rendering;
 using AvaloniaHex.Base.Document;
 using MemEngine360.BaseFrontEnd.Services.HexEditing;
 using MemEngine360.Connections;
+using MemEngine360.Engine;
 using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.HexEditing;
 using PFXToolKitUI;
@@ -183,7 +184,7 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
         debugger.ConsoleExecutionState = null;
         debugger.IsWindowVisible = false;
         if (reason != WindowCloseReason.WindowClosing) {
-            using IDisposable? token = await debugger.BusyLock.BeginBusyOperationAsync(1000);
+            using IBusyToken? token = await debugger.BusyLock.BeginBusyOperation(1000);
             if (token == null) {
                 AppLogger.Instance.WriteLine("Warning: could not obtain busy token to safely disconnect debugger connection");
                 return; // probably cannot cancel window closing here

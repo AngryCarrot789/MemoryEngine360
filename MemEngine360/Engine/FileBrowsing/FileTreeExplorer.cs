@@ -132,7 +132,7 @@ public class FileTreeExplorer : IComponentManager {
 
         IFeatureFileSystemInfo? fsInfo = null;
 
-        ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(this.MemoryEngine, e => e.BusyLocker, e => e.Connection)) {
+        ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(this.MemoryEngine, e => e.BusyLock, e => e.Connection)) {
             ActivityCaption = "Load directory",
             Setup = (action, connection, hasConnectionChanged) => {
                 if (directory.ParentDirectory == null) {

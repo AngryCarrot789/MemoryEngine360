@@ -115,8 +115,7 @@
                                                 CornerRadius="2"
                                                 cu:CommandUsageManager.UsageClassType="{x:Type cmd:RunScriptCommandUsage}"
                                                 attached:DisabledButtonExtras.IgnoreDisabledBackground="True"
-                                                ToolTip.ShowOnDisabled="True"
-                                                Stretch="None">
+                                                ToolTip.ShowOnDisabled="True">
                                     <avc:IconButton.Styles>
                                         <Style Selector="avc|IconButton[IsEnabled=False]">
                                             <Setter Property="Icon" Value="{x:Static pfx:StandardIcons.LargeContinueActivityIconDisabled}"/>
@@ -139,8 +138,8 @@
                                                 BorderThickness="0"
                                                 CornerRadius="2"
                                                 cu:CommandUsageManager.UsageClassType="{x:Type cmd:StopScriptCommandUsage}"
-                                                ToolTip.ShowOnDisabled="True"
-                                                Stretch="None">
+                                                attached:DisabledButtonExtras.IgnoreDisabledBackground="True"
+                                                ToolTip.ShowOnDisabled="True">
                                     <avc:IconButton.Styles>
                                         <Style Selector="avc|IconButton[IsEnabled=False]">
                                             <Setter Property="Icon" Value="{x:Static pfx:StandardIcons.StopIconDisabled}"/>

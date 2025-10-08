@@ -18,7 +18,6 @@
 // 
 
 using System.Diagnostics;
-using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.View;
@@ -26,6 +25,7 @@ using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils;
@@ -74,7 +74,7 @@ public class EditScanResultValueCommand : Command {
             await IMessageDialogService.Instance.ShowMessage("Error", "Not connected to a console");
             return;
         }
-        
+
         if (engine.Connection.IsClosed) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Connection is no longer connected. Please reconnect");
             return;
@@ -99,13 +99,8 @@ public class EditScanResultValueCommand : Command {
             }
         };
 
+        ITopLevel? topLevel = TopLevelContextUtils.GetTopLevelFromContext();
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) != true) {
-            return;
-        }
-
-        using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Edit scan result value");
-        IConsoleConnection? conn;
-        if (token == null || (conn = engine.Connection) == null) {
             return;
         }
 
@@ -113,13 +108,22 @@ public class EditScanResultValueCommand : Command {
         bool parsed = DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out IDataValue? value);
         Debug.Assert(parsed && value != null);
         Debug.Assert(dataType == value.DataType);
-        
+
         using CancellationTokenSource cts = new CancellationTokenSource();
         await ActivityManager.Instance.RunTask(async () => {
-            ActivityTask.Current.Progress.SetCaptionAndText("Edit value", "Editing values");
+            ActivityTask.Current.Progress.SetCaptionAndText("Edit scan result value", "Editing values");
+            using IBusyToken? token = await engine.BusyLock.BeginBusyOperationFromActivity(new BusyTokenRequestFromActivity() {
+                QuickReleaseIntention = true,
+                ForegroundInfo = topLevel != null ? new InForegroundInfo(topLevel) : null
+            });
+            
+            if (token == null || engine.Connection == null) {
+                return;
+            }
+
             foreach (ScanResultViewModel scanResult in scanResults) {
                 ActivityManager.Instance.CurrentTask.ThrowIfCancellationRequested();
-                await MemoryEngine.WriteDataValue(conn, scanResult.Address, value!);
+                await MemoryEngine.WriteDataValue(engine.Connection, scanResult.Address, value!);
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     scanResult.CurrentValue = value;
                 });

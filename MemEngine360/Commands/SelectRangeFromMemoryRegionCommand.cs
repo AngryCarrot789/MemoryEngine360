@@ -41,7 +41,7 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
 
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
         Result<List<MemoryRegion>> result;
-        using (IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Reading memory regions")) {
+        using (IBusyToken? token = await engine.BeginBusyOperationUsingActivityAsync("Reading memory regions")) {
             if (token == null) {
                 return;
             }

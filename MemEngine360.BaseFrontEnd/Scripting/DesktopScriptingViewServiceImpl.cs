@@ -27,10 +27,9 @@ using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.Scripting;
 
-public class ScriptingServiceImpl : IScriptingService {
-    public Task OpenOrFocusWindow(ScriptingManager scriptingManager) {
+public class DesktopScriptingViewServiceImpl : IScriptingViewService {
+    public Task ShowOrFocusWindow(ScriptingManager scriptingManager) {
         if (ITopLevel.TryGetFromContext(scriptingManager.UserContext, out ITopLevel? sequencerTopLevel)) {
-            // Currently showing the sequencer is only supported on desktop
             IDesktopWindow window = (IDesktopWindow) sequencerTopLevel;
 
             Debug.Assert(window.OpenState.IsOpenOrTryingToClose());

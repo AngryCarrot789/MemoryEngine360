@@ -312,7 +312,7 @@ public class AnyTypeScanningContext : ScanningContext {
         return null;
     }
 
-    internal override async Task PerformFirstScan(IConsoleConnection connection, Reference<IDisposable?> busyTokenRef) {
+    internal override async Task PerformFirstScan(IConsoleConnection connection, Reference<IBusyToken?> busyTokenRef) {
         await new FirstTypedScanTask(this, connection, busyTokenRef).RunWithCurrentActivity();
     }
 
@@ -327,7 +327,7 @@ public class AnyTypeScanningContext : ScanningContext {
     /// <param name="connection">The connection to read values from</param>
     /// <param name="srcList">The source list of items</param>
     /// <param name="busyTokenRef"></param>
-    internal override async Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IDisposable?> busyTokenRef) {
+    internal override async Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IBusyToken?> busyTokenRef) {
         ActivityTask task = ActivityManager.Instance.CurrentTask;
         using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
             for (int i = 0; i < srcList.Count; i++) {

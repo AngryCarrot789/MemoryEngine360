@@ -49,7 +49,7 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
     }
 
     protected sealed override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
-        using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync(this.ActivityText);
+        using IBusyToken? token = await engine.BeginBusyOperationUsingActivityAsync(this.ActivityText);
         if (token == null) {
             return;
         }
@@ -292,6 +292,6 @@ public class TestRPCCommand : BaseJRPC2Command {
                 string value = info.TextB;
                 await jrpc.CallVoid(0x822CB3E8, index, value);
             }
-        });
+        }, captureContext: true);
     }
 }

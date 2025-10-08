@@ -72,7 +72,7 @@ public abstract class ScanningContext {
     /// </summary>
     /// <param name="connection">The connection to read values from</param>
     /// <param name="busyTokenRef">A reference to the busy token</param>
-    internal abstract Task PerformFirstScan(IConsoleConnection connection, Reference<IDisposable?> busyTokenRef);
+    internal abstract Task PerformFirstScan(IConsoleConnection connection, Reference<IBusyToken?> busyTokenRef);
 
     /// <summary>
     /// Check whether the next scan is allowed to run based on the current scan results.
@@ -89,7 +89,7 @@ public abstract class ScanningContext {
     /// <param name="connection">The connection to read values from</param>
     /// <param name="srcList">The source list of items</param>
     /// <param name="busyTokenRef"></param>
-    internal abstract Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IDisposable?> busyTokenRef);
+    internal abstract Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IBusyToken?> busyTokenRef);
     
     internal abstract void ProcessMemoryBlockForFirstScan(uint baseAddress, ReadOnlySpan<byte> buffer);
 }

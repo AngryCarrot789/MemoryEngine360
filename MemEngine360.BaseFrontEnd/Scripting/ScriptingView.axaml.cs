@@ -123,7 +123,10 @@ public partial class ScriptingView : UserControl {
             TextDocument document = GetScriptTextDocument(this.activeScript);
             Debug.Assert(document == this.PART_CodeEditor.Document);
 
-            this.activeScript.SourceCode = document.Text;
+            if (this.activeScript.SourceCode != document.Text) {
+                this.activeScript.SourceCode = document.Text;
+            }
+
             this.isFlushingEditorTextToScript = false;
         }
     }

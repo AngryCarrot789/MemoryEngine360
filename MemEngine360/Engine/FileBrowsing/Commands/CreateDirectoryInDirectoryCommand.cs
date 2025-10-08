@@ -57,7 +57,7 @@ public class CreateDirectoryInDirectoryCommand : BaseFileExplorerCommand {
         IFeatureFileSystemInfo? fsInfo = null;
         string? newPath = null;
 
-        ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(explorer.MemoryEngine, x => x.BusyLocker, x => x.Connection)) {
+        ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(explorer.MemoryEngine, x => x.BusyLock, x => x.Connection)) {
             ActivityCaption = "Launch File",
             Setup = async (action, connection, hasConnectionChanged) => {
                 if (!connection.TryGetFeature(out fsInfo)) {

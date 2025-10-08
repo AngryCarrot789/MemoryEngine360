@@ -73,7 +73,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
                 this.myDialog.SetUserInfoForConnectionType(lastInfo.ConnectionType.RegisteredId, lastInfo);
             }
 
-            IDisposable? token = null;
+            IBusyToken? token = null;
             try {
                 IConsoleConnection? connection = await this.myDialog.WaitForConnection();
                 if (connection != null) {
@@ -109,7 +109,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
             // about to change. It's purely just to signal tasks to stop
             await engine.BroadcastConnectionAboutToChange(engineTopLevel, frame);
 
-            using IDisposable? token = await engine.BusyLocker.BeginBusyOperationFromActivityAsync(CancellationToken.None);
+            using IBusyToken? token = await engine.BusyLock.BeginBusyOperationFromActivity(CancellationToken.None);
             if (token == null) {
                 return false;
             }
@@ -149,11 +149,11 @@ public class OpenConsoleConnectionDialogCommand : Command {
     /// <param name="newConnection">The new connection</param>
     /// <param name="frame">The connection changing frame</param>
     /// <returns>The token</returns>
-    public static async Task<IDisposable?> SetEngineConnectionAndHandleProblemsAsync(MemoryEngine engine, IConsoleConnection newConnection, ulong frame, UserConnectionInfo? userConnectionInfo = null) {
+    public static async Task<IBusyToken?> SetEngineConnectionAndHandleProblemsAsync(MemoryEngine engine, IConsoleConnection newConnection, ulong frame, UserConnectionInfo? userConnectionInfo = null) {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(newConnection);
 
-        IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Change connection");
+        IBusyToken? token = await engine.BeginBusyOperationUsingActivityAsync("Change connection");
         if (token == null) {
             return null;
         }

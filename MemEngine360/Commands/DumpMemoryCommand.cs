@@ -41,7 +41,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
-        using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Dump memory");
+        using IBusyToken? token = await engine.BeginBusyOperationUsingActivityAsync("Dump memory");
         if (token == null) {
             return;
         }
@@ -125,7 +125,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
         private volatile Exception? fileException;
 
         // live handles
-        private IDisposable? busyToken;
+        private IBusyToken? busyToken;
         private FileStream? fileOutput;
 
         /// <summary>
@@ -138,7 +138,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
         /// </summary>
         public Exception? FileException => this.fileException;
 
-        public DumpMemoryTask(MemoryEngine engine, string filePath, uint startAddress, uint countBytes, bool freezeConsole, IDisposable busyToken) : base(true) {
+        public DumpMemoryTask(MemoryEngine engine, string filePath, uint startAddress, uint countBytes, bool freezeConsole, IBusyToken busyToken) : base(true) {
             this.engine = engine;
             this.filePath = filePath;
             this.startAddress = startAddress;
@@ -164,7 +164,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
                 this.downloadCompletion.OnCompletionValueChanged();
                 this.Activity.Progress.Caption = "Memory Dump";
             }
-            else if ((this.busyToken = await this.engine.BusyLocker.BeginBusyOperationFromActivityAsync(pauseOrCancelToken)) == null) {
+            else if ((this.busyToken = await this.engine.BusyLock.BeginBusyOperationFromActivity(pauseOrCancelToken)) == null) {
                 return;
             }
 

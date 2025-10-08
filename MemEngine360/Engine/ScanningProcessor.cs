@@ -417,11 +417,11 @@ public class ScanningProcessor {
         if (connection == null)
             throw new InvalidOperationException("No console connection");
 
-        IDisposable? theCoolToken = await this.MemoryEngine.BeginBusyOperationUsingActivityAsync("Pre-Scan Setup");
+        IBusyToken? theCoolToken = await this.MemoryEngine.BeginBusyOperationUsingActivityAsync("Pre-Scan Setup");
         if (theCoolToken == null)
             return; // user cancelled token fetch
 
-        Reference<IDisposable?> busyTokenRef = new Reference<IDisposable?>(theCoolToken);
+        Reference<IBusyToken?> busyTokenRef = new Reference<IBusyToken?>(theCoolToken);
 
         try {
             if ((connection = this.MemoryEngine.Connection) == null)
@@ -492,7 +492,7 @@ public class ScanningProcessor {
                                 return items;
                             }
 
-                            List<ScanResultViewModel>? srcList = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(TrySetupScan).Unwrap();
+                            List<ScanResultViewModel>? srcList = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(TrySetupScan, captureContext: true).Unwrap();
                             if (srcList != null) {
                                 bool canContinue = false;
                                 progress.Text = "Scanning...";
@@ -616,8 +616,8 @@ public class ScanningProcessor {
                     this.HasDoneFirstScan = result;
                     this.IsScanning = false;
                     if (!this.MemoryEngine.IsShuttingDown) { // another race condition i suppose
-                        IDisposable? token = busyTokenRef.Value;
-                        if (this.MemoryEngine.BusyLocker.IsTokenValid(token)) {
+                        IBusyToken? token = busyTokenRef.Value;
+                        if (this.MemoryEngine.BusyLock.IsTokenValid(token)) {
                             this.MemoryEngine.CheckConnection(token);
                         }
                         else {
@@ -662,7 +662,7 @@ public class ScanningProcessor {
             return; // nothing to update so do nothing
         }
 
-        using IDisposable? token = this.MemoryEngine.TryBeginBusyOperation();
+        using IBusyToken? token = this.MemoryEngine.TryBeginBusyOperation();
         if (token == null) {
             return; // do not read while connection busy
         }
@@ -675,8 +675,8 @@ public class ScanningProcessor {
     /// </summary>
     /// <param name="busyOperationToken">The busy operation token. Does not dispose once finished</param>
     /// <exception cref="InvalidOperationException">No connection is present</exception>
-    public async Task RefreshSavedAddressesAsync(IDisposable busyOperationToken, bool bypassLimits = false, bool invalidateCaches = false) {
-        this.MemoryEngine.BusyLocker.ValidateToken(busyOperationToken);
+    public async Task RefreshSavedAddressesAsync(IBusyToken busyOperationToken, bool bypassLimits = false, bool invalidateCaches = false) {
+        this.MemoryEngine.BusyLock.ValidateToken(busyOperationToken);
         if (this.IsRefreshingAddresses) {
             throw new InvalidOperationException("Already refreshing");
         }

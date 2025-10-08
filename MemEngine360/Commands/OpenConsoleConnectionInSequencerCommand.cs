@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Connections;
+using MemEngine360.Engine;
 using MemEngine360.Sequencing;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
@@ -52,7 +53,7 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
         ulong frame = manager.MemoryEngine.GetNextConnectionChangeFrame();
         this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView();
         if (this.myDialog != null) {
-            IDisposable? token = null;
+            IBusyToken? token = null;
             try {
                 IConsoleConnection? connection = await this.myDialog.WaitForConnection();
                 if (connection != null) {

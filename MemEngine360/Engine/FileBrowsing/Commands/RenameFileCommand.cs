@@ -62,7 +62,7 @@ public class RenameFileCommand : BaseFileExplorerCommand {
         string newPath = oldPath;
         IFeatureFileSystemInfo? fsInfo = null;
         
-        ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(engine, x => x.BusyLocker, x => x.Connection)) {
+        ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(engine, x => x.BusyLock, x => x.Connection)) {
             ActivityCaption = "Rename File",
             Setup = async (action, connection, hasConnectionChanged) => {
                 if (!connection.TryGetFeature(out fsInfo)) {

@@ -36,7 +36,7 @@ public class UnfreezeConsoleCommand : BaseDebuggerCommand {
         if (debugger.Connection == null)
             return;
 
-        using IDisposable? token = await debugger.BusyLock.BeginBusyOperationUsingActivityAsync("Unfreeze Console");
+        using IBusyToken? token = await debugger.BusyLock.BeginBusyOperationUsingActivity("Unfreeze Console");
         if (token != null && debugger.Connection != null && debugger.Connection.TryGetFeature(out IFeatureIceCubes? iceCubes)) {
             debugger.IsConsoleRunning = true;
             debugger.ConsoleExecutionState = null;

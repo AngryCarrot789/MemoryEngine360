@@ -262,6 +262,10 @@ public class Script : IComponentManager, IUserLocalContext {
 
         if (this.myChunk == null) {
             string code = this.SourceCode;
+            if (string.IsNullOrWhiteSpace(code)) {
+                return false;
+            }
+
             TaskCompletionSource tcs = new TaskCompletionSource();
             this.ctsCompile = new CancellationTokenSource();
             this.CompileTask = tcs.Task;
@@ -313,7 +317,7 @@ public class Script : IComponentManager, IUserLocalContext {
         this.myRunningTcs = new TaskCompletionSource();
 
         IConsoleConnection? connection = this.dedicatedConnection ?? this.Manager!.MemoryEngine.Connection;
-        BusyLock busyLock = this.dedicatedConnection != null ? this.DedicatedBusyLock : this.Manager!.MemoryEngine.BusyLocker;
+        BusyLock busyLock = this.dedicatedConnection != null ? this.DedicatedBusyLock : this.Manager!.MemoryEngine.BusyLock;
         
         this.myRunningMachine = new LuaScriptMachine(this, this.myChunk, connection, busyLock);
         this.myRunningMachine.LinePrinted += this.OnLuaLinePrinted;

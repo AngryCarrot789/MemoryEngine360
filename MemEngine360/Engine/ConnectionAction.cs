@@ -94,7 +94,7 @@ public class ConnectionAction {
     /// Gets the currently acquired busy token. This is at least non-null during a
     /// call to <see cref="PrepareConnection"/> and <see cref="Setup"/>
     /// </summary>
-    public IDisposable? CurrentBusyToken { get; private set; }
+    public IBusyToken? CurrentBusyToken { get; private set; }
 
     /// <summary>
     /// Gets or sets the initial setup function. The provided connection will be non-null and not closed.
@@ -117,7 +117,7 @@ public class ConnectionAction {
     /// </summary>
     public ErrorState Error { get; private set; }
 
-    public ConnectionAction(IConnectionLockPair connectionLockPair, IDisposable? initialBusyToken = null) {
+    public ConnectionAction(IConnectionLockPair connectionLockPair, IBusyToken? initialBusyToken = null) {
         this.connectionLockPair = connectionLockPair;
         this.CurrentBusyToken = initialBusyToken;
     }
@@ -158,26 +158,42 @@ public class ConnectionAction {
                         if (this.UseForegroundActivity && (topLevel = TopLevelContextUtils.GetTopLevelFromContext()) != null) {
                             if (!this.UseNewActivity && ActivityManager.Instance.TryGetCurrentTask(out ActivityTask? currentActivity)) {
                                 // We're currently inside another activity, so try show the foreground from within
-                                using (currentActivity.Progress.SaveState(Optional<string?>.Empty, this.ActivityCaption))
-                                    this.CurrentBusyToken = await busyLock.BeginBusyOperationWithForegroundFromActivityAsync(topLevel, this.ForegroundDialogShowDelay, CancellationToken.None);
+                                using (currentActivity.Progress.SaveState(Optional<string?>.Empty, this.ActivityCaption)) {
+                                    this.CurrentBusyToken = await busyLock.BeginBusyOperationFromActivity(new BusyTokenRequestFromActivity() {
+                                        BusyCancellation = CancellationToken.None,
+                                        ForegroundInfo = new InForegroundInfo(topLevel, this.ForegroundDialogShowDelay)
+                                    });
+                                }
                             }
                             else {
-                                this.CurrentBusyToken = await busyLock.BeginBusyOperationInForegroundUsingActivityAsync(topLevel, this.ActivityCaption, showDelay: this.ForegroundDialogShowDelay);
+                                this.CurrentBusyToken = await busyLock.BeginBusyOperationUsingActivity(new BusyTokenRequestUsingActivity() {
+                                    Progress = {
+                                        Caption = this.ActivityCaption,
+                                        Text = BusyLock.WaitingMessage,
+                                    },
+                                    ForegroundInfo = new InForegroundInfo(topLevel, this.ForegroundDialogShowDelay)
+                                });
                             }
                         }
                         else {
                             if (!this.UseNewActivity && ActivityManager.Instance.TryGetCurrentTask(out ActivityTask? currentActivity)) {
                                 // We're currently inside another activity, so try show the foreground from within
-                                using (currentActivity.Progress.SaveState(Optional<string?>.Empty, this.ActivityCaption))
-                                    this.CurrentBusyToken = await busyLock.BeginBusyOperationFromActivityAsync(CancellationToken.None);
+                                using (currentActivity.Progress.SaveState(Optional<string?>.Empty, this.ActivityCaption)) {
+                                    this.CurrentBusyToken = await busyLock.BeginBusyOperationFromActivity(new BusyTokenRequestFromActivity());
+                                }
                             }
                             else {
-                                this.CurrentBusyToken = await busyLock.BeginBusyOperationUsingActivityAsync(this.ActivityCaption);
+                                this.CurrentBusyToken = await busyLock.BeginBusyOperationUsingActivity(new BusyTokenRequestUsingActivity() {
+                                    Progress = {
+                                        Caption = this.ActivityCaption,
+                                        Text = BusyLock.WaitingMessage
+                                    }
+                                });
                             }
                         }
                     }
                     else {
-                        this.CurrentBusyToken = await busyLock.BeginBusyOperationAsync(this.NonActivityBusyLockTimeout, this.NonActivityCancellationToken);
+                        this.CurrentBusyToken = await busyLock.BeginBusyOperation(this.NonActivityBusyLockTimeout, this.NonActivityCancellationToken);
                     }
 
                     if (this.CurrentBusyToken == null) {

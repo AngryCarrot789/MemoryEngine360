@@ -73,7 +73,7 @@ public class ConsoleEventViewerServiceImpl : IConsoleEventViewerService {
 
                 win.Opened += static (sender, args) => {
                     ConsoleEventViewerViewEx view = (ConsoleEventViewerViewEx) sender.Content!;
-                    view.PART_EventViewer.BusyLock = view.MemoryEngine!.BusyLocker;
+                    view.PART_EventViewer.BusyLock = view.MemoryEngine!.BusyLock;
                     view.PART_EventViewer.ConsoleConnection = view.MemoryEngine!.Connection;
                 };
                 win.Closed += static (sender, args) => {

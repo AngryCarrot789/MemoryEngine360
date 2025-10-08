@@ -64,7 +64,7 @@ public class ConsoleHexBinarySource : IBinarySource {
             return;
         }
 
-        using IDisposable? t = await busyLocker.BeginBusyOperationAsync(500);
+        using IBusyToken? t = await busyLocker.BeginBusyOperation(500);
         IConsoleConnection? connection;
         if (t == null || (connection = this.pair.Connection) == null || connection.IsClosed) {
             return;
@@ -143,7 +143,7 @@ public class ConsoleHexBinarySource : IBinarySource {
     public async Task<int> ReadAvailableDataAsync(ulong offset, Memory<byte> dstBuffer, CancellationToken cancellation) {
         int read = this.ReadAvailableData(offset, dstBuffer.Span);
         if (read < dstBuffer.Length) {
-            using IDisposable? t = await this.pair.BusyLock.BeginBusyOperationAsync(cancellation);
+            using IBusyToken? t = await this.pair.BusyLock.BeginBusyOperation(cancellation);
             IConsoleConnection? connection;
             if (t == null || (connection = this.pair.Connection) == null || connection.IsClosed) {
                 return read;

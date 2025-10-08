@@ -119,7 +119,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
             }
         }
 
-        IDisposable? busyToken = ctx.BusyToken;
+        IBusyToken? busyToken = ctx.BusyToken;
         if (busyToken == null && !ctx.IsConnectionDedicated) {
             ctx.Progress.Text = BusyLock.WaitingMessage;
             if ((busyToken = await ctx.Sequence.Manager!.MemoryEngine.BeginBusyOperationAsync(token)) == null) {

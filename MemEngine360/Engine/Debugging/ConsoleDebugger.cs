@@ -181,7 +181,7 @@ public class ConsoleDebugger {
             return;
         }
 
-        using IDisposable? token = await this.busyLocker.BeginBusyOperationAsync(500);
+        using IBusyToken? token = await this.busyLocker.BeginBusyOperation(500);
         if (token != null && !this.ignoreActiveThreadChange) {
             ThreadEntry? thread = Volatile.Read(ref this.activeThread);
             IConsoleConnection? connection = this.Connection;
@@ -209,7 +209,7 @@ public class ConsoleDebugger {
     }
 
     public async Task UpdateAllThreads(CancellationToken busyCancellationToken) {
-        using IDisposable? token = await this.busyLocker.BeginBusyOperationUsingActivityAsync("", cancellationToken: busyCancellationToken);
+        using IBusyToken? token = await this.busyLocker.BeginBusyOperationUsingActivity("", cancellationToken: busyCancellationToken);
         if (token == null || busyCancellationToken.IsCancellationRequested || this.ignoreActiveThreadChange) {
             return;
         }
@@ -220,7 +220,7 @@ public class ConsoleDebugger {
         }
     }
 
-    private async Task UpdateAllThreadsImpl(IConsoleConnection connection, IDisposable busyToken) {
+    private async Task UpdateAllThreadsImpl(IConsoleConnection connection, IBusyToken busyToken) {
         IFeatureXboxDebugging debug = connection.GetFeatureOrDefault<IFeatureXboxDebugging>()!;
         List<ThreadEntry> threads;
         try {
@@ -260,7 +260,7 @@ public class ConsoleDebugger {
         if (this.Connection == null || this.Connection.IsClosed)
             return null;
 
-        using IDisposable? token = await this.busyLocker.BeginBusyOperationUsingActivityAsync("Read Info on Newly Created Thread");
+        using IBusyToken? token = await this.busyLocker.BeginBusyOperationUsingActivity("Read Info on Newly Created Thread");
         if (token == null) {
             return null;
         }
@@ -268,7 +268,7 @@ public class ConsoleDebugger {
         return await this.UpdateThread(token, threadId, createIfDoesntExist);
     }
 
-    public async Task<ThreadEntry?> UpdateThread(IDisposable token, uint threadId, bool createIfDoesntExist = true) {
+    public async Task<ThreadEntry?> UpdateThread(IBusyToken token, uint threadId, bool createIfDoesntExist = true) {
         this.busyLocker.ValidateToken(token);
 
         int idx = this.ThreadEntries.FindIndex(x => x.ThreadId == threadId);
@@ -327,13 +327,13 @@ public class ConsoleDebugger {
         if (this.Connection == null || this.Connection.IsClosed)
             return;
 
-        using IDisposable? token = await this.busyLocker.BeginBusyOperationAsync(500, busyCancellationToken);
+        using IBusyToken? token = await this.busyLocker.BeginBusyOperation(500, busyCancellationToken);
         if (token != null && !this.ignoreActiveThreadChange) {
             await this.UpdateRegistersForActiveThread(token);
         }
     }
 
-    public async Task UpdateRegistersForActiveThread(IDisposable token) {
+    public async Task UpdateRegistersForActiveThread(IBusyToken token) {
         this.busyLocker.ValidateToken(token);
 
         ThreadEntry? thread = Volatile.Read(ref this.activeThread); /* just incase caller is not on AMT */
@@ -426,7 +426,7 @@ public class ConsoleDebugger {
         // }, DispatchPriority.Default, token: CancellationToken.None);
     }
 
-    public void SetConnection(IDisposable busyToken, IConsoleConnection? newConnection) {
+    public void SetConnection(IBusyToken busyToken, IConsoleConnection? newConnection) {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
         this.busyLocker.ValidateToken(busyToken);
         if (this.ignoreActiveThreadChange)
@@ -471,21 +471,21 @@ public class ConsoleDebugger {
     public void CheckConnection() {
         IConsoleConnection? conn = this.Connection;
         if (conn != null && conn.IsClosed) {
-            using (IDisposable? token1 = this.BusyLock.TryBeginBusyOperation()) {
+            using (IBusyToken? token1 = this.BusyLock.TryBeginBusyOperation()) {
                 if (token1 != null && this.TryDisconnectForLostConnection(token1)) {
                     return;
                 }
             }
 
             ApplicationPFX.Instance.Dispatcher.Post(() => {
-                using IDisposable? token2 = this.BusyLock.TryBeginBusyOperation();
+                using IBusyToken? token2 = this.BusyLock.TryBeginBusyOperation();
                 if (token2 != null)
                     this.TryDisconnectForLostConnection(token2);
             });
         }
     }
 
-    private bool TryDisconnectForLostConnection(IDisposable token) {
+    private bool TryDisconnectForLostConnection(IBusyToken token) {
         IConsoleConnection? conn = this.Connection;
         if (conn == null)
             return true;
@@ -525,7 +525,7 @@ public class ConsoleDebugger {
         bool isCreated = e is XbdmEventArgsCreateThread;
         ApplicationPFX.Instance.Dispatcher.Post(async () => {
             if (isCreated) {
-                using IDisposable? token = await this.busyLocker.BeginBusyOperationUsingActivityAsync("Read Info on Newly Created Thread");
+                using IBusyToken? token = await this.busyLocker.BeginBusyOperationUsingActivity("Read Info on Newly Created Thread");
                 if (token == null)
                     return;
 

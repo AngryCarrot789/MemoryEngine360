@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Connections;
+using MemEngine360.Engine;
 using PFXToolKitUI.Activities;
 
 namespace MemEngine360.Sequencing;
@@ -44,14 +45,14 @@ public sealed class SequenceExecutionContext {
     /// <summary>
     /// Gets the priority busy token, or null, if <see cref="TaskSequence.HasEngineConnectionPriority"/> is false
     /// </summary>
-    public IDisposable? BusyToken { get; }
+    public IBusyToken? BusyToken { get; }
 
     /// <summary>
     /// Returns true when <see cref="Connection"/> is dedicated and has nothing to do with the memory engine, meaning <see cref="BusyToken"/> will be null
     /// </summary>
     public bool IsConnectionDedicated { get; }
 
-    public SequenceExecutionContext(TaskSequence sequence, IConsoleConnection connection, IDisposable? busyToken, bool isConnectionDedicated) {
+    public SequenceExecutionContext(TaskSequence sequence, IConsoleConnection connection, IBusyToken? busyToken, bool isConnectionDedicated) {
         this.Sequence = sequence;
         this.Connection = connection;
         this.BusyToken = busyToken;

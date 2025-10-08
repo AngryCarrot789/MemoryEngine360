@@ -77,7 +77,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <summary>
     /// Gets this engine's busy lock, which is used to synchronize our connection
     /// </summary>
-    public BusyLock BusyLocker { get; }
+    public BusyLock BusyLock { get; }
 
     /// <summary>
     /// Gets the current console connection. This can only change on the main thread
@@ -91,7 +91,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// </para>
     /// <code>
     /// <![CDATA[
-    /// using IDisposable? token = engine.BeginBusyOperation();
+    /// using IBusyToken? token = engine.BeginBusyOperation();
     /// if (token != null && engine.Connection != null) {
     ///     // do work involving connection
     /// }
@@ -118,7 +118,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// Gets or sets if the memory engine is currently busy, e.g. reading or writing data.
     /// This will never be true when <see cref="Connection"/> is null
     /// </summary>
-    public bool IsConnectionBusy => this.BusyLocker.IsBusy;
+    public bool IsConnectionBusy => this.BusyLock.IsBusy;
 
     public ScanningProcessor ScanningProcessor { get; }
 
@@ -203,8 +203,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
 
     public MemoryEngine() {
         this.myComponentStorage = new ComponentStorage(this);
-        this.BusyLocker = new BusyLock();
-        this.BusyLocker.IsBusyChanged += e => this.IsBusyChanged?.Invoke(this);
+        this.BusyLock = new BusyLock();
+        this.BusyLock.IsBusyChanged += e => this.IsBusyChanged?.Invoke(this);
         this.ScanningProcessor = new ScanningProcessor(this);
         this.AddressTableManager = new AddressTableManager(this);
         this.FileTreeExplorer = new FileTreeExplorer(this);
@@ -353,9 +353,9 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <param name="cause">The cause for connection change</param>
     /// <exception cref="InvalidOperationException">Token is invalid</exception>
     /// <exception cref="ArgumentException">New connection is non-null when cause is <see cref="ConnectionChangeCause.LostConnection"/></exception>
-    public void SetConnection(IDisposable busyToken, ulong frame, IConsoleConnection? newConnection, ConnectionChangeCause cause, UserConnectionInfo? userConnectionInfo = null) {
+    public void SetConnection(IBusyToken busyToken, ulong frame, IConsoleConnection? newConnection, ConnectionChangeCause cause, UserConnectionInfo? userConnectionInfo = null) {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-        this.BusyLocker.ValidateToken(busyToken);
+        this.BusyLock.ValidateToken(busyToken);
         if (newConnection != null && (cause == ConnectionChangeCause.LostConnection || cause == ConnectionChangeCause.ConnectionError))
             throw new ArgumentException($"Cause cannot be {cause} when setting connection to a non-null value");
 
@@ -378,7 +378,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
             newConnection.Closed += this.OnConnectionClosed;
 
         // ConnectionChanged is invoked under the lock to enforce busy operation rules
-        lock (this.BusyLocker.CriticalLock) {
+        lock (this.BusyLock.CriticalLock) {
             this.connection = newConnection;
             if (newConnection != null)
                 this.LastUserConnectionInfo = userConnectionInfo;
@@ -419,7 +419,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// </para>
     /// </summary>
     /// <returns>A token to dispose when the operation is completed. Returns null if currently busy</returns>
-    public IDisposable? TryBeginBusyOperation() => this.BusyLocker.TryBeginBusyOperation();
+    public IBusyToken? TryBeginBusyOperation() => this.BusyLock.TryBeginBusyOperation();
 
     /// <summary>
     /// Begins a busy operation that uses the <see cref="Connection"/>, by waiting for existing busy operations to finish 
@@ -427,8 +427,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
     /// <param name="timeoutMilliseconds">An optional timeout value. When the amount of time elapses, we return null</param>
     /// <returns>The acquired token, or null if the task was cancelled. Dispose to finish the busy operation</returns>
-    public Task<IDisposable?> BeginBusyOperationAsync(CancellationToken cancellationToken) {
-        return this.BusyLocker.BeginBusyOperationAsync(cancellationToken);
+    public Task<IBusyToken?> BeginBusyOperationAsync(CancellationToken cancellationToken) {
+        return this.BusyLock.BeginBusyOperation(cancellationToken);
     }
 
     /// <summary>
@@ -438,8 +438,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <param name="timeoutMilliseconds">The maximum amount of time to wait to try and begin the operations</param>
     /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
     /// <returns>The token, or null, if the timeout elapsed or the cancellation token becomes cancelled</returns>
-    public Task<IDisposable?> BeginBusyOperationAsync(int timeoutMilliseconds, CancellationToken cancellationToken = default) {
-        return this.BusyLocker.BeginBusyOperationAsync(timeoutMilliseconds, cancellationToken);
+    public Task<IBusyToken?> BeginBusyOperationAsync(int timeoutMilliseconds, CancellationToken cancellationToken = default) {
+        return this.BusyLock.BeginBusyOperation(timeoutMilliseconds, cancellationToken);
     }
 
     /// <summary>
@@ -452,8 +452,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <returns>
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
-    public Task<IDisposable?> BeginBusyOperationUsingActivityAsync(string caption = "New Operation", string message = BusyLock.WaitingMessage, CancellationToken cancellationToken = default) {
-        return this.BusyLocker.BeginBusyOperationUsingActivityAsync(caption, message, cancellationToken);
+    public Task<IBusyToken?> BeginBusyOperationUsingActivityAsync(string caption = "New Operation", string message = BusyLock.WaitingMessage, CancellationToken cancellationToken = default) {
+        return this.BusyLock.BeginBusyOperationUsingActivity(caption, message, cancellationToken);
     }
 
     /// <summary>
@@ -463,12 +463,12 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
     /// <param name="cancellationToken">Additional cancellation source for the activity</param>
     /// <returns>True if the callback action was run, otherwise False meaning we couldn't get the token or the connection was null/closed</returns>
-    public async Task<bool> BeginBusyOperationUsingActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = BusyLock.WaitingMessage, CancellationToken cancellationToken = default) {
+    public async Task<bool> BeginBusyOperationUsingActivityAsync(Func<IBusyToken, IConsoleConnection, Task> action, string caption = "New Operation", string message = BusyLock.WaitingMessage, CancellationToken cancellationToken = default) {
         if (this.connection == null) {
             return false;
         }
 
-        using IDisposable? token = await this.BeginBusyOperationUsingActivityAsync(caption, message, cancellationToken);
+        using IBusyToken? token = await this.BeginBusyOperationUsingActivityAsync(caption, message, cancellationToken);
         IConsoleConnection c;
         if (token != null && (c = this.connection) != null && !c.IsClosed) {
             await action(token, c);
@@ -479,37 +479,17 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     }
 
     /// <summary>
-    /// Gets a busy token via <see cref="BeginBusyOperationActivityAsync(string)"/> and invokes a callback if the connection is available
-    /// </summary>
-    /// <param name="action">The callback to invoke when we have the token</param>
-    /// <param name="message">A message to pass to the <see cref="BeginBusyOperationActivityAsync(string)"/> method</param>
-    /// <typeparam name="TResult">The result of the callback task</typeparam>
-    /// <returns>The task containing the result of action, or default if we couldn't get the token or connection was null</returns>
-    public async Task<Optional<TResult>> BeginBusyOperationUsingActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string caption = "New Operation", string message = BusyLock.WaitingMessage) {
-        if (this.connection == null)
-            return default; // short path -- save creating an activity
-
-        using IDisposable? token = await this.BeginBusyOperationUsingActivityAsync(caption, message);
-        IConsoleConnection c;
-        if (token != null && (c = this.connection) != null) {
-            return await action(token, c);
-        }
-
-        return default;
-    }
-
-    /// <summary>
     /// Begins a busy operation from within an already running activity, and only runs the callback function
     /// when we have a connection after the busy token is acquired
     /// </summary>
     /// <param name="function">The callback to run with the token and open connection</param>
     /// <param name="busyCancellation">A cancellation token used to stop trying to acquire the busy token</param>
-    public async Task<bool> BeginBusyOperationFromActivityAsync(Func<IDisposable, IConsoleConnection, Task> function, CancellationToken busyCancellation = default) {
+    public async Task<bool> BeginBusyOperationFromActivityAsync(Func<IBusyToken, IConsoleConnection, Task> function, CancellationToken busyCancellation = default) {
         if (this.connection == null) {
             return false;
         }
 
-        using IDisposable? token = await this.BusyLocker.BeginBusyOperationFromActivityAsync(busyCancellation);
+        using IBusyToken? token = await this.BusyLock.BeginBusyOperationFromActivity(busyCancellation);
         IConsoleConnection c;
         if (token != null && (c = this.connection) != null && !c.IsClosed) {
             await function(token, c);
@@ -530,41 +510,12 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// A task containing the result of the function, or <see cref="Optional{T}.Empty"/> if
     /// it could not be called (i.e. not connected or could not begin busy operation)
     /// #</returns>
-    public async Task<Optional<T>> BeginBusyOperationFromActivityAsync<T>(Func<IDisposable, IConsoleConnection, Task<T>> function, CancellationToken busyCancellation = default) {
+    public async Task<Optional<T>> BeginBusyOperationFromActivityAsync<T>(Func<IBusyToken, IConsoleConnection, Task<T>> function, CancellationToken busyCancellation = default) {
         if (this.connection == null) {
             return default;
         }
 
-        using IDisposable? token = await this.BusyLocker.BeginBusyOperationFromActivityAsync(busyCancellation);
-        IConsoleConnection c;
-        if (token != null && (c = this.connection) != null && !c.IsClosed) {
-            return await function(token, c);
-        }
-
-        return default;
-    }
-
-    public async Task<bool> BeginBusyOperationWithForegroundFromActivityAsync(ITopLevel parentTopLevel, Func<IDisposable, IConsoleConnection, Task> function, int showDelay = BusyLock.DefaultForegroundDelay, CancellationToken busyCancellation = default) {
-        if (this.connection == null) {
-            return false;
-        }
-
-        using IDisposable? token = await this.BusyLocker.BeginBusyOperationWithForegroundFromActivityAsync(parentTopLevel, showDelay, busyCancellation);
-        IConsoleConnection c;
-        if (token != null && (c = this.connection) != null && !c.IsClosed) {
-            await function(token, c);
-            return true;
-        }
-
-        return false;
-    }
-
-    public async Task<Optional<T>> BeginBusyOperationWithForegroundFromActivityAsync<T>(ITopLevel parentTopLevel, Func<IDisposable, IConsoleConnection, Task<T>> function, int showDelay = BusyLock.DefaultForegroundDelay, CancellationToken busyCancellation = default) {
-        if (this.connection == null) {
-            return default;
-        }
-
-        using IDisposable? token = await this.BusyLocker.BeginBusyOperationWithForegroundFromActivityAsync(parentTopLevel, showDelay, busyCancellation);
+        using IBusyToken? token = await this.BusyLock.BeginBusyOperationFromActivity(busyCancellation);
         IConsoleConnection c;
         if (token != null && (c = this.connection) != null && !c.IsClosed) {
             return await function(token, c);
@@ -581,14 +532,14 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         IConsoleConnection? c = this.connection;
         if (c != null && c.IsClosed) {
             if (ApplicationPFX.Instance.Dispatcher.CheckAccess()) {
-                using IDisposable? t = this.TryBeginBusyOperation();
+                using IBusyToken? t = this.TryBeginBusyOperation();
                 if (t != null && this.TryDisconnectForLostConnection(t, likelyCause)) {
                     return;
                 }
             }
 
             ApplicationPFX.Instance.Dispatcher.Post(() => {
-                using IDisposable? t = this.TryBeginBusyOperation();
+                using IBusyToken? t = this.TryBeginBusyOperation();
                 if (t != null) {
                     this.TryDisconnectForLostConnection(t, likelyCause);
                 }
@@ -606,12 +557,12 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// Attempts to auto-disconnect the connection immediately if it is no longer actually connected (<see cref="IConsoleConnection.IsClosed"/> is true)
     /// </summary>
     /// <param name="token"></param>
-    public void CheckConnection(IDisposable token, ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection) {
-        this.BusyLocker.ValidateToken(token);
+    public void CheckConnection(IBusyToken token, ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection) {
+        this.BusyLock.ValidateToken(token);
         this.TryDisconnectForLostConnection(token, likelyCause);
     }
 
-    private bool TryDisconnectForLostConnection(IDisposable token, ConnectionChangeCause cause) {
+    private bool TryDisconnectForLostConnection(IBusyToken token, ConnectionChangeCause cause) {
         IConsoleConnection? conn = this.connection;
         if (conn == null)
             return true;

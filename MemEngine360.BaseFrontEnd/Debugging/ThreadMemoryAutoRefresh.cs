@@ -20,6 +20,7 @@
 using AvaloniaHex.Async;
 using AvaloniaHex.Base.Document;
 using MemEngine360.Connections;
+using MemEngine360.Engine;
 using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.HexEditing;
 using PFXToolKitUI;
@@ -67,7 +68,7 @@ public class ThreadMemoryAutoRefresh : IDisposable {
                     }
 
                     byte[] bytes;
-                    using (IDisposable? t = await this.Debugger.BusyLock.BeginBusyOperationAsync(500, token)) {
+                    using (IBusyToken? t = await this.Debugger.BusyLock.BeginBusyOperation(500, token)) {
                         if (t == null)
                             continue;
 

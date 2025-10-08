@@ -60,13 +60,13 @@ public class RunSequenceCommand : Command {
             return;
         }
 
-        IDisposable? token = null;
+        IBusyToken? token = null;
         if (sequence.HasEngineConnectionPriority && (token = sequence.Manager.MemoryEngine.TryBeginBusyOperation()) == null) {
             using CancellationTokenSource cts = new CancellationTokenSource();
-            Result<IDisposable?> tokenResult = await ActivityManager.Instance.RunTask(() => {
+            Result<IBusyToken?> tokenResult = await ActivityManager.Instance.RunTask(() => {
                 ActivityTask task = ActivityManager.Instance.CurrentTask;
                 task.Progress.Caption = $"Start '{sequence.DisplayName}'";
-                return sequence.Manager.MemoryEngine.BusyLocker.BeginBusyOperationFromActivityAsync(CancellationToken.None);
+                return sequence.Manager.MemoryEngine.BusyLock.BeginBusyOperationFromActivity(CancellationToken.None);
             }, sequence.Progress, cts);
 
             // User cancelled operation so don't run the sequence, since it wants busy lock priority

@@ -37,6 +37,6 @@ public class ShowScriptingWindowCommand : Command {
             return;
         }
 
-        await ApplicationPFX.GetComponent<IScriptingService>().OpenOrFocusWindow(engine.ScriptingManager);
+        await ApplicationPFX.GetComponent<IScriptingViewService>().ShowOrFocusWindow(engine.ScriptingManager);
     }
 }

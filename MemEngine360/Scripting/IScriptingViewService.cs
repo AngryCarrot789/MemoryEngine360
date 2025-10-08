@@ -19,6 +19,6 @@
 
 namespace MemEngine360.Scripting;
 
-public interface IScriptingService {
-    Task OpenOrFocusWindow(ScriptingManager scriptingManager);
+public interface IScriptingViewService {
+    Task ShowOrFocusWindow(ScriptingManager scriptingManager);
 }

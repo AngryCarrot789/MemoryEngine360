@@ -252,7 +252,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.AddComponent<IConsoleEventViewerService>(new ConsoleEventViewerServiceImpl());
         manager.AddComponent<IDebuggerViewService>(new DebuggerViewServiceImpl());
         manager.AddComponent<IFileBrowserService>(new FileBrowserServiceImpl());
-        manager.AddComponent<IScriptingService>(new ScriptingServiceImpl());
+        manager.AddComponent<IScriptingViewService>(new DesktopScriptingViewServiceImpl());
 
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }
@@ -605,7 +605,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 }
             }
 
-            IDisposable? token = await engine.BeginBusyOperationAsync(500);
+            IBusyToken? token = await engine.BeginBusyOperationAsync(500);
             while (token == null) {
                 MessageBoxInfo info = new MessageBoxInfo() {
                     Caption = "Engine busy",
@@ -621,7 +621,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     return; // force close - let tcp things timeout
                 }
 
-                token = await TryGetTokenWithForegroundDialog(window, engine.BusyLocker);
+                token = await TryGetTokenWithForegroundDialog(window, engine.BusyLock);
             }
 
             IConsoleConnection? connection = engine.Connection;
@@ -638,7 +638,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 token.Dispose();
             }
 
-            IDisposable? debuggerToken = await engine.ConsoleDebugger.BusyLock.BeginBusyOperationAsync(1000);
+            IBusyToken? debuggerToken = await engine.ConsoleDebugger.BusyLock.BeginBusyOperation(1000);
             while (debuggerToken == null) {
                 MessageBoxInfo info = new MessageBoxInfo() {
                     Caption = "Debugger busy",
@@ -672,10 +672,16 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             }
         }
 
-        private static async Task<IDisposable?> TryGetTokenWithForegroundDialog(IDesktopWindow window, BusyLock busyLock) {
-            IDisposable? token;
+        private static async Task<IBusyToken?> TryGetTokenWithForegroundDialog(IDesktopWindow window, BusyLock busyLock) {
+            IBusyToken? token;
             if ((token = busyLock.TryBeginBusyOperation()) == null) {
-                token = await busyLock.BeginBusyOperationInForegroundUsingActivityAsync(window, "Safely disconnect");
+                token = await busyLock.BeginBusyOperationUsingActivity(new BusyTokenRequestUsingActivity() {
+                    Progress = {
+                        Caption = "Safely disconnect",
+                        Text = BusyLock.WaitingMessage,
+                    },
+                    ForegroundInfo = new InForegroundInfo(window)
+                });
             }
 
             return token;

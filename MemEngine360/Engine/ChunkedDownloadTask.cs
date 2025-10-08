@@ -47,7 +47,7 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
     private volatile Exception? fileException;
 
     // live handles
-    private IDisposable? busyToken;
+    private IBusyToken? busyToken;
     private FileStream? fileOutput;
 
     /// <summary>
@@ -60,7 +60,7 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
     /// </summary>
     public Exception? FileException => this.fileException;
 
-    public ChunkedDownloadTask(IConsoleConnection connection, BusyLock busyLock, IDisposable busyToken, uint startAddress, uint countBytes, bool freezeConsole) : base(true) {
+    public ChunkedDownloadTask(IConsoleConnection connection, BusyLock busyLock, IBusyToken busyToken, uint startAddress, uint countBytes, bool freezeConsole) : base(true) {
         this.connection = connection;
         this.iceCubes = this.connection.GetFeatureOrDefault<IFeatureIceCubes>();
         this.busyLock = busyLock;
@@ -87,7 +87,7 @@ public abstract class ChunkedDownloadTask : AdvancedPausableTask {
             // Update initial text
             this.downloadCompletion.OnCompletionValueChanged();
         }
-        else if ((this.busyToken = await this.busyLock.BeginBusyOperationFromActivityAsync(pauseOrCancelToken)) == null) {
+        else if ((this.busyToken = await this.busyLock.BeginBusyOperationFromActivity(pauseOrCancelToken)) == null) {
             return;
         }
 

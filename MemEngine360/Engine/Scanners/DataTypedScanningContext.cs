@@ -264,7 +264,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
     }
 
-    internal override async Task PerformFirstScan(IConsoleConnection connection, Reference<IDisposable?> busyTokenRef) {
+    internal override async Task PerformFirstScan(IConsoleConnection connection, Reference<IBusyToken?> busyTokenRef) {
         await new FirstTypedScanTask(this, connection, busyTokenRef).RunWithCurrentActivity();
     }
 
@@ -293,7 +293,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
         return true;
     }
 
-    internal override async Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IDisposable?> busyTokenRef) {
+    internal override async Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IBusyToken?> busyTokenRef) {
         ActivityTask task = ActivityManager.Instance.CurrentTask;
         if (this.dataType.IsNumeric()) {
             using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {

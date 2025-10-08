@@ -33,7 +33,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
     internal readonly ScanningContext ctx;
     internal readonly IConsoleConnection connection;
     private readonly IFeatureIceCubes? iceCubes;
-    private readonly Reference<IDisposable?> myBusyTokenRef;
+    private readonly Reference<IBusyToken?> myBusyTokenRef;
 
     // region scanning info
     private List<MemoryRegion>? myRegions;
@@ -48,26 +48,53 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
     private bool isProcessingCurrentRegion;
     private bool isAlreadyFrozen;
 
-    public IDisposable? BusyToken => this.myBusyTokenRef.Value;
+    public IBusyToken? BusyToken => this.myBusyTokenRef.Value;
 
-    public FirstTypedScanTask(ScanningContext context, IConsoleConnection connection, Reference<IDisposable?> busyTokenRef) : base(true) {
+    public FirstTypedScanTask(ScanningContext context, IConsoleConnection connection, Reference<IBusyToken?> busyTokenRef) : base(true) {
         this.ctx = context ?? throw new ArgumentNullException(nameof(context));
         this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
         this.myBusyTokenRef = busyTokenRef ?? throw new ArgumentNullException(nameof(busyTokenRef));
+        this.ctx.Processor.MemoryEngine.BusyLock.UserQuickReleaseRequested += this.BusyLockOnUserQuickReleaseRequested;
         this.iceCubes = connection.GetFeatureOrDefault<IFeatureIceCubes>();
         this.rgIdx = 0;
+    }
+
+    private async Task<bool> TryObtainBusyToken(CancellationToken pauseOrCancelToken) {
+        Debug.Assert(this.BusyToken == null);
+        BusyLock busyLock = this.ctx.Processor.MemoryEngine.BusyLock;
+        this.myBusyTokenRef.Value = await busyLock.BeginBusyOperationFromActivity(pauseOrCancelToken);
+        if (this.BusyToken == null) {
+            return false;
+        }
+
+        busyLock.UserQuickReleaseRequested += this.BusyLockOnUserQuickReleaseRequested;
+        return true;
+    }
+
+    private void ReleaseBusyToken() {
+        BusyLock busyLock = this.ctx.Processor.MemoryEngine.BusyLock;
+        Debug.Assert(this.BusyToken != null && busyLock.IsTokenValid(this.BusyToken));
+
+        busyLock.UserQuickReleaseRequested -= this.BusyLockOnUserQuickReleaseRequested;
+        this.BusyToken?.Dispose();
+        this.myBusyTokenRef.Value = null;
+    }
+
+    private void BusyLockOnUserQuickReleaseRequested(BusyLock busyLock, TaskCompletionSource tcsQuickActionFinished) {
+        this.RequestPause(out _, out _);
+
+        tcsQuickActionFinished.Task.ContinueWith(t => {
+            this.RequestResume(out _, out _);
+        }, this.CancellationToken);
     }
 
     protected override async Task RunOperation(CancellationToken pauseOrCancelToken, bool isFirstRun) {
         this.Activity.Progress.Text = "Scanning...";
         if (isFirstRun) {
-            Debug.Assert(this.myBusyTokenRef != null, "Busy token should not be null at this point");
+            Debug.Assert(this.BusyToken != null, "Busy token should not be null at this point");
         }
-        else {
-            this.myBusyTokenRef.Value = await this.ctx.Processor.MemoryEngine.BusyLocker.BeginBusyOperationFromActivityAsync(pauseOrCancelToken);
-            if (this.BusyToken == null) {
-                return;
-            }
+        else if (!await this.TryObtainBusyToken(pauseOrCancelToken)) {
+            return;
         }
 
         if (this.ctx.HasConnectionError || this.connection.IsClosed) {
@@ -217,17 +244,18 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
         this.Activity.Progress.CompletionState.TotalCompletion = 0.0;
         await this.TrySetUnFrozen();
 
-        this.myBusyTokenRef.Value?.Dispose();
-        this.myBusyTokenRef.Value = null;
+        if (this.BusyToken != null) {
+            this.ReleaseBusyToken();
+        }
     }
 
     protected override async Task OnCompleted() {
         await this.TrySetUnFrozen();
-        // do not dispose busy token after completed since the scanner may still need it
+        // we may still hold the busy token. do not dispose since the scanner still needs it
     }
 
     private async Task TrySetUnFrozen() {
-        if (!this.isAlreadyFrozen && this.ctx.pauseConsoleDuringScan && this.iceCubes != null) {
+        if (this.BusyToken != null && !this.isAlreadyFrozen && this.ctx.pauseConsoleDuringScan && this.iceCubes != null) {
             try {
                 await this.iceCubes.DebugUnFreeze();
             }

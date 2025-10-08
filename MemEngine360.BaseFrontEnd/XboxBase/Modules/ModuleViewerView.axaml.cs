@@ -84,7 +84,7 @@ public partial class ModuleViewerView : UserControl {
                 return;
             }
 
-            using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Dump memory");
+            using IBusyToken? token = await engine.BeginBusyOperationUsingActivityAsync("Dump memory");
             if (token == null) {
                 return;
             }

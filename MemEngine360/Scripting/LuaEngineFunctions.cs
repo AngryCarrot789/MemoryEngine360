@@ -30,303 +30,20 @@ namespace MemEngine360.Scripting;
 public sealed class LuaEngineFunctions {
     private readonly LuaScriptMachine machine;
 
-    public LuaEngineFunctions(LuaScriptMachine machine) {
+    public LuaEngineFunctions(LuaScriptMachine machine, LuaState state) {
         this.machine = machine;
-    }
-
-    public void Install(LuaState state) {
-        LuaTable luaTable = new LuaTable(0, 14);
-        AssignFunction(luaTable, new LuaFunction("readnumber", this.ReadNumber));
-        AssignFunction(luaTable, new LuaFunction("writenumber", this.WriteNumber));
-        AssignFunction(luaTable, new LuaFunction("readstring", this.ReadString));
-        AssignFunction(luaTable, new LuaFunction("writestring", this.WriteString));
-        AssignFunction(luaTable, new LuaFunction("setfrozen", this.SetIsFrozen));
-        AssignFunction(luaTable, new LuaFunction("isfrozen", this.GetIsFrozen));
-        AssignFunction(luaTable, new LuaFunction("sendnotification", this.SendNotification));
-        AssignFunction(luaTable, new LuaFunction("drivelist", this.GetDriveList));
-        AssignFunction(luaTable, new LuaFunction("getfiles", this.GetFileSystemEntries));
-        AssignFunction(luaTable, new LuaFunction("deleterecursive", this.DeleteFileOrFolder));
-        AssignFunction(luaTable, new LuaFunction("launchfile", this.LaunchFile));
-        AssignFunction(luaTable, new LuaFunction("movefile", this.MoveFile));
-        AssignFunction(luaTable, new LuaFunction("mkdir", this.CreateDirectory));
-        AssignFunction(luaTable, new LuaFunction("pathseparator", this.GetPathSeparator));
-        AssignFunction(luaTable, new LuaFunction("setleds", this.SetLEDs));
-        AssignFunction(luaTable, new LuaFunction("getprocaddress", this.GetProcedureAddress));
-        state.Environment[(LuaValue) "engine"] = (LuaValue) luaTable;
-        state.LoadedModules[(LuaValue) "engine"] = (LuaValue) luaTable;
+        
+        LuaTable engineTable = new LuaTable(0, 20);
+        state.Environment[(LuaValue) "engine"] = (LuaValue) engineTable;
+        state.LoadedModules[(LuaValue) "engine"] = (LuaValue) engineTable;
+        
+        _ = new EngineFunctions(this, state, engineTable);
+        _ = new FileSystemFunctions(this, state, engineTable);
+        _ = new MessageBoxFunctions(this, state);
     }
 
     private static void AssignFunction(LuaTable luaTable, LuaFunction function) {
         luaTable[(LuaValue) function.Name] = (LuaValue) function;
-    }
-
-    public async ValueTask<int> ReadNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        uint address = GetAddressFromValue(ref context, context.GetArgument(0));
-        DataType dataType = GetDataTypeFromString(ref context, context.GetArgument<string>(1));
-        IConsoleConnection conn = this.GetConnection(ref context);
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        LuaValue value;
-        switch (dataType) {
-            case DataType.Byte:   value = await conn.ReadByte(address); break;
-            case DataType.Int16:  value = await conn.ReadValue<short>(address); break;
-            case DataType.Int32:  value = await conn.ReadValue<int>(address); break;
-            case DataType.Int64:  value = await conn.ReadValue<long>(address); break;
-            case DataType.Float:  value = await conn.ReadValue<float>(address); break;
-            case DataType.Double: value = await conn.ReadValue<double>(address); break;
-            default:              throw new ArgumentOutOfRangeException();
-        }
-
-        buffer.Span[0] = value;
-        return 1;
-    }
-
-    public async ValueTask<int> WriteNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        uint address = GetAddressFromValue(ref context, context.GetArgument(0));
-        DataType dataType = GetDataTypeFromString(ref context, context.GetArgument<string>(1));
-        double d = context.GetArgument<double>(2);
-        IDataValue theValue;
-        switch (dataType) {
-            case DataType.Byte:
-                if (d < byte.MinValue || d > byte.MaxValue)
-                    throw InvalidOperation(context, "Value is out of range for type 'byte': " + d);
-                theValue = new DataValueByte((byte) d);
-                break;
-            case DataType.Int16:
-                if (d < short.MinValue || d > short.MaxValue)
-                    throw InvalidOperation(context, "Value is out of range for type 'short': " + d);
-                theValue = new DataValueInt16((short) d);
-                break;
-            case DataType.Int32:
-                if (d < int.MinValue || d > int.MaxValue)
-                    throw InvalidOperation(context, "Value is out of range for type 'int': " + d);
-                theValue = new DataValueInt32((int) d);
-                break;
-            case DataType.Int64:
-                if (d < long.MinValue || d > long.MaxValue)
-                    throw InvalidOperation(context, "Value is out of range for type 'long': " + d);
-                theValue = new DataValueInt64((long) d);
-                break;
-            case DataType.Float:
-                if (d < float.MinValue || d > float.MaxValue)
-                    throw InvalidOperation(context, "Value is out of range for type 'float': " + d);
-                theValue = new DataValueFloat((float) d);
-                break;
-            case DataType.Double: theValue = new DataValueDouble(d); break;
-            default:              throw new ArgumentOutOfRangeException();
-        }
-
-        IConsoleConnection conn = this.GetConnection(ref context);
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        await MemoryEngine.WriteDataValue(conn, address, theValue);
-        return 0;
-    }
-
-    public async ValueTask<int> ReadString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        uint address = GetAddressFromValue(ref context, context.GetArgument(0));
-        int count = context.GetArgument<int>(1);
-        if (count < 0)
-            throw InvalidOperation(context, "Cannot read negative length string: " + count);
-
-        if (count == 0) {
-            buffer.Span[0] = (LuaValue) string.Empty;
-            return 1;
-        }
-
-        IConsoleConnection conn = this.GetConnection(ref context);
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        string result = await conn.ReadStringASCII(address, count, removeNull: true);
-        buffer.Span[0] = (LuaValue) result;
-        return 1;
-    }
-
-    public async ValueTask<int> WriteString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        uint address = GetAddressFromValue(ref context, context.GetArgument(0));
-        string value = context.GetArgument<string>(1);
-        if (string.IsNullOrEmpty(value)) {
-            return 0; // no point in writing "", since nothing would change
-        }
-
-        IConsoleConnection conn = this.GetConnection(ref context);
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        await conn.WriteString(address, value);
-        return 0;
-    }
-
-    public async ValueTask<int> SetIsFrozen(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        bool freeze = context.GetArgument<bool>(0);
-        IFeatureIceCubes cubes = this.GetConsoleFeature<IFeatureIceCubes>(ref context, "Console does not support changing the frozen state");
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        if (freeze) {
-            FreezeResult result = await cubes.DebugFreeze();
-            buffer.Span[0] = result == FreezeResult.Success;
-        }
-        else {
-            UnFreezeResult result = await cubes.DebugUnFreeze();
-            buffer.Span[0] = result == UnFreezeResult.Success;
-        }
-
-        return 1;
-    }
-
-    public async ValueTask<int> GetIsFrozen(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        IFeatureIceCubesEx cubes = this.GetConsoleFeature<IFeatureIceCubesEx>(ref context, "Console does not support querying the frozen state");
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        bool result = await cubes.IsFrozen();
-        buffer.Span[0] = result;
-        return 1;
-    }
-
-    private async ValueTask<int> SendNotification(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        string type = context.GetArgument<string>(0);
-        if (!Enum.TryParse(type, true, out XNotifyLogo logoType)) {
-            throw InvalidOperation(context, "Invalid XNotifyLogo: " + type);
-        }
-
-        string? message = context.HasArgument(1) ? context.GetArgument<string>(1) : null;
-        
-        IFeatureXboxNotifications feature = this.GetConsoleFeature<IFeatureXboxNotifications>(ref context, "JRPC2 is not installed");
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        await feature.ShowNotification(logoType, message);
-        return 0;
-    }
-
-    private async ValueTask<int> GetDriveList(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        IFeatureFileSystemInfo fsInfo = this.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        List<DriveEntry> result = await fsInfo.GetDriveList();
-
-        string ch = fsInfo.GetPathSeparatorChar().ToString();
-        LuaTable table = new LuaTable(result.Count, 0);
-        for (int i = 0; i < result.Count; i++) {
-            string name = result[i].Name;
-            if (!name.EndsWith(ch)) {
-                name += ch;
-            }
-
-            table.Insert(i + 1, name);
-        }
-
-        buffer.Span[0] = table;
-        return 1;
-    }
-
-    private async ValueTask<int> GetFileSystemEntries(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        string path = context.GetArgument<string>(0);
-        bool files = context.GetArgument<bool>(1);
-        bool directories = context.GetArgument<bool>(2);
-        if (!files && !directories) {
-            buffer.Span[0] = new LuaTable(0, 0);
-            return 1;
-        }
-
-        IFeatureFileSystemInfo fsInfo = this.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        List<FileSystemEntry> results = await fsInfo.GetFileSystemEntries(path);
-        int count = files && !directories
-            ? results.Count(x => !x.IsDirectory)
-            : !files && directories
-                ? results.Count(x => x.IsDirectory)
-                : results.Count;
-
-        string ch = fsInfo.GetPathSeparatorChar().ToString();
-        LuaTable table = new LuaTable(count, 0);
-        for (int i = 0; i < results.Count; i++) {
-            FileSystemEntry entry = results[i];
-            string name = entry.Name;
-            if (entry.IsDirectory && !name.EndsWith(ch)) {
-                name += ch;
-            }
-
-            table.Insert(i + 1, name);
-        }
-
-        buffer.Span[0] = table;
-        return 1;
-    }
-
-    private async ValueTask<int> DeleteFileOrFolder(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        string path = context.GetArgument<string>(0);
-
-        IFeatureFileSystemInfo fsInfo = this.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        bool result = await fsInfo.DeleteFileSystemEntryRecursive(path);
-        buffer.Span[0] = result;
-        return 1;
-    }
-
-    private async ValueTask<int> LaunchFile(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        string path = context.GetArgument<string>(0);
-        IFeatureFileSystemInfo fsInfo = this.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        await fsInfo.LaunchFile(path);
-        return 0;
-    }
-
-    private async ValueTask<int> MoveFile(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        string oldPath = context.GetArgument<string>(0);
-        string newPath = context.GetArgument<string>(1);
-        IFeatureFileSystemInfo fsInfo = this.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        await fsInfo.MoveFile(oldPath, newPath);
-        return 0;
-    }
-
-    private async ValueTask<int> CreateDirectory(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        string dirPath = context.GetArgument<string>(0);
-        IFeatureFileSystemInfo fsInfo = this.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        await fsInfo.CreateDirectory(dirPath);
-        return 0;
-    }
-
-    private ValueTask<int> GetPathSeparator(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        IFeatureFileSystemInfo fsInfo = this.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-
-        buffer.Span[0] = fsInfo.GetPathSeparatorChar().ToString();
-        return ValueTask.FromResult(1);
-    }
-
-    private async ValueTask<int> SetLEDs(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        bool p1 = context.GetArgument<bool>(0);
-        bool p2 = context.GetArgument<bool>(1);
-        bool p3 = context.GetArgument<bool>(2);
-        bool p4 = context.GetArgument<bool>(3);
-
-        IFeatureXboxJRPC2 jrpc = this.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not installed");
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-
-        await jrpc.SetLEDs(p1, p2, p3, p4);
-        return 0;
-    }
-
-    private async ValueTask<int> GetProcedureAddress(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-        string modName = context.GetArgument<string>(0);
-        uint ordinal = GetHexNumber(context, 1);
-        IFeatureXboxJRPC2 jrpc = this.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not installed");
-        using IDisposable token = await this.GetBusyToken(ref context, ct);
-        
-        uint address = await jrpc.ResolveFunction(modName, ordinal);
-        if (address == 0) {
-            buffer.Span[0] = LuaValue.Nil;
-        }
-        else {
-            buffer.Span[0] = (LuaValue) address.ToString("X8");
-        }
-
-        return 1;
     }
 
     private static LuaRuntimeException InvalidOperation(LuaFunctionExecutionContext ctx, string message) {
@@ -341,13 +58,13 @@ public sealed class LuaEngineFunctions {
             throw new LuaRuntimeException(ctx.State.GetTraceback(), "Lost connection to console");
         return conn;
     }
-    
-    private Task<IDisposable> GetBusyToken(ref LuaFunctionExecutionContext context, CancellationToken ct) {
+
+    private Task<IBusyToken> GetBusyToken(ref LuaFunctionExecutionContext context, CancellationToken ct) {
         return this.GetBusyToken(context.State, ct);
     }
-    
-    private async Task<IDisposable> GetBusyToken(LuaState context, CancellationToken ct) {
-        IDisposable? token = await this.machine.BusyLock.BeginBusyOperationAsync(ct);
+
+    private async Task<IBusyToken> GetBusyToken(LuaState context, CancellationToken ct) {
+        IBusyToken? token = await this.machine.BusyLock.BeginBusyOperation(ct);
         if (token == null) {
             ct.ThrowIfCancellationRequested();
             throw new LuaRuntimeException(context.GetTraceback(), "Failed to obtain network busy token");
@@ -355,7 +72,7 @@ public sealed class LuaEngineFunctions {
 
         return token;
     }
-    
+
     private T GetConsoleFeature<T>(ref LuaFunctionExecutionContext ctx, string errorMessage) where T : class, IConsoleFeature {
         IConsoleConnection conn = this.GetConnection(ref ctx);
         if (!conn.TryGetFeature(out T? feature))
@@ -370,7 +87,7 @@ public sealed class LuaEngineFunctions {
             ReadOnlySpan<char> span = text.StartsWith("0x") ? text.AsSpan(2) : text.AsSpan();
             return uint.Parse(span, NumberStyles.HexNumber);
         }
-        
+
         if (arg.TryRead(out int value)) {
             return (uint) value;
         }
@@ -426,5 +143,329 @@ public sealed class LuaEngineFunctions {
                 return DataType.Double;
             default: throw InvalidOperation(context, "Unknown data type: " + type);
         }
+    }
+
+    private sealed class EngineFunctions {
+        private readonly LuaEngineFunctions functions;
+
+        public EngineFunctions(LuaEngineFunctions functions, LuaState state, LuaTable engineTable) {
+            this.functions = functions;
+            AssignFunction(engineTable, new LuaFunction("readnumber", this.ReadNumber));
+            AssignFunction(engineTable, new LuaFunction("writenumber", this.WriteNumber));
+            AssignFunction(engineTable, new LuaFunction("readstring", this.ReadString));
+            AssignFunction(engineTable, new LuaFunction("writestring", this.WriteString));
+            AssignFunction(engineTable, new LuaFunction("setfrozen", this.SetIsFrozen));
+            AssignFunction(engineTable, new LuaFunction("isfrozen", this.GetIsFrozen));
+            AssignFunction(engineTable, new LuaFunction("sendnotification", this.SendNotification));
+            AssignFunction(engineTable, new LuaFunction("setleds", this.SetLEDs));
+            AssignFunction(engineTable, new LuaFunction("getprocaddress", this.GetProcedureAddress));
+        }
+
+        public async ValueTask<int> ReadNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            uint address = GetAddressFromValue(ref context, context.GetArgument(0));
+            DataType dataType = GetDataTypeFromString(ref context, context.GetArgument<string>(1));
+            IConsoleConnection conn = this.functions.GetConnection(ref context);
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            LuaValue value;
+            switch (dataType) {
+                case DataType.Byte:   value = await conn.ReadByte(address); break;
+                case DataType.Int16:  value = await conn.ReadValue<short>(address); break;
+                case DataType.Int32:  value = await conn.ReadValue<int>(address); break;
+                case DataType.Int64:  value = await conn.ReadValue<long>(address); break;
+                case DataType.Float:  value = await conn.ReadValue<float>(address); break;
+                case DataType.Double: value = await conn.ReadValue<double>(address); break;
+                default:              throw new ArgumentOutOfRangeException();
+            }
+
+            buffer.Span[0] = value;
+            return 1;
+        }
+
+        public async ValueTask<int> WriteNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            uint address = GetAddressFromValue(ref context, context.GetArgument(0));
+            DataType dataType = GetDataTypeFromString(ref context, context.GetArgument<string>(1));
+            double d = context.GetArgument<double>(2);
+            IDataValue theValue;
+            switch (dataType) {
+                case DataType.Byte:
+                    if (d < byte.MinValue || d > byte.MaxValue)
+                        throw InvalidOperation(context, "Value is out of range for type 'byte': " + d);
+                    theValue = new DataValueByte((byte) d);
+                    break;
+                case DataType.Int16:
+                    if (d < short.MinValue || d > short.MaxValue)
+                        throw InvalidOperation(context, "Value is out of range for type 'short': " + d);
+                    theValue = new DataValueInt16((short) d);
+                    break;
+                case DataType.Int32:
+                    if (d < int.MinValue || d > int.MaxValue)
+                        throw InvalidOperation(context, "Value is out of range for type 'int': " + d);
+                    theValue = new DataValueInt32((int) d);
+                    break;
+                case DataType.Int64:
+                    if (d < long.MinValue || d > long.MaxValue)
+                        throw InvalidOperation(context, "Value is out of range for type 'long': " + d);
+                    theValue = new DataValueInt64((long) d);
+                    break;
+                case DataType.Float:
+                    if (d < float.MinValue || d > float.MaxValue)
+                        throw InvalidOperation(context, "Value is out of range for type 'float': " + d);
+                    theValue = new DataValueFloat((float) d);
+                    break;
+                case DataType.Double: theValue = new DataValueDouble(d); break;
+                default:              throw new ArgumentOutOfRangeException();
+            }
+
+            IConsoleConnection conn = this.functions.GetConnection(ref context);
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            await MemoryEngine.WriteDataValue(conn, address, theValue);
+            return 0;
+        }
+
+        public async ValueTask<int> ReadString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            uint address = GetAddressFromValue(ref context, context.GetArgument(0));
+            int count = context.GetArgument<int>(1);
+            if (count < 0)
+                throw InvalidOperation(context, "Cannot read negative length string: " + count);
+
+            if (count == 0) {
+                buffer.Span[0] = (LuaValue) string.Empty;
+                return 1;
+            }
+
+            IConsoleConnection conn = this.functions.GetConnection(ref context);
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            string result = await conn.ReadStringASCII(address, count, removeNull: true);
+            buffer.Span[0] = (LuaValue) result;
+            return 1;
+        }
+
+        public async ValueTask<int> WriteString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            uint address = GetAddressFromValue(ref context, context.GetArgument(0));
+            string value = context.GetArgument<string>(1);
+            if (string.IsNullOrEmpty(value)) {
+                return 0; // no point in writing "", since nothing would change
+            }
+
+            IConsoleConnection conn = this.functions.GetConnection(ref context);
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            await conn.WriteString(address, value);
+            return 0;
+        }
+
+        public async ValueTask<int> SetIsFrozen(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            bool freeze = context.GetArgument<bool>(0);
+            IFeatureIceCubes cubes = this.functions.GetConsoleFeature<IFeatureIceCubes>(ref context, "Console does not support changing the frozen state");
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            if (freeze) {
+                FreezeResult result = await cubes.DebugFreeze();
+                buffer.Span[0] = result == FreezeResult.Success;
+            }
+            else {
+                UnFreezeResult result = await cubes.DebugUnFreeze();
+                buffer.Span[0] = result == UnFreezeResult.Success;
+            }
+
+            return 1;
+        }
+
+        public async ValueTask<int> GetIsFrozen(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            IFeatureIceCubesEx cubes = this.functions.GetConsoleFeature<IFeatureIceCubesEx>(ref context, "Console does not support querying the frozen state");
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            bool result = await cubes.IsFrozen();
+            buffer.Span[0] = result;
+            return 1;
+        }
+
+        private async ValueTask<int> SendNotification(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            string type = context.GetArgument<string>(0);
+            if (!Enum.TryParse(type, true, out XNotifyLogo logoType)) {
+                throw InvalidOperation(context, "Invalid XNotifyLogo: " + type);
+            }
+
+            string? message = context.HasArgument(1) ? context.GetArgument<string>(1) : null;
+
+            IFeatureXboxNotifications feature = this.functions.GetConsoleFeature<IFeatureXboxNotifications>(ref context, "JRPC2 is not installed");
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            await feature.ShowNotification(logoType, message);
+            return 0;
+        }
+
+        private async ValueTask<int> SetLEDs(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            bool p1 = context.GetArgument<bool>(0);
+            bool p2 = context.GetArgument<bool>(1);
+            bool p3 = context.GetArgument<bool>(2);
+            bool p4 = context.GetArgument<bool>(3);
+
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not installed");
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            await jrpc.SetLEDs(p1, p2, p3, p4);
+            return 0;
+        }
+
+        private async ValueTask<int> GetProcedureAddress(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            string modName = context.GetArgument<string>(0);
+            uint ordinal = GetHexNumber(context, 1);
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not installed");
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            uint address = await jrpc.ResolveFunction(modName, ordinal);
+            if (address == 0) {
+                buffer.Span[0] = LuaValue.Nil;
+            }
+            else {
+                buffer.Span[0] = (LuaValue) address.ToString("X8");
+            }
+
+            return 1;
+        }
+    }
+
+    private sealed class FileSystemFunctions {
+        private readonly LuaEngineFunctions functions;
+
+        public FileSystemFunctions(LuaEngineFunctions functions, LuaState state, LuaTable engineTable) {
+            this.functions = functions;
+            AssignFunction(engineTable, new LuaFunction("drivelist", this.GetDriveList));
+            AssignFunction(engineTable, new LuaFunction("getfiles", this.GetFileSystemEntries));
+            AssignFunction(engineTable, new LuaFunction("deleterecursive", this.DeleteFileOrFolder));
+            AssignFunction(engineTable, new LuaFunction("launchfile", this.LaunchFile));
+            AssignFunction(engineTable, new LuaFunction("movefile", this.MoveFile));
+            AssignFunction(engineTable, new LuaFunction("mkdir", this.CreateDirectory));
+            AssignFunction(engineTable, new LuaFunction("pathseparator", this.GetPathSeparator));
+        }
+
+        private async ValueTask<int> GetDriveList(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            List<DriveEntry> result = await fsInfo.GetDriveList();
+
+            string ch = fsInfo.GetPathSeparatorChar().ToString();
+            LuaTable table = new LuaTable(result.Count, 0);
+            for (int i = 0; i < result.Count; i++) {
+                string name = result[i].Name;
+                if (!name.EndsWith(ch)) {
+                    name += ch;
+                }
+
+                table.Insert(i + 1, name);
+            }
+
+            buffer.Span[0] = table;
+            return 1;
+        }
+
+        private async ValueTask<int> GetFileSystemEntries(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            string path = context.GetArgument<string>(0);
+            bool files = context.GetArgument<bool>(1);
+            bool directories = context.GetArgument<bool>(2);
+            if (!files && !directories) {
+                buffer.Span[0] = new LuaTable(0, 0);
+                return 1;
+            }
+
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            List<FileSystemEntry> results = await fsInfo.GetFileSystemEntries(path);
+            int count = files && !directories
+                ? results.Count(x => !x.IsDirectory)
+                : !files && directories
+                    ? results.Count(x => x.IsDirectory)
+                    : results.Count;
+
+            string ch = fsInfo.GetPathSeparatorChar().ToString();
+            LuaTable table = new LuaTable(count, 0);
+            for (int i = 0; i < results.Count; i++) {
+                FileSystemEntry entry = results[i];
+                string name = entry.Name;
+                if (entry.IsDirectory && !name.EndsWith(ch)) {
+                    name += ch;
+                }
+
+                table.Insert(i + 1, name);
+            }
+
+            buffer.Span[0] = table;
+            return 1;
+        }
+
+        private async ValueTask<int> DeleteFileOrFolder(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            string path = context.GetArgument<string>(0);
+
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            bool result = await fsInfo.DeleteFileSystemEntryRecursive(path);
+            buffer.Span[0] = result;
+            return 1;
+        }
+
+        private async ValueTask<int> LaunchFile(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            string path = context.GetArgument<string>(0);
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            await fsInfo.LaunchFile(path);
+            return 0;
+        }
+
+        private async ValueTask<int> MoveFile(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            string oldPath = context.GetArgument<string>(0);
+            string newPath = context.GetArgument<string>(1);
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            await fsInfo.MoveFile(oldPath, newPath);
+            return 0;
+        }
+
+        private async ValueTask<int> CreateDirectory(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            string dirPath = context.GetArgument<string>(0);
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            await fsInfo.CreateDirectory(dirPath);
+            return 0;
+        }
+
+        private ValueTask<int> GetPathSeparator(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
+
+            buffer.Span[0] = fsInfo.GetPathSeparatorChar().ToString();
+            return ValueTask.FromResult(1);
+        }
+    }
+    
+    private sealed class MessageBoxFunctions {
+        private readonly LuaEngineFunctions functions;
+
+        
+        // Coming soon!
+        public MessageBoxFunctions(LuaEngineFunctions functions, LuaState state) {
+            this.functions = functions;
+
+            // LuaTable fileSystemTable = new LuaTable(0, 7);
+            // state.Environment[(LuaValue) "msgbox"] = (LuaValue) fileSystemTable;
+            // state.LoadedModules[(LuaValue) "msgbox"] = (LuaValue) fileSystemTable;
+            // AssignFunction(fileSystemTable, new LuaFunction("showOkCancel", this.ShowOkCancel));
+            // AssignFunction(fileSystemTable, new LuaFunction("showYesNo", this.ShowOkCancel));
+            // AssignFunction(fileSystemTable, new LuaFunction("showYesNoCancel", this.ShowOkCancel));
+        }
+
+        // private ValueTask<int> ShowOkCancel(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+        //     IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
+        //     buffer.Span[0] = fsInfo.GetPathSeparatorChar().ToString();
+        //     return ValueTask.FromResult(1);
+        // }
     }
 }

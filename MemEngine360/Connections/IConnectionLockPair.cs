@@ -35,22 +35,22 @@ public interface IConnectionLockPair {
     /// </summary>
     IConsoleConnection? Connection { get; }
 
-    async Task BeginBusyOperationActivityAsync(Func<IDisposable, IConsoleConnection, Task> action, string caption = "New Operation", string message = BusyLock.WaitingMessage) {
+    async Task BeginBusyOperationActivityAsync(Func<IBusyToken, IConsoleConnection, Task> action, string caption = "New Operation", string message = BusyLock.WaitingMessage) {
         if (this.Connection == null)
             return; // short path -- save creating an activity
 
-        using IDisposable? token = await this.BusyLock.BeginBusyOperationUsingActivityAsync(caption, message);
+        using IBusyToken? token = await this.BusyLock.BeginBusyOperationUsingActivity(caption, message);
         IConsoleConnection theConn; // save double volatile read
         if (token != null && (theConn = this.Connection) != null) {
             await action(token, theConn);
         }
     }
 
-    async Task<TResult?> BeginBusyOperationActivityAsync<TResult>(Func<IDisposable, IConsoleConnection, Task<TResult>> action, string caption = "New Operation", string message = BusyLock.WaitingMessage) {
+    async Task<TResult?> BeginBusyOperationActivityAsync<TResult>(Func<IBusyToken, IConsoleConnection, Task<TResult>> action, string caption = "New Operation", string message = BusyLock.WaitingMessage) {
         if (this.Connection == null)
             return default; // short path -- save creating an activity
 
-        using IDisposable? token = await this.BusyLock.BeginBusyOperationUsingActivityAsync(caption, message);
+        using IBusyToken? token = await this.BusyLock.BeginBusyOperationUsingActivity(caption, message);
         IConsoleConnection theConn; // save double volatile read
         if (token != null && (theConn = this.Connection) != null) {
             return await action(token, theConn);

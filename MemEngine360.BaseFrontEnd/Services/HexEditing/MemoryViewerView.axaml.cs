@@ -346,7 +346,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         ulong caretIndex = this.SelectionRange.Start.ByteIndex;
         await this.PerformOperationBetweenAutoRefresh(async () => {
             IConsoleConnection connection;
-            using IDisposable? token = await engine.BeginBusyOperationUsingActivityAsync("Upload DI value");
+            using IBusyToken? token = await engine.BeginBusyOperationUsingActivityAsync("Upload DI value");
             if (token != null && (connection = engine.Connection) != null && !connection.IsClosed) {
                 await MemoryEngine.WriteDataValue(connection, (uint) caretIndex, value);
                 if (this.PART_ToggleShowChanges.IsChecked == true && this.myBinarySource != null) {
@@ -605,7 +605,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             newData.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;
             newData.InspectorEndiannessChanged += this.OnEndiannessModeChanged;
             this.PART_CancelButton.Focus();
-            this.SetBinarySource(new ConnectionLockPair(newData.MemoryEngine.BusyLocker, newData.MemoryEngine.Connection));
+            this.SetBinarySource(new ConnectionLockPair(newData.MemoryEngine.BusyLock, newData.MemoryEngine.Connection));
             newData.BinarySource = this.myBinarySource;
 
             this.PART_Inspector.IsLittleEndian = newData.InspectorEndianness == Endianness.LittleEndian;
@@ -613,7 +613,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     }
 
     private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
-        this.SetBinarySource(this.HexDisplayInfo != null ? new ConnectionLockPair(sender.BusyLocker, newconnection) : null);
+        this.SetBinarySource(this.HexDisplayInfo != null ? new ConnectionLockPair(sender.BusyLock, newconnection) : null);
     }
 
     private void OnEndiannessModeChanged(MemoryViewer sender) {
@@ -671,7 +671,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     private sealed class AutoRefreshTask : AdvancedPausableTask {
         private readonly MemoryViewerView control;
         private readonly MemoryViewer? info;
-        private IDisposable? busyToken;
+        private IBusyToken? myBusyToken;
         private readonly uint startAddress, cbRange;
         private readonly ConsoleHexBinarySource? myDocument;
         private readonly byte[] myBuffer;
@@ -711,8 +711,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 Debug.Assert(this.info != null);
             }
 
-            this.busyToken = await this.info!.MemoryEngine.BusyLocker.BeginBusyOperationFromActivityAsync(this.CancellationToken);
-            if (this.busyToken == null) {
+            if (!await this.TryObtainBusyToken()) {
                 return;
             }
 
@@ -772,13 +771,45 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             }
         }
 
+        private async Task<bool> TryObtainBusyToken() {
+            Debug.Assert(this.myBusyToken == null);
+            
+            BusyLock busyLock = this.info!.MemoryEngine.BusyLock;
+            this.myBusyToken = await busyLock.BeginBusyOperationFromActivity(this.CancellationToken);
+            if (this.myBusyToken == null) {
+                return false;
+            }
+            
+            busyLock.UserQuickReleaseRequested += this.BusyLockOnUserQuickReleaseRequested;
+            return true;
+        }
+
+        private void ReleaseBusyToken() {
+            BusyLock busyLock = this.info!.MemoryEngine.BusyLock;
+            Debug.Assert(this.myBusyToken != null && busyLock.IsTokenValid(this.myBusyToken));
+            
+            busyLock.UserQuickReleaseRequested -= this.BusyLockOnUserQuickReleaseRequested;
+            this.myBusyToken?.Dispose();
+            this.myBusyToken = null;
+        }
+
+        private void BusyLockOnUserQuickReleaseRequested(BusyLock busyLock, TaskCompletionSource tcsQuickActionFinished) {
+            this.RequestPause(out _,  out _);
+
+            tcsQuickActionFinished.Task.ContinueWith(t => {
+                this.RequestResume(out _, out _);
+            }, this.CancellationToken);
+        }
+
         protected override async Task OnPaused(bool isFirst) {
             ActivityTask task = this.Activity;
             task.Progress.Text = "Auto refresh paused";
             task.Progress.IsIndeterminate = false;
             task.Progress.CompletionState.TotalCompletion = 0.0;
-            this.busyToken?.Dispose();
-            this.busyToken = null;
+
+            if (this.myBusyToken != null) {
+                this.ReleaseBusyToken();
+            }
         }
 
         protected override async Task OnCompleted() {
@@ -786,8 +817,9 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 return;
             }
 
-            this.busyToken?.Dispose();
-            this.busyToken = null;
+            if (this.myBusyToken != null) {
+                this.ReleaseBusyToken();
+            }
 
             await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                 this.control.PART_ControlsGrid.IsEnabled = true;

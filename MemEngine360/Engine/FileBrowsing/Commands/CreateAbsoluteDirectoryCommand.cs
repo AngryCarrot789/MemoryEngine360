@@ -38,7 +38,7 @@ public class CreateAbsoluteDirectoryCommand : BaseFileExplorerCommand {
         IFeatureFileSystemInfo? fsInfo = null;
         string? newPath = null;
         
-        ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(explorer.MemoryEngine, x => x.BusyLocker, x => x.Connection)) {
+        ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(explorer.MemoryEngine, x => x.BusyLock, x => x.Connection)) {
             ActivityCaption = "Launch File",
             CanRetryOnConnectionChanged = true,
             Setup = async (action, connection, hasConnectionChanged) => {

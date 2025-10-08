@@ -69,6 +69,6 @@ public class EditConditionOutputModeServiceImpl : IEditConditionOutputModeServic
             }
 
             return (ConditionOutputMode?) null;
-        });
+        }, captureContext: true);
     }
 }

@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using MemEngine360.Connections;
+using MemEngine360.Engine;
 using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.Sequencing.View;
@@ -291,7 +292,7 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
         return sequence;
     }
 
-    public async Task Run(IConsoleConnection connection, IDisposable? busyToken, bool isConnectionDedicated) {
+    public async Task Run(IConsoleConnection connection, IBusyToken? busyToken, bool isConnectionDedicated) {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
         this.CheckNotRunning("Cannot run while already running");
         if (this.myManager == null)

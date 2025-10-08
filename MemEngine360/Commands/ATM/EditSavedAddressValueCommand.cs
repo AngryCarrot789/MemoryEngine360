@@ -84,13 +84,12 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             return;
         }
 
-        IDataValue value = DataValueUtils.ParseTextAsDataValue(input.Text, dataType, ndt, strType);
-
         if ((connection = engine.Connection) == null || connection.IsClosed) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Console was disconnected while trying to edit values. Nothing was modified. Please reconnect.");
             return;
         }
-        
+
+        IDataValue value = DataValueUtils.ParseTextAsDataValue(input.Text, dataType, ndt, strType);
         // TODO: use ConnectionAction
 
         ITopLevel? parentTopLevel = ITopLevel.FromContext(e.ContextData);
@@ -99,46 +98,44 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             IActivityProgress progress = ActivityTask.Current.Progress;
             progress.Caption = "Edit Saved Result value";
 
-            Optional<int> result;
-            if (parentTopLevel != null) {
-                result = await engine.BeginBusyOperationWithForegroundFromActivityAsync(parentTopLevel, UseConnection, busyCancellation: CancellationToken.None);
-            }
-            else {
-                result = await engine.BeginBusyOperationFromActivityAsync(UseConnection, CancellationToken.None);
-            }
+            using IBusyToken? token = await engine.BusyLock.BeginBusyOperationFromActivity(new BusyTokenRequestFromActivity() {
+                QuickReleaseIntention = true,
+                ForegroundInfo = parentTopLevel != null ? new InForegroundInfo(parentTopLevel) : null
+            });
 
-            return result;
-
-            async Task<int> UseConnection(IDisposable _, IConsoleConnection conn) {
+            if (token != null && engine.Connection != null) {
                 ActivityTask.Current.Progress.SetCaptionAndText("Edit value", "Editing values");
                 int success = 0;
                 foreach (AddressTableEntry scanResult in savedList) {
                     ActivityManager.Instance.CurrentTask.ThrowIfCancellationRequested();
-                    uint? address = await scanResult.MemoryAddress.TryResolveAddress(connection);
+                    uint? address = await scanResult.MemoryAddress.TryResolveAddress(engine.Connection);
                     if (!address.HasValue)
                         continue; // pointer could not be resolved
 
                     success++;
-                    await MemoryEngine.WriteDataValue(connection, address.Value, value);
-                    IDataValue actualValue = await MemoryEngine.ReadDataValue(connection, address.Value, value);
+                    await MemoryEngine.WriteDataValue(engine.Connection, address.Value, value);
+                    
+                    IDataValue latestValue = await MemoryEngine.ReadDataValue(engine.Connection, address.Value, value);
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                        if (actualValue is DataValueString str) {
-                            lastResult.StringType = str.StringType;
-                            lastResult.StringLength = str.Value.Length;
-                        }
-                        else if (actualValue is DataValueByteArray arr) {
-                            lastResult.ArrayLength = arr.Value.Length;
+                        switch (latestValue) {
+                            case DataValueString str:
+                                lastResult.StringType = str.StringType;
+                                lastResult.StringLength = str.Value.Length;
+                                break;
+                            case DataValueByteArray arr: lastResult.ArrayLength = arr.Value.Length; break;
                         }
 
-                        scanResult.DataType = actualValue.DataType;
-                        scanResult.Value = actualValue;
+                        scanResult.DataType = latestValue.DataType;
+                        scanResult.Value = latestValue;
                     }, token: CancellationToken.None);
                 }
 
                 return success;
             }
+
+            return Optional<int>.Empty;
         }, cts);
-        
+
         // result.Value will be Empty if we couldn't get the busy token
         if (!result.HasException && result.Value.HasValue && result.Value.Value != count) {
             await IMessageDialogService.Instance.ShowMessage("Not all values updated",

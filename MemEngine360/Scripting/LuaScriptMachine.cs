@@ -23,6 +23,9 @@ using Lua.Runtime;
 using Lua.Standard;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using PFXToolKitUI;
+using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
 
 namespace MemEngine360.Scripting;
 
@@ -76,6 +79,25 @@ public sealed class LuaScriptMachine {
         this.CancellationToken = this.initialCts.Token;
         this.KillCancellationToken = this.killCts.Token;
     }
+    
+    /// <summary>
+    /// Gets or sets the top-level that the script exists in. This is used for showing popups from message boxes.
+    /// <para>
+    /// This method delegates to the main thread, if not on it
+    /// </para>
+    /// </summary>
+    public Task<ITopLevel?> GetScriptTopLevelAsync() {
+        if (ApplicationPFX.Instance.Dispatcher.CheckAccess()) {
+            return Task.FromResult(this.InternalGetScriptTopLevel());
+        }
+
+        return ApplicationPFX.Instance.Dispatcher.InvokeAsync(this.InternalGetScriptTopLevel, token: this.CancellationToken);
+    }
+
+    private ITopLevel? InternalGetScriptTopLevel() {
+        IMutableContextData? context = this.ownerScript.Manager?.UserContext;
+        return context != null ? ITopLevel.FromContext(context) : null;
+    }
 
     public void Start() {
         if (Interlocked.CompareExchange(ref this.state, 1, 0) != 0)
@@ -128,8 +150,7 @@ public sealed class LuaScriptMachine {
                 this.luaState.LoadedModules[(LuaValue) "os"] = (LuaValue) luaTable;
             }
 
-            LuaEngineFunctions functions = new LuaEngineFunctions(this);
-            functions.Install(this.luaState);
+            _ = new LuaEngineFunctions(this, this.luaState);
 
             this.CancellationToken.ThrowIfCancellationRequested();
 

@@ -65,7 +65,7 @@ public class MoveFileCommand : BaseFileExplorerCommand {
         string? newPath = null;
         IFeatureFileSystemInfo? fsInfo = null;
 
-        ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(engine, x => x.BusyLocker, x => x.Connection)) {
+        ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(engine, x => x.BusyLock, x => x.Connection)) {
             ActivityCaption = "Move File",
             Setup = async (action, connection, hasConnectionChanged) => {
                 if (!connection.TryGetFeature(out fsInfo)) {

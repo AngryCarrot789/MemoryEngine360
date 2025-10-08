@@ -86,7 +86,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             bool oldIsActive = debugger.IsWindowVisible;
             debugger.IsWindowVisible = false;
 
-            using IDisposable? token = await debugger.BusyLock.BeginBusyOperationFromActivityAsync(CancellationToken.None);
+            using IBusyToken? token = await debugger.BusyLock.BeginBusyOperationFromActivity(CancellationToken.None);
             if (token != null) {
                 IConsoleConnection? oldConnection = debugger.Connection;
                 if (oldConnection != null) {
@@ -123,7 +123,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
         ArgumentNullException.ThrowIfNull(debugger);
         ArgumentNullException.ThrowIfNull(newConnection);
 
-        using IDisposable? token = await debugger.BusyLock.BeginBusyOperationUsingActivityAsync("Change connection");
+        using IBusyToken? token = await debugger.BusyLock.BeginBusyOperationUsingActivity("Change connection");
         if (token == null) {
             return false;
         }

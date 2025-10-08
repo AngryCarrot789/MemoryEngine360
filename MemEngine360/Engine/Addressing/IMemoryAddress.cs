@@ -117,7 +117,7 @@ public static class MemoryAddressUtils {
             return staticAddress.Address;
         }
 
-        IDisposable? token;
+        IBusyToken? token;
         IConsoleConnection? connection;
         MemoryEngine? engine = entry.AddressTableManager?.MemoryEngine;
         if (engine != null && (token = await engine.BeginBusyOperationAsync(250)) != null) {
