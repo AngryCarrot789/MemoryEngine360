@@ -73,6 +73,9 @@ public partial class ScriptingView : UserControl {
         this.PART_TabControl.SelectionChanged += this.PART_TabControlOnSelectionChanged;
         this.PART_CodeEditor.TextChanged += this.PART_CodeEditorOnTextChanged;
         this.PART_CodeEditor.LostFocus += this.OnTextEditorLostFocus;
+        this.PART_CodeEditor.Options.ConvertTabsToSpaces = true;
+        this.PART_CodeEditor.Options.CutCopyWholeLine = true;
+        
         this.binderClearConsoleOnEachRun.AttachControl(this.PART_ClearConsoleOnEachRun);
         this.debounceFlushText = new TimerDispatcherDebouncer(TimeSpan.FromSeconds(2), static t => ((ScriptingView) t!).FlushCurrentDocumentToScript(), this);
 

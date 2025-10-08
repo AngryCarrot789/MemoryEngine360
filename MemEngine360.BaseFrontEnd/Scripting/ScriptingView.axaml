@@ -5,7 +5,6 @@
              xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.Scripting"
              xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
              xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
-             xmlns:act="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
              xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              xmlns:cmd="clr-namespace:MemEngine360.BaseFrontEnd.Scripting.Commands"
              xmlns:me360="clr-namespace:MemEngine360;assembly=MemEngine360"
@@ -170,6 +169,11 @@
                                     </tt:ToolTipEx.Tip>
                                 </avc:IconButton>
                             </StackPanel>
+                            <HyperlinkButton Content="Help (Wiki)"
+                                             tt:ToolTipEx.Tip="Open the MemoryEngine360 wiki on the Lua Scripting page"
+                                             DockPanel.Dock="Right"
+                                             Margin="5,0" VerticalAlignment="Center"
+                                             NavigateUri="https://github.com/AngryCarrot789/MemoryEngine360/wiki/Lua-Scripting"/>
                             <CheckBox x:Name="PART_ClearConsoleOnEachRun" 
                                       Content="Clear console on each run" 
                                       tt:ToolTipEx.Tip="Clear the console each time you run the script"
