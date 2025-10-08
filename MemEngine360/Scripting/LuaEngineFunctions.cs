@@ -19,6 +19,7 @@
 
 using System.Globalization;
 using Lua;
+using Lua.Runtime;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
@@ -32,13 +33,14 @@ public sealed class LuaEngineFunctions {
 
     public LuaEngineFunctions(LuaScriptMachine machine, LuaState state) {
         this.machine = machine;
-        
+
         LuaTable engineTable = new LuaTable(0, 20);
         state.Environment[(LuaValue) "engine"] = (LuaValue) engineTable;
         state.LoadedModules[(LuaValue) "engine"] = (LuaValue) engineTable;
-        
+
         _ = new EngineFunctions(this, state, engineTable);
         _ = new FileSystemFunctions(this, state, engineTable);
+        _ = new JRPCFunctions(this, state, engineTable);
         _ = new MessageBoxFunctions(this, state);
     }
 
@@ -95,25 +97,26 @@ public sealed class LuaEngineFunctions {
         throw InvalidOperation(ctx, "Invalid hex value: " + arg);
     }
 
-    private static uint GetAddressFromValue(ref LuaFunctionExecutionContext context, LuaValue addressArgument) {
+    private static uint GetUIntFromValue(ref LuaFunctionExecutionContext context, LuaValue addressArgument) {
         uint address;
         if (addressArgument.Type == LuaValueType.Number) {
             addressArgument.TryRead(out double addr);
             if (addr < 0)
-                throw InvalidOperation(context, "Address cannot be a negative number");
+                throw InvalidOperation(context, "UInt argument cannot be a negative number");
             address = (uint) addr;
         }
-        else if (addressArgument.Type == LuaValueType.String) {
-            addressArgument.TryRead(out string str);
-            str ??= "";
-            if (str.StartsWith("0x"))
-                str = str.Substring(2);
+        else if (addressArgument.TryRead(out string str)) {
+            if (str.StartsWith("0x")) {
+                if (!uint.TryParse(str.AsSpan(2), NumberStyles.HexNumber, null, out address))
+                    throw InvalidOperation(context, "Invalid uint argument: " + str);
+            }
+            else if (!uint.TryParse(str, out address))
+                throw InvalidOperation(context, "Invalid uint argument: " + str);
 
-            if (!uint.TryParse(str, NumberStyles.HexNumber, null, out address))
-                throw InvalidOperation(context, "Invalid address string: " + str);
+            return address;
         }
         else {
-            throw InvalidOperation(context, "Invalid first argument for address: " + addressArgument);
+            throw InvalidOperation(context, "Invalid uint argument: " + addressArgument);
         }
 
         return address;
@@ -162,7 +165,7 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> ReadNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = GetAddressFromValue(ref context, context.GetArgument(0));
+            uint address = GetUIntFromValue(ref context, context.GetArgument(0));
             DataType dataType = GetDataTypeFromString(ref context, context.GetArgument<string>(1));
             IConsoleConnection conn = this.functions.GetConnection(ref context);
             using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
@@ -183,7 +186,7 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> WriteNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = GetAddressFromValue(ref context, context.GetArgument(0));
+            uint address = GetUIntFromValue(ref context, context.GetArgument(0));
             DataType dataType = GetDataTypeFromString(ref context, context.GetArgument<string>(1));
             double d = context.GetArgument<double>(2);
             IDataValue theValue;
@@ -225,7 +228,7 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> ReadString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = GetAddressFromValue(ref context, context.GetArgument(0));
+            uint address = GetUIntFromValue(ref context, context.GetArgument(0));
             int count = context.GetArgument<int>(1);
             if (count < 0)
                 throw InvalidOperation(context, "Cannot read negative length string: " + count);
@@ -244,7 +247,7 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> WriteString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = GetAddressFromValue(ref context, context.GetArgument(0));
+            uint address = GetUIntFromValue(ref context, context.GetArgument(0));
             string value = context.GetArgument<string>(1);
             if (string.IsNullOrEmpty(value)) {
                 return 0; // no point in writing "", since nothing would change
@@ -445,11 +448,123 @@ public sealed class LuaEngineFunctions {
             return ValueTask.FromResult(1);
         }
     }
-    
+
+    private sealed class JRPCFunctions {
+        private readonly LuaEngineFunctions functions;
+
+        public JRPCFunctions(LuaEngineFunctions functions, LuaState state, LuaTable engineTable) {
+            this.functions = functions;
+
+            LuaTable jrpcTable = new LuaTable(0, 2);
+            state.Environment[(LuaValue) "jrpc"] = (LuaValue) jrpcTable;
+            state.LoadedModules[(LuaValue) "jrpc"] = (LuaValue) jrpcTable;
+            AssignFunction(jrpcTable, new LuaFunction("callvoidat", this.CallVoidAt));
+            AssignFunction(jrpcTable, new LuaFunction("callvoidin", this.CallVoidIn));
+        }
+
+        private async ValueTask<int> CallVoidAt(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not supported on the console");
+            
+            uint address = GetUIntFromValue(ref context, context.GetArgument(0));
+            object[] args = new object[context.ArgumentCount - 1];
+            for (int i = 0; i < args.Length; i++) {
+                args[i] = ParseValue(context, i + 1).Item2;
+            }
+
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            await jrpc.CallVoid(address, args);
+            return 0;
+        }
+        
+        private async ValueTask<int> CallVoidIn(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not supported on the console");
+            string module = context.GetArgument<string>(0);
+            uint ordinal = GetUIntFromValue(ref context, context.GetArgument(1));
+            object[] args = new object[context.ArgumentCount - 2];
+            for (int i = 0; i < args.Length; i++) {
+                args[i] = ParseValue(context, i + 2).Item2;
+            }
+
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            await jrpc.CallVoid(module, (int) ordinal, args);
+            return 0;
+        }
+
+        private static (RPCDataType, object) ParseValue(LuaFunctionExecutionContext ctx, int index) {
+            LuaTable table = ctx.GetArgument<LuaTable>(index);
+            if (table.ArrayLength != 2) {
+                throw new LuaRuntimeException(ctx.State.GetTraceback(), "Expected array table as JRPC argument with two values: 'type : string', 'value : any'");
+            }
+
+            LuaValue value1 = table.GetArraySpan()[0];
+            LuaValue value2 = table.GetArraySpan()[1];
+            if (!value1.TryRead(out string type)) {
+                throw new LuaRuntimeException(ctx.State.GetTraceback(), "JRPC argument table must contain string as the type. Got " + value1 + " instead");
+            }
+
+            switch (type.ToUpperInvariant()) {
+                case "BYTE":
+                    if (value2.TryRead(out int val1)) {
+                        if (val1 < byte.MinValue || val1 > byte.MaxValue)
+                            throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1} is out of range for byte: " + val1);
+                        return (RPCDataType.Byte, (byte) val1);
+                    }
+                    else if (value2.TryRead(out string strVal1))
+                        if (byte.TryParse(strVal1, out byte bVal1) || (strVal1.Length > 2 && byte.TryParse(strVal1.AsSpan(2), NumberStyles.HexNumber, null, out bVal1)))
+                            return (RPCDataType.Byte, bVal1);
+
+                    throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1} does not contain a byte. Got " + value2 + " instead");
+                case "INT":
+                    if (value2.TryRead(out long val2)) {
+                        if (val2 < int.MinValue || val2 > int.MaxValue)
+                            throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1} is out of range for byte: " + val2);
+                        return (RPCDataType.Int, val2);
+                    }
+                    else if (value2.TryRead(out string strVal2))
+                        if (int.TryParse(strVal2, out int lVal2) || (strVal2.Length > 2 && int.TryParse(strVal2.AsSpan(2), NumberStyles.HexNumber, null, out lVal2)))
+                            return (RPCDataType.Int, lVal2);
+
+                    throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1} does not contain an int. Got " + value2 + " instead");
+                case "ULONG":
+                    if (value2.TryRead(out long val3))
+                        return (RPCDataType.Uint64, (ulong) val3);
+                    else if (value2.TryRead(out string strVal3))
+                        if (ulong.TryParse(strVal3, out ulong ulVal3) || (strVal3.Length > 2 && ulong.TryParse(strVal3.AsSpan(2), NumberStyles.HexNumber, null, out ulVal3)))
+                            return (RPCDataType.Uint64, ulVal3);
+                    throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1} does not contain a ulong. Got " + value2 + " instead");
+                case "FLOAT":
+                    if (value2.TryRead(out float val4))
+                        return (RPCDataType.Float, val4);
+                    else if (value2.TryRead(out string strVal4) && float.TryParse(strVal4, out float flVal4))
+                        return (RPCDataType.Float, flVal4);
+                    throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1} does not contain a float. Got " + value2 + " instead");
+                case "BYTE[]":
+                case "INT[]":
+                case "ULONG[]":
+                case "FLOAT[]":
+                    if (!value2.TryRead(out string val5))
+                        throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1} does not contain a comma separated string containing the array elements. Got " + value2 + " instead");
+                    string[] elements = val5.Split(',', StringSplitOptions.TrimEntries);
+                    switch (type.ToUpperInvariant()) {
+                        case "BYTE[]":  return (RPCDataType.ByteArray, elements.Select(x => byte.TryParse(x, out byte v) ? v : (x.Length > 2 && byte.TryParse(x.AsSpan(2), NumberStyles.HexNumber, null, out v)) ? v : throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1}'s value contains an invalid byte: " + x)).ToArray());
+                        case "INT[]":   return (RPCDataType.ByteArray, elements.Select(x => int.TryParse(x, out int v) ? v : (x.Length > 2 && int.TryParse(x.AsSpan(2), NumberStyles.HexNumber, null, out v)) ? v : throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1}'s value contains an invalid int: " + x)).ToArray());
+                        case "ULONG[]": return (RPCDataType.ByteArray, elements.Select(x => ulong.TryParse(x, out ulong v) ? v : (x.Length > 2 && ulong.TryParse(x.AsSpan(2), NumberStyles.HexNumber, null, out v)) ? v : throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1}'s value contains an invalid ulong: " + x)).ToArray());
+                        case "FLOAT[]": return (RPCDataType.ByteArray, elements.Select(x => float.TryParse(x, out float v) ? v : throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1}'s value contains an invalid float: " + x)).ToArray());
+                        default:        throw new Exception("Fatal error");
+                    }
+                case "STRING":
+                    if (!value2.TryRead(out string val6))
+                        throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1} does not contain a string. Got " + value2 + " instead");
+                    return (RPCDataType.String, val6);
+                default: throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1} contains an unknown data type: " + type + ". Must be one of byte, int, ulong, float, byte[], int[], ulong[], float[], string");
+            }
+        }
+    }
+
     private sealed class MessageBoxFunctions {
         private readonly LuaEngineFunctions functions;
 
-        
+
         // Coming soon!
         public MessageBoxFunctions(LuaEngineFunctions functions, LuaState state) {
             this.functions = functions;
