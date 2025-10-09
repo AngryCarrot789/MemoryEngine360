@@ -458,7 +458,7 @@ public sealed class LuaEngineFunctions {
             AssignFunction(jrpcTable, new LuaFunction("callat_vm_sys", this.CallAt_VM_System));
             AssignFunction(jrpcTable, new LuaFunction("callin_vm_sys", this.CallIn_VM_System));
         }
-        
+
         private async ValueTask<int> GetProcedureAddress(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             string modName = context.GetArgument<string>(0);
             uint ordinal = GetHexNumber(context, 1);
@@ -519,43 +519,96 @@ public sealed class LuaEngineFunctions {
         }
 
         private async ValueTask<int> CallAt(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            await this.DoCallAt(context, vm: false, system: false, ct);
-            return 0;
+            return UnwrapValue(await this.DoCallAt(context, vm: false, system: false, ct), buffer);
         }
 
         private async ValueTask<int> CallIn(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            await this.DoCallIn(context, vm: false, system: false, ct);
-            return 0;
+            return UnwrapValue(await this.DoCallIn(context, vm: false, system: false, ct), buffer);
         }
 
         private async ValueTask<int> CallAt_VM(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            await this.DoCallAt(context, vm: true, system: false, ct);
-            return 0;
+            return UnwrapValue(await this.DoCallAt(context, vm: true, system: false, ct), buffer);
         }
 
         private async ValueTask<int> CallIn_VM(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            await this.DoCallIn(context, vm: true, system: false, ct);
-            return 0;
+            return UnwrapValue(await this.DoCallIn(context, vm: true, system: false, ct), buffer);
         }
 
         private async ValueTask<int> CallAt_System(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            await this.DoCallAt(context, vm: false, system: true, ct);
-            return 0;
+            return UnwrapValue(await this.DoCallAt(context, vm: false, system: true, ct), buffer);
         }
 
         private async ValueTask<int> CallIn_System(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            await this.DoCallIn(context, vm: false, system: true, ct);
-            return 0;
+            return UnwrapValue(await this.DoCallIn(context, vm: false, system: true, ct), buffer);
         }
 
         private async ValueTask<int> CallAt_VM_System(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            await this.DoCallAt(context, vm: true, system: true, ct);
-            return 0;
+            return UnwrapValue(await this.DoCallAt(context, vm: true, system: true, ct), buffer);
         }
 
         private async ValueTask<int> CallIn_VM_System(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            await this.DoCallIn(context, vm: true, system: true, ct);
-            return 0;
+            return UnwrapValue(await this.DoCallIn(context, vm: true, system: true, ct), buffer);
+        }
+
+        private static int UnwrapValue(object value, Memory<LuaValue> buffer) {
+            switch (value) {
+                case byte v: {
+                    buffer.Span[0] = v;
+                    return 1;
+                }
+                case int v: {
+                    buffer.Span[0] = v;
+                    return 1;
+                }
+                case ulong v: {
+                    buffer.Span[0] = v;
+                    return 1;
+                }
+                case float v: {
+                    buffer.Span[0] = v;
+                    return 1;
+                }
+                case byte[] a: {
+                    LuaTable table = new LuaTable(a.Length, 0);
+                    Span<LuaValue> tabSpan = table.GetArraySpan();
+                    for (int i = 0; i < a.Length; i++)
+                        tabSpan[i] = a[i];
+                    buffer.Span[0] = table;
+                    return 1;
+                }
+                case int[] a: {
+                    LuaTable table = new LuaTable(a.Length, 0);
+                    Span<LuaValue> tabSpan = table.GetArraySpan();
+                    for (int i = 0; i < a.Length; i++)
+                        tabSpan[i] = a[i];
+                    buffer.Span[0] = table;
+                    return 1;
+                }
+                case ulong[] a: {
+                    LuaTable table = new LuaTable(a.Length, 0);
+                    Span<LuaValue> tabSpan = table.GetArraySpan();
+                    for (int i = 0; i < a.Length; i++)
+                        tabSpan[i] = a[i];
+                    buffer.Span[0] = table;
+                    return 1;
+                }
+                case float[] a: {
+                    LuaTable table = new LuaTable(a.Length, 0);
+                    Span<LuaValue> tabSpan = table.GetArraySpan();
+                    for (int i = 0; i < a.Length; i++)
+                        tabSpan[i] = a[i];
+                    buffer.Span[0] = table;
+                    return 1;
+                }
+                case string a: {
+                    buffer.Span[0] = a;
+                    return 1;
+                }
+            }
+
+            // !!! who knows
+            buffer.Span[0] = new LuaValue(value);
+            return 1;
         }
 
         #endregion
