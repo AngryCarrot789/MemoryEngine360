@@ -161,7 +161,6 @@ public sealed class LuaEngineFunctions {
             AssignFunction(engineTable, new LuaFunction("isfrozen", this.GetIsFrozen));
             AssignFunction(engineTable, new LuaFunction("sendnotification", this.SendNotification));
             AssignFunction(engineTable, new LuaFunction("setleds", this.SetLEDs));
-            AssignFunction(engineTable, new LuaFunction("getprocaddress", this.GetProcedureAddress));
         }
 
         public async ValueTask<int> ReadNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
@@ -313,23 +312,6 @@ public sealed class LuaEngineFunctions {
             await jrpc.SetLEDs(p1, p2, p3, p4);
             return 0;
         }
-
-        private async ValueTask<int> GetProcedureAddress(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            string modName = context.GetArgument<string>(0);
-            uint ordinal = GetHexNumber(context, 1);
-            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not installed");
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
-
-            uint address = await jrpc.ResolveFunction(modName, ordinal);
-            if (address == 0) {
-                buffer.Span[0] = LuaValue.Nil;
-            }
-            else {
-                buffer.Span[0] = (LuaValue) address.ToString("X8");
-            }
-
-            return 1;
-        }
     }
 
     private sealed class FileSystemFunctions {
@@ -455,28 +437,168 @@ public sealed class LuaEngineFunctions {
         public JRPCFunctions(LuaEngineFunctions functions, LuaState state, LuaTable engineTable) {
             this.functions = functions;
 
-            LuaTable jrpcTable = new LuaTable(0, 2);
+            LuaTable jrpcTable = new LuaTable(0, 17);
             state.Environment[(LuaValue) "jrpc"] = (LuaValue) jrpcTable;
             state.LoadedModules[(LuaValue) "jrpc"] = (LuaValue) jrpcTable;
+            AssignFunction(engineTable, new LuaFunction("getprocaddress", this.GetProcedureAddress));
             AssignFunction(jrpcTable, new LuaFunction("callvoidat", this.CallVoidAt));
             AssignFunction(jrpcTable, new LuaFunction("callvoidin", this.CallVoidIn));
+            AssignFunction(jrpcTable, new LuaFunction("callvoidat_vm", this.CallVoidAt_VM));
+            AssignFunction(jrpcTable, new LuaFunction("callvoidin_vm", this.CallVoidIn_VM));
+            AssignFunction(jrpcTable, new LuaFunction("callvoidat_sys", this.CallVoidAt_System));
+            AssignFunction(jrpcTable, new LuaFunction("callvoidin_sys", this.CallVoidIn_System));
+            AssignFunction(jrpcTable, new LuaFunction("callvoidat_vm_sys", this.CallVoidAt_VM_System));
+            AssignFunction(jrpcTable, new LuaFunction("callvoidin_vm_sys", this.CallVoidIn_VM_System));
+            AssignFunction(jrpcTable, new LuaFunction("callat", this.CallAt));
+            AssignFunction(jrpcTable, new LuaFunction("callin", this.CallIn));
+            AssignFunction(jrpcTable, new LuaFunction("callat_vm", this.CallAt_VM));
+            AssignFunction(jrpcTable, new LuaFunction("callin_vm", this.CallIn_VM));
+            AssignFunction(jrpcTable, new LuaFunction("callat_sys", this.CallAt_System));
+            AssignFunction(jrpcTable, new LuaFunction("callin_sys", this.CallIn_System));
+            AssignFunction(jrpcTable, new LuaFunction("callat_vm_sys", this.CallAt_VM_System));
+            AssignFunction(jrpcTable, new LuaFunction("callin_vm_sys", this.CallIn_VM_System));
+        }
+        
+        private async ValueTask<int> GetProcedureAddress(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            string modName = context.GetArgument<string>(0);
+            uint ordinal = GetHexNumber(context, 1);
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not installed");
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+
+            uint address = await jrpc.ResolveFunction(modName, ordinal);
+            if (address == 0) {
+                buffer.Span[0] = LuaValue.Nil;
+            }
+            else {
+                buffer.Span[0] = (LuaValue) address.ToString("X8");
+            }
+
+            return 1;
         }
 
+        #region Delegates
+
         private async ValueTask<int> CallVoidAt(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallVoidAt(context, vm: false, system: false, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallVoidIn(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallVoidIn(context, vm: false, system: false, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallVoidAt_VM(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallVoidAt(context, vm: true, system: false, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallVoidIn_VM(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallVoidIn(context, vm: true, system: false, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallVoidAt_System(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallVoidAt(context, vm: false, system: true, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallVoidIn_System(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallVoidIn(context, vm: false, system: true, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallVoidAt_VM_System(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallVoidAt(context, vm: true, system: true, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallVoidIn_VM_System(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallVoidIn(context, vm: true, system: true, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallAt(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallAt(context, vm: false, system: false, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallIn(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallIn(context, vm: false, system: false, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallAt_VM(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallAt(context, vm: true, system: false, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallIn_VM(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallIn(context, vm: true, system: false, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallAt_System(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallAt(context, vm: false, system: true, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallIn_System(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallIn(context, vm: false, system: true, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallAt_VM_System(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallAt(context, vm: true, system: true, ct);
+            return 0;
+        }
+
+        private async ValueTask<int> CallIn_VM_System(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            await this.DoCallIn(context, vm: true, system: true, ct);
+            return 0;
+        }
+
+        #endregion
+
+        private async Task DoCallVoidAt(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
             IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not supported on the console");
-            
             uint address = GetUIntFromValue(ref context, context.GetArgument(0));
             object[] args = new object[context.ArgumentCount - 1];
             for (int i = 0; i < args.Length; i++) {
                 args[i] = ParseValue(context, i + 1).Item2;
             }
 
+            ThreadType type = system ? ThreadType.System : ThreadType.Title;
             using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
-            await jrpc.CallVoid(address, args);
-            return 0;
+            await (vm ? jrpc.CallVMVoid(address, args) : jrpc.CallVoid(address, args));
         }
-        
-        private async ValueTask<int> CallVoidIn(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+
+        private async Task<object> DoCallAt(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not supported on the console");
+            RPCDataType dataType = ParseDataType(ref context, context.GetArgument<string>(0), out int arraySize);
+            uint address = GetUIntFromValue(ref context, context.GetArgument(1));
+            object[] args = new object[context.ArgumentCount - 2];
+            for (int i = 0; i < args.Length; i++) {
+                args[i] = ParseValue(context, i + 2).Item2;
+            }
+
+            ThreadType type = system ? ThreadType.System : ThreadType.Title;
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            switch (dataType) {
+                case RPCDataType.Byte:        return await (vm ? jrpc.CallVM<byte>(type, address, args) : jrpc.Call<byte>(type, address, args));
+                case RPCDataType.Int:         return await (vm ? jrpc.CallVM<int>(type, address, args) : jrpc.Call<int>(type, address, args));
+                case RPCDataType.Uint64:      return await (vm ? jrpc.CallVM<ulong>(type, address, args) : jrpc.Call<ulong>(type, address, args));
+                case RPCDataType.Float:       return await (vm ? jrpc.CallVM<float>(type, address, args) : jrpc.Call<float>(type, address, args));
+                case RPCDataType.ByteArray:   return await (vm ? jrpc.CallVMArray<byte>(type, address, (uint) arraySize, args) : jrpc.CallArray<byte>(type, address, (uint) arraySize, args));
+                case RPCDataType.IntArray:    return await (vm ? jrpc.CallVMArray<int>(type, address, (uint) arraySize, args) : jrpc.CallArray<int>(type, address, (uint) arraySize, args));
+                case RPCDataType.Uint64Array: return await (vm ? jrpc.CallVMArray<ulong>(type, address, (uint) arraySize, args) : jrpc.CallArray<ulong>(type, address, (uint) arraySize, args));
+                case RPCDataType.FloatArray:  return await (vm ? jrpc.CallVMArray<float>(type, address, (uint) arraySize, args) : jrpc.CallArray<float>(type, address, (uint) arraySize, args));
+                case RPCDataType.String:      return await (vm ? jrpc.CallVMString(type, address, args) : jrpc.CallString(type, address, args));
+                default:                      throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        private async Task DoCallVoidIn(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
             IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not supported on the console");
             string module = context.GetArgument<string>(0);
             uint ordinal = GetUIntFromValue(ref context, context.GetArgument(1));
@@ -485,9 +607,70 @@ public sealed class LuaEngineFunctions {
                 args[i] = ParseValue(context, i + 2).Item2;
             }
 
+            ThreadType type = system ? ThreadType.System : ThreadType.Title;
             using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
-            await jrpc.CallVoid(module, (int) ordinal, args);
-            return 0;
+            await (vm ? jrpc.CallVMVoid(type, module, (int) ordinal, args) : jrpc.CallVoid(type, module, (int) ordinal, args));
+        }
+
+        private async Task<object> DoCallIn(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not supported on the console");
+            RPCDataType dataType = ParseDataType(ref context, context.GetArgument<string>(0), out int arraySize);
+            string module = context.GetArgument<string>(1);
+            uint ordinal = GetUIntFromValue(ref context, context.GetArgument(2));
+            object[] args = new object[context.ArgumentCount - 3];
+            for (int i = 0; i < args.Length; i++) {
+                args[i] = ParseValue(context, i + 3).Item2;
+            }
+
+            ThreadType type = system ? ThreadType.System : ThreadType.Title;
+            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            switch (dataType) {
+                case RPCDataType.Byte:        return await (vm ? jrpc.CallVM<byte>(type, module, (int) ordinal, args) : jrpc.Call<byte>(type, module, (int) ordinal, args));
+                case RPCDataType.Int:         return await (vm ? jrpc.CallVM<int>(type, module, (int) ordinal, args) : jrpc.Call<int>(type, module, (int) ordinal, args));
+                case RPCDataType.Uint64:      return await (vm ? jrpc.CallVM<ulong>(type, module, (int) ordinal, args) : jrpc.Call<ulong>(type, module, (int) ordinal, args));
+                case RPCDataType.Float:       return await (vm ? jrpc.CallVM<float>(type, module, (int) ordinal, args) : jrpc.Call<float>(type, module, (int) ordinal, args));
+                case RPCDataType.ByteArray:   return await (vm ? jrpc.CallVMArray<byte>(type, module, (int) ordinal, (uint) arraySize, args) : jrpc.CallArray<byte>(type, module, (int) ordinal, (uint) arraySize, args));
+                case RPCDataType.IntArray:    return await (vm ? jrpc.CallVMArray<int>(type, module, (int) ordinal, (uint) arraySize, args) : jrpc.CallArray<int>(type, module, (int) ordinal, (uint) arraySize, args));
+                case RPCDataType.Uint64Array: return await (vm ? jrpc.CallVMArray<ulong>(type, module, (int) ordinal, (uint) arraySize, args) : jrpc.CallArray<ulong>(type, module, (int) ordinal, (uint) arraySize, args));
+                case RPCDataType.FloatArray:  return await (vm ? jrpc.CallVMArray<float>(type, module, (int) ordinal, (uint) arraySize, args) : jrpc.CallArray<float>(type, module, (int) ordinal, (uint) arraySize, args));
+                case RPCDataType.String:      return await (vm ? jrpc.CallVMString(type, module, (int) ordinal, args) : jrpc.CallString(type, module, (int) ordinal, args));
+                default:                      throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        private static RPCDataType ParseDataType(ref LuaFunctionExecutionContext ctx, string value, out int arraySize) {
+            arraySize = 0;
+            switch (value.ToUpperInvariant()) {
+                case "BYTE":   return RPCDataType.Byte;
+                case "INT":    return RPCDataType.Int;
+                case "ULONG":  return RPCDataType.Uint64;
+                case "FLOAT":  return RPCDataType.Float;
+                case "STRING": return RPCDataType.String;
+            }
+
+            int idx1 = value.IndexOf('[');
+            if (idx1 == -1)
+                throw new LuaRuntimeException(ctx.State.GetTraceback(), $"Unknown data type: " + value + ". Must be one of byte, int, ulong, float, byte[], int[], ulong[], float[], string");
+
+            int idx2 = value.IndexOf(']', idx1);
+            if (idx2 == -1)
+                throw new LuaRuntimeException(ctx.State.GetTraceback(), $"Array data type '" + value + "' is missing a closed square bracket");
+
+            ReadOnlySpan<char> lengthText = value.AsSpan(idx1, idx2 - idx1);
+            if (lengthText.Length < 1)
+                throw new LuaRuntimeException(ctx.State.GetTraceback(), $"Array data type '" + value + "' is missing the array length between the brackets");
+            if (!int.TryParse(lengthText, out arraySize))
+                throw new LuaRuntimeException(ctx.State.GetTraceback(), $"Array data type '" + value + "' contains an invalid length between the square brackets: " + lengthText.ToString());
+
+            string actualType = value.Substring(0, idx1);
+            switch (actualType.ToUpperInvariant()) {
+                case "BYTE":  return RPCDataType.ByteArray;
+                case "INT":   return RPCDataType.IntArray;
+                case "ULONG": return RPCDataType.Uint64Array;
+                case "FLOAT": return RPCDataType.FloatArray;
+            }
+
+            throw new LuaRuntimeException(ctx.State.GetTraceback(), $"Unknown array data type: " + actualType + ". Must be one of byte[], int[], ulong[], float[]");
         }
 
         private static (RPCDataType, object) ParseValue(LuaFunctionExecutionContext ctx, int index) {

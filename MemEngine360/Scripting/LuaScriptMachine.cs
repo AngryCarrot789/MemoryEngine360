@@ -188,6 +188,7 @@ public sealed class LuaScriptMachine {
     }
 
     private ValueTask<int> Print(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken cancellation) {
+        cancellation.ThrowIfCancellationRequested();
         if (this.LinePrinted != null) {
             for (int i = 0; i < context.ArgumentCount; ++i) {
                 this.Print(context.Arguments[i].ToString());
