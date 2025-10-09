@@ -20,6 +20,7 @@
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.Contexts;
 
@@ -27,13 +28,32 @@ public static class TaskSequenceContextRegistry {
     public static readonly ContextRegistry Registry = new ContextRegistry("Task Sequence");
 
     static TaskSequenceContextRegistry() {
+        Registry.Opened += static (registry, context) => {
+            if (TaskSequenceManager.DataKey.TryGetContext(context, out TaskSequenceManager? manager)) {
+                TaskSequenceManagerViewState vs = TaskSequenceManagerViewState.GetInstance(manager);
+                if (vs.SelectedSequences.Count > 0) {
+                    if (vs.SelectedSequences.Count == 1) {
+                        string first = vs.SelectedSequences.SelectedItems[0].DisplayName;
+                        registry.ObjectName = string.IsNullOrWhiteSpace("(unnammed sequence)") ? null : first;
+                    }
+                    else {
+                        registry.ObjectName = $"{vs.SelectedSequences.Count} sequence{Lang.S(vs.SelectedSequences.Count)}";
+                    }
+
+                    return;
+                }
+            }
+
+            registry.ObjectName = null;
+        };
+
         FixedContextGroup edit = Registry.GetFixedGroup("general");
         edit.AddHeader("Edit");
         edit.AddDynamicSubGroup((group, ctx, items) => {
             if (TaskSequenceManager.DataKey.TryGetContext(ctx, out TaskSequenceManager? ui)) {
                 TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
                 if (state.PrimarySelectedSequence != null)
-                    items.Add(new CommandContextEntry("commands.sequencer.RenameSequenceCommand", "Rename"));
+                    items.Add(new CommandContextEntry("commands.sequencer.RenameSequenceCommand", "Rename", icon: StandardIcons.ABCTextIcon));
             }
         });
 
@@ -53,7 +73,7 @@ public static class TaskSequenceContextRegistry {
             }
         });
 
-        actions.AddCommand("commands.sequencer.ConnectToDedicatedConsoleCommand", "Connect to dedicated console...", icon: SimpleIcons.ConnectToConsoleDedicatedIcon);
+        actions.AddCommand("commands.sequencer.ConnectToDedicatedConsoleCommand", "Connect to console...", "Connect using a dedicated connection instead of using the engine's connection", icon: SimpleIcons.ConnectToConsoleDedicatedIcon);
 
         FixedContextGroup destruction = Registry.GetFixedGroup("destruction");
 

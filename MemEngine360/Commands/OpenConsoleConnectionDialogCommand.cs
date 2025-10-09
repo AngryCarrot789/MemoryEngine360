@@ -55,7 +55,11 @@ public class OpenConsoleConnectionDialogCommand : Command {
         ulong frame = engine.GetNextConnectionChangeFrame();
 
         if (engine.Connection != null && !engine.Connection.IsClosed) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName: AlreadyOpenDialogName);
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(
+                "Already Connected",
+                "Already connected to a console. Close existing connection first?",
+                MessageBoxButton.OKCancel,
+                MessageBoxResult.OK, persistentDialogName: AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 return;
             }

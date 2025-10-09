@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 
 namespace MemEngine360.Scripting;
@@ -26,16 +27,25 @@ public static class ScriptTabContextRegistry {
 
     static ScriptTabContextRegistry() {
         Registry = new ContextRegistry("Script");
+        Registry.Opened += static (registry, context) => {
+            if (Script.DataKey.TryGetContext(context, out Script? script) && !string.IsNullOrWhiteSpace(script.Name)) {
+                registry.ObjectName = script.Name;
+            }
+            else {
+                registry.ObjectName = null;
+            }
+        };
+        
         FixedContextGroup general = Registry.GetFixedGroup("General");
-        general.AddCommand("commands.scripting.RenameScriptCommand", "Rename");
-        general.AddCommand("commands.scripting.CloseScriptCommand", "Close");
+        general.AddCommand("commands.scripting.RenameScriptCommand", "Rename", icon: StandardIcons.ABCTextIcon);
+        general.AddCommand("commands.scripting.CloseScriptCommand", "Close", icon: StandardIcons.CancelActivityIcon);
         general.AddSeparator();
-        general.AddCommand("commands.scripting.RunScriptCommand", "Run");
-        general.AddCommand("commands.scripting.StopScriptCommand", "Stop");
-        general.AddCommand("commands.scripting.SaveScriptCommand", "Save");
+        general.AddEntry(new CommandContextEntry("commands.scripting.RunScriptCommand", "Run", icon: StandardIcons.SmallContinueActivityIconColourful) { DisabledIcon = StandardIcons.SmallContinueActivityIconDisabled });
+        general.AddEntry(new CommandContextEntry("commands.scripting.StopScriptCommand", "Stop", icon: StandardIcons.StopIconColourful) { DisabledIcon = StandardIcons.StopIconDisabled });
+        general.AddEntry(new CommandContextEntry("commands.scripting.SaveScriptCommand", "Save", icon: SimpleIcons.SaveFileIcon));
         general.AddCommand("commands.scripting.SaveScriptAsCommand", "Save As...");
         general.AddCommand("commands.scripting.SaveAllScriptsCommand", "Save All");
         general.AddSeparator();
-        general.AddCommand("commands.scripting.ConnectScriptToConsoleCommand", "Connect to Console", "Connect using a dedicated connection instead of using the engine's connection");
+        general.AddCommand("commands.scripting.ConnectScriptToConsoleCommand", "Connect to console...", "Connect using a dedicated connection instead of using the engine's connection", SimpleIcons.ConnectToConsoleDedicatedIcon);
     }
 }

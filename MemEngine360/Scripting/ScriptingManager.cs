@@ -87,15 +87,18 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
         this.Scripts.Add(new Script());
         this.Scripts[0].SetCustomNameWithoutPath("Cool Script.lua");
         this.Scripts[0].SourceCode = "-- read BO2 ammo count of primary weapon\n" +
-                                     "local ammo = engine.readnumber(\"0x83551E50\", \"int\")\n" +
+                                     "local oldAmmo = engine.readnumber(\"0x83551E4C\", \"int\")\n" +
+                                     "print(\"Old ammo = \" .. oldAmmo)\n" +
                                      "\n" +
                                      "-- add 20 to the primary ammo, slowly\n" +
                                      "local num = 0\n" +
                                      "while true do\n" +
                                      "    num = num + 1\n" +
-                                     "    engine.writenumber(\"0x83551E50\", \"int\", ammo + num)\n" +
+                                     "    engine.writenumber(\"0x83551E4C\", \"int\", oldAmmo + num)\n" +
                                      "    sleep(0.1)\n" +
                                      "    if (num == 20) then\n" +
+                                     "        local newAmmo = engine.readnumber(\"0x83551E4C\", \"int\")\n" +
+                                     "        print(\"New ammo = \" .. newAmmo)\n" +
                                      "        return\n" +
                                      "    end\n" +
                                      "end";

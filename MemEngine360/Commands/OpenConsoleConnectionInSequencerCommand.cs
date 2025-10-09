@@ -22,6 +22,8 @@ using MemEngine360.Engine;
 using MemEngine360.Sequencing;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Windowing;
+using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Commands;
 
@@ -33,7 +35,7 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
             return Executability.Invalid;
         }
 
-        return manager.MemoryEngine.Connection != null ? Executability.ValidButCannotExecute : Executability.Valid;
+        return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -42,15 +44,28 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
             return;
         }
 
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager))
             return;
+        if (!ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel))
+            return;
+
+        MemoryEngine engine = manager.MemoryEngine;
+        ulong frame = engine.GetNextConnectionChangeFrame();
+        if (engine.Connection != null && !engine.Connection.IsClosed) {
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(
+                "Already Connected",
+                "Already connected to a console. Close existing connection first?",
+                MessageBoxButton.OKCancel, MessageBoxResult.OK,
+                persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
+            if (result != MessageBoxResult.OK) {
+                return;
+            }
+
+            if (!await OpenConsoleConnectionDialogCommand.DisconnectInActivity(topLevel, engine, frame)) {
+                return;
+            }
         }
 
-        if (manager.MemoryEngine.Connection != null) {
-            return;
-        }
-
-        ulong frame = manager.MemoryEngine.GetNextConnectionChangeFrame();
         this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView();
         if (this.myDialog != null) {
             IBusyToken? token = null;

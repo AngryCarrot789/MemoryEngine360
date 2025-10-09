@@ -25,16 +25,4 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.Commands;
 public class OpenConsoleConnectionInSequencerCommandUsage : BaseSequenceManagerCommandUsage {
     public OpenConsoleConnectionInSequencerCommandUsage() : base("commands.memengine.OpenConsoleConnectionInSequencerCommand") {
     }
-
-    protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine) {
-        base.OnEngineChanged(oldEngine, newEngine);
-        if (oldEngine != null)
-            oldEngine.ConnectionChanged -= this.OnConnectionChanged;
-        if (newEngine != null)
-            newEngine.ConnectionChanged += this.OnConnectionChanged;
-    }
-
-    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
-        this.UpdateCanExecuteLater();
-    }
 }
