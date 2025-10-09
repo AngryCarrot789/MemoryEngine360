@@ -59,6 +59,7 @@ using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.View;
 using MemEngine360.PointerScanning;
+using MemEngine360.PS3;
 using MemEngine360.Scripting;
 using MemEngine360.Scripting.Commands;
 using MemEngine360.Sequencing;
@@ -260,6 +261,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         await base.OnSetupApplication(progress);
         bool isWindows = OperatingSystem.IsWindows();
         this.PluginLoader.AddCorePlugin(typeof(PluginXbox360Xbdm));
+        this.PluginLoader.AddCorePlugin(typeof(PluginPS3));
 
         if (isWindows)
             this.PluginLoader.AddCorePlugin(typeof(PluginXbox360XDevkit));

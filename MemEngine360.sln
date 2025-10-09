@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lua", "Lua-CSharp\src\Lua\L
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lua.SourceGenerator", "Lua-CSharp\src\Lua.SourceGenerator\Lua.SourceGenerator.csproj", "{5A924DDF-76D5-4DDD-B153-171DF6492B3C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemEngine360.PS3", "MemEngine360.PS3\MemEngine360.PS3.csproj", "{E613A152-FD15-402B-8C0E-5402693F489C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -91,6 +93,10 @@ Global
 		{5A924DDF-76D5-4DDD-B153-171DF6492B3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5A924DDF-76D5-4DDD-B153-171DF6492B3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5A924DDF-76D5-4DDD-B153-171DF6492B3C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E613A152-FD15-402B-8C0E-5402693F489C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E613A152-FD15-402B-8C0E-5402693F489C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E613A152-FD15-402B-8C0E-5402693F489C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E613A152-FD15-402B-8C0E-5402693F489C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -108,5 +114,6 @@ Global
 		{2E2C76D8-5589-4FF1-A8C2-EC93F5E1DC47} = {41FD8850-2EFD-4067-A016-B1AB043C9DE8}
 		{ADAE3574-7450-4CCE-8004-AA4FAF4CDBED} = {41FD8850-2EFD-4067-A016-B1AB043C9DE8}
 		{5A924DDF-76D5-4DDD-B153-171DF6492B3C} = {41FD8850-2EFD-4067-A016-B1AB043C9DE8}
+		{E613A152-FD15-402B-8C0E-5402693F489C} = {4B9F43C6-26CB-4AAB-8002-12E81CB64800}
 	EndGlobalSection
 EndGlobal

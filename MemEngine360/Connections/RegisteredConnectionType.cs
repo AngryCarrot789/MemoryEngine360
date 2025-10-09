@@ -70,7 +70,7 @@ public abstract class RegisteredConnectionType {
     public virtual Icon? Icon => null;
 
     /// <summary>
-    /// Returns true when connections returned by <see cref="OpenConnection"/> implement <see cref="MemEngine360.Connections.Traits.IHaveSystemEvents"/>
+    /// Returns true when connections returned by <see cref="OpenConnection"/> implement <see cref="MemEngine360.Connections.Features.IFeatureSystemEvents"/>
     /// </summary>
     public virtual bool SupportsEvents => false;
 

@@ -133,6 +133,33 @@ public static class SimpleIcons {
                     BrushManager.Instance.CreateConstantLinearGradient([new GradientStop(SKColor.Parse("#008C00")), new GradientStop(SKColor.Parse("#48BF21"), 1.0)], startPoint: new RelativePoint(21.8812F, 12.6667F, RelativeUnit.Absolute), endPoint: new RelativePoint(19.1553F, 16.4F, RelativeUnit.Absolute))),
             ]);
 
+    // https://www.svgrepo.com/svg/336029/game-ps
+    private static readonly IConstantColourBrush PS3BlueBrush = BrushManager.Instance.CreateConstant(SKColor.Parse("#2F88FF"));
+    private static readonly IConstantColourBrush PS3RedBrush = BrushManager.Instance.CreateConstant(SKColors.Red);
+    private static readonly IDynamicColourBrush InvertedGlyphBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone0.Border.Static");
+
+    public static readonly Icon PS3MAPIIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(PS3MAPIIcon),
+            [
+                new GeometryEntry("M28 28H44V44H28V28Z", PS3BlueBrush, InvertedGlyphBrush, 4.0),
+                new GeometryEntry("M13 4L22 20H4L13 4Z", PS3BlueBrush, InvertedGlyphBrush, 4.0),
+                new GeometryEntry("M36 20C40.4183 20 44 16.4183 44 12C44 7.58172 40.4183 4 36 4C31.5817 4 28 7.58172 28 12C28 16.4183 31.5817 20 36 20Z", PS3BlueBrush, InvertedGlyphBrush, 4.0),
+                new GeometryEntry("M4 28L20 44", null, InvertedGlyphBrush, 4.0),
+                new GeometryEntry("M20 28L4 44", null, InvertedGlyphBrush, 4.0),
+            ]);
+    
+    public static readonly Icon PS3CCAPIIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(PS3CCAPIIcon),
+            [
+                new GeometryEntry("M28 28H44V44H28V28Z", PS3RedBrush, InvertedGlyphBrush, 4.0),
+                new GeometryEntry("M13 4L22 20H4L13 4Z", PS3RedBrush, InvertedGlyphBrush, 4.0),
+                new GeometryEntry("M36 20C40.4183 20 44 16.4183 44 12C44 7.58172 40.4183 4 36 4C31.5817 4 28 7.58172 28 12C28 16.4183 31.5817 20 36 20Z", PS3RedBrush, InvertedGlyphBrush, 4.0),
+                new GeometryEntry("M4 28L20 44", null, InvertedGlyphBrush, 4.0),
+                new GeometryEntry("M20 28L4 44", null, InvertedGlyphBrush, 4.0),
+            ]);
+
     public static readonly Icon CopyHexSelectionToRefreshRangeIcon =
         IconManager.Instance.RegisterGeometryIcon(
             nameof(CopyHexSelectionToRefreshRangeIcon),
