@@ -68,6 +68,12 @@ public abstract class RegisteredConnectionType {
     /// Gets the icon that represents this console type. Null means no icon (duh)
     /// </summary>
     public virtual Icon? Icon => null;
+    
+    /// <summary>
+    /// Gets an enumeration of icons to indicate usually the supported platforms, but you
+    /// could also use a crossed out icon to represent a specific unsupported platform
+    /// </summary>
+    public virtual IEnumerable<PlatformIconInfo> PlatformIcons => Enumerable.Empty<PlatformIconInfo>();
 
     /// <summary>
     /// Returns true when connections returned by <see cref="OpenConnection"/> implement <see cref="MemEngine360.Connections.Features.IFeatureSystemEvents"/>
@@ -182,4 +188,21 @@ public abstract class RegisteredConnectionType {
     public sealed override bool Equals(object? obj) => ReferenceEquals(this, obj);
 
     public sealed override int GetHashCode() => RuntimeHelpers.GetHashCode(this);
+}
+
+/// <summary>
+/// An icon with additional information
+/// </summary>
+/// <param name="icon">The icon</param>
+/// <param name="tooltip">The optional tooltip</param>
+public readonly struct PlatformIconInfo(Icon icon, string? tooltip) {
+    /// <summary>
+    /// Gets the icon
+    /// </summary>
+    public Icon Icon { get; } = icon;
+    
+    /// <summary>
+    /// Gets an optional tooltip/description for the reason for this icon being present
+    /// </summary>
+    public string? Tooltip { get; } = tooltip;
 }

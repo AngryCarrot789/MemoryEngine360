@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Metadata;
@@ -35,10 +36,38 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
         ((IconControl) b.Control).Icon = null;
     });
 
+    private readonly ManualBinder<RegisteredConnectionType> platformIconsBinder = new ManualBinder<RegisteredConnectionType>(b => {
+        StackPanel sp = (StackPanel) b.Control;
+        List<PlatformIconInfo> icons = b.Model.PlatformIcons.ToList();
+        sp.IsVisible = icons.Count > 0;
+        if (icons.Count > 0) {
+            foreach (PlatformIconInfo icon in icons) {
+                IconControl control = new IconControl() {
+                    Icon = icon.Icon, Width = 14, Height = 14
+                };
+
+                if (!string.IsNullOrWhiteSpace(icon.Tooltip)) {
+                    ToolTipEx.SetTip(control, icon.Tooltip);
+                }
+
+                sp.Children.Add(control);
+            }
+        }
+    }, (b) => {
+        StackPanel sp = (StackPanel) b.Control;
+        foreach (Control c in sp.Children) {
+            ((IconControl) c).Icon = null;
+            ToolTipEx.SetTip(c, AvaloniaProperty.UnsetValue);
+        }
+
+        sp.IsVisible = false;
+    });
+
     private readonly ManualBinder<RegisteredConnectionType> displayNameBinder = new ManualBinder<RegisteredConnectionType>(b => ((TextBlock) b.Control).Text = b.Model.DisplayName);
     private readonly ManualBinder<RegisteredConnectionType> footerBinder = new ManualBinder<RegisteredConnectionType>(b => ((TextBlock) b.Control).IsVisible = !string.IsNullOrEmpty(((TextBlock) b.Control).Text = b.Model.FooterText));
     private IconControl? PART_IconControl;
     private TextBlock? PART_DisplayName, PART_FooterText;
+    private StackPanel? PART_PlatformIcons;
 
     public RegisteredConnectionType RegisteredConsoleType { get; }
 
@@ -55,6 +84,7 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
         this.UserConnectionInfo = type.CreateConnectionInfo();
 
         this.iconBinder.AttachModel(type);
+        this.platformIconsBinder.AttachModel(type);
         this.displayNameBinder.AttachModel(type);
         this.footerBinder.AttachModel(type);
         // ToolTip.SetTip(this, type.RegisteredId);
@@ -70,13 +100,16 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
         this.PART_IconControl = e.NameScope.GetTemplateChild<IconControl>(nameof(this.PART_IconControl));
         this.PART_DisplayName = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_DisplayName));
         this.PART_FooterText = e.NameScope.GetTemplateChild<TextBlock>(nameof(this.PART_FooterText));
+        this.PART_PlatformIcons = e.NameScope.GetTemplateChild<StackPanel>(nameof(this.PART_PlatformIcons));
         this.iconBinder.AttachControl(this.PART_IconControl);
+        this.platformIconsBinder.AttachControl(this.PART_PlatformIcons);
         this.displayNameBinder.AttachControl(this.PART_DisplayName);
         this.footerBinder.AttachControl(this.PART_FooterText);
     }
 
     public void OnRemoving() {
         this.iconBinder.DetachModel();
+        this.platformIconsBinder.DetachModel();
         this.displayNameBinder.DetachModel();
         this.footerBinder.DetachModel();
     }

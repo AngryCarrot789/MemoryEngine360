@@ -21,6 +21,7 @@ using System.Runtime.InteropServices;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Xbox360XDevkit.Views;
+using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using XDevkit;
 using PFXToolKitUI.AdvancedMenuService;
@@ -42,7 +43,9 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
     public override string LongDescription => $"Uses XDevkit's COM interfaces to interact with the xbox.{Environment.NewLine}" +
                                               $"Most features tested, most non-read/write operations are not async so expect freezing";
 
-    public override Icon? Icon => SimpleIcons.CursedXbox360Icon;
+    public override Icon Icon => SimpleIcons.CursedXbox360Icon;
+
+    public override IEnumerable<PlatformIconInfo> PlatformIcons => [new(PlatformIcon.WindowsIcon, "XDevkit is only supported on windows")];
 
     private XboxManager? xboxManager;
 
@@ -73,7 +76,7 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
 
         Result<XboxConsole> result = await ActivityManager.Instance.RunTask(() => {
             this.xboxManager ??= new XboxManagerClass();
-            
+
             IActivityProgress progress = ActivityTask.Current.Progress;
             progress.Caption = "XDevkit";
             progress.Text = "Connecting to console...";

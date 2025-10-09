@@ -124,7 +124,7 @@
                             <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}"/>
                             <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
                             <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                            <Setter Property="Padding" Value="4,1"/>
+                            <Setter Property="Padding" Value="2,1"/>
                             <Setter Property="Height" Value="36"/>
                             <Setter Property="Template">
                                 <ControlTemplate>
@@ -136,9 +136,20 @@
                                             CornerRadius="{TemplateBinding CornerRadius}">
                                         <Grid ColumnDefinitions="Auto,*">
                                             <avControls:IconControl x:Name="PART_IconControl" Width="24" Height="24" Margin="3,3,5,3" VerticalAlignment="Center"/>
-                                            <StackPanel Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                            <StackPanel Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                                 <TextBlock x:Name="PART_DisplayName" Padding="3,2"/>
-                                                <TextBlock x:Name="PART_FooterText" Padding="3,1" FontSize="9" Foreground="{DynamicResource ABrush.Foreground.Deeper}"/>
+                                                <DockPanel LastChildFill="False">
+                                                    <StackPanel Orientation="Horizontal" 
+                                                                x:Name="PART_PlatformIcons" 
+                                                                DockPanel.Dock="Right" 
+                                                                Spacing="1"
+                                                                Background="Transparent"/>
+                                                    <TextBlock x:Name="PART_FooterText" 
+                                                               Padding="3,0" FontSize="9" 
+                                                               Foreground="{DynamicResource ABrush.Foreground.Deeper}"
+                                                               VerticalAlignment="Center"
+                                                               HorizontalAlignment="Left"/>
+                                                </DockPanel>
                                             </StackPanel>
                                         </Grid>
                                     </Border>

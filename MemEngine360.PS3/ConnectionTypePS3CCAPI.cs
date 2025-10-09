@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Connections;
+using PFXToolKitUI;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
@@ -35,6 +36,8 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
     public override string LongDescription => "A connection to a PS3 using CCAPI";
 
     public override Icon Icon => SimpleIcons.PS3CCAPIIcon;
+    
+    public override IEnumerable<PlatformIconInfo> PlatformIcons => [new(PlatformIcon.WindowsIcon, "CCAPI is closed source, and is only implemented on windows")];
 
     public override bool SupportsEvents => false;
 

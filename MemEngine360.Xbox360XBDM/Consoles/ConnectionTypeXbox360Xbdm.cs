@@ -44,7 +44,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
 
     public override string LongDescription => "A connection to an xbox 360 via xbdm (using TCP on port 730)";
 
-    public override Icon? Icon => SimpleIcons.Xbox360Icon;
+    public override Icon Icon => SimpleIcons.Xbox360Icon;
 
     public override bool SupportsEvents => true;
 
