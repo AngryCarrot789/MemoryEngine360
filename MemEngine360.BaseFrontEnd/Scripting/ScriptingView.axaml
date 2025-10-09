@@ -159,8 +159,23 @@
                                                 Background="Transparent"
                                                 BorderThickness="0"
                                                 CornerRadius="2"
-                                                Icon="{x:Static me360:SimpleIcons.ConnectToConsoleIcon}"
+                                                Icon="{x:Static me360:SimpleIcons.ConnectToConsoleDedicatedIcon}"
                                                 cu:CommandUsageManager.UsageClassType="{x:Type cmd:ConnectScriptToConsoleCommandUsage}">
+                                    <tt:ToolTipEx.Tip>
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <TextBlock Text="Connect using a dedicated connection instead of using the engine's connection" VerticalAlignment="Center"/>
+                                            <avc:ShortcutLabel CommandId="commands.scripting.ConnectScriptToConsoleCommand"/>
+                                        </StackPanel>
+                                    </tt:ToolTipEx.Tip>
+                                </avc:IconButton>
+                                <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,2"/>
+                                <avc:IconButton DockPanel.Dock="Left" VerticalAlignment="Center"
+                                                Height="20"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                CornerRadius="2"
+                                                Icon="{x:Static me360:SimpleIcons.OpenFileIcon}"
+                                                cu:CommandUsageManager.SimpleButtonCommandId="commands.scripting.OpenScriptFileCommand">
                                     <tt:ToolTipEx.Tip>
                                         <StackPanel Orientation="Horizontal" Spacing="5">
                                             <TextBlock Text="Connect using a dedicated connection instead of using the engine's connection" VerticalAlignment="Center"/>

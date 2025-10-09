@@ -92,7 +92,6 @@
                                         Background="Transparent" BorderThickness="0"
                                         DockPanel.Dock="Right"
                                         Icon="{x:Static me360:SimpleIcons.SaveFileIcon}"
-                                        Content="Save Selection"
                                         cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.SaveTaskSequencesToFileCommand">
                             <tt:ToolTipEx.Tip>
                                 <StackPanel Orientation="Horizontal" Spacing="5">

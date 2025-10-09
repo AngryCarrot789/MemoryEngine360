@@ -19,6 +19,7 @@
 
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 
 namespace MemEngine360.Avalonia;
 
@@ -28,6 +29,9 @@ public partial class AboutView : UserControl {
     }
     
     private void Button_OnClick(object? sender, RoutedEventArgs e) {
-        (TopLevel.GetTopLevel(this) as Window)?.Close();
+        IWindowBase? window = IWindowBase.WindowFromVisual(this);
+        if (window != null && window.OpenState == OpenState.Open) {
+            window.RequestClose();
+        }
     }
 }

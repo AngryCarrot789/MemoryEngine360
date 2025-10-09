@@ -102,7 +102,7 @@ public partial class PointerScannerView : UserControl {
                     }
                 };
 
-                if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, IDesktopWindow.FromVisual(this)) != true) {
+                if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, IDesktopWindow.DesktopWindowFromVisual(this)) != true) {
                     return;
                 }
 

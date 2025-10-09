@@ -18,23 +18,30 @@
 // 
 
 using System.Diagnostics;
+using MemEngine360.Configs;
 using MemEngine360.Scripting;
+using PFXToolKitUI;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Interactivity.Windowing;
+using PFXToolKitUI.Logging;
 using PFXToolKitUI.Themes;
+using PFXToolKitUI.Utils;
 using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.Scripting;
 
 public class DesktopScriptingViewServiceImpl : IScriptingViewService {
-    public Task ShowOrFocusWindow(ScriptingManager scriptingManager) {
+    private static bool hasShownBefore = false;
+
+    public async Task ShowOrFocusWindow(ScriptingManager scriptingManager) {
         if (ITopLevel.TryGetFromContext(scriptingManager.UserContext, out ITopLevel? sequencerTopLevel)) {
             IDesktopWindow window = (IDesktopWindow) sequencerTopLevel;
 
             Debug.Assert(window.OpenState.IsOpenOrTryingToClose());
             window.Activate();
-            return Task.CompletedTask;
+            return;
         }
 
         if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
@@ -59,9 +66,46 @@ public class DesktopScriptingViewServiceImpl : IScriptingViewService {
             window.Closed += (sender, args) => ((ScriptingView) sender.Content!).OnWindowClosed();
 
             scriptingManager.UserContext.Set(ITopLevel.TopLevelDataKey, window);
-            return window.ShowAsync();
-        }
+            await window.ShowAsync();
 
-        return Task.CompletedTask;
+            if (!hasShownBefore) {
+                hasShownBefore = true;
+
+                ActivityManager.Instance.RunTask(async () => {
+                    ActivityTask activity = ActivityTask.Current;
+                    activity.Progress.SetCaptionAndText("Reload last scripts");
+                    foreach (string path in BasicApplicationConfiguration.Instance.LoadedScriptPaths) {
+                        activity.CancellationToken.ThrowIfCancellationRequested();
+                        try {
+                            if (string.IsNullOrWhiteSpace(path) || !path.EndsWith(".lua") || !File.Exists(path)) {
+                                continue;
+                            }
+                        }
+                        catch {
+                            continue; // Not sure if File.Exists() throws for invalid paths
+                        }
+
+                        string text;
+                        try {
+                            text = await File.ReadAllTextAsync(path, activity.CancellationToken);
+                        }
+                        catch (Exception e) {
+                            AppLogger.Instance.WriteLine("Failed to reload script file from config: " + e.GetToString());
+                            continue; // ignored
+                        }
+
+                        ApplicationPFX.Instance.Dispatcher.Post(() => {
+                            Script script = new Script() {
+                                SourceCode = text,
+                                HasUnsavedChanges = false
+                            };
+
+                            script.SetFilePath(path);
+                            scriptingManager.Scripts.Add(script);
+                        }, DispatchPriority.Background);
+                    }
+                }, true);
+            }
+        }
     }
 }

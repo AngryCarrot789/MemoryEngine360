@@ -119,6 +119,12 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
             "FloatingPointEpsilon",
             defaultValue: 0.00001D,
             owner => owner.floatingPointEpsilon, (x, y) => x.floatingPointEpsilon = Math.Clamp(y, 0, 0.9999D), false);
+    
+    public static readonly PersistentProperty<string[]> LoadedScriptPathsProperty =
+        PersistentProperty.RegisterStringArray<BasicApplicationConfiguration>(
+            "LoadedScriptPaths",
+            defaultValue: null,
+            owner => owner.loadedScriptPaths, (x, y) => x.loadedScriptPaths = y, false);
 
     public static BasicApplicationConfiguration Instance => ApplicationPFX.Instance.PersistentStorageManager.GetConfiguration<BasicApplicationConfiguration>();
 
@@ -138,6 +144,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     private bool isAutoRefreshResultsEnabled = IsAutoRefreshResultsEnabledProperty.DefaultValue;
     private bool useNaNInfProtection = UseNaNInfProtectionProperty.DefaultValue;
     private double floatingPointEpsilon = FloatingPointEpsilonProperty.DefaultValue;
+    private string[] loadedScriptPaths = LoadedScriptPathsProperty.DefaultValue;
 
     /// <summary>
     /// Gets or sets the last host name that was entered when connecting to an xbox 360. This is just a convenience feature
@@ -227,6 +234,11 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public double FloatingPointEpsilon {
         get => FloatingPointEpsilonProperty.GetValue(this);
         set => FloatingPointEpsilonProperty.SetValue(this, value);
+    }
+    
+    public string[] LoadedScriptPaths {
+        get => LoadedScriptPathsProperty.GetValue(this);
+        set => LoadedScriptPathsProperty.SetValue(this, value);
     }
 
     public BasicApplicationConfiguration() {
