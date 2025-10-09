@@ -175,6 +175,9 @@ public sealed class LuaScriptMachine {
         catch (LuaRuntimeException e) when (e.InnerException is OperationCanceledException oce) {
             this.tcsCompletion.SetCanceled(oce.CancellationToken);
         }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            this.tcsCompletion.SetException(new LuaRuntimeException(this.luaState!.GetTraceback(), e.Message));
+        }
         catch (Exception e) {
             this.tcsCompletion.SetException(e);
         }

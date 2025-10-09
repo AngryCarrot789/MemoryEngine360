@@ -153,14 +153,14 @@ public sealed class LuaEngineFunctions {
 
         public EngineFunctions(LuaEngineFunctions functions, LuaState state, LuaTable engineTable) {
             this.functions = functions;
-            AssignFunction(engineTable, new LuaFunction("readnumber", this.ReadNumber));
-            AssignFunction(engineTable, new LuaFunction("writenumber", this.WriteNumber));
-            AssignFunction(engineTable, new LuaFunction("readstring", this.ReadString));
-            AssignFunction(engineTable, new LuaFunction("writestring", this.WriteString));
-            AssignFunction(engineTable, new LuaFunction("setfrozen", this.SetIsFrozen));
-            AssignFunction(engineTable, new LuaFunction("isfrozen", this.GetIsFrozen));
-            AssignFunction(engineTable, new LuaFunction("sendnotification", this.SendNotification));
-            AssignFunction(engineTable, new LuaFunction("setleds", this.SetLEDs));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("readnumber", this.ReadNumber));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("writenumber", this.WriteNumber));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("readstring", this.ReadString));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("writestring", this.WriteString));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("setfrozen", this.SetIsFrozen));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("isfrozen", this.GetIsFrozen));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("sendnotification", this.SendNotification));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("setleds", this.SetLEDs));
         }
 
         public async ValueTask<int> ReadNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
@@ -319,13 +319,13 @@ public sealed class LuaEngineFunctions {
 
         public FileSystemFunctions(LuaEngineFunctions functions, LuaState state, LuaTable engineTable) {
             this.functions = functions;
-            AssignFunction(engineTable, new LuaFunction("drivelist", this.GetDriveList));
-            AssignFunction(engineTable, new LuaFunction("getfiles", this.GetFileSystemEntries));
-            AssignFunction(engineTable, new LuaFunction("deleterecursive", this.DeleteFileOrFolder));
-            AssignFunction(engineTable, new LuaFunction("launchfile", this.LaunchFile));
-            AssignFunction(engineTable, new LuaFunction("movefile", this.MoveFile));
-            AssignFunction(engineTable, new LuaFunction("mkdir", this.CreateDirectory));
-            AssignFunction(engineTable, new LuaFunction("pathseparator", this.GetPathSeparator));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("drivelist", this.GetDriveList));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("getfiles", this.GetFileSystemEntries));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("deleterecursive", this.DeleteFileOrFolder));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("launchfile", this.LaunchFile));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("movefile", this.MoveFile));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("mkdir", this.CreateDirectory));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("pathseparator", this.GetPathSeparator));
         }
 
         private async ValueTask<int> GetDriveList(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
@@ -440,23 +440,23 @@ public sealed class LuaEngineFunctions {
             LuaTable jrpcTable = new LuaTable(0, 17);
             state.Environment[(LuaValue) "jrpc"] = (LuaValue) jrpcTable;
             state.LoadedModules[(LuaValue) "jrpc"] = (LuaValue) jrpcTable;
-            AssignFunction(engineTable, new LuaFunction("getprocaddress", this.GetProcedureAddress));
-            AssignFunction(jrpcTable, new LuaFunction("callvoidat", this.CallVoidAt));
-            AssignFunction(jrpcTable, new LuaFunction("callvoidin", this.CallVoidIn));
-            AssignFunction(jrpcTable, new LuaFunction("callvoidat_vm", this.CallVoidAt_VM));
-            AssignFunction(jrpcTable, new LuaFunction("callvoidin_vm", this.CallVoidIn_VM));
-            AssignFunction(jrpcTable, new LuaFunction("callvoidat_sys", this.CallVoidAt_System));
-            AssignFunction(jrpcTable, new LuaFunction("callvoidin_sys", this.CallVoidIn_System));
-            AssignFunction(jrpcTable, new LuaFunction("callvoidat_vm_sys", this.CallVoidAt_VM_System));
-            AssignFunction(jrpcTable, new LuaFunction("callvoidin_vm_sys", this.CallVoidIn_VM_System));
-            AssignFunction(jrpcTable, new LuaFunction("callat", this.CallAt));
-            AssignFunction(jrpcTable, new LuaFunction("callin", this.CallIn));
-            AssignFunction(jrpcTable, new LuaFunction("callat_vm", this.CallAt_VM));
-            AssignFunction(jrpcTable, new LuaFunction("callin_vm", this.CallIn_VM));
-            AssignFunction(jrpcTable, new LuaFunction("callat_sys", this.CallAt_System));
-            AssignFunction(jrpcTable, new LuaFunction("callin_sys", this.CallIn_System));
-            AssignFunction(jrpcTable, new LuaFunction("callat_vm_sys", this.CallAt_VM_System));
-            AssignFunction(jrpcTable, new LuaFunction("callin_vm_sys", this.CallIn_VM_System));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("getprocaddress", this.GetProcedureAddress));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callvoidat", this.CallVoidAt));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callvoidin", this.CallVoidIn));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callvoidat_vm", this.CallVoidAt_VM));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callvoidin_vm", this.CallVoidIn_VM));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callvoidat_sys", this.CallVoidAt_System));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callvoidin_sys", this.CallVoidIn_System));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callvoidat_vm_sys", this.CallVoidAt_VM_System));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callvoidin_vm_sys", this.CallVoidIn_VM_System));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callat", this.CallAt));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callin", this.CallIn));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callat_vm", this.CallAt_VM));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callin_vm", this.CallIn_VM));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callat_sys", this.CallAt_System));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callin_sys", this.CallIn_System));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callat_vm_sys", this.CallAt_VM_System));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callin_vm_sys", this.CallIn_VM_System));
         }
 
         private async ValueTask<int> GetProcedureAddress(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
@@ -623,7 +623,7 @@ public sealed class LuaEngineFunctions {
 
             ThreadType type = system ? ThreadType.System : ThreadType.Title;
             using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
-            await (vm ? jrpc.CallVMVoid(address, args) : jrpc.CallVoid(address, args));
+            await (vm ? jrpc.CallVMVoid(type, address, args) : jrpc.CallVoid(type, address, args));
         }
 
         private async Task<object> DoCallAt(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
@@ -808,9 +808,9 @@ public sealed class LuaEngineFunctions {
             // LuaTable fileSystemTable = new LuaTable(0, 7);
             // state.Environment[(LuaValue) "msgbox"] = (LuaValue) fileSystemTable;
             // state.LoadedModules[(LuaValue) "msgbox"] = (LuaValue) fileSystemTable;
-            // AssignFunction(fileSystemTable, new LuaFunction("showOkCancel", this.ShowOkCancel));
-            // AssignFunction(fileSystemTable, new LuaFunction("showYesNo", this.ShowOkCancel));
-            // AssignFunction(fileSystemTable, new LuaFunction("showYesNoCancel", this.ShowOkCancel));
+            // AssignFunction(fileSystemTable, new IOTimeoutHandlingLuaFunction("showOkCancel", this.ShowOkCancel));
+            // AssignFunction(fileSystemTable, new IOTimeoutHandlingLuaFunction("showYesNo", this.ShowOkCancel));
+            // AssignFunction(fileSystemTable, new IOTimeoutHandlingLuaFunction("showYesNoCancel", this.ShowOkCancel));
         }
 
         // private ValueTask<int> ShowOkCancel(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
@@ -818,5 +818,17 @@ public sealed class LuaEngineFunctions {
         //     buffer.Span[0] = fsInfo.GetPathSeparatorChar().ToString();
         //     return ValueTask.FromResult(1);
         // }
+    }
+    
+    private sealed class NetworkHandlingLuaFunction : LuaFunction {
+        public NetworkHandlingLuaFunction(string name, Func<LuaFunctionExecutionContext, Memory<LuaValue>, CancellationToken, ValueTask<int>> func) : base(name, async (ctx, buffer, ct) => {
+            try {
+                return await func(ctx, buffer, ct);
+            }
+            catch (Exception e) when (e is TimeoutException || e is IOException) {
+                throw new LuaRuntimeException(ctx.State.GetTraceback(), e.Message);
+            }
+        }) {
+        }
     }
 }
