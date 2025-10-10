@@ -21,6 +21,7 @@ using MemEngine360.Commands;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI.Activities;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
@@ -29,7 +30,7 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.Commands;
 
-public class RunSequenceCommand : Command {
+public class RunSequenceCommand : Command, IDisabledHintProvider {
     public RunSequenceCommand() : base(allowMultipleExecutions: true) {
     }
 
@@ -38,7 +39,7 @@ public class RunSequenceCommand : Command {
             return Executability.Invalid;
         }
 
-        if (seq.IsRunning || seq.Manager == null /* shouldn't be null... */) {
+        if (seq.IsRunning || seq.ctsTryingToStart != null || seq.Manager == null /* shouldn't be null... */) {
             return Executability.ValidButCannotExecute;
         }
 
@@ -48,42 +49,66 @@ public class RunSequenceCommand : Command {
 
         return Executability.Valid;
     }
+    
+    public DisabledHintInfo? ProvideDisabledHint(IContextData context, ContextRegistry? sourceContextMenu) {
+        if (TaskSequence.DataKey.TryGetContext(context, out TaskSequence? seq) && seq.Manager != null /* shouldn't be null... */) {
+            if (seq.ctsTryingToStart != null)
+                return new SimpleDisabledHintInfo("Trying to run", "Already trying to start the sequence");
+            // Don't provide insight into why it's disabled when IsRunning is true, because that should be obvious
+        }
+
+        return null;
+    }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!TaskSequence.DataKey.TryGetContext(e.ContextData, out TaskSequence? sequence))
             return;
-        if (sequence.IsRunning || sequence.Manager == null /* shouldn't be null... */)
+        if (sequence.IsRunning || sequence.ctsTryingToStart != null || sequence.Manager == null /* shouldn't be null... */)
             return;
 
+        bool disposeToken = true;
+        Task runTask;
+        IBusyToken? token = null;
         bool useEngineConnection = sequence.UseEngineConnection;
         IConsoleConnection? connection = useEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection;
-        if (await HandleConnectionErrors(connection, useEngineConnection)) {
-            return;
-        }
-
-        IBusyToken? token = null;
-        if (sequence.HasEngineConnectionPriority && (token = sequence.Manager.MemoryEngine.TryBeginBusyOperation()) == null) {
-            using CancellationTokenSource cts = new CancellationTokenSource();
-            Result<IBusyToken?> tokenResult = await ActivityManager.Instance.RunTask(() => {
-                ActivityTask task = ActivityManager.Instance.CurrentTask;
-                task.Progress.Caption = $"Start '{sequence.DisplayName}'";
-                return sequence.Manager.MemoryEngine.BusyLock.BeginBusyOperationFromActivity(CancellationToken.None);
-            }, sequence.Progress, cts);
-
-            // User cancelled operation so don't run the sequence, since it wants busy lock priority
-            if ((token = tokenResult.GetValueOrDefault()) == null) {
+        
+        try {
+            sequence.ctsTryingToStart = new CancellationTokenSource();
+            if (await HandleConnectionErrors(connection, useEngineConnection)) {
                 return;
             }
-        }
 
-        connection = useEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection;
-        if (await HandleConnectionErrors(connection, useEngineConnection)) {
-            return;
-        }
+            if (sequence.HasEngineConnectionPriority && (token = sequence.Manager.MemoryEngine.TryBeginBusyOperation()) == null) {
+                ITopLevel? topLevel = TopLevelContextUtils.GetTopLevelFromContext();
+                using IActivityProgress.State state = sequence.Progress.SaveState(BusyLock.WaitingMessage, BusyLock.WaitingMessage);
+                Result<IBusyToken?> tokenResult = await ActivityManager.Instance.RunTask(() => {
+                    ActivityTask task = ActivityManager.Instance.CurrentTask;
+                    task.Progress.Caption = $"Start '{sequence.DisplayName}'";
 
-        Task runTask;
-        bool disposeToken = true;
-        try {
+                    // Cancellable via the activity itself, so no need to pass a CTS
+                    return sequence.Manager.MemoryEngine.BusyLock.BeginBusyOperationFromActivity(new BusyTokenRequestFromActivity() {
+                        // Show a foreground dialog if possible to let the user know why it isn't started
+                        ForegroundInfo = topLevel != null ? new InForegroundInfo(topLevel) : null
+                    });
+                }, sequence.ctsTryingToStart);
+
+                // User cancelled operation so don't run the sequence, since it wants busy lock priority
+                if ((token = tokenResult.GetValueOrDefault()) == null) {
+                    return;
+                }
+            }
+
+            if (sequence.IsRunning || sequence.Manager == null /* shouldn't be null... */)
+                return;
+
+            connection = useEngineConnection ? sequence.Manager.MemoryEngine.Connection : sequence.DedicatedConnection;
+            if (await HandleConnectionErrors(connection, useEngineConnection))
+                return;
+
+            // should not be null, since this command owns it
+            sequence.ctsTryingToStart.Dispose();
+            sequence.ctsTryingToStart = null;
+            
             runTask = sequence.Run(connection!, token, !useEngineConnection);
             if (runTask.IsCompleted) {
                 await runTask; // will most likely throw
@@ -93,9 +118,12 @@ public class RunSequenceCommand : Command {
             disposeToken = false;
         }
         finally {
+            sequence.ctsTryingToStart?.Dispose();
+            sequence.ctsTryingToStart = null;
             if (disposeToken)
                 token?.Dispose();
         }
+
 
         _ = runTask.ContinueWith(async t => {
             try {

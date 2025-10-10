@@ -19,6 +19,7 @@
 
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
+using PFXToolKitUI;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
@@ -59,8 +60,8 @@ public class FileTreeExplorer : IComponentManager {
         this.refreshRootCommand = new AsyncRelayCommand(this.RefreshRootDirectories);
     }
 
-    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
-        this.refreshRootCommand.Execute(null);
+    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
+        ApplicationPFX.Instance.Dispatcher.Post(static t => ((AsyncRelayCommand) t!).Execute(null), this.refreshRootCommand);
     }
 
     public async Task RefreshRootDirectories() {

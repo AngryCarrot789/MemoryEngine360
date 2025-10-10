@@ -62,14 +62,6 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
         yield return new CommandContextEntry("commands.memengine.remote.SoftRebootCommand", "Soft Reboot (restart title)");
         yield return new CommandContextEntry("commands.memengine.remote.ColdRebootCommand", "Cold Reboot");
         yield return new CommandContextEntry("commands.memengine.remote.ShutdownCommand", "Shutdown");
-        // yield return new SeparatorEntry();
-        // yield return new CaptionEntry("JRPC2 Commands");
-        // yield return new CommandContextEntry("commands.memengine.remote.GetCPUKeyCommand", "Get CPU Key");
-        // yield return new CommandContextEntry("commands.memengine.remote.GetDashboardVersionCommand", "Get Dashboard Version");
-        // yield return new CommandContextEntry("commands.memengine.remote.GetTemperaturesCommand", "Get Temperatures");
-        // yield return new CommandContextEntry("commands.memengine.remote.GetTitleIDCommand", "Get Current TitleID");
-        // yield return new CommandContextEntry("commands.memengine.remote.GetMoBoTypeCommand", "Get Motherboard Type");
-        // yield return new CommandContextEntry("commands.memengine.remote.TestRPCCommand", "SV_SetConfigString on MW3 (TU24)");
 
         yield return new DynamicGroupPlaceholderContextObject(new DynamicContextGroup((group, ctx, items) => {
             IConsoleConnection? connection;
@@ -84,7 +76,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
             items.Add(new CommandContextEntry("commands.memengine.remote.GetTemperaturesCommand", "Get Temperatures"));
             items.Add(new CommandContextEntry("commands.memengine.remote.GetTitleIDCommand", "Get Current TitleID"));
             items.Add(new CommandContextEntry("commands.memengine.remote.GetMoBoTypeCommand", "Get Motherboard Type"));
-            items.Add(new CommandContextEntry("commands.memengine.remote.TestRPCCommand", "SV_SetConfigString on MW3 (TU24)"));
+            items.Add(new CommandContextEntry("commands.memengine.remote.TestRPCCommand", "SV_SetConfigString on MW3 (TU23)"));
         }));
     }
 

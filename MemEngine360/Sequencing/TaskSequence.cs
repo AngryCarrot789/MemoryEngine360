@@ -45,6 +45,7 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
     internal TaskSequenceViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using IComponentManager
 
     internal TaskSequenceManager? myManager;
+    internal CancellationTokenSource? ctsTryingToStart;
     private string displayName = "Empty Sequence";
     private int runCount = 1;
     private bool hasEngineConnectionPriority;

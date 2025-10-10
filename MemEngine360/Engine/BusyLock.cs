@@ -18,7 +18,7 @@
 // 
 
 #if DEBUG
-#define TRACK_TOKEN_CREATION_STACK_TRACE
+#define DEBUG_BUSY_TOKEN
 #endif
 
 using System.Diagnostics;
@@ -100,7 +100,9 @@ public sealed class BusyLock {
     /// </summary>
     /// <returns>A token to dispose when the operation is completed. Returns null if currently busy</returns>
     public IBusyToken? TryBeginBusyOperation() {
-        return this.InternalTryBeginBusyOperation(null);
+        // do not check CheckTokenAlreadyTakenOnSameThread here, since
+        // we don't know if the caller will actually try to obtain it asynchronously
+        return this.InternalTryTakeBusyToken(null);
     }
 
     /// <summary>
@@ -169,6 +171,7 @@ public sealed class BusyLock {
     /// so that other operations can do busy operations
     /// </remarks>
     public Task<IBusyToken?> BeginBusyOperation(BusyTokenRequest request) {
+        this.CheckTokenAlreadyTakenOnSameThread();
         IBusyToken? token = this.TryBeginBusyOperation();
         if (token != null) {
             return Task.FromResult<IBusyToken?>(token);
@@ -181,7 +184,7 @@ public sealed class BusyLock {
 
         return request.QuickReleaseIntention
             ? this.InternalQuickReleaseLoop(cts.Token)
-            : this.InternalBeginBusyOperationLoop(cts.Token);
+            : this.InternalTryTakeBusyTokenLoop(cts.Token);
     }
 
     /// <summary>
@@ -202,6 +205,7 @@ public sealed class BusyLock {
             throw new ArgumentException($"Request's InForeground info contained a null {nameof(ITopLevel)}");
         }
 
+        this.CheckTokenAlreadyTakenOnSameThread();
         IBusyToken? token = this.TryBeginBusyOperation();
         if (token != null) {
             return token;
@@ -215,7 +219,7 @@ public sealed class BusyLock {
 
         Task<IBusyToken?> busyOperation = request.QuickReleaseIntention
             ? this.InternalQuickReleaseLoop(ctsBusyOperation.Token)
-            : this.InternalBeginBusyOperationLoop(ctsBusyOperation.Token);
+            : this.InternalTryTakeBusyTokenLoop(ctsBusyOperation.Token);
 
         // Wait a short amount of time before starting an activity, to prevent it flashing on-screen
         await Task.WhenAny(busyOperation, Task.Delay(25, ctsBusyOperation.Token));
@@ -224,7 +228,7 @@ public sealed class BusyLock {
         }
 
         ActivityTask<IBusyToken?> activity = ActivityManager.Instance.RunTask(() => busyOperation, request.Progress, ctsBusyOperation);
-        if (foregroundInfo.HasValue && foregroundInfo.Value.ShowDelay > 0) {
+        if (foregroundInfo.HasValue) {
             if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
                 WaitForActivityResult result = await service.DelayedWaitForActivity(new WaitForActivityOptions(foregroundInfo.Value.TopLevel, activity) {
                     CanMinimizeIntoBackgroundActivity = true
@@ -243,7 +247,9 @@ public sealed class BusyLock {
     }
 
     /// <summary>
-    /// Tries to obtain the busy token from within an already running activity
+    /// Tries to obtain the busy token from within an already running activity.
+    /// The activity becoming marked as cancelled will cause this method to return, and if
+    /// <see cref="BusyTokenRequestFromActivity.ForegroundInfo"/> is provided, the dialog will also be closed.
     /// </summary>
     /// <param name="request">The busy token request information</param>
     /// <returns>The token, or null, if the request was cancelled</returns>
@@ -262,14 +268,17 @@ public sealed class BusyLock {
             throw new ArgumentException($"Request's InForeground info contained a null {nameof(ITopLevel)}");
         }
 
+        this.CheckTokenAlreadyTakenOnSameThread();
         IBusyToken? token = this.TryBeginBusyOperation();
         if (token != null) {
             return token;
         }
-
+        
         // Check if someone passes the activity's cancellation token as a parameter
         // to this method. Nothing should go wrong if we passed two of the came CTs
-        // to CreateLinkedTokenSource, but we may as well check anyway
+        // to CreateLinkedTokenSource, but we may as well check anyway.
+        // Either way, the cts becomes cancelled when the activity or BusyCancellation becomes cancelled,
+        // and it can be cancelled directly too (in this case, via the request's TimeoutMilliseconds)
         using CancellationTokenSource ctsBusyOperation = request.BusyCancellation.Equals(request.CurrentTask.CancellationToken)
             ? CancellationTokenSource.CreateLinkedTokenSource(request.BusyCancellation)
             : CancellationTokenSource.CreateLinkedTokenSource(request.BusyCancellation, request.CurrentTask.CancellationToken);
@@ -284,12 +293,12 @@ public sealed class BusyLock {
                 // or until either activity or request token cancelled
                 return request.QuickReleaseIntention
                     ? await this.InternalQuickReleaseLoop(ctsBusyOperation.Token)
-                    : await this.InternalBeginBusyOperationLoop(ctsBusyOperation.Token);
+                    : await this.InternalTryTakeBusyTokenLoop(ctsBusyOperation.Token);
             }
 
             Task<IBusyToken?> busyOperation = request.QuickReleaseIntention
                 ? this.InternalQuickReleaseLoop(ctsBusyOperation.Token)
-                : this.InternalBeginBusyOperationLoop(ctsBusyOperation.Token);
+                : this.InternalTryTakeBusyTokenLoop(ctsBusyOperation.Token);
 
             if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
                 if (foregroundInfo.Value.ShowDelay > 0) {
@@ -303,18 +312,22 @@ public sealed class BusyLock {
                 }
 
                 WaitForActivityResult result;
-                
-                // Pass 'cts' so that the dialog closes ASAP, so that the caller can process any additional
-                // cancellation logic it may want. If we don't pass cts, then nothing tells the dialog to close,
-                // and it will deadlock the activity by waiting for it to complete from within the activity itself
+
+                // We must pass a token, that becomes cancelled at least when the activity is cancelled, as the DialogCancellation
+                // parameter, so that the dialog closes ASAP, and the caller can process any additional cancellation logic.
+                // If we don't pass such a token, then nothing tells the dialog to close, and it will
+                // deadlock the activity by waiting for it to complete from within the activity itself
                 using (CancellationTokenSource ctsDialog = TaskUtils.CreateCompletionSource(busyOperation, ctsBusyOperation.Token)) {
                     result = await service.WaitForActivity(new WaitForActivityOptions(foregroundInfo.Value.TopLevel, request.CurrentTask, ctsDialog.Token) {
                         CancelActivityOnCloseRequest = false, // when the user tries to close it, just close the dialog
                         WaitForActivityOnCloseRequest = false, // do not wait for the activity to complete!!!
+                        
+                        // It can only be minimized when the activity can be cancelled via the activity list in the main UI,
+                        // because we can't guarantee the caller has its own way of cancelling the activity
                         CanMinimizeIntoBackgroundActivity = request.CurrentTask.IsDirectlyCancellable
                     });
                 }
-                
+
                 if (busyOperation.IsCompleted || result.TransitionToBackground) {
                     // Operation has completed, or we're transitioning into a background activity, so just wait here
                     return await busyOperation;
@@ -375,6 +388,7 @@ public sealed class BusyLock {
         return theLock == this && this.activeToken == busy;
     }
 
+    // Same as InternalTryTakeBusyTokenLoop except we set up the quick release state before entering the loop
     private async Task<IBusyToken?> InternalQuickReleaseLoop(CancellationToken cancellationToken = default) {
         IBusyToken? token = this.TryBeginBusyOperation();
         if (token != null) {
@@ -407,11 +421,11 @@ public sealed class BusyLock {
         try {
             // At this point, we are now the main waiter for the quick action.
             // tcsQuickActionBeginning will stay as myTcs until we replace it.
-            if ((token = this.InternalTryBeginBusyOperation(myTcs)) != null) {
+            if ((token = this.InternalTryTakeBusyToken(myTcs)) != null) {
                 return token;
             }
 
-            return await this.InternalBeginBusyOperationLoop(cancellationToken, myTcs);
+            return await this.InternalTryTakeBusyTokenLoop(cancellationToken, myTcs);
         }
         catch (OperationCanceledException) {
             // ignored
@@ -433,7 +447,7 @@ public sealed class BusyLock {
         return null;
     }
 
-    internal async Task<IBusyToken?> InternalBeginBusyOperationLoop(CancellationToken cancellationToken, TaskCompletionSource? tcsQuickReleaseAction = null) {
+    internal async Task<IBusyToken?> InternalTryTakeBusyTokenLoop(CancellationToken cancellationToken, TaskCompletionSource? tcsQuickReleaseAction = null) {
         IBusyToken? token;
         do {
             // If there's a quick action still running, and the caller isn't
@@ -459,12 +473,12 @@ public sealed class BusyLock {
                     return null;
                 }
             }
-        } while ((token = this.InternalTryBeginBusyOperation(tcsQuickReleaseAction)) == null);
+        } while ((token = this.InternalTryTakeBusyToken(tcsQuickReleaseAction)) == null);
 
         return token;
     }
 
-    private IBusyToken? InternalTryBeginBusyOperation(TaskCompletionSource? tcsQuickReleaseAction) {
+    private IBusyToken? InternalTryTakeBusyToken(TaskCompletionSource? tcsQuickReleaseAction) {
         bool lockTaken = false;
         Lock lockObj = this.CriticalLock;
 
@@ -481,6 +495,25 @@ public sealed class BusyLock {
             if (lockTaken)
                 lockObj.Exit();
         }
+    }
+
+    // In release, it will just deadlock activities or tasks which might prevent tasks ever completing,
+    // but the user can at least restart the app
+    [Conditional("DEBUG_BUSY_TOKEN")]
+    private void CheckTokenAlreadyTakenOnSameThread() {
+        // this method has false positives, i.e. try begin operation and await using cancellable activity
+#if false // DEBUG_BUSY_TOKEN
+        BusyToken? token = this.activeToken;
+        if (token != null && token.OwnerThread == Thread.CurrentThread) {
+            try {
+                Debug.Fail("Attempt to take busy while it is already taken on the same thread." +
+                           "This could result in an async deadlock");
+            }
+            catch {
+                // ignored -- do not corrupt app state in debug mode
+            }
+        }
+#endif
     }
 
     private void OnTokenCreatedUnderLock() {
@@ -521,11 +554,11 @@ public sealed class BusyLock {
 
         public BusyLock? BusyLock => this.myLock;
 
-#if TRACK_TOKEN_CREATION_STACK_TRACE
+#if DEBUG_BUSY_TOKEN
         // debugging stack trace, just in case the app locks up then the source is likely in here
         public string? creationStackTrace;
         public string? disposalStackTrace;
-
+        public readonly Thread OwnerThread = Thread.CurrentThread;
 #endif
 
         public BusyToken(BusyLock theLock) {
@@ -533,7 +566,7 @@ public sealed class BusyLock {
             this.myLock = theLock;
             theLock.OnTokenCreatedUnderLock();
 
-#if TRACK_TOKEN_CREATION_STACK_TRACE
+#if DEBUG_BUSY_TOKEN
             this.creationStackTrace = new StackTrace(true).ToString();
 #endif
         }
@@ -545,7 +578,7 @@ public sealed class BusyLock {
                 return; // already disposed...
             }
 
-#if TRACK_TOKEN_CREATION_STACK_TRACE
+#if DEBUG_BUSY_TOKEN
             string oldDisposalTrace = this.disposalStackTrace;
             this.disposalStackTrace = new StackTrace(true).ToString();
             Debug.Assert(oldDisposalTrace == null);
