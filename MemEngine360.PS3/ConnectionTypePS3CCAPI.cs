@@ -56,16 +56,44 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
     }
 
     public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData additionalContext, CancellationTokenSource cancellation) {
+        {
+            MessageBoxInfo info1 = new MessageBoxInfo("Untested", "This feature is completely untested. Continue at your own risk!") {
+                Buttons = MessageBoxButton.OKCancel,
+                DefaultButton = MessageBoxResult.Cancel,
+                YesOkText = "I might brick my PS3, but oh well",
+                NoText = "Cancel"
+            };
+
+            MessageBoxResult msg1 = await IMessageDialogService.Instance.ShowMessage(info1);
+            if (msg1 != MessageBoxResult.OK) {
+                return null;
+            }
+        }
+
+        {
+            MessageBoxInfo info2 = new MessageBoxInfo("Untested", "Are you sure?") {
+                Buttons = MessageBoxButton.OKCancel,
+                DefaultButton = MessageBoxResult.Cancel,
+                YesOkText = "Yes",
+                NoText = "Cancel"
+            };
+
+            MessageBoxResult msg2 = await IMessageDialogService.Instance.ShowMessage(info2);
+            if (msg2 != MessageBoxResult.OK) {
+                return null;
+            }
+        }
+
         ConnectToCCAPIInfo info = (ConnectToCCAPIInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.IpAddress)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid IP", "IP address is invalid");
             return null;
         }
-        
+
         if (!File.Exists("CCAPI.dll")) {
             ITopLevel? topLevel = TopLevelContextUtils.GetTopLevelFromContext();
             ActivityTask<bool> activity = ActivityManager.Instance.RunTask(() => ConnectToCCAPIInfo.TryDownloadCCApi(topLevel, false, ActivityTask.Current.CancellationToken), true);
-            
+
             if (topLevel != null && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
                 await service.WaitForActivity(topLevel, activity);
             }
@@ -101,7 +129,7 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
                 AppLogger.Instance.WriteLine(e.GetToString());
             }
         }
-        
+
         return null;
     }
 }

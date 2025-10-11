@@ -12,7 +12,7 @@
             <RadioButton Grid.Column="0" x:Name="PART_LittleEndian" Content="Little Endian"
                          tt:ToolTipEx.Tip="Interpret the data in the editor as Little Endian"/>
             <RadioButton Grid.Column="2" x:Name="PART_BigEndian" Content="Big Endian"
-                         tt:ToolTipEx.Tip="Interpret the data in the editor as Big Endian. This is the default for Xbox 360"/>
+                         tt:ToolTipEx.Tip="Interpret the data in the editor as Big Endian. This is the default for Xbox360 and PS3"/>
         </Grid>
 
         <TextBlock Text="Binary8"   Grid.Row="2" Grid.Column="1" VerticalAlignment="Center"/>

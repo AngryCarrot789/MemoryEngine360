@@ -89,7 +89,7 @@ public partial class PointerScannerView : UserControl {
             
             string? file = await IFilePickDialogService.Instance.OpenFile("Open binary file", [Filters.All]);
             if (file != null) {
-                MessageBoxResult resultIsLE = await IMessageDialogService.Instance.ShowMessage("Endianness", "Is the data little endian? (For xbox, select No)", MessageBoxButton.YesNoCancel, MessageBoxResult.No);
+                MessageBoxResult resultIsLE = await IMessageDialogService.Instance.ShowMessage("Endianness", "Is the data little endian? (For Xbox360 and PS3, select No)", MessageBoxButton.YesNoCancel, MessageBoxResult.No);
                 if (resultIsLE != MessageBoxResult.Yes && resultIsLE != MessageBoxResult.No) {
                     return;
                 }
