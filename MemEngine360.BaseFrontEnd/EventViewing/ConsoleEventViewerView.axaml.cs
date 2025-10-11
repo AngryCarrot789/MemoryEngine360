@@ -22,7 +22,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Avalonia.VisualTree;
 using MemEngine360.BaseFrontEnd.EventViewing.XbdmEvents;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
@@ -35,6 +34,7 @@ using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Destroying;
 using PFXToolKitUI.Utils.RDA;
+using VisualExtensions = Avalonia.VisualTree.VisualExtensions;
 
 namespace MemEngine360.BaseFrontEnd.EventViewing;
 
@@ -112,7 +112,7 @@ public partial class ConsoleEventViewerView : UserControl {
         base.OnLoaded(e);
         this.isUnloadedState = 0;
         if (this.PART_ScrollViewer == null) {
-            this.PART_ScrollViewer = this.PART_EventListBox.FindDescendantOfType<ScrollViewer>();
+            this.PART_ScrollViewer = VisualExtensions.FindDescendantOfType<ScrollViewer>(this.PART_EventListBox);
             if (this.PART_ScrollViewer != null) {
                 this.PART_ScrollViewer.LayoutUpdated += this.PART_ScrollViewerOnLayoutUpdated;
                 this.PART_ScrollViewer.PropertyChanged += this.PART_ScrollViewerOnPropertyChanged;

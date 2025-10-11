@@ -8,9 +8,39 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
+
     <ItemGroup>
-        <ProjectReference Include="..\MemEngine360.BaseFrontEnd\MemEngine360.BaseFrontEnd.csproj" />
+        <ProjectReference Include="..\MemEngine360.BaseFrontEnd\MemEngine360.BaseFrontEnd.csproj"/>
         <ProjectReference Include="..\MemEngine360\MemEngine360.csproj"/>
         <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI.Avalonia\PFXToolKitUI.Avalonia.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="libs\ccapi-surrogate.pdb" />
+      <None Remove="libs\ccapi-surrogate.exe" />
+      <None Remove="libs\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AvaloniaXaml Remove="libs\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="libs\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="libs\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Remove="libs\**" />
     </ItemGroup>
 </Project>

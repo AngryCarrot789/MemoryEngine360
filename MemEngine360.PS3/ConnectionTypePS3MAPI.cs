@@ -30,7 +30,7 @@ public class ConnectionTypePS3MAPI : RegisteredConnectionType {
 
     public override string DisplayName => "PS3 (MAPI)";
 
-    public override string? FooterText => "Untested";
+    public override string? FooterText => "Not Implemented";
 
     public override string LongDescription => "A connection to a PS3 using the Manager API";
 

@@ -17,26 +17,33 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Runtime.Versioning;
 using MemEngine360.Connections;
+using MemEngine360.PS3.CC;
 using PFXToolKitUI;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
+using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.PS3;
 
+[SupportedOSPlatform("windows")]
 public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
     public const string TheID = "console.ps3.ccapi-coreimpl"; // -coreimpl suffix added to core plugins, not that we need to but eh
     public static readonly RegisteredConnectionType Instance = new ConnectionTypePS3CCAPI();
 
     public override string DisplayName => "PS3 (CCAPI)";
 
-    public override string? FooterText => "Untested";
+    public override string FooterText => "Untested";
 
     public override string LongDescription => "A connection to a PS3 using CCAPI";
 
     public override Icon Icon => SimpleIcons.PS3CCAPIIcon;
-    
+
     public override IEnumerable<PlatformIconInfo> PlatformIcons => [new(PlatformIcon.WindowsIcon, "CCAPI is closed source, and is only implemented on windows")];
 
     public override bool SupportsEvents => false;
@@ -44,8 +51,57 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
     private ConnectionTypePS3CCAPI() {
     }
 
+    public override UserConnectionInfo? CreateConnectionInfo() {
+        return new ConnectToCCAPIInfo();
+    }
+
     public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData additionalContext, CancellationTokenSource cancellation) {
-        await IMessageDialogService.Instance.ShowMessage("Unsupported", "Coming soon!");
+        ConnectToCCAPIInfo info = (ConnectToCCAPIInfo) _info!;
+        if (string.IsNullOrWhiteSpace(info.IpAddress)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid IP", "IP address is invalid");
+            return null;
+        }
+        
+        if (!File.Exists("CCAPI.dll")) {
+            ITopLevel? topLevel = TopLevelContextUtils.GetTopLevelFromContext();
+            ActivityTask<bool> activity = ActivityManager.Instance.RunTask(() => ConnectToCCAPIInfo.TryDownloadCCApi(topLevel, false, ActivityTask.Current.CancellationToken), true);
+            
+            if (topLevel != null && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
+                await service.WaitForActivity(topLevel, activity);
+            }
+
+            await activity;
+        }
+
+        if (!File.Exists("CCAPI.dll")) {
+            await IMessageDialogService.Instance.ShowMessage("No CCAPI", "Cannot connect to the PS3 without CCAPI.");
+            return null;
+        }
+
+        ConsoleControlAPI? api = null;
+        try {
+            api = await ConsoleControlAPI.Run();
+            if (await api.ConnectToConsole(info.IpAddress)) {
+                return new ConsoleConnectionCCAPI(api);
+            }
+            else {
+                await IMessageDialogService.Instance.ShowMessage("Failed to connect", "Failed to connect to PS3 at " + info.IpAddress);
+            }
+        }
+        catch (Exception e) {
+            await LogExceptionHelper.ShowMessageAndPrintToLogs("CCAPI", "Failed to setup CCAPI", e);
+        }
+
+        if (api != null) {
+            try {
+                api.Dispose();
+            }
+            catch (Exception e) {
+                AppLogger.Instance.WriteLine("Exception disposing ConsoleControl API object");
+                AppLogger.Instance.WriteLine(e.GetToString());
+            }
+        }
+        
         return null;
     }
 }

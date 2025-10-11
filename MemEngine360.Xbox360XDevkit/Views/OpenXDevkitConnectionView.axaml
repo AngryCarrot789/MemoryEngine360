@@ -9,7 +9,8 @@
                    Text="Note - Xbox360 Neighbourhood is required (2.0.21256.0 or above)"
                    FontSize="16"
                    Foreground="{DynamicResource ABrush.ColourfulGlyph.Static}"
-                   FontWeight="Medium"/>
+                   FontWeight="Medium"
+                   TextWrapping="Wrap"/>
         <Separator/>
         <TextBlock Text="IP/Hostname Address" Padding="0,5"/>
         <TextBox x:Name="PART_IpAddressTextBox" Padding="5,5" 

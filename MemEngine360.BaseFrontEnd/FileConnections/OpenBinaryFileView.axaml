@@ -10,7 +10,8 @@
                    Text="Treat a file as a console connection. Be extremely careful with 'Allow Resizing File'"
                    FontSize="16"
                    Foreground="{DynamicResource ABrush.ColourfulGlyph.Static}"
-                   FontWeight="Medium"/>
+                   FontWeight="Medium"
+                   TextWrapping="Wrap"/>
         <Separator/>
 
         <TextBlock Text="File Path" Padding="0,2"/>

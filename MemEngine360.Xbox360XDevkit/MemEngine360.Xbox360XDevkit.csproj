@@ -19,7 +19,7 @@
 
     <ItemGroup>
         <Reference Include="XDevkit">
-            <HintPath>..\libs\XDevkit.dll</HintPath>
+            <HintPath>libs\XDevkit.dll</HintPath>
         </Reference>
     </ItemGroup>
 </Project>

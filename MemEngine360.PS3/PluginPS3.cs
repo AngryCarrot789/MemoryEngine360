@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
 using PFXToolKitUI;
 using PFXToolKitUI.Plugins;
@@ -24,12 +25,22 @@ using PFXToolKitUI.Plugins;
 namespace MemEngine360.PS3;
 
 public class PluginPS3 : Plugin {
-    protected override Task OnApplicationFullyLoaded() {
+    protected override async Task OnApplicationFullyLoaded() {
 #if DEBUG
         ConsoleConnectionManager manager = ApplicationPFX.GetComponent<ConsoleConnectionManager>();
+        if (OperatingSystem.IsWindows()) {
+            manager.Register(ConnectionTypePS3CCAPI.TheID, ConnectionTypePS3CCAPI.Instance);
+            OpenConnectionView.Registry.RegisterType<ConnectToCCAPIInfo>(
+                () => {
+                    // The callback is only registered in the OS.IsWindows() block, so this is safe
+#pragma warning disable CA1416
+                    return new OpenCCAPIConnectionView();
+#pragma warning restore CA1416
+                });
+        }
+        
         manager.Register(ConnectionTypePS3MAPI.TheID, ConnectionTypePS3MAPI.Instance);
-        manager.Register(ConnectionTypePS3CCAPI.TheID, ConnectionTypePS3CCAPI.Instance);
 #endif
-        return Task.CompletedTask;
+        
     }
 }

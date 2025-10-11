@@ -17,9 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections;
-using MemEngine360.Engine;
-
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Commands;
 
 public class OpenConsoleConnectionInSequencerCommandUsage : BaseSequenceManagerCommandUsage {

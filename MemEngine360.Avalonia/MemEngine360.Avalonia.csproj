@@ -12,18 +12,18 @@
         <PublishSingleFile>true</PublishSingleFile>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-      <Deterministic>True</Deterministic>
+        <Deterministic>True</Deterministic>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-      <Deterministic>True</Deterministic>
+        <Deterministic>True</Deterministic>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="11.3.4" />
-        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.4" />
-        <PackageReference Include="Avalonia.Desktop" Version="11.3.4" />
-        <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.4" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.4" />
+        <PackageReference Include="Avalonia" Version="11.3.4"/>
+        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.4"/>
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.4"/>
+        <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.4"/>
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.4"/>
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Include="Avalonia.Diagnostics" Version="11.3.4">
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
@@ -32,14 +32,14 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\AvaloniaHex\src\AvaloniaHex\AvaloniaHex.csproj" />
-      <ProjectReference Include="..\MemEngine360.BaseFrontEnd\MemEngine360.BaseFrontEnd.csproj" />
-      <ProjectReference Include="..\MemEngine360.PS3\MemEngine360.PS3.csproj" />
-      <ProjectReference Include="..\MemEngine360.Xbox360XBDM\MemEngine360.Xbox360XBDM.csproj" />
-      <ProjectReference Include="..\MemEngine360.Xbox360XDevkit\MemEngine360.Xbox360XDevkit.csproj" />
-      <ProjectReference Include="..\MemEngine360\MemEngine360.csproj" />
-      <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI.Avalonia\PFXToolKitUI.Avalonia.csproj" />
-      <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj" />
+        <ProjectReference Include="..\AvaloniaHex\src\AvaloniaHex\AvaloniaHex.csproj"/>
+        <ProjectReference Include="..\MemEngine360.BaseFrontEnd\MemEngine360.BaseFrontEnd.csproj"/>
+        <ProjectReference Include="..\MemEngine360.PS3\MemEngine360.PS3.csproj"/>
+        <ProjectReference Include="..\MemEngine360.Xbox360XBDM\MemEngine360.Xbox360XBDM.csproj"/>
+        <ProjectReference Include="..\MemEngine360.Xbox360XDevkit\MemEngine360.Xbox360XDevkit.csproj"/>
+        <ProjectReference Include="..\MemEngine360\MemEngine360.csproj"/>
+        <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI.Avalonia\PFXToolKitUI.Avalonia.csproj"/>
+        <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -48,23 +48,25 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </Content>
+        <Content Include="..\MemEngine360.PS3\libs\*.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
+        <Content Include="..\MemEngine360.PS3\libs\*.exe">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
     </ItemGroup>
 
     <ItemGroup>
-      <None Remove="Icons\icon-16.bmp" />
-      <None Remove="Icons\icon-32.bmp" />
-      <None Remove="Keymap.xml" />
-      <AvaloniaResource Include="Icons\icon-16.bmp" />
-      <AvaloniaResource Include="Icons\icon-32.bmp" />
-      <Content Include="Icons\icon.ico" />
-      <Content Include="Keymap.xml">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Reference Include="XDevkit">
-        <HintPath>..\libs\XDevkit.dll</HintPath>
-      </Reference>
+        <None Remove="Icons\icon-16.bmp"/>
+        <None Remove="Icons\icon-32.bmp"/>
+        <None Remove="Keymap.xml"/>
+        <AvaloniaResource Include="Icons\icon-16.bmp"/>
+        <AvaloniaResource Include="Icons\icon-32.bmp"/>
+        <Content Include="Icons\icon.ico"/>
+        <Content Include="Keymap.xml">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 </Project>
