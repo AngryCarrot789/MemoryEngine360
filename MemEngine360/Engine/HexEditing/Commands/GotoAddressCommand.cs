@@ -34,8 +34,8 @@ public class GotoAddressCommand : BaseHexEditorCommand {
     protected override async Task ExecuteCommandAsync(IHexEditorUI view, MemoryViewer info, CommandEventArgs e) {
         SingleUserInputInfo singleInfo = new SingleUserInputInfo("Go to address", "Specify an address to scroll to", "Address (hex)", (view.CaretLocation.ByteIndex).ToString("X8")) {
             Validate = (a) => {
-                if (!uint.TryParse(a.Input, NumberStyles.HexNumber, null, out uint addr)) {
-                    a.Errors.Add("Invalid address");
+                if (!AddressParsing.TryParse32(a.Input, out _, out string? error)) {
+                    a.Errors.Add(error);
                 }
             }
         };

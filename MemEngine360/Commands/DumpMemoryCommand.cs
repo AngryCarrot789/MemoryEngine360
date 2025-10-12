@@ -41,7 +41,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
     protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
         return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
-    
+
     protected override DisabledHintInfo? ProvideDisabledHintOverride(MemoryEngine engine, IContextData context, ContextRegistry? sourceContextMenu) {
         if (TryProvideNotConnectedDisabledHintInfo(engine, out DisabledHintInfo? hintInfo))
             return hintInfo;
@@ -55,13 +55,8 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
         }
 
         Action<ValidationArgs> validateMemAddr = (a) => {
-            if (!uint.TryParse(a.Input, NumberStyles.HexNumber, null, out _)) {
-                if (ulong.TryParse(a.Input, NumberStyles.HexNumber, null, out _)) {
-                    a.Errors.Add("Value is too big. Maximum is 0xFFFFFFFF");
-                }
-                else {
-                    a.Errors.Add("Invalid UInt32.");
-                }
+            if (!AddressParsing.TryParse32(a.Input, out _, out string? error)) {
+                a.Errors.Add(error);
             }
         };
 

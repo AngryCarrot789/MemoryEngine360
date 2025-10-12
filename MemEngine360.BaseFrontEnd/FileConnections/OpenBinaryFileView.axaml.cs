@@ -21,6 +21,7 @@ using System.Globalization;
 using Avalonia.Controls;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
+using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Services.FilePicking;
@@ -37,12 +38,12 @@ public partial class OpenBinaryFileView : UserControl, IConsoleConnectivityContr
     });
 
     private readonly IBinder<OpenBinaryFileInfo> baseAddressBinder = new TextBoxToEventPropertyBinder<OpenBinaryFileInfo>(nameof(OpenBinaryFileInfo.BaseAddressChanged), b => ((ulong) b.Model.BaseAddress).ToString("X8"), async (binder, s) => {
-        if (!uint.TryParse(s, NumberStyles.HexNumber, null, out uint address)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is not an unsigned integer");
+        if (!AddressParsing.TryParse32(s, out uint value, out string? error)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK);
             return false;
         }
 
-        binder.Model.BaseAddress = address;
+        binder.Model.BaseAddress = value;
         return true;
     });
 

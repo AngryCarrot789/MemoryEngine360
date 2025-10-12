@@ -109,8 +109,8 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
 
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
-        if (uint.TryParse(this.PART_GotoTextBox.Text, NumberStyles.HexNumber, null, out uint address)) {
-            this.ScrollToAddressAndMoveCaret(address, out _);
+        if (AddressParsing.TryParse32(this.PART_GotoTextBox.Text, out uint value, out _)) {
+            this.ScrollToAddressAndMoveCaret(value, out _);
         }
     }
 
@@ -137,8 +137,8 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
                 text = text.Substring(2);
             }
 
-            if (uint.TryParse(text, NumberStyles.HexNumber, null, out uint parsedAddress)) {
-                this.ScrollToAddressAndMoveCaret(parsedAddress, out _);
+            if (AddressParsing.TryParse32(text, out uint value, out _)) {
+                this.ScrollToAddressAndMoveCaret(value, out _);
             }
         }
     }

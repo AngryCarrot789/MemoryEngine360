@@ -53,7 +53,7 @@ public static class MemoryAddressUtils {
             return (null, "Input string is empty");
 
         // 820002CD
-        if (uint.TryParse(input, NumberStyles.HexNumber, null, out uint staticAddress))
+        if (TryParseHexUInt32(input, out uint staticAddress))
             return (new StaticAddress(staticAddress), null);
 
         // 820002CD->25C->40->118
@@ -153,8 +153,9 @@ public static class MemoryAddressUtils {
     }
 
     public static bool TryParseHexUInt32(ReadOnlySpan<char> input, out uint result) {
-        if (input.StartsWith("0x", StringComparison.Ordinal))
+        while (input.Length > 0 && input.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
             input = input.Slice(2);
+        
         return uint.TryParse(input, NumberStyles.HexNumber, null, out result);
     }
 
@@ -163,10 +164,14 @@ public static class MemoryAddressUtils {
     }
 
     public static bool TryParseHexInt32(ReadOnlySpan<char> input, out int result) {
-        if (input.StartsWith("-0x", StringComparison.Ordinal))
-            input = input.Slice(3);
-        else if (input.StartsWith("0x", StringComparison.Ordinal))
-            input = input.Slice(2);
+        while (input.Length > 0) {
+            if (input.StartsWith("-0x", StringComparison.OrdinalIgnoreCase))
+                input = input.Slice(3);
+            else if (input.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                input = input.Slice(2);
+            else
+                break;
+        }
 
         return int.TryParse(input, NumberStyles.HexNumber, null, out result);
     }

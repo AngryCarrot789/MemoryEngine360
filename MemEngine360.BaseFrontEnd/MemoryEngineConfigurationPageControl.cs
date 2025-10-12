@@ -32,21 +32,21 @@ public class MemoryEngineConfigurationPageControl : BaseConfigurationPageControl
     private readonly TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint> refreshRateBinder = new TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint>(MemoryEngineConfigurationPage.ValueRefreshRateParameter, null, async (binder, text) => {
         if (uint.TryParse(text, out uint value))
             return value;
-        await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is not an integer.");
+        await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer value");
         return default;
     });
 
     private readonly TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint> autoRefreshPerSecBinder = new TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint>(MemoryEngineConfigurationPage.AutoRefreshUpdatesPerSecondParameter, null, async (binder, text) => {
         if (uint.TryParse(text, out uint value))
             return value;
-        await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is not an integer.");
+        await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer value");
         return default;
     });
 
     private readonly TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint> updateCountLimitBinder = new TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint>(MemoryEngineConfigurationPage.MaxRowsBeforeDisableAutoRefreshParameter, null, async (binder, text) => {
         if (uint.TryParse(text, out uint value))
             return value;
-        await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is not an integer.");
+        await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer value");
         return default;
     });
 

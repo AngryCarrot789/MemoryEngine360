@@ -46,19 +46,15 @@ public static class BinderParsingUtils {
         return false;
     }
 
-    public static async Task<bool> TryParseAddress<T>(string text, IBinder<T> binder, Action<IBinder<T>, uint> update, string tooLongMessage = "Address is too long. It can only be 4 bytes", string invalidValueMessage = "Start address is invalid") where T : class {
-        if (uint.TryParse(text, NumberStyles.HexNumber, null, out uint value)) {
+    public static async Task<bool> TryParseAddress<T>(string text, IBinder<T> binder, Action<IBinder<T>, uint> update, string caption = "Invalid value") where T : class {
+        if (AddressParsing.TryParse32(text, out uint value, out string? error)) {
             update(binder, value);
             return true;
         }
-        else if (ulong.TryParse(text, NumberStyles.HexNumber, null, out _)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", tooLongMessage, defaultButton: MessageBoxResult.OK);
-        }
         else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", invalidValueMessage, defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage(caption, error, defaultButton: MessageBoxResult.OK);
+            return false;
         }
-
-        return false;
     }
 
     public static async Task<IDataValue?> TryParseTextAsDataValueAndModify(string text, DataType initialDataType, DataProviderHandler h, bool canTryParseAsFloatOrDouble = true) {

@@ -58,84 +58,61 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     #region Binders
 
     private readonly TextBoxToEventPropertyBinder<MemoryViewer> offsetBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.OffsetChanged), (b) => b.Model.Offset.ToString("X8"), async (b, x) => {
-        if (x.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-            x = x.Substring(2);
-        
-        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
-            b.Model.Offset = value;
-            return true;
-        }
-        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
-        }
-        else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
+        if (!AddressParsing.TryParse32(x, out uint value, out string? error)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK);
+            return false;
         }
 
-        return false;
+        b.Model.Offset = value;
+        return true;
     }) {
         CanApplyValueOnLostFocus = false
     };
 
     private readonly IBinder<MemoryViewer> bytesPerRowBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.BytesPerRowChanged), (b) => b.Model.BytesPerRow.ToString(), async (b, x) => {
-        if (uint.TryParse(x, out uint value)) {
-            if (value < MemoryViewer.MinimumBytesPerRow || value > MemoryViewer.MaximumBytesPerRow) {
-                // will probably cause the computer so implode or something if there's too many or little bpr
-                await IMessageDialogService.Instance.ShowMessage("Out of range", $"Bytes Per Row must be between {MemoryViewer.MinimumBytesPerRow} and {MemoryViewer.MaximumBytesPerRow}", defaultButton: MessageBoxResult.OK);
-            }
-            else {
-                b.Model.BytesPerRow = value;
-                return true;
-            }
+        // will probably cause the computer so implode or something if there's too many or little bpr
+        if (!uint.TryParse(x, out uint value)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer value", defaultButton: MessageBoxResult.OK);
+        }
+        else if (value < MemoryViewer.MinimumBytesPerRow || value > MemoryViewer.MaximumBytesPerRow) {
+            await IMessageDialogService.Instance.ShowMessage("Out of range", $"Bytes Per Row must be between {MemoryViewer.MinimumBytesPerRow} and {MemoryViewer.MaximumBytesPerRow}", defaultButton: MessageBoxResult.OK);
         }
         else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer", defaultButton: MessageBoxResult.OK);
+            b.Model.BytesPerRow = value;
+            return true;
         }
 
         return false;
     });
 
     private readonly IBinder<MemoryViewer> autoRefreshAddrBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.AutoRefreshStartAddressChanged), (p) => p.Model.AutoRefreshStartAddress.ToString("X8"), async (b, x) => {
-        if (x.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-            x = x.Substring(2);
-        
-        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint newStartAddress)) {
-            if ((ulong) newStartAddress + b.Model.AutoRefreshLength > uint.MaxValue) {
-                await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Address causes scan to exceed applicable memory range");
-                return false;
-            }
-
-            b.Model.AutoRefreshStartAddress = newStartAddress;
-            return true;
-        }
-        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Address is too long. Maximum is technically 0xFFFFFFFF", defaultButton: MessageBoxResult.OK);
-        }
-        else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
+        if (!AddressParsing.TryParse32(x, out uint value, out string? error)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK);
+            return false;
         }
 
-        return false;
+        if ((ulong) value + b.Model.AutoRefreshLength > uint.MaxValue) {
+            await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Address causes scan to exceed applicable memory range");
+            return false;
+        }
+
+        b.Model.AutoRefreshStartAddress = value;
+        return true;
     });
 
     private readonly IBinder<MemoryViewer> autoRefreshLenBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.AutoRefreshLengthChanged), (p) => p.Model.AutoRefreshLength.ToString("X8"), async (b, x) => {
-        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint newByteCount)) {
-            if ((ulong) b.Model.AutoRefreshStartAddress + newByteCount > uint.MaxValue) {
-                await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Byte count causes scan to exceed applicable memory range");
-                return false;
-            }
-
-            b.Model.AutoRefreshLength = newByteCount;
-            return true;
-        }
-        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length is too long. Maximum is technically 0xFFFFFFFF", defaultButton: MessageBoxResult.OK);
-        }
-        else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
+        if (!AddressParsing.TryParse32(x, out uint value, out string? error)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK);
+            return false;
         }
 
-        return false;
+        if ((ulong) b.Model.AutoRefreshStartAddress + value > uint.MaxValue) {
+            await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Byte count causes scan to exceed applicable memory range");
+            return false;
+        }
+
+        b.Model.AutoRefreshLength = value;
+        return true;
     });
 
     #endregion
@@ -389,12 +366,12 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     public void SetBinarySource(IConnectionLockPair? lockPair) {
         if (this.myBinarySource != null)
             this.myBinarySource.ValidRanges.IndicesChanged -= this.OnValidRangesChanged;
-        
+
         this.PART_HexEditor.BinarySource = this.myBinarySource = lockPair != null ? new ConsoleHexBinarySource(lockPair) : null;
-        
+
         if (this.myBinarySource != null)
             this.myBinarySource.ValidRanges.IndicesChanged += this.OnValidRangesChanged;
-        
+
         this.changeManager.Clear();
         this.changeManager.OnBinarySourceChanged(this.myBinarySource);
         this.UpdateSelectionText();
@@ -716,7 +693,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             }
 
             this.Activity.Progress.Text = "Auto refresh in progress";
-            
+
             BasicApplicationConfiguration settings = BasicApplicationConfiguration.Instance;
             while (true) {
                 pauseOrCancelToken.ThrowIfCancellationRequested();
@@ -773,13 +750,13 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
 
         private async Task<bool> TryObtainBusyToken() {
             Debug.Assert(this.myBusyToken == null);
-            
+
             BusyLock busyLock = this.info!.MemoryEngine.BusyLock;
             this.myBusyToken = await busyLock.BeginBusyOperationFromActivity(this.CancellationToken);
             if (this.myBusyToken == null) {
                 return false;
             }
-            
+
             busyLock.UserQuickReleaseRequested += this.BusyLockOnUserQuickReleaseRequested;
             return true;
         }
@@ -787,14 +764,14 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         private void ReleaseBusyToken() {
             BusyLock busyLock = this.info!.MemoryEngine.BusyLock;
             Debug.Assert(this.myBusyToken != null && busyLock.IsTokenValid(this.myBusyToken));
-            
+
             busyLock.UserQuickReleaseRequested -= this.BusyLockOnUserQuickReleaseRequested;
             this.myBusyToken?.Dispose();
             this.myBusyToken = null;
         }
 
         private void BusyLockOnUserQuickReleaseRequested(BusyLock busyLock, TaskCompletionSource tcsQuickActionFinished) {
-            this.RequestPause(out _,  out _);
+            this.RequestPause(out _, out _);
 
             tcsQuickActionFinished.Task.ContinueWith(t => {
                 this.RequestResume(out _, out _);

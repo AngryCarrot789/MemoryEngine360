@@ -141,7 +141,7 @@ public partial class EngineView : UserControl {
 
     public EngineView() {
         this.InitializeComponent();
-        
+
         this.themesSubList = new MenuEntryGroup("Themes");
         this.MemoryEngine = new MemoryEngine();
         this.SetupMainMenu();
@@ -588,7 +588,7 @@ public partial class EngineView : UserControl {
                             if (busyToken == null) {
                                 return;
                             }
-                            
+
                             await CommandManager.Instance.RunActionAsync(async _ => {
                                 RegisteredConnectionType type = engine.LastUserConnectionInfo.ConnectionType;
 
@@ -633,7 +633,7 @@ public partial class EngineView : UserControl {
     private void CloseActivityListButtonClicked(object? sender, RoutedEventArgs e) {
         MemoryEngineViewState.GetInstance(this.MemoryEngine).IsActivityListVisible = false;
     }
-    
+
     private void OnHeaderPointerClicked(object? sender, PointerPressedEventArgs e) {
         if (e.GetCurrentPoint(this).Properties.PointerUpdateKind == PointerUpdateKind.MiddleButtonPressed) {
             MemoryEngineViewState.GetInstance(this.MemoryEngine).IsActivityListVisible = false;
@@ -641,50 +641,40 @@ public partial class EngineView : UserControl {
     }
 
     private static async Task<bool> ParseAndUpdateScanAddress(IBinder<ScanningProcessor> b, string x) {
-        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
-            if (value == b.Model.StartAddress) {
-                return true;
-            }
-
-            if (value + b.Model.ScanLength < value) {
-                return await OnAddressOrLengthOutOfRange(b.Model, value, b.Model.ScanLength);
-            }
-            else {
-                b.Model.SetScanRange(value, b.Model.ScanLength);
-                return true;
-            }
+        if (!AddressParsing.TryParse32(x, out uint value, out string? error)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK);
+            return false;
         }
-        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start Address is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
+
+        if (value == b.Model.StartAddress) {
+            return true;
+        }
+
+        if (value + b.Model.ScanLength < value) {
+            return await OnAddressOrLengthOutOfRange(b.Model, value, b.Model.ScanLength);
         }
         else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Start address is invalid", defaultButton: MessageBoxResult.OK);
+            b.Model.SetScanRange(value, b.Model.ScanLength);
+            return true;
         }
-
-        return false;
     }
 
     private static async Task<bool> ParseAndUpdateScanLength(IBinder<ScanningProcessor> b, string x) {
-        if (uint.TryParse(x, NumberStyles.HexNumber, null, out uint value)) {
-            if (value == b.Model.ScanLength) {
-                return true;
-            }
-            else if (b.Model.StartAddress + value < value) {
-                return await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
-            }
-            else {
-                b.Model.SetScanRange(b.Model.StartAddress, value);
-                return true;
-            }
-        }
-        else if (ulong.TryParse(x, NumberStyles.HexNumber, null, out _)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Scan Length is too long. It can only be 4 bytes", defaultButton: MessageBoxResult.OK);
-        }
-        else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Length address is invalid", defaultButton: MessageBoxResult.OK);
+        if (!AddressParsing.TryParse32(x, out uint value, out string? error)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK);
+            return false;
         }
 
-        return false;
+        if (value == b.Model.ScanLength) {
+            return true;
+        }
+        else if (b.Model.StartAddress + value < value) {
+            return await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
+        }
+        else {
+            b.Model.SetScanRange(b.Model.StartAddress, value);
+            return true;
+        }
     }
 
     private static async Task<bool> OnAddressOrLengthOutOfRange(ScanningProcessor processor, uint start, uint length) {
