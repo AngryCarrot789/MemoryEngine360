@@ -35,10 +35,10 @@ public static class OperationsContextRegistry {
     public static readonly ContextRegistry Registry = new ContextRegistry("Operation");
 
     static OperationsContextRegistry() {
-        FixedContextGroup actions = Registry.GetFixedGroup("operations");
+        FixedWeightedMenuEntryGroup actions = Registry.GetFixedGroup("operations");
         actions.AddCommand("commands.sequencer.DuplicateOperationsCommand", "Duplicate");
 
-        CommandContextEntry entry1 = actions.AddCommand("commands.sequencer.ToggleOperationEnabledCommand", "Toggle Enabled");
+        CommandMenuEntry entry1 = actions.AddCommand("commands.sequencer.ToggleOperationEnabledCommand", "Toggle Enabled");
         entry1.AddContextChangeHandler(TaskSequenceManager.DataKey, (entry, oldManager, newManager) => {
             if (CurrentOperationDataKey.TryGetContext(entry.UserContext, out CurrentOperationInfo currentOperation)) {
                 currentOperation.Operation.IsEnabledChanged -= currentOperation.IsEnabledHandler;
@@ -61,7 +61,7 @@ public static class OperationsContextRegistry {
             }
         });
 
-        CommandContextEntry entry = actions.AddCommand("commands.sequencer.ToggleOperationConditionBehaviourCommand", "Skip when conditions not met", "Skips over this operation when conditions not met, otherwise, wait until they are met");
+        CommandMenuEntry entry = actions.AddCommand("commands.sequencer.ToggleOperationConditionBehaviourCommand", "Skip when conditions not met", "Skips over this operation when conditions not met, otherwise, wait until they are met");
         entry.AddIsCheckedChangeUpdaterForEvent(BaseSequenceOperation.DataKey, nameof(BaseSequenceOperation.ConditionBehaviourChanged));
         entry.IsCheckedFunction = e => {
             if (e.CapturedContext != null && BaseSequenceOperation.DataKey.TryGetContext(e.CapturedContext, out BaseSequenceOperation? operation)) {

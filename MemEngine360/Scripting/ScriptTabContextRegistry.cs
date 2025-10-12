@@ -36,13 +36,13 @@ public static class ScriptTabContextRegistry {
             }
         };
         
-        FixedContextGroup general = Registry.GetFixedGroup("General");
+        FixedWeightedMenuEntryGroup general = Registry.GetFixedGroup("General");
         general.AddCommand("commands.scripting.RenameScriptCommand", "Rename", icon: StandardIcons.ABCTextIcon);
         general.AddCommand("commands.scripting.CloseScriptCommand", "Close", icon: StandardIcons.CancelActivityIcon);
         general.AddSeparator();
-        general.AddEntry(new CommandContextEntry("commands.scripting.RunScriptCommand", "Run", icon: StandardIcons.SmallContinueActivityIconColourful) { DisabledIcon = StandardIcons.SmallContinueActivityIconDisabled });
-        general.AddEntry(new CommandContextEntry("commands.scripting.StopScriptCommand", "Stop", icon: StandardIcons.StopIconColourful) { DisabledIcon = StandardIcons.StopIconDisabled });
-        general.AddEntry(new CommandContextEntry("commands.scripting.SaveScriptCommand", "Save", icon: SimpleIcons.SaveFileIcon));
+        general.AddEntry(new CommandMenuEntry("commands.scripting.RunScriptCommand", "Run", icon: StandardIcons.SmallContinueActivityIconColourful) { DisabledIcon = StandardIcons.SmallContinueActivityIconDisabled });
+        general.AddEntry(new CommandMenuEntry("commands.scripting.StopScriptCommand", "Stop", icon: StandardIcons.StopIconColourful) { DisabledIcon = StandardIcons.StopIconDisabled });
+        general.AddEntry(new CommandMenuEntry("commands.scripting.SaveScriptCommand", "Save", icon: SimpleIcons.SaveFileIcon));
         general.AddCommand("commands.scripting.SaveScriptAsCommand", "Save As...");
         general.AddCommand("commands.scripting.SaveAllScriptsCommand", "Save All");
         general.AddSeparator();

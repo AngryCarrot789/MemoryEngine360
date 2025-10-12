@@ -17,6 +17,9 @@
              xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
              xmlns:attached="clr-namespace:PFXToolKitUI.Avalonia.Themes.Attached;assembly=PFXToolKitUI.Avalonia"
              xmlns:pfxToolKitUi="clr-namespace:PFXToolKitUI;assembly=PFXToolKitUI"
+             xmlns:advancedMenuService="clr-namespace:PFXToolKitUI.Avalonia.AdvancedMenuService;assembly=PFXToolKitUI.Avalonia"
+             xmlns:contexts="clr-namespace:MemEngine360.Sequencing.Contexts;assembly=MemEngine360"
+             xmlns:interactivity="clr-namespace:PFXToolKitUI.Avalonia.Interactivity;assembly=PFXToolKitUI.Avalonia"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="800">
     <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
@@ -88,9 +91,9 @@
                                 </StackPanel>
                             </tt:ToolTipEx.Tip>
                         </avc:IconButton>
-                        <avc:IconButton Height="20"
+                        <avc:IconButton Height="20" Width="20"
                                         Background="Transparent" BorderThickness="0"
-                                        DockPanel.Dock="Right"
+                                        DockPanel.Dock="Right" CornerRadius="2"
                                         Icon="{x:Static me360:SimpleIcons.SaveFileIcon}"
                                         cu:CommandUsageManager.SimpleButtonCommandId="commands.sequencer.SaveTaskSequencesToFileCommand">
                             <tt:ToolTipEx.Tip>

@@ -127,7 +127,7 @@ public partial class EngineView : UserControl {
 
     public TopLevelMenuRegistry TopLevelMenuRegistry => MemoryEngineViewState.GetInstance(this.MemoryEngine).TopLevelMenuRegistry;
 
-    private readonly ContextEntryGroup themesSubList;
+    private readonly MenuEntryGroup themesSubList;
     private IDesktopWindow? myOwnerWindow_onLoaded;
     private ObservableItemProcessorIndexing<Theme>? themeListHandler;
     private TextNotification? connectionNotification;
@@ -142,7 +142,7 @@ public partial class EngineView : UserControl {
     public EngineView() {
         this.InitializeComponent();
         
-        this.themesSubList = new ContextEntryGroup("Themes");
+        this.themesSubList = new MenuEntryGroup("Themes");
         this.MemoryEngine = new MemoryEngine();
         this.SetupMainMenu();
 
@@ -270,14 +270,14 @@ public partial class EngineView : UserControl {
         TopLevelMenuRegistry menu = this.TopLevelMenuRegistry;
 
         // ### File ###
-        ContextEntryGroup fileEntry = new ContextEntryGroup("File");
-        fileEntry.Items.Add(new CommandContextEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "_Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
-        fileEntry.Items.Add(new CommandContextEntry("commands.memengine.DumpMemoryCommand", "Memory _Dump...", icon: SimpleIcons.DownloadMemoryIcon));
+        MenuEntryGroup fileEntry = new MenuEntryGroup("File");
+        fileEntry.Items.Add(new CommandMenuEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "_Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
+        fileEntry.Items.Add(new CommandMenuEntry("commands.memengine.DumpMemoryCommand", "Memory _Dump...", icon: SimpleIcons.DownloadMemoryIcon));
         fileEntry.Items.Add(new SeparatorEntry());
-        fileEntry.Items.Add(new CommandContextEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command...", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
+        fileEntry.Items.Add(new CommandMenuEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command...", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
         fileEntry.Items.Add(new SendXboxNotificationCommandEntry("Test Notification (XBDM)", null, null));
         fileEntry.Items.Add(new SeparatorEntry());
-        fileEntry.Items.Add(new CommandContextEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
+        fileEntry.Items.Add(new CommandMenuEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
         menu.Items.Add(fileEntry);
 
         // ### Remote Commands ###
@@ -290,10 +290,10 @@ public partial class EngineView : UserControl {
         menu.Items.Add(this.themesSubList);
 
         // ### Help ###
-        ContextEntryGroup helpEntry = new ContextEntryGroup("Help");
-        helpEntry.Items.Add(new CommandContextEntry("commands.application.ShowLogsCommand", "Show Logs"));
+        MenuEntryGroup helpEntry = new MenuEntryGroup("Help");
+        helpEntry.Items.Add(new CommandMenuEntry("commands.application.ShowLogsCommand", "Show Logs"));
         helpEntry.Items.Add(new SeparatorEntry());
-        helpEntry.Items.Add(new CustomLambdaContextEntry("Open Wiki", (c) => {
+        helpEntry.Items.Add(new CustomLambdaMenuEntry("Open Wiki", (c) => {
             if (!ITopLevel.TopLevelDataKey.TryGetContext(c, out ITopLevel? topLevel))
                 return Task.CompletedTask;
             if (!IWebLauncher.TryGet(topLevel, out IWebLauncher? webLauncher))
@@ -309,7 +309,7 @@ public partial class EngineView : UserControl {
             return true;
         }));
 
-        helpEntry.Items.Add(new CommandContextEntry("commands.application.AboutApplicationCommand", "About MemoryEngine360"));
+        helpEntry.Items.Add(new CommandMenuEntry("commands.application.AboutApplicationCommand", "About MemoryEngine360"));
         menu.Items.Add(helpEntry);
 
         this.PART_TopLevelMenu.TopLevelMenuRegistry = menu;
@@ -343,7 +343,7 @@ public partial class EngineView : UserControl {
         this.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;
 
         this.themeListHandler = ObservableItemProcessor.MakeIndexable(ThemeManager.Instance.Themes, (sender, index, item) => {
-            this.themesSubList.Items.Insert(index, new SetThemeContextEntry(item));
+            this.themesSubList.Items.Insert(index, new SetThemeMenuEntry(item));
         }, (s, idx, item) => {
             this.themesSubList.Items.RemoveAt(idx);
         }, (s, oldIndex, newIndex, item) => {
@@ -514,7 +514,7 @@ public partial class EngineView : UserControl {
         this.PART_Input_Value1.IsEnabled = p.ScanForAnyDataType || p.DataType == DataType.ByteArray || p.DataType == DataType.String || (!p.UseFirstValueForNextScan && !p.UsePreviousValueForNextScan);
     }
 
-    private class SetThemeContextEntry(Theme theme, Icon? icon = null) : CustomContextEntry(theme.Name, $"Sets the application's theme to '{theme.Name}'", icon) {
+    private class SetThemeMenuEntry(Theme theme, Icon? icon = null) : CustomMenuEntry(theme.Name, $"Sets the application's theme to '{theme.Name}'", icon) {
         public override Task OnExecute(IContextData context) {
             theme.ThemeManager.SetTheme(theme);
             return Task.CompletedTask;
@@ -714,7 +714,7 @@ public partial class EngineView : UserControl {
         return true;
     }
 
-    private class SendXboxNotificationCommandEntry : CustomContextEntry {
+    private class SendXboxNotificationCommandEntry : CustomMenuEntry {
         private MemoryEngine? myEngine;
 
         public SendXboxNotificationCommandEntry(string displayName, string? description, Icon? icon = null) : base(displayName, description, icon) {
@@ -724,7 +724,7 @@ public partial class EngineView : UserControl {
         // Sort of pointless unless the user tries to connect to a console while it's booting
         // and then they open the File menu, they'll see that this entry is greyed out until we
         // connect, then once connected, it's either now invisible or clickable. This is just a POF really
-        private void OnCapturedContextChanged(BaseContextEntry sender, IContextData? oldCapturedContext, IContextData? newCapturedContext) {
+        private void OnCapturedContextChanged(BaseMenuEntry sender, IContextData? oldCapturedContext, IContextData? newCapturedContext) {
             if (newCapturedContext != null) {
                 if (MemoryEngine.EngineDataKey.TryGetContext(newCapturedContext, out MemoryEngine? engine) && !ReferenceEquals(this.myEngine, engine)) {
                     if (this.myEngine != null)

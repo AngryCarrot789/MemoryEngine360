@@ -241,7 +241,7 @@ public static class AddressTableContextRegistry {
 
     static AddressTableContextRegistry() {
         // FixedContextGroup modEdit = Registry.GetFixedGroup("modify.edit");
-        FixedContextGroup modGeneric = Registry.GetFixedGroup("modify.general");
+        FixedWeightedMenuEntryGroup modGeneric = Registry.GetFixedGroup("modify.general");
         modGeneric.AddCommand("commands.memengine.CreateDirectoryInDirectoryCommand", "Create directory...");
         modGeneric.AddCommand("commands.memengine.RenameFileCommand", "Rename...", "Rename this item");
         modGeneric.AddSeparator();

@@ -35,7 +35,7 @@ public static class ConditionsContextRegistry {
     public static readonly ContextRegistry Registry = new ContextRegistry("Condition");
 
     static ConditionsContextRegistry() {
-        FixedContextGroup actions = Registry.GetFixedGroup("conditions");
+        FixedWeightedMenuEntryGroup actions = Registry.GetFixedGroup("conditions");
         actions.AddHeader("Edit");
         actions.AddCommand("commands.sequencer.EditConditionOutputModeCommand", "Edit output mode");
         actions.AddHeader("General");

@@ -652,8 +652,8 @@ public static class AddressTableContextRegistry {
     public static readonly ContextRegistry Registry = new ContextRegistry("Saved Address Entry");
 
     static AddressTableContextRegistry() {
-        FixedContextGroup modEdit = Registry.GetFixedGroup("modify.edit");
-        FixedContextGroup modGeneric = Registry.GetFixedGroup("modify.general");
+        FixedWeightedMenuEntryGroup modEdit = Registry.GetFixedGroup("modify.edit");
+        FixedWeightedMenuEntryGroup modGeneric = Registry.GetFixedGroup("modify.general");
         modEdit.AddHeader("Modify");
         modEdit.AddCommand("commands.memengine.EditSavedAddressAddressCommand", "Edit Address");
         modEdit.AddCommand("commands.memengine.EditSavedAddressValueCommand", "Edit Value");

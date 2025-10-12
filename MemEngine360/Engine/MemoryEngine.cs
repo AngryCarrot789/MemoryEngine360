@@ -148,12 +148,12 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <summary>
     /// Gets the tools menu for memory engine
     /// </summary>
-    public ContextEntryGroup ToolsMenu { get; }
+    public MenuEntryGroup ToolsMenu { get; }
 
     /// <summary>
     /// Gets the Remote Controls menu for memory engine
     /// </summary>
-    public ContextEntryGroup RemoteControlsMenu { get; }
+    public MenuEntryGroup RemoteControlsMenu { get; }
 
     /// <summary>
     /// An async event fired when a connection is most likely about to change. This can be used by custom activities
@@ -214,24 +214,24 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         this.ConsoleDebugger = new ConsoleDebugger(this);
         this.ScriptingManager = new ScriptingManager(this);
 
-        this.ToolsMenu = new ContextEntryGroup("Tools") {
+        this.ToolsMenu = new MenuEntryGroup("Tools") {
             UniqueID = "memoryengine.tools",
             Items = {
-                new CommandContextEntry("commands.memengine.ShowMemoryViewCommand", "Memory View", "Opens the memory viewer/hex editor"),
-                new CommandContextEntry("commands.memengine.ShowTaskSequencerCommand", "Task Sequencer", "Opens the task sequencer"),
-                new CommandContextEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
-                new CommandContextEntry("commands.memengine.ShowPointerScannerCommand", "Pointer Scanner"),
-                new CommandContextEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer", "Shows the event viewer window for viewing console system events"),
-                new CommandContextEntry("commands.scripting.ShowScriptingWindowCommand", "Scripting"),
+                new CommandMenuEntry("commands.memengine.ShowMemoryViewCommand", "Memory View", "Opens the memory viewer/hex editor"),
+                new CommandMenuEntry("commands.memengine.ShowTaskSequencerCommand", "Task Sequencer", "Opens the task sequencer"),
+                new CommandMenuEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
+                new CommandMenuEntry("commands.memengine.ShowPointerScannerCommand", "Pointer Scanner"),
+                new CommandMenuEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer", "Shows the event viewer window for viewing console system events"),
+                new CommandMenuEntry("commands.scripting.ShowScriptingWindowCommand", "Scripting"),
                 new SeparatorEntry(),
-                new CommandContextEntry("commands.memengine.ShowModulesCommand", "Module Explorer", "Opens a window which presents the modules"),
-                new CommandContextEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),
-                new CommandContextEntry("commands.memengine.ShowFileBrowserCommand", "File Explorer"),
+                new CommandMenuEntry("commands.memengine.ShowModulesCommand", "Module Explorer", "Opens a window which presents the modules"),
+                new CommandMenuEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),
+                new CommandMenuEntry("commands.memengine.ShowFileBrowserCommand", "File Explorer"),
                 new SeparatorEntry(),
-                new ContextEntryGroup("Cool Utils") {
+                new MenuEntryGroup("Cool Utils") {
                     UniqueID = "memoryengine.tools.coolutils",
                     Items = {
-                        new CustomLambdaContextEntry("[BO1 SP] Find AI's X pos near camera", ExecuteFindAINearBO1Camera, (c) => c.ContainsKey(EngineDataKey.Id))
+                        new CustomLambdaMenuEntry("[BO1 SP] Find AI's X pos near camera", ExecuteFindAINearBO1Camera, (c) => c.ContainsKey(EngineDataKey.Id))
                     }
                 }
             }
@@ -240,7 +240,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         // update all tools when connection changes, since most if not all tools rely on a connection
         this.ToolsMenu.AddCanExecuteChangeUpdaterForEvent(EngineDataKey, nameof(this.ConnectionChanged));
 
-        this.RemoteControlsMenu = new ContextEntryGroup("Remote Controls") {
+        this.RemoteControlsMenu = new MenuEntryGroup("Remote Controls") {
             ProvideDisabledHint = (ctx, registry) => {
                 if (!EngineDataKey.TryGetContext(ctx, out MemoryEngine? engine))
                     return null;

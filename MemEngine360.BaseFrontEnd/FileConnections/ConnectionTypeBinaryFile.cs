@@ -40,7 +40,7 @@ public class ConnectionTypeBinaryFile : RegisteredConnectionType {
     private ConnectionTypeBinaryFile() {
     }
 
-    public override IEnumerable<IContextObject> GetRemoteContextOptions() {
+    public override IEnumerable<IMenuEntry> GetRemoteContextOptions() {
         yield break;
     }
 

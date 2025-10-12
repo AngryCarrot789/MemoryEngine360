@@ -47,35 +47,35 @@ public static class TaskSequenceContextRegistry {
             registry.ObjectName = null;
         };
 
-        FixedContextGroup edit = Registry.GetFixedGroup("general");
+        FixedWeightedMenuEntryGroup edit = Registry.GetFixedGroup("general");
         edit.AddHeader("Edit");
         edit.AddDynamicSubGroup((group, ctx, items) => {
             if (TaskSequenceManager.DataKey.TryGetContext(ctx, out TaskSequenceManager? ui)) {
                 TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
                 if (state.PrimarySelectedSequence != null)
-                    items.Add(new CommandContextEntry("commands.sequencer.RenameSequenceCommand", "Rename", icon: StandardIcons.ABCTextIcon));
+                    items.Add(new CommandMenuEntry("commands.sequencer.RenameSequenceCommand", "Rename", icon: StandardIcons.ABCTextIcon));
             }
         });
 
         edit.AddCommand("commands.sequencer.DuplicateSequenceCommand", "Duplicate");
 
-        FixedContextGroup actions = Registry.GetFixedGroup("operations");
+        FixedWeightedMenuEntryGroup actions = Registry.GetFixedGroup("operations");
         actions.AddHeader("General");
-        actions.AddEntry(new CommandContextEntry("commands.sequencer.RunSequenceCommand", "Run") { Icon = StandardIcons.SmallContinueActivityIconColourful, DisabledIcon = StandardIcons.SmallContinueActivityIconDisabled });
+        actions.AddEntry(new CommandMenuEntry("commands.sequencer.RunSequenceCommand", "Run") { Icon = StandardIcons.SmallContinueActivityIconColourful, DisabledIcon = StandardIcons.SmallContinueActivityIconDisabled });
         actions.AddDynamicSubGroup((group, ctx, items) => {
             if (TaskSequenceManager.DataKey.TryGetContext(ctx, out TaskSequenceManager? ui)) {
                 TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
-                items.Add(new CommandContextEntry("commands.sequencer.StopSpecificSequenceCommand", "Stop") { Icon = StandardIcons.StopIconColourful, DisabledIcon = StandardIcons.StopIconDisabled });
+                items.Add(new CommandMenuEntry("commands.sequencer.StopSpecificSequenceCommand", "Stop") { Icon = StandardIcons.StopIconColourful, DisabledIcon = StandardIcons.StopIconDisabled });
                 if (state.SelectedSequences.Count > 1) {
                     items.Add(new SeparatorEntry());
-                    items.Add(new CommandContextEntry("commands.sequencer.StopSelectedSequencesCommand", "Stop All"));
+                    items.Add(new CommandMenuEntry("commands.sequencer.StopSelectedSequencesCommand", "Stop All"));
                 }
             }
         });
 
         actions.AddCommand("commands.sequencer.ConnectToDedicatedConsoleCommand", "Connect to console...", "Connect using a dedicated connection instead of using the engine's connection", icon: SimpleIcons.ConnectToConsoleDedicatedIcon);
 
-        FixedContextGroup destruction = Registry.GetFixedGroup("destruction");
+        FixedWeightedMenuEntryGroup destruction = Registry.GetFixedGroup("destruction");
 
         // Hook onto context changed instead of using dynamic context entries, because they're slightly expensive and
         // also sometimes buggy with no hope of being truly fixed because i'm not smart enough to figure it out.

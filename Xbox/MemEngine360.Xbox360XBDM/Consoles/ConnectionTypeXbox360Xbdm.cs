@@ -51,32 +51,32 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
     private ConnectionTypeXbox360Xbdm() {
     }
 
-    public override IEnumerable<IContextObject> GetRemoteContextOptions() {
-        yield return new CommandContextEntry("commands.memengine.remote.ListHelpCommand", "List all commands in popup");
-        yield return new CommandContextEntry("commands.memengine.remote.ShowConsoleInfoCommand", "Console info");
-        yield return new CommandContextEntry("commands.memengine.remote.ShowXbeInfoCommand", "Show XBE info");
+    public override IEnumerable<IMenuEntry> GetRemoteContextOptions() {
+        yield return new CommandMenuEntry("commands.memengine.remote.ListHelpCommand", "List all commands in popup");
+        yield return new CommandMenuEntry("commands.memengine.remote.ShowConsoleInfoCommand", "Console info");
+        yield return new CommandMenuEntry("commands.memengine.remote.ShowXbeInfoCommand", "Show XBE info");
         yield return new SeparatorEntry();
-        yield return new CommandContextEntry("commands.memengine.remote.EjectDiskTrayCommand", "Open Disk Tray");
-        yield return new CommandContextEntry("commands.memengine.remote.DebugFreezeCommand", "Debug Freeze");
-        yield return new CommandContextEntry("commands.memengine.remote.DebugUnfreezeCommand", "Debug Un-freeze");
-        yield return new CommandContextEntry("commands.memengine.remote.SoftRebootCommand", "Soft Reboot (restart title)");
-        yield return new CommandContextEntry("commands.memengine.remote.ColdRebootCommand", "Cold Reboot");
-        yield return new CommandContextEntry("commands.memengine.remote.ShutdownCommand", "Shutdown");
+        yield return new CommandMenuEntry("commands.memengine.remote.EjectDiskTrayCommand", "Open Disk Tray");
+        yield return new CommandMenuEntry("commands.memengine.remote.DebugFreezeCommand", "Debug Freeze");
+        yield return new CommandMenuEntry("commands.memengine.remote.DebugUnfreezeCommand", "Debug Un-freeze");
+        yield return new CommandMenuEntry("commands.memengine.remote.SoftRebootCommand", "Soft Reboot (restart title)");
+        yield return new CommandMenuEntry("commands.memengine.remote.ColdRebootCommand", "Cold Reboot");
+        yield return new CommandMenuEntry("commands.memengine.remote.ShutdownCommand", "Shutdown");
 
-        yield return new DynamicGroupPlaceholderContextObject(new DynamicContextGroup((group, ctx, items) => {
+        yield return new DynamicGroupPlaceholderMenuEntry(new DynamicWeightedMenuEntryGroup((group, ctx, items) => {
             IConsoleConnection? connection;
             if (!MemoryEngine.EngineDataKey.TryGetContext(ctx, out MemoryEngine? engine))
                 return;
             if ((connection = engine.Connection) == null || !connection.HasFeature<IFeatureXboxJRPC2>())
                 return;
 
-            items.Add(new CaptionEntry("JRPC2 Commands"));
-            items.Add(new CommandContextEntry("commands.memengine.remote.GetCPUKeyCommand", "Get CPU Key"));
-            items.Add(new CommandContextEntry("commands.memengine.remote.GetDashboardVersionCommand", "Get Dashboard Version"));
-            items.Add(new CommandContextEntry("commands.memengine.remote.GetTemperaturesCommand", "Get Temperatures"));
-            items.Add(new CommandContextEntry("commands.memengine.remote.GetTitleIDCommand", "Get Current TitleID"));
-            items.Add(new CommandContextEntry("commands.memengine.remote.GetMoBoTypeCommand", "Get Motherboard Type"));
-            items.Add(new CommandContextEntry("commands.memengine.remote.TestRPCCommand", "SV_SetConfigString on MW3 (TU23)"));
+            items.Add(new CaptionSeparatorEntry("JRPC2 Commands"));
+            items.Add(new CommandMenuEntry("commands.memengine.remote.GetCPUKeyCommand", "Get CPU Key"));
+            items.Add(new CommandMenuEntry("commands.memengine.remote.GetDashboardVersionCommand", "Get Dashboard Version"));
+            items.Add(new CommandMenuEntry("commands.memengine.remote.GetTemperaturesCommand", "Get Temperatures"));
+            items.Add(new CommandMenuEntry("commands.memengine.remote.GetTitleIDCommand", "Get Current TitleID"));
+            items.Add(new CommandMenuEntry("commands.memengine.remote.GetMoBoTypeCommand", "Get Motherboard Type"));
+            items.Add(new CommandMenuEntry("commands.memengine.remote.TestRPCCommand", "SV_SetConfigString on MW3 (TU23)"));
         }));
     }
 

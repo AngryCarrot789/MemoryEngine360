@@ -52,11 +52,11 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
     private ConnectionTypeXbox360XDevkit() {
     }
 
-    public override IEnumerable<IContextObject> GetRemoteContextOptions() {
-        yield return new CommandContextEntry("commands.memengine.remote.XboxRunningProcessCommand", "Show Running process");
+    public override IEnumerable<IMenuEntry> GetRemoteContextOptions() {
+        yield return new CommandMenuEntry("commands.memengine.remote.XboxRunningProcessCommand", "Show Running process");
         yield return new SeparatorEntry();
-        yield return new CommandContextEntry("commands.memengine.remote.DebugFreezeCommand", "Debug Freeze");
-        yield return new CommandContextEntry("commands.memengine.remote.DebugUnfreezeCommand", "Debug Un-freeze");
+        yield return new CommandMenuEntry("commands.memengine.remote.DebugFreezeCommand", "Debug Freeze");
+        yield return new CommandMenuEntry("commands.memengine.remote.DebugUnfreezeCommand", "Debug Un-freeze");
     }
 
     public override UserConnectionInfo? CreateConnectionInfo() {
