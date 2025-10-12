@@ -133,7 +133,8 @@ public partial class OpenConnectionView : UserControl {
         Registry = new ModelControlRegistry<UserConnectionInfo, Control>();
     }
 
-    public void SetUserInfoForConnectionType(string registeredId, UserConnectionInfo info) {
+    public void SetUserInfoForConnectionType(UserConnectionInfo info) {
+        string registeredId = info.ConnectionType.RegisteredId;
         foreach (object? lbi in this.PART_ListBox.Items) {
             ConsoleTypeListBoxItem item = (ConsoleTypeListBoxItem) lbi!;
             if (item.RegisteredConsoleType.RegisteredId == registeredId) {
@@ -155,7 +156,7 @@ public partial class OpenConnectionView : UserControl {
         ConsoleConnectionManager service = ApplicationPFX.GetComponent<ConsoleConnectionManager>();
         foreach (RegisteredConnectionType type in service.RegisteredConsoleTypes) {
             ConsoleTypeListBoxItem item = new ConsoleTypeListBoxItem(type);
-            if (selected == null && this.TypeToFocusOnOpened != null && type.RegisteredId == this.TypeToFocusOnOpened)
+            if (selected == null && type.RegisteredId == this.TypeToFocusOnOpened)
                 selected = item;
             this.PART_ListBox.Items.Add(item);
         }

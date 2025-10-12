@@ -19,6 +19,7 @@
 
 using Avalonia.Controls;
 using Avalonia.Input;
+using MemEngine360.Configs;
 using MemEngine360.Connections;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Interactivity;
@@ -39,9 +40,9 @@ public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
     }
 
     public bool IsWindowOpen => this.Window != null && this.Window.OpenState.IsOpenOrTryingToClose();
-    
+
     public UserConnectionInfo? UserConnectionInfoForConnection => this.PART_ConnectToConsoleView.CurrentConnection == null ? null : this.PART_ConnectToConsoleView.UserConnectionInfoForCurrentConnection;
-    
+
     public IDesktopWindow? Window { get; private set; }
 
     public OpenConnectionViewEx() {
@@ -56,6 +57,11 @@ public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
     internal void OnWindowClosed() {
         this.PART_ConnectToConsoleView.OnWindowClosed();
         this.closedConnection = this.PART_ConnectToConsoleView.CurrentConnection;
+
+        if (this.closedConnection != null) {
+            BasicApplicationConfiguration.Instance.LastConnectionTypeUsed = this.closedConnection.ConnectionType.RegisteredId;
+        }
+
         this.Window = null;
     }
 
@@ -81,11 +87,11 @@ public partial class OpenConnectionViewEx : UserControl, IOpenConnectionView {
         if (this.Window != null) {
             await this.Window.WaitForClosedAsync(cancellation);
         }
-        
+
         return this.closedConnection;
     }
 
-    public void SetUserInfoForConnectionType(string registeredId, UserConnectionInfo info) {
-        this.PART_ConnectToConsoleView.SetUserInfoForConnectionType(registeredId, info);
+    public void SetUserInfoForConnectionType(UserConnectionInfo info) {
+        this.PART_ConnectToConsoleView.SetUserInfoForConnectionType(info);
     }
 }

@@ -35,6 +35,12 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
             "LastHostName",
             defaultValue: "",
             owner => owner.lastHostName, (x, y) => x.lastHostName = y, false);
+    
+    public static readonly PersistentProperty<string> LastConnectionTypeUsedProperty =
+        PersistentProperty.RegisterString<BasicApplicationConfiguration>(
+            "LastConnectionTypeUsed",
+            defaultValue: "console.xbox360.xbdm-coreimpl",
+            owner => owner.lastConnectionTypeUsed, (x, y) => x.lastConnectionTypeUsed = y, false);
 
     public static readonly PersistentProperty<uint> StartAddressProperty =
         PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>(
@@ -130,6 +136,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
 
     private string defaultTheme = DefaultThemeProperty.DefaultValue;
     private string lastHostName = LastHostNameProperty.DefaultValue;
+    private string lastConnectionTypeUsed = LastConnectionTypeUsedProperty.DefaultValue;
     private uint startAddr = StartAddressProperty.DefaultValue;
     private uint scanLength = ScanLengthProperty.DefaultValue;
     private bool pauseConsoleDuringScan = PauseConsoleDuringScanProperty.DefaultValue;
@@ -152,6 +159,14 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public string LastHostName {
         get => LastHostNameProperty.GetValue(this);
         set => LastHostNameProperty.SetValue(this, value);
+    }
+    
+    /// <summary>
+    /// Gets or sets the Id of the connection that was last connected to
+    /// </summary>
+    public string LastConnectionTypeUsed {
+        get => LastConnectionTypeUsedProperty.GetValue(this);
+        set => LastConnectionTypeUsedProperty.SetValue(this, value);
     }
 
     /// <summary>

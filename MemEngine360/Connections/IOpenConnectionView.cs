@@ -67,5 +67,5 @@ public interface IOpenConnectionView {
     /// <returns>A task that contains the connection that was made just before the window closed</returns>
     Task<IConsoleConnection?> WaitForConnection(CancellationToken cancellation = default);
 
-    void SetUserInfoForConnectionType(string registeredId, UserConnectionInfo info);
+    void SetUserInfoForConnectionType(UserConnectionInfo info);
 }

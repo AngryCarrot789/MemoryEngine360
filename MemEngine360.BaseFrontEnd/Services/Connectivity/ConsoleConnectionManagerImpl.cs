@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Configs;
 using MemEngine360.Connections;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
@@ -26,9 +27,13 @@ using SkiaSharp;
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
-    public override async Task<IOpenConnectionView?> ShowOpenConnectionView(string? focusedTypeId = "console.xbox360.xbdm-coreimpl") {
+    public override async Task<IOpenConnectionView?> ShowOpenConnectionView(string? focusedTypeId = null) {
         if (!WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IDesktopWindow? parentWindow)) {
             return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(focusedTypeId)) {
+            focusedTypeId = BasicApplicationConfiguration.Instance.LastConnectionTypeUsed;
         }
 
         OpenConnectionViewEx view = new OpenConnectionViewEx() {
