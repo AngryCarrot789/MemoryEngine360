@@ -178,8 +178,8 @@
                                                 cu:CommandUsageManager.SimpleButtonCommandId="commands.scripting.OpenScriptFileCommand">
                                     <tt:ToolTipEx.Tip>
                                         <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Connect using a dedicated connection instead of using the engine's connection" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.scripting.ConnectScriptToConsoleCommand"/>
+                                            <TextBlock Text="Open a script file" VerticalAlignment="Center"/>
+                                            <avc:ShortcutLabel CommandId="commands.scripting.OpenScriptFileCommand"/>
                                         </StackPanel>
                                     </tt:ToolTipEx.Tip>
                                 </avc:IconButton>

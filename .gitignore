@@ -402,5 +402,10 @@ FodyWeavers.xsd
 
 /XDevkit/
 
+/MemEngine360/.editorconfig
+
 # Do not include Plugin built items
 /Plugins/
+
+# Don't include PS3 surrogate app files
+.editorconfig
