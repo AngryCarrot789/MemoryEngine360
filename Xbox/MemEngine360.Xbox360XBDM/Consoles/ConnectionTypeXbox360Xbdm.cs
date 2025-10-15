@@ -87,7 +87,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
     public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData additionalContext, CancellationTokenSource cancellation) {
         ConnectToXboxInfo info = (ConnectToXboxInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.IpAddress)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid address", "Address cannot be an empty string");
+            await IMessageDialogService.Instance.ShowMessage("Invalid address", "Address cannot be an empty string", icon: MessageBoxIcons.ErrorIcon);
             return null;
         }
 
@@ -148,11 +148,11 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
                 default:                             message = ex.Message; break;
             }
 
-            await IMessageDialogService.Instance.ShowMessage("Socket Error: " + ex.SocketErrorCode, message, defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Socket Error: " + ex.SocketErrorCode, message, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return null;
         }
         else if (result.Exception != null && !(result.Exception is OperationCanceledException)) {
-            await IMessageDialogService.Instance.ShowMessage("Error", result.Exception.Message, defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Error", result.Exception.Message, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return null;
         }
 

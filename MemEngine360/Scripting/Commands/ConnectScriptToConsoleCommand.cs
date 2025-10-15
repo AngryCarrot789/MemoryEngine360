@@ -44,7 +44,7 @@ public class ConnectScriptToConsoleCommand : Command {
 
         IConsoleConnection? oldConnection = script.DedicatedConnection;
         if (oldConnection != null && !oldConnection.IsClosed) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButtons.OKCancel, MessageBoxResult.OK, persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 return;
             }

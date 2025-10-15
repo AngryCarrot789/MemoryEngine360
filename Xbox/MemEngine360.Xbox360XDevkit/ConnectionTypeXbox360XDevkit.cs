@@ -66,7 +66,7 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
     public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData additionalContext, CancellationTokenSource cancellation) {
         ConnectToXboxInfo info = (ConnectToXboxInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.IpAddress)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid address", "Address cannot be an empty string");
+            await IMessageDialogService.Instance.ShowMessage("Invalid address", "Address cannot be an empty string", icon: MessageBoxIcons.ErrorIcon);
             return null;
         }
 
@@ -92,7 +92,7 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
         }
 
         string msg = result.Exception is COMException com ? $"COMException {com.Message}" : result.Exception!.Message;
-        await IMessageDialogService.Instance.ShowMessage("Error", "Could not connect to Xbox 360: " + msg);
+        await IMessageDialogService.Instance.ShowMessage("Error", "Could not connect to Xbox 360: " + msg, icon: MessageBoxIcons.ErrorIcon);
         return null;
     }
 }

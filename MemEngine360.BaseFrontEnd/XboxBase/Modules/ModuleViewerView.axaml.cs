@@ -91,10 +91,10 @@ public partial class ModuleViewerView : UserControl {
 
             MessageBoxResult freezeResult = await IMessageDialogService.Instance.ShowMessage(
                 "Freeze console",
-                "Freezing the console massively increases how quickly we can download memory from the console",
                 "Freeze console during memory dump?",
-                MessageBoxButton.YesNo, MessageBoxResult.Yes);
-            if (freezeResult == MessageBoxResult.None) {
+                "Freezing the console massively increases how quickly we can download memory from the console.",
+                MessageBoxButtons.YesNo, MessageBoxResult.Yes);
+            if (!freezeResult.IsValidResultOf(MessageBoxButtons.YesNo)) {
                 return;
             }
 

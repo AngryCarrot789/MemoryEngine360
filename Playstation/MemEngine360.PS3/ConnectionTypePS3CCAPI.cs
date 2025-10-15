@@ -58,10 +58,11 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
     public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData additionalContext, CancellationTokenSource cancellation) {
         {
             MessageBoxInfo info1 = new MessageBoxInfo("Untested", "This feature is completely untested. Continue at your own risk!") {
-                Buttons = MessageBoxButton.OKCancel,
+                Buttons = MessageBoxButtons.OKCancel,
                 DefaultButton = MessageBoxResult.Cancel,
                 YesOkText = "I might brick my PS3, but oh well",
-                NoText = "Cancel"
+                NoText = "Cancel", 
+                Icon = MessageBoxIcons.WarningIcon
             };
 
             MessageBoxResult msg1 = await IMessageDialogService.Instance.ShowMessage(info1);
@@ -72,10 +73,11 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
 
         {
             MessageBoxInfo info2 = new MessageBoxInfo("Untested", "Are you sure?") {
-                Buttons = MessageBoxButton.OKCancel,
+                Buttons = MessageBoxButtons.OKCancel,
                 DefaultButton = MessageBoxResult.Cancel,
                 YesOkText = "Yes",
-                NoText = "Cancel"
+                NoText = "Cancel", 
+                Icon = MessageBoxIcons.WarningIcon
             };
 
             MessageBoxResult msg2 = await IMessageDialogService.Instance.ShowMessage(info2);
@@ -86,7 +88,7 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
 
         ConnectToCCAPIInfo info = (ConnectToCCAPIInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.IpAddress)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid IP", "IP address is invalid");
+            await IMessageDialogService.Instance.ShowMessage("Invalid IP", "IP address is invalid", icon: MessageBoxIcons.ErrorIcon);
             return null;
         }
 

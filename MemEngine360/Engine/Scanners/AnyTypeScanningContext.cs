@@ -114,7 +114,7 @@ public class AnyTypeScanningContext : ScanningContext {
             Encoding encoding = this.stringType.ToEncoding(this.isConnectionLittleEndian);
             int cbInputA = encoding.GetMaxByteCount(this.inputA.Length);
             if (cbInputA > DataTypedScanningContext.ChunkSize) {
-                await IMessageDialogService.Instance.ShowMessage("Invalid input", $"Input is too long. We read data in chunks of {DataTypedScanningContext.ChunkSize / 1024}K, therefore, the string cannot contain more than that many bytes.");
+                await IMessageDialogService.Instance.ShowMessage("Invalid input", $"Input is too long. We read data in chunks of {DataTypedScanningContext.ChunkSize / 1024}K, therefore, the string cannot contain more than that many bytes.", icon: MessageBoxIcons.ErrorIcon);
                 return false;
             }
 

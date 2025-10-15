@@ -87,7 +87,7 @@ public class CreateDirectoryInDirectoryCommand : BaseFileExplorerCommand {
 
                 newPath = fsInfo.JoinPaths(parentDirPath, info.Text);
                 if (!fsInfo.IsPathValid(newPath)) {
-                    await IMessageDialogService.Instance.ShowMessage("Invalid path", "Path is invalid: " + newPath);
+                    await IMessageDialogService.Instance.ShowMessage("Invalid path", "Path is invalid: " + newPath, icon: MessageBoxIcons.ErrorIcon);
                     return false;
                 }
                 

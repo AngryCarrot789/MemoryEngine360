@@ -109,7 +109,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 Encoding encoding = this.stringType.ToEncoding(this.isConnectionLittleEndian);
                 int cbInputA = encoding.GetMaxByteCount(this.inputA.Length);
                 if (cbInputA > ChunkSize) {
-                    await IMessageDialogService.Instance.ShowMessage("Invalid input", $"Input is too long. We read data in chunks of {ChunkSize / 1024}K, therefore, the string cannot contain more than that many bytes.");
+                    await IMessageDialogService.Instance.ShowMessage("Invalid input", $"Input is too long. We read data in chunks of {ChunkSize / 1024}K, therefore, the string cannot contain more than that many bytes.", icon: MessageBoxIcons.ErrorIcon);
                     return false;
                 }
 
@@ -120,7 +120,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
             }
             case DataType.ByteArray: {
                 if (!MemoryPattern.TryCompile(this.inputA, out this.memoryPattern, true, out string? errorMessage)) {
-                    await IMessageDialogService.Instance.ShowMessage("Invalid memory pattern", errorMessage, "Example pattern: '11 88 FC ? EF ? FF'");
+                    await IMessageDialogService.Instance.ShowMessage("Invalid memory pattern", errorMessage, "Example pattern: '11 88 FC ? EF ? FF'", icon: MessageBoxIcons.ErrorIcon);
                     return false;
                 }
 
@@ -144,25 +144,25 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
 
         if (string.IsNullOrEmpty(this.inputA)) {
-            await IMessageDialogService.Instance.ShowMessage("Input format", this.isSecondInputRequired ? "FROM input is empty" : "Input is empty");
+            await IMessageDialogService.Instance.ShowMessage("Input format", this.isSecondInputRequired ? "FROM input is empty" : "Input is empty", icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 
         if (this.isSecondInputRequired && string.IsNullOrEmpty(this.inputB)) {
-            await IMessageDialogService.Instance.ShowMessage("Input format", "TO input is empty");
+            await IMessageDialogService.Instance.ShowMessage("Input format", "TO input is empty", icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 
         if (this.dataType.IsNumeric()) {
             NumericDisplayType ndt = this.dataType.IsInteger() && this.isIntInputHexadecimal ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
             if (!TryParseNumeric(this.inputA, this.dataType, ndt, out this.numericInputA /*, this.reverseEndianness*/)) {
-                await IMessageDialogService.Instance.ShowMessage("Invalid input", $"{(this.isSecondInputRequired ? "FROM value" : "Input")} is invalid '{this.inputA}'. Cannot be parsed as {this.dataType}.");
+                await IMessageDialogService.Instance.ShowMessage("Invalid input", $"{(this.isSecondInputRequired ? "FROM value" : "Input")} is invalid '{this.inputA}'. Cannot be parsed as {this.dataType}.", icon: MessageBoxIcons.ErrorIcon);
                 return false;
             }
 
             if (this.isSecondInputRequired) {
                 if (!TryParseNumeric(this.inputB, this.dataType, ndt, out this.numericInputB /*, this.reverseEndianness*/)) {
-                    await IMessageDialogService.Instance.ShowMessage("Invalid input", $"TO value is invalid '{this.inputB}'. Cannot be parsed as {this.dataType}.");
+                    await IMessageDialogService.Instance.ShowMessage("Invalid input", $"TO value is invalid '{this.inputB}'. Cannot be parsed as {this.dataType}.", icon: MessageBoxIcons.ErrorIcon);
                     return false;
                 }
 
@@ -182,7 +182,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 }
 
                 if (isBackward) {
-                    await IMessageDialogService.Instance.ShowMessage("Invalid input", "You put them in the wrong way around!", $"FROM is greater than TO ({this.inputA} > {this.inputB})");
+                    await IMessageDialogService.Instance.ShowMessage("Invalid input", "You put them in the wrong way around!", $"FROM is greater than TO ({this.inputA} > {this.inputB})", icon: MessageBoxIcons.ErrorIcon);
                     return false;
                 }
             }

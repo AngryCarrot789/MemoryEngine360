@@ -391,7 +391,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     MainWindow = true
                 });
 
-                // Instance.ComponentStorage.AddComponent<IOverlayWindowManager>(new OverlayWindowManagerImpl((PopupOverlayContentHost) window.Content!));
+                // Instance.ComponentStorage.AddComponent<IOverlayWindowManager>(new OverlayWindowManagerImpl((OverlayContentHostRoot) window.Content!));
 
                 window.Opened += static (s, e) => {
                     EngineView view = (EngineView) ((OverlayContentHostRoot) s.Content!).Content!;
@@ -461,7 +461,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         private static async Task OnEngineWindowAboutToClose(IDesktopWindow window) {
             EngineView view = (EngineView) ((OverlayContentHostRoot) window.Content!).Content!;
             MemoryEngine engine = view.MemoryEngine;
-            
+
             {
                 List<string> pathsToSave = new List<string>();
                 foreach (Script script in engine.ScriptingManager.Scripts) {
@@ -472,7 +472,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
                 BasicApplicationConfiguration.Instance.LoadedScriptPaths = pathsToSave.ToArray();
             }
-            
+
             engine.IsShuttingDown = true;
             ulong frame = engine.GetNextConnectionChangeFrame();
             await engine.BroadcastConnectionAboutToChange(window, frame);
@@ -507,7 +507,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 MessageBoxInfo info = new MessageBoxInfo() {
                     Caption = "Engine busy",
                     Message = $"Cannot close window yet because the engine is still busy and cannot be shutdown safely.{Environment.NewLine}" + "What do you want to do?",
-                    Buttons = MessageBoxButton.YesNo,
+                    Buttons = MessageBoxButtons.YesNo,
                     DefaultButton = MessageBoxResult.Yes,
                     YesOkText = "Wait for operations",
                     NoText = "Force Close"
@@ -540,7 +540,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 MessageBoxInfo info = new MessageBoxInfo() {
                     Caption = "Debugger busy",
                     Message = $"Cannot close window yet because the debugger is still busy and cannot be shutdown safely.{Environment.NewLine}" + "What do you want to do?",
-                    Buttons = MessageBoxButton.YesNo,
+                    Buttons = MessageBoxButtons.YesNo,
                     DefaultButton = MessageBoxResult.Yes,
                     YesOkText = "Wait for operations",
                     NoText = "Force Close"

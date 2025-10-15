@@ -18,6 +18,7 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\AvaloniaHex\src\AvaloniaHex.Base\AvaloniaHex.Base.csproj" />
 	  <ProjectReference Include="..\Lua-CSharp\src\Lua\Lua.csproj" />
+	  <ProjectReference Include="..\PFXToolKitUI\ILMath\ILMath\ILMath.csproj" />
 	  <ProjectReference Include="..\PFXToolKitUI\PFXToolKitUI\PFXToolKitUI.csproj" />
 	</ItemGroup>
 

@@ -74,7 +74,7 @@ public class DeleteSequenceSelectionCommand : Command {
             return true;
         }
 
-        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(caption, message, MessageBoxButton.OKCancel, MessageBoxResult.OK);
+        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(caption, message, MessageBoxButtons.OKCancel, MessageBoxResult.OK);
         if (result != MessageBoxResult.OK) {
             return false;
         }

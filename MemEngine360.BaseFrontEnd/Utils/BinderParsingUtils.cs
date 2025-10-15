@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Globalization;
 using MemEngine360.BaseFrontEnd.TaskSequencing.DataHandlers;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
@@ -42,7 +41,7 @@ public static class BinderParsingUtils {
             return true;
         }
 
-        await IMessageDialogService.Instance.ShowMessage("Invalid memory address", errorMessage!, defaultButton: MessageBoxResult.OK);
+        await IMessageDialogService.Instance.ShowMessage("Invalid memory address", errorMessage!, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
         return false;
     }
 
@@ -52,7 +51,7 @@ public static class BinderParsingUtils {
             return true;
         }
         else {
-            await IMessageDialogService.Instance.ShowMessage(caption, error, defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage(caption, error, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
     }
@@ -87,7 +86,7 @@ public static class BinderParsingUtils {
             return new DataValueState(new DataValueDouble(doubleValue), false);
         }
         else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid text", mainArgs.Errors.Count > 0 ? mainArgs.Errors[0] : "Could not parse value as " + initialDataType, defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Invalid text", mainArgs.Errors.Count > 0 ? mainArgs.Errors[0] : "Could not parse value as " + initialDataType, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return null;
         }
     }

@@ -43,7 +43,7 @@ public partial class SetMemoryOperationListContent : BaseOperationListContent {
             return true;
         }
         else {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", $"Iterate count is invalid. It must be between 0 and {uint.MaxValue}", defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", $"Iterate count is invalid. It must be between 0 and {uint.MaxValue}", defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
     });

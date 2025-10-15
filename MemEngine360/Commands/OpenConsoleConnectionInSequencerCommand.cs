@@ -55,7 +55,7 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(
                 "Already Connected",
                 "Already connected to a console. Close existing connection first?",
-                MessageBoxButton.OKCancel, MessageBoxResult.OK,
+                MessageBoxButtons.OKCancel, MessageBoxResult.OK,
                 persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 return;

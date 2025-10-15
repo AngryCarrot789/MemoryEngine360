@@ -42,7 +42,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(
                 "Already Connected",
                 "Already connected to a console. Close existing connection first?",
-                MessageBoxButton.OKCancel, MessageBoxResult.OK,
+                MessageBoxButtons.OKCancel, MessageBoxResult.OK,
                 persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 return;
@@ -136,7 +136,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
         Debug.Assert(oldConnection != newConnection);
 
         if (!newConnection.TryGetFeature(out IFeatureXboxDebugging? debugging)) {
-            await IMessageDialogService.Instance.ShowMessage("Incompatible connection", "Connection does not support debug features", MessageBoxButton.OK, MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Incompatible connection", "Connection does not support debug features", MessageBoxButtons.OK, MessageBoxResult.OK);
             return false;
         }
 
@@ -144,7 +144,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             // Somehow a connection was set before we got here and user doesn't want to overwrite it.
             // Maybe they opened two windows for some reason? Perhaps via the task sequencer and main window.
 
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButtons.OKCancel, MessageBoxResult.OK, persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 return false;
             }
@@ -155,7 +155,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             exec = await debugging.GetExecutionState();
         }
         catch (Exception e) when (e is IOException || e is TimeoutException) {
-            await IMessageDialogService.Instance.ShowMessage("Network error", "Error querying current execution state", e.Message, MessageBoxButton.OK, MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Network error", "Error querying current execution state", e.Message, MessageBoxButtons.OK, MessageBoxResult.OK);
             return false;
         }
 

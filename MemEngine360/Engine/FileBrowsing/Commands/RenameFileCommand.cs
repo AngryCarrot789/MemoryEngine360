@@ -92,7 +92,7 @@ public class RenameFileCommand : BaseFileExplorerCommand {
 
                 newPath = fsInfo.JoinPaths(directory, info.Text);
                 if (!fsInfo.IsPathValid(newPath)) {
-                    await IMessageDialogService.Instance.ShowMessage("Invalid path", "Path is invalid: " + newPath);
+                    await IMessageDialogService.Instance.ShowMessage("Invalid path", "Path is invalid: " + newPath, icon: MessageBoxIcons.ErrorIcon);
                     return false;
                 }
                 

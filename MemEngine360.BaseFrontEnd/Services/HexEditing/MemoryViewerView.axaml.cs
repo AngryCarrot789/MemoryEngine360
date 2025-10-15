@@ -58,24 +58,22 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     #region Binders
 
     private readonly TextBoxToEventPropertyBinder<MemoryViewer> offsetBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.OffsetChanged), (b) => b.Model.Offset.ToString("X8"), async (b, x) => {
-        if (!AddressParsing.TryParse32(x, out uint value, out string? error)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK);
+        if (!AddressParsing.TryParse32(x, out uint value, out string? error, canParseAsExpression: true)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 
         b.Model.Offset = value;
         return true;
-    }) {
-        CanApplyValueOnLostFocus = false
-    };
+    });
 
     private readonly IBinder<MemoryViewer> bytesPerRowBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.BytesPerRowChanged), (b) => b.Model.BytesPerRow.ToString(), async (b, x) => {
         // will probably cause the computer so implode or something if there's too many or little bpr
         if (!uint.TryParse(x, out uint value)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer value", defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer value", defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
         }
         else if (value < MemoryViewer.MinimumBytesPerRow || value > MemoryViewer.MaximumBytesPerRow) {
-            await IMessageDialogService.Instance.ShowMessage("Out of range", $"Bytes Per Row must be between {MemoryViewer.MinimumBytesPerRow} and {MemoryViewer.MaximumBytesPerRow}", defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Out of range", $"Bytes Per Row must be between {MemoryViewer.MinimumBytesPerRow} and {MemoryViewer.MaximumBytesPerRow}", defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
         }
         else {
             b.Model.BytesPerRow = value;
@@ -86,13 +84,13 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     });
 
     private readonly IBinder<MemoryViewer> autoRefreshAddrBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.AutoRefreshStartAddressChanged), (p) => p.Model.AutoRefreshStartAddress.ToString("X8"), async (b, x) => {
-        if (!AddressParsing.TryParse32(x, out uint value, out string? error)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK);
+        if (!AddressParsing.TryParse32(x, out uint value, out string? error, canParseAsExpression: true)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 
         if ((ulong) value + b.Model.AutoRefreshLength > uint.MaxValue) {
-            await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Address causes scan to exceed applicable memory range");
+            await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Address causes scan to exceed applicable memory range", icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 
@@ -101,13 +99,13 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     });
 
     private readonly IBinder<MemoryViewer> autoRefreshLenBinder = new TextBoxToEventPropertyBinder<MemoryViewer>(nameof(MemoryViewer.AutoRefreshLengthChanged), (p) => p.Model.AutoRefreshLength.ToString("X8"), async (b, x) => {
-        if (!AddressParsing.TryParse32(x, out uint value, out string? error)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK);
+        if (!AddressParsing.TryParse32(x, out uint value, out string? error, canParseAsExpression: true)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 
         if ((ulong) b.Model.AutoRefreshStartAddress + value > uint.MaxValue) {
-            await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Byte count causes scan to exceed applicable memory range");
+            await IMessageDialogService.Instance.ShowMessage("Bytes count", $"Byte count causes scan to exceed applicable memory range", icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 
@@ -230,7 +228,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 if (arCountBytes == 0) {
                     BitRange selection = this.SelectionRange;
                     if (selection.ByteLength > 0) {
-                        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Auto refresh", "Auto refresh span is empty. Set span as selection and run?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
+                        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Auto refresh", "Auto refresh span is empty. Set span as selection and run?", MessageBoxButtons.OKCancel, MessageBoxResult.OK);
                         if (result != MessageBoxResult.OK) {
                             this.UpdateAutoRefreshButtonsAndTextBoxes();
                             return;
@@ -306,7 +304,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         // Custom case for signed byte. Why TF did I add a signed byte row to the data inspector???
         if (info.DataType == DataType.Byte && !info.IsUnsigned) {
             if (!sbyte.TryParse(input, intNdt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer, null, out sbyte sb)) {
-                await IMessageDialogService.Instance.ShowMessage("Invalid text", "Invalid signed byte", defaultButton: MessageBoxResult.OK);
+                await IMessageDialogService.Instance.ShowMessage("Invalid text", "Invalid signed byte", defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
                 return;
             }
 
@@ -316,7 +314,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
 
         ValidationArgs args = new ValidationArgs(input, new List<string>(), false);
         if (!DataValueUtils.TryParseTextAsDataValue(args, info.DataType, intNdt, StringType.ASCII, out IDataValue? value)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid text", args.Errors.Count > 0 ? args.Errors[0] : "Could not parse value as " + info.DataType, defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Invalid text", args.Errors.Count > 0 ? args.Errors[0] : "Could not parse value as " + info.DataType, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return;
         }
 

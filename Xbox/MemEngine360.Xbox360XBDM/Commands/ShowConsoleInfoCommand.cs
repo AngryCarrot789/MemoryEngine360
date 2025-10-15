@@ -60,7 +60,7 @@ public class ShowConsoleInfoCommand : BaseRemoteConsoleCommand {
                 }
             }
 
-            await IMessageDialogService.Instance.ShowMessage("Information", "Console Information as follows", sb.ToString(), MessageBoxButton.OK, MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Information", "Console Information as follows", sb.ToString(), MessageBoxButtons.OK, MessageBoxResult.OK);
         }
     }
 }

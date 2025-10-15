@@ -66,7 +66,7 @@ public class DeleteFilesCommand : BaseFileExplorerCommand {
                     Caption = $"Delete {paths.Count} item{Lang.S(paths.Count)}",
                     Message = "Delete these items and all of their contents?" + Environment.NewLine + string.Join(Environment.NewLine, paths),
                     YesOkText = "Delete",
-                    Buttons = MessageBoxButton.OKCancel
+                    Buttons = MessageBoxButtons.OKCancel
                 };
 
                 return await IMessageDialogService.Instance.ShowMessage(info) == MessageBoxResult.OK;

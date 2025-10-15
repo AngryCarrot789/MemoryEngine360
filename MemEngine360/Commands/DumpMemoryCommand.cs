@@ -19,7 +19,6 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Globalization;
 using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
@@ -55,7 +54,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
         }
 
         Action<ValidationArgs> validateMemAddr = (a) => {
-            if (!AddressParsing.TryParse32(a.Input, out _, out string? error)) {
+            if (!AddressParsing.TryParse32(a.Input, out _, out string? error, canParseAsExpression: true)) {
                 a.Errors.Add(error);
             }
         };
@@ -68,19 +67,20 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             ConfirmText = "Next", DefaultButton = true,
             LabelA = "Start address (hex)", LabelB = "Length (hex)",
             ValidateA = validateMemAddr, ValidateB = validateMemAddr,
+            DebounceErrorsDelayA = 300, DebounceErrorsDelayB = 300,
             TextA = p.StartAddress.ToString("X8"),
             TextB = p.ScanLength.ToString("X8")
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-            uint start = uint.Parse(info.TextA, NumberStyles.HexNumber);
-            uint length = uint.Parse(info.TextB, NumberStyles.HexNumber);
+            uint start = AddressParsing.Parse32(info.TextA, canParseAsExpression: true);
+            uint length = AddressParsing.Parse32(info.TextB, canParseAsExpression: true);
 
             MessageBoxResult freezeResult = await IMessageDialogService.Instance.ShowMessage(
                 "Freeze console",
                 "Freezing the console massively increases how quickly we can download memory from the console",
                 "Freeze console during memory dump?",
-                MessageBoxButton.YesNo, MessageBoxResult.Yes);
+                MessageBoxButtons.YesNo, MessageBoxResult.Yes);
             if (freezeResult == MessageBoxResult.None) {
                 return;
             }

@@ -100,16 +100,17 @@ public partial class PointerScannerView : UserControl {
 
     private static async Task<bool> ParseUIntHelper<T>(IBinder<PointerScanner> binder, string input, string errorMessage, TryParseDelegate<T> tryParse, Action<PointerScanner, T> func) {
         if (!tryParse(input, out T? value)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid input", errorMessage);
+            await IMessageDialogService.Instance.ShowMessage("Invalid input", errorMessage, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 
         func(binder.Model, value);
         return true;
     }
+    
     private static async Task<bool> ParseAddressHelper(IBinder<PointerScanner> binder, string input, string caption, Action<PointerScanner, uint> func) {
-        if (!AddressParsing.TryParse32(input, out uint value, out string? error)) {
-            await IMessageDialogService.Instance.ShowMessage(caption, error, defaultButton: MessageBoxResult.OK);
+        if (!AddressParsing.TryParse32(input, out uint value, out string? error, canParseAsExpression: true)) {
+            await IMessageDialogService.Instance.ShowMessage(caption, error, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 
@@ -142,7 +143,7 @@ public partial class PointerScannerView : UserControl {
 
             string? file = await IFilePickDialogService.Instance.OpenFile("Open binary file", [Filters.All]);
             if (file != null) {
-                MessageBoxResult resultIsLE = await IMessageDialogService.Instance.ShowMessage("Endianness", "Is the data little endian? (For Xbox360 and PS3, select No)", MessageBoxButton.YesNoCancel, MessageBoxResult.No);
+                MessageBoxResult resultIsLE = await IMessageDialogService.Instance.ShowMessage("Endianness", "Is the data little endian? (For Xbox360 and PS3, select No)", MessageBoxButtons.YesNoCancel, MessageBoxResult.No, icon: MessageBoxIcons.QuestionIcon);
                 if (resultIsLE != MessageBoxResult.Yes && resultIsLE != MessageBoxResult.No) {
                     return;
                 }
@@ -150,17 +151,18 @@ public partial class PointerScannerView : UserControl {
                 SingleUserInputInfo info = new SingleUserInputInfo("Base Address", "What is the base-address of the data?", "00000000") {
                     Footer = "E.g. If you ran a memory dump at 0x82600000, then specify that as the base address",
                     Validate = (a) => {
-                        if (!AddressParsing.TryParse32(a.Input, out _, out string? error)) {
+                        if (!AddressParsing.TryParse32(a.Input, out _, out string? error, canParseAsExpression: true)) {
                             a.Errors.Add(error);
                         }
-                    }
+                    },
+                    DebounceErrorsDelay = 300
                 };
 
                 if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, IDesktopWindow.DesktopWindowFromVisual(this)) != true) {
                     return;
                 }
 
-                uint baseAddress = uint.Parse(info.Text, NumberStyles.HexNumber);
+                uint baseAddress = AddressParsing.Parse32(info.Text, canParseAsExpression: true);
                 scanner.DisposeMemoryDump();
                 Task loadDumpTask = scanner.LoadMemoryDump(file, baseAddress, resultIsLE == MessageBoxResult.Yes);
                 IActivityProgress progressTracker = new DispatcherActivityProgress();
@@ -186,7 +188,7 @@ public partial class PointerScannerView : UserControl {
                 return Task.CompletedTask;
 
             if (!scanner.HasPointerMap)
-                return IMessageDialogService.Instance.ShowMessage("Not ready", "Memory Dump file not loaded.");
+                return IMessageDialogService.Instance.ShowMessage("Not ready", "Memory Dump file not loaded.", icon: MessageBoxIcons.WarningIcon);
 
             // Set selected tab to scan results
             this.PART_TabScanResults.IsSelected = true;

@@ -32,33 +32,33 @@ public class MemoryEngineConfigurationPageControl : BaseConfigurationPageControl
     private readonly TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint> refreshRateBinder = new TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint>(MemoryEngineConfigurationPage.ValueRefreshRateParameter, null, async (binder, text) => {
         if (uint.TryParse(text, out uint value))
             return value;
-        await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer value");
+        await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer value", icon: MessageBoxIcons.ErrorIcon);
         return default;
     });
 
     private readonly TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint> autoRefreshPerSecBinder = new TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint>(MemoryEngineConfigurationPage.AutoRefreshUpdatesPerSecondParameter, null, async (binder, text) => {
         if (uint.TryParse(text, out uint value))
             return value;
-        await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer value");
+        await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer value", icon: MessageBoxIcons.ErrorIcon);
         return default;
     });
 
     private readonly TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint> updateCountLimitBinder = new TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, uint>(MemoryEngineConfigurationPage.MaxRowsBeforeDisableAutoRefreshParameter, null, async (binder, text) => {
         if (uint.TryParse(text, out uint value))
             return value;
-        await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer value");
+        await IMessageDialogService.Instance.ShowMessage("Invalid value", "Invalid integer value", icon: MessageBoxIcons.ErrorIcon);
         return default;
     });
 
     private readonly TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, double> floatingEpsilonBinder = new TextBoxToDataParameterBinder<MemoryEngineConfigurationPage, double>(MemoryEngineConfigurationPage.FloatingPointEpsilonParameter, null, async (binder, text) => {
         if (!double.TryParse(text, out double value)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is not a floating point number.");
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is not a floating point number.", icon: MessageBoxIcons.ErrorIcon);
         }
         else if (value < 0.0D) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value cannot be negative.");
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value cannot be negative.", icon: MessageBoxIcons.ErrorIcon);
         }
         else if (value > 0.9999D) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is too large for the epsilon value");
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", "Value is too large for the epsilon value", icon: MessageBoxIcons.ErrorIcon);
         }
         else {
             return value;

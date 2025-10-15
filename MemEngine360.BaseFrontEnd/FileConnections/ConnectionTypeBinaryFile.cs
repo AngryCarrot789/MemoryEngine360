@@ -50,18 +50,23 @@ public class ConnectionTypeBinaryFile : RegisteredConnectionType {
 
     public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData additionalContext, CancellationTokenSource cancellation) {
         OpenBinaryFileInfo info = (OpenBinaryFileInfo) _info!;
-        if (string.IsNullOrWhiteSpace(info.FilePath) || !File.Exists(info.FilePath)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid file", "File does not exist");
+        if (string.IsNullOrWhiteSpace(info.FilePath)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid input", "File path is empty", icon: MessageBoxIcons.ErrorIcon);
+            return null;
+        }
+
+        if (!File.Exists(info.FilePath)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid file", "File does not exist", icon: MessageBoxIcons.ErrorIcon);
             return null;
         }
 
         FileStream? stream;
-        
+
         try {
             stream = new FileStream(info.FilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
         }
         catch (Exception e) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "Could not open file stream", e.Message);
+            await IMessageDialogService.Instance.ShowMessage("Error", "Could not open file stream", e.Message, icon: MessageBoxIcons.ErrorIcon);
             return null;
         }
 

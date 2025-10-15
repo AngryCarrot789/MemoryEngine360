@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Globalization;
 using Avalonia.Controls;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
@@ -38,8 +37,8 @@ public partial class OpenBinaryFileView : UserControl, IConsoleConnectivityContr
     });
 
     private readonly IBinder<OpenBinaryFileInfo> baseAddressBinder = new TextBoxToEventPropertyBinder<OpenBinaryFileInfo>(nameof(OpenBinaryFileInfo.BaseAddressChanged), b => ((ulong) b.Model.BaseAddress).ToString("X8"), async (binder, s) => {
-        if (!AddressParsing.TryParse32(s, out uint value, out string? error)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK);
+        if (!AddressParsing.TryParse32(s, out uint value, out string? error, canParseAsExpression: true)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 

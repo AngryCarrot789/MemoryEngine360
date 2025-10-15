@@ -34,14 +34,14 @@ public class GotoAddressCommand : BaseHexEditorCommand {
     protected override async Task ExecuteCommandAsync(IHexEditorUI view, MemoryViewer info, CommandEventArgs e) {
         SingleUserInputInfo singleInfo = new SingleUserInputInfo("Go to address", "Specify an address to scroll to", "Address (hex)", (view.CaretLocation.ByteIndex).ToString("X8")) {
             Validate = (a) => {
-                if (!AddressParsing.TryParse32(a.Input, out _, out string? error)) {
+                if (!AddressParsing.TryParse32(a.Input, out _, out string? error, canParseAsExpression: true)) {
                     a.Errors.Add(error);
                 }
             }
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(singleInfo) == true) {
-            uint address = uint.Parse(singleInfo.Text, NumberStyles.HexNumber);
+            uint address = AddressParsing.Parse32(singleInfo.Text, canParseAsExpression: true);
             BitLocation caret = new BitLocation(address, view.CaretLocation.BitIndex);
 
             view.CaretLocation = caret;

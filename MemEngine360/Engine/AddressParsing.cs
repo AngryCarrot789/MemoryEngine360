@@ -1,6 +1,26 @@
-﻿using System.Diagnostics;
+﻿// 
+// Copyright (c) 2024-2025 REghZy
+// 
+// This file is part of MemoryEngine360.
+// 
+// MemoryEngine360 is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either
+// version 3.0 of the License, or (at your option) any later version.
+// 
+// MemoryEngine360 is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+// Lesser General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
+// 
+
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using ILMath;
 
 namespace MemEngine360.Engine;
 
@@ -8,25 +28,31 @@ namespace MemEngine360.Engine;
 /// A helper class for parsing memory addresses
 /// </summary>
 public static class AddressParsing {
+    private static readonly IEvaluationContext<uint> DefaultU32EvalCtx = EvaluationContexts.CreateForInteger<uint>();
+    private static readonly IEvaluationContext<ulong> DefaultU64EvalCtx = EvaluationContexts.CreateForInteger<ulong>();
+
     // 0x0x0x86000000
-    public static ReadOnlySpan<char> TrimHexPrefix(ReadOnlySpan<char> input) {
-        int i;
-        while ((i = input.IndexOf("0x", StringComparison.OrdinalIgnoreCase)) != -1)
-            input = input.Slice(i);
-        return input;
-    }
+    public static ReadOnlySpan<char> TrimHexPrefix(string input, out NumberStyles style) {
+        int j, i = input.IndexOf("0x", StringComparison.OrdinalIgnoreCase);
+        if (i != -1) {
+            while ((j = input.IndexOf("0x", i + 2, StringComparison.OrdinalIgnoreCase)) != -1)
+                i = j;
 
-    public static ReadOnlySpan<char> TrimHexPrefix(string input) {
-        int j, i = input.IndexOf("0x", StringComparison.Ordinal);
-        if (i == -1)
-            return input.AsSpan();
+            style = NumberStyles.HexNumber;
+            return input.AsSpan(i + 2);
+        }
         
-        while ((j = input.IndexOf("0x", i + 2, StringComparison.OrdinalIgnoreCase)) != -1)
-            i = j;
+        if ((i = input.IndexOf("0b", StringComparison.OrdinalIgnoreCase)) != -1) {
+            while ((j = input.IndexOf("0b", i + 2, StringComparison.OrdinalIgnoreCase)) != -1)
+                i = j;
 
-        return input.AsSpan(i + 2);
+            style = NumberStyles.BinaryNumber;
+            return input.AsSpan(i + 2);
+        }
+
+        style = NumberStyles.HexNumber;
+        return input.AsSpan();
     }
-
 
     /// <summary>
     /// Tries to parse a numeric memory address
@@ -37,31 +63,53 @@ public static class AddressParsing {
     /// <param name="error">The error string. Non-null when this function fails</param>
     /// <param name="formatProvider">The format provider passed to the integer parse functions</param>
     /// <returns>True if parsed</returns>
-    public static bool TryParse(string? input, bool is32bit, out ulong value, [NotNullWhen(false)] out string? error, IFormatProvider? formatProvider = null) {
+    public static bool TryParse(string? input, bool is32bit, out ulong value, [NotNullWhen(false)] out string? error, bool canParseAsExpression = false, IFormatProvider? formatProvider = null) {
         if (!string.IsNullOrWhiteSpace(input)) {
-            ReadOnlySpan<char> inputSpan = TrimHexPrefix(input);
+            ReadOnlySpan<char> inputSpan = TrimHexPrefix(input, out NumberStyles ns);
             if (is32bit) {
-                if (uint.TryParse(inputSpan, NumberStyles.HexNumber, formatProvider, out uint u32value)) {
+                if (uint.TryParse(inputSpan, ns, formatProvider, out uint u32value)) {
                     error = null;
                     value = u32value;
                     return true;
                 }
-                else if (ulong.TryParse(inputSpan, NumberStyles.HexNumber, formatProvider, out _)) {
+                else if (ulong.TryParse(inputSpan, ns, formatProvider, out _)) {
                     error = "Address is too large. The maximum is 0xFFFFFFFF";
                 }
                 else {
-                    error = "Invalid 32-bit address";
+                    error = null;
                 }
             }
             else {
-                if (ulong.TryParse(inputSpan, NumberStyles.HexNumber, formatProvider, out ulong u64value)) {
+                if (ulong.TryParse(inputSpan, ns, formatProvider, out ulong u64value)) {
                     error = null;
                     value = u64value;
                     return true;
                 }
 
-                error = "Invalid 64-bit address";
+                error = null;
             }
+
+            if (canParseAsExpression) {
+                ParsingContext ctx = new ParsingContext() { DefaultIntegerParseMode = IntegerParseMode.Hexadecimal };
+                try {
+                    if (is32bit) {
+                        Evaluator<uint> expression = MathEvaluation.CompileExpression<uint>("", input, ctx, CompilationMethod.Functional);
+                        value = expression(DefaultU32EvalCtx);
+                    }
+                    else {
+                        Evaluator<ulong> expression = MathEvaluation.CompileExpression<ulong>("", input, ctx, CompilationMethod.Functional);
+                        value = expression(DefaultU64EvalCtx);
+                    }
+
+                    error = null;
+                    return true;
+                }
+                catch {
+                    // ignored
+                }
+            }
+
+            error = $"Invalid {(is32bit ? "32-bit" : "64-bit")} address";
         }
         else {
             error = "Input is empty";
@@ -79,8 +127,8 @@ public static class AddressParsing {
     /// <param name="error">The error string. Non-null when this function fails</param>
     /// <param name="formatProvider">The format provider passed to the integer parse functions</param>
     /// <returns>True if parsed</returns>
-    public static bool TryParse32(string? input, out uint value, [NotNullWhen(false)] out string? error, IFormatProvider? formatProvider = null) {
-        if (!TryParse(input, true, out ulong u64value, out error, formatProvider)) {
+    public static bool TryParse32(string? input, out uint value, [NotNullWhen(false)] out string? error, bool canParseAsExpression = false, IFormatProvider? formatProvider = null) {
+        if (!TryParse(input, true, out ulong u64value, out error, canParseAsExpression, formatProvider)) {
             value = 0;
             return false;
         }
@@ -88,5 +136,17 @@ public static class AddressParsing {
         Debug.Assert(u64value <= uint.MaxValue);
         value = (uint) u64value;
         return true;
+    }
+
+    public static uint Parse32(string input, bool canParseAsExpression = false, IFormatProvider? formatProvider = null) {
+        if (!TryParse32(input, out uint value, out _, canParseAsExpression, formatProvider))
+            throw new ArgumentException("Invalid 32-bit address");
+        return value;
+    }
+    
+    public static ulong Parse64(string input, bool canParseAsExpression = false, IFormatProvider? formatProvider = null) {
+        if (!TryParse(input, false, out ulong value, out _, canParseAsExpression, formatProvider))
+            throw new ArgumentException("Invalid 64-bit address");
+        return value;
     }
 }

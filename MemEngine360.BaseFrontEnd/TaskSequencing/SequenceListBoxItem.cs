@@ -54,7 +54,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
                 return true;
             }
             else {
-                await IMessageDialogService.Instance.ShowMessage("Invalid value", $"Run count is invalid. Is must be between 0 and {uint.MaxValue}, or \"infinity\" or just \"inf\"", defaultButton: MessageBoxResult.OK);
+                await IMessageDialogService.Instance.ShowMessage("Invalid value", $"Run count is invalid. Is must be between 0 and {uint.MaxValue}, or \"infinity\" or just \"inf\"", defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
                 return false;
             }
         }

@@ -73,7 +73,7 @@ public class OpenXMLFileCommand : Command {
             MessageBoxInfo info = new MessageBoxInfo("Existing results", "Add the opened values to the end of your current saved addresses, or clear the existing ones?") {
                 YesOkText = "Merge",
                 NoText = "Clear existing",
-                Buttons = MessageBoxButton.YesNoCancel,
+                Buttons = MessageBoxButtons.YesNoCancel,
                 DefaultButton = MessageBoxResult.Yes,
                 PersistentDialogName = "dialog.MergeOrClearExisting"
             };

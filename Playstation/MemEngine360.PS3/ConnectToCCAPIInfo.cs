@@ -74,11 +74,11 @@ public class ConnectToCCAPIInfo : UserConnectionInfo {
         }
 
         if (topLevel == null || !topLevel.TryGetWebLauncher(out IWebLauncher? webLauncher)) {
-            await IMessageDialogService.Instance.ShowMessage("CCAPI Unavailable", "CCAPI has not been downloaded yet. " + ManualInstructionText, MessageBoxButton.OKCancel, dialogCancellation: cancellation);
+            await IMessageDialogService.Instance.ShowMessage("CCAPI Unavailable", "CCAPI has not been downloaded yet. " + ManualInstructionText, MessageBoxButtons.OKCancel, dialogCancellation: cancellation);
             return false;
         }
 
-        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("CCAPI Unavailable", "CCAPI has not been downloaded yet. Would you like to download it?", MessageBoxButton.OKCancel, dialogCancellation: cancellation);
+        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("CCAPI Unavailable", "CCAPI has not been downloaded yet. Would you like to download it?", MessageBoxButtons.OKCancel, dialogCancellation: cancellation);
         if (result != MessageBoxResult.OK) {
             return false;
         }

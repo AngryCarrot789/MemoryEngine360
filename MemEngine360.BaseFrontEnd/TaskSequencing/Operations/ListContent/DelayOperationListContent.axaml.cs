@@ -29,12 +29,12 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 public partial class DelayOperationListContent : BaseOperationListContent {
     private readonly IBinder<DelayOperation> delayBinder = new TextBoxToEventPropertyBinder<DelayOperation>(nameof(DelayOperation.DelayChanged), (b) => TimeSpanUtils.ConvertToString(b.Model.Delay), async (b, text) => {
         if (!TimeSpanUtils.TryParseTime(text, out TimeSpan value, out string? errorMessage)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid time", errorMessage, defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Invalid time", errorMessage, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
         
         if (TimeSpanUtils.IsOutOfRangeForDelay(value, out errorMessage)) {
-            await IMessageDialogService.Instance.ShowMessage("Delay out of range", errorMessage, defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Delay out of range", errorMessage, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 

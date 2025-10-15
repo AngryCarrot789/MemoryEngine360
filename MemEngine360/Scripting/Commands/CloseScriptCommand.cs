@@ -45,7 +45,7 @@ public class CloseScriptCommand : Command {
         if (script.IsCompiling) {
             // Create a CTS that gets cancelled when the compilation finishes, regardless of successful or cancelled
             using CancellationTokenSource cts = TaskUtils.CreateCompletionSource(script.CompileTask);
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Compiling", "Script is still compiling. Cancel the compilation?", MessageBoxButton.OKCancel, MessageBoxResult.OK, dialogCancellation: cts.Token);
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Compiling", "Script is still compiling. Cancel the compilation?", MessageBoxButtons.OKCancel, MessageBoxResult.OK, dialogCancellation: cts.Token);
             if (result != MessageBoxResult.OK && script.IsCompiling) {
                 // In this case, the user either said do not cancel or something caused
                 // the window to close that wasn't the compilation completing (via cts)
@@ -67,7 +67,7 @@ public class CloseScriptCommand : Command {
         Debug.Assert(!script.IsCompiling);
         ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
         if (script.HasUnsavedChanges) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Unsaved changes", "You still have saved changes. Do you want to save to a file?", MessageBoxButton.YesNoCancel, MessageBoxResult.Yes);
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Unsaved changes", "You still have saved changes. Do you want to save to a file?", MessageBoxButtons.YesNoCancel, MessageBoxResult.Yes);
             if (result == MessageBoxResult.Yes) {
                 if (!await SaveScriptCommand.SaveScriptAsync(script, false)) {
                     return;

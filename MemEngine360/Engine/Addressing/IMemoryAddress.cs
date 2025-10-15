@@ -153,10 +153,7 @@ public static class MemoryAddressUtils {
     }
 
     public static bool TryParseHexUInt32(ReadOnlySpan<char> input, out uint result) {
-        while (input.Length > 0 && input.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-            input = input.Slice(2);
-        
-        return uint.TryParse(input, NumberStyles.HexNumber, null, out result);
+        return AddressParsing.TryParse32(input.ToString(), out result, out _, canParseAsExpression: true);
     }
 
     public static bool TryParseHexInt32(string? input, out int result) {

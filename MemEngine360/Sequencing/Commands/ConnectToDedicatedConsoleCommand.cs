@@ -41,7 +41,7 @@ public class ConnectToDedicatedConsoleCommand : Command {
 
         IConsoleConnection? oldConnection = sequence.DedicatedConnection;
         if (oldConnection != null && !oldConnection.IsClosed) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK);
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButtons.OKCancel, MessageBoxResult.OK);
             if (result != MessageBoxResult.OK) {
                 return;
             }

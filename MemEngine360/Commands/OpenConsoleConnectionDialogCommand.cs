@@ -59,7 +59,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(
                 "Already Connected",
                 "Already connected to a console. Close existing connection first?",
-                MessageBoxButton.OKCancel,
+                MessageBoxButtons.OKCancel,
                 MessageBoxResult.OK, persistentDialogName: AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 return;
@@ -175,7 +175,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
             // Somehow a connection was set before we got here and user doesn't want to overwrite it.
             // Maybe they opened two windows for some reason? Perhaps via the task sequencer and main window.
 
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButton.OKCancel, MessageBoxResult.OK, persistentDialogName: AlreadyOpenDialogName);
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButtons.OKCancel, MessageBoxResult.OK, persistentDialogName: AlreadyOpenDialogName);
             if (result != MessageBoxResult.OK) {
                 try {
                     newConnection.Close();

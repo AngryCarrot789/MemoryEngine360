@@ -27,7 +27,7 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent;
 public partial class RandomTriggerEditorContent : BaseOperationEditorContent {
     private readonly TextBoxToEventPropertyBinder<RandomTriggerHelper> chanceBinder = new TextBoxToEventPropertyBinder<RandomTriggerHelper>(nameof(RandomTriggerHelper.ChanceChanged), (b) => b.Model.Chance.ToString(), async (b, str) => {
         if (!NumberUtils.TryParseHexOrRegular(str, out uint value)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", $"The chance must be an integer. {Environment.NewLine}E.g. a 5% chance means this value would be 20 (because 1/20 is 0.05, and 100*(1/5) is 20)", defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", $"The chance must be an integer. {Environment.NewLine}E.g. a 5% chance means this value would be 20 (because 1/20 is 0.05, and 100*(1/5) is 20)", defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 
@@ -42,12 +42,12 @@ public partial class RandomTriggerEditorContent : BaseOperationEditorContent {
         }
 
         if (!TimeSpanUtils.TryParseTime(str, out TimeSpan span, out string? errMsg)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid time", errMsg, defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Invalid time", errMsg, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
         
         if (TimeSpanUtils.IsOutOfRangeForDelay(span, out errMsg)) {
-            await IMessageDialogService.Instance.ShowMessage("Delay out of range", errMsg, defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Delay out of range", errMsg, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
         
@@ -57,7 +57,7 @@ public partial class RandomTriggerEditorContent : BaseOperationEditorContent {
     
     private readonly TextBoxToEventPropertyBinder<RandomTriggerHelper> minTriesBinder = new TextBoxToEventPropertyBinder<RandomTriggerHelper>(nameof(RandomTriggerHelper.MinimumTriesToTriggerChanged), (b) => b.Model.MinimumTriesToTrigger.ToString(), async (b, str) => {
         if (!uint.TryParse(str, out uint value)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", $"The value must be an integer between {uint.MinValue} and {uint.MaxValue}.", defaultButton: MessageBoxResult.OK);
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", $"The value must be an integer between {uint.MinValue} and {uint.MaxValue}.", defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 

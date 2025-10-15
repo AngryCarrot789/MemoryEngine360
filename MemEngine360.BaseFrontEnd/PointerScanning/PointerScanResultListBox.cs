@@ -92,7 +92,7 @@ public class PointerScanResultListBoxItem : VirtualizingModelListBoxItem {
             // soft assert (lastValue + lastOffset) == scanner.SearchAddress
         }
 
-        await IMessageDialogService.Instance.ShowMessage("Pointer Chain", sb.ToString(), MessageBoxButton.OK, MessageBoxResult.OK);
+        await IMessageDialogService.Instance.ShowMessage("Pointer Chain", sb.ToString(), MessageBoxButtons.OK, MessageBoxResult.OK);
     }
 
     private static string GetPointerValue(PointerScanner scanner, uint address, out uint lastValue) {

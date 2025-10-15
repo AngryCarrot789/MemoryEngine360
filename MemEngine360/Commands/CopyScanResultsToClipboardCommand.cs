@@ -62,7 +62,7 @@ public class CopyScanResultsToClipboardCommand : Command {
                                                                                DataValueUtils.GetStringFromDataValue(x, x.CurrentValue) + "," +
                                                                                DataValueUtils.GetStringFromDataValue(x, x.PreviousValue) + "," +
                                                                                DataValueUtils.GetStringFromDataValue(x, x.FirstValue))),
-            Buttons = MessageBoxButton.OKCancel, DefaultButton = MessageBoxResult.OK,
+            Buttons = MessageBoxButtons.OKCancel, DefaultButton = MessageBoxResult.OK,
             YesOkText = "Copy to Clipboard",
             CancelText = "Close"
         };

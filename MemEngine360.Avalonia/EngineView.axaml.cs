@@ -19,7 +19,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -82,8 +81,42 @@ public partial class EngineView : UserControl {
                 w.UpdateScanResultCounterText();
             });
 
-    private readonly IBinder<ScanningProcessor> scanAddressBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanRangeChanged), (b) => $"{b.Model.StartAddress:X8}", ParseAndUpdateScanAddress);
-    private readonly IBinder<ScanningProcessor> scanLengthBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanRangeChanged), (b) => $"{b.Model.ScanLength:X8}", ParseAndUpdateScanLength);
+    private readonly IBinder<ScanningProcessor> scanAddressBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanRangeChanged), (b) => $"{b.Model.StartAddress:X8}", async (b, x) => {
+        if (!AddressParsing.TryParse32(x, out uint value, out string? error, canParseAsExpression: true)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
+            return false;
+        }
+
+        if (value == b.Model.StartAddress) {
+            return true;
+        }
+
+        if (value + b.Model.ScanLength < value) {
+            return await OnAddressOrLengthOutOfRange(b.Model, value, b.Model.ScanLength);
+        }
+        else {
+            b.Model.SetScanRange(value, b.Model.ScanLength);
+            return true;
+        }
+    });
+    
+    private readonly IBinder<ScanningProcessor> scanLengthBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanRangeChanged), (b) => $"{b.Model.ScanLength:X8}", async (b, x) => {
+        if (!AddressParsing.TryParse32(x, out uint value, out string? error, canParseAsExpression: true)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
+            return false;
+        }
+
+        if (value == b.Model.ScanLength) {
+            return true;
+        }
+        else if (b.Model.StartAddress + value < value) {
+            return await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
+        }
+        else {
+            b.Model.SetScanRange(b.Model.StartAddress, value);
+            return true;
+        }
+    });
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventUpdateBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((EngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
@@ -640,68 +673,31 @@ public partial class EngineView : UserControl {
         }
     }
 
-    private static async Task<bool> ParseAndUpdateScanAddress(IBinder<ScanningProcessor> b, string x) {
-        if (!AddressParsing.TryParse32(x, out uint value, out string? error)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK);
-            return false;
-        }
-
-        if (value == b.Model.StartAddress) {
-            return true;
-        }
-
-        if (value + b.Model.ScanLength < value) {
-            return await OnAddressOrLengthOutOfRange(b.Model, value, b.Model.ScanLength);
-        }
-        else {
-            b.Model.SetScanRange(value, b.Model.ScanLength);
-            return true;
-        }
-    }
-
-    private static async Task<bool> ParseAndUpdateScanLength(IBinder<ScanningProcessor> b, string x) {
-        if (!AddressParsing.TryParse32(x, out uint value, out string? error)) {
-            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK);
-            return false;
-        }
-
-        if (value == b.Model.ScanLength) {
-            return true;
-        }
-        else if (b.Model.StartAddress + value < value) {
-            return await OnAddressOrLengthOutOfRange(b.Model, b.Model.StartAddress, value);
-        }
-        else {
-            b.Model.SetScanRange(b.Model.StartAddress, value);
-            return true;
-        }
-    }
-
     private static async Task<bool> OnAddressOrLengthOutOfRange(ScanningProcessor processor, uint start, uint length) {
         bool didChangeStart = processor.StartAddress != start;
         Debug.Assert(didChangeStart || processor.ScanLength != length);
         ulong overflowAmount = (ulong) start + (ulong) length - uint.MaxValue;
         MessageBoxInfo info = new MessageBoxInfo() {
             Caption = $"Invalid {(didChangeStart ? "start address" : "scan length")}",
-            Message = $"Scan Length causes scan to exceed 32 bit address space by 0x{overflowAmount:X8}.{Environment.NewLine}" +
+            Message = $"{(didChangeStart ? "Start Address" : "Scan Length")} causes scan to exceed 32 bit address space by 0x{overflowAmount:X8}." + 
+                      Environment.NewLine +
+                      Environment.NewLine +
                       $"Do you want to auto-adjust the {(didChangeStart ? "scan length" : "start address")} to fit?",
-            Buttons = MessageBoxButton.OKCancel, DefaultButton = MessageBoxResult.OK,
-            YesOkText = "Yes"
+            Buttons = MessageBoxButtons.YesNo, DefaultButton = MessageBoxResult.Yes,
         };
 
-        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(info);
-        if (result == MessageBoxResult.Cancel || result == MessageBoxResult.None) {
-            return false;
+        if (await IMessageDialogService.Instance.ShowMessage(info) == MessageBoxResult.Yes) {
+            if (didChangeStart) {
+                processor.SetScanRange(start, uint.MaxValue - start);
+            }
+            else {
+                processor.SetScanRange((uint) (start - overflowAmount), length);
+            }
+
+            return true;
         }
 
-        if (didChangeStart) {
-            processor.SetScanRange(start, uint.MaxValue - start);
-        }
-        else {
-            processor.SetScanRange((uint) (start - overflowAmount), length);
-        }
-
-        return true;
+        return false;
     }
 
     private class SendXboxNotificationCommandEntry : CustomMenuEntry {
