@@ -72,7 +72,9 @@ public class OpenScriptFileCommand : Command {
         Script script = new Script();
         script.SetFilePath(path);
         script.SourceCode = sourceCode;
+        script.HasUnsavedChanges = false;
         
         manager.Scripts.Add(script);
+        ScriptingManagerViewState.GetInstance(manager).SelectedScript = script;
     }
 }

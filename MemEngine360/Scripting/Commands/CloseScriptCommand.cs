@@ -54,13 +54,7 @@ public class CloseScriptCommand : Command {
 
             if (script.IsCompiling) {
                 script.RequestCancelCompilation();
-
-                try {
-                    await script.CompileTask;
-                }
-                catch (OperationCanceledException) {
-                    // compilation cancelled
-                }
+                await script.CompileTask; // CompileTask only gets set as completed, even if cancelled
             }
         }
 

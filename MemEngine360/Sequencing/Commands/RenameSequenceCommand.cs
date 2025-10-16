@@ -39,7 +39,7 @@ public class RenameSequenceCommand : Command {
         TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
         TaskSequence? sequence = state.PrimarySelectedSequence;
         if (sequence != null) {
-            SingleUserInputInfo info = new SingleUserInputInfo("Rename sequence", null, "New Name", sequence.DisplayName);
+            SingleUserInputInfo info = new SingleUserInputInfo("Rename sequence", null, "New Name", sequence.DisplayName) { MinimumDialogWidthHint = 350 };
             if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
                 sequence.DisplayName = info.Text;
             }

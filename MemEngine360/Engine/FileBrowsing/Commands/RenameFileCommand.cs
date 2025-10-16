@@ -79,7 +79,8 @@ public class RenameFileCommand : BaseFileExplorerCommand {
                         // ReSharper disable once AccessToModifiedClosure
                         if (!fsInfo.IsPathValid(args.Input))
                             args.Errors.Add("Invalid file name");
-                    }
+                    },
+                    MinimumDialogWidthHint = 350
                 };
 
                 if (hasConnectionChanged) {

@@ -266,7 +266,7 @@ public class Script : IComponentManager, IUserLocalContext {
                 return false;
             }
 
-            TaskCompletionSource tcs = new TaskCompletionSource();
+            TaskCompletionSource tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             this.ctsCompile = new CancellationTokenSource();
             this.CompileTask = tcs.Task;
             

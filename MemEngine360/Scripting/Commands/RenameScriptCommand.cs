@@ -47,7 +47,8 @@ public class RenameScriptCommand : Command {
             Validate = args => {
                 if (string.IsNullOrWhiteSpace(args.Input))
                     args.Errors.Add("File name cannot be an empty string or just whitespaces");
-            }
+            },
+            MinimumDialogWidthHint = 350
         };
 
         if (script.FilePath != null) {
