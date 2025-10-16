@@ -27,11 +27,6 @@ Visit the wiki at https://github.com/AngryCarrot789/MemoryEngine360/wiki to see 
 # PS3
 `CCAPI.dll` is not shared in this project, so you must download it yourself. However, when connecting via `CCAPI` in the Open Connection window, it will open a link to **enstoneworld.com** and download the latest supported version, and then prompt you to specify the location of the .rar file. It will then be automatically unzipped and `CCAPI.dll` will be placed in the same folder as `MemoryEngine360.exe`
 
-> [!CAUTION]  
-> As of now, the `CCAPI` connection is untested. **Do not use it!** However if you've looked through the source code and feel it's safe to use, then by all means, try it out. 
-> 
-> It is also not fully supported, since this project can only use 32-bit for remote addressing, whereas `CCAPI` supports 64-bit
-
 # Contributions
 are most welcome! Even just general tips and advice on how the UI can be improved or made more productive are helpful.
 
