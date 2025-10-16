@@ -135,7 +135,7 @@ int ccapi_attach_process(const uint32_t pid) {
     return CCAPI_OK;
 }
 
-int ccapi_find_game_process(uint32_t* p_found_pid) {
+int ccapi_find_game_process(uint32_t* p_found_pid, char** pp_process_name) {
     ProcessName name;
     uint32_t pid_array[32];
     uint32_t pid_count = sizeof(pid_array) / sizeof(pid_array[0]);
@@ -152,6 +152,19 @@ int ccapi_find_game_process(uint32_t* p_found_pid) {
 
         if (!strstr(name.value, "dev_flash")) {
             *p_found_pid = pid_array[i];
+            if (pp_process_name) {
+                const size_t cch_process_name = strlen(name.value);
+                if (cch_process_name > 0) {
+                    const size_t cb_name_buffer = cch_process_name + 1;
+                    char* name_buffer = malloc(cb_name_buffer);
+                    if (name_buffer != NULL) {
+                        memcpy(name_buffer, name.value, cch_process_name);
+                        name_buffer[cch_process_name] = '\0';
+                        *pp_process_name = name_buffer;
+                    }
+                }
+            }
+            
             return CCAPI_OK;
         }
     }

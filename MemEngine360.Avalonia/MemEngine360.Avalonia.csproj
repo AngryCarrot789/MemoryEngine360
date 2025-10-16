@@ -48,11 +48,11 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </Content>
-        <Content Include="..\MemEngine360.PS3\libs\*.dll">
+        <Content Include="..\Xbox\MemEngine360.Xbox360XDevkit\libs\*.dll">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </Content>
-        <Content Include="..\MemEngine360.PS3\libs\*.exe">
+        <Content Include="..\Playstation\MemEngine360.PS3\libs\*.exe">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </Content>

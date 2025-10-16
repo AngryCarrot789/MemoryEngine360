@@ -22,6 +22,7 @@ using MemEngine360.Connections;
 using MemEngine360.PS3.CC;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
@@ -38,9 +39,9 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
 
     public override string DisplayName => "PS3 (CCAPI)";
 
-    public override string FooterText => "Untested";
+    public override string FooterText => "Semi-stable";
 
-    public override string LongDescription => "A connection to a PS3 using CCAPI";
+    public override string LongDescription => "A connection to a PS3 using CCAPI. Basic memory read/write works.";
 
     public override Icon Icon => SimpleIcons.PS3CCAPIIcon;
 
@@ -51,41 +52,17 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
     private ConnectionTypePS3CCAPI() {
     }
 
+    public override IEnumerable<IMenuEntry> GetRemoteContextOptions() {
+        yield return new CommandMenuEntry("commands.ps3ccapi.SetProcessToActiveGameCommand", "Attach to Game", "Find active game PID and attach CCAPI to it");
+        yield return new CommandMenuEntry("commands.ps3ccapi.SetProcessCommand", "Attach to process...");
+        yield return new CommandMenuEntry("commands.ps3ccapi.ListAllProcessesCommand", "List all processes");
+    }
+
     public override UserConnectionInfo? CreateConnectionInfo() {
         return new ConnectToCCAPIInfo();
     }
 
     public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData additionalContext, CancellationTokenSource cancellation) {
-        {
-            MessageBoxInfo info1 = new MessageBoxInfo("Untested", "This feature is completely untested. Continue at your own risk!") {
-                Buttons = MessageBoxButtons.OKCancel,
-                DefaultButton = MessageBoxResult.Cancel,
-                YesOkText = "I might brick my PS3, but oh well",
-                NoText = "Cancel", 
-                Icon = MessageBoxIcons.WarningIcon
-            };
-
-            MessageBoxResult msg1 = await IMessageDialogService.Instance.ShowMessage(info1);
-            if (msg1 != MessageBoxResult.OK) {
-                return null;
-            }
-        }
-
-        {
-            MessageBoxInfo info2 = new MessageBoxInfo("Untested", "Are you sure?") {
-                Buttons = MessageBoxButtons.OKCancel,
-                DefaultButton = MessageBoxResult.Cancel,
-                YesOkText = "Yes",
-                NoText = "Cancel", 
-                Icon = MessageBoxIcons.WarningIcon
-            };
-
-            MessageBoxResult msg2 = await IMessageDialogService.Instance.ShowMessage(info2);
-            if (msg2 != MessageBoxResult.OK) {
-                return null;
-            }
-        }
-
         ConnectToCCAPIInfo info = (ConnectToCCAPIInfo) _info!;
         if (string.IsNullOrWhiteSpace(info.IpAddress)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid IP", "IP address is invalid", icon: MessageBoxIcons.ErrorIcon);
@@ -119,7 +96,7 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
             }
         }
         catch (Exception e) {
-            await LogExceptionHelper.ShowMessageAndPrintToLogs("CCAPI", "Failed to setup CCAPI", e);
+            await LogExceptionHelper.ShowMessageAndPrintToLogs("CCAPI", "Failed to setup CCAPI: " + e.Message, e);
         }
 
         if (api != null) {

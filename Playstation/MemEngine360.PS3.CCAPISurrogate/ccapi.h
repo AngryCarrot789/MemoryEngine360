@@ -117,7 +117,7 @@ int ccapi_free();
 int ccapi_get_library_state();
 uint32_t ccapi_get_attached_process();
 int ccapi_attach_process(uint32_t pid);
-int ccapi_find_game_process(uint32_t* p_found_pid);
+int ccapi_find_game_process(uint32_t* p_found_pid, char** pp_process_name);
 int ccapi_connect(const char* ip);
 int ccapi_disconnect();
 int ccapi_set_boot_console_ids(ConsoleIdType idType, const ConsoleId* id);

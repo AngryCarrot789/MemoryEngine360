@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemEngine360.Avalonia", "MemEngine360.Avalonia\MemEngine360.Avalonia.csproj", "{2173941F-8742-4896-A0CF-5130F72F5802}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3D90F230-907C-4FC5-B388-83E6D22E83FE} = {3D90F230-907C-4FC5-B388-83E6D22E83FE}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemEngine360", "MemEngine360\MemEngine360.csproj", "{5C98E908-CB96-494E-AC7A-526D88AD6F55}"
 EndProject
@@ -36,6 +39,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemEngine360.Xbox360XBDM", "Xbox\MemEngine360.Xbox360XBDM\MemEngine360.Xbox360XBDM.csproj", "{0A5FC26F-3961-4980-B617-F3871E19334D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemEngine360.PS3", "Playstation\MemEngine360.PS3\MemEngine360.PS3.csproj", "{2A298042-C3A4-4F08-978F-4B14E6E50B35}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3D90F230-907C-4FC5-B388-83E6D22E83FE} = {3D90F230-907C-4FC5-B388-83E6D22E83FE}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MemEngine360.PS3.CCAPISurrogate", "Playstation\MemEngine360.PS3.CCAPISurrogate\MemEngine360.PS3.CCAPISurrogate.vcxproj", "{3D90F230-907C-4FC5-B388-83E6D22E83FE}"
 EndProject

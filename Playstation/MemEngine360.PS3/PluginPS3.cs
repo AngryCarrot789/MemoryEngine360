@@ -17,14 +17,29 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Runtime.Versioning;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
+using MemEngine360.Engine;
+using MemEngine360.PS3.CC;
+using MemEngine360.PS3.Commands;
 using PFXToolKitUI;
+using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Notifications;
 using PFXToolKitUI.Plugins;
 
 namespace MemEngine360.PS3;
 
+[SupportedOSPlatform("windows")]
 public class PluginPS3 : Plugin {
+    protected override void OnInitialize() {
+        base.OnInitialize();
+        
+        CommandManager.Instance.Register("commands.ps3ccapi.SetProcessToActiveGameCommand", new SetProcessToActiveGameCommand());
+        CommandManager.Instance.Register("commands.ps3ccapi.SetProcessCommand", new SetProcessCommand());
+        CommandManager.Instance.Register("commands.ps3ccapi.ListAllProcessesCommand", new ListAllProcessesCommand());
+    }
+
     protected override async Task OnApplicationFullyLoaded() {
 #if DEBUG
         ConsoleConnectionManager manager = ApplicationPFX.GetComponent<ConsoleConnectionManager>();
@@ -42,5 +57,14 @@ public class PluginPS3 : Plugin {
         manager.Register(ConnectionTypePS3MAPI.TheID, ConnectionTypePS3MAPI.Instance);
 #endif
         
+        MemoryEngineManager.Instance.ProvidePostConnectionActions += this.OnProvidePostConnectionActions;
+    }
+
+    private void OnProvidePostConnectionActions(MemoryEngineManager manager, MemoryEngine engineui, IConsoleConnection connection, Notification notification) {
+        if (connection is ConsoleConnectionCCAPI) {
+            notification.Actions.Add(new CommandNotificationAction("Attach to Game Process", "commands.ps3ccapi.SetProcessToActiveGameCommand") {
+                ToolTip = "Attach CCAPI to the current running game process. This is required to read/write game memory"
+            });
+        }
     }
 }

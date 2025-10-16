@@ -17,11 +17,15 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Connections;
 using PFXToolKitUI;
+using PFXToolKitUI.Notifications;
 
 namespace MemEngine360.Engine;
 
-public delegate void MemoryEngineUIEventHandler(MemoryEngineManager manager, MemoryEngine engineUI);
+public delegate void MemoryEngineManagerEventHandler(MemoryEngineManager manager, MemoryEngine engineUI);
+
+public delegate void MemoryEngineManagerNotificationEventHandler(MemoryEngineManager manager, MemoryEngine engineUI, IConsoleConnection connection, Notification notification);
 
 /// <summary>
 /// Manages memory engine instances
@@ -39,12 +43,14 @@ public abstract class MemoryEngineManager {
     /// <summary>
     /// A global event fired when any mem engine view opens
     /// </summary>
-    public event MemoryEngineUIEventHandler? EngineOpened;
+    public event MemoryEngineManagerEventHandler? EngineOpened;
 
     /// <summary>
     /// A global event fired when any mem engine view closes
     /// </summary>
-    public event MemoryEngineUIEventHandler? EngineClosed;
+    public event MemoryEngineManagerEventHandler? EngineClosed;
+    
+    public event MemoryEngineManagerNotificationEventHandler? ProvidePostConnectionActions;
     
     public MemoryEngineManager() {
         this.Engines = (this.engines = new List<MemoryEngine>(1)).AsReadOnly();
@@ -63,5 +69,9 @@ public abstract class MemoryEngineManager {
             throw new InvalidOperationException("Engine not opened");
         
         this.EngineClosed?.Invoke(this, engineUI);
+    }
+
+    public void RaiseProvidePostConnectionActions(MemoryEngine engine, IConsoleConnection connection, Notification notification) {
+        this.ProvidePostConnectionActions?.Invoke(this, engine, connection, notification);
     }
 }

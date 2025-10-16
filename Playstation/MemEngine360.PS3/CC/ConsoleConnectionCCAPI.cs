@@ -42,9 +42,9 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection {
     protected override void CloseOverride() {
         base.CloseOverride();
         
-        Task.Run(async () => {
+        Task.Run(() => {
             try {
-                await this.api.DisconnectFromConsole();
+                this.api.DisconnectFromConsole(true);
             }
             catch (Exception e) {
                 // ignored
@@ -60,7 +60,7 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection {
     }
 
     private void ApiOnNativeFailure(object? sender, EventArgs e) {        
-        AppLogger.Instance.WriteLine("CCAPI console connection failed");
+        AppLogger.Instance.WriteLine("CCAPI console connection error");
         AppLogger.Instance.WriteLine(this.api.FailureException!.GetToString());
         
         this.Close();
@@ -76,5 +76,25 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection {
 
     protected override Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
         return this.api.WriteMemory(address, srcBuffer, offset, count);
+    }
+    
+    /// <summary>
+    /// Sets the attached PID for reading and writing memory
+    /// </summary>
+    /// <param name="processId">The new PID</param>
+    /// <returns>The previous PID</returns>
+    public Task<uint> AttachToProcess(uint processId) {
+        return this.api.AttachToProcess(processId);
+    }
+
+    /// <summary>
+    /// Finds the active game PID
+    /// </summary>
+    /// <returns>The PID, or zero, if no game is running</returns>
+    public Task<(uint, string?)> FindGameProcessId() {
+        return this.api.FindGameProcessId();
+    }
+    public Task<List<(uint, string?)>> GetAllProcesses() {
+        return this.api.GetAllProcesses();
     }
 }

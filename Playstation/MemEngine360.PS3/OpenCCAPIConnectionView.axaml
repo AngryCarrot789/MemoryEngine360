@@ -20,7 +20,13 @@
                  Text="ERROR"/>
         <Separator Margin="0,5"/>
         <TextBlock Padding="0,0,0,2"
-                   Text="Warning! This console type is completely untested. I do not have a PS3 yet to test it."
+                   Text="This connection is still WIP and is very slow. Use at your own risk."
+                   Foreground="OrangeRed"
+                   TextWrapping="Wrap"
+                   FontWeight="Medium"/>
+        <Separator Margin="0,5"/>
+        <TextBlock Padding="0,0,0,2"
+                   Text="Note, to scan for game memory, you will have to click 'Attach to Game' in the Remote Controls menu, once connected."
                    Foreground="OrangeRed"
                    TextWrapping="Wrap"
                    FontWeight="Medium"/>

@@ -82,7 +82,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection {
     public override bool IsLittleEndian => false;
 
     public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
-
+    
     private readonly XbdmFeaturesImpl xbdmFeatures;
     private Jrpc2FeaturesImpl? jrpcFeatures;
 
@@ -119,6 +119,10 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection {
                 }
             }
         }, token);
+    }
+
+    public override uint GetRecommendedReadChunkSize(uint readTotal) {
+        return readTotal < 128 ? 128U : 0x1000U /* 4096 */;
     }
 
     /// <summary>
@@ -580,7 +584,6 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection {
         return cbLine;
     }
 
-    // Sometimes it works, sometimes it doesn't. And it also doesn't read from the correct address which is odd
     private async Task NewReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
         if (count <= 0) {
             return;

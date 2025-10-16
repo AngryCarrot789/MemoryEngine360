@@ -586,6 +586,9 @@ public partial class EngineView : UserControl {
             }) { ToolTip = "Disconnect from the connection" });
 
             notification.CanAutoHide = true;
+            
+            MemoryEngineManager.Instance.RaiseProvidePostConnectionActions(this.MemoryEngine, newConn, notification);
+            
             notification.Show(NotificationManager.GetInstance(this.MemoryEngine));
             this.PART_LatestActivity.Text = notification.Text;
         }

@@ -78,6 +78,15 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             Debug.Fail("Oops");
         }
     }
+    
+    /// <summary>
+    /// Gets the recommended number of bytes to be read in one call. For some connections this might not
+    /// matter whereas others may need to run an internal loop to read in tiny chunks from a network,
+    /// therefore, this property will return the value of that tiny chunk size. 
+    /// </summary>
+    public virtual uint GetRecommendedReadChunkSize(uint readTotal) {
+        return readTotal;
+    }
 
     public virtual bool TryGetFeature<T>([NotNullWhen(true)] out T? feature) where T : class, IConsoleFeature {
         return this.featureManagerWrapper.ComponentStorage.TryGetComponent(out feature);

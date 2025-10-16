@@ -25,6 +25,16 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
+
+static_assert(sizeof(uint8_t) == 1, "sizeof(uint8_t) != 1");
+static_assert(sizeof(int8_t) == 1, "sizeof(int8_t) != 1");
+static_assert(sizeof(uint16_t) == 2, "sizeof(uint16_t) != 2");
+static_assert(sizeof(int16_t) == 2, "sizeof(int16_t) != 2");
+static_assert(sizeof(uint32_t) == 4, "sizeof(uint32_t) != 4");
+static_assert(sizeof(int32_t) == 4, "sizeof(int32_t) != 4");
+static_assert(sizeof(uint64_t) == 8, "sizeof(uint64_t) != 8");
+static_assert(sizeof(int64_t) == 8, "sizeof(int64_t) != 8");
+
 static int run_network_loop(char*, SOCKET);
 static int process_packet(SOCKET, int32_t, const char*, int32_t);
 
@@ -133,7 +143,7 @@ static int recv_u16tagged_into_new_buffer(const char* recv_buffer, char** pp_dst
     memcpy(data, recv_buffer + sizeof(uint16_t), cch_dst_buffer);
     *pp_dst_buffer = static_cast<char*>(data);
     if (string) {
-        *((char*) data + cch_dst_buffer) = NULL; // set null char
+        *((char*)data + cch_dst_buffer) = NULL; // set null char
     }
 
     return 0;
@@ -281,10 +291,12 @@ static int handle_get_memory(const SOCKET client, const char* recv_buffer, const
         return -1;
     }
 
-    uint32_t address = recv_uint32_from_buffer(recv_buffer);
-    uint32_t cb_read_buffer = recv_uint32_from_buffer(recv_buffer + sizeof(uint32_t));
+    constexpr uint32_t chunk_size = 0x7FFF; // 32767
 
-    void* read_buffer = malloc(min(cb_read_buffer, 0x10000));
+    const uint64_t address = recv_uint32_from_buffer(recv_buffer);
+    uint32_t cb_remaining = recv_uint32_from_buffer(recv_buffer + sizeof(uint32_t));
+
+    void* read_buffer = malloc(min(cb_remaining, chunk_size));
     if (read_buffer == 0) {
         printf("Failed to alloc temporary buffer to GetMemory");
         return -1;
@@ -292,11 +304,18 @@ static int handle_get_memory(const SOCKET client, const char* recv_buffer, const
 
     CHECK_RESULT(send_uint8(client, 1 /* one return value, the array of bytes w/o length prefix */));
 
-    while (cb_read_buffer > 0) {
-        const int32_t cb_send = min(cb_read_buffer, 0x10000);
-        if ((ret = ccapi_read_memory(address, cb_send, read_buffer)) != 0) {
+    while (cb_remaining > 0) {
+        const int32_t cb_send = min(cb_remaining, chunk_size);
+        if ((ret = ccapi_read_memory(address, cb_send, read_buffer)) < 0) {
+            send_uint16(client, 0x8000);
             free(read_buffer);
-            return -1;
+            return 0;
+        }
+
+        const uint16_t header = static_cast<uint16_t>(cb_send);
+        if ((ret = send_uint16(client, header)) < 0) {
+            free(read_buffer);
+            return ret;
         }
 
         if ((ret = send_exact(client, static_cast<const char*>(read_buffer), cb_send)) < 0) {
@@ -304,7 +323,7 @@ static int handle_get_memory(const SOCKET client, const char* recv_buffer, const
             return ret;
         }
 
-        cb_read_buffer -= cb_send;
+        cb_remaining -= cb_send;
     }
 
     free(read_buffer);
@@ -313,13 +332,13 @@ static int handle_get_memory(const SOCKET client, const char* recv_buffer, const
 
 static int handle_set_memory(const SOCKET client, const char* recv_buffer, const int32_t cb_recv_buffer) {
     int ret;
-    if (cb_recv_buffer < 4) {
+    if (cb_recv_buffer < sizeof(uint32_t)) {
         printf("Invalid args to CCAPISetMemory. Expected >= 4 bytes");
         return -1;
     }
 
-    uint32_t address = recv_uint32_from_buffer(recv_buffer);
-    uint32_t cb_to_write = cb_recv_buffer - sizeof(uint32_t);
+    const uint32_t address = recv_uint32_from_buffer(recv_buffer);
+    const uint32_t cb_to_write = cb_recv_buffer - sizeof(uint32_t);
     const char* to_write = recv_buffer + sizeof(uint32_t);
     CHECK_RESULT(send_uint8(client, 1));
     CHECK_RESULT(send_int32(client, ccapi_write_memory(address, cb_to_write, to_write)));
@@ -332,7 +351,7 @@ int handle_setup(const SOCKET client) {
     const int setup_ret = ccapi_init("CCAPI.dll");
     CHECK_RESULT(send_uint8(client, 1));
     CHECK_RESULT(send_uint8(client, setup_ret == 0 ? 1 : 0));
-    
+
     return 0;
 }
 
@@ -345,7 +364,7 @@ int process_packet(const SOCKET client, const int32_t cmd_id, const char* recv_b
         if ((ret = handle_setup(client)) != 0) {
             return ret;
         }
-        
+
         break;
 
     case 2:
@@ -430,12 +449,38 @@ int process_packet(const SOCKET client, const int32_t cmd_id, const char* recv_b
     case 23:
         printf("Command Run - ccapi_find_game_process\n");
         {
-
             uint32_t found_pid = 0;
-            const int ccapi_ret = ccapi_find_game_process(&found_pid);
+            char* name_buffer;
+            const int ccapi_ret = ccapi_find_game_process(&found_pid, &name_buffer);
 
-            CHECK_RESULT(send_uint8(client, 1));
+            CHECK_RESULT(send_uint8(client, name_buffer != NULL ? 2 : 1));
             CHECK_RESULT(send_uint32(client, ccapi_ret == 0 ? found_pid : 0));
+            if (name_buffer != NULL) {
+                send_string_with_tag(client, name_buffer);
+            }
+        }
+
+        break;
+
+    case 24:
+        printf("Command Run - ccapi_get_process_list\n");
+        {
+            ProcessName name;
+            uint32_t pid_array[32];
+            uint32_t pid_count = sizeof(pid_array) / sizeof(pid_array[0]);
+            if ((ret = ccapi_get_process_list(&pid_count, pid_array)) != CCAPI_OK) {
+                return -1;
+            }
+
+            CHECK_RESULT(send_uint8(client, static_cast<uint8_t>(pid_count)));
+            for (uint32_t i = 0; i < pid_count; i++) {
+                if ((ret = ccapi_get_process_name(pid_array[i], &name)) != CCAPI_OK) {
+                    return -1;
+                }
+                
+                CHECK_RESULT(send_uint32(client, pid_array[i]));
+                CHECK_RESULT(send_string_with_tag(client, name.value));
+            }
         }
 
         break;
