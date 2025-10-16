@@ -41,7 +41,7 @@ public sealed class FileTreeNodeDirectory : BaseFileTreeNode {
 
     public FileTreeNodeDirectory() {
         this.Items = new ObservableList<BaseFileTreeNode>();
-        this.Items.BeforeItemsAdded += (list, index, items) => {
+        this.Items.ValidateAdd += (list, index, items) => {
             foreach (BaseFileTreeNode item in items) {
                 if (item == null)
                     throw new InvalidOperationException("Attempt to add null entry");
@@ -52,7 +52,7 @@ public sealed class FileTreeNodeDirectory : BaseFileTreeNode {
             }
         };
 
-        this.Items.BeforeItemReplace += (list, index, oldItem, newItem) => {
+        this.Items.ValidateReplace += (list, index, oldItem, newItem) => {
             if (newItem == null)
                 throw new ArgumentNullException(nameof(newItem), "Cannot replace entry with null");
         };

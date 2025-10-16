@@ -18,7 +18,6 @@
 // 
 
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using MemEngine360.Engine;

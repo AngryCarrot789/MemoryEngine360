@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Globalization;
 using AvaloniaHex.Base.Document;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
@@ -32,12 +31,13 @@ public class GotoAddressCommand : BaseHexEditorCommand {
     // 8354AA08, Enemy Team Score,     Int32
     
     protected override async Task ExecuteCommandAsync(IHexEditorUI view, MemoryViewer info, CommandEventArgs e) {
-        SingleUserInputInfo singleInfo = new SingleUserInputInfo("Go to address", "Specify an address to scroll to", "Address (hex)", (view.CaretLocation.ByteIndex).ToString("X8")) {
+        SingleUserInputInfo singleInfo = new SingleUserInputInfo("Go to address", "Specify an address to scroll to", "Address (hex)", view.CaretLocation.ByteIndex.ToString("X8")) {
             Validate = (a) => {
                 if (!AddressParsing.TryParse32(a.Input, out _, out string? error, canParseAsExpression: true)) {
                     a.Errors.Add(error);
                 }
-            }
+            },
+            DebounceErrorsDelay = 300
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(singleInfo) == true) {

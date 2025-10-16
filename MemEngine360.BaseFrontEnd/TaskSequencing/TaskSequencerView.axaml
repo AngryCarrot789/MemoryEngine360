@@ -136,7 +136,7 @@
                                         <DockPanel>
                                             <DockPanel DockPanel.Dock="Bottom" Margin="2,0">
                                                 <Border x:Name="PART_DragGrip" Background="Transparent" Width="16" DockPanel.Dock="Right"
-                                                        tt:ToolTipEx.Tip="Click and drag this grip to move the sequence around.">
+                                                        tt:ToolTipEx.Tip="Click and drag this grip to move the sequence around. This cannot be done while the sequence is running.">
                                                     <avc:IconControl Icon="{x:Static pfxToolKitUi:StandardIcons.DragGripIcon}" Height="16" HorizontalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Orientation="Horizontal" Spacing="3" Margin="0,1,0,2">

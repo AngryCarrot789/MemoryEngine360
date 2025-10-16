@@ -45,14 +45,14 @@ public class ScriptingManagerViewState {
 
     private ScriptingManagerViewState(ScriptingManager ScriptingManager) {
         this.ScriptingManager = ScriptingManager;
-        this.ScriptingManager.Scripts.BeforeItemsRemoved += this.SourceListBeforeItemsRemoved;
-        this.ScriptingManager.Scripts.BeforeItemReplace += this.SourceListBeforeItemReplaced;
+        this.ScriptingManager.Scripts.ValidateRemove += this.SourceListValidateRemove;
+        this.ScriptingManager.Scripts.ValidateReplace += this.SourceListValidateReplaced;
         if (this.ScriptingManager.Scripts.Count > 0) {
             this.SelectedScript = this.ScriptingManager.Scripts[0];
         }
     }
 
-    private void SourceListBeforeItemsRemoved(IObservableList<Script> observableList, int index, int count) {
+    private void SourceListValidateRemove(IObservableList<Script> observableList, int index, int count) {
         if (observableList.Count - count == 0) {
             this.SelectedScript = null;
             return;
@@ -68,7 +68,7 @@ public class ScriptingManagerViewState {
         }
     }
 
-    private void SourceListBeforeItemReplaced(IObservableList<Script> observableList, int index, Script oldItem, Script newItem) {
+    private void SourceListValidateReplaced(IObservableList<Script> observableList, int index, Script oldItem, Script newItem) {
         if (this.SelectedScript == oldItem) {
             this.SelectedScript = index > 0
                 ? observableList[index - 1]

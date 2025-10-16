@@ -95,15 +95,15 @@ public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost
         this.TransferableData = new TransferableData(this);
         this.RandomTriggerHelper = new RandomTriggerHelper();
         this.Conditions = new ObservableList<BaseSequenceCondition>();
-        this.Conditions.BeforeItemsAdded += (list, index, items) => {
+        this.Conditions.ValidateAdd += (list, index, items) => {
             foreach (BaseSequenceCondition item in items) {
                 CheckAddCondition(this, item);
             }
         };
 
-        this.Conditions.BeforeItemsRemoved += (list, index, count) => this.TaskSequence?.CheckNotRunning(CheckNotRunningMessage);
-        this.Conditions.BeforeItemMoved += (list, oldIdx, newIdx, item) => this.TaskSequence?.CheckNotRunning(CheckNotRunningMessage);
-        this.Conditions.BeforeItemReplace += (list, index, oldItem, newItem) => {
+        this.Conditions.ValidateRemove += (list, index, count) => this.TaskSequence?.CheckNotRunning(CheckNotRunningMessage);
+        this.Conditions.ValidateMove += (list, oldIdx, newIdx, item) => this.TaskSequence?.CheckNotRunning(CheckNotRunningMessage);
+        this.Conditions.ValidateReplace += (list, index, oldItem, newItem) => {
             CheckAddCondition(this, newItem);
         };
 

@@ -46,7 +46,7 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
         this.MemoryEngine = memoryEngine;
         this.componentStorage = new ComponentStorage(this);
         this.Scripts = new ObservableList<Script>();
-        this.Scripts.BeforeItemsAdded += (list, index, items) => {
+        this.Scripts.ValidateAdd += (list, index, items) => {
             foreach (Script item in items) {
                 if (item == null)
                     throw new ArgumentNullException(nameof(items), "List contains a null entry");
@@ -58,7 +58,7 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
             }
         };
 
-        this.Scripts.BeforeItemsRemoved += (list, index, count) => {
+        this.Scripts.ValidateRemove += (list, index, count) => {
             for (int i = 0; i < count; i++) {
                 list[index + i].CheckNotRunning("Cannot remove sequence while it's running");
                 if (list[index + i].IsCompiling)
@@ -66,7 +66,7 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
             }
         };
 
-        this.Scripts.BeforeItemReplace += (list, index, oldItem, newItem) => {
+        this.Scripts.ValidateReplace += (list, index, oldItem, newItem) => {
             if (newItem == null)
                 throw new ArgumentNullException(nameof(newItem), "Cannot replace sequence with null");
 

@@ -19,7 +19,9 @@
 
 using Avalonia;
 using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
@@ -44,7 +46,10 @@ public class SequenceListBox : ModelBasedListBox<TaskSequence> {
     }
 
     protected override void MoveItemIndexOverride(int oldIndex, int newIndex) {
-        this.TaskSequencerManager?.Sequences.Move(oldIndex, newIndex);
+        TaskSequenceManager? tsm = this.TaskSequencerManager;
+        if (tsm != null && !tsm.Sequences[oldIndex].IsRunning) {
+            TaskSequenceManagerViewState.GetInstance(tsm).SelectedSequences.MoveItemHelper(oldIndex, newIndex);
+        }
     }
 
     private void OnTaskSequencerManagerChanged(TaskSequenceManager? oldManager, TaskSequenceManager? newManager) {

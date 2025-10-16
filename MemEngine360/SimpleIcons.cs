@@ -208,8 +208,8 @@ public static class SimpleIcons {
             nameof(SaveFileIcon),
             [
                 new GeometryEntry("M10 0 10 5 2 5 2 0 0 0 0 12 2 12 2 7 10 7 10 12 12 12 12 3z", BrushManager.Instance.CreateConstant(SKColors.DodgerBlue)),
-                new GeometryEntry("M3 8V12H9V8H3ZM8 11H4V9H8V11Z", StandardIcons.DisabledGlyphBrush),
-                new GeometryEntry("M3 0v4h6V0H3zM5 3h-1V1H5V3z", StandardIcons.DisabledGlyphBrush),
+                new GeometryEntry("M3 8V12H9V8H3ZM8 11H4V9H8V11Z", BrushManager.Instance.CreateConstant(SKColor.Parse("868686"))),
+                new GeometryEntry("M3 0v4h6V0H3zM5 3h-1V1H5V3z", BrushManager.Instance.CreateConstant(SKColor.Parse("868686"))),
             ]);
 
     // https://www.svgrepo.com/svg/374198/xml

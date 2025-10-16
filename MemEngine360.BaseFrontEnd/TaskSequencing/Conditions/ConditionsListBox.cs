@@ -20,7 +20,9 @@
 using Avalonia;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Conditions;
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 
@@ -55,7 +57,17 @@ public class ConditionsListBox : ModelBasedListBox<BaseSequenceCondition> {
     }
 
     protected override void MoveItemIndexOverride(int oldIndex, int newIndex) {
-        this.ConditionsHost?.Conditions.Move(oldIndex, newIndex);
+        IConditionsHost? owner = this.ConditionsHost;
+        switch (owner) {
+            case TaskSequence task when !task.IsRunning: {
+                TaskSequenceViewState.GetInstance(task).SelectedConditions.MoveItemHelper(oldIndex, newIndex);
+                break;
+            }
+            case BaseSequenceOperation op when op.TaskSequence == null || !op.TaskSequence.IsRunning: {
+                SequenceOperationViewState.GetInstance(op).SelectedConditions.MoveItemHelper(oldIndex, newIndex);
+                break;
+            }
+        }
     }
 
     private void OnConditionsHostChanged(IConditionsHost? oldHost, IConditionsHost? newHost) {

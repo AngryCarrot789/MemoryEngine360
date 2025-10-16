@@ -165,7 +165,7 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
         this.Progress.Text = "Sequence not running";
         
         this.Operations = new ObservableList<BaseSequenceOperation>();
-        this.Operations.BeforeItemsAdded += (list, index, items) => {
+        this.Operations.ValidateAdd += (list, index, items) => {
             foreach (BaseSequenceOperation item in items) {
                 if (item == null)
                     throw new ArgumentNullException(nameof(item), "Cannot add a null operation");
@@ -181,9 +181,9 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
             }
         };
 
-        this.Operations.BeforeItemsRemoved += (list, index, count) => this.CheckNotRunning("Cannot modify sequence list while running");
-        this.Operations.BeforeItemMoved += (list, oldIdx, newIdx, item) => this.CheckNotRunning("Cannot modify sequence list while running");
-        this.Operations.BeforeItemReplace += (list, index, oldItem, newItem) => {
+        this.Operations.ValidateRemove += (list, index, count) => this.CheckNotRunning("Cannot modify sequence list while running");
+        this.Operations.ValidateMove += (list, oldIdx, newIdx, item) => this.CheckNotRunning("Cannot modify sequence list while running");
+        this.Operations.ValidateReplace += (list, index, oldItem, newItem) => {
             if (newItem == null)
                 throw new ArgumentNullException(nameof(newItem), "Cannot replace operation with null");
             this.CheckNotRunning("Cannot modify sequence list while running");
@@ -235,7 +235,7 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
         };
 
         this.Conditions = new ObservableList<BaseSequenceCondition>();
-        this.Conditions.BeforeItemsAdded += (list, i, items) => {
+        this.Conditions.ValidateAdd += (list, i, items) => {
             foreach (BaseSequenceCondition item in items) {
                 if (item == null)
                     throw new InvalidOperationException("Cannot add null condition");
@@ -247,9 +247,9 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
             }
         };
 
-        this.Conditions.BeforeItemsRemoved += (list, index, count) => this.CheckNotRunning($"Cannot remove condition{Lang.S(count)} while running");
-        this.Conditions.BeforeItemMoved += (list, oldIdx, newIdx, item) => this.CheckNotRunning("Cannot move conditions while running");
-        this.Conditions.BeforeItemReplace += (list, index, oldItem, newItem) => {
+        this.Conditions.ValidateRemove += (list, index, count) => this.CheckNotRunning($"Cannot remove condition{Lang.S(count)} while running");
+        this.Conditions.ValidateMove += (list, oldIdx, newIdx, item) => this.CheckNotRunning("Cannot move conditions while running");
+        this.Conditions.ValidateReplace += (list, index, oldItem, newItem) => {
             if (newItem == null)
                 throw new InvalidOperationException("Cannot replace condition with null");
             this.CheckNotRunning("Cannot replace condition while running");

@@ -892,9 +892,9 @@ public sealed class UnknownDataTypeOptions {
             (this.orderInt64 = new ScanningOrderModel(DataType.Int64)),
         };
 
-        this.Orders.BeforeItemsAdded += (list, index, items) => throw new InvalidOperationException("Items cannot be added to this list");
-        this.Orders.BeforeItemsRemoved += (list, index, count) => throw new InvalidOperationException("Items cannot be removed from this list");
-        this.Orders.BeforeItemReplace += (list, index, oldItem, newItem) => throw new InvalidOperationException("Items cannot be replaced in this list");
+        this.Orders.ValidateAdd += (list, index, items) => throw new InvalidOperationException("Items cannot be added to this list");
+        this.Orders.ValidateRemove += (list, index, count) => throw new InvalidOperationException("Items cannot be removed from this list");
+        this.Orders.ValidateReplace += (list, index, oldItem, newItem) => throw new InvalidOperationException("Items cannot be replaced in this list");
     }
 
     /// <summary>

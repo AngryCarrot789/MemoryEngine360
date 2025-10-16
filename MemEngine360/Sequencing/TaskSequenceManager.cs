@@ -68,7 +68,7 @@ public class TaskSequenceManager : IComponentManager, IUserLocalContext {
         this.MemoryEngine = engine ?? throw new ArgumentNullException(nameof(engine));
         this.myComponentStorage = new ComponentStorage(this);
         this.Sequences = new ObservableList<TaskSequence>();
-        this.Sequences.BeforeItemsAdded += (list, index, items) => {
+        this.Sequences.ValidateAdd += (list, index, items) => {
             foreach (TaskSequence item in items) {
                 if (item == null)
                     throw new ArgumentNullException(nameof(items), "List contains a null entry");
@@ -80,13 +80,13 @@ public class TaskSequenceManager : IComponentManager, IUserLocalContext {
             }
         };
 
-        this.Sequences.BeforeItemsRemoved += (list, index, count) => {
+        this.Sequences.ValidateRemove += (list, index, count) => {
             for (int i = 0; i < count; i++)
                 list[index + i].CheckNotRunning("Cannot remove sequence while it's running");
         };
 
-        this.Sequences.BeforeItemMoved += (list, oldIdx, newIdx, item) => item.CheckNotRunning("Cannot move sequence while it's running");
-        this.Sequences.BeforeItemReplace += (list, index, oldItem, newItem) => {
+        this.Sequences.ValidateMove += (list, oldIdx, newIdx, item) => item.CheckNotRunning("Cannot move sequence while it's running");
+        this.Sequences.ValidateReplace += (list, index, oldItem, newItem) => {
             if (newItem == null)
                 throw new ArgumentNullException(nameof(newItem), "Cannot replace sequence with null");
 
