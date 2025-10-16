@@ -174,7 +174,7 @@
                                                 Background="Transparent"
                                                 BorderThickness="0"
                                                 CornerRadius="2"
-                                                Icon="{x:Static me360:SimpleIcons.OpenFileIcon}"
+                                                Icon="{x:Static me360:SimpleIcons.OpenedFolderIcon}"
                                                 cu:CommandUsageManager.SimpleButtonCommandId="commands.scripting.OpenScriptFileCommand">
                                     <tt:ToolTipEx.Tip>
                                         <StackPanel Orientation="Horizontal" Spacing="5">

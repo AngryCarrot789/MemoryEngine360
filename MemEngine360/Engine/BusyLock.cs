@@ -83,7 +83,7 @@ public sealed class BusyLock {
     /// such that any listener should give up their ownership of the busy token to let the user action run, before trying
     /// to re-obtain the token. 
     /// <para>
-    /// Example operations that might cause this event are editing 
+    /// Example operations that might cause this event are editing the value of scan or saved address values
     /// </para>
     /// </summary>
     /// <remarks>
@@ -398,6 +398,8 @@ public sealed class BusyLock {
         // Create a TCS that is only marked as completed
         CancellableTaskCompletionSource myTcs = new CancellableTaskCompletionSource(cancellationToken, setSuccessfulInsteadOfCancelled: true);
 
+        // Broadcast to listeners to give up their busy token. Hopefully they will
+        // release them in the call frame, but that probably won't happen
         this.UserQuickReleaseRequested?.Invoke(this, myTcs);
 
         // Try and exchange the current tcs with ours.
@@ -414,9 +416,6 @@ public sealed class BusyLock {
         }
 
         Debug.Assert(this.tcsPrimaryQuickReleaseAction == myTcs, "whaaaT!");
-
-        // Broadcast to listeners to give up their busy token.
-        // Hopefully they will release them in the call frame, but that probably won't happen
 
         try {
             // At this point, we are now the main waiter for the quick action.
@@ -449,10 +448,10 @@ public sealed class BusyLock {
 
     internal async Task<IBusyToken?> InternalTryTakeBusyTokenLoop(CancellationToken cancellationToken, TaskCompletionSource? tcsQuickReleaseAction = null) {
         IBusyToken? token;
+        TaskCompletionSource? tcsQuickAction, tcsBusyLock;
         do {
             // If there's a quick action still running, and the caller isn't
             // the one initiating it, we will wait on that first.
-            TaskCompletionSource? tcsQuickAction;
             while ((tcsQuickAction = this.tcsPrimaryQuickReleaseAction) != null && tcsQuickAction != tcsQuickReleaseAction /* don't wait on the caller tcs!!! deadlock!! */) {
                 try {
                     await tcsQuickAction.Task.WaitAsync(cancellationToken);
@@ -463,10 +462,9 @@ public sealed class BusyLock {
                 }
             }
 
-            TaskCompletionSource? primaryTcs;
-            while ((primaryTcs = this.tcsBusyLockUsage) != null) {
+            while ((tcsBusyLock = this.tcsBusyLockUsage) != null) {
                 try {
-                    await primaryTcs.Task.WaitAsync(cancellationToken);
+                    await tcsBusyLock.Task.WaitAsync(cancellationToken);
                 }
                 catch (OperationCanceledException e) {
                     Debug.Assert(cancellationToken.IsCancellationRequested && e.CancellationToken == cancellationToken);

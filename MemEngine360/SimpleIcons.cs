@@ -40,7 +40,7 @@ public static class SimpleIcons {
             [
                 new GeometryEntry("M0 2 12 2 12 10 0 10Z", BrushManager.Instance.CreateConstant(SKColors.MediumSeaGreen)),
                 new GeometryEntry("M1 0 3 0 3 2 1 2ZM9 0 11 0 11 2 9 2ZM1 10 3 10 3 12 1 12ZM9 10 11 10 11 12 9 12ZM5 2 5 0 7 0 7 2 5 2M5 10 5 12 7 12 7 10 5 10", BrushManager.Instance.CreateConstant(SKColors.Gold)),
-                new GeometryEntry("M9.5 16 5 12V10H8V3h3v7h3v2l-4.5 4Z", StandardIcons.GlyphBrush)
+                new GeometryEntry("M10 16H9.9L5.9 12H9V7H11V12H14Z", StandardIcons.GlyphBrush)
             ]);
 
     public static readonly Icon MemoryIconTable =
@@ -176,50 +176,47 @@ public static class SimpleIcons {
             ]);
 
 
-    // Modified version of https://www.svgrepo.com/svg/486453/open-file-filled
-    public static readonly Icon OpenFileIcon =
-        IconManager.Instance.RegisterGeometryIcon(
-            nameof(OpenFileIcon),
-            [
-                // new GeometryEntry("M58.9173 33.8232l-10.4756 19.826c-.5125.9858-1.9653 2.0285-3.0872 2.0285l-42.0096.0077c-.8875 0-1.7384-.3518-2.3655-.9794C.3523 54.0783 0 53.2283 0 52.3405l.0068-32.6209c0-1.8448 1.4955-3.3417 3.3405-3.3435l3.0715-.0029v2.8496H4.3639c-.4022 0-.7885.1596-1.0731.4442-.2843.2846-.4442.6706-.4442 1.0731l.003 30.5796c0 .8388.6797 1.5173 1.5176 1.5173h2.1045l9.928-20.0836c.5609-1.1219 1.6208-2.0286 2.7411-2.0286h24.314l.0083-8.0823c1.5876.1472 2.8406 1.4641 2.8406 3.0893v4.9931H57.455C58.7719 30.7384 59.8808 32.0406 58.9173 33.8232zM8.3558 42.7272c-.0907-9.9969 0-39.9884 0-39.9884 0-1.5132 1.2306-2.7429 2.7423-2.7429h21.9614c.3518 0 .6874.1472.9251.4061l7.1 7.7141c.2128.2323.3321.5364.3321.8515v19.9839h-2.3034V10.6932c0-.3159-.2565-.5725-.5728-.5725h-5.4343c-.636 0-1.1532-.5163-1.1532-1.1511V2.8721c0-.316-.2565-.5725-.5728-.5725H11.0995c-.2423 0-.4395.1971-.4395.4392v37.4739l-1.7626 3.566C8.8975 43.7781 8.3649 43.7391 8.3558 42.7272zM34.2588 7.8182H37.68l-3.4212-3.7188V7.8182zM35.5065 12.4667H14.2813c-.782 0-1.4168.6354-1.4168 1.4174 0 .7814.6354 1.4171 1.4168 1.4171h21.2258c.782 0 1.4187-.6362 1.4187-1.4171C36.9245 13.1027 36.288 12.4667 35.5065 12.4667zM36.9245 22.1376c0-.7814-.6359-1.4162-1.418-1.4162H14.2813c-.782 0-1.4168.636-1.4168 1.4162 0 .7814.6354 1.4162 1.4168 1.4162h21.2258C36.288 23.5539 36.9245 22.919 36.9245 22.1376zM12.8636 30.447c0 .7813.6357 1.4162 1.4171 1.4162h.5089c.8958-2.4967 3.1164-2.8324 3.1164-2.8324h-3.6253C13.5005 29.0308 12.8636 29.6656 12.8636 30.447z", StandardIcons.GlyphBrush),
-                new GeometryEntry("M7 0 7 2 16 2 16 4 3 4 .2 12.5 0 12.5 0 0 7 0ZM3.8679 5.476 16 5.4761 13.8621 12.5 1.6873 12.5 3.8679 5.476Z", StandardIcons.GlyphBrush),
-            ]);
-
-    // https://www.svgrepo.com/svg/273782/save-file
-    // public static readonly Icon SaveFileIcon =
+    // // Modified version of https://www.svgrepo.com/svg/486453/open-file-filled
+    // public static readonly Icon OpenFileIcon =
     //     IconManager.Instance.RegisterGeometryIcon(
-    //         nameof(SaveFileIcon),
+    //         nameof(OpenFileIcon),
     //         [
-    //             new GeometryEntry("M424.229 12.854 424.229 204.8 87.771 204.8 87.771 0 0 0 0 512 87.771 512 87.771 307.2 424.229 307.2 424.229 512 512 512 512 100.626z", StandardIcons.GlyphBrush),
-    //             new GeometryEntry("M131.657,351.086V512h248.686V351.086H131.657z M329.143,446.171H182.857v-43.886h146.286V446.171z", StandardIcons.GlyphBrush),
-    //             new GeometryEntry("M131.657,0v160.914h248.686V0H131.657z M204.8,124.343h-43.886V51.2H204.8V124.343z", StandardIcons.GlyphBrush),
+    //             // new GeometryEntry("M58.9173 33.8232l-10.4756 19.826c-.5125.9858-1.9653 2.0285-3.0872 2.0285l-42.0096.0077c-.8875 0-1.7384-.3518-2.3655-.9794C.3523 54.0783 0 53.2283 0 52.3405l.0068-32.6209c0-1.8448 1.4955-3.3417 3.3405-3.3435l3.0715-.0029v2.8496H4.3639c-.4022 0-.7885.1596-1.0731.4442-.2843.2846-.4442.6706-.4442 1.0731l.003 30.5796c0 .8388.6797 1.5173 1.5176 1.5173h2.1045l9.928-20.0836c.5609-1.1219 1.6208-2.0286 2.7411-2.0286h24.314l.0083-8.0823c1.5876.1472 2.8406 1.4641 2.8406 3.0893v4.9931H57.455C58.7719 30.7384 59.8808 32.0406 58.9173 33.8232zM8.3558 42.7272c-.0907-9.9969 0-39.9884 0-39.9884 0-1.5132 1.2306-2.7429 2.7423-2.7429h21.9614c.3518 0 .6874.1472.9251.4061l7.1 7.7141c.2128.2323.3321.5364.3321.8515v19.9839h-2.3034V10.6932c0-.3159-.2565-.5725-.5728-.5725h-5.4343c-.636 0-1.1532-.5163-1.1532-1.1511V2.8721c0-.316-.2565-.5725-.5728-.5725H11.0995c-.2423 0-.4395.1971-.4395.4392v37.4739l-1.7626 3.566C8.8975 43.7781 8.3649 43.7391 8.3558 42.7272zM34.2588 7.8182H37.68l-3.4212-3.7188V7.8182zM35.5065 12.4667H14.2813c-.782 0-1.4168.6354-1.4168 1.4174 0 .7814.6354 1.4171 1.4168 1.4171h21.2258c.782 0 1.4187-.6362 1.4187-1.4171C36.9245 13.1027 36.288 12.4667 35.5065 12.4667zM36.9245 22.1376c0-.7814-.6359-1.4162-1.418-1.4162H14.2813c-.782 0-1.4168.636-1.4168 1.4162 0 .7814.6354 1.4162 1.4168 1.4162h21.2258C36.288 23.5539 36.9245 22.919 36.9245 22.1376zM12.8636 30.447c0 .7813.6357 1.4162 1.4171 1.4162h.5089c.8958-2.4967 3.1164-2.8324 3.1164-2.8324h-3.6253C13.5005 29.0308 12.8636 29.6656 12.8636 30.447z", StandardIcons.GlyphBrush),
+    //             new GeometryEntry("M7 0 7 2 16 2 16 4 3 4 .2 12.5 0 12.5 0 0 7 0ZM3.8679 5.476 16 5.4761 13.8621 12.5 1.6873 12.5 3.8679 5.476Z", StandardIcons.GlyphBrush),
     //         ]);
+
+    // Open Folder by game-icons.net - https://www.svgrepo.com/svg/322897/open-folder
+    // Licenced under 'CC BY' - https://creativecommons.org/share-your-work/cclicenses/
+    // Changes:
+    // - Translated origin to 0,0
+    // - Scaled down to 16x16
+    // - Split single path into two, so that each can be coloured
+    // - Reduced height the golden/outside part of the folder, and increase height of the background/inside
+    // - Increased left side width of the background/inside
+    private const string FolderInsideSvg = "M0 0V13.175H.1035L2.3348 4.4147H13.8648V1.6555H5.674L5.1222 0H0Z";
+    private const string FolderOutsideSvg = "M2.8386 5.0355H16L13.9233 13.175H.7619L2.8386 5.0355Z";
+    public static readonly Icon OpenedFolderIcon =
+        IconManager.Instance.RegisterGeometryIcon(
+            nameof(OpenedFolderIcon),
+            [
+                new GeometryEntry(FolderInsideSvg, BrushManager.Instance.CreateConstant(SKColors.DimGray)),
+                new GeometryEntry(FolderOutsideSvg, BrushManager.Instance.CreateConstant(SKColors.Goldenrod)),
+            ]);
+    
     public static readonly Icon SaveFileIcon =
         IconManager.Instance.RegisterGeometryIcon(
             nameof(SaveFileIcon),
             [
-                new GeometryEntry("M10 0 10 5 2 5 2 0 0 0 0 12 2 12 2 7 10 7 10 12 12 12 12 3z", StandardIcons.GlyphBrush),
-                new GeometryEntry("M3 8V12H9V8H3ZM8 11H4V9H8V11Z", StandardIcons.GlyphBrush),
-                new GeometryEntry("M3 0v4h6V0H3zM5 3h-1V1H5V3z", StandardIcons.GlyphBrush),
+                new GeometryEntry("M10 0 10 5 2 5 2 0 0 0 0 12 2 12 2 7 10 7 10 12 12 12 12 3z", BrushManager.Instance.CreateConstant(SKColors.DodgerBlue)),
+                new GeometryEntry("M3 8V12H9V8H3ZM8 11H4V9H8V11Z", StandardIcons.DisabledGlyphBrush),
+                new GeometryEntry("M3 0v4h6V0H3zM5 3h-1V1H5V3z", StandardIcons.DisabledGlyphBrush),
             ]);
 
-    // https://www.svgrepo.com/svg/368622/csv
     // https://www.svgrepo.com/svg/374198/xml
-    // CSV: M4.5.5V0H4v.5h.5Zm0 2H4V3h.5V2.5Zm2 0H7V2H6.5v.5Zm0 2V5H7v-.5H6.5Zm2-1H8v.2071l.1464.1464L8.5 3.5Zm1 1-.3536.3536.3536.3535.3536-.3535L9.5 4.5Zm1-1 .3536.3536L11 3.7071V3.5h-.5ZM.5.5V0H0v.5h.5Zm0 4H0V5h.5ZH0Zh10ZM7 0H4.5V1H7V0ZM4 .5v2H5v-2H4ZM4.5 3h2V2h-2V3ZM6 2.5v2H7v-2H6ZM6.5 4H4v1H6.5V4ZM8 0V3.5h1V0H8Zm.1464 3.8536 1 1 .7072-.7072-1-1-.7072.7071Zm1.7072 1 1-1-.7072-.7071-1 1 .7072.7072ZM11 3.5V0H10V3.5h1ZM3 0H.5V1H3V0ZM0 .5v4H1v-4H0ZM.5 5H3V4H.5v1Z
-    // XML: M12.89,3l2,.4L11.11,21l-2-.4L12.89,3m6.7,9L16,8.41V5.58L22.42,12,16,18.41V15.58L19.59,12m-18,0L8,5.58V8.41L4.41,12,8,15.58v2.83Z
-    // DIR: M11.7407 3.0144C11.397 2.4087 10.7462 2 10 2L8 2 6.2929.2929C6.1054.1054 5.851 0 5.5858 0L2 0C.8954 0 0 .8954 0 2L0 10C0 11.1046.8954 12 2 12L11 12C11.0024 12 11.0047 12 11.0071 12L11.6516 12C12.5554 12 13.3469 11.3939 13.5825 10.5213L14.9286 5.5357C15.2718 4.2646 14.3144 3.0144 12.9977 3.0144L11.7407 3.0144ZM3.3483 5.0144 2.0022 10 11.6516 10 12.9977 5.0144 3.3483 5.0144Z
-
-    public static readonly Icon OpenFileCSVIcon =
-        IconManager.Instance.RegisterGeometryIcon(
-            nameof(OpenFileCSVIcon),
-            [
-                new GeometryEntry("M8.5 4.5V4H8v.5h.5Zm0 2H8V7h.5V6.5Zm2 0H11V6H10.5v.5Zm0 2V9H11v-.5H10.5Zm2-1H12v.2071l.1464.1464L12.5 7.5Zm1 1-.3536.3536.3536.3535.3536-.3535L13.5 8.5Zm1-1 .3536.3536L15 7.7071V7.5h-.5ZM4.5 4.5V4H4v.5h.5Zm0 4H4V9h.5ZH4Zh10ZM11 4H8.5V5H11V4ZM8 4.5v2H9v-2H8ZM8.5 7h2V6h-2V7ZM10 6.5v2H11v-2H10ZM10.5 8H8v1H10.5V8ZM12 4V7.5h1V4H12Zm.1464 3.8536 1 1 .7072-.7072-1-1-.7072.7071Zm1.7072 1 1-1-.7072-.7071-1 1 .7072.7072ZM15 7.5V4H14V7.5h1ZM7 4H4.5V5H7V4ZM4 4.5v4H5v-4H4ZM4.5 9H7V8H4.5v1Z", BrushManager.Instance.CreateConstant(SKColors.LawnGreen)),
-            ]);
-
     public static readonly Icon OpenFileXMLIcon =
         IconManager.Instance.RegisterGeometryIcon(
             nameof(OpenFileXMLIcon),
             [
-                new GeometryEntry("M9.6675 2.25l1.5.3L8.3325 15.75l-1.5-.3L9.6675 2.25m5.025 6.75L12 6.3075V4.185L16.815 9 12 13.8075V11.685L14.6925 9m-13.5 0L6 4.185V6.3075L3.3075 9 6 11.685v2.1225Z", BrushManager.Instance.CreateConstant(SKColors.OrangeRed))
+                new GeometryEntry("M8.475 0l1.5.3L7.14 13.5l-1.5-.3L8.475 0m5.025 6.75L10.8075 4.0575V1.935L15.6225 6.75 10.8075 11.5575V9.435L13.5 6.75m-13.5 0L4.8075 1.935V4.0575L2.115 6.75 4.8075 9.435v2.1225Z", BrushManager.Instance.CreateConstant(SKColors.OrangeRed))
             ]);
 }
