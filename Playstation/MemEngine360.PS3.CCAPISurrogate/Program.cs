@@ -33,12 +33,16 @@ public class Program {
         if (!int.TryParse(args[0], out int port) || port < 0 || port > 65535)
             throw new Exception("Invalid port number: " + args[0]);
 
+        RunSingleClient(port);
+    }
+
+    private static void RunSharedServer(int port) {
         TcpListener server = new TcpListener(IPAddress.Loopback, port);
         server.Start(4);
 
         try {
             Console.WriteLine($"Running CCAPI surrogate at {IPAddress.Loopback} on port {port}");
-            
+
             while (true) {
                 TcpClient client = server.AcceptTcpClient();
                 Console.WriteLine($"Accepted client {client.Client}");
@@ -54,5 +58,30 @@ public class Program {
                 // ignored
             }
         }
+    }
+
+    private static void RunSingleClient(int port) {
+        TcpListener server = new TcpListener(IPAddress.Loopback, port);
+        server.Start(4);
+
+        TcpClient client;
+        try {
+            Console.WriteLine($"Running CCAPI surrogate at {IPAddress.Loopback} on port {port}");
+
+            client = server.AcceptTcpClient();
+        }
+        finally {
+            try {
+                server.Stop();
+            }
+            catch {
+                // ignored
+            }
+        }
+
+        Console.WriteLine($"Accepted client {client.Client}");
+
+        UnmanagedCCAPI lib = UnmanagedCCAPI.LoadLibrary("CCAPI.dll");
+        new RpcClient(client, new ApiHelper(lib)).Run();
     }
 }

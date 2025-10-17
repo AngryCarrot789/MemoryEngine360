@@ -34,16 +34,15 @@ namespace MemEngine360.PS3;
 public class PluginPS3 : Plugin {
     protected override void OnInitialize() {
         base.OnInitialize();
-        
+
         CommandManager.Instance.Register("commands.ps3ccapi.SetProcessToActiveGameCommand", new SetProcessToActiveGameCommand());
         CommandManager.Instance.Register("commands.ps3ccapi.SetProcessCommand", new SetProcessCommand());
         CommandManager.Instance.Register("commands.ps3ccapi.ListAllProcessesCommand", new ListAllProcessesCommand());
     }
 
     protected override async Task OnApplicationFullyLoaded() {
-#if DEBUG
-        ConsoleConnectionManager manager = ApplicationPFX.GetComponent<ConsoleConnectionManager>();
         if (OperatingSystem.IsWindows()) {
+            ConsoleConnectionManager manager = ApplicationPFX.GetComponent<ConsoleConnectionManager>();
             manager.Register(ConnectionTypePS3CCAPI.TheID, ConnectionTypePS3CCAPI.Instance);
             OpenConnectionView.Registry.RegisterType<ConnectToCCAPIInfo>(
                 () => {
@@ -53,10 +52,7 @@ public class PluginPS3 : Plugin {
 #pragma warning restore CA1416
                 });
         }
-        
-        manager.Register(ConnectionTypePS3MAPI.TheID, ConnectionTypePS3MAPI.Instance);
-#endif
-        
+
         MemoryEngineManager.Instance.ProvidePostConnectionActions += this.OnProvidePostConnectionActions;
     }
 

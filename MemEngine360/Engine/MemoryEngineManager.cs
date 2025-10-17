@@ -25,7 +25,7 @@ namespace MemEngine360.Engine;
 
 public delegate void MemoryEngineManagerEventHandler(MemoryEngineManager manager, MemoryEngine engineUI);
 
-public delegate void MemoryEngineManagerNotificationEventHandler(MemoryEngineManager manager, MemoryEngine engineUI, IConsoleConnection connection, Notification notification);
+public delegate void MemoryEngineManagerNotificationEventHandler(MemoryEngineManager manager, MemoryEngine engine, IConsoleConnection connection, Notification notification);
 
 /// <summary>
 /// Manages memory engine instances

@@ -43,6 +43,7 @@ public class SetProcessToActiveGameCommand : BaseMemoryEngineCommand {
         if (!(engine.Connection is ConsoleConnectionCCAPI api))
             return;
 
+        uint newPid;
         try {
             (uint pid, string? processName) = await api.FindGameProcessId();
             if (pid == 0) {
@@ -50,11 +51,13 @@ public class SetProcessToActiveGameCommand : BaseMemoryEngineCommand {
                 return;
             }
 
-            api.AttachedProcess = pid;
-            await IMessageDialogService.Instance.ShowMessage("Attached", $"Attached to 0x{pid:X8}{(processName != null ? $" (named \"{processName}\")" : "")}", defaultButton:MessageBoxResult.OK);
+            newPid = pid;
         }
         catch (Exception ex) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Error while trying to attach to process: " + ex.Message);
+            return;
         }
+        
+        api.AttachedProcess = newPid;
     }
 }

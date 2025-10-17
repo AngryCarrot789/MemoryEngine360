@@ -41,7 +41,7 @@ public sealed class RpcClient {
         this.Api = api;
     }
 
-    private void Run() {
+    public void Run() {
         byte[] packetBuffer = new byte[0x8000];
         bool exit = false;
 
