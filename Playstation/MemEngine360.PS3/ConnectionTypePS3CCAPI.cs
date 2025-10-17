@@ -18,6 +18,7 @@
 // 
 
 using System.Runtime.Versioning;
+using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.PS3.CC;
 using PFXToolKitUI;
@@ -58,6 +59,13 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
         yield return new CommandMenuEntry("commands.ps3ccapi.ListAllProcessesCommand", "List all processes");
     }
 
+    protected override string GetStatusBarTextCore(IConsoleConnection connection) {
+        ConsoleConnectionCCAPI conn = (ConsoleConnectionCCAPI) connection;
+        string text = base.GetStatusBarTextCore(connection);
+        text += $" - Attached PID 0x{conn.AttachedProcess:X8}";
+        return text;
+    }
+
     public override UserConnectionInfo? CreateConnectionInfo() {
         return new ConnectToCCAPIInfo();
     }
@@ -68,6 +76,10 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
             await IMessageDialogService.Instance.ShowMessage("Invalid IP", "IP address is invalid", icon: MessageBoxIcons.ErrorIcon);
             return null;
         }
+
+        // %appdata%/MemEngine360/Options/application.xml
+        BasicApplicationConfiguration.Instance.LastPS3HostName = info.IpAddress;
+        BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
 
         if (!File.Exists("CCAPI.dll")) {
             ITopLevel? topLevel = TopLevelContextUtils.GetTopLevelFromContext();

@@ -57,12 +57,7 @@ public class SetProcessCommand : BaseMemoryEngineCommand {
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
             return;
         }
-
-        try {
-            await api.AttachToProcess(NumberUtils.ParseHexOrRegular<uint>(info.Text));
-        }
-        catch (Exception ex) {
-            await IMessageDialogService.Instance.ShowMessage("Error", "Error while trying to attach to process: " + ex.Message);
-        }
+        
+        api.AttachedProcess = NumberUtils.ParseHexOrRegular<uint>(info.Text);
     }
 }

@@ -23,21 +23,15 @@
     </ItemGroup>
 
     <ItemGroup>
-      <None Remove="libs\ccapi-surrogate.pdb" />
-      <None Remove="libs\ccapi-surrogate.exe" />
-      <None Remove="libs\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <AvaloniaXaml Remove="libs\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Remove="libs\**" />
       <Compile Update="ProcessSelector\ProcessSelectorView.axaml.cs">
         <DependentUpon>ProcessSelectorView.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>
+      <Compile Remove="libs\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AvaloniaXaml Remove="libs\**" />
     </ItemGroup>
 
     <ItemGroup>
@@ -46,5 +40,13 @@
 
     <ItemGroup>
       <AdditionalFiles Remove="libs\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AvaloniaResource Remove="libs\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="libs\**" />
     </ItemGroup>
 </Project>

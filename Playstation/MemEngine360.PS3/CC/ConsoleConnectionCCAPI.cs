@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Net;
 using System.Runtime.Versioning;
 using MemEngine360.Connections;
 using PFXToolKitUI.Logging;
@@ -24,16 +25,34 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.PS3.CC;
 
+public delegate void ConsoleConnectionCCAPIEventHandler(ConsoleConnectionCCAPI sender);
+
 [SupportedOSPlatform("windows")]
-public class ConsoleConnectionCCAPI : BaseConsoleConnection {
+public class ConsoleConnectionCCAPI : BaseConsoleConnection, INetworkConsoleConnection {
     private readonly ConsoleControlAPI api;
-    
+    private uint attachedProcess = 0xFFFFFFFF;
+
     public override RegisteredConnectionType ConnectionType => ConnectionTypePS3CCAPI.Instance;
     
     public override bool IsLittleEndian => false;
 
     public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
 
+    /// <summary>
+    /// Gets or sets the process we use to read and write memory 
+    /// </summary>
+    public uint AttachedProcess {
+        get => this.attachedProcess;
+        set => PropertyHelper.SetAndRaiseINE(ref this.attachedProcess, value, this, static t => {
+            t.AttachedProcessChanged?.Invoke(t);
+            t.ConnectionType.RaiseConnectionStatusBarTextInvalidated(t);
+        });
+    }
+
+    public EndPoint? EndPoint => !this.IsClosed ? this.api.EndPoint : null;
+
+    public event ConsoleConnectionCCAPIEventHandler? AttachedProcessChanged;
+    
     public ConsoleConnectionCCAPI(ConsoleControlAPI api) {
         this.api = api;
         this.api.NativeFailure += this.ApiOnNativeFailure;
@@ -71,20 +90,11 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection {
     }
 
     protected override Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
-        return this.api.ReadMemory(address, dstBuffer, offset, count);
+        return this.api.ReadMemory(this.AttachedProcess, address, dstBuffer, offset, count);
     }
 
     protected override Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
-        return this.api.WriteMemory(address, srcBuffer, offset, count);
-    }
-    
-    /// <summary>
-    /// Sets the attached PID for reading and writing memory
-    /// </summary>
-    /// <param name="processId">The new PID</param>
-    /// <returns>The previous PID</returns>
-    public Task<uint> AttachToProcess(uint processId) {
-        return this.api.AttachToProcess(processId);
+        return this.api.WriteMemory(this.AttachedProcess, address, srcBuffer, offset, count);
     }
 
     /// <summary>
@@ -94,6 +104,7 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection {
     public Task<(uint, string?)> FindGameProcessId() {
         return this.api.FindGameProcessId();
     }
+    
     public Task<List<(uint, string?)>> GetAllProcesses() {
         return this.api.GetAllProcesses();
     }

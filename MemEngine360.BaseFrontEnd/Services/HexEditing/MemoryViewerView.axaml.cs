@@ -218,7 +218,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             }
             else {
                 MemoryViewer? info = this.HexDisplayInfo;
-                if (info == null) {
+                if (info == null || this.myBinarySource == null) {
                     this.UpdateAutoRefreshButtonsAndTextBoxes();
                     return;
                 }
@@ -700,7 +700,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                     return;
                 }
 
-                if (this.cbRange < 1 || this.control.myBinarySource != this.myDocument) {
+                if (this.cbRange < 1 || this.control.myBinarySource != this.myDocument || this.myDocument == null) {
                     return;
                 }
 
@@ -715,7 +715,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                             this.control.changeManager.ProcessChanges(this.startAddress, this.myBuffer, this.myBuffer.Length);
                         }
 
-                        this.control.myBinarySource!.WriteBytesToCache(this.startAddress, this.myBuffer);
+                        this.control.myBinarySource?.WriteBytesToCache(this.startAddress, this.myBuffer);
 
                         this.control.UpdateSelectionText();
                         this.control.UpdateCaretText();

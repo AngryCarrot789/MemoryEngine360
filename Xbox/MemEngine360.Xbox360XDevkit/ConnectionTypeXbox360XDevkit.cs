@@ -71,7 +71,7 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
         }
 
         // %appdata%/MemoryEngine360/Options/application.xml
-        BasicApplicationConfiguration.Instance.LastHostName = info.IpAddress;
+        BasicApplicationConfiguration.Instance.LastXboxHostName = info.IpAddress;
         BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
 
         Result<XboxConsole> result = await ActivityManager.Instance.RunTask(() => {

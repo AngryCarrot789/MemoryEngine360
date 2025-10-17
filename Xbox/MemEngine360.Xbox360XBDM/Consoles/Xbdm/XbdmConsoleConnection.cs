@@ -35,7 +35,7 @@ using ConsoleColor = MemEngine360.Connections.Features.ConsoleColor;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 
-public partial class XbdmConsoleConnection : BaseConsoleConnection {
+public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkConsoleConnection {
     private readonly struct ThreadedBinaryReadInfo(byte[] dstBuffer, int offset, int count, TaskCompletionSource completion, CancellationToken cancellation) {
         public readonly byte[] dstBuffer = dstBuffer;
         public readonly int offset = offset;

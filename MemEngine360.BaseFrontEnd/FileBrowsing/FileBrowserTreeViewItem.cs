@@ -249,21 +249,5 @@ public static class AddressTableContextRegistry {
         modGeneric.AddCommand("commands.memengine.MoveFileCommand", "Move...", "Open a dialog to specify a new path");
         modGeneric.AddSeparator();
         modGeneric.AddCommand("commands.memengine.DeleteFilesCommand", "Delete", "Deletes the selected items(s)");
-        // modEdit.AddHeader("Modify");
-        // modEdit.AddCommand("commands.memengine.EditSavedAddressAddressCommand", "Edit Address");
-        // modEdit.AddCommand("commands.memengine.EditSavedAddressValueCommand", "Edit Value");
-        // modEdit.AddCommand("commands.memengine.EditSavedAddressDataTypeCommand", "Edit Data Type");
-        // modEdit.AddCommand("commands.memengine.EditSavedAddressDescriptionCommand", "Edit Description");
-        // modGeneric.AddHeader("General");
-        // modGeneric.AddCommand("commands.memengine.CopyAddressToClipboardCommand", "Copy Address");
-        // modGeneric.AddCommand("commands.memengine.CopyAbsoluteAddressToClipboardCommand", "Copy Absolute Address");
-        // modGeneric.AddCommand("commands.memengine.CopySavedAddressValuesToClipboardCommand", "Copy Value");
-        // modGeneric.AddCommand("commands.memengine.RefreshSavedAddressesCommand", "Refresh");
-        // modGeneric.AddCommand("commands.meengine.ToggleSavedAddressAutoRefreshCommand", "Toggle Enabled");
-        // modGeneric.AddSeparator();
-        // modGeneric.AddCommand("commands.memengine.GroupEntriesCommand", "Group");
-        // modGeneric.AddCommand("commands.memengine.DuplicateSelectedSavedAddressesCommand", "Duplicate");
-        // modGeneric.AddSeparator();
-        // modGeneric.AddCommand("commands.memengine.DeleteSelectedSavedAddressesCommand", "Delete");
     }
 }

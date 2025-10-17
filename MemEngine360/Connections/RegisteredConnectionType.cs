@@ -27,6 +27,8 @@ using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Connections;
 
+public delegate void ConnectionStatusBarTextInvalidatedEventHandler(IConsoleConnection connection);
+
 /// <summary>
 /// Provides information about a specific type of connection to a console. For example, XBDM commands
 /// and XDevkit COM objects are two different connection types (despite the fact XDevkit uses XBDM commands under the hood)
@@ -74,7 +76,7 @@ public abstract class RegisteredConnectionType {
     /// could also use a crossed out icon to represent a specific unsupported platform
     /// </summary>
     public virtual IEnumerable<PlatformIconInfo> PlatformIcons => Enumerable.Empty<PlatformIconInfo>();
-
+    
     /// <summary>
     /// Returns true when connections returned by <see cref="OpenConnection"/> implement <see cref="MemEngine360.Connections.Features.IFeatureSystemEvents"/>
     /// </summary>
@@ -85,6 +87,11 @@ public abstract class RegisteredConnectionType {
     // /// Gets whether this connection type 
     // /// </summary>
     // public virtual bool HasConnectionLimit => false;
+    
+    /// <summary>
+    /// An event fired when the result of <see cref="GetStatusBarText"/> will have changed for a specific connection
+    /// </summary>
+    public event ConnectionStatusBarTextInvalidatedEventHandler? StatusBarTextInvalidated;
 
     protected RegisteredConnectionType() {
     }
@@ -165,6 +172,15 @@ public abstract class RegisteredConnectionType {
         else {
             return "Connected";
         }
+    }
+
+    public void RaiseConnectionStatusBarTextInvalidated(IConsoleConnection connection) {
+        ArgumentNullException.ThrowIfNull(connection);
+        if (!ReferenceEquals(connection.ConnectionType, this)) {
+            throw new InvalidOperationException("Invalid connection type");
+        }
+        
+        this.StatusBarTextInvalidated?.Invoke(connection);
     }
 
     /// <summary>

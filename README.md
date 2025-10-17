@@ -24,9 +24,6 @@ The current version is v1.1.8-dev. Dev builds most definitely have bugs.
 # How to use
 Visit the wiki at https://github.com/AngryCarrot789/MemoryEngine360/wiki to see the quick start guide, as well as docs for developers that wish to improve MemoryEngine360.
 
-# PS3
-`CCAPI.dll` is not shared in this project, so you must download it yourself. However, when connecting via `CCAPI` in the Open Connection window, it will open a link to **enstoneworld.com** and download the latest supported version, and then prompt you to specify the location of the .rar file. It will then be automatically unzipped and `CCAPI.dll` will be placed in the same folder as `MemoryEngine360.exe`
-
 # Contributions
 are most welcome! Even just general tips and advice on how the UI can be improved or made more productive are helpful.
 

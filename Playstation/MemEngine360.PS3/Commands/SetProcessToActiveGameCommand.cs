@@ -50,7 +50,7 @@ public class SetProcessToActiveGameCommand : BaseMemoryEngineCommand {
                 return;
             }
 
-            await api.AttachToProcess(pid);
+            api.AttachedProcess = pid;
             await IMessageDialogService.Instance.ShowMessage("Attached", $"Attached to 0x{pid:X8}{(processName != null ? $" (named \"{processName}\")" : "")}", defaultButton:MessageBoxResult.OK);
         }
         catch (Exception ex) {

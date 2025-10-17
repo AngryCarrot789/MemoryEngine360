@@ -30,12 +30,18 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
             defaultValue: "Dark",
             owner => owner.defaultTheme, (x, y) => x.defaultTheme = y, true);
 
-    public static readonly PersistentProperty<string> LastHostNameProperty =
+    public static readonly PersistentProperty<string> LastXboxHostNameProperty =
         PersistentProperty.RegisterString<BasicApplicationConfiguration>(
-            "LastHostName",
+            "LastXboxHostName",
             defaultValue: "",
-            owner => owner.lastHostName, (x, y) => x.lastHostName = y, false);
-    
+            owner => owner.lastXboxHostName, (x, y) => x.lastXboxHostName = y, false);
+
+    public static readonly PersistentProperty<string> LastPS3HostNameProperty =
+        PersistentProperty.RegisterString<BasicApplicationConfiguration>(
+            "LastPS3HostName",
+            defaultValue: "",
+            owner => owner.lastPS3HostName, (x, y) => x.lastPS3HostName = y, false);
+
     public static readonly PersistentProperty<string> LastConnectionTypeUsedProperty =
         PersistentProperty.RegisterString<BasicApplicationConfiguration>(
             "LastConnectionTypeUsed",
@@ -135,7 +141,8 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public static BasicApplicationConfiguration Instance => ApplicationPFX.Instance.PersistentStorageManager.GetConfiguration<BasicApplicationConfiguration>();
 
     private string defaultTheme = DefaultThemeProperty.DefaultValue;
-    private string lastHostName = LastHostNameProperty.DefaultValue;
+    private string lastXboxHostName = LastXboxHostNameProperty.DefaultValue;
+    private string lastPS3HostName = LastPS3HostNameProperty.DefaultValue;
     private string lastConnectionTypeUsed = LastConnectionTypeUsedProperty.DefaultValue;
     private uint startAddr = StartAddressProperty.DefaultValue;
     private uint scanLength = ScanLengthProperty.DefaultValue;
@@ -156,9 +163,17 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     /// <summary>
     /// Gets or sets the last host name that was entered when connecting to an xbox 360. This is just a convenience feature
     /// </summary>
-    public string LastHostName {
-        get => LastHostNameProperty.GetValue(this);
-        set => LastHostNameProperty.SetValue(this, value);
+    public string LastXboxHostName {
+        get => LastXboxHostNameProperty.GetValue(this);
+        set => LastXboxHostNameProperty.SetValue(this, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the last host name that was entered when connecting to a PS3
+    /// </summary>
+    public string LastPS3HostName {
+        get => LastPS3HostNameProperty.GetValue(this);
+        set => LastPS3HostNameProperty.SetValue(this, value);
     }
     
     /// <summary>

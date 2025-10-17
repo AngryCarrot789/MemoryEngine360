@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using System.Runtime.Versioning;
+using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.PS3.CC;
 using PFXToolKitUI.Activities;
@@ -52,6 +53,13 @@ public class ConnectToCCAPIInfo : UserConnectionInfo {
     
 
     public ConnectToCCAPIInfo() : base(ConnectionTypePS3CCAPI.Instance) {
+        // Try get last entered IP address. Helps with debugging and user experience ;)
+        string lastIp = BasicApplicationConfiguration.Instance.LastPS3HostName;
+        if (string.IsNullOrWhiteSpace(lastIp)) {
+            lastIp = "192.168.1.";
+        }
+
+        this.IpAddress = lastIp;
     }
 
     protected override void OnShown() {
@@ -68,7 +76,7 @@ public class ConnectToCCAPIInfo : UserConnectionInfo {
     }
 
     public static async Task<bool> TryDownloadCCApi(ITopLevel? topLevel, bool inNewActivity, CancellationToken cancellation) {
-        const string ManualInstructionText = "Please download it from enstoneworld.com, then place CCAPI.dll into the same folder as MemoryEngine360.exe";
+        const string ManualInstructionText = "Please download CCAPI 2.80 REV13 (dev) from enstoneworld.com, then place CCAPI.dll into the same folder as MemoryEngine360.exe";
         if (File.Exists("CCAPI.dll")) {
             return true; // already exits
         }

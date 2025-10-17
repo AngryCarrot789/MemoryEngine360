@@ -61,16 +61,6 @@ using PFXToolKitUI.Utils.Commands;
 namespace MemEngine360.Avalonia;
 
 public partial class EngineView : UserControl {
-    private readonly IBinder<MemoryEngine> connectedHostNameBinder =
-        new EventUpdateBinder<MemoryEngine>(
-            nameof(MemoryEngine.ConnectionChanged),
-            (b) => {
-                // TODO: Maybe implement a custom control that represents the connection state?
-                // I don't see any point in doing it though, since what would it present except text?
-                string text = b.Model.Connection != null ? b.Model.Connection.ConnectionType.GetStatusBarText(b.Model.Connection) : "Disconnected";
-                b.Control.SetValue(TextBlock.TextProperty, text);
-            } /* UI changes do not reflect back into models, so no updateModel */);
-
     private readonly IBinder<ScanningProcessor> isScanningBinder =
         new EventUpdateBinder<ScanningProcessor>(
             nameof(ScanningProcessor.IsScanningChanged),
@@ -362,10 +352,9 @@ public partial class EngineView : UserControl {
         MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(this.MemoryEngine);
         vs.RequestWindowFocus += this.OnRequestWindowFocus;
         vs.RequestFocusOnSavedAddress += this.OnRequestFocusOnSavedAddress;
-        vs.IsActivityListVisibleChanged += OnIsActivityListVisibleChanged;
+        vs.IsActivityListVisibleChanged += this.OnIsActivityListVisibleChanged;
 
         ScanningProcessor processor = this.MemoryEngine.ScanningProcessor;
-        this.connectedHostNameBinder.Attach(this.PART_ConnectedHostName, this.MemoryEngine);
         this.isScanningBinder.Attach(this, processor);
         this.scanAddressBinder.Attach(this.PART_ScanOption_StartAddress, processor);
         this.scanLengthBinder.Attach(this.PART_ScanOption_Length, processor);
@@ -373,6 +362,7 @@ public partial class EngineView : UserControl {
         this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, processor);
         // this.forceLEBinder.Attach(this.PART_ForcedEndianness, this.MemoryEngine);
         this.scanMemoryPagesBinder.Attach(this.PART_ScanOption_ScanMemoryPages, processor);
+        this.UpdateStatusBarConnectionText(this.MemoryEngine.Connection);
         this.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;
 
         this.themeListHandler = ObservableItemProcessor.MakeIndexable(ThemeManager.Instance.Themes, (sender, index, item) => {
@@ -416,6 +406,11 @@ public partial class EngineView : UserControl {
             this.titleBarToMenuBackgroundBrushHandler.Brush = this.myOwnerWindow_onLoaded.TitleBarBrush;
         }
     }
+    
+    private void UpdateStatusBarConnectionText(IConsoleConnection? console) {
+        string text = console != null ? console.ConnectionType.GetStatusBarText(console) : "Disconnected";
+        this.PART_ConnectedHostName.SetValue(TextBlock.TextProperty, text);
+    }
 
     private void OnIsActivityListVisibleChanged(MemoryEngineViewState sender) {
         if (this.PART_ActivityListPanel.IsVisible != sender.IsActivityListVisible) {
@@ -449,7 +444,6 @@ public partial class EngineView : UserControl {
         this.themeListHandler?.Dispose();
         this.themeListHandler = null;
 
-        this.connectedHostNameBinder.Detach();
         this.isScanningBinder.Detach();
         this.scanAddressBinder.Detach();
         this.scanLengthBinder.Detach();
@@ -560,7 +554,12 @@ public partial class EngineView : UserControl {
                                             Set(ITopLevel.TopLevelDataKey, this.myOwnerWindow_onLoaded)
         };
 
+        if (oldConn != null)
+            oldConn.ConnectionType.StatusBarTextInvalidated -= this.TypeOnStatusBarTextInvalidated;
+        
         if (newConn != null) {
+            newConn.ConnectionType.StatusBarTextInvalidated += this.TypeOnStatusBarTextInvalidated;
+            
             notification.Caption = "Connected";
             notification.Text = $"Connected to '{newConn.ConnectionType.DisplayName}'";
             notification.Actions.Clear();
@@ -659,6 +658,14 @@ public partial class EngineView : UserControl {
 
                 notification.Show(NotificationManager.GetInstance(this.MemoryEngine));
             }
+        }
+
+        this.UpdateStatusBarConnectionText(newConn);
+    }
+
+    private void TypeOnStatusBarTextInvalidated(IConsoleConnection connection) {
+        if (connection == this.MemoryEngine.Connection) {
+            this.UpdateStatusBarConnectionText(connection);
         }
     }
 

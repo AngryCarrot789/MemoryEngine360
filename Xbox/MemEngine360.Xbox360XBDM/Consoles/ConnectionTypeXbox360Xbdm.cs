@@ -94,7 +94,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
         bool isOpeningFromNormalDialog = IOpenConnectionView.IsConnectingFromViewDataKey.TryGetContext(additionalContext, out bool isFromView) && isFromView;
 
         // %appdata%/MemEngine360/Options/application.xml
-        BasicApplicationConfiguration.Instance.LastHostName = info.IpAddress;
+        BasicApplicationConfiguration.Instance.LastXboxHostName = info.IpAddress;
         BasicApplicationConfiguration.Instance.StorageManager.SaveArea(BasicApplicationConfiguration.Instance);
 
         ActivityTask<XbdmConsoleConnection> activity = ActivityManager.Instance.RunTask(async () => {

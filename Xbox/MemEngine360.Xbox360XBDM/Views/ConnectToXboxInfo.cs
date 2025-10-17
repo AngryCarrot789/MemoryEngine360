@@ -45,7 +45,7 @@ public class ConnectToXboxInfo : UserConnectionInfo {
 
     public ConnectToXboxInfo() : base(ConnectionTypeXbox360Xbdm.Instance) {
         // Try get last entered IP address. Helps with debugging and user experience ;)
-        string lastIp = BasicApplicationConfiguration.Instance.LastHostName;
+        string lastIp = BasicApplicationConfiguration.Instance.LastXboxHostName;
         if (string.IsNullOrWhiteSpace(lastIp)) {
             lastIp = "192.168.1.";
         }

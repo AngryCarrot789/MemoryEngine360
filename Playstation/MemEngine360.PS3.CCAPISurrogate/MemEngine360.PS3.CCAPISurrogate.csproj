@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>ccapi_surrogate</AssemblyName>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <PlatformTarget>x86</PlatformTarget>
+        <Prefer32bit>true</Prefer32bit>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <PlatformTarget>x86</PlatformTarget>
+        <Prefer32bit>true</Prefer32bit>
+    </PropertyGroup>
+
+    <Target Name="CopyExe" AfterTargets="Build">
+        <ItemGroup>
+            <BuiltExe Include="$(OutputPath)$(TargetName).exe"/>
+        </ItemGroup>
+        <Copy SourceFiles="@(BuiltExe)" DestinationFolder="$(SolutionDir)Playstation\MemEngine360.PS3\libs\" SkipUnchangedFiles="true"/>
+    </Target>
+    <Target Name="CopyDll" AfterTargets="Build">
+        <ItemGroup>
+            <BuiltDll Include="$(OutputPath)$(TargetName).dll"/>
+        </ItemGroup>
+        <Copy SourceFiles="@(BuiltDll)" DestinationFolder="$(SolutionDir)Playstation\MemEngine360.PS3\libs\" SkipUnchangedFiles="true"/>
+    </Target>
+    <Target Name="CopyRTCFG" AfterTargets="Build">
+        <ItemGroup>
+            <BuiltRTCFG Include="$(OutputPath)$(TargetName).runtimeconfig.json"/>
+        </ItemGroup>
+        <Copy SourceFiles="@(BuiltRTCFG)" DestinationFolder="$(SolutionDir)Playstation\MemEngine360.PS3\libs\" SkipUnchangedFiles="true"/>
+    </Target>
+</Project>

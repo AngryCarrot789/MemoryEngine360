@@ -17,10 +17,13 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Buffers;
 using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
 using PFXToolKitUI.Utils;
@@ -39,13 +42,9 @@ public class ConsoleControlAPI : IDisposable {
      * itself, and implements an RPC protocol for calling them and receiving results.
      *
      * Protocol (send to process):
-     *   [uint16]  CommandID
-     *   [uint16]  CB_Packet_Data
-     *   [byte...] PacketData
-     *
-     * Protocol (receive from process)
-     *   [uint16]  Number of return values
-     *   [byte...] Raw data of return values
+     *   int    CommandID
+     *   int    Packed Data Length
+     *   byte[] Packet Data
      *
      * When sending data to the process, the max number of bytes is ushort.MaxValue (65535).
      * Buffers are prefixed with a ushort length
@@ -73,6 +72,8 @@ public class ConsoleControlAPI : IDisposable {
     /// become invalid and require disposing. <see cref="FailureException"/> will be non-null at this point.
     /// </summary>
     public event EventHandler? NativeFailure;
+
+    public EndPoint? EndPoint => this.client?.Client.RemoteEndPoint;
 
     private ConsoleControlAPI(Process process, TcpClient client) {
         this.process = process;
@@ -150,11 +151,11 @@ public class ConsoleControlAPI : IDisposable {
             throw new ArgumentOutOfRangeException(nameof(port), port, "Port must be between 0 and 65535");
 
         Process process = new Process() {
-            StartInfo = new ProcessStartInfo("ccapi-surrogate.exe") {
+            StartInfo = new ProcessStartInfo("ccapi_surrogate.exe") {
                 ArgumentList = {
                     port.ToString()
                 },
-                CreateNoWindow = true,// !Debugger.IsAttached, // create window when debugging
+                CreateNoWindow = true, // !Debugger.IsAttached, // create window when debugging
                 // UseShellExecute = true
             }
         };
@@ -168,11 +169,11 @@ public class ConsoleControlAPI : IDisposable {
             throw;
         }
         catch (Exception e) {
-            throw new Exception("Failed to start ccapi-surrogate.exe process", e);
+            throw new Exception("Failed to start ccapi_surrogate.exe process", e);
         }
 
         if (!hasStarted.HasValue || !hasStarted.Value) {
-            throw new Exception("Failed to start ccapi-surrogate.exe process");
+            throw new Exception("Failed to start ccapi_surrogate.exe process");
         }
 
         TcpClient client = new TcpClient() {
@@ -200,9 +201,6 @@ public class ConsoleControlAPI : IDisposable {
         ConsoleControlAPI api = new ConsoleControlAPI(process, client);
         try {
             await api.SelfTest(cancellationToken);
-            if (!await api.Init(cancellationToken)) {
-                throw new Exception("Failed to init console control api. Is the DLL available?");
-            }
         }
         catch (Exception e) {
             try {
@@ -223,51 +221,33 @@ public class ConsoleControlAPI : IDisposable {
         return api;
     }
 
-    private Task<bool> Init(CancellationToken cancellationToken) {
-        return this.RunThreadActionLater(_ => {
-            this.WritePacket(1, Span<byte>.Empty);
-            int argc = this.stream!.ReadByte();
-            if (argc != 1) {
-                throw new Exception("Invalid response to command1. Expected 1 arg, got " + argc);
-            }
-
-            return this.stream!.ReadByte() == 1;
-        }, cancellationToken);
-    }
-
     private Task SelfTest(CancellationToken cancellationToken = default) {
         return this.RunThreadActionLater(_ => {
             const string TestText = "hello!!!";
-            using (MemoryStream dataStream = new MemoryStream()) {
-                using BinaryWriter writer = new BinaryWriter(dataStream);
-                writer.Write((ushort) TestText.Length);
-                foreach (char ch in TestText) {
-                    writer.Write((byte) ch);
-                }
+            byte[] textBuffer = Encoding.UTF8.GetBytes(TestText);
+            byte[] fullBuffer = new byte[4 + textBuffer.Length];
+            Unsafe.As<byte, int>(ref fullBuffer[0]) = textBuffer.Length;
+            textBuffer.AsSpan().CopyTo(fullBuffer.AsSpan(4));
+            this.WritePacket(19, fullBuffer);
 
-                this.WritePacket(3, dataStream.ToArray());
+            int argc = this.ReadFromNetwork<byte>();
+            if (argc != 3 /* vars count */) {
+                throw new Exception("Self-test failed. Expected 3 args, got " + argc);
             }
 
-            using (BinaryReader reader = new BinaryReader(this.stream!, Encoding.UTF8, leaveOpen: true)) {
-                int argc = reader.ReadByte();
-                if (argc != 3 /* vars count */) {
-                    throw new Exception("Self-test failed. Expected 3 args, got " + argc);
-                }
+            string text = this.ReadTaggedString();
+            if (text != TestText) {
+                throw new Exception($"Self-test failed. Expected string to be '{TestText}', got '{text}' instead");
+            }
 
-                string text = ReadStringWithTag(reader);
-                if (text != TestText) {
-                    throw new Exception($"Self-test failed. Expected string to be '{TestText}', got '{text}' instead");
-                }
+            string string2 = this.ReadTaggedString();
+            if (string2 != "This is param 1!!!") {
+                throw new Exception($"Self-test failed. Expected next string to be 'This is param 1!!!', got '{text}' instead");
+            }
 
-                string string2 = ReadStringWithTag(reader);
-                if (string2 != "This is param 1!!!") {
-                    throw new Exception($"Self-test failed. Expected next string to be 'This is param 1!!!', got '{text}' instead");
-                }
-
-                int nextInt = reader.ReadInt32();
-                if (nextInt != 1234567) {
-                    throw new Exception($"Self-test failed. Expected next int to be '1234567', got '{nextInt}' instead");
-                }
+            int nextInt = this.ReadFromNetwork<int>();
+            if (nextInt != 1234567) {
+                throw new Exception($"Self-test failed. Expected next int to be '1234567', got '{nextInt}' instead");
             }
         }, cancellationToken);
     }
@@ -279,24 +259,15 @@ public class ConsoleControlAPI : IDisposable {
         return this.RunThreadActionLater(_ => {
             using (MemoryStream memory = new MemoryStream()) {
                 using BinaryWriter writer = new BinaryWriter(memory);
-                writer.Write((ushort) ipAddress.Length);
+                writer.Write(ipAddress.Length);
                 foreach (char ch in ipAddress) {
                     writer.Write((byte) ch);
                 }
 
-                this.WritePacket(4, memory.ToArray());
+                this.WritePacket(1, memory.ToArray());
             }
 
-            int argc = this.stream!.ReadByte();
-            if (argc != 1) {
-                throw new Exception("Invalid response to command4. Expected 1 arg, got " + argc);
-            }
-
-            Span<byte> buffer = stackalloc byte[4];
-            this.ReadFully(buffer);
-
-            int ccapiResult = Unsafe.As<byte, int>(ref buffer[0]);
-            return ccapiResult == 0;
+            return this.stream!.ReadByte() == 1;
         });
     }
 
@@ -304,7 +275,7 @@ public class ConsoleControlAPI : IDisposable {
     /// Try disconnect from the currently connected PS3
     /// </summary>
     public bool DisconnectFromConsole(bool doNotReadResult) {
-        this.WritePacket(5, Span<byte>.Empty);
+        this.WritePacket(2, Span<byte>.Empty);
 
         if (!doNotReadResult) {
             int argc = this.stream!.ReadByte();
@@ -313,7 +284,7 @@ public class ConsoleControlAPI : IDisposable {
             }
 
             Span<byte> buffer = stackalloc byte[4];
-            this.ReadFully(buffer);
+            this.ReadFullyFromNetwork(buffer);
 
             int ccapiResult = Unsafe.As<byte, int>(ref buffer[0]);
             return ccapiResult == 0;
@@ -323,74 +294,37 @@ public class ConsoleControlAPI : IDisposable {
     }
 
     /// <summary>
-    /// Sets the attached PID for reading and writing memory
-    /// </summary>
-    /// <param name="processId">The new PID</param>
-    /// <returns>The previous PID</returns>
-    public Task<uint> AttachToProcess(uint processId) {
-        return this.RunThreadActionLater(_ => {
-            Span<byte> buffer4 = stackalloc byte[4];
-            Unsafe.As<byte, uint>(ref buffer4[0]) = processId;
-            this.WritePacket(22, buffer4);
-
-            int argc = this.stream!.ReadByte();
-            if (argc != 1) {
-                throw new Exception("Invalid response to command22. Expected 1 arg, got " + argc);
-            }
-
-            this.ReadFully(buffer4);
-            return Unsafe.As<byte, uint>(ref buffer4[0]);
-        });
-    }
-
-    /// <summary>
     /// Finds the active game PID
     /// </summary>
     /// <returns>The PID, or zero, if no game is running</returns>
-    public Task<(uint, string?)> FindGameProcessId() {
-        return this.RunThreadActionLater(_ => {
-            this.WritePacket(23, Span<byte>.Empty);
-
-            int argc = this.stream!.ReadByte();
-            if (argc != 1 && argc != 2) {
-                throw new Exception("Invalid response to command23. Expected 1 or 2 args, got " + argc);
+    public async Task<(uint, string?)> FindGameProcessId() {
+        List<(uint, string?)> result = await this.GetAllProcesses();
+        foreach ((uint pid, string? name) proc in result) {
+            if (proc.name != null && !proc.name.Contains("dev_flash")) {
+                return proc;
             }
+        }
 
-            Span<byte> buffer4 = stackalloc byte[4];
-            this.ReadFully(buffer4);
-            
-            string? processName = null;
-            if (argc == 2) {
-                Span<byte> lenSpan = stackalloc byte[4];
-                this.ReadFully(lenSpan);
-
-                int length = Unsafe.As<byte, int>(ref lenSpan[0]);
-                byte[] asciiBuffer = new byte[length];
-                this.ReadFully(asciiBuffer, 0, length);
-                processName = Encoding.ASCII.GetString(asciiBuffer);
-            }
-
-            return (Unsafe.As<byte, uint>(ref buffer4[0]), processName);
-        });
+        return default;
     }
-    
+
     public Task<List<(uint, string?)>> GetAllProcesses() {
         return this.RunThreadActionLater(_ => {
-            this.WritePacket(24, Span<byte>.Empty);
+            this.WritePacket(8, Span<byte>.Empty);
 
-            int cbRead;
             List<(uint, string?)> list = new List<(uint, string?)>();
+            int length = this.ReadFromNetwork<ushort>();
+
             Span<byte> buffer8 = stackalloc byte[8];
-            int argc = this.stream!.ReadByte();
-            for (int i = 0; i < argc; i++) {
-                this.ReadFully(buffer8);
-                
+            for (int i = 0; i < length; i++) {
+                this.ReadFullyFromNetwork(buffer8);
+
                 string? processName;
                 uint pid = Unsafe.As<byte, uint>(ref buffer8[0]);
                 int nameLength = Unsafe.As<byte, int>(ref buffer8[4]);
                 if (nameLength > 0) {
                     byte[] asciiBuffer = new byte[nameLength];
-                    this.ReadFully(asciiBuffer, 0, nameLength);
+                    this.ReadFullyFromNetwork(asciiBuffer, 0, nameLength);
                     processName = Encoding.ASCII.GetString(asciiBuffer);
                 }
                 else {
@@ -404,38 +338,32 @@ public class ConsoleControlAPI : IDisposable {
         });
     }
 
-    public Task ReadMemory(uint address, byte[] dstBuffer, int offset, int count) {
+    public Task ReadMemory(uint pid, uint address, byte[] dstBuffer, int offset, int count) {
         if (count < 0)
             return Task.FromException(new ArgumentOutOfRangeException(nameof(count), "Could cannot be negative"));
 
         return this.RunThreadActionLater(_ => {
-            Span<byte> sendBuffer = stackalloc byte[8];
-            Unsafe.As<byte, uint>(ref sendBuffer[0]) = address;
-            Unsafe.As<byte, uint>(ref sendBuffer[4]) = (uint) count;
-            this.WritePacket(10, sendBuffer.ToArray());
-
-            int argc = this.stream!.ReadByte();
-            if (argc != 1) {
-                throw new Exception("Invalid response to command10. Expected 1 arg, got " + argc);
-            }
+            Span<byte> sendBuffer = stackalloc byte[sizeof(uint) + sizeof(ulong) + sizeof(uint)];
+            Unsafe.As<byte, uint>(ref sendBuffer[0]) = pid;
+            Unsafe.As<byte, ulong>(ref sendBuffer[4]) = address;
+            Unsafe.As<byte, uint>(ref sendBuffer[12]) = (uint) count;
+            this.WritePacket(7, sendBuffer.ToArray());
 
             Span<byte> headerBuffer = stackalloc byte[2];
             int totalRead = 0;
             do {
-                this.ReadFully(headerBuffer);
+                this.ReadFullyFromNetwork(headerBuffer);
                 int header = Unsafe.As<byte, ushort>(ref headerBuffer[0]);
                 int chunkSize = header & 0x7FFF;
                 if ((header & 0x8000) != 0) { // CCAPI error. Rather than throw error and close connection, just clear the rest of the buffer of junk.
                     dstBuffer.AsSpan(offset + totalRead, count - totalRead).Clear();
                     return;
                 }
-                
+
                 if (count < chunkSize)
                     throw new IOException("Received more bytes than expected or invalid data");
-                
-                if (chunkSize > 0) {
-                    this.ReadFully(dstBuffer, offset + totalRead, chunkSize);
-                }
+                if (chunkSize > 0)
+                    this.ReadFullyFromNetwork(dstBuffer, offset + totalRead, chunkSize);
 
                 totalRead += chunkSize;
                 count -= chunkSize;
@@ -443,44 +371,7 @@ public class ConsoleControlAPI : IDisposable {
         });
     }
 
-    private void ReadFully(Span<byte> span) {
-        NetworkStream s = this.stream ?? throw new Exception("Stream closed");
-        int remaining = span.Length;
-        while (remaining > 0) {
-            int read = s.Read(span);
-            if (read == 0) {
-                // TODO: better timeout, also why won't NetworkStream's timeout work >:(
-                Thread.Sleep(1);
-                if ((read = s.Read(span)) == 0) {
-                    throw new TimeoutException("Timed out reading data");
-                }
-            }
-            
-            if (read > 0) {
-                remaining -= read;
-                span = span.Slice(read, span.Length - read);
-            }
-        }
-    }
-    
-    private void ReadFully(byte[] buffer, int offset, int count) {
-        NetworkStream s = this.stream ?? throw new Exception("Stream closed");
-        int total = 0;
-        while ((count - total) > 0) {
-            int read = s.Read(buffer, offset + total, count - total);
-            if (read == 0) {
-                // TODO: better timeout, also why won't NetworkStream's timeout work >:(
-                Thread.Sleep(1);
-                if ((read = s.Read(buffer, offset + total, count - total)) == 0) {
-                    throw new TimeoutException("Timed out reading data");
-                }
-            }
-            
-            total += read;
-        }
-    }
-
-    public Task WriteMemory(uint address, byte[] srcBuffer, int offset, int count) {
+    public Task WriteMemory(uint pid, uint address, byte[] srcBuffer, int offset, int count) {
         if (count < 0)
             return Task.FromException(new ArgumentOutOfRangeException(nameof(count), "Could cannot be negative"));
         if ((address + (uint) count) < address)
@@ -488,29 +379,68 @@ public class ConsoleControlAPI : IDisposable {
         // CBA to check OOB for srcBuffer, caller should do it themselves :--)
 
         return this.RunThreadActionLater(_ => {
-            Span<byte> buff4 = stackalloc byte[4];
-            while (count > 0) {
-                int cbToWrite = Math.Min(count, 65532 /* 64K - sizeof(address) */);
-                Unsafe.As<byte, uint>(ref buff4[0]) = address;
-                this.WritePacket(9, buff4, srcBuffer.AsSpan(offset, cbToWrite));
+            Span<byte> header = stackalloc byte[sizeof(uint) + sizeof(ulong)];
+            for (uint remaining = (uint) count; remaining > 0;) {
+                uint cbToWrite = Math.Min(remaining, 65528);
+                Unsafe.As<byte, uint>(ref header[0]) = pid;
+                Unsafe.As<byte, ulong>(ref header[4]) = address;
+                this.WritePacket(6, header, srcBuffer.AsSpan(offset, (int) cbToWrite));
 
-                int argc = this.stream!.ReadByte();
-                if (argc != 1) {
-                    throw new Exception("Invalid response to command9. Expected 1 arg, got " + argc);
+                int ack = this.stream!.ReadByte();
+                if (ack != 1) {
+                    throw new Exception("Invalid acknowledgement from write memory command");
                 }
 
-                this.ReadFully(buff4);
-                if (Unsafe.As<byte, uint>(ref buff4[0]) != 0)
-                    throw new Exception("CCAPI error");
-
-                offset += cbToWrite;
-                address += (uint) cbToWrite;
-                count -= cbToWrite;
+                offset += (int) cbToWrite;
+                address += cbToWrite;
+                remaining -= cbToWrite;
             }
         });
     }
 
+
     #region Networking utils
+
+    private void WriteToNetwork(ReadOnlySpan<byte> buffer) {
+        this.stream!.Write(buffer);
+    }
+
+    private void WriteToNetwork<T>(T value) where T : unmanaged {
+        Span<byte> span = MemoryMarshal.CreateSpan(ref Unsafe.As<T, byte>(ref value), Unsafe.SizeOf<T>());
+        this.WriteToNetwork(span);
+    }
+
+    private void WriteToNetworkTagged(ReadOnlySpan<byte> buffer) {
+        int length = buffer.Length;
+        this.stream!.Write(MemoryMarshal.CreateSpan(ref Unsafe.As<int, byte>(ref length), sizeof(int)));
+        this.stream!.Write(buffer);
+    }
+
+    private void WriteToNetworkTagged(string? text) {
+        this.WriteToNetworkTagged(!string.IsNullOrEmpty(text) ? Encoding.UTF8.GetBytes(text) : ReadOnlySpan<byte>.Empty);
+    }
+
+    private T ReadFromNetwork<T>() where T : unmanaged {
+        Span<byte> buffer = stackalloc byte[Unsafe.SizeOf<T>()];
+        this.ReadFullyFromNetwork(buffer);
+        return Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(buffer));
+    }
+
+    private void ReadFullyFromNetwork(byte[] buffer, int offset, int count) {
+        this.ReadFullyFromNetwork(buffer.AsSpan(offset, count));
+    }
+
+    private void ReadFullyFromNetwork(Span<byte> buffer) {
+        int total = 0;
+        while (total < buffer.Length) {
+            int read = this.stream!.Read(buffer.Slice(total));
+            if (read < 1) {
+                throw new TimeoutException();
+            }
+
+            total += read;
+        }
+    }
 
     private void WritePacket(int cmdId, Span<byte> buffer) {
         if (buffer.Length > 0x1000)
@@ -540,11 +470,24 @@ public class ConsoleControlAPI : IDisposable {
             this.stream!.Write(buffer2);
     }
 
-    private static string ReadStringWithTag(BinaryReader reader) {
-        int length = reader.ReadInt32();
-        byte[] bytes = reader.ReadBytes(length);
-        string text = Encoding.ASCII.GetString(bytes);
-        return text;
+    private int ReadTaggedArray(byte[] buffer) {
+        int length = this.ReadFromNetwork<int>();
+        this.ReadFullyFromNetwork(buffer, 0, length);
+        return length;
+    }
+    
+    private string ReadTaggedString() {
+        int length = this.ReadFromNetwork<int>();
+
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
+        try {
+            this.ReadFullyFromNetwork(buffer, 0, length);
+            string text = Encoding.ASCII.GetString(buffer, 0, length);
+            return text;    
+        }
+        finally{
+            ArrayPool<byte>.Shared.Return(buffer);   
+        }
     }
 
     #endregion

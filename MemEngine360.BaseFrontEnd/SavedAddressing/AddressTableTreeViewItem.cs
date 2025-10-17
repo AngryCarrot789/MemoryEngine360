@@ -660,8 +660,8 @@ public static class AddressTableContextRegistry {
         modEdit.AddCommand("commands.memengine.EditSavedAddressDataTypeCommand", "Edit Data Type");
         modEdit.AddCommand("commands.memengine.EditSavedAddressDescriptionCommand", "Edit Description");
         modGeneric.AddHeader("General");
-        modGeneric.AddCommand("commands.memengine.CopyAddressToClipboardCommand", "Copy Address");
-        modGeneric.AddCommand("commands.memengine.CopyAbsoluteAddressToClipboardCommand", "Copy Absolute Address");
+        modGeneric.AddCommand("commands.memengine.CopyAddressToClipboardCommand", "Copy Address", "Copy the address string in the Address column");
+        modGeneric.AddCommand("commands.memengine.CopyAbsoluteAddressToClipboardCommand", "Copy Absolute Address", "Copy the fully resolved address if using a dynamic (aka pointer) address. Same as Copy Address otherwise.");
         modGeneric.AddCommand("commands.memengine.CopySavedAddressValuesToClipboardCommand", "Copy Value");
         modGeneric.AddCommand("commands.memengine.RefreshSavedAddressesCommand", "Refresh");
         modGeneric.AddCommand("commands.meengine.ToggleSavedAddressAutoRefreshCommand", "Toggle Enabled");
