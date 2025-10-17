@@ -341,6 +341,8 @@ public class ConsoleControlAPI : IDisposable {
     public Task ReadMemory(uint pid, uint address, byte[] dstBuffer, int offset, int count) {
         if (count < 0)
             return Task.FromException(new ArgumentOutOfRangeException(nameof(count), "Could cannot be negative"));
+        if (count == 0)
+            return Task.CompletedTask;
 
         return this.RunThreadActionLater(_ => {
             Span<byte> sendBuffer = stackalloc byte[sizeof(uint) + sizeof(ulong) + sizeof(uint)];

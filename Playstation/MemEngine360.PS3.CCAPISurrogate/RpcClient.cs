@@ -132,6 +132,7 @@ public sealed class RpcClient {
                 ulong address = ReadValue<ulong>(buffer, ref offset, ref count);
                 uint length = ReadValue<uint>(buffer, ref offset, ref count);
                 if (length < 1) {
+                    this.WriteToNetwork((ushort) 0);
                     break;
                 }
 
