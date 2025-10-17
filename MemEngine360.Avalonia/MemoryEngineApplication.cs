@@ -378,7 +378,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     desktop.ApplicationLifetime.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
                 IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
-                    Title = "Memory Engine 360 v1.1.8",
+                    Title = "Memory Engine 360 v1.2.0",
                     FocusPath = "EngineWindow",
                     Content = new OverlayContentHostRoot() {
                         Content = new EngineView()
