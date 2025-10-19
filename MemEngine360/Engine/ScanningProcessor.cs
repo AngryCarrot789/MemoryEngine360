@@ -55,6 +55,7 @@ public class ScanningProcessor {
     private DataType dataType;
     private bool scanForAnyDataType;
     private NumericScanType numericScanType;
+    private bool useExpressionParsing;
     private bool stringIgnoreCase;
     private bool isRefreshingAddresses;
 
@@ -224,6 +225,10 @@ public class ScanningProcessor {
         get => this.scanForAnyDataType;
         set {
             if (this.scanForAnyDataType != value) {
+                if (value) {
+                    this.UseExpressionParsing = false;
+                }
+                
                 this.scanForAnyDataType = value;
                 this.ScanForAnyDataTypeChanged?.Invoke(this);
                 this.Alignment = value ? 1 : this.dataType.GetAlignmentFromDataType();
@@ -231,6 +236,30 @@ public class ScanningProcessor {
         }
     }
 
+    /// <summary>
+    /// Gets or sets if the value field should be parsed as an expression, disabling <see cref="NumericScanType"/>
+    /// </summary>
+    public bool UseExpressionParsing {
+        get => this.useExpressionParsing;
+        set {
+            if (this.useExpressionParsing != value) {
+                if (value) {
+                    this.ScanForAnyDataType = false;
+                }
+
+                if (value && (this.DataType == DataType.ByteArray || this.DataType == DataType.String)) {
+                    this.DataType = DataType.Int32;
+                }
+                
+                this.useExpressionParsing = value;
+                this.UseExpressionParsingChanged?.Invoke(this);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the compare mode
+    /// </summary>
     public NumericScanType NumericScanType {
         get => this.numericScanType;
         set => PropertyHelper.SetAndRaiseINE(ref this.numericScanType, value, this, static t => t.NumericScanTypeChanged?.Invoke(t));
@@ -296,6 +325,7 @@ public class ScanningProcessor {
     public event ScanningProcessorEventHandler? DataTypeChanged;
     public event ScanningProcessorEventHandler? ScanForAnyDataTypeChanged;
     public event ScanningProcessorEventHandler? NumericScanTypeChanged;
+    public event ScanningProcessorEventHandler? UseExpressionParsingChanged;
     public event ScanningProcessorEventHandler? StringIgnoreCaseChanged;
     public event ScanningProcessorEventHandler? AlignmentChanged;
     public event ScanningProcessorEventHandler? ScanMemoryPagesChanged;

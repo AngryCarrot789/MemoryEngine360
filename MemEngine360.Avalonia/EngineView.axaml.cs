@@ -89,7 +89,7 @@ public partial class EngineView : UserControl {
             return true;
         }
     });
-    
+
     private readonly IBinder<ScanningProcessor> scanLengthBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.ScanRangeChanged), (b) => $"{b.Model.ScanLength:X8}", async (b, x) => {
         if (!AddressParsing.TryParse32(x, out uint value, out string? error, canParseAsExpression: true)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
@@ -107,6 +107,7 @@ public partial class EngineView : UserControl {
             return true;
         }
     });
+
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventUpdateBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((EngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
@@ -122,6 +123,7 @@ public partial class EngineView : UserControl {
 
     private readonly IBinder<ScanningProcessor> selectedTabIndexBinder;
     private readonly IBinder<ScanningProcessor> scanForAnyBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanForAnyDataTypeChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanForAnyDataType, (b) => b.Model.ScanForAnyDataType = ((ToggleButton) b.Control).IsChecked == true);
+    private readonly IBinder<ScanningProcessor> useExpressionBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.UseExpressionParsingChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.UseExpressionParsing, (b) => b.Model.UseExpressionParsing = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> inputValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> inputBetweenABinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputAChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputA, (b) => b.Model.InputA = ((TextBox) b.Control).Text ?? "");
     private readonly IBinder<ScanningProcessor> inputBetweenBBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(TextBox.TextProperty, nameof(ScanningProcessor.InputBChanged), (b) => ((TextBox) b.Control).Text = b.Model.InputB, (b) => b.Model.InputB = ((TextBox) b.Control).Text ?? "");
@@ -130,17 +132,25 @@ public partial class EngineView : UserControl {
     private readonly IBinder<UnknownDataTypeOptions> canScanDoubleBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForDoubleChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForDouble, (b) => b.Model.CanSearchForDouble = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<UnknownDataTypeOptions> canScanStringBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForStringChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForString, (b) => b.Model.CanSearchForString = ((ToggleButton) b.Control).IsChecked == true);
 
-    private readonly IBinder<ScanningProcessor> updatedEnabledControlsBinder = new MultiEventUpdateBinder<ScanningProcessor>([nameof(ScanningProcessor.ScanForAnyDataTypeChanged), nameof(ScanningProcessor.HasFirstScanChanged)], b => {
-        EngineView view = (EngineView) b.Control;
-        bool scanAny = b.Model.ScanForAnyDataType;
-        view.PART_DataTypeCombo.IsEnabled = !scanAny && !b.Model.HasDoneFirstScan;
-        view.PART_TabItemInteger.IsEnabled = !scanAny;
-        view.PART_TabItemFloat.IsEnabled = !scanAny;
-        view.PART_TabItemString.IsEnabled = !scanAny;
-        view.PART_UseFirstValue.IsEnabled = !scanAny && b.Model.HasDoneFirstScan;
-        view.PART_UsePreviousValue.IsEnabled = !scanAny && b.Model.HasDoneFirstScan;
-        view.PART_ToggleUnknownDataType.IsEnabled = !b.Model.HasDoneFirstScan || scanAny;
-    });
+    private readonly IBinder<ScanningProcessor> updatedEnabledControlsBinder = new MultiEventUpdateBinder<ScanningProcessor>(
+        [
+            nameof(ScanningProcessor.ScanForAnyDataTypeChanged),
+            nameof(ScanningProcessor.HasFirstScanChanged),
+            nameof(ScanningProcessor.UseExpressionParsingChanged)
+        ],
+        b => {
+            EngineView view = (EngineView) b.Control;
+            bool scanAny = b.Model.ScanForAnyDataType;
+            view.PART_DataTypeCombo.IsEnabled = !scanAny && !b.Model.HasDoneFirstScan;
+            view.PART_TabItemInteger.IsEnabled = !scanAny;
+            view.PART_TabItemFloat.IsEnabled = !scanAny;
+            view.PART_TabItemString.IsEnabled = !scanAny && !b.Model.UseExpressionParsing;
+            view.PART_TabItemUnknown.IsEnabled = !b.Model.UseExpressionParsing;
+            view.PART_UseFirstValue.IsEnabled = !scanAny && b.Model.HasDoneFirstScan;
+            view.PART_UsePreviousValue.IsEnabled = !scanAny && b.Model.HasDoneFirstScan;
+            view.PART_ToggleUnknownDataType.IsEnabled = !b.Model.HasDoneFirstScan || scanAny;
+            view.PART_ExpressionNamingHint.IsVisible = b.Model.UseExpressionParsing;
+        });
 
     private DataType lastIntegerDataType = DataType.Int32, lastFloatDataType = DataType.Float;
 
@@ -384,6 +394,7 @@ public partial class EngineView : UserControl {
         this.scanTypeBinder2.Attach(this.PART_ScanTypeCombo2, processor);
         this.selectedTabIndexBinder.Attach(this.PART_ScanSettingsTabControl, processor);
         this.scanForAnyBinder.Attach(this.PART_ToggleUnknownDataType, processor);
+        this.useExpressionBinder.Attach(this.PART_UseExpressions, processor);
         this.updatedEnabledControlsBinder.Attach(this, processor);
 
         this.canScanFloatBinder.Attach(this.PART_Toggle_Float, processor.UnknownDataTypeOptions);
@@ -395,8 +406,9 @@ public partial class EngineView : UserControl {
         processor.UseFirstValueForNextScanChanged += this.UpdateNonBetweenInput;
         processor.UsePreviousValueForNextScanChanged += this.UpdateNonBetweenInput;
         processor.ScanForAnyDataTypeChanged += this.UpdateNonBetweenInput;
+        processor.UseExpressionParsingChanged += this.OnUseExpressionParsingChanged;
 
-        this.UpdateUIForScanTypeAndDataType();
+        this.OnUseExpressionParsingChanged(processor);
 
         this.PART_OrderListBox.SetScanningProcessor(processor);
 
@@ -406,7 +418,15 @@ public partial class EngineView : UserControl {
             this.titleBarToMenuBackgroundBrushHandler.Brush = this.myOwnerWindow_onLoaded.TitleBarBrush;
         }
     }
-    
+
+    private void OnUseExpressionParsingChanged(ScanningProcessor sender) {
+        this.UpdateUIForScanTypeAndDataType();
+        this.UpdateSingleInputField(sender);
+
+        this.dataTypeBinder.SetIsEnabled(DataType.String, !sender.UseExpressionParsing);
+        this.dataTypeBinder.SetIsEnabled(DataType.ByteArray, !sender.UseExpressionParsing);
+    }
+
     private void UpdateStatusBarConnectionText(IConsoleConnection? console) {
         string text = console != null ? console.ConnectionType.GetStatusBarText(console) : "Disconnected";
         this.PART_ConnectedHostName.SetValue(TextBlock.TextProperty, text);
@@ -473,17 +493,20 @@ public partial class EngineView : UserControl {
         this.scanTypeBinder2.Detach();
         this.selectedTabIndexBinder.Detach();
         this.scanForAnyBinder.Detach();
+        this.useExpressionBinder.Detach();
         this.updatedEnabledControlsBinder.Detach();
 
         this.canScanFloatBinder.Detach();
         this.canScanDoubleBinder.Detach();
         this.canScanStringBinder.Detach();
 
-        this.MemoryEngine.ScanningProcessor.NumericScanTypeChanged -= this.ScanningProcessorOnNumericScanTypeChanged;
-        this.MemoryEngine.ScanningProcessor.DataTypeChanged -= this.OnScanningProcessorOnDataTypeChanged;
-        this.MemoryEngine.ScanningProcessor.UseFirstValueForNextScanChanged -= this.UpdateNonBetweenInput;
-        this.MemoryEngine.ScanningProcessor.UsePreviousValueForNextScanChanged -= this.UpdateNonBetweenInput;
-        this.MemoryEngine.ScanningProcessor.ScanForAnyDataTypeChanged -= this.UpdateNonBetweenInput;
+        ScanningProcessor processor = this.MemoryEngine.ScanningProcessor;
+        processor.NumericScanTypeChanged -= this.ScanningProcessorOnNumericScanTypeChanged;
+        processor.DataTypeChanged -= this.OnScanningProcessorOnDataTypeChanged;
+        processor.UseFirstValueForNextScanChanged -= this.UpdateNonBetweenInput;
+        processor.UsePreviousValueForNextScanChanged -= this.UpdateNonBetweenInput;
+        processor.ScanForAnyDataTypeChanged -= this.UpdateNonBetweenInput;
+        processor.UseExpressionParsingChanged -= this.OnUseExpressionParsingChanged;
 
         this.PART_OrderListBox.SetScanningProcessor(null);
     }
@@ -494,14 +517,15 @@ public partial class EngineView : UserControl {
 
     private void UpdateUIForScanTypeAndDataType() {
         ScanningProcessor sp = this.MemoryEngine.ScanningProcessor;
+        bool isExpr = sp.UseExpressionParsing;
         bool isNumeric = sp.DataType.IsNumeric();
-        bool isBetween = sp.NumericScanType.IsBetween();
+        bool isBetween = !isExpr && sp.NumericScanType.IsBetween();
         bool isAny = sp.ScanForAnyDataType;
 
         if (isBetween && isNumeric && !isAny) {
             this.PART_Input_Value1.IsVisible = false;
             this.PART_Grid_Input_Between.IsVisible = true;
-            this.PART_ValueOrBetweenTextBlock.Text = "Between";
+            this.PART_ValueFieldLabel.Text = "Between";
             this.PART_UseFirstOrPrevButtonGrid.IsVisible = false;
 
             if (this.inputValueBinder.IsFullyAttached)
@@ -514,8 +538,10 @@ public partial class EngineView : UserControl {
         else {
             this.PART_Input_Value1.IsVisible = true;
             this.PART_Grid_Input_Between.IsVisible = false;
-            this.PART_ValueOrBetweenTextBlock.Text = "Value";
-            this.PART_UseFirstOrPrevButtonGrid.IsVisible = !isAny && isNumeric;
+            this.PART_ValueFieldLabel.Text = isExpr ? "Expression" : "Value";
+            this.PART_UseFirstOrPrevButtonGrid.IsVisible = !isExpr && !isAny && isNumeric;
+            this.PART_CompareModePanelInteger.IsVisible = !isExpr;
+            this.PART_CompareModePanelFloating.IsVisible = !isExpr;
 
             if (this.inputBetweenABinder.IsFullyAttached)
                 this.inputBetweenABinder.Detach();
@@ -538,7 +564,17 @@ public partial class EngineView : UserControl {
     }
 
     private void UpdateNonBetweenInput(ScanningProcessor p) {
-        this.PART_Input_Value1.IsEnabled = p.ScanForAnyDataType || p.DataType == DataType.ByteArray || p.DataType == DataType.String || (!p.UseFirstValueForNextScan && !p.UsePreviousValueForNextScan);
+        this.UpdateSingleInputField(p);
+    }
+
+    private void UpdateSingleInputField(ScanningProcessor p) {
+        bool isEnabled = p.ScanForAnyDataType
+                         || p.UseExpressionParsing
+                         || p.DataType == DataType.ByteArray
+                         || p.DataType == DataType.String
+                         || (!p.UseFirstValueForNextScan && !p.UsePreviousValueForNextScan);
+
+        this.PART_Input_Value1.IsEnabled = isEnabled;
     }
 
     private class SetThemeMenuEntry(Theme theme, Icon? icon = null) : CustomMenuEntry(theme.Name, $"Sets the application's theme to '{theme.Name}'", icon) {
@@ -556,10 +592,10 @@ public partial class EngineView : UserControl {
 
         if (oldConn != null)
             oldConn.ConnectionType.StatusBarTextInvalidated -= this.TypeOnStatusBarTextInvalidated;
-        
+
         if (newConn != null) {
             newConn.ConnectionType.StatusBarTextInvalidated += this.TypeOnStatusBarTextInvalidated;
-            
+
             notification.Caption = "Connected";
             notification.Text = $"Connected to '{newConn.ConnectionType.DisplayName}'";
             notification.Actions.Clear();
@@ -585,9 +621,9 @@ public partial class EngineView : UserControl {
             }) { ToolTip = "Disconnect from the connection" });
 
             notification.CanAutoHide = true;
-            
+
             MemoryEngineManager.Instance.RaiseProvidePostConnectionActions(this.MemoryEngine, newConn, notification);
-            
+
             notification.Show(NotificationManager.GetInstance(this.MemoryEngine));
             this.PART_LatestActivity.Text = notification.Text;
         }
@@ -689,7 +725,7 @@ public partial class EngineView : UserControl {
         ulong overflowAmount = (ulong) start + (ulong) length - uint.MaxValue;
         MessageBoxInfo info = new MessageBoxInfo() {
             Caption = $"Invalid {(didChangeStart ? "start address" : "scan length")}",
-            Message = $"{(didChangeStart ? "Start Address" : "Scan Length")} causes scan to exceed 32 bit address space by 0x{overflowAmount:X8}." + 
+            Message = $"{(didChangeStart ? "Start Address" : "Scan Length")} causes scan to exceed 32 bit address space by 0x{overflowAmount:X8}." +
                       Environment.NewLine +
                       Environment.NewLine +
                       $"Do you want to auto-adjust the {(didChangeStart ? "scan length" : "start address")} to fit?",

@@ -17,12 +17,15 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using ILMath;
+using ILMath.Exception;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
@@ -50,12 +53,16 @@ public sealed class DataTypedScanningContext : ScanningContext {
     internal readonly NumericScanType numericScanType;
     internal readonly StringComparison stringComparison;
     internal readonly bool isSecondInputRequired;
+    internal readonly bool useExpressionParsing;
 
     // enough bytes to store all data types except string and byte array
     // note: DataType.Float is parsed as double for extra precision
     internal ulong numericInputA, numericInputB;
     internal MemoryPattern memoryPattern;
     internal Decoder? stringDecoder;
+
+    internal Delegate? evaluator;
+    internal object? evaluationContext;
 
     // number of bytes the data type takes up. for strings, calculates based on StringType and char count
     internal int cbDataType;
@@ -77,15 +84,17 @@ public sealed class DataTypedScanningContext : ScanningContext {
         Debug.Assert(!processor.ScanForAnyDataType);
         this.inputA = processor.InputA.Trim();
         this.inputB = processor.InputB.Trim();
+        this.useExpressionParsing = processor.UseExpressionParsing;
         this.isIntInputHexadecimal = processor.IsIntInputHexadecimal;
-        this.nextScanUsesFirstValue = processor.UseFirstValueForNextScan;
-        this.nextScanUsesPreviousValue = processor.UsePreviousValueForNextScan;
+        this.nextScanUsesFirstValue = !this.useExpressionParsing && processor.UseFirstValueForNextScan;
+        this.nextScanUsesPreviousValue = !this.useExpressionParsing && processor.UsePreviousValueForNextScan;
         this.floatScanOption = processor.FloatScanOption;
         this.stringType = processor.StringScanOption;
         this.dataType = processor.DataType;
         this.numericScanType = processor.NumericScanType;
         this.stringComparison = processor.StringComparison;
-        this.isSecondInputRequired = this.numericScanType.IsBetween()
+        this.isSecondInputRequired = !this.useExpressionParsing
+                                     && this.numericScanType.IsBetween()
                                      && this.dataType.IsNumeric()
                                      && !this.nextScanUsesFirstValue
                                      && !this.nextScanUsesPreviousValue;
@@ -148,12 +157,68 @@ public sealed class DataTypedScanningContext : ScanningContext {
             return false;
         }
 
+        if (this.useExpressionParsing) {
+            try {
+                ParsingContext ctx = new ParsingContext() {
+                    DefaultIntegerParseMode = this.isIntInputHexadecimal ? IntegerParseMode.Hexadecimal : IntegerParseMode.Integer
+                };
+
+                const CompilationMethod method = CompilationMethod.IntermediateLanguage;
+                switch (this.dataType) {
+                    case DataType.Byte:
+                    case DataType.Int16:
+                    case DataType.Int32:
+                        if (this.isIntInputHexadecimal) {
+                            this.evaluator = MathEvaluation.CompileExpression<uint>("", this.inputA, ctx, method);
+                            this.evaluationContext = EvaluationContexts.CreateForInteger<uint>();
+                            
+                        }
+                        else {
+                            this.evaluator = MathEvaluation.CompileExpression<int>("", this.inputA, ctx, method);
+                            this.evaluationContext = EvaluationContexts.CreateForInteger<int>();
+                        }
+
+                        break;
+                    case DataType.Int64:
+                        if (this.isIntInputHexadecimal) {
+                            this.evaluator = MathEvaluation.CompileExpression<ulong>("", this.inputA, ctx, method);
+                            this.evaluationContext = EvaluationContexts.CreateForInteger<ulong>();
+                        }
+                        else {
+                            this.evaluator = MathEvaluation.CompileExpression<long>("", this.inputA, ctx, method);
+                            this.evaluationContext = EvaluationContexts.CreateForInteger<long>();
+                        }
+
+                        break;
+                    case DataType.Float:
+                        this.evaluator = MathEvaluation.CompileExpression<float>("", this.inputA, ctx, CompilationMethod.Functional);
+                        this.evaluationContext = EvaluationContexts.CreateForInteger<float>();
+                        break;
+                    case DataType.Double:
+                        this.evaluator = MathEvaluation.CompileExpression<double>("", this.inputA, ctx, method);
+                        this.evaluationContext = EvaluationContexts.CreateForInteger<double>();
+                        break;
+                    case DataType.String:
+                        await IMessageDialogService.Instance.ShowMessage("Data Type", "Cannot use strings when using expression parsing", icon: MessageBoxIcons.ErrorIcon);
+                        return false;
+                    case DataType.ByteArray:
+                        await IMessageDialogService.Instance.ShowMessage("Data Type", "Cannot use byte array when using expression parsing", icon: MessageBoxIcons.ErrorIcon);
+                        return false;
+                    default: throw new ArgumentOutOfRangeException();
+                }
+            }
+            catch (ParserException e) {
+                await IMessageDialogService.Instance.ShowMessage("Input format", "Invalid expression. " + e.Message, icon: MessageBoxIcons.ErrorIcon);
+                return false;
+            }
+        }
+
         if (this.isSecondInputRequired && string.IsNullOrEmpty(this.inputB)) {
             await IMessageDialogService.Instance.ShowMessage("Input format", "TO input is empty", icon: MessageBoxIcons.ErrorIcon);
             return false;
         }
 
-        if (this.dataType.IsNumeric()) {
+        if (this.dataType.IsNumeric() && !this.useExpressionParsing) {
             NumericDisplayType ndt = this.dataType.IsInteger() && this.isIntInputHexadecimal ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
             if (!TryParseNumeric(this.inputA, this.dataType, ndt, out this.numericInputA /*, this.reverseEndianness*/)) {
                 await IMessageDialogService.Instance.ShowMessage("Invalid input", $"{(this.isSecondInputRequired ? "FROM value" : "Input")} is invalid '{this.inputA}'. Cannot be parsed as {this.dataType}.", icon: MessageBoxIcons.ErrorIcon);
@@ -211,16 +276,21 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 memory = buffer.Slice((int) i, this.cbDataType);
 
                 IDataValue? matchBoxed;
-                switch (this.dataType) {
-                    case DataType.Byte:   matchBoxed = this.CompareInt<byte>(memory); break;
-                    case DataType.Int16:  matchBoxed = this.CompareInt<short>(memory); break;
-                    case DataType.Int32:  matchBoxed = this.CompareInt<int>(memory); break;
-                    case DataType.Int64:  matchBoxed = this.CompareInt<long>(memory); break;
-                    case DataType.Float:  matchBoxed = this.CompareFloat<float>(memory); break;
-                    case DataType.Double: matchBoxed = this.CompareFloat<double>(memory); break;
-                    default:
-                        Debug.Fail("Invalid data type");
-                        return;
+                if (this.evaluator != null) {
+                    matchBoxed = this.RunEvaluator(memory);
+                }
+                else {
+                    switch (this.dataType) {
+                        case DataType.Byte:   matchBoxed = this.CompareInt<byte>(memory); break;
+                        case DataType.Int16:  matchBoxed = this.CompareInt<short>(memory); break;
+                        case DataType.Int32:  matchBoxed = this.CompareInt<int>(memory); break;
+                        case DataType.Int64:  matchBoxed = this.CompareInt<long>(memory); break;
+                        case DataType.Float:  matchBoxed = this.CompareFloat<float>(memory); break;
+                        case DataType.Double: matchBoxed = this.CompareFloat<double>(memory); break;
+                        default:
+                            Debug.Fail("Invalid data type");
+                            return;
+                    }
                 }
 
                 if (matchBoxed != null) {
@@ -264,6 +334,146 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
     }
 
+    private IDataValue? RunEvaluator(ReadOnlySpan<byte> memory, ScanResultViewModel? scanResult = null) {
+        switch (this.dataType) {
+            case DataType.Byte:
+            case DataType.Int16:
+            case DataType.Int32:
+                return this.RunEvaluator32(memory, scanResult);
+            case DataType.Int64: return this.RunEvaluator64(memory, scanResult);
+            case DataType.Float: return this.RunEvaluatorFloat32(memory, scanResult);
+            default:             return this.RunEvaluatorFloat64(memory, scanResult);
+        }
+    }
+
+    private IDataValue? RunEvaluator32(ReadOnlySpan<byte> memory, ScanResultViewModel? scanResult) {
+        int value = ValueScannerUtils.CreateInt32FromBytes(this.dataType, memory, this.isConnectionLittleEndian);
+        if (this.isIntInputHexadecimal) {
+            EvaluationContext<uint> ctx = Unsafe.As<object, EvaluationContext<uint>>(ref this.evaluationContext!);
+            ctx.Variables["v"] = (uint) value;
+            if (scanResult != null) {
+                if (scanResult.FirstValue.DataType == this.dataType) {
+                    ctx.Variables["f"] = this.dataType switch {
+                        DataType.Byte => ((DataValueByte) scanResult.FirstValue).Value,
+                        DataType.Int16 => (ushort) ((DataValueInt16) scanResult.FirstValue).Value,
+                        DataType.Int32 => (uint) ((DataValueInt32) scanResult.FirstValue).Value,
+                        _ => throw new ArgumentOutOfRangeException()
+                    };
+                }
+
+                if (scanResult.PreviousValue.DataType == this.dataType) {
+                    ctx.Variables["p"] = this.dataType switch {
+                        DataType.Byte => ((DataValueByte) scanResult.PreviousValue).Value,
+                        DataType.Int16 => (ushort) ((DataValueInt16) scanResult.PreviousValue).Value,
+                        DataType.Int32 => (uint) ((DataValueInt32) scanResult.PreviousValue).Value,
+                        _ => throw new ArgumentOutOfRangeException()
+                    };
+                }
+            }
+
+            uint result = Unsafe.As<Delegate, Evaluator<uint>>(ref this.evaluator!)(ctx);
+            if (result == 0) {
+                return null;
+            }
+        }
+        else {
+            EvaluationContext<int> ctx = Unsafe.As<object, EvaluationContext<int>>(ref this.evaluationContext!);
+            ctx.Variables["v"] = value;
+            if (scanResult != null) {
+                if (scanResult.FirstValue.DataType == this.dataType) {
+                    ctx.Variables["f"] = this.dataType switch {
+                        DataType.Byte => ((DataValueByte) scanResult.FirstValue).Value,
+                        DataType.Int16 => ((DataValueInt16) scanResult.FirstValue).Value,
+                        DataType.Int32 => ((DataValueInt32) scanResult.FirstValue).Value,
+                        _ => throw new ArgumentOutOfRangeException()
+                    };
+                }
+
+                if (scanResult.PreviousValue.DataType == this.dataType) {
+                    ctx.Variables["p"] = this.dataType switch {
+                        DataType.Byte => ((DataValueByte) scanResult.PreviousValue).Value,
+                        DataType.Int16 => ((DataValueInt16) scanResult.PreviousValue).Value,
+                        DataType.Int32 => ((DataValueInt32) scanResult.PreviousValue).Value,
+                        _ => throw new ArgumentOutOfRangeException()
+                    };
+                }
+            }
+
+            int result = Unsafe.As<Delegate, Evaluator<int>>(ref this.evaluator!)(ctx);
+            if (result == 0) {
+                return null;
+            }
+        }
+
+        switch (this.dataType) {
+            case DataType.Byte:  return IDataValue.CreateNumeric((byte) value);
+            case DataType.Int16: return IDataValue.CreateNumeric((short) value);
+            case DataType.Int32: return IDataValue.CreateNumeric(value);
+            default:             throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    private IDataValue? RunEvaluator64(ReadOnlySpan<byte> memory, ScanResultViewModel? scanResult) {
+        long value = this.isConnectionLittleEndian ? BinaryPrimitives.ReadInt64LittleEndian(memory) : BinaryPrimitives.ReadInt64BigEndian(memory);
+        if (this.isIntInputHexadecimal) {
+            EvaluationContext<ulong> ctx = Unsafe.As<object, EvaluationContext<ulong>>(ref this.evaluationContext!);
+            ctx.Variables["v"] = (ulong) value;
+            if (scanResult != null) {
+                if (scanResult.FirstValue.DataType == this.dataType)
+                    ctx.Variables["f"] = (ulong) ((DataValueInt64) scanResult.FirstValue).Value;
+                if (scanResult.PreviousValue.DataType == this.dataType)
+                    ctx.Variables["p"] = (ulong) ((DataValueInt64) scanResult.PreviousValue).Value;
+            }
+
+            ulong result = Unsafe.As<Delegate, Evaluator<ulong>>(ref this.evaluator!)(ctx);
+            return result == 0 ? null : IDataValue.CreateNumeric(value);
+        }
+        else {
+            EvaluationContext<long> ctx = Unsafe.As<object, EvaluationContext<long>>(ref this.evaluationContext!);
+            ctx.Variables["v"] = value;
+            if (scanResult != null) {
+                if (scanResult.FirstValue.DataType == this.dataType)
+                    ctx.Variables["f"] = ((DataValueInt64) scanResult.FirstValue).Value;
+                if (scanResult.PreviousValue.DataType == this.dataType)
+                    ctx.Variables["p"] = ((DataValueInt64) scanResult.PreviousValue).Value;
+            }
+
+            long result = Unsafe.As<Delegate, Evaluator<long>>(ref this.evaluator!)(ctx);
+            return result == 0 ? null : IDataValue.CreateNumeric(value);
+        }
+    }
+
+    private IDataValue? RunEvaluatorFloat32(ReadOnlySpan<byte> memory, ScanResultViewModel? scanResult) {
+        float value = this.isConnectionLittleEndian ? BinaryPrimitives.ReadSingleLittleEndian(memory) : BinaryPrimitives.ReadSingleBigEndian(memory);
+        EvaluationContext<float> ctx = Unsafe.As<object, EvaluationContext<float>>(ref this.evaluationContext!);
+        ctx.Variables["v"] = value;
+        if (scanResult != null) {
+            if (scanResult.FirstValue.DataType == this.dataType)
+                ctx.Variables["f"] = ((DataValueFloat) scanResult.FirstValue).Value;
+            if (scanResult.PreviousValue.DataType == this.dataType)
+                ctx.Variables["p"] = ((DataValueFloat) scanResult.PreviousValue).Value;
+        }
+
+        float result = Unsafe.As<Delegate, Evaluator<float>>(ref this.evaluator!)(ctx);
+        return result == 0.0F ? null : IDataValue.CreateNumeric(value);
+    }
+    
+    private IDataValue? RunEvaluatorFloat64(ReadOnlySpan<byte> memory, ScanResultViewModel? scanResult) {
+        Debug.Assert(this.dataType == DataType.Double);
+        double value = this.isConnectionLittleEndian ? BinaryPrimitives.ReadDoubleLittleEndian(memory) : BinaryPrimitives.ReadDoubleBigEndian(memory);
+        EvaluationContext<double> ctx = Unsafe.As<object, EvaluationContext<double>>(ref this.evaluationContext!);
+        ctx.Variables["v"] = value;
+        if (scanResult != null) {
+            if (scanResult.FirstValue.DataType == this.dataType)
+                ctx.Variables["f"] = ((DataValueDouble) scanResult.FirstValue).Value;
+            if (scanResult.PreviousValue.DataType == this.dataType)
+                ctx.Variables["p"] = ((DataValueDouble) scanResult.PreviousValue).Value;
+        }
+
+        double result = Unsafe.As<Delegate, Evaluator<double>>(ref this.evaluator!)(ctx);
+        return result == 0.0D ? null : IDataValue.CreateNumeric(value);
+    }
+
     internal override async Task PerformFirstScan(IConsoleConnection connection, Reference<IBusyToken?> busyTokenRef) {
         await new FirstTypedScanTask(this, connection, busyTokenRef).RunWithCurrentActivity();
     }
@@ -304,30 +514,34 @@ public sealed class DataTypedScanningContext : ScanningContext {
                     task.Progress.CompletionState.OnProgress(1.0);
 
                     ScanResultViewModel res = srcList[i];
-
-                    ulong searchA, searchB = 0;
-                    if (this.nextScanUsesFirstValue) {
-                        searchA = GetNumericDataValueAsULong(res.FirstValue);
-                    }
-                    else if (this.nextScanUsesPreviousValue) {
-                        searchA = GetNumericDataValueAsULong(res.PreviousValue);
-                    }
-                    else {
-                        searchA = this.numericInputA;
-                        searchB = this.numericInputB;
-                    }
-
                     await connection.ReadBytes(res.Address, buffer, 0, buffer.Length);
 
                     IDataValue? match;
-                    switch (this.dataType) {
-                        case DataType.Byte:   match = this.CompareInt<byte>(buffer, searchA, searchB); break;
-                        case DataType.Int16:  match = this.CompareInt<short>(buffer, searchA, searchB); break;
-                        case DataType.Int32:  match = this.CompareInt<int>(buffer, searchA, searchB); break;
-                        case DataType.Int64:  match = this.CompareInt<long>(buffer, searchA, searchB); break;
-                        case DataType.Float:  match = this.CompareFloat<float>(buffer, searchA, searchB); break;
-                        case DataType.Double: match = this.CompareFloat<double>(buffer, searchA, searchB); break;
-                        default:              throw new ArgumentOutOfRangeException();
+                    if (this.evaluator != null) {
+                        match = this.RunEvaluator(buffer, res);
+                    }
+                    else {
+                        ulong searchA, searchB = 0;
+                        if (this.nextScanUsesFirstValue) {
+                            searchA = GetNumericDataValueAsULong(res.FirstValue);
+                        }
+                        else if (this.nextScanUsesPreviousValue) {
+                            searchA = GetNumericDataValueAsULong(res.PreviousValue);
+                        }
+                        else {
+                            searchA = this.numericInputA;
+                            searchB = this.numericInputB;
+                        }
+
+                        switch (this.dataType) {
+                            case DataType.Byte:   match = this.CompareInt<byte>(buffer, searchA, searchB); break;
+                            case DataType.Int16:  match = this.CompareInt<short>(buffer, searchA, searchB); break;
+                            case DataType.Int32:  match = this.CompareInt<int>(buffer, searchA, searchB); break;
+                            case DataType.Int64:  match = this.CompareInt<long>(buffer, searchA, searchB); break;
+                            case DataType.Float:  match = this.CompareFloat<float>(buffer, searchA, searchB); break;
+                            case DataType.Double: match = this.CompareFloat<double>(buffer, searchA, searchB); break;
+                            default:              throw new ArgumentOutOfRangeException();
+                        }
                     }
 
                     if (match != null) {

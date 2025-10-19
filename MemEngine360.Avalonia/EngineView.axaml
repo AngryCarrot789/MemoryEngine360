@@ -9,7 +9,6 @@
              xmlns:aa="clr-namespace:PFXToolKitUI.Avalonia.Activities;assembly=PFXToolKitUI.Avalonia"
              xmlns:av2="clr-namespace:MemEngine360.Avalonia"
              xmlns:cmds="clr-namespace:MemEngine360.BaseFrontEnd.Commands;assembly=MemEngine360.BaseFrontEnd"
-             xmlns:bfe="clr-namespace:MemEngine360.BaseFrontEnd;assembly=MemEngine360.BaseFrontEnd"
              xmlns:sa="clr-namespace:MemEngine360.BaseFrontEnd.SavedAddressing;assembly=MemEngine360.BaseFrontEnd"
              xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
@@ -17,7 +16,7 @@
              xmlns:c2="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
              xmlns:notifications="clr-namespace:PFXToolKitUI.Avalonia.Notifications;assembly=PFXToolKitUI.Avalonia"
              xmlns:pfxToolKitUi="clr-namespace:PFXToolKitUI;assembly=PFXToolKitUI"
-             mc:Ignorable="d"
+             mc:Ignorable="d" d:DesignHeight="600"
              x:Class="MemEngine360.Avalonia.EngineView"
              Background="{DynamicResource ABrush.MemEngine.MainView.Background}">
     <DockPanel>
@@ -85,11 +84,11 @@
                             </Button>
                         </Grid>
                         <Grid Grid.Row="2">
-                            <Grid x:Name="PART_Grid_ScanInput" ColumnDefinitions="64,3,*,Auto" RowDefinitions="24,3,24,3,Auto" Margin="0">
-                                <TextBlock Grid.Column="0" Grid.Row="0" Text="Value" VerticalAlignment="Center" Padding="4,0" x:Name="PART_ValueOrBetweenTextBlock"/>
+                            <Grid x:Name="PART_Grid_ScanInput" ColumnDefinitions="64,0,*,Auto,Auto" RowDefinitions="24,3,24,3,Auto,Auto" Margin="0">
+                                <TextBlock Grid.Column="0" Grid.Row="0" Text="Value" VerticalAlignment="Center" Padding="4,0" x:Name="PART_ValueFieldLabel"/>
                                 <TextBlock Grid.Column="0" Grid.Row="2" Text="Data Type" VerticalAlignment="Center" Padding="4,0"/>
 
-                                <Grid x:Name="PART_UseFirstOrPrevButtonGrid" Grid.Row="0" Grid.Column="3" RowDefinitions="*,3,*" Margin="3,0,0,0">
+                                <Grid x:Name="PART_UseFirstOrPrevButtonGrid" Grid.Row="0" Grid.Column="4" RowDefinitions="*,3,*" Margin="3,0,0,0">
                                     <ToggleButton Grid.Row="0" Padding="5,0" x:Name="PART_UseFirstValue"
                                                   BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                                                   VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"
@@ -104,14 +103,14 @@
                                     </ToggleButton>
                                 </Grid>
                                 <TextBox x:Name="PART_Input_Value1" FontFamily="Consolas"
-                                         Grid.Column="2" Grid.Row="0"
+                                         Grid.Column="2" Grid.Row="0" Grid.ColumnSpan="2"
                                          Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Background}"
                                          BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Border}"
                                          Foreground="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Foreground}"
                                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
                                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
 
-                                <Grid x:Name="PART_Grid_Input_Between" Grid.Column="2" Grid.Row="0" ColumnDefinitions="*,3,*" IsVisible="False">
+                                <Grid x:Name="PART_Grid_Input_Between" Grid.ColumnSpan="2" Grid.Column="2" Grid.Row="0" ColumnDefinitions="*,3,*" IsVisible="False">
                                     <TextBox x:Name="PART_Input_BetweenA" FontFamily="Consolas" Grid.Column="0"
                                              Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Background}"
                                              BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Border}"
@@ -139,7 +138,14 @@
                                               Margin="3,0,0,0"
                                               Content="Any"
                                               tt:ToolTipEx.Tip="Toggles the unknown data type scan. When enabled, we attempt to find integers, floats and strings that are effectively equal to the search query"/>
-                                <TabControl Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="4"
+                                
+                                <ToggleButton x:Name="PART_UseExpressions"
+                                              Grid.Column="4" Grid.Row="2"
+                                              Margin="3,0,0,0"
+                                              Content="Expr."
+                                              tt:ToolTipEx.Tip="Toggles whether to use an expression to match the value instead of Compare Mode. Also note, when you toggle 'Parse value(s) as hexadecimal' for integers, the data type becomes unsigned, so no negative number support."/>
+                                
+                                <TabControl Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="4"
                                             x:Name="PART_ScanSettingsTabControl"
                                             Background="{DynamicResource PanelBackground3}"
                                             BorderThickness="1"
@@ -154,11 +160,13 @@
                                                         <Run Text="When false, they are parsed as regular integers (400 == 400)"/>
                                                         <LineBreak/>
                                                         <Run Text="If the scan type is Between, this option is applied to both fields"/>
+                                                        <LineBreak/>
+                                                        <Run Text="NOTE! For expressions, this causes the data type to become unsigned"/>
                                                     </TextBlock>
                                                 </tt:ToolTipEx.Tip>
                                             </CheckBox>
 
-                                            <DockPanel>
+                                            <DockPanel x:Name="PART_CompareModePanelInteger">
                                                 <TextBlock Text="Compare Mode" DockPanel.Dock="Left" Margin="2,0,5,0" VerticalAlignment="Center"/>
                                                 <ComboBox x:Name="PART_ScanTypeCombo1" FontFamily="{StaticResource FontOxanium}"
                                                           Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.CompareModeComboBox.Background}"
@@ -187,7 +195,7 @@
                                                     </TextBlock>
                                                 </tt:ToolTipEx.Tip>
                                             </RadioButton>
-                                            <DockPanel>
+                                            <DockPanel x:Name="PART_CompareModePanelFloating">
                                                 <TextBlock Text="Compare Mode" DockPanel.Dock="Left" Margin="2,0,5,0" VerticalAlignment="Center"/>
                                                 <ComboBox x:Name="PART_ScanTypeCombo2" FontFamily="{StaticResource FontOxanium}"
                                                           Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.CompareModeComboBox.Background}"
@@ -265,6 +273,15 @@
                                         </StackPanel>
                                     </TabItem>
                                 </TabControl>
+                                <TextBlock Grid.Row="5" Grid.ColumnSpan="5" Grid.Column="0"
+                                           HorizontalAlignment="Center"
+                                           Padding="3,4" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource ABrush.Foreground.Deeper}"
+                                           x:Name="PART_ExpressionNamingHint">
+                                    <Run Text="The variable 'v' contains the console value."/>
+                                    <LineBreak/>
+                                    <Run Text="For next scans, 'f' and 'p' contain the first and previous values"/>
+                                </TextBlock>
                             </Grid>
                         </Grid>
                         <ScrollViewer Grid.Row="5" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">

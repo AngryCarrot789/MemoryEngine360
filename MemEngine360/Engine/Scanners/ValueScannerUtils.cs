@@ -18,8 +18,10 @@
 // 
 
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Interactivity.Formatting;
 
 namespace MemEngine360.Engine.Scanners;
@@ -58,6 +60,21 @@ public static class ValueScannerUtils {
         if (typeof(T) == typeof(double))
             return CreateGeneric_double<T>(bytes, isDataLittleEndian);
         throw new NotSupportedException();
+    }
+    
+    public static int CreateInt32FromBytes(DataType type, ReadOnlySpan<byte> bytes, bool isDataLittleEndian) {
+        switch (type) {
+            case DataType.Byte:      
+                Debug.Assert(bytes.Length == 1);
+                return bytes[0];
+            case DataType.Int16:     
+                Debug.Assert(bytes.Length == 2);
+                return isDataLittleEndian ? BinaryPrimitives.ReadInt16LittleEndian(bytes) : BinaryPrimitives.ReadInt16BigEndian(bytes);
+            case DataType.Int32:     
+                Debug.Assert(bytes.Length == 4);
+                return isDataLittleEndian ? BinaryPrimitives.ReadInt32LittleEndian(bytes) : BinaryPrimitives.ReadInt32BigEndian(bytes);
+            default:                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
     }
     
     public static T CreateFloat<T>(ReadOnlySpan<byte> bytes, bool isDataLittleEndian) where T : INumber<T> {
