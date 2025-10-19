@@ -18,9 +18,15 @@
 // 
 
 using Avalonia.Controls;
+using MemEngine360.Connections;
+using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
-public class ConsoleTypeListBox : ListBox {
+public class ConsoleTypeListBox : ModelBasedListBox<ConnectionTypeEntry> {
     protected override Type StyleKeyOverride => typeof(ListBox);
+    
+    protected override ModelBasedListBoxItem<ConnectionTypeEntry> CreateItem() {
+        return new ConsoleTypeListBoxItem();
+    }
 }

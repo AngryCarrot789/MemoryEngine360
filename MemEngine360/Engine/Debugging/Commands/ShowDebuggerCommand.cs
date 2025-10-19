@@ -41,17 +41,18 @@ public class ShowDebuggerCommand : Command {
         if (debugger.Connection == null) {
             // Run as command action to push the debugger view as the primary contextual top level
             await CommandManager.Instance.RunActionAsync(async ex => {
-                IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView();
+                OpenConnectionInfo info = OpenConnectionInfo.CreateDefault(isEnabledFilter: t => t.MaybeSupportsDebugging);
+                IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(info);
                 if (dialog == null) {
                     return;
                 }
 
-                IConsoleConnection? connection = await dialog.WaitForConnection();
-                if (connection != null) {
+                ConnectionResult? result = await dialog.WaitForConnection();
+                if (result.HasValue) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
-                    if (!await OpenDebuggerConnectionCommand.TrySetConnectionAndHandleProblems(debugger, connection)) {
-                        connection.Close();
+                    if (!await OpenDebuggerConnectionCommand.TrySetConnectionAndHandleProblems(debugger, result.Value.Connection)) {
+                        result.Value.Connection.Close();
                     }
                 }
             }, new ContextData().Set(ITopLevel.TopLevelDataKey, topLevel));

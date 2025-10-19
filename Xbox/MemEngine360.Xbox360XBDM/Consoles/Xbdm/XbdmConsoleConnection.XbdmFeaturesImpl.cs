@@ -414,7 +414,7 @@ public partial class XbdmConsoleConnection {
 
                     int count = (int) sec_size;
                     byte[] buffer = new byte[count];
-                    await this.connection.InternalReadBytes(sec_base, buffer, 0, count).ConfigureAwait(false);
+                    await this.connection.ReadBytesCoreWithNetworkThrowHelper(sec_base, buffer, 0, count).ConfigureAwait(false);
                     ReadOnlySpan<byte> rosBuffer = new ReadOnlySpan<byte>(buffer);
 
                     int functionCount = (int) (sec_size / 16);

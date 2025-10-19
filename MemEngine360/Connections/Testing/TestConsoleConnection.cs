@@ -32,7 +32,7 @@ public class TestConsoleConnection : BaseConsoleConnection {
         this.mode = mode;
     }
 
-    public override Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count) {
+    public override Task<bool?> IsMemoryInvalidOrProtected(uint address, int count) {
         return this.mode switch {
             TestConnectionMode.TimeoutError => Task.FromException<bool?>(new TimeoutException("Test timeout exception")), 
             TestConnectionMode.IOError => Task.FromException<bool?>(new IOException("Test IO error")), 

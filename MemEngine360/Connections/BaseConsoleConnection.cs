@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -78,13 +79,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             Debug.Fail("Oops");
         }
     }
-    
-    /// <summary>
-    /// Gets the recommended number of bytes to be read in one call. For some connections this might not
-    /// matter whereas others may need to run an internal loop to read in tiny chunks from a network,
-    /// therefore, this property will return the value of that tiny chunk size. 
-    /// </summary>
-    public virtual uint GetRecommendedReadChunkSize(uint readTotal) {
+
+    public virtual int GetRecommendedReadChunkSize(int readTotal) {
         return readTotal;
     }
 
@@ -119,7 +115,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         this.featureManagerWrapper.ComponentStorage.AddLazyComponent<T>((t) => feature(((ComponentManagerWrapper) t).Connection));
     }
 
-    public abstract Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);
+    public abstract Task<bool?> IsMemoryInvalidOrProtected(uint address, int count);
 
     public void Close() {
         // Should we use a closing and closed state? Or stick with closed?
@@ -150,285 +146,6 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     protected virtual void CloseOverride() {
     }
 
-    public async Task ReadBytes(uint address, byte[] buffer, int offset, int count) {
-        this.EnsureNotClosed();
-        using BusyToken x = this.CreateBusyToken();
-
-        await this.InternalReadBytes(address, buffer, offset, count);
-    }
-
-    protected async Task InternalReadBytes(uint address, byte[] buffer, int offset, int count) {
-        if (count < 0)
-            throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
-        if (offset < 0)
-            throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
-        if (count == 0)
-            return;
-        
-        try {
-            await this.ReadBytesCore(address, buffer, offset, count).ConfigureAwait(false);
-        }
-        catch (Exception e) when (e is TimeoutException || e is IOException) {
-            this.Close();
-            throw;
-        }
-    }
-
-    public async Task ReadBytes(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
-        if (count == 0)
-            return;
-        if (count < 0)
-            throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
-        if (offset < 0)
-            throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
-
-        this.EnsureNotClosed();
-        using BusyToken x = this.CreateBusyToken();
-
-        try {
-            await this.ReadBytesInChunksUnderBusyLock(address, buffer, offset, count, chunkSize, completion, cancellationToken);
-        }
-        catch (Exception e) when (e is TimeoutException || e is IOException) {
-            this.Close();
-            throw;
-        }
-    }
-
-    public async Task<byte[]> ReadBytes(uint address, int count) {
-        byte[] buffer = new byte[count];
-        await this.ReadBytes(address, buffer, 0, count).ConfigureAwait(false);
-        return buffer;
-    }
-
-    public async Task<byte> ReadByte(uint address) {
-        this.EnsureNotClosed();
-        using BusyToken x = this.CreateBusyToken();
-
-        try {
-            await this.ReadBytesCore(address, this.sharedByteArray8, 0, 1).ConfigureAwait(false);
-        }
-        catch (Exception e) when (e is TimeoutException || e is IOException) {
-            this.Close();
-            throw;
-        }
-
-        return this.sharedByteArray8[0];
-    }
-
-    public async Task<bool> ReadBool(uint address) => await this.ReadByte(address).ConfigureAwait(false) != 0;
-
-    public async Task<char> ReadChar(uint address) => (char) await this.ReadByte(address).ConfigureAwait(false);
-
-    public async Task<T> ReadValue<T>(uint address) where T : unmanaged {
-        this.EnsureNotClosed();
-        using BusyToken x = this.CreateBusyToken();
-
-        byte[] buffer = new byte[Unsafe.SizeOf<T>()];
-
-        try {
-            await this.ReadBytesCore(address, buffer, 0, buffer.Length).ConfigureAwait(false);
-        }
-        catch (Exception e) when (e is TimeoutException || e is IOException) {
-            this.Close();
-            throw;
-        }
-
-        if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
-            Array.Reverse(buffer);
-        }
-
-        return MemoryMarshal.Read<T>(buffer);
-    }
-
-    public async Task<T> ReadStruct<T>(uint address, params int[] fieldSizes) where T : unmanaged {
-        this.EnsureNotClosed();
-        using BusyToken x = this.CreateBusyToken();
-
-        int offset = 0;
-        byte[] buffer = new byte[Unsafe.SizeOf<T>()];
-
-        try {
-            foreach (int cbField in fieldSizes) {
-                Debug.Assert(cbField >= 0, "Field was negative");
-
-                this.EnsureNotClosed();
-                await this.ReadBytesCore((uint) (address + offset), buffer, offset, cbField).ConfigureAwait(false);
-                if (BitConverter.IsLittleEndian != this.IsLittleEndian)
-                    Array.Reverse(buffer, offset, cbField);
-
-                offset += cbField;
-
-                Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadStruct));
-            }
-        }
-        catch (Exception e) when (e is TimeoutException || e is IOException) {
-            this.Close();
-            throw;
-        }
-
-        if (offset > buffer.Length) {
-            Debugger.Break();
-        }
-
-        return Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetArrayDataReference(buffer));
-    }
-
-    public async Task<string> ReadStringASCII(uint address, int count, bool removeNull = true) {
-        this.EnsureNotClosed();
-        using BusyToken x = this.CreateBusyToken();
-
-        return await this.InternalReadStringASCII(address, count, removeNull);
-    }
-
-    protected internal async Task<string> InternalReadStringASCII(uint address, int count, bool removeNull = true) {
-        if (count < 0)
-            throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
-        if (count == 0)
-            return "";
-
-        byte[] buffer = new byte[count];
-
-        try {
-            await this.ReadBytesCore(address, buffer, 0, count).ConfigureAwait(false);
-        }
-        catch (Exception e) when (e is TimeoutException || e is IOException) {
-            this.Close();
-            throw;
-        }
-
-        if (removeNull) {
-            int j = 0, k = 0;
-            for (; k < count; ++k) {
-                if (buffer[k] == 0)
-                    continue;
-                if (j != k)
-                    buffer[j] = buffer[k];
-                ++j;
-            }
-
-            count = j;
-        }
-
-        return Encoding.ASCII.GetString(buffer, 0, count);
-    }
-
-    public async Task<string> ReadString(uint address, int charCount, Encoding encoding) {
-        byte[] buffer = new byte[encoding.GetMaxByteCount(charCount)];
-        await this.ReadBytes(address, buffer, 0, buffer.Length).ConfigureAwait(false);
-
-        Decoder decoder = encoding.GetDecoder();
-        char[] charBuffer = new char[charCount];
-
-        try {
-            decoder.Convert(buffer, 0, buffer.Length, charBuffer, 0, charCount, true, out _, out int charsUsed, out _);
-            return new string(charBuffer, 0, charsUsed);
-        }
-        catch {
-            return "";
-        }
-    }
-
-    public Task WriteBytes(uint address, byte[] buffer) => this.WriteBytes(address, buffer, 0, buffer.Length);
-
-    public async Task WriteBytes(uint address, byte[] buffer, int offset, int count) {
-        if (offset < 0)
-            throw new ArgumentOutOfRangeException(nameof(offset), offset, "Value must be within the bounds of the array");
-        if (count < 0)
-            throw new ArgumentOutOfRangeException(nameof(offset), offset, "Count cannot be negative");
-        
-        // Check+Obtain token before checking if count is zero, to maintain fail-fast behaviour
-        this.EnsureNotClosed();
-        using BusyToken x = this.CreateBusyToken();
-
-        if (count > 0) {
-            try {
-                await this.WriteBytesCore(address, buffer, offset, count).ConfigureAwait(false);
-            }
-            catch (Exception e) when (e is TimeoutException || e is IOException) {
-                this.Close();
-                throw;
-            }
-        }
-    }
-
-    public async Task WriteBytes(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
-        if (count < 0)
-            throw new ArgumentOutOfRangeException(nameof(count), count, nameof(count) + " cannot be negative");
-        if (offset < 0)
-            throw new ArgumentOutOfRangeException(nameof(offset), offset, nameof(offset) + " cannot be negative");
-        
-        // Check+Obtain token before checking if count is zero, to maintain fail-fast behaviour
-        this.EnsureNotClosed();
-        using BusyToken x = this.CreateBusyToken();
-
-        if (count > 0) {
-            await this.WriteBytesInChunksUnderBusyLock(address, buffer, offset, count, chunkSize, completion, cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    public async Task WriteByte(uint address, byte value) {
-        this.EnsureNotClosed();
-        using BusyToken x = this.CreateBusyToken();
-
-        this.sharedByteArray8[0] = value;
-        await this.WriteBytesCore(address, this.sharedByteArray8, 0, 1).ConfigureAwait(false);
-    }
-
-    public Task WriteBool(uint address, bool value) => this.WriteByte(address, (byte) (value ? 0x01 : 0x00));
-
-    public Task WriteChar(uint address, char value) => this.WriteByte(address, (byte) value);
-
-    public Task WriteValue<T>(uint address, T value) where T : unmanaged {
-        int size = Unsafe.SizeOf<T>();
-        byte[] bytes = size > 8 ? new byte[size] : this.sharedByteArray8;
-        Unsafe.As<byte, T>(ref MemoryMarshal.GetArrayDataReference(bytes)) = value;
-        if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
-            Array.Reverse(bytes, 0, size);
-        }
-
-        return this.WriteBytes(address, bytes, 0, size);
-    }
-
-    public async Task WriteStruct<T>(uint address, T value, params int[] fieldSizes) where T : unmanaged {
-        this.EnsureNotClosed();
-
-        byte[] buffer;
-        int length = Unsafe.SizeOf<T>(), offset = 0;
-        ref byte value_bytes = ref Unsafe.As<T, byte>(ref value);
-        bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
-        using (this.CreateBusyToken()) {
-            buffer = length > 8 ? new byte[length] : this.sharedByteArray8;
-            Span<byte> buffer_span = buffer.AsSpan(0, length);
-            foreach (int cbField in fieldSizes) {
-                Debug.Assert(cbField >= 0, "Field was negative");
-                if ((cbField + offset) > length) {
-                    throw new ArgumentException("Summation of field sizes exceeds the size of the value");
-                }
-
-                Span<byte> buffer_field_slice = buffer_span.Slice(offset, cbField);
-                MemoryMarshal.CreateSpan(ref value_bytes, cbField).CopyTo(buffer_field_slice);
-                if (reverse) {
-                    buffer_field_slice.Reverse();
-                }
-
-                offset += cbField;
-                Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.WriteStruct));
-            }
-        }
-
-        await this.WriteBytes(address, buffer, 0, offset).ConfigureAwait(false);
-    }
-
-    public Task WriteString(uint address, string value) => this.WriteString(address, value, Encoding.ASCII);
-
-    public Task WriteString(uint address, string value, Encoding encoding) {
-        return this.WriteBytes(address, encoding.GetBytes(value));
-    }
-
-    public Task<uint?> FindPattern(uint address, uint count, MemoryPattern pattern, CompletionState? completion = null, CancellationToken cancellationToken = default) {
-        return Task.FromResult<uint?>(null);
-    }
-
     // Use a dedicated resolve pointer to improve performance as much as possible,
     // since reading from the console takes a long time, relative to 
     public async Task<uint?> ResolvePointer(uint baseAddress, ImmutableArray<int> offsets) {
@@ -441,7 +158,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
             foreach (int offset in offsets) {
                 this.EnsureNotClosed();
-                await this.ReadBytesCore((uint) address, this.sharedByteArray8, 0, sizeof(uint)).ConfigureAwait(false);
+                await this.ReadBytesCoreWithNetworkThrowHelper((uint) address, this.sharedByteArray8, 0, sizeof(uint)).ConfigureAwait(false);
 
                 Span<byte> span = this.sharedByteArray8.AsSpan(0, sizeof(uint));
                 if (reverse)
@@ -458,7 +175,260 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         // The final pointer, which points to hopefully an effective value (e.g. float or literally anything)
         return (uint) address;
     }
+    
+    public async Task ReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
+        ArrayUtils.ThrowIfOutOfBounds(dstBuffer, offset, count);
 
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+
+        await this.ReadBytesCoreWithNetworkThrowHelper(address, dstBuffer, offset, count);
+    }
+
+    public async Task ReadBytes(uint address, byte[] dstBuffer, int offset, int count, int chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
+        ArrayUtils.ThrowIfOutOfBounds(dstBuffer, offset, count);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(chunkSize, 0);
+
+        // Check+Obtain token before checking if count is zero, to maintain fail-fast behaviour
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+        if (count == 0) {
+            return;
+        }
+
+        Debug.Assert(count >= 0);
+        cancellationToken.ThrowIfCancellationRequested();
+        using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
+
+        do {
+            this.EnsureNotClosed();
+            cancellationToken.ThrowIfCancellationRequested();
+            int cbRead = (int) Math.Min((uint) count, (uint) chunkSize);
+            await this.ReadBytesCoreWithNetworkThrowHelper(address, dstBuffer, offset, cbRead).ConfigureAwait(false);
+
+            address += (uint) cbRead;
+            offset += cbRead;
+            count -= cbRead;
+
+            completion?.OnProgress(cbRead);
+        } while (count > 0);
+    }
+
+    public async Task<byte[]> ReadBytes(uint address, int count) {
+        byte[] buffer = new byte[count];
+        await this.ReadBytes(address, buffer, 0, count).ConfigureAwait(false);
+        return buffer;
+    }
+
+    public async Task<byte> ReadByte(uint address) {
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+
+        await this.ReadBytesCoreWithNetworkThrowHelper(address, this.sharedByteArray8, 0, 1).ConfigureAwait(false);
+        return this.sharedByteArray8[0];
+    }
+
+    public async Task<bool> ReadBool(uint address) => await this.ReadByte(address).ConfigureAwait(false) != 0;
+
+    public async Task<char> ReadChar(uint address) => (char) await this.ReadByte(address).ConfigureAwait(false);
+
+    public async Task<T> ReadValue<T>(uint address) where T : unmanaged {
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+
+        int sizeOfT = Unsafe.SizeOf<T>();
+        using (RentHelper.RentArray(sizeOfT, out byte[] buffer)) {
+            await this.ReadBytesCoreWithNetworkThrowHelper(address, buffer, 0, sizeOfT).ConfigureAwait(false);
+
+            if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
+                Array.Reverse(buffer, 0, sizeOfT);
+            }
+
+            return Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetArrayDataReference(buffer));
+        }
+    }
+
+    public async Task<T> ReadStruct<T>(uint address, params int[] fieldSizes) where T : unmanaged {
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+
+        int offset = 0;
+        int sizeOfT = Unsafe.SizeOf<T>();
+        using (RentHelper.RentArray(sizeOfT, out byte[] buffer)) {
+            foreach (int cbField in fieldSizes) {
+                Debug.Assert(cbField >= 0, "Field was negative");
+
+                this.EnsureNotClosed();
+                await this.ReadBytesCoreWithNetworkThrowHelper((uint) (address + offset), buffer, offset, cbField).ConfigureAwait(false);
+                if (BitConverter.IsLittleEndian != this.IsLittleEndian)
+                    Array.Reverse(buffer, offset, cbField);
+
+                offset += cbField;
+
+                Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.ReadStruct));
+            }
+
+            if (offset > sizeOfT) {
+                Debugger.Break();
+            }
+
+            return Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetArrayDataReference(buffer));
+        }
+    }
+
+    public async Task<string> ReadStringASCII(uint address, int count, bool removeNull = true) {
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+
+        return await this.InternalReadStringASCII(address, count, removeNull);
+    }
+
+    protected internal async Task<string> InternalReadStringASCII(uint address, int count, bool removeNull = true) {
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        if (count == 0) {
+            return "";
+        }
+
+        using (RentHelper.RentArray(count, out byte[] buffer)) {
+            await this.ReadBytesCoreWithNetworkThrowHelper(address, buffer, 0, count).ConfigureAwait(false);
+            if (removeNull) {
+                int j = 0, k = 0;
+                for (; k < count; ++k) {
+                    if (buffer[k] == 0)
+                        continue;
+                    if (j != k)
+                        buffer[j] = buffer[k];
+                    ++j;
+                }
+
+                count = j;
+            }
+
+            return Encoding.ASCII.GetString(buffer, 0, count);
+        }
+    }
+
+    public async Task<string> ReadString(uint address, int charCount, Encoding encoding) {
+        int byteCount = encoding.GetMaxByteCount(charCount);
+        using (RentHelper.RentArray(byteCount, out byte[] buffer)) {
+            await this.ReadBytes(address, buffer, 0, byteCount).ConfigureAwait(false);
+
+            Decoder decoder = encoding.GetDecoder();
+            char[] charBuffer = new char[charCount];
+
+            try {
+                decoder.Convert(buffer, 0, byteCount, charBuffer, 0, charCount, true, out _, out int charsUsed, out _);
+                return new string(charBuffer, 0, charsUsed);
+            }
+            catch {
+                return "";
+            }
+        }
+    }
+
+    public Task WriteBytes(uint address, byte[] srcBuffer) => this.WriteBytes(address, srcBuffer, 0, srcBuffer.Length);
+
+    public async Task WriteBytes(uint address, byte[] srcBuffer, int offset, int count) {
+        ArrayUtils.ThrowIfOutOfBounds(srcBuffer, offset, count);
+
+        // Check+Obtain token before checking if count is zero, to maintain fail-fast behaviour
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+
+        if (count > 0) {
+            await this.WriteBytesCoreWithNetworkThrowHelper(address, srcBuffer, offset, count).ConfigureAwait(false);
+        }
+    }
+
+    public async Task WriteBytes(uint address, byte[] srcBuffer, int offset, int count, int chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
+        ArrayUtils.ThrowIfOutOfBounds(srcBuffer, offset, count);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(chunkSize, 0);
+
+        // Check+Obtain token before checking if count is zero, to maintain fail-fast behaviour
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+
+        if (count == 0) {
+            return;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
+
+        do {
+            this.EnsureNotClosed();
+            cancellationToken.ThrowIfCancellationRequested();
+            int cbWrite = (int) Math.Min((uint) count, (uint) chunkSize);
+            await this.WriteBytesCoreWithNetworkThrowHelper(address, srcBuffer, offset, cbWrite).ConfigureAwait(false);
+
+            address += (uint) cbWrite;
+            offset += cbWrite;
+            count -= cbWrite;
+
+            completion?.OnProgress(cbWrite);
+        } while (count > 0);
+    }
+
+    public async Task WriteByte(uint address, byte value) {
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+
+        this.sharedByteArray8[0] = value;
+        await this.WriteBytesCoreWithNetworkThrowHelper(address, this.sharedByteArray8, 0, 1).ConfigureAwait(false);
+    }
+
+    public Task WriteBool(uint address, bool value) => this.WriteByte(address, (byte) (value ? 0x01 : 0x00));
+
+    public Task WriteChar(uint address, char value) => this.WriteByte(address, (byte) value);
+
+    public Task WriteValue<T>(uint address, T value) where T : unmanaged {
+        int sizeOfT = Unsafe.SizeOf<T>();
+        using (RentHelper.RentArray(sizeOfT, out byte[] buffer)) {
+            Unsafe.As<byte, T>(ref MemoryMarshal.GetArrayDataReference(buffer)) = value;
+            if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
+                Array.Reverse(buffer, 0, sizeOfT);
+            }
+
+            return this.WriteBytes(address, buffer, 0, sizeOfT);
+        }
+    }
+
+    public async Task WriteStruct<T>(uint address, T value, params int[] fieldSizes) where T : unmanaged {
+        this.EnsureNotClosed();
+
+        int sizeOfT = Unsafe.SizeOf<T>(), offset = 0;
+        using (RentHelper.RentArray(sizeOfT, out byte[] dstBuffer)) {
+            Span<byte> srcData = MemoryMarshal.CreateSpan(ref Unsafe.As<T, byte>(ref value), sizeOfT);
+            bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
+            using (this.CreateBusyToken()) {
+                Span<byte> dstSpan = dstBuffer.AsSpan(0, sizeOfT);
+                foreach (int cbField in fieldSizes) {
+                    Debug.Assert(cbField >= 0, "Field was negative");
+                    if ((cbField + offset) > sizeOfT) {
+                        throw new ArgumentException("Summation of field sizes exceeds the size of the value");
+                    }
+
+                    Span<byte> dstFieldSpan = dstSpan.Slice(offset, cbField);
+                    srcData.Slice(offset, cbField).CopyTo(dstFieldSpan);
+                    if (reverse) {
+                        dstFieldSpan.Reverse();
+                    }
+
+                    offset += cbField;
+                    Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.WriteStruct));
+                }
+            }
+
+            await this.WriteBytes(address, dstBuffer, 0, offset).ConfigureAwait(false);
+        }
+    }
+
+    public Task WriteString(uint address, string value) => this.WriteString(address, value, Encoding.ASCII);
+
+    public Task WriteString(uint address, string value, Encoding encoding) {
+        return this.WriteBytes(address, encoding.GetBytes(value));
+    }
+    
     public Task WriteVector2(uint address, Vector2 vec2) {
         return this.WriteStruct(address, vec2, sizeof(float), sizeof(float));
     }
@@ -467,24 +437,9 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         return this.WriteStruct(Offset, vec3, sizeof(float), sizeof(float), sizeof(float));
     }
 
-    protected async Task ReadBytesInChunksUnderBusyLock(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion, CancellationToken cancellationToken) {
-        Debug.Assert(count >= 0);
-        cancellationToken.ThrowIfCancellationRequested();
-        using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
-
+    protected async Task ReadBytesCoreWithNetworkThrowHelper(uint address, byte[] dstBuffer, int offset, int count) {
         try {
-            do {
-                this.EnsureNotClosed();
-                cancellationToken.ThrowIfCancellationRequested();
-                int cbRead = (int) Math.Min((uint) count, chunkSize);
-                await this.ReadBytesCore(address, buffer, offset, cbRead).ConfigureAwait(false);
-
-                address += (uint) cbRead;
-                offset += cbRead;
-                count -= cbRead;
-
-                completion?.OnProgress(cbRead);
-            } while (count > 0);
+            await this.ReadBytesCore(address, dstBuffer, offset, count).ConfigureAwait(false);
         }
         catch (Exception e) when (e is TimeoutException || e is IOException) {
             this.Close();
@@ -492,24 +447,9 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         }
     }
 
-    protected async Task WriteBytesInChunksUnderBusyLock(uint address, byte[] bytes, int offset, int count, uint chunkSize, CompletionState? completion, CancellationToken cancellationToken) {
-        Debug.Assert(count >= 0);
-        cancellationToken.ThrowIfCancellationRequested();
-        using PopCompletionStateRangeToken? token = completion?.PushCompletionRange(0.0, 1.0 / count);
-
+    protected async Task WriteBytesCoreWithNetworkThrowHelper(uint address, byte[] srcBuffer, int offset, int count) {
         try {
-            do {
-                this.EnsureNotClosed();
-                cancellationToken.ThrowIfCancellationRequested();
-                int cbWrite = (int) Math.Min((uint) count, chunkSize);
-                await this.WriteBytesCore(address, bytes, offset, cbWrite).ConfigureAwait(false);
-
-                address += (uint) cbWrite;
-                offset += cbWrite;
-                count -= cbWrite;
-
-                completion?.OnProgress(cbWrite);
-            } while (count > 0);
+            await this.WriteBytesCore(address, srcBuffer, offset, count).ConfigureAwait(false);
         }
         catch (Exception e) when (e is TimeoutException || e is IOException) {
             this.Close();
@@ -523,7 +463,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// <param name="address">The address to read from</param>
     /// <param name="dstBuffer">The array to write the bytes into</param>
     /// <param name="offset">The offset within <see cref="dstBuffer"/> to begin writing into. Should always be greather than or equal to 0</param>
-    /// <param name="count">The amount of bytes to read. This should always be greater than 0</param>
+    /// <param name="count">The amount of bytes to read. This value is always greater than 0</param>
     protected abstract Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count);
 
     /// <summary>
@@ -532,7 +472,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// <param name="address">The address to write to</param>
     /// <param name="srcBuffer">The array to read the bytes from</param>
     /// <param name="offset">The offset within <see cref="srcBuffer"/> to begin reading from. Should always be greather than or equal to 0</param>
-    /// <param name="count">The amount of bytes to write to the console. This should always be greater than 0</param>
+    /// <param name="count">The amount of bytes to write to the console. This value is always greater than 0</param>
     protected abstract Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count);
 
     /// <summary>

@@ -42,7 +42,7 @@ public class EditSavedAddressAddressCommand : BaseSavedAddressSelectionCommand {
         SingleUserInputInfo input = new SingleUserInputInfo(((AddressTableEntry) entries[0]).MemoryAddress.ToString()) {
             Caption = "Edit address",
             Message = "Change the address of this saved address table entry",
-            DefaultButton = true,
+            DefaultButton = UserInputInfo.ButtonType.Confirm,
             Label = "Address (hex)",
             Validate = (a) => {
                 if (!MemoryAddressUtils.TryParse(a.Input, out _, out string? err))

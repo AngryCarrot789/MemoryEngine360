@@ -166,6 +166,10 @@
                             <Style Selector="^:selected[IsFocused=True] /template/ Border#PART_Border">
                                 <Setter Property="Background" Value="{DynamicResource ListBoxItem.SelectedActive.Background}"/>
                             </Style>
+                            
+                            <Style Selector="^:disabled /template/ Border#PART_Border">
+                                <Setter Property="Background" Value="{DynamicResource ABrush.Tone5.Background.Disabled}"/>
+                            </Style>
                         </ControlTheme>
                     </ListBox.ItemContainerTheme>
                 </conn:ConsoleTypeListBox>

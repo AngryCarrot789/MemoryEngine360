@@ -66,17 +66,17 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
             }
         }
 
-        this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView();
+        this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(OpenConnectionInfo.CreateDefault());
         if (this.myDialog != null) {
             IBusyToken? token = null;
             try {
-                IConsoleConnection? connection = await this.myDialog.WaitForConnection();
-                if (connection != null) {
+                ConnectionResult? result = await this.myDialog.WaitForConnection();
+                if (result.HasValue) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
-                    token = await OpenConsoleConnectionDialogCommand.SetEngineConnectionAndHandleProblemsAsync(manager.MemoryEngine, connection, frame);
+                    token = await OpenConsoleConnectionDialogCommand.SetEngineConnectionAndHandleProblemsAsync(manager.MemoryEngine, result.Value.Connection, frame);
                     if (token == null) {
-                        connection.Close();
+                        result.Value.Connection.Close();
                     }
                 }
             }

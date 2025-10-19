@@ -60,7 +60,7 @@ public sealed class BinaryFileConnection : BaseConsoleConnection {
         this.IsLittleEndian = littleEndian;
     }
 
-    public override Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count) {
+    public override Task<bool?> IsMemoryInvalidOrProtected(uint address, int count) {
         return Task.FromResult<bool?>(null);
     }
 

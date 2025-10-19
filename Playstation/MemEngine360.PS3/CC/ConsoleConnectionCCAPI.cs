@@ -85,7 +85,7 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection, INetworkConsoleConn
         this.Close();
     }
 
-    public override Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count) {
+    public override Task<bool?> IsMemoryInvalidOrProtected(uint address, int count) {
         return Task.FromResult<bool?>(false);
     }
 

@@ -71,24 +71,26 @@ public class OpenConsoleConnectionDialogCommand : Command {
         }
 
         UserConnectionInfo? lastInfo = engine.LastUserConnectionInfo;
-        string focusedTypeId = lastInfo != null 
-            ? lastInfo.ConnectionType.RegisteredId 
+        string focusedTypeId = lastInfo != null
+            ? lastInfo.ConnectionType.RegisteredId
             : BasicApplicationConfiguration.Instance.LastConnectionTypeUsed;
-        
-        this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(focusedTypeId);
+
+        OpenConnectionInfo info = OpenConnectionInfo.CreateDefault(focusedTypeId);
+        this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(info);
         if (this.myDialog != null) {
-            if (lastInfo != null) {
-                this.myDialog.SetUserInfoForConnectionType(lastInfo);
+            if (lastInfo != null && info.TryGetEntryForType(lastInfo.ConnectionType, out ConnectionTypeEntry? entry)) {
+                entry.Info = lastInfo;
+                info.SelectedConnectionType = entry;
             }
 
             IBusyToken? token = null;
             try {
-                IConsoleConnection? connection = await this.myDialog.WaitForConnection();
-                if (connection != null) {
+                ConnectionResult? result = await this.myDialog.WaitForConnection();
+                if (result.HasValue) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
-                    if ((token = await SetEngineConnectionAndHandleProblemsAsync(engine, connection, frame, this.myDialog.UserConnectionInfoForConnection)) == null) {
-                        connection.Close();
+                    if ((token = await SetEngineConnectionAndHandleProblemsAsync(engine, result.Value.Connection, frame, result.Value.Info)) == null) {
+                        result.Value.Connection.Close();
                     }
                 }
             }

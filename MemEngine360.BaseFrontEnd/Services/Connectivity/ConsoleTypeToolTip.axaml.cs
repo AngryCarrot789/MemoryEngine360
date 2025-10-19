@@ -40,7 +40,7 @@ public partial class ConsoleTypeToolTip : UserControl, IToolTipControl {
     }
 
     public void OnOpened(Control owner, IContextData data) {
-        this.connectionTypeBinder.Attach(this, ((ConsoleTypeListBoxItem) owner).RegisteredConsoleType);
+        this.connectionTypeBinder.Attach(this, ((ConsoleTypeListBoxItem) owner).Model!.Type);
     }
 
     public void OnClosed(Control owner) {

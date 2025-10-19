@@ -74,9 +74,7 @@ public abstract class ConsoleConnectionManager {
     /// <summary>
     /// Opens a new window for connecting to a console
     /// </summary>
-    /// <param name="focusedTypeId">
-    ///     The ID of the console type to focus on by default. When null, defaults to the app properties' last connected type
-    /// </param>
+    /// <param name="info"></param>
     /// <returns>The dialog, or null, if there's no windowing system</returns>
-    public abstract Task<IOpenConnectionView?> ShowOpenConnectionView(string? focusedTypeId = null);
+    public abstract Task<IOpenConnectionView?> ShowOpenConnectionView(OpenConnectionInfo info);
 }

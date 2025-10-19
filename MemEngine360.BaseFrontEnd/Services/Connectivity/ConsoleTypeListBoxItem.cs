@@ -20,16 +20,16 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Metadata;
 using MemEngine360.Connections;
 using PFXToolKitUI.Avalonia.AvControls;
+using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.ToolTips;
 using PFXToolKitUI.Avalonia.Utils;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
-public class ConsoleTypeListBoxItem : ListBoxItem {
+public class ConsoleTypeListBoxItem : ModelBasedListBoxItem<ConnectionTypeEntry> {
     private readonly ManualBinder<RegisteredConnectionType> iconBinder = new ManualBinder<RegisteredConnectionType>(b => {
         ((IconControl) b.Control).IsVisible = (((IconControl) b.Control).Icon = b.Model.Icon) != null;
     }, (b) => {
@@ -65,34 +65,16 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
 
     private readonly ManualBinder<RegisteredConnectionType> displayNameBinder = new ManualBinder<RegisteredConnectionType>(b => ((TextBlock) b.Control).Text = b.Model.DisplayName);
     private readonly ManualBinder<RegisteredConnectionType> footerBinder = new ManualBinder<RegisteredConnectionType>(b => ((TextBlock) b.Control).IsVisible = !string.IsNullOrEmpty(((TextBlock) b.Control).Text = b.Model.FooterText));
+    private readonly IBinder<ConnectionTypeEntry> isEnabledBinder = new EventUpdateBinder<ConnectionTypeEntry>(nameof(ConnectionTypeEntry.IsEnabledChanged), b => ((ConsoleTypeListBoxItem) b.Control).IsEnabled = b.Model.IsEnabled);
+    
     private IconControl? PART_IconControl;
     private TextBlock? PART_DisplayName, PART_FooterText;
     private StackPanel? PART_PlatformIcons;
 
-    public RegisteredConnectionType RegisteredConsoleType { get; }
-
-    public UserConnectionInfo? UserConnectionInfo { get; private set; }
-
-    [Unstable("Throws. Use the other CTOR")]
     public ConsoleTypeListBoxItem() {
-        if (!Design.IsDesignMode)
-            throw new InvalidOperationException("Use the other constructor");
-    }
-
-    public ConsoleTypeListBoxItem(RegisteredConnectionType type) {
-        this.RegisteredConsoleType = type;
-        this.UserConnectionInfo = type.CreateConnectionInfo();
-
-        this.iconBinder.AttachModel(type);
-        this.platformIconsBinder.AttachModel(type);
-        this.displayNameBinder.AttachModel(type);
-        this.footerBinder.AttachModel(type);
-        // ToolTip.SetTip(this, type.RegisteredId);
         ToolTipEx.SetTipType(this, typeof(ConsoleTypeToolTip));
-    }
-
-    public void SetUserConnectionInfo(UserConnectionInfo? info) {
-        this.UserConnectionInfo = info;
+        this.isEnabledBinder.AttachControl(this);
+        this.AddBinderForModel(this.isEnabledBinder);
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e) {
@@ -107,10 +89,24 @@ public class ConsoleTypeListBoxItem : ListBoxItem {
         this.footerBinder.AttachControl(this.PART_FooterText);
     }
 
-    public void OnRemoving() {
+    protected override void OnAddingToList() {
+        RegisteredConnectionType type = this.Model!.Type;
+        this.iconBinder.AttachModel(type);
+        this.platformIconsBinder.AttachModel(type);
+        this.displayNameBinder.AttachModel(type);
+        this.footerBinder.AttachModel(type);
+    }
+
+    protected override void OnAddedToList() {
+    }
+
+    protected override void OnRemovingFromList() {
         this.iconBinder.DetachModel();
         this.platformIconsBinder.DetachModel();
         this.displayNameBinder.DetachModel();
         this.footerBinder.DetachModel();
+    }
+
+    protected override void OnRemovedFromList() {
     }
 }

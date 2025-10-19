@@ -28,7 +28,7 @@ public class EditSavedAddressDescriptionCommand : BaseSavedAddressSelectionComma
     protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
         SingleUserInputInfo info = new SingleUserInputInfo(entries[0].Description) {
             Caption = "Change description",
-            DefaultButton = true,
+            DefaultButton = UserInputInfo.ButtonType.Confirm,
             Label = "New description" + (entries.Count > 1 ? $" for {entries.Count} rows" : ""),
             MinimumDialogWidthHint = 350
         };

@@ -41,7 +41,6 @@ namespace MemEngine360.BaseFrontEnd.Scripting;
 
 public partial class ScriptingView : UserControl {
     public static readonly DataKey<TextDocument> ScriptTextDocumentDataKey = DataKeys.Create<TextDocument>(nameof(ScriptTextDocumentDataKey));
-    private static readonly DataKey<CompilationFailureRenderer> CompilationFailureRendererDataKey = DataKeys.Create<CompilationFailureRenderer>(nameof(CompilationFailureRendererDataKey));
     public static readonly StyledProperty<ScriptingManager?> ScriptingManagerProperty = AvaloniaProperty.Register<ScriptingView, ScriptingManager?>(nameof(ScriptingManager));
 
     public ScriptingManager? ScriptingManager {

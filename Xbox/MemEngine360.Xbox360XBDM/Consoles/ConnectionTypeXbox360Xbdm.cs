@@ -46,7 +46,9 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
 
     public override Icon Icon => SimpleIcons.Xbox360Icon;
 
-    public override bool SupportsEvents => true;
+    public override bool MaybeSupportsEvents => true;
+    
+    public override bool MaybeSupportsDebugging => true;
 
     private ConnectionTypeXbox360Xbdm() {
     }

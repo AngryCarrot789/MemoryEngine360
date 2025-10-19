@@ -86,7 +86,12 @@ public class ConnectToCCAPIInfo : UserConnectionInfo {
             return false;
         }
 
-        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("CCAPI Unavailable", "CCAPI has not been downloaded yet. Would you like to download it?", MessageBoxButtons.OKCancel, dialogCancellation: cancellation);
+        const string url = @"https://www.enstoneworld.com/downloads/index/40/CCAPI_2_80_REV13_Package__developer_";
+        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(
+            "CCAPI Unavailable", 
+            "CCAPI has not been downloaded yet. Would you like to download it? \n\n" +
+            "This will open this url in your web browser, which will start downloading the latest: \n" + url, 
+            MessageBoxButtons.OKCancel, dialogCancellation: cancellation, icon: MessageBoxIcons.QuestionIcon);
         if (result != MessageBoxResult.OK) {
             return false;
         }
@@ -97,7 +102,6 @@ public class ConnectToCCAPIInfo : UserConnectionInfo {
             return false;
         }
 
-        const string url = @"https://www.enstoneworld.com/downloads/index/40/CCAPI_2_80_REV13_Package__developer_";
         if (!await webLauncher.LaunchUriAsync(new Uri(url, UriKind.Absolute))) {
             return false;
         }

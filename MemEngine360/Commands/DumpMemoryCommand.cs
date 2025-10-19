@@ -64,12 +64,12 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             Caption = "Dump memory region",
             Message = "Select a memory region to read and dump to a file. There will be 2 more dialog prompts after this",
             Footer = "You can pause or cancel the operation at any time",
-            ConfirmText = "Next", DefaultButton = true,
+            ConfirmText = "Next", DefaultButton = UserInputInfo.ButtonType.Confirm,
             LabelA = "Start address (hex)", LabelB = "Length (hex)",
             ValidateA = validateMemAddr, ValidateB = validateMemAddr,
             DebounceErrorsDelayA = 300, DebounceErrorsDelayB = 300,
             TextA = p.StartAddress.ToString("X8"),
-            TextB = p.ScanLength.ToString("X8")
+            TextB = p.ScanLength.ToString("X8"),
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {

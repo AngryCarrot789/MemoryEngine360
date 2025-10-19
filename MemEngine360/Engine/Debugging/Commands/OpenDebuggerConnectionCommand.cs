@@ -53,15 +53,16 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
             }
         }
 
-        this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView();
+        OpenConnectionInfo info = OpenConnectionInfo.CreateDefault(isEnabledFilter: t => t.MaybeSupportsDebugging);
+        this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(info);
         if (this.myDialog != null) {
             try {
-                IConsoleConnection? connection = await this.myDialog.WaitForConnection();
-                if (connection != null) {
+                ConnectionResult? result = await this.myDialog.WaitForConnection();
+                if (result.HasValue) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
-                    if (!await TrySetConnectionAndHandleProblems(debugger, connection)) {
-                        connection.Close();
+                    if (!await TrySetConnectionAndHandleProblems(debugger, result.Value.Connection)) {
+                        result.Value.Connection.Close();
                     }
                 }
             }

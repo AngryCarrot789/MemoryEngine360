@@ -29,7 +29,7 @@ public interface IOpenConnectionView {
     /// Gets the data key used to access the <see cref="IOpenConnectionView"/> from context data.
     /// </summary>
     static readonly DataKey<IOpenConnectionView> DataKey = DataKeys.Create<IOpenConnectionView>(nameof(IOpenConnectionView));
-    
+
     /// <summary>
     /// Used to check if an attempt to open a connection is actually made from a <see cref="IOpenConnectionView"/>.
     /// <para>
@@ -38,16 +38,11 @@ public interface IOpenConnectionView {
     /// </para>
     /// </summary>
     static readonly DataKey<bool> IsConnectingFromViewDataKey = DataKeys.Create<bool>(nameof(IOpenConnectionView) + "_IsConnectingFromView");
-    
+
     /// <summary>
     /// Returns true when this window is still open.
     /// </summary>
     bool IsWindowOpen { get; }
-    
-    /// <summary>
-    /// Gets the <see cref="UserConnectionInfo"/> that was used to configure the UI to open the <see cref="IConsoleConnection"/>
-    /// </summary>
-    UserConnectionInfo? UserConnectionInfoForConnection { get; }
 
     /// <summary>
     /// Closes the view
@@ -65,7 +60,17 @@ public interface IOpenConnectionView {
     /// </summary>
     /// <param name="cancellation">A cancellation token that, when cancelled, will stop the waiting operation and return a null connection</param>
     /// <returns>A task that contains the connection that was made just before the window closed</returns>
-    Task<IConsoleConnection?> WaitForConnection(CancellationToken cancellation = default);
+    Task<ConnectionResult?> WaitForConnection(CancellationToken cancellation = default);
+}
 
-    void SetUserInfoForConnectionType(UserConnectionInfo info);
+public readonly struct ConnectionResult(IConsoleConnection connection, UserConnectionInfo? info) {
+    /// <summary>
+    /// Gets the connection
+    /// </summary>
+    public IConsoleConnection Connection { get; } = connection;
+
+    /// <summary>
+    /// Gets the user connection info used to actually connect
+    /// </summary>
+    public UserConnectionInfo? Info { get; } = info;
 }

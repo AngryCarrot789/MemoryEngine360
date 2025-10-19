@@ -27,22 +27,16 @@ using SkiaSharp;
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
-    public override async Task<IOpenConnectionView?> ShowOpenConnectionView(string? focusedTypeId = null) {
+    public override async Task<IOpenConnectionView?> ShowOpenConnectionView(OpenConnectionInfo info) {
         if (!WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out IDesktopWindow? parentWindow)) {
             return null;
         }
 
-        if (string.IsNullOrWhiteSpace(focusedTypeId)) {
-            focusedTypeId = BasicApplicationConfiguration.Instance.LastConnectionTypeUsed;
-        }
-
-        OpenConnectionViewEx view = new OpenConnectionViewEx() {
-            TypeToFocusOnOpened = focusedTypeId
-        };
-
         IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
             Title = "Connect to a console",
-            Content = view,
+            Content = new OpenConnectionView() {
+                OpenConnectionInfo = info
+            },
             TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone6.Background.Static"),
             BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
             MinWidth = 600, MinHeight = 350,
@@ -50,9 +44,10 @@ public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
             Parent = parentWindow
         });
 
-        window.Opened += (sender, args) => ((OpenConnectionViewEx) sender.Content!).OnWindowOpened(sender);
-        window.Closed += (sender, args) => ((OpenConnectionViewEx) sender.Content!).OnWindowClosed();
+        window.Opened += static (sender, args) => ((OpenConnectionView) sender.Content!).OnWindowOpened(sender);
+        window.TryClose += static (sender, args) => ((OpenConnectionView) sender.Content!).OnTryingToClose(args);
+        window.Closed += static (sender, args) => ((OpenConnectionView) sender.Content!).OnWindowClosed();
         await window.ShowAsync();
-        return view;
+        return (OpenConnectionView) window.Content!;
     }
 }

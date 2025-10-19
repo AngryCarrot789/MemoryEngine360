@@ -22,7 +22,7 @@ using PFXToolKitUI.DataTransfer;
 namespace MemEngine360.Connections;
 
 /// <summary>
-/// The base class for a model used in MemEngine's connection dialog, which contains
+/// The base class for a model used in the open connection dialog, which contains
 /// properties that can be used during <see cref="RegisteredConnectionType.OpenConnection"/>
 /// </summary>
 public abstract class UserConnectionInfo : ITransferableData {
@@ -47,14 +47,14 @@ public abstract class UserConnectionInfo : ITransferableData {
     /// </summary>
     protected abstract void OnHidden();
 
-    public static void InternalOnShown(UserConnectionInfo info) {
+    public static void InternalShow(UserConnectionInfo info) {
         if (info.isBeingViewed)
             throw new InvalidOperationException("Already shown");
         info.isBeingViewed = true;
         info.OnShown();
     }
     
-    public static void InternalOnHidden(UserConnectionInfo info) {
+    public static void InternalHide(UserConnectionInfo info) {
         if (!info.isBeingViewed)
             throw new InvalidOperationException("Not shown");
         info.isBeingViewed = false;
@@ -67,4 +67,13 @@ public abstract class UserConnectionInfo : ITransferableData {
     /// <param name="info"></param>
     /// <returns></returns>
     public static bool IsShownInView(UserConnectionInfo info) => info.isBeingViewed;
+
+    public sealed override bool Equals(object? obj) {
+        return ReferenceEquals(this, obj);
+    }
+
+    public sealed override int GetHashCode() {
+        // ReSharper disable once BaseObjectGetHashCodeCallInGetHashCode
+        return base.GetHashCode();
+    }
 }

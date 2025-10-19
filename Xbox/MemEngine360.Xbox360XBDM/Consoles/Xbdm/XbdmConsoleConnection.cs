@@ -121,8 +121,8 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         }, token);
     }
 
-    public override uint GetRecommendedReadChunkSize(uint readTotal) {
-        return readTotal < 128 ? 128U : 0x1000U /* 4096 */;
+    public override int GetRecommendedReadChunkSize(int readTotal) {
+        return readTotal < 128 ? 128 : 0x400 /* 1024 */;
     }
 
     /// <summary>
@@ -490,7 +490,9 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         await this.SendCommand("dbgname name=" + newName).ConfigureAwait(false);
     }
 
-    public override async Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count) {
+    public override async Task<bool?> IsMemoryInvalidOrProtected(uint address, int count) {
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
@@ -498,7 +500,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
             return false;
         }
 
-        this.FillGetMemCommandBuffer(address, count);
+        this.FillGetMemCommandBuffer(address, (uint) count);
         await this.InternalWriteBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
         XbdmResponse response = await this.InternalReadResponse().ConfigureAwait(false);
         VerifyResponse("getmem", response.ResponseType, XbdmResponseType.MultiResponse);

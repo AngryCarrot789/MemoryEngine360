@@ -36,8 +36,6 @@ public class ConnectionTypePS3MAPI : RegisteredConnectionType {
 
     public override Icon Icon => SimpleIcons.PS3MAPIIcon;
 
-    public override bool SupportsEvents => false;
-
     private ConnectionTypePS3MAPI() {
     }
 

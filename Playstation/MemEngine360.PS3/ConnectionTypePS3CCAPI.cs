@@ -48,8 +48,6 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
 
     public override IEnumerable<PlatformIconInfo> PlatformIcons => [new(PlatformIcon.WindowsIcon, "CCAPI is closed source, and is only implemented on windows")];
 
-    public override bool SupportsEvents => false;
-
     private ConnectionTypePS3CCAPI() {
     }
 

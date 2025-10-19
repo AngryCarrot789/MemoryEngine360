@@ -430,7 +430,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 // Update initial text
                 completion.OnCompletionValueChanged();
                 byte[] buffer = new byte[length];
-                await connection.ReadBytes(address, buffer, 0, length, 0x10000, completion, task.CancellationToken);
+                await connection.ReadBytes(address, buffer, 0, length, connection.GetRecommendedReadChunkSize(length), completion, task.CancellationToken);
 
                 if (!isAlreadyFrozen && iceCubes != null && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     task.Progress.Text = "Unfreezing console...";
@@ -504,7 +504,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
 
                 byte[] buffer = new byte[count];
                 int read = this.myBinarySource!.ReadAvailableData(start, buffer);
-                await c.WriteBytes(start, buffer, 0, read, 0x10000, completion, ActivityManager.Instance.CurrentTask.CancellationToken);
+                await c.WriteBytes(start, buffer, 0, read, c.GetRecommendedReadChunkSize(read), completion, ActivityManager.Instance.CurrentTask.CancellationToken);
 
                 if (!isAlreadyFrozen && iceCubes != null && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     progress.Text = "Unfreezing console...";
@@ -708,7 +708,9 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 DateTime startTime = DateTime.Now;
                 try {
                     // aprox. 50ms to fully read 1.5k bytes, based on simple benchmark with DateTime.Now
-                    await connection.ReadBytes(this.startAddress, this.myBuffer, 0, (int) Math.Min(this.cbRange, int.MaxValue), 0x1000, null, pauseOrCancelToken);
+                    int read = (int) Math.Min(this.cbRange, int.MaxValue);
+                    
+                    await connection.ReadBytes(this.startAddress, this.myBuffer, 0, read, connection.GetRecommendedReadChunkSize(read), null, pauseOrCancelToken);
 
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         if (this.control.PART_ToggleShowChanges.IsChecked == true) {

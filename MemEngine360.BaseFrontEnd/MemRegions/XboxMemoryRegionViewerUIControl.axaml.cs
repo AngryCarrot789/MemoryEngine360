@@ -28,32 +28,31 @@ namespace MemEngine360.BaseFrontEnd.MemRegions;
 
 public partial class XboxMemoryRegionViewerUIControl : UserControl, IUserInputContent {
     private UserInputDialogView? myDialog;
-    private MemoryRegionUserInputInfo? myInfo;
     public readonly IBinder<MemoryRegionUserInputInfo> selectedItemBinder = new AvaloniaPropertyToEventPropertyBinder<MemoryRegionUserInputInfo>(DataGrid.SelectedItemProperty, nameof(MemoryRegionUserInputInfo.SelectedRegionChanged), (b) => ((DataGrid) b.Control).SelectedItem = b.Model.SelectedRegion, (b) => b.Model.SelectedRegion = (MemoryRegionViewModel?) ((DataGrid) b.Control).SelectedItem);
     
-    public MemoryRegionUserInputInfo? Info => this.myInfo;
-    
+    public MemoryRegionUserInputInfo? Info { get; private set; }
+
     public XboxMemoryRegionViewerUIControl() {
         this.InitializeComponent();
     }
 
     public void Connect(UserInputDialogView dialog, UserInputInfo info) {
         this.myDialog = dialog;
-        this.myInfo = (MemoryRegionUserInputInfo) info;
-        this.PART_DataGrid.ItemsSource = this.myInfo.MemoryRegions;
+        this.Info = (MemoryRegionUserInputInfo) info;
+        this.PART_DataGrid.ItemsSource = this.Info.MemoryRegions;
         this.PART_DataGrid.SelectionMode = DataGridSelectionMode.Single;
-        this.selectedItemBinder.Attach(this.PART_DataGrid, this.myInfo);
+        this.selectedItemBinder.Attach(this.PART_DataGrid, this.Info);
     }
 
     public void Disconnect() {
         this.selectedItemBinder.Detach();
         this.PART_DataGrid.ItemsSource = null;
-        this.myInfo = null;
+        this.Info = null;
         this.myDialog = null;
     }
 
     public bool FocusPrimaryInput() {
-        if (this.myInfo!.MemoryRegions.Count > 0) {
+        if (this.Info!.MemoryRegions.Count > 0) {
             this.PART_DataGrid.SelectedIndex = 0;
             return true;
         }

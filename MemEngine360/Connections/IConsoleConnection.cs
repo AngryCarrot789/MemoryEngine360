@@ -56,17 +56,26 @@ public interface IConsoleConnection {
     event ConsoleConnectionEventHandler Closed;
 
     /// <summary>
+    /// Gets the recommended number of bytes to be read in one call. For some connections this might not
+    /// matter whereas others may need to run an internal loop to read in tiny chunks from a network,
+    /// therefore, this property will return the value of that tiny chunk size. 
+    /// </summary>
+    /// <param name="readTotal">The amount of data intended to be read</param>
+    /// <returns>The recommended amount of bytes to read in a single call to, for example, <see cref="ReadBytes(uint,byte[],int,int)"/></returns>
+    int GetRecommendedReadChunkSize(int readTotal);
+
+    /// <summary>
     /// Reads an exact amount of bytes from the console. If the address space contains protected memory, the buffer will
     /// have 0s written into it. If for some reason the amount of bytes count not be read, an <see cref="IOException"/> is thrown
     /// </summary>
     /// <param name="address">The address to read from</param>
-    /// <param name="buffer">The destination buffer</param>
+    /// <param name="dstBuffer">The destination buffer</param>
     /// <param name="offset">The offset to start writing into the buffer</param>
     /// <param name="count">The amount of bytes to read from the console</param>
     /// <returns>A task representing the read operation. It contains the amount of bytes actually read</returns>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
-    Task ReadBytes(uint address, byte[] buffer, int offset, int count);
+    Task ReadBytes(uint address, byte[] dstBuffer, int offset, int count);
 
     /// <summary>
     /// Reads an exact amount of bytes from the console, in chunks. By reading in
@@ -74,7 +83,7 @@ public interface IConsoleConnection {
     /// contains protected memory, the buffer will have 0s written into it
     /// </summary>
     /// <param name="address">The address to read from</param>
-    /// <param name="buffer">The destination buffer</param>
+    /// <param name="dstBuffer">The destination buffer</param>
     /// <param name="offset">The offset to start writing into the buffer</param>
     /// <param name="count">The total amount of bytes to read from the console</param>
     /// <param name="chunkSize">The amount of bytes to read per chunk</param>
@@ -83,7 +92,7 @@ public interface IConsoleConnection {
     /// <returns>A task representing the read operation</returns>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
-    Task ReadBytes(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default);
+    Task ReadBytes(uint address, byte[] dstBuffer, int offset, int count, int chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Convenience method for reading an array of bytes. Calls <see cref="ReadBytes(uint,byte[],int,uint)"/>
@@ -170,36 +179,36 @@ public interface IConsoleConnection {
     /// Writes the exact number of bytes to the console. If for some reason the amount of bytes count not be written, an <see cref="IOException"/> is thrown
     /// </summary>
     /// <param name="address">The address to write to</param>
-    /// <param name="buffer">The buffer to write</param>
+    /// <param name="srcBuffer">The buffer to write</param>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
-    Task WriteBytes(uint address, byte[] buffer);
+    Task WriteBytes(uint address, byte[] srcBuffer);
     
     /// <summary>
     /// Writes the exact number of bytes to the console. If for some reason the amount of bytes count not be written, an <see cref="IOException"/> is thrown
     /// </summary>
     /// <param name="address">The address to write to</param>
-    /// <param name="buffer">The buffer to write</param>
-    /// <param name="offset">The offset, within <see cref="buffer"/>, to start at</param>
+    /// <param name="srcBuffer">The buffer to write</param>
+    /// <param name="offset">The offset, within <see cref="srcBuffer"/>, to start at</param>
     /// <param name="count">The amount of bytes to write</param>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
-    Task WriteBytes(uint address, byte[] buffer, int offset, int count);
+    Task WriteBytes(uint address, byte[] srcBuffer, int offset, int count);
 
     /// <summary>
     /// Writes the exact number of bytes to the console, with support for cancelling. If cancellation is requested,
     /// the connection is not left in an invalid state, but not all the bytes in the buffer may have been written
     /// </summary>
     /// <param name="address">The address to write to</param>
-    /// <param name="buffer">The buffer to write</param>
-    /// <param name="offset">The offset, within <see cref="buffer"/>, to start at</param>
+    /// <param name="srcBuffer">The buffer to write</param>
+    /// <param name="offset">The offset, within <see cref="srcBuffer"/>, to start at</param>
     /// <param name="count">The amount of bytes to write</param>
     /// <param name="chunkSize">The amount of bytes to write per chunk</param>
     /// <param name="completion">Optional feedback for the completion progress</param>
     /// <param name="cancellationToken">Used to cancel the write operation</param>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
-    Task WriteBytes(uint address, byte[] buffer, int offset, int count, uint chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default);
+    Task WriteBytes(uint address, byte[] srcBuffer, int offset, int count, int chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Writes a single value to the console
@@ -314,7 +323,7 @@ public interface IConsoleConnection {
     /// </returns>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not read from console or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while reading from console</exception>
-    Task<bool?> IsMemoryInvalidOrProtected(uint address, uint count);
+    Task<bool?> IsMemoryInvalidOrProtected(uint address, int count);
 
     /// <summary>
     /// Closes this connection, making <see cref="IsClosed"/> become true and <see cref="Closed"/> is fired.

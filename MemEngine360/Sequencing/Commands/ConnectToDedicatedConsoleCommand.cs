@@ -41,8 +41,8 @@ public class ConnectToDedicatedConsoleCommand : Command {
 
         IConsoleConnection? oldConnection = sequence.DedicatedConnection;
         if (oldConnection != null && !oldConnection.IsClosed) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButtons.OKCancel, MessageBoxResult.OK);
-            if (result != MessageBoxResult.OK) {
+            MessageBoxResult mbr = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButtons.OKCancel, MessageBoxResult.OK);
+            if (mbr != MessageBoxResult.OK) {
                 return;
             }
 
@@ -59,23 +59,25 @@ public class ConnectToDedicatedConsoleCommand : Command {
         }
 
 
-        IConsoleConnection? newConnection;
-        IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView();
-        if (dialog == null || (newConnection = await dialog.WaitForConnection()) == null) {
+        IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(OpenConnectionInfo.CreateDefault());
+        if (dialog == null) {
+            return;
+        }
+
+        ConnectionResult? result = await dialog.WaitForConnection();
+        if (!result.HasValue) {
             return;
         }
 
         // just in case it somehow starts running, quickly escape
         if (sequence.IsRunning) {
-            newConnection.Close();
+            result.Value.Connection.Close();
             return;
         }
 
         oldConnection = sequence.DedicatedConnection;
         sequence.UseEngineConnection = false;
-        sequence.DedicatedConnection = newConnection;
-        if (oldConnection != null) {
-            oldConnection.Close();
-        }
+        sequence.DedicatedConnection = result.Value.Connection;
+        oldConnection?.Close();
     }
 }

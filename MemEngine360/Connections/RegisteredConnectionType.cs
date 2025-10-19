@@ -19,6 +19,7 @@
 
 using System.Net;
 using System.Runtime.CompilerServices;
+using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
@@ -78,9 +79,14 @@ public abstract class RegisteredConnectionType {
     public virtual IEnumerable<PlatformIconInfo> PlatformIcons => Enumerable.Empty<PlatformIconInfo>();
     
     /// <summary>
-    /// Returns true when connections returned by <see cref="OpenConnection"/> implement <see cref="MemEngine360.Connections.Features.IFeatureSystemEvents"/>
+    /// Returns true when connections returned by <see cref="OpenConnection"/> might implement <see cref="MemEngine360.Connections.Features.IFeatureSystemEvents"/>
     /// </summary>
-    public virtual bool SupportsEvents => false;
+    public virtual bool MaybeSupportsEvents => false;
+    
+    /// <summary>
+    /// Returns true when connections returned by <see cref="OpenConnection"/> might implement <see cref="MemEngine360.Connections.Features.IFeatureXboxDebugging"/>
+    /// </summary>
+    public virtual bool MaybeSupportsDebugging => false;
 
     // TODO: Coming soon, connection limiting. Xbox has no limit AFAIK, so no need to implement it yet
     // /// <summary>
