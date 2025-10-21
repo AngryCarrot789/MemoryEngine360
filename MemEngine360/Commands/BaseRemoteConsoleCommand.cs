@@ -89,7 +89,7 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
                 catch (Exception ex) {
                     await IMessageDialogService.Instance.ShowMessage("Unexpected Error", "Error while executing remote command", ex.GetToString());
                 }
-            });
+            }, cancellable: true);
         }
 
         engine.CheckConnection(token, likelyCause);

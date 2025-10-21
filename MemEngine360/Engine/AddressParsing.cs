@@ -31,27 +31,15 @@ public static class AddressParsing {
     private static readonly IEvaluationContext<uint> DefaultU32EvalCtx = EvaluationContexts.CreateForInteger<uint>();
     private static readonly IEvaluationContext<ulong> DefaultU64EvalCtx = EvaluationContexts.CreateForInteger<ulong>();
 
-    // 0x0x0x86000000
-    public static ReadOnlySpan<char> TrimHexPrefix(string input, out NumberStyles style) {
+    public static int TrimHexPrefix(string input) {
         int j, i = input.IndexOf("0x", StringComparison.OrdinalIgnoreCase);
-        if (i != -1) {
-            while ((j = input.IndexOf("0x", i + 2, StringComparison.OrdinalIgnoreCase)) != -1)
+        if (i == 0) {
+            while ((j = input.IndexOf("0x", i + 2, StringComparison.OrdinalIgnoreCase)) == (i + 2))
                 i = j;
-
-            style = NumberStyles.HexNumber;
-            return input.AsSpan(i + 2);
-        }
-        
-        if ((i = input.IndexOf("0b", StringComparison.OrdinalIgnoreCase)) != -1) {
-            while ((j = input.IndexOf("0b", i + 2, StringComparison.OrdinalIgnoreCase)) != -1)
-                i = j;
-
-            style = NumberStyles.BinaryNumber;
-            return input.AsSpan(i + 2);
+            return i + 2;
         }
 
-        style = NumberStyles.HexNumber;
-        return input.AsSpan();
+        return i;
     }
 
     /// <summary>
@@ -65,14 +53,15 @@ public static class AddressParsing {
     /// <returns>True if parsed</returns>
     public static bool TryParse(string? input, bool is32bit, out ulong value, [NotNullWhen(false)] out string? error, bool canParseAsExpression = false, IFormatProvider? formatProvider = null) {
         if (!string.IsNullOrWhiteSpace(input)) {
-            ReadOnlySpan<char> inputSpan = TrimHexPrefix(input, out NumberStyles ns);
+            int endOfPrefix = TrimHexPrefix(input);
+            ReadOnlySpan<char> inputSpan = endOfPrefix == -1 ? input.AsSpan() : input.AsSpan(endOfPrefix);
             if (is32bit) {
-                if (uint.TryParse(inputSpan, ns, formatProvider, out uint u32value)) {
+                if (uint.TryParse(inputSpan, NumberStyles.HexNumber, formatProvider, out uint u32value)) {
                     error = null;
                     value = u32value;
                     return true;
                 }
-                else if (ulong.TryParse(inputSpan, ns, formatProvider, out _)) {
+                else if (ulong.TryParse(inputSpan, NumberStyles.HexNumber, formatProvider, out _)) {
                     error = "Address is too large. The maximum is 0xFFFFFFFF";
                 }
                 else {
@@ -80,7 +69,7 @@ public static class AddressParsing {
                 }
             }
             else {
-                if (ulong.TryParse(inputSpan, ns, formatProvider, out ulong u64value)) {
+                if (ulong.TryParse(inputSpan, NumberStyles.HexNumber, formatProvider, out ulong u64value)) {
                     error = null;
                     value = u64value;
                     return true;

@@ -22,6 +22,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
@@ -320,7 +321,8 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
         if (response == null)
             throw new IOException("Invalid argument");
 
-        while (response.Contains(findText)) {
+        CancellationToken cancellation = ActivityManager.Instance.TryGetCurrentTask(out ActivityTask? task) ? task.CancellationToken : CancellationToken.None;
+        while (response.Contains(findText) && !cancellation.IsCancellationRequested) {
             await Task.Delay(100);
             uint address = uint.Parse(response.AsSpan(response.IndexOf(findText) + findText.Length), NumberStyles.HexNumber);
             response = await this.SendCommand("consolefeatures " + findText + "0x" + address.ToString("X"));
