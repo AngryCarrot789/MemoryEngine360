@@ -17,10 +17,11 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Commands;
 using MemEngine360.Connections;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Dialogs;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
@@ -28,10 +29,13 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Scripting.Commands;
 
 public class ConnectScriptToConsoleCommand : Command {
+    private static readonly DataKey<IOpenConnectionView> ExistingOCVDataKey = DataKeys.Create<IOpenConnectionView>(nameof(ConnectScriptToConsoleCommand) + "_" + nameof(ExistingOCVDataKey));
+
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!Script.DataKey.TryGetContext(e.ContextData, out Script? script) || script.Manager == null) {
+        if (!Script.DataKey.TryGetContext(e.ContextData, out Script? script) || script.Manager == null)
             return Executability.Invalid;
-        }
+        if (ExistingOCVDataKey.TryGetContext(script.UserContext, out IOpenConnectionView? view))
+            return Executability.ValidButCannotExecute;
 
         return script.IsRunning ? Executability.ValidButCannotExecute : Executability.Valid;
     }
@@ -42,9 +46,15 @@ public class ConnectScriptToConsoleCommand : Command {
         if (script.IsRunning)
             return;
 
+        if (ExistingOCVDataKey.TryGetContext(script.UserContext, out IOpenConnectionView? view)) {
+            if (view.DialogOperation is IDesktopDialogOperation<ConnectionResult> op)
+                op.Activate();
+            return;
+        }
+
         IConsoleConnection? oldConnection = script.DedicatedConnection;
         if (oldConnection != null && !oldConnection.IsClosed) {
-            MessageBoxResult mbr = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButtons.OKCancel, MessageBoxResult.OK, persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
+            MessageBoxResult mbr = await MessageBoxes.AlreadyConnectedToConsole.ShowMessage();
             if (mbr != MessageBoxResult.OK) {
                 return;
             }
@@ -66,21 +76,26 @@ public class ConnectScriptToConsoleCommand : Command {
             return;
         }
 
-        ConnectionResult? result = await dialog.WaitForConnection();
-        if (!result.HasValue) {
-            return;
-        }
+        script.UserContext.Set(ExistingOCVDataKey, dialog);
+        
+        try {
+            ConnectionResult? result = await dialog.WaitForConnection();
+            if (result.HasValue) {
+                // just in case it somehow starts running, quickly escape
+                if (script.IsRunning) {
+                    CloseConnection(result.Value.Connection);
+                    return;
+                }
 
-        // just in case it somehow starts running, quickly escape
-        if (script.IsRunning) {
-            CloseConnection(result.Value.Connection);
-            return;
+                oldConnection = script.DedicatedConnection;
+                script.DedicatedConnection = result.Value.Connection;
+                if (oldConnection != null) {
+                    CloseConnection(oldConnection);
+                }
+            }
         }
-
-        oldConnection = script.DedicatedConnection;
-        script.DedicatedConnection = result.Value.Connection;
-        if (oldConnection != null) {
-            CloseConnection(oldConnection);
+        finally {
+            script.UserContext.Remove(ExistingOCVDataKey);
         }
     }
 

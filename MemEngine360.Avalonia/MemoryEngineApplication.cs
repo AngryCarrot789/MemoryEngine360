@@ -102,7 +102,11 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
     }
 
     private static void TaskSchedulerOnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) {
-        Instance.Dispatcher.Post(() => ExceptionDispatchInfo.Throw(e.Exception), DispatchPriority.Send);
+        if (Debugger.IsAttached) {
+            Debug.Fail("Unobserved task exception");
+            
+            Instance.Dispatcher.Post(() => ExceptionDispatchInfo.Throw(e.Exception), DispatchPriority.Send);
+        }
     }
 
     protected override void RegisterCommands(CommandManager manager) {

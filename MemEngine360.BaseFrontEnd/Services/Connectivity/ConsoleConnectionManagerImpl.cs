@@ -17,8 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Configs;
 using MemEngine360.Connections;
+using PFXToolKitUI.Avalonia.Interactivity.Dialogs;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Themes;
@@ -44,9 +44,17 @@ public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
             Parent = parentWindow
         });
 
-        window.Opened += static (sender, args) => ((OpenConnectionView) sender.Content!).OnWindowOpened(sender);
-        window.TryClose += static (sender, args) => ((OpenConnectionView) sender.Content!).OnTryingToClose(args);
-        window.Closed += static (sender, args) => ((OpenConnectionView) sender.Content!).OnWindowClosed();
+        ((OpenConnectionView) window.Content!).DialogOperation = DialogOperations.WrapDesktopWindow<ConnectionResult>(window);
+
+        window.Opened += static (sender, args) => ((OpenConnectionView) sender.Content!).OnDialogOpened();
+        window.TryClose += static (sender, args) => {
+            bool cancel = false;
+            ((OpenConnectionView) sender.Content!).OnDialogTryingToClose(ref cancel);
+            if (cancel)
+                args.SetCancelled();
+        };
+        window.Closed += static (sender, args) => ((OpenConnectionView) sender.Content!).OnDialogClosed();
+        
         await window.ShowAsync();
         return (OpenConnectionView) window.Content!;
     }

@@ -23,6 +23,8 @@ using MemEngine360.Engine;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Dialogs;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
@@ -30,37 +32,36 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Commands;
 
 public class OpenConsoleConnectionDialogCommand : Command {
+    private static readonly DataKey<IOpenConnectionView> ExistingOCVDataKey = DataKeys.Create<IOpenConnectionView>(nameof(OpenConsoleConnectionDialogCommand) + "_" + nameof(ExistingOCVDataKey));
+
+
     public const string AlreadyOpenDialogName = "dialog.AlreadyConnectedToConsole";
 
-    private IOpenConnectionView? myDialog;
-
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine))
             return Executability.Invalid;
-        }
+        if (ExistingOCVDataKey.TryGetContext(engine.UserContext, out IOpenConnectionView? view))
+            return Executability.ValidButCannotExecute;
 
         return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (this.myDialog != null && this.myDialog.IsWindowOpen) {
-            this.myDialog.Activate();
-            return;
-        }
-
         if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine))
             return;
         if (!ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel))
             return;
 
+        if (ExistingOCVDataKey.TryGetContext(engine.UserContext, out IOpenConnectionView? view)) {
+            if (view.DialogOperation is IDesktopDialogOperation<ConnectionResult> op)
+                op.Activate();
+            return;
+        }
+
         ulong frame = engine.GetNextConnectionChangeFrame();
 
         if (engine.Connection != null && !engine.Connection.IsClosed) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(
-                "Already Connected",
-                "Already connected to a console. Close existing connection first?",
-                MessageBoxButtons.OKCancel,
-                MessageBoxResult.OK, persistentDialogName: AlreadyOpenDialogName);
+            MessageBoxResult result = await MessageBoxes.AlreadyConnectedToConsole.ShowMessage();
             if (result != MessageBoxResult.OK) {
                 return;
             }
@@ -76,8 +77,8 @@ public class OpenConsoleConnectionDialogCommand : Command {
             : BasicApplicationConfiguration.Instance.LastConnectionTypeUsed;
 
         OpenConnectionInfo info = OpenConnectionInfo.CreateDefault(focusedTypeId);
-        this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(info);
-        if (this.myDialog != null) {
+        IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(info);
+        if (dialog != null) {
             if (lastInfo != null && info.TryGetEntryForType(lastInfo.ConnectionType, out ConnectionTypeEntry? entry)) {
                 entry.Info = lastInfo;
                 info.SelectedConnectionType = entry;
@@ -85,7 +86,8 @@ public class OpenConsoleConnectionDialogCommand : Command {
 
             IBusyToken? token = null;
             try {
-                ConnectionResult? result = await this.myDialog.WaitForConnection();
+                engine.UserContext.Set(ExistingOCVDataKey, dialog);
+                ConnectionResult? result = await dialog.WaitForConnection();
                 if (result.HasValue) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
@@ -95,8 +97,8 @@ public class OpenConsoleConnectionDialogCommand : Command {
                 }
             }
             finally {
-                this.myDialog = null;
                 token?.Dispose();
+                engine.UserContext.Remove(ExistingOCVDataKey);
             }
         }
     }
@@ -177,7 +179,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
             // Somehow a connection was set before we got here and user doesn't want to overwrite it.
             // Maybe they opened two windows for some reason? Perhaps via the task sequencer and main window.
 
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButtons.OKCancel, MessageBoxResult.OK, persistentDialogName: AlreadyOpenDialogName);
+            MessageBoxResult result = await MessageBoxes.AlreadyConnectedToConsole.ShowMessage();
             if (result != MessageBoxResult.OK) {
                 try {
                     newConnection.Close();

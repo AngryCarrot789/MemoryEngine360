@@ -22,41 +22,40 @@ using MemEngine360.Engine;
 using MemEngine360.Sequencing;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Dialogs;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Commands;
 
-public class OpenConsoleConnectionInSequencerCommand : Command {
-    private IOpenConnectionView? myDialog;
+public class OpenConsoleConnectionInSequencerCommand() : Command(allowMultipleExecutions: true) {
+    private static readonly DataKey<IOpenConnectionView> ExistingOCVDataKey = DataKeys.Create<IOpenConnectionView>(nameof(OpenConsoleConnectionInSequencerCommand) + "_" + nameof(ExistingOCVDataKey));
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager))
             return Executability.Invalid;
-        }
-
+        if (ExistingOCVDataKey.TryGetContext(manager.UserContext, out IOpenConnectionView? view))
+            return Executability.ValidButCannotExecute;
         return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (this.myDialog != null && this.myDialog.IsWindowOpen) {
-            this.myDialog.Activate();
-            return;
-        }
-
         if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager))
             return;
         if (!ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel))
             return;
 
+        if (ExistingOCVDataKey.TryGetContext(manager.UserContext, out IOpenConnectionView? view)) {
+            if (view.DialogOperation is IDesktopDialogOperation<ConnectionResult> op)
+                op.Activate();
+            return;
+        }
+
         MemoryEngine engine = manager.MemoryEngine;
         ulong frame = engine.GetNextConnectionChangeFrame();
         if (engine.Connection != null && !engine.Connection.IsClosed) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(
-                "Already Connected",
-                "Already connected to a console. Close existing connection first?",
-                MessageBoxButtons.OKCancel, MessageBoxResult.OK,
-                persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
+            MessageBoxResult result = await MessageBoxes.AlreadyConnectedToConsole.ShowMessage();
             if (result != MessageBoxResult.OK) {
                 return;
             }
@@ -66,23 +65,27 @@ public class OpenConsoleConnectionInSequencerCommand : Command {
             }
         }
 
-        this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(OpenConnectionInfo.CreateDefault());
-        if (this.myDialog != null) {
+        IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(OpenConnectionInfo.CreateDefault());
+        if (dialog != null) {
+            manager.UserContext.Set(ExistingOCVDataKey, dialog);
+
             IBusyToken? token = null;
             try {
-                ConnectionResult? result = await this.myDialog.WaitForConnection();
-                if (result.HasValue) {
-                    // When returned token is null, close the connection since we can't
-                    // do anything else with the connection since the user cancelled the operation
-                    token = await OpenConsoleConnectionDialogCommand.SetEngineConnectionAndHandleProblemsAsync(manager.MemoryEngine, result.Value.Connection, frame);
-                    if (token == null) {
-                        result.Value.Connection.Close();
-                    }
+                ConnectionResult result = await dialog.DialogOperation.WaitForResultAsync();
+                token = await OpenConsoleConnectionDialogCommand.SetEngineConnectionAndHandleProblemsAsync(manager.MemoryEngine, result.Connection, frame);
+
+                // When returned token is null, close the connection since we can't
+                // do anything else with the connection since the user cancelled the operation
+                if (token == null) {
+                    result.Connection.Close();
                 }
             }
+            catch (OperationCanceledException) {
+                // ignored
+            }
             finally {
-                this.myDialog = null;
                 token?.Dispose();
+                manager.UserContext.Remove(ExistingOCVDataKey);
             }
         }
     }

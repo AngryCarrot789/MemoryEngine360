@@ -23,6 +23,7 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Events;
 using MemEngine360.Engine.Events.XbdmEvents;
 using PFXToolKitUI;
+using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
@@ -41,7 +42,7 @@ public delegate void ConsoleDebuggerEventHandler(ConsoleDebugger sender);
 /// <summary>
 /// The memory engine debugger
 /// </summary>
-public class ConsoleDebugger {
+public class ConsoleDebugger : IUserLocalContext {
     public static readonly DataKey<ConsoleDebugger> DataKey = DataKeys.Create<ConsoleDebugger>(nameof(ConsoleDebugger));
 
     private readonly BusyLock busyLocker;
@@ -139,6 +140,8 @@ public class ConsoleDebugger {
     /// Gets the engine this debugger is associated with
     /// </summary>
     public MemoryEngine Engine { get; }
+    
+    public IMutableContextData UserContext { get; } = new ContextData();
 
     public event ConsoleDebuggerConnectionChangedEventHandler? ConnectionChanged;
     public event ConsoleDebuggerActiveThreadChangedEventHandler? ActiveThreadChanged;

@@ -18,6 +18,7 @@
 // 
 
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Dialogs;
 
 namespace MemEngine360.Connections;
 
@@ -26,11 +27,6 @@ namespace MemEngine360.Connections;
 /// </summary>
 public interface IOpenConnectionView {
     /// <summary>
-    /// Gets the data key used to access the <see cref="IOpenConnectionView"/> from context data.
-    /// </summary>
-    static readonly DataKey<IOpenConnectionView> DataKey = DataKeys.Create<IOpenConnectionView>(nameof(IOpenConnectionView));
-
-    /// <summary>
     /// Used to check if an attempt to open a connection is actually made from a <see cref="IOpenConnectionView"/>.
     /// <para>
     /// If the user clicks the "Reconnect" button in the notification in the engine's window when the connection is lost,
@@ -38,21 +34,11 @@ public interface IOpenConnectionView {
     /// </para>
     /// </summary>
     static readonly DataKey<bool> IsConnectingFromViewDataKey = DataKeys.Create<bool>(nameof(IOpenConnectionView) + "_IsConnectingFromView");
-
+    
     /// <summary>
-    /// Returns true when this window is still open.
+    /// Gets the dialog operation
     /// </summary>
-    bool IsWindowOpen { get; }
-
-    /// <summary>
-    /// Closes the view
-    /// </summary>
-    void RequestClose();
-
-    /// <summary>
-    /// Activates the view, bringing it to the foreground
-    /// </summary>
-    void Activate();
+    IDialogOperation<ConnectionResult> DialogOperation { get; }
 
     /// <summary>
     /// Returns a task that completes when this window closes, passing the connection as a result.
@@ -60,7 +46,14 @@ public interface IOpenConnectionView {
     /// </summary>
     /// <param name="cancellation">A cancellation token that, when cancelled, will stop the waiting operation and return a null connection</param>
     /// <returns>A task that contains the connection that was made just before the window closed</returns>
-    Task<ConnectionResult?> WaitForConnection(CancellationToken cancellation = default);
+    async Task<ConnectionResult?> WaitForConnection(CancellationToken cancellation = default) {
+        try {
+            return await this.DialogOperation.WaitForResultAsync(cancellation);
+        }
+        catch (OperationCanceledException) {
+            return null;
+        }
+    }
 }
 
 public readonly struct ConnectionResult(IConsoleConnection connection, UserConnectionInfo? info) {

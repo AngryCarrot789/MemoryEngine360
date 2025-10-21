@@ -19,7 +19,9 @@
 
 using MemEngine360.Connections;
 using MemEngine360.Engine.Debugging;
+using MemEngine360.Engine.Debugging.Commands;
 using PFXToolKitUI.Avalonia.CommandUsages;
+using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.BaseFrontEnd.Debugging;
@@ -49,7 +51,28 @@ public abstract class DebuggerCommandUsage : SimpleButtonCommandUsage {
     }
 }
 
-public abstract class DebuggerConsoleExecStateCommandUsage : DebuggerCommandUsage {
+public abstract class DebuggerConnectionDependentCommandUsage : DebuggerCommandUsage {
+    protected DebuggerConnectionDependentCommandUsage(string commandId) : base(commandId) {
+    }
+
+    protected override void OnDebuggerChanged(ConsoleDebugger? oldDebugger, ConsoleDebugger? newDebugger) {
+        base.OnDebuggerChanged(oldDebugger, newDebugger);
+
+        if (oldDebugger != null) {
+            oldDebugger.ConnectionChanged -= this.OnConnectionChanged;
+        }
+
+        if (newDebugger != null) {
+            newDebugger.ConnectionChanged += this.OnConnectionChanged;
+        }
+    }
+
+    private void OnConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection) {
+        this.UpdateCanExecuteLater();
+    }
+}
+
+public abstract class DebuggerConsoleExecStateCommandUsage : DebuggerConnectionDependentCommandUsage {
     protected DebuggerConsoleExecStateCommandUsage(string commandId) : base(commandId) {
     }
 
@@ -58,20 +81,14 @@ public abstract class DebuggerConsoleExecStateCommandUsage : DebuggerCommandUsag
 
         if (oldDebugger != null) {
             oldDebugger.IsConsoleRunningChanged -= this.OnIsRunningChanged;
-            oldDebugger.ConnectionChanged -= this.OnConnectionChanged;
         }
 
         if (newDebugger != null) {
             newDebugger.IsConsoleRunningChanged += this.OnIsRunningChanged;
-            newDebugger.ConnectionChanged += this.OnConnectionChanged;
         }
     }
 
     private void OnIsRunningChanged(ConsoleDebugger sender) {
-        this.UpdateCanExecuteLater();
-    }
-
-    private void OnConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection) {
         this.UpdateCanExecuteLater();
     }
 }
@@ -82,9 +99,11 @@ public abstract class DebugThreadCommandUsage : DebuggerCommandUsage {
 
     protected override void OnDebuggerChanged(ConsoleDebugger? oldDebugger, ConsoleDebugger? newDebugger) {
         base.OnDebuggerChanged(oldDebugger, newDebugger);
-        
-        if (oldDebugger != null) oldDebugger.ActiveThreadChanged -= this.OnActiveThreadChanged;
-        if (newDebugger != null) newDebugger.ActiveThreadChanged += this.OnActiveThreadChanged;
+
+        if (oldDebugger != null)
+            oldDebugger.ActiveThreadChanged -= this.OnActiveThreadChanged;
+        if (newDebugger != null)
+            newDebugger.ActiveThreadChanged += this.OnActiveThreadChanged;
     }
 
     private void OnActiveThreadChanged(ConsoleDebugger sender, ThreadEntry? oldactivethread, ThreadEntry? newactivethread) {
@@ -99,3 +118,27 @@ public class UnfreezeConsoleCommandCommandUsage() : DebuggerConsoleExecStateComm
 public class SuspendThreadCommandCommandUsage() : DebugThreadCommandUsage("commands.debugger.SuspendThreadCommand");
 
 public class ResumeThreadCommandCommandUsage() : DebugThreadCommandUsage("commands.debugger.ResumeThreadCommand");
+
+public class OpenDebuggerConnectionCommandUsage : DebuggerConnectionDependentCommandUsage {
+    private CommandUsageSignal? mySignal;
+
+    public OpenDebuggerConnectionCommandUsage() : base("commands.debugger.OpenDebuggerConnectionCommand") {
+    }
+
+    protected override void OnDebuggerChanged(ConsoleDebugger? oldDebugger, ConsoleDebugger? newDebugger) {
+        base.OnDebuggerChanged(oldDebugger, newDebugger);
+        if (this.mySignal != null) {
+            this.mySignal.CanExecuteChanged -= this.SignalOnCanExecuteChanged;
+            this.mySignal = null;
+        }
+        
+        if (newDebugger != null) {
+            this.mySignal = CommandUsageSignal.GetOrCreate(newDebugger.UserContext, OpenDebuggerConnectionCommand.CommandUsageSignalDataKey);
+            this.mySignal.CanExecuteChanged += this.SignalOnCanExecuteChanged;
+        }
+    }
+
+    private void SignalOnCanExecuteChanged(CommandUsageSignal sender) {
+        this.UpdateCanExecuteLater();
+    }
+}

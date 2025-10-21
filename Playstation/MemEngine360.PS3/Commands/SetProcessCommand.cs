@@ -22,7 +22,6 @@ using MemEngine360.Commands;
 using MemEngine360.Engine;
 using MemEngine360.PS3.CC;
 using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils;
 

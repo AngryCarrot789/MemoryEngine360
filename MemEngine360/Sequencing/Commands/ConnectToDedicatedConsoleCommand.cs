@@ -20,15 +20,20 @@
 using MemEngine360.Connections;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Dialogs;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.Sequencing.Commands;
 
 public class ConnectToDedicatedConsoleCommand : Command {
+    private static readonly DataKey<IOpenConnectionView> ExistingOCVDataKey = DataKeys.Create<IOpenConnectionView>(nameof(ConnectToDedicatedConsoleCommand) + "_" + nameof(ExistingOCVDataKey));
+    
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!TaskSequence.DataKey.TryGetContext(e.ContextData, out TaskSequence? seq)) {
+        if (!TaskSequence.DataKey.TryGetContext(e.ContextData, out TaskSequence? seq))
             return Executability.Invalid;
-        }
+        if (ExistingOCVDataKey.TryGetContext(seq.UserContext, out IOpenConnectionView? view))
+            return Executability.ValidButCannotExecute;
 
         return seq.IsRunning ? Executability.ValidButCannotExecute : Executability.Valid;
     }
@@ -38,10 +43,16 @@ public class ConnectToDedicatedConsoleCommand : Command {
             return;
         if (sequence.IsRunning)
             return;
+        
+        if (ExistingOCVDataKey.TryGetContext(sequence.UserContext, out IOpenConnectionView? view)) {
+            if (view.DialogOperation is IDesktopDialogOperation<ConnectionResult> op)
+                op.Activate();
+            return;
+        }
 
         IConsoleConnection? oldConnection = sequence.DedicatedConnection;
         if (oldConnection != null && !oldConnection.IsClosed) {
-            MessageBoxResult mbr = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButtons.OKCancel, MessageBoxResult.OK);
+            MessageBoxResult mbr = await MessageBoxes.AlreadyConnectedToConsole.ShowMessage();
             if (mbr != MessageBoxResult.OK) {
                 return;
             }
@@ -57,27 +68,31 @@ public class ConnectToDedicatedConsoleCommand : Command {
                 sequence.DedicatedConnection = null;
             }
         }
-
-
+        
         IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(OpenConnectionInfo.CreateDefault());
-        if (dialog == null) {
-            return;
-        }
+        if (dialog != null) {
+            sequence.UserContext.Set(ExistingOCVDataKey, dialog);
 
-        ConnectionResult? result = await dialog.WaitForConnection();
-        if (!result.HasValue) {
-            return;
-        }
+            try {
+                ConnectionResult? result = await dialog.WaitForConnection();
+                if (!result.HasValue) {
+                    return;
+                }
 
-        // just in case it somehow starts running, quickly escape
-        if (sequence.IsRunning) {
-            result.Value.Connection.Close();
-            return;
-        }
+                // just in case it somehow starts running, quickly escape
+                if (sequence.IsRunning) {
+                    result.Value.Connection.Close();
+                    return;
+                }
 
-        oldConnection = sequence.DedicatedConnection;
-        sequence.UseEngineConnection = false;
-        sequence.DedicatedConnection = result.Value.Connection;
-        oldConnection?.Close();
+                oldConnection = sequence.DedicatedConnection;
+                sequence.UseEngineConnection = false;
+                sequence.DedicatedConnection = result.Value.Connection;
+                oldConnection?.Close();
+            }
+            finally {
+                sequence.UserContext.Remove(ExistingOCVDataKey);
+            }
+        }
     }
 }

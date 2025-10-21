@@ -18,32 +18,38 @@
 // 
 
 using System.Diagnostics;
-using MemEngine360.Commands;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Dialogs;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Debugging.Commands;
 
 public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
-    private IOpenConnectionView? myDialog;
+    public static readonly DataKey<IOpenConnectionView> ExistingOCVDataKey = DataKeys.Create<IOpenConnectionView>(nameof(OpenDebuggerConnectionCommand) + "_" + nameof(ExistingOCVDataKey));
+    public static readonly DataKey<CommandUsageSignal> CommandUsageSignalDataKey = DataKeys.Create<CommandUsageSignal>(nameof(OpenDebuggerConnectionCommand) + "_" + nameof(CommandUsageSignalDataKey));
+
+    protected override Executability CanExecuteCore(ConsoleDebugger debugger, CommandEventArgs e) {
+        if (ExistingOCVDataKey.TryGetContext(debugger.UserContext, out IOpenConnectionView? view))
+            return Executability.ValidButCannotExecute;
+
+        return base.CanExecuteCore(debugger, e);
+    }
 
     protected override async Task ExecuteCommandAsync(ConsoleDebugger debugger, CommandEventArgs e) {
-        if (this.myDialog != null && this.myDialog.IsWindowOpen) {
-            this.myDialog.Activate();
+        if (ExistingOCVDataKey.TryGetContext(debugger.UserContext, out IOpenConnectionView? view)) {
+            if (view.DialogOperation is IDesktopDialogOperation<ConnectionResult> op)
+                op.Activate();
             return;
         }
 
         if (debugger.Connection != null && !debugger.Connection.IsClosed) {
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(
-                "Already Connected",
-                "Already connected to a console. Close existing connection first?",
-                MessageBoxButtons.OKCancel, MessageBoxResult.OK,
-                persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
+            MessageBoxResult result = await MessageBoxes.AlreadyConnectedToConsole.ShowMessage();
             if (result != MessageBoxResult.OK) {
                 return;
             }
@@ -54,10 +60,12 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
         }
 
         OpenConnectionInfo info = OpenConnectionInfo.CreateDefault(isEnabledFilter: t => t.MaybeSupportsDebugging);
-        this.myDialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(info);
-        if (this.myDialog != null) {
+        IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(info);
+        if (dialog != null) {
+            debugger.UserContext.Set(ExistingOCVDataKey, dialog);
+
             try {
-                ConnectionResult? result = await this.myDialog.WaitForConnection();
+                ConnectionResult? result = await dialog.WaitForConnection();
                 if (result.HasValue) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
@@ -67,7 +75,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
                 }
             }
             finally {
-                this.myDialog = null;
+                debugger.UserContext.Remove(ExistingOCVDataKey);
             }
         }
 
@@ -144,8 +152,7 @@ public class OpenDebuggerConnectionCommand : BaseDebuggerCommand {
         if (oldConnection != null && !oldConnection.IsClosed) {
             // Somehow a connection was set before we got here and user doesn't want to overwrite it.
             // Maybe they opened two windows for some reason? Perhaps via the task sequencer and main window.
-
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButtons.OKCancel, MessageBoxResult.OK, persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
+            MessageBoxResult result = await MessageBoxes.AlreadyConnectedToConsole.ShowMessage();
             if (result != MessageBoxResult.OK) {
                 return false;
             }

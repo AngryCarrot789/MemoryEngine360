@@ -24,17 +24,12 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Testing;
-using MemEngine360.XboxInfo;
-using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing;
-using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
-using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Interactivity.Dialogs;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 
@@ -61,13 +56,12 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
     private ConnectionTypeEntry? currentSelection;
     private UserConnectionInfo? currentUCInfo;
     private CancellationTokenSource? ctsConnect;
-    private ConnectionResult? connectionResult;
     private bool isCloseRequested;
 
     /// <summary>
-    /// Gets the window this view is currently opened in
+    /// Gets the dialog transaction we used for controlling the dialog
     /// </summary>
-    public IDesktopWindow? Window { get; private set; }
+    public IDialogOperation<ConnectionResult> DialogOperation { get; internal set; } = null!;
 
     /// <summary>
     /// Gets or sets the information we used to present the available connections
@@ -77,20 +71,15 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
         set => this.SetValue(OpenConnectionInfoProperty, value);
     }
 
-    public bool IsWindowOpen => this.Window != null && this.Window.OpenState.IsOpenOrTryingToClose();
-
     public OpenConnectionView() {
         this.InitializeComponent();
-        DataManager.GetContextData(this).Set(IOpenConnectionView.DataKey, this);
-
         this.PART_ListBox.SelectionMode = SelectionMode.Single;
         this.selectedItemBinder.AttachControl(this.PART_ListBox);
 
         this.PART_CancelButton.Command = new AsyncRelayCommand(() => {
-            if (this.Window != null && this.Window.OpenState == OpenState.Open) {
-                this.Window.RequestClose();
-            }
-
+            if (!this.DialogOperation.IsCompleted)
+                this.DialogOperation.SetCancelled();
+            
             return Task.CompletedTask;
         });
 
@@ -117,18 +106,8 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
         this.OnSelectionChanged(newSelection);
     }
 
-    public void RequestClose() {
-        if (this.Window != null && this.Window.OpenState == OpenState.Open) {
-            this.Window.RequestClose();
-        }
-    }
-
-    public void Activate() => this.Window?.Activate();
-
     private async Task TryConnectToConsoleAsCommandAsync(CommandEventArgs args) {
-        if (this.OpenConnectionInfo == null)
-            return;
-        if (this.connectionResult.HasValue)
+        if (this.OpenConnectionInfo == null || this.DialogOperation.IsCompleted)
             return;
 
         this.isConnecting = true;
@@ -151,13 +130,12 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
                     await LogExceptionHelper.ShowMessageAndPrintToLogs("Error", "An unhandled exception occurred while opening connection", e);
                 }
 
-                if (this.Window != null && this.Window.OpenState == OpenState.Open) {
+                if (!this.DialogOperation.IsCompleted) {
                     if (connection != null) {
-                        this.connectionResult = new ConnectionResult(connection, info);
+                        this.DialogOperation.SetResult(new ConnectionResult(connection, info));
                     }
-
-                    if (connection != null || this.isCloseRequested) {
-                        this.Window.RequestClose();
+                    else if (this.isCloseRequested) {
+                        this.DialogOperation.SetCancelled();
                     }
                 }
                 else {
@@ -182,28 +160,30 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
         this.UpdateConnectButton();
     }
 
-    internal void OnWindowOpened(IDesktopWindow window) {
-        Debug.Assert(this.OpenConnectionInfo != null);
-        this.Window = window;
+    internal void OnDialogOpened() {
+        Debug.Assert(this.OpenConnectionInfo != null && this.DialogOperation != null);
         this.PART_ConfirmButton.Focus();
     }
 
-    internal void OnTryingToClose(WindowCancelCloseEventArgs e) {
+    internal void OnDialogTryingToClose(ref bool cancel) {
+        // If the user is trying to close the dialog, but we're still trying to connect,
+        // then cancel the connection operation and stop the window closing.
+        // But we mark ourselves as trying to close so we close as soon as the connect operation finishes
         if (this.ctsConnect != null) {
-            this.ctsConnect.Cancel();
-            e.SetCancelled();
             this.isCloseRequested = true;
+            
+            this.ctsConnect.Cancel();
+            cancel = true;
         }
     }
 
-    internal void OnWindowClosed() {
+    internal void OnDialogClosed() {
         this.ctsConnect?.Cancel();
-        ConnectionResult? result = this.connectionResult;
+        Optional<ConnectionResult> result = this.DialogOperation.Result;
         if (result.HasValue) {
             BasicApplicationConfiguration.Instance.LastConnectionTypeUsed = result.Value.Connection.ConnectionType.RegisteredId;
         }
 
-        this.Window = null;
         this.OpenConnectionInfo = null;
     }
 
@@ -254,25 +234,14 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
     }
 
     private void UpdateConnectButton() {
-        if (this.Window != null) {
-            this.PART_ConfirmButton.Content = this.isConnecting ? "Connecting..." : "Connect";
-            this.PART_ConfirmButton.Width = this.isConnecting ? 90 : 72;
-        }
+        this.PART_ConfirmButton.Content = this.isConnecting ? "Connecting..." : "Connect";
+        this.PART_ConfirmButton.Width = this.isConnecting ? 90 : 72;
     }
 
     protected override void OnKeyDown(KeyEventArgs e) {
         base.OnKeyDown(e);
         if (e.Key == Key.Escape) {
-            this.RequestClose();
+            this.DialogOperation.SetCancelled();
         }
-    }
-
-    public async Task<ConnectionResult?> WaitForConnection(CancellationToken cancellation = default) {
-        ApplicationPFX.Instance.Dispatcher.VerifyAccess();
-        if (this.Window != null) {
-            await this.Window.WaitForClosedAsync(cancellation);
-        }
-
-        return this.connectionResult;
     }
 }

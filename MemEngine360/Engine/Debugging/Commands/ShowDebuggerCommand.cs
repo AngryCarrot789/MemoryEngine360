@@ -21,11 +21,21 @@ using MemEngine360.Connections;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Dialogs;
 using PFXToolKitUI.Interactivity.Windowing;
 
 namespace MemEngine360.Engine.Debugging.Commands;
 
 public class ShowDebuggerCommand : Command {
+    protected override Executability CanExecuteCore(CommandEventArgs e) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine))
+            return Executability.Invalid;
+        if (OpenDebuggerConnectionCommand.ExistingOCVDataKey.TryGetContext(engine.UserContext, out IOpenConnectionView? view))
+            return Executability.ValidButCannotExecute;
+        
+        return base.CanExecuteCore(e);
+    }
+
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
             return;
@@ -39,23 +49,39 @@ public class ShowDebuggerCommand : Command {
         }
 
         if (debugger.Connection == null) {
+            _ = CommandManager.Instance.Execute("commands.debugger.OpenDebuggerConnectionCommand", new ContextData(e.ContextData).Set(ITopLevel.TopLevelDataKey, topLevel), null, null);
+            
             // Run as command action to push the debugger view as the primary contextual top level
-            await CommandManager.Instance.RunActionAsync(async ex => {
-                OpenConnectionInfo info = OpenConnectionInfo.CreateDefault(isEnabledFilter: t => t.MaybeSupportsDebugging);
-                IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(info);
-                if (dialog == null) {
-                    return;
-                }
-
-                ConnectionResult? result = await dialog.WaitForConnection();
-                if (result.HasValue) {
-                    // When returned token is null, close the connection since we can't
-                    // do anything else with the connection since the user cancelled the operation
-                    if (!await OpenDebuggerConnectionCommand.TrySetConnectionAndHandleProblems(debugger, result.Value.Connection)) {
-                        result.Value.Connection.Close();
+            if (OpenDebuggerConnectionCommand.ExistingOCVDataKey.TryGetContext(debugger.UserContext, out IOpenConnectionView? view)) {
+                if (view.DialogOperation is IDesktopDialogOperation<ConnectionResult> op)
+                    op.Activate();
+            }
+            else {
+                await CommandManager.Instance.RunActionAsync(async ex => {
+                    OpenConnectionInfo info = OpenConnectionInfo.CreateDefault(isEnabledFilter: t => t.MaybeSupportsDebugging);
+                    IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(info);
+                    if (dialog != null) {
+                        debugger.UserContext.Set(OpenDebuggerConnectionCommand.ExistingOCVDataKey, dialog);
+                        CommandUsageSignal signal = CommandUsageSignal.GetOrCreate(debugger.UserContext, OpenDebuggerConnectionCommand.CommandUsageSignalDataKey);
+                        signal.RaiseCanExecuteChanged();
+                        
+                        try {
+                            ConnectionResult? result = await dialog.WaitForConnection();
+                            if (result.HasValue) {
+                                // When returned token is null, close the connection since we can't
+                                // do anything else with the connection since the user cancelled the operation
+                                if (!await OpenDebuggerConnectionCommand.TrySetConnectionAndHandleProblems(debugger, result.Value.Connection)) {
+                                    result.Value.Connection.Close();
+                                }
+                            }
+                        }
+                        finally {
+                            debugger.UserContext.Remove(OpenDebuggerConnectionCommand.ExistingOCVDataKey);
+                            signal.RaiseCanExecuteChanged();
+                        }
                     }
-                }
-            }, new ContextData().Set(ITopLevel.TopLevelDataKey, topLevel));
+                }, new ContextData().Set(ITopLevel.TopLevelDataKey, topLevel));
+            }
         }
 
         await debugger.UpdateAllThreads(CancellationToken.None);

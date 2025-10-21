@@ -184,7 +184,7 @@
                                Background="Transparent" BorderThickness="0"
                                tt:ToolTipEx.Tip="Open a dedicated connection"
                                Icon="{x:Static memEngine360:SimpleIcons.ConnectToConsoleDedicatedIcon}"
-                               cu:CommandUsageManager.SimpleButtonCommandId="commands.debugger.OpenDebuggerConnectionCommand"/>
+                               cu:CommandUsageManager.UsageClassType="{x:Type local:OpenDebuggerConnectionCommandUsage}"/>
                 <Border Background="{DynamicResource ABrush.Tone4.Background.Static}"
                         BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                         BorderThickness="1"

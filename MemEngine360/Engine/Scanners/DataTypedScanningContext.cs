@@ -25,7 +25,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using ILMath;
-using ILMath.Exception;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Modes;
@@ -169,34 +168,39 @@ public sealed class DataTypedScanningContext : ScanningContext {
                     case DataType.Int16:
                     case DataType.Int32:
                         if (this.isIntInputHexadecimal) {
-                            this.evaluator = MathEvaluation.CompileExpression<uint>("", this.inputA, ctx, method);
                             this.evaluationContext = EvaluationContexts.CreateForInteger<uint>();
-                            
+                            ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<uint>) this.evaluationContext);
+                            this.evaluator = MathEvaluation.CompileExpression<uint>("", this.inputA, ctx, method);
                         }
                         else {
-                            this.evaluator = MathEvaluation.CompileExpression<int>("", this.inputA, ctx, method);
                             this.evaluationContext = EvaluationContexts.CreateForInteger<int>();
+                            ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<int>) this.evaluationContext);
+                            this.evaluator = MathEvaluation.CompileExpression<int>("", this.inputA, ctx, method);
                         }
 
                         break;
                     case DataType.Int64:
                         if (this.isIntInputHexadecimal) {
-                            this.evaluator = MathEvaluation.CompileExpression<ulong>("", this.inputA, ctx, method);
                             this.evaluationContext = EvaluationContexts.CreateForInteger<ulong>();
+                            ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<ulong>) this.evaluationContext);
+                            this.evaluator = MathEvaluation.CompileExpression<ulong>("", this.inputA, ctx, method);
                         }
                         else {
-                            this.evaluator = MathEvaluation.CompileExpression<long>("", this.inputA, ctx, method);
                             this.evaluationContext = EvaluationContexts.CreateForInteger<long>();
+                            ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<long>) this.evaluationContext);
+                            this.evaluator = MathEvaluation.CompileExpression<long>("", this.inputA, ctx, method);
                         }
 
                         break;
                     case DataType.Float:
+                        this.evaluationContext = EvaluationContexts.CreateForFloat();
+                        ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext);
                         this.evaluator = MathEvaluation.CompileExpression<float>("", this.inputA, ctx, CompilationMethod.Functional);
-                        this.evaluationContext = EvaluationContexts.CreateForInteger<float>();
                         break;
                     case DataType.Double:
+                        this.evaluationContext = EvaluationContexts.CreateForDouble();
+                        ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<double>) this.evaluationContext);
                         this.evaluator = MathEvaluation.CompileExpression<double>("", this.inputA, ctx, method);
-                        this.evaluationContext = EvaluationContexts.CreateForInteger<double>();
                         break;
                     case DataType.String:
                         await IMessageDialogService.Instance.ShowMessage("Data Type", "Cannot use strings when using expression parsing", icon: MessageBoxIcons.ErrorIcon);
@@ -207,7 +211,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                     default: throw new ArgumentOutOfRangeException();
                 }
             }
-            catch (ParserException e) {
+            catch (Exception e) {
                 await IMessageDialogService.Instance.ShowMessage("Input format", "Invalid expression. " + e.Message, icon: MessageBoxIcons.ErrorIcon);
                 return false;
             }
@@ -350,25 +354,21 @@ public sealed class DataTypedScanningContext : ScanningContext {
         int value = ValueScannerUtils.CreateInt32FromBytes(this.dataType, memory, this.isConnectionLittleEndian);
         if (this.isIntInputHexadecimal) {
             EvaluationContext<uint> ctx = Unsafe.As<object, EvaluationContext<uint>>(ref this.evaluationContext!);
-            ctx.Variables["v"] = (uint) value;
+            ctx.SetVariable("v", (uint) value);
             if (scanResult != null) {
-                if (scanResult.FirstValue.DataType == this.dataType) {
-                    ctx.Variables["f"] = this.dataType switch {
-                        DataType.Byte => ((DataValueByte) scanResult.FirstValue).Value,
-                        DataType.Int16 => (ushort) ((DataValueInt16) scanResult.FirstValue).Value,
-                        DataType.Int32 => (uint) ((DataValueInt32) scanResult.FirstValue).Value,
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                }
+                ctx.SetVariable("f", this.dataType switch {
+                    DataType.Byte => ((DataValueByte) scanResult.FirstValue).Value,
+                    DataType.Int16 => (ushort) ((DataValueInt16) scanResult.FirstValue).Value,
+                    DataType.Int32 => (uint) ((DataValueInt32) scanResult.FirstValue).Value,
+                    _ => throw new ArgumentOutOfRangeException()
+                });
 
-                if (scanResult.PreviousValue.DataType == this.dataType) {
-                    ctx.Variables["p"] = this.dataType switch {
-                        DataType.Byte => ((DataValueByte) scanResult.PreviousValue).Value,
-                        DataType.Int16 => (ushort) ((DataValueInt16) scanResult.PreviousValue).Value,
-                        DataType.Int32 => (uint) ((DataValueInt32) scanResult.PreviousValue).Value,
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                }
+                ctx.SetVariable("p", this.dataType switch {
+                    DataType.Byte => ((DataValueByte) scanResult.PreviousValue).Value,
+                    DataType.Int16 => (ushort) ((DataValueInt16) scanResult.PreviousValue).Value,
+                    DataType.Int32 => (uint) ((DataValueInt32) scanResult.PreviousValue).Value,
+                    _ => throw new ArgumentOutOfRangeException()
+                });
             }
 
             uint result = Unsafe.As<Delegate, Evaluator<uint>>(ref this.evaluator!)(ctx);
@@ -378,25 +378,21 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
         else {
             EvaluationContext<int> ctx = Unsafe.As<object, EvaluationContext<int>>(ref this.evaluationContext!);
-            ctx.Variables["v"] = value;
+            ctx.SetVariable("v", value);
             if (scanResult != null) {
-                if (scanResult.FirstValue.DataType == this.dataType) {
-                    ctx.Variables["f"] = this.dataType switch {
-                        DataType.Byte => ((DataValueByte) scanResult.FirstValue).Value,
-                        DataType.Int16 => ((DataValueInt16) scanResult.FirstValue).Value,
-                        DataType.Int32 => ((DataValueInt32) scanResult.FirstValue).Value,
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                }
+                ctx.SetVariable("f", this.dataType switch {
+                    DataType.Byte => ((DataValueByte) scanResult.FirstValue).Value,
+                    DataType.Int16 => ((DataValueInt16) scanResult.FirstValue).Value,
+                    DataType.Int32 => ((DataValueInt32) scanResult.FirstValue).Value,
+                    _ => throw new ArgumentOutOfRangeException()
+                });
 
-                if (scanResult.PreviousValue.DataType == this.dataType) {
-                    ctx.Variables["p"] = this.dataType switch {
-                        DataType.Byte => ((DataValueByte) scanResult.PreviousValue).Value,
-                        DataType.Int16 => ((DataValueInt16) scanResult.PreviousValue).Value,
-                        DataType.Int32 => ((DataValueInt32) scanResult.PreviousValue).Value,
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                }
+                ctx.SetVariable("p", this.dataType switch {
+                    DataType.Byte => ((DataValueByte) scanResult.PreviousValue).Value,
+                    DataType.Int16 => ((DataValueInt16) scanResult.PreviousValue).Value,
+                    DataType.Int32 => ((DataValueInt32) scanResult.PreviousValue).Value,
+                    _ => throw new ArgumentOutOfRangeException()
+                });
             }
 
             int result = Unsafe.As<Delegate, Evaluator<int>>(ref this.evaluator!)(ctx);
@@ -417,12 +413,10 @@ public sealed class DataTypedScanningContext : ScanningContext {
         long value = this.isConnectionLittleEndian ? BinaryPrimitives.ReadInt64LittleEndian(memory) : BinaryPrimitives.ReadInt64BigEndian(memory);
         if (this.isIntInputHexadecimal) {
             EvaluationContext<ulong> ctx = Unsafe.As<object, EvaluationContext<ulong>>(ref this.evaluationContext!);
-            ctx.Variables["v"] = (ulong) value;
+            ctx.SetVariable("v", (ulong) value);
             if (scanResult != null) {
-                if (scanResult.FirstValue.DataType == this.dataType)
-                    ctx.Variables["f"] = (ulong) ((DataValueInt64) scanResult.FirstValue).Value;
-                if (scanResult.PreviousValue.DataType == this.dataType)
-                    ctx.Variables["p"] = (ulong) ((DataValueInt64) scanResult.PreviousValue).Value;
+                ctx.SetVariable("f", (ulong) ((DataValueInt64) scanResult.FirstValue).Value);
+                ctx.SetVariable("p", (ulong) ((DataValueInt64) scanResult.PreviousValue).Value);
             }
 
             ulong result = Unsafe.As<Delegate, Evaluator<ulong>>(ref this.evaluator!)(ctx);
@@ -430,12 +424,10 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
         else {
             EvaluationContext<long> ctx = Unsafe.As<object, EvaluationContext<long>>(ref this.evaluationContext!);
-            ctx.Variables["v"] = value;
+            ctx.SetVariable("v", value);
             if (scanResult != null) {
-                if (scanResult.FirstValue.DataType == this.dataType)
-                    ctx.Variables["f"] = ((DataValueInt64) scanResult.FirstValue).Value;
-                if (scanResult.PreviousValue.DataType == this.dataType)
-                    ctx.Variables["p"] = ((DataValueInt64) scanResult.PreviousValue).Value;
+                ctx.SetVariable("f", ((DataValueInt64) scanResult.FirstValue).Value);
+                ctx.SetVariable("p", ((DataValueInt64) scanResult.PreviousValue).Value);
             }
 
             long result = Unsafe.As<Delegate, Evaluator<long>>(ref this.evaluator!)(ctx);
@@ -446,28 +438,24 @@ public sealed class DataTypedScanningContext : ScanningContext {
     private IDataValue? RunEvaluatorFloat32(ReadOnlySpan<byte> memory, ScanResultViewModel? scanResult) {
         float value = this.isConnectionLittleEndian ? BinaryPrimitives.ReadSingleLittleEndian(memory) : BinaryPrimitives.ReadSingleBigEndian(memory);
         EvaluationContext<float> ctx = Unsafe.As<object, EvaluationContext<float>>(ref this.evaluationContext!);
-        ctx.Variables["v"] = value;
+        ctx.SetVariable("v", value);
         if (scanResult != null) {
-            if (scanResult.FirstValue.DataType == this.dataType)
-                ctx.Variables["f"] = ((DataValueFloat) scanResult.FirstValue).Value;
-            if (scanResult.PreviousValue.DataType == this.dataType)
-                ctx.Variables["p"] = ((DataValueFloat) scanResult.PreviousValue).Value;
+            ctx.SetVariable("f", ((DataValueFloat) scanResult.FirstValue).Value);
+            ctx.SetVariable("p", ((DataValueFloat) scanResult.PreviousValue).Value);
         }
 
         float result = Unsafe.As<Delegate, Evaluator<float>>(ref this.evaluator!)(ctx);
         return result == 0.0F ? null : IDataValue.CreateNumeric(value);
     }
-    
+
     private IDataValue? RunEvaluatorFloat64(ReadOnlySpan<byte> memory, ScanResultViewModel? scanResult) {
         Debug.Assert(this.dataType == DataType.Double);
         double value = this.isConnectionLittleEndian ? BinaryPrimitives.ReadDoubleLittleEndian(memory) : BinaryPrimitives.ReadDoubleBigEndian(memory);
         EvaluationContext<double> ctx = Unsafe.As<object, EvaluationContext<double>>(ref this.evaluationContext!);
-        ctx.Variables["v"] = value;
+        ctx.SetVariable("v", value);
         if (scanResult != null) {
-            if (scanResult.FirstValue.DataType == this.dataType)
-                ctx.Variables["f"] = ((DataValueDouble) scanResult.FirstValue).Value;
-            if (scanResult.PreviousValue.DataType == this.dataType)
-                ctx.Variables["p"] = ((DataValueDouble) scanResult.PreviousValue).Value;
+            ctx.SetVariable("f", ((DataValueDouble) scanResult.FirstValue).Value);
+            ctx.SetVariable("p", ((DataValueDouble) scanResult.PreviousValue).Value);
         }
 
         double result = Unsafe.As<Delegate, Evaluator<double>>(ref this.evaluator!)(ctx);

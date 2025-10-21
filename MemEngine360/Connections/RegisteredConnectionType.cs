@@ -19,7 +19,6 @@
 
 using System.Net;
 using System.Runtime.CompilerServices;
-using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
