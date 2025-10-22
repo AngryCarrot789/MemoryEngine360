@@ -47,20 +47,7 @@ public class LabelOperation : BaseSequenceOperation, IPlaceholderOperation {
         return Task.CompletedTask;
     }
 
-    public override BaseSequenceOperation CreateClone() {
-        if (this.TaskSequence == null || string.IsNullOrWhiteSpace(this.labelName)) {
-            return new LabelOperation();
-        }
-
-        List<LabelOperation> labels = this.TaskSequence.Operations.OfType<LabelOperation>().ToList();
-        if (!TextIncrement.GetIncrementableString(
-                x => labels.Count < 1 || labels.All(op => op.LabelName == null || !x.Equals(op.LabelName, StringComparison.OrdinalIgnoreCase)),
-                this.labelName,
-                out string? newLabelName,
-                canUseInitialInput: false /* current instance already uses this.labelName */)) {
-            newLabelName = null;
-        }
-
-        return new LabelOperation() { LabelName = newLabelName };
+    protected override BaseSequenceOperation CreateCloneCore() {
+        return new LabelOperation() { LabelName = this.LabelName };
     }
 }

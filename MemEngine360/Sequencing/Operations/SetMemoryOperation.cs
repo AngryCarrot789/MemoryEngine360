@@ -200,9 +200,8 @@ public class SetMemoryOperation : BaseSequenceOperation {
         }
     }
 
-    public override BaseSequenceOperation CreateClone() {
+    protected override BaseSequenceOperation CreateCloneCore() {
         return new SetMemoryOperation() {
-            IsEnabled = this.IsEnabled,
             Address = this.Address,
             DataValueProvider = this.DataValueProvider?.CreateClone(),
             IterateCount = this.IterateCount

@@ -31,5 +31,5 @@ public class StopSequenceOperation : BaseSequenceOperation {
         return Task.CompletedTask;
     }
 
-    public override BaseSequenceOperation CreateClone() => new StopSequenceOperation();
+    protected override BaseSequenceOperation CreateCloneCore() => new StopSequenceOperation();
 }

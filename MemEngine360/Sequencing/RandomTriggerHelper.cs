@@ -132,4 +132,10 @@ public class RandomTriggerHelper {
 
         return false;
     }
+
+    public void CopySettingsFrom(RandomTriggerHelper source) {
+        this.WaitForTriggerInterval = source.WaitForTriggerInterval;
+        this.Chance = source.Chance;
+        this.MinimumTriesToTrigger = source.MinimumTriesToTrigger;
+    }
 }

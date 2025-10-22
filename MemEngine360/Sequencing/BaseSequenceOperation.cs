@@ -193,5 +193,17 @@ public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost
     /// Creates a clone of this operation as if the user created it by hand.
     /// </summary>
     /// <returns></returns>
-    public abstract BaseSequenceOperation CreateClone();
+    protected abstract BaseSequenceOperation CreateCloneCore();
+
+    public BaseSequenceOperation CreateClone() {
+        BaseSequenceOperation cloned = this.CreateCloneCore();
+        cloned.IsEnabled = this.IsEnabled;
+        cloned.ConditionBehaviour = this.ConditionBehaviour;
+        cloned.RandomTriggerHelper.CopySettingsFrom(this.RandomTriggerHelper);
+        foreach (BaseSequenceCondition condition in this.Conditions) {
+            cloned.Conditions.Add(condition.CreateClone());
+        }
+
+        return cloned;
+    }
 }

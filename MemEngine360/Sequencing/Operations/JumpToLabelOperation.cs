@@ -62,7 +62,7 @@ public class JumpToLabelOperation : BaseSequenceOperation {
         return Task.CompletedTask;
     }
 
-    public override BaseSequenceOperation CreateClone() {
+    protected override BaseSequenceOperation CreateCloneCore() {
         JumpToLabelOperation label = new JumpToLabelOperation();
         label.SetTarget(this.TargetLabel, this.CurrentTarget);
         return label;

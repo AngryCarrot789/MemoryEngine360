@@ -170,11 +170,13 @@ public sealed class DataTypedScanningContext : ScanningContext {
                         if (this.isIntInputHexadecimal) {
                             this.evaluationContext = EvaluationContexts.CreateForInteger<uint>();
                             ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<uint>) this.evaluationContext);
+                            ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<uint>) this.evaluationContext);
                             this.evaluator = MathEvaluation.CompileExpression<uint>("", this.inputA, ctx, method);
                         }
                         else {
                             this.evaluationContext = EvaluationContexts.CreateForInteger<int>();
                             ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<int>) this.evaluationContext);
+                            ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<int>) this.evaluationContext);
                             this.evaluator = MathEvaluation.CompileExpression<int>("", this.inputA, ctx, method);
                         }
 
@@ -183,11 +185,13 @@ public sealed class DataTypedScanningContext : ScanningContext {
                         if (this.isIntInputHexadecimal) {
                             this.evaluationContext = EvaluationContexts.CreateForInteger<ulong>();
                             ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<ulong>) this.evaluationContext);
+                            ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<ulong>) this.evaluationContext);
                             this.evaluator = MathEvaluation.CompileExpression<ulong>("", this.inputA, ctx, method);
                         }
                         else {
                             this.evaluationContext = EvaluationContexts.CreateForInteger<long>();
                             ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<long>) this.evaluationContext);
+                            ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<long>) this.evaluationContext);
                             this.evaluator = MathEvaluation.CompileExpression<long>("", this.inputA, ctx, method);
                         }
 
@@ -195,11 +199,13 @@ public sealed class DataTypedScanningContext : ScanningContext {
                     case DataType.Float:
                         this.evaluationContext = EvaluationContexts.CreateForFloat();
                         ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext);
+                        ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext);
                         this.evaluator = MathEvaluation.CompileExpression<float>("", this.inputA, ctx, CompilationMethod.Functional);
                         break;
                     case DataType.Double:
                         this.evaluationContext = EvaluationContexts.CreateForDouble();
                         ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<double>) this.evaluationContext);
+                        ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<double>) this.evaluationContext);
                         this.evaluator = MathEvaluation.CompileExpression<double>("", this.inputA, ctx, method);
                         break;
                     case DataType.String:

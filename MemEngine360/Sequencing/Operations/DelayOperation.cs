@@ -36,13 +36,13 @@ public class DelayOperation : BaseSequenceOperation {
                 throw new ArgumentOutOfRangeException(nameof(value), value, "Delay must be positive");
             if (value.TotalMilliseconds >= int.MaxValue)
                 throw new ArgumentOutOfRangeException(nameof(value), value, "Delay is too large");
-            
+
             PropertyHelper.SetAndRaiseINE(ref this.delay, value, this, static t => t.DelayChanged?.Invoke(t));
         }
     }
 
     public override string DisplayName => "Delay";
-    
+
     public event DelayOperationEventHandler? DelayChanged;
 
     public DelayOperation() {
@@ -64,10 +64,7 @@ public class DelayOperation : BaseSequenceOperation {
         }
     }
 
-    public override BaseSequenceOperation CreateClone() {
-        return new DelayOperation() {
-            Delay = this.Delay,
-            IsEnabled = this.IsEnabled
-        };
+    protected override BaseSequenceOperation CreateCloneCore() {
+        return new DelayOperation() { Delay = this.Delay };
     }
 }

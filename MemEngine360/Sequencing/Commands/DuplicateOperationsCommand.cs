@@ -17,9 +17,11 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.Operations;
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Selections;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.Commands;
 
@@ -48,7 +50,7 @@ public class DuplicateOperationsCommand : Command {
 
         // Create list of clones, ordered by their index in the sequence list
         ListSelectionModel<BaseSequenceOperation> selection = TaskSequenceViewState.GetInstance(sequence).SelectedOperations;
-        List<(BaseSequenceOperation Op, int Idx)> clones = selection.SelectedItems.Select(x => (Op: x.CreateClone(), Idx: x.TaskSequence!.Operations.IndexOf(x))).OrderBy(x => x.Idx).ToList();
+        List<(BaseSequenceOperation Op, int Idx)> clones = selection.SelectedItems.Select(x => (Op: CreateNormalClone(x), Idx: x.TaskSequence!.Operations.IndexOf(x))).OrderBy(x => x.Idx).ToList();
         int offset = 1; // +1 to add after the existing item
         foreach ((BaseSequenceOperation Op, int Idx) item in clones) {
             sequence.Operations.Insert(offset + item.Idx, item.Op);
@@ -60,5 +62,24 @@ public class DuplicateOperationsCommand : Command {
         selection.Clear();
         selection.SelectItems(clones.Select(x => x.Op));
         return Task.CompletedTask;
+    }
+
+    private static BaseSequenceOperation CreateNormalClone(BaseSequenceOperation operation) {
+        BaseSequenceOperation cloned = operation.CreateClone();
+        if (cloned is LabelOperation clonedLabel && !string.IsNullOrWhiteSpace(clonedLabel.LabelName) && operation.TaskSequence != null) {
+            List<LabelOperation> labels = operation.TaskSequence.Operations.OfType<LabelOperation>().ToList();
+            labels.Remove((LabelOperation) operation);
+            if (labels.Count < 1 || !TextIncrement.GetIncrementableString(
+                    name => labels.All(op => op.LabelName == null || !name.Equals(op.LabelName, StringComparison.OrdinalIgnoreCase)),
+                    clonedLabel.LabelName,
+                    out string? newLabelName,
+                    canUseInitialInput: false /* current instance already uses this.labelName */)) {
+                newLabelName = null;
+            }
+            
+            clonedLabel.LabelName = newLabelName;
+        }
+
+        return cloned;
     }
 }
