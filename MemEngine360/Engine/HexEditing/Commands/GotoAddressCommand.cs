@@ -37,7 +37,7 @@ public class GotoAddressCommand : BaseHexEditorCommand {
                     a.Errors.Add(error);
                 }
             },
-            DebounceErrorsDelay = 300
+            DebounceErrorsDelay = 300 // add a delay between parsing, to reduce typing lag due to expression parsing
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(singleInfo) == true) {

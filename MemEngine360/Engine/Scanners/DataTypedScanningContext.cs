@@ -200,7 +200,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                         this.evaluationContext = EvaluationContexts.CreateForFloat();
                         ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext);
                         ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext);
-                        this.evaluator = MathEvaluation.CompileExpression<float>("", this.inputA, ctx, CompilationMethod.Functional);
+                        this.evaluator = MathEvaluation.CompileExpression<float>("", this.inputA, ctx, method);
                         break;
                     case DataType.Double:
                         this.evaluationContext = EvaluationContexts.CreateForDouble();

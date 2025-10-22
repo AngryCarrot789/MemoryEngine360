@@ -22,9 +22,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using ILMath;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.ValueAbstraction;
+using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils;
 
@@ -50,25 +52,33 @@ public static class DataValueUtils {
     /// </param>
     /// <param name="stringType">The string type, e.g. ASCII and unicode</param>
     /// <param name="value">The parsed value</param>
+    /// <param name="canParseAsExpression">
+    /// Whether to use expression parsing to parse the value. When true, and the data type is integer-based,
+    /// it will be parsed as hex by default only if <see cref="ndt"/> is <see cref="NumericDisplayType.Hexadecimal"/>
+    /// </param>
     /// <returns>True when parsed successfully, false when the input couldn't be parsed</returns>
-    public static bool TryParseTextAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, StringType stringType, [NotNullWhen(true)] out IDataValue? value) {
-        return (value = TryParseTextAsDataValue(args, dataType, ndt, stringType)) != null;
+    public static bool TryParseTextAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, StringType stringType, [NotNullWhen(true)] out IDataValue? value, bool canParseAsExpression = false) {
+        return (value = TryParseTextAsDataValue(args, dataType, ndt, stringType, canParseAsExpression)) != null;
     }
 
     /// <summary>
     /// Same as <see cref="TryParseTextAsDataValue"/> but throws when the input couldn't be parsed
     /// </summary>
-    public static IDataValue ParseTextAsDataValue(string input, DataType dataType, NumericDisplayType ndt, StringType stringType) {
+    public static IDataValue ParseTextAsDataValue(string input, DataType dataType, NumericDisplayType ndt, StringType stringType, bool canParseAsExpression = false) {
         ValidationArgs args = new ValidationArgs(input, [], false);
-        IDataValue? value = TryParseTextAsDataValue(args, dataType, ndt, stringType);
+        IDataValue? value = TryParseTextAsDataValue(args, dataType, ndt, stringType, canParseAsExpression);
         if (value != null) {
             return value;
         }
 
-        throw new Exception("Invalid input. " + (args.Errors.Count > 0 ? args.Errors[0] : ""));
+        throw new Exception("Invalid input" + (args.Errors.Count > 0 ? (": " + args.Errors[0]) : ""));
     }
 
-    private static IDataValue? TryParseTextAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, StringType stringType) {
+    private static IDataValue? TryParseTextAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, StringType stringType, bool canParseAsExpression = false) {
+        if (canParseAsExpression && dataType.IsNumeric()) {
+            return TryParseIntegerExpressionAsDataValue(args, dataType, ndt);
+        }
+
         NumberStyles nsInt = ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
         switch (dataType) {
             case DataType.Byte: {
@@ -176,6 +186,70 @@ public static class DataValueUtils {
         }
 
         return null;
+    }
+    
+    private static readonly IEvaluationContext<uint> DefaultU32EvalCtx = EvaluationContexts.CreateForInteger<uint>();
+    private static readonly IEvaluationContext<int> DefaultI32EvalCtx = EvaluationContexts.CreateForInteger<int>();
+    private static readonly IEvaluationContext<ulong> DefaultU64EvalCtx = EvaluationContexts.CreateForInteger<ulong>();
+    private static readonly IEvaluationContext<long> DefaultI64EvalCtx = EvaluationContexts.CreateForInteger<long>();
+    private static readonly IEvaluationContext<float> DefaultFloatCtx = EvaluationContexts.CreateForFloat();
+    private static readonly IEvaluationContext<double> DefaultDoubleCtx = EvaluationContexts.CreateForDouble();
+
+    private static IDataValue? TryParseIntegerExpressionAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt) {
+        ParsingContext ctx = new ParsingContext() {
+            DefaultIntegerParseMode = ndt == NumericDisplayType.Hexadecimal ? IntegerParseMode.Hexadecimal : IntegerParseMode.Integer
+        };
+
+        const CompilationMethod CompilationMethod = CompilationMethod.Functional;
+
+        try {
+            switch (dataType) {
+                case DataType.Byte:
+                case DataType.Int16:
+                case DataType.Int32: {
+                    if (ndt != NumericDisplayType.Normal) {
+                        uint value = MathEvaluation.CompileExpression<uint>("", args.Input, ctx, CompilationMethod)(DefaultU32EvalCtx);
+                        return dataType switch {
+                            DataType.Byte => IDataValue.CreateNumeric((byte) value),
+                            DataType.Int16 => IDataValue.CreateNumeric((short) value),
+                            DataType.Int32 => IDataValue.CreateNumeric(value),
+                            _ => throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null)
+                        };
+                    }
+                    else {
+                        int value = MathEvaluation.CompileExpression<int>("", args.Input, ctx, CompilationMethod)(DefaultI32EvalCtx);
+                        return dataType switch {
+                            DataType.Byte => IDataValue.CreateNumeric((byte) value),
+                            DataType.Int16 => IDataValue.CreateNumeric((short) value),
+                            DataType.Int32 => IDataValue.CreateNumeric(value),
+                            _ => throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null)
+                        };
+                    }
+                }
+                case DataType.Int64: {
+                    long value;
+                    if (ndt != NumericDisplayType.Normal) {
+                        value = (long) MathEvaluation.CompileExpression<ulong>("", args.Input, ctx, CompilationMethod)(DefaultU64EvalCtx);
+                    }
+                    else {
+                        value = MathEvaluation.CompileExpression<long>("", args.Input, ctx, CompilationMethod)(DefaultI64EvalCtx);
+                    }
+
+                    return new DataValueInt64(value);
+                }
+                case DataType.Float: {
+                    return new DataValueFloat(MathEvaluation.CompileExpression<float>("", args.Input, ctx, CompilationMethod)(DefaultFloatCtx));
+                }
+                case DataType.Double: {
+                    return new DataValueDouble(MathEvaluation.CompileExpression<double>("", args.Input, ctx, CompilationMethod)(DefaultDoubleCtx));
+                }
+                default: throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
+            }
+        }
+        catch (Exception e) {
+            args.Errors.Add("Invalid value or expression: " + e.Message);
+            return null;
+        }
     }
 
     /// <summary>

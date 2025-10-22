@@ -95,8 +95,9 @@ public class EditScanResultValueCommand : Command {
             $"Immediately change the value at {Lang.ThisThese(c)} address{Lang.Es(c)}", "Value",
             DataValueUtils.GetStringFromDataValue(lastResult, lastResult.CurrentValue)) {
             Validate = (args) => {
-                DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out _);
-            }
+                DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out _, canParseAsExpression: true);
+            },
+            DebounceErrorsDelay = 300 // add a delay between parsing, to reduce typing lag due to expression parsing
         };
 
         ITopLevel? topLevel = TopLevelContextUtils.GetTopLevelFromContext();
@@ -104,9 +105,7 @@ public class EditScanResultValueCommand : Command {
             return;
         }
 
-        ValidationArgs args = new ValidationArgs(input.Text, new List<string>(), false);
-        bool parsed = DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out IDataValue? value);
-        Debug.Assert(parsed && value != null);
+        IDataValue value = DataValueUtils.ParseTextAsDataValue(input.Text, dataType, lastResult.NumericDisplayType, lastResult.StringType, canParseAsExpression: true);
         Debug.Assert(dataType == value.DataType);
 
         using CancellationTokenSource cts = new CancellationTokenSource();

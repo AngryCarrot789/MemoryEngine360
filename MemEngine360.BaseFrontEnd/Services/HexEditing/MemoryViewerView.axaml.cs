@@ -313,7 +313,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         }
 
         ValidationArgs args = new ValidationArgs(input, new List<string>(), false);
-        if (!DataValueUtils.TryParseTextAsDataValue(args, info.DataType, intNdt, StringType.ASCII, out IDataValue? value)) {
+        if (!DataValueUtils.TryParseTextAsDataValue(args, info.DataType, intNdt, StringType.ASCII, out IDataValue? value, canParseAsExpression: true)) {
             await IMessageDialogService.Instance.ShowMessage("Invalid text", args.Errors.Count > 0 ? args.Errors[0] : "Could not parse value as " + info.DataType, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return;
         }

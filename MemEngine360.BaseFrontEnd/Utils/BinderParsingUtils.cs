@@ -76,7 +76,7 @@ public static class BinderParsingUtils {
         bool bInputEndsWithD = input.EndsWith("d", StringComparison.OrdinalIgnoreCase);
         bool bTryParseAsDouble = canTryParseAsFloatOrDouble && bIsNumeric && !bHasHexPrefix && (bInputEndsWithD || input.Contains('.'));
         ValidationArgs mainArgs = new ValidationArgs(parseIntAsHex && bHasHexPrefix ? input.Substring(2) : input, [], false);
-        if (DataValueUtils.TryParseTextAsDataValue(mainArgs, initialDataType, parseIntAsHex ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal, StringType.ASCII, out IDataValue? value)) {
+        if (DataValueUtils.TryParseTextAsDataValue(mainArgs, initialDataType, parseIntAsHex ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal, StringType.ASCII, out IDataValue? value, canParseAsExpression: true)) {
             return new DataValueState(value, parseIntAsHex);
         }
         else if (bTryParseAsFloat && float.TryParse(input.AsSpan(0, input.Length - 1), out float floatValue)) {

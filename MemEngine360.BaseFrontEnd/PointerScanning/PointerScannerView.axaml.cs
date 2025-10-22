@@ -154,7 +154,7 @@ public partial class PointerScannerView : UserControl {
                             a.Errors.Add(error);
                         }
                     },
-                    DebounceErrorsDelay = 300
+                    DebounceErrorsDelay = 300 // add a delay between parsing, to reduce typing lag due to expression parsing
                 };
 
                 if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, IDesktopWindow.DesktopWindowFromVisual(this)) != true) {

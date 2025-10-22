@@ -84,8 +84,9 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             $"Immediately change the value at {Lang.ThisThese(count)} address{Lang.Es(count)}", "Value",
             lastResult.Value != null ? DataValueUtils.GetStringFromDataValue(lastResult, lastResult.Value) : "") {
             Validate = (args) => {
-                DataValueUtils.TryParseTextAsDataValue(args, dataType, ndt, strType, out _);
-            }
+                DataValueUtils.TryParseTextAsDataValue(args, dataType, ndt, strType, out _, canParseAsExpression: true);
+            },
+            DebounceErrorsDelay = 300 // add a delay between parsing, to reduce typing lag due to expression parsing
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) != true) {
@@ -97,7 +98,7 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             return;
         }
 
-        IDataValue value = DataValueUtils.ParseTextAsDataValue(input.Text, dataType, ndt, strType);
+        IDataValue value = DataValueUtils.ParseTextAsDataValue(input.Text, dataType, ndt, strType, canParseAsExpression: true);
         // TODO: use ConnectionAction
 
         ITopLevel? parentTopLevel = ITopLevel.FromContext(e.ContextData);

@@ -67,7 +67,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             ConfirmText = "Next", DefaultButton = UserInputInfo.ButtonType.Confirm,
             LabelA = "Start address (hex)", LabelB = "Length (hex)",
             ValidateA = validateMemAddr, ValidateB = validateMemAddr,
-            DebounceErrorsDelayA = 300, DebounceErrorsDelayB = 300,
+            DebounceErrorsDelayA = 300, DebounceErrorsDelayB = 300, // add a delay between parsing, to reduce typing lag due to expression parsing
             TextA = p.StartAddress.ToString("X8"),
             TextB = p.ScanLength.ToString("X8"),
         };
