@@ -105,7 +105,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
     /// False when there's errors (e.g. non-integer when scanning for an integer, or min is greater than max when scanning in 'between' mode)
     /// </summary>
     /// <param name="connection1"></param>
-    internal override async Task<bool> SetupCore(IConsoleConnection connection1) {
+    internal override async Task<bool> SetupCore(IConsoleConnection connection) {
         switch (this.dataType) {
             case DataType.Byte:   this.cbDataType = sizeof(byte); break;
             case DataType.Int16:  this.cbDataType = sizeof(short); break;
@@ -142,11 +142,6 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
 
         Debug.Assert(this.cbDataType > 0);
-
-        IConsoleConnection connection = this.Processor.MemoryEngine.Connection!;
-        Debug.Assert(connection != null);
-        // this.reverseEndianness = this.theProcessor.MemoryEngine360.IsForcedLittleEndian is bool forcedLittle && forcedLittle != connection.IsLittleEndian;
-
         if (this.Processor.HasDoneFirstScan && (this.nextScanUsesFirstValue || this.nextScanUsesPreviousValue)) {
             return true;
         }
@@ -168,13 +163,13 @@ public sealed class DataTypedScanningContext : ScanningContext {
                     case DataType.Int16:
                     case DataType.Int32:
                         if (this.isIntInputHexadecimal) {
-                            this.evaluationContext = EvaluationContexts.CreateForInteger<uint>();
+                            this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForInteger<uint>());
                             ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<uint>) this.evaluationContext);
                             ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<uint>) this.evaluationContext);
                             this.evaluator = MathEvaluation.CompileExpression<uint>("", this.inputA, ctx, method);
                         }
                         else {
-                            this.evaluationContext = EvaluationContexts.CreateForInteger<int>();
+                            this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForInteger<int>());
                             ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<int>) this.evaluationContext);
                             ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<int>) this.evaluationContext);
                             this.evaluator = MathEvaluation.CompileExpression<int>("", this.inputA, ctx, method);
@@ -183,13 +178,13 @@ public sealed class DataTypedScanningContext : ScanningContext {
                         break;
                     case DataType.Int64:
                         if (this.isIntInputHexadecimal) {
-                            this.evaluationContext = EvaluationContexts.CreateForInteger<ulong>();
+                            this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForInteger<ulong>());
                             ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<ulong>) this.evaluationContext);
                             ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<ulong>) this.evaluationContext);
                             this.evaluator = MathEvaluation.CompileExpression<ulong>("", this.inputA, ctx, method);
                         }
                         else {
-                            this.evaluationContext = EvaluationContexts.CreateForInteger<long>();
+                            this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForInteger<long>());
                             ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<long>) this.evaluationContext);
                             ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<long>) this.evaluationContext);
                             this.evaluator = MathEvaluation.CompileExpression<long>("", this.inputA, ctx, method);
@@ -197,13 +192,13 @@ public sealed class DataTypedScanningContext : ScanningContext {
 
                         break;
                     case DataType.Float:
-                        this.evaluationContext = EvaluationContexts.CreateForFloat();
+                        this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForFloat());
                         ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext);
                         ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext);
                         this.evaluator = MathEvaluation.CompileExpression<float>("", this.inputA, ctx, method);
                         break;
                     case DataType.Double:
-                        this.evaluationContext = EvaluationContexts.CreateForDouble();
+                        this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForDouble());
                         ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<double>) this.evaluationContext);
                         ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<double>) this.evaluationContext);
                         this.evaluator = MathEvaluation.CompileExpression<double>("", this.inputA, ctx, method);
@@ -264,6 +259,16 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
 
         return true;
+    }
+
+    private EvaluationContext<T> AssignDefaultVariables<T>(EvaluationContext<T> ctx) where T : unmanaged, INumber<T> {
+        ctx.SetVariable("v", default);
+        if (this.Processor.HasDoneFirstScan) {
+            ctx.SetVariable("f", default);
+            ctx.SetVariable("p", default);
+        }
+        
+        return ctx;
     }
 
     /// <summary>
