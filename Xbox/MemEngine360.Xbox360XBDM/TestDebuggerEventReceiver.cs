@@ -32,6 +32,7 @@ public class TestDebuggerEventReceiver {
             using TcpClient client = new TcpClient() {
                 ReceiveTimeout = 0
             };
+            
             await client.ConnectAsync("192.168.1.202", 730);
 
             using StreamReader cmdReader = new StreamReader(client.GetStream(), Encoding.ASCII);
@@ -40,7 +41,7 @@ public class TestDebuggerEventReceiver {
                 throw new Exception("Borken");
             }
 
-            XbdmConsoleConnection connection = new XbdmConsoleConnection(client, "192.168.1.202");
+            XbdmConsoleConnection connection = new XbdmConsoleConnection(false, client, "192.168.1.202");
 
             XbdmResponse response = await connection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"");
             if (response.ResponseType != XbdmResponseType.SingleResponse) {

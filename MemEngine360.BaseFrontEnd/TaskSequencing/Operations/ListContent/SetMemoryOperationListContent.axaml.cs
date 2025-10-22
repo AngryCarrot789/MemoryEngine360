@@ -85,7 +85,7 @@ public partial class SetMemoryOperationListContent : BaseOperationListContent {
     }
 
     private void OnDataValueProviderChanged(SetMemoryOperation sender, DataValueProvider? oldProvider, DataValueProvider? newProvider) {
-        this.PART_ToValueStackPanel.IsVisible = newProvider == null || newProvider is ConstantDataProvider;
+        this.PART_ValueStackPanel.IsVisible = newProvider == null || newProvider is ConstantDataProvider;
         if (oldProvider is ConstantDataProvider) {
             this.constDataValueHandler.Disconnect();
         }

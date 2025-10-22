@@ -79,17 +79,18 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
 
     public override RegisteredConnectionType ConnectionType => ConnectionTypeXbox360Xbdm.Instance;
 
-    public override bool IsLittleEndian => false;
+    public override bool IsLittleEndian { get; }
 
     public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
     
     private readonly XbdmFeaturesImpl xbdmFeatures;
     private Jrpc2FeaturesImpl? jrpcFeatures;
 
-    public XbdmConsoleConnection(TcpClient client, string originalConnectionAddress) : this(client, originalConnectionAddress, false) {
+    public XbdmConsoleConnection(bool isLittleEndian, TcpClient client, string originalConnectionAddress) : this(isLittleEndian, client, originalConnectionAddress, false) {
     }
 
-    private XbdmConsoleConnection(TcpClient client, string originalConnectionAddress, bool isEventConnection) {
+    private XbdmConsoleConnection(bool isLittleEndian, TcpClient client, string originalConnectionAddress, bool isEventConnection) {
+        this.IsLittleEndian = isLittleEndian;
         this.client = client;
         this.originalConnectionAddress = originalConnectionAddress;
         this.isEventConnection = isEventConnection;
@@ -1141,7 +1142,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
                     }
                 }
 
-                XbdmConsoleConnection delegateConnection = new XbdmConsoleConnection(tcpClient, this.originalConnectionAddress);
+                XbdmConsoleConnection delegateConnection = new XbdmConsoleConnection(this.connection.IsLittleEndian, tcpClient, this.originalConnectionAddress);
 
                 // DEBUGGER CONNECT PORT=0x<PORT_HERE> override user=<COMPUTER_NAME_HERE> name="MemEngine360"
                 XbdmResponse response = delegateConnection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"").GetAwaiter().GetResult();

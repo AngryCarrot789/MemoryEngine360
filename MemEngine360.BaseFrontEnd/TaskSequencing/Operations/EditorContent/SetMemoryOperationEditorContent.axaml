@@ -1,12 +1,12 @@
 ﻿<editorContent:BaseOperationEditorContent xmlns="https://github.com/avaloniaui"
-                               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                               xmlns:editorContent="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent"
-                               xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
-                               mc:Ignorable="d" d:DesignHeight="200"
-                               x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.SetMemoryOperationEditorContent"
-                               Width="175">
+                                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                                          xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                                          xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                                          xmlns:editorContent="clr-namespace:MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent"
+                                          xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+                                          mc:Ignorable="d" d:DesignHeight="200"
+                                          x:Class="MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.SetMemoryOperationEditorContent"
+                                          Width="175">
     <StackPanel Spacing="4" Margin="2">
         <ComboBox x:Name="PART_DataTypeCombo"
                   FontFamily="Consolas"
@@ -16,25 +16,28 @@
             <TabItem Header="Constant">
                 <StackPanel Margin="2">
                     <TextBlock Padding="1,2" Text="Set the constant value"/>
-                    <DockPanel>
-                        <TextBox x:Name="PART_ConstantValueTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" VerticalContentAlignment="Center"/>
-                    </DockPanel>
+                    <TextBox x:Name="PART_ConstantValueTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" Padding="2,2" VerticalContentAlignment="Center"/>
                 </StackPanel>
             </TabItem>
             <TabItem Header="Random">
                 <StackPanel Margin="2">
                     <TextBlock Padding="1,2" Text="Set the minimum"/>
-                    <DockPanel>
-                        <TextBox x:Name="PART_RangedValueATextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" 
-                                 Padding="2,2" VerticalContentAlignment="Center"
-                                 tt:ToolTipEx.Tip="Sets the minimum value that can be generated"/>
-                    </DockPanel>
+                    <TextBox x:Name="PART_RangedValueATextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}"
+                             Padding="2,2" VerticalContentAlignment="Center"
+                             tt:ToolTipEx.Tip="Sets the minimum value that can be generated"/>
                     <TextBlock Padding="1,2" Text="Set the maximum"/>
-                    <DockPanel>
-                        <TextBox x:Name="PART_RangedValueBTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}" 
-                                 Padding="2,2" VerticalContentAlignment="Center"
-                                 tt:ToolTipEx.Tip="Sets the maximum value that can be generated. (meaning this value is inclusive, as is the minimum value)"/>
-                    </DockPanel>
+                    <TextBox x:Name="PART_RangedValueBTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}"
+                             Padding="2,2" VerticalContentAlignment="Center"
+                             tt:ToolTipEx.Tip="Sets the maximum value that can be generated. (meaning this value is inclusive, as is the minimum value)"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Expr." IsEnabled="False">
+                <StackPanel Margin="2">
+                    <TextBlock Padding="1,2" Text="Expression"/>
+                    <TextBox x:Name="PART_ExpressionValueTextBox" Background="{DynamicResource ABrush.Tone1.Background.Static}"
+                             Padding="2,2" VerticalContentAlignment="Center"
+                             tt:ToolTipEx.Tip="The expression to evaluate"/>
+                    <TextBlock Foreground="{DynamicResource ABrush.Foreground.Deeper}" Padding="1,2" Text="The variable 'v' contains the value at the address" TextWrapping="Wrap"/>
                 </StackPanel>
             </TabItem>
         </TabControl>

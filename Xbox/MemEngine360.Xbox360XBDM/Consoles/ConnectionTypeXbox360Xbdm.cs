@@ -117,7 +117,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
                 throw new Exception("Received invalid response from console: " + (response ?? ""));
             }
 
-            XbdmConsoleConnection connection = new XbdmConsoleConnection(client, info.IpAddress);
+            XbdmConsoleConnection connection = new XbdmConsoleConnection(info.IsLittleEndian, client, info.IpAddress);
             try {
                 await connection.DetectDynamicFeatures();
             }

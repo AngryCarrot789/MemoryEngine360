@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:views="clr-namespace:MemEngine360.Xbox360XBDM.Views"
+             xmlns:toolTips="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="320"
              x:Class="MemEngine360.Xbox360XBDM.Views.OpenXbdmConnectionView">
     <StackPanel Margin="10">
@@ -19,6 +20,15 @@
                  VerticalContentAlignment="Center"
                  ScrollViewer.VerticalScrollBarVisibility="Disabled"
                  Text="ERROR"/>
+        <CheckBox x:Name="PART_IsLittleEndian" Content="Use Little Endian" Margin="0,5,0,0">
+            <toolTips:ToolTipEx.Tip>
+                <TextBlock>
+                    <Run Text="Toggles whether to treat the xbox 360 endianness as little."/>
+                    <LineBreak/>
+                    <Run Text="The xbox is big endian, but if some games or apps use little endian for some reason, this option helps with that."/>
+                </TextBlock>
+            </toolTips:ToolTipEx.Tip>
+        </CheckBox>
         <Separator Margin="0,5"/>
         <TextBlock Text="Discovered consoles (coming soon)" Padding="0,5"/>
         <views:DiscoveredConsoleListBox x:Name="PART_DiscoveredConsoles"/>

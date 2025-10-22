@@ -21,23 +21,31 @@ using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Xbox360XBDM.Consoles;
 using PFXToolKitUI.Activities;
-using PFXToolKitUI.DataTransfer;
-using PFXToolKitUI.Utils.Accessing;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Xbox360XBDM.Views;
 
-public class ConnectToXboxInfo : UserConnectionInfo {
-    public static readonly DataParameterString IpAddressParameter = DataParameter.Register(new DataParameterString(typeof(ConnectToXboxInfo), nameof(IpAddress), "", ValueAccessors.Reflective<string?>(typeof(ConnectToXboxInfo), nameof(ipAddress))));
+public delegate void ConnectToXboxInfoEventHandler(ConnectToXboxInfo sender);
 
+public class ConnectToXboxInfo : UserConnectionInfo {
     private string? ipAddress;
+    private bool isLittleEndian /* = false // xbox is BE by default */;
 
     public string? IpAddress {
         get => this.ipAddress;
-        set => DataParameter.SetValueHelper(this, IpAddressParameter, ref this.ipAddress, value);
+        set => PropertyHelper.SetAndRaiseINE(ref this.ipAddress, value, this, static t => t.IpAddressChanged?.Invoke(t));
     }
 
+    public bool IsLittleEndian {
+        get => this.isLittleEndian;
+        set => PropertyHelper.SetAndRaiseINE(ref this.isLittleEndian, value, this, static t => t.IsLittleEndianChanged?.Invoke(t));
+    }
+    
     public ObservableList<DiscoveredConsole> DiscoveredConsoles { get; } = new ObservableList<DiscoveredConsole>();
+
+    public event ConnectToXboxInfoEventHandler? IpAddressChanged;
+    public event ConnectToXboxInfoEventHandler? IsLittleEndianChanged;
 
     private CancellationTokenSource? refreshCts;
     private ActivityTask? lastRefreshConsolesTask;

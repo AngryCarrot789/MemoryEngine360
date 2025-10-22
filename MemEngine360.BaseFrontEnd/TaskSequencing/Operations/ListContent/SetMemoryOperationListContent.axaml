@@ -17,8 +17,8 @@
                 <TextBlock Text="0x" Opacity="0.7"/>
             </TextBox.InnerLeftContent>
         </TextBox>
-        <StackPanel x:Name="PART_ToValueStackPanel" Orientation="Horizontal" VerticalAlignment="Center">
-            <TextBlock Text="To Value" FontFamily="{StaticResource FontOxanium}" FontWeight="Medium" VerticalAlignment="Center" Padding="4,0"/>
+        <StackPanel x:Name="PART_ValueStackPanel" Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock x:Name="PART_ValueTextBlock" Text="To Value" FontFamily="{StaticResource FontOxanium}" FontWeight="Medium" VerticalAlignment="Center" Padding="4,0"/>
             <TextBox x:Name="PART_ValueTextBox" VerticalContentAlignment="Center"
                      Padding="4,2" MinWidth="150" 
                      tt:ToolTipEx.Tip="The value to write. Prefix with '0x' to write the integer as hex"

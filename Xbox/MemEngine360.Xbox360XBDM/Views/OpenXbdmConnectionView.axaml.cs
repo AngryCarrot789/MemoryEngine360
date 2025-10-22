@@ -18,7 +18,6 @@
 // 
 
 using Avalonia.Controls;
-using Avalonia.Data;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
 using PFXToolKitUI.Avalonia.Bindings;
@@ -27,7 +26,12 @@ using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 namespace MemEngine360.Xbox360XBDM.Views;
 
 public partial class OpenXbdmConnectionView : UserControl, IConsoleConnectivityControl {
-    private readonly IBinder<ConnectToXboxInfo> ipBinder = new TextBoxToDataParameterBinder<ConnectToXboxInfo, string?>(ConnectToXboxInfo.IpAddressParameter, null, (t, s) => Task.FromResult<Optional<string?>>(s));
+    private readonly IBinder<ConnectToXboxInfo> ipBinder = new TextBoxToEventPropertyBinder<ConnectToXboxInfo>(nameof(ConnectToXboxInfo.IpAddressChanged), b => b.Model.IpAddress ?? "", (b, s) => {
+        b.Model.IpAddress = s;
+        return Task.FromResult(true);
+    });
+    
+    private readonly IBinder<ConnectToXboxInfo> isLittleEndianBinder = new AvaloniaPropertyToEventPropertyBinder<ConnectToXboxInfo>(CheckBox.IsCheckedProperty, nameof(ConnectToXboxInfo.IsLittleEndianChanged), b => ((CheckBox) b.Control).IsChecked = b.Model.IsLittleEndian, b => b.Model.IsLittleEndian = ((CheckBox) b.Control).IsChecked == true);
 
     public ConnectToXboxInfo? ConnectionInfo { get; private set; }
 
@@ -37,11 +41,13 @@ public partial class OpenXbdmConnectionView : UserControl, IConsoleConnectivityC
 
     public void OnConnected(OpenConnectionView dialog, UserConnectionInfo info) {
         this.ipBinder.Attach(this.PART_IpAddressTextBox, this.ConnectionInfo = (ConnectToXboxInfo) info);
+        this.isLittleEndianBinder.Attach(this.PART_IsLittleEndian, this.ConnectionInfo);
         this.PART_DiscoveredConsoles.SetItemsSource(this.ConnectionInfo.DiscoveredConsoles);
     }
 
     public void OnDisconnected() {
         this.ipBinder.Detach();
+        this.isLittleEndianBinder.Detach();
         this.PART_DiscoveredConsoles.SetItemsSource(null);
         this.ConnectionInfo = null;
     }

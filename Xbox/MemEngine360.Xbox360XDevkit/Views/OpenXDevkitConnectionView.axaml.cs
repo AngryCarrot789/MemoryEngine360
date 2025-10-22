@@ -28,6 +28,7 @@ namespace MemEngine360.Xbox360XDevkit.Views;
 
 public partial class OpenXDevkitConnectionView : UserControl, IConsoleConnectivityControl {
     private readonly IBinder<ConnectToXboxInfo> ipBinder = new TextBoxToDataParameterBinder<ConnectToXboxInfo, string?>(ConnectToXboxInfo.IpAddressParameter, null, (t, s) => Task.FromResult<Optional<string?>>(s));
+    private readonly IBinder<ConnectToXboxInfo> isLittleEndianBinder = new AvaloniaPropertyToEventPropertyBinder<ConnectToXboxInfo>(CheckBox.IsCheckedProperty, nameof(ConnectToXboxInfo.IsLittleEndianChanged), b => ((CheckBox) b.Control).IsChecked = b.Model.IsLittleEndian, b => b.Model.IsLittleEndian = ((CheckBox) b.Control).IsChecked == true);
     private ConnectToXboxInfo? myInfo;
 
     public OpenXDevkitConnectionView() {
@@ -36,10 +37,12 @@ public partial class OpenXDevkitConnectionView : UserControl, IConsoleConnectivi
 
     public void OnConnected(OpenConnectionView dialog, UserConnectionInfo info) {
         this.ipBinder.Attach(this.PART_IpAddressTextBox, this.myInfo = (ConnectToXboxInfo) info);
+        this.isLittleEndianBinder.Attach(this.PART_IsLittleEndian, this.myInfo);
     }
 
     public void OnDisconnected() {
         this.ipBinder.Detach();
+        this.isLittleEndianBinder.Detach();
         this.myInfo = null;
     }
 }
