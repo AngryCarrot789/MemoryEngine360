@@ -177,7 +177,9 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
                     progress.CompletionState.OnProgress(DataTypedScanningContext.ChunkSize);
 
                     uint baseAddress = region.BaseAddress + this.rgBaseOffset;
-                    int cbRead = (int) Math.Min(DataTypedScanningContext.ChunkSize, Math.Max(this.rgScanEnd - this.rgBaseOffset, 0) /* remaining */) + (int) overlap;
+                    
+                    ulong remaining = Math.Min(this.ctx.scanLength - this.rgBaseOffset, this.rgScanEnd - (region.BaseAddress + this.rgBaseOffset));
+                    int cbRead = (int) Math.Min(DataTypedScanningContext.ChunkSize, remaining) + (int) overlap;
                     try {
                         await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, cbRead).ConfigureAwait(false);
                     }
@@ -217,7 +219,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
                 // }
 
                 uint baseAddress = this.ctx.startAddress + this.rgBaseOffset;
-                int cbRead = (int) Math.Min(DataTypedScanningContext.ChunkSize, Math.Max(this.ctx.scanLength - this.rgBaseOffset, 0)) + (int) overlap;
+                int cbRead = (int) Math.Min(DataTypedScanningContext.ChunkSize, Math.Max(len - this.rgBaseOffset, 0)) + (int) overlap;
                 try {
                     await this.connection.ReadBytes(baseAddress, tmpBuffer, 0, cbRead).ConfigureAwait(false);
                 }
