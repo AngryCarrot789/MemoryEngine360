@@ -162,9 +162,16 @@ public abstract class BaseSequenceCondition {
 
     internal static void InternalSetOwner(BaseSequenceCondition condition, IConditionsHost? owner) => condition.Owner = owner;
     
+    protected abstract BaseSequenceCondition CreateCloneCore();
+
     /// <summary>
     /// Creates a clone of this condition, as if the user created a new instance and configured it by hand
     /// </summary>
     /// <returns></returns>
-    public abstract BaseSequenceCondition CreateClone();
+    public BaseSequenceCondition CreateClone() {
+        BaseSequenceCondition condition = this.CreateCloneCore();
+        condition.isEnabled = this.isEnabled;
+        condition.outputMode = this.outputMode;
+        return condition;
+    }
 }

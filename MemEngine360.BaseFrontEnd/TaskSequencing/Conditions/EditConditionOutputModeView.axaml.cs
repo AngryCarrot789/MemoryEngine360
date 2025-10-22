@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using Avalonia;
 using Avalonia.Controls;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
@@ -51,12 +52,21 @@ public partial class EditConditionOutputModeView : UserControl {
         this.binder.Assign(this.PART_WhileNotMetOnce, ConditionOutputMode.WhileNotMetOnce);
         this.binder.Assign(this.PART_ChangeToMetOnce, ConditionOutputMode.ChangeToMetOnce);
         this.binder.Assign(this.PART_ChangeToNotMetOnce, ConditionOutputMode.ChangeToNotMetOnce);
-        this.binder.Attach(this);
         this.PART_ConfirmButton.Command = new AsyncRelayCommand(() => this.Window?.RequestCloseAsync(BoolBox.NullableTrue) ?? Task.CompletedTask);
         this.PART_CancelButton.Command = new AsyncRelayCommand(() => this.Window?.RequestCloseAsync(BoolBox.NullableFalse) ?? Task.CompletedTask);
     }
 
     public EditConditionOutputModeView(ConditionOutputMode initialOutputMode) : this() {
         this.OutputMode = initialOutputMode;
+    }
+    
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) {
+        base.OnAttachedToVisualTree(e);
+        this.binder.Attach(this);
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e) {
+        base.OnDetachedFromVisualTree(e);
+        this.binder.Detach();
     }
 }

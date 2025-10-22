@@ -167,13 +167,12 @@ public class CompareMemoryCondition : BaseSequenceCondition {
         }
     }
 
-    public override BaseSequenceCondition CreateClone() {
+    protected override BaseSequenceCondition CreateCloneCore() {
         return new CompareMemoryCondition() {
-            IsEnabled = this.IsEnabled,
-            Address = this.Address,
-            CompareType = this.CompareType,
-            CompareTo = this.CompareTo,
-            ParseIntAsHex = this.ParseIntAsHex
+            address = this.Address,
+            compareType = this.CompareType,
+            compareTo = this.CompareTo,
+            parseIntAsHex = this.ParseIntAsHex
         };
     }
 }
