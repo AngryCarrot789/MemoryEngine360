@@ -87,7 +87,7 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
         return result != null;
     });
 
-    private string parsingMinimumText, parsingMaximumText;
+    private string parsingMinimumText = "", parsingMaximumText = "";
     private bool isUpdatingProviderValues;
 
     public string ParsingMinimumText {
