@@ -170,11 +170,11 @@ public sealed class BusyLock {
     /// The returned token object must be disposed once your operation has completed,
     /// so that other operations can do busy operations
     /// </remarks>
-    public Task<IBusyToken?> BeginBusyOperation(BusyTokenRequest request) {
+    public async Task<IBusyToken?> BeginBusyOperation(BusyTokenRequest request) {
         this.CheckTokenAlreadyTakenOnSameThread();
         IBusyToken? token = this.TryBeginBusyOperation();
         if (token != null) {
-            return Task.FromResult<IBusyToken?>(token);
+            return token;
         }
 
         using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(request.CancellationToken);
@@ -183,8 +183,8 @@ public sealed class BusyLock {
         }
 
         return request.QuickReleaseIntention
-            ? this.InternalQuickReleaseLoop(cts.Token)
-            : this.InternalTryTakeBusyTokenLoop(cts.Token);
+            ? await this.InternalQuickReleaseLoop(cts.Token)
+            : await this.InternalTryTakeBusyTokenLoop(cts.Token);
     }
 
     /// <summary>
@@ -463,12 +463,24 @@ public sealed class BusyLock {
             }
 
             while ((tcsBusyLock = this.tcsBusyLockUsage) != null) {
+                CancellationToken waitToken = cancellationToken;
+#if DEBUG
+                // When debugging, add a 1s timeout for waiting, to
+                // help with debugging why things might not be working right.
+                using CancellationTokenSource ctsDebug = CancellationTokenSource.CreateLinkedTokenSource(waitToken);
+                ctsDebug.CancelAfter(2000);
+                waitToken = ctsDebug.Token;
+#endif
+                
                 try {
-                    await tcsBusyLock.Task.WaitAsync(cancellationToken);
+                    await tcsBusyLock.Task.WaitAsync(waitToken);
                 }
                 catch (OperationCanceledException e) {
-                    Debug.Assert(cancellationToken.IsCancellationRequested && e.CancellationToken == cancellationToken);
-                    return null;
+                    if (cancellationToken.IsCancellationRequested) {
+                        return null;
+                    }
+                    
+                    // continue if the ctsDebug token was cancelled
                 }
             }
         } while ((token = this.InternalTryTakeBusyToken(tcsQuickReleaseAction)) == null);
