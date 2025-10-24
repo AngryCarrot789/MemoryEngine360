@@ -266,32 +266,3 @@ public class GetMoBoTypeCommand : BaseJRPC2Command {
         await IMessageDialogService.Instance.ShowMessage("Motherboard", mobo);
     }
 }
-
-public class TestRPCCommand : BaseJRPC2Command {
-    protected override string ActivityText => "Test RPC";
-
-    protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
-        // https://www.se7ensins.com/forums/threads/new-mw3-offsets-and-functions.952174/post-7071717?referrer=1519241
-
-        await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-            DoubleUserInputInfo info = new DoubleUserInputInfo {
-                Caption = "Change config string",
-                Message = "void SV_SetConfigString(int, string)",
-                LabelA = "Index (hex) (e.g. 3FA for minimap model)",
-                LabelB = "String Value (e.g. rank_prestige10)",
-                TextA = "3FA", TextB = "rank_prestige10",
-                ConfirmText = "Execute RPC",
-                ValidateA = args => {
-                    if (!int.TryParse(args.Input, NumberStyles.HexNumber, null, out _))
-                        args.Errors.Add("Invalid index value. Must be an integer in hex format");
-                }
-            };
-
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {
-                int index = int.Parse(info.TextA, NumberStyles.HexNumber); // cannot fail
-                string value = info.TextB;
-                await jrpc.CallVoid(0x822CB3E8, index, value);
-            }
-        }, captureContext: true);
-    }
-}

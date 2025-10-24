@@ -303,14 +303,14 @@ public partial class EngineView : UserControl {
         TopLevelMenuRegistry menu = this.TopLevelMenuRegistry;
 
         // ### File ###
-        MenuEntryGroup fileEntry = new MenuEntryGroup("File");
+        MenuEntryGroup fileEntry = new MenuEntryGroup("_File");
         fileEntry.Items.Add(new CommandMenuEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "_Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
         fileEntry.Items.Add(new CommandMenuEntry("commands.memengine.DumpMemoryCommand", "Memory _Dump...", icon: SimpleIcons.DownloadMemoryIcon));
         fileEntry.Items.Add(new SeparatorEntry());
         fileEntry.Items.Add(new CommandMenuEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command...", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
         fileEntry.Items.Add(new SendXboxNotificationCommandEntry("Test Notification (XBDM)", null, null));
         fileEntry.Items.Add(new SeparatorEntry());
-        fileEntry.Items.Add(new CommandMenuEntry("commands.mainWindow.OpenEditorSettings", "Preferences"));
+        fileEntry.Items.Add(new CommandMenuEntry("commands.mainWindow.OpenEditorSettings", "_Preferences"));
         menu.Items.Add(fileEntry);
 
         // ### Remote Commands ###
@@ -323,8 +323,8 @@ public partial class EngineView : UserControl {
         menu.Items.Add(this.themesSubList);
 
         // ### Help ###
-        MenuEntryGroup helpEntry = new MenuEntryGroup("Help");
-        helpEntry.Items.Add(new CommandMenuEntry("commands.application.ShowLogsCommand", "Show Logs"));
+        MenuEntryGroup helpEntry = new MenuEntryGroup("_Help");
+        helpEntry.Items.Add(new CommandMenuEntry("commands.application.ShowLogsCommand", "Show _Logs"));
         helpEntry.Items.Add(new SeparatorEntry());
         helpEntry.Items.Add(new CustomLambdaMenuEntry("Open Wiki", (c) => {
             if (!ITopLevel.TopLevelDataKey.TryGetContext(c, out ITopLevel? topLevel))

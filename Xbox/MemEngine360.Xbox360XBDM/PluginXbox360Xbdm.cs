@@ -56,15 +56,7 @@ public class PluginXbox360Xbdm : Plugin {
 
         ModuleViewer.RegisterHandlerForConnectionType<XbdmConsoleConnection>(new XbdmModuleViewerProcessor());
         
-        MemoryEngineManager.Instance.EngineOpened += OnEngineOpened;
-        
         return Task.CompletedTask;
-    }
-
-    private static void OnEngineOpened(MemoryEngineManager manager, MemoryEngine engine) {
-        if (engine.ToolsMenu.TryGetGroupById("memoryengine.tools.coolutils", out MenuEntryGroup? group)) {
-            group.Items.Add(new CommandMenuEntry("commands.memengine.remote.TestRPCCommand", "SV_SetConfigString on MW3 (TU23)", "Invokes the method on the connected xbox"));
-        }
     }
 
     private class XbdmModuleViewerProcessor : IModuleManagerProcessor {

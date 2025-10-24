@@ -78,7 +78,6 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
             items.Add(new CommandMenuEntry("commands.memengine.remote.GetTemperaturesCommand", "Get Temperatures"));
             items.Add(new CommandMenuEntry("commands.memengine.remote.GetTitleIDCommand", "Get Current TitleID"));
             items.Add(new CommandMenuEntry("commands.memengine.remote.GetMoBoTypeCommand", "Get Motherboard Type"));
-            items.Add(new CommandMenuEntry("commands.memengine.remote.TestRPCCommand", "SV_SetConfigString on MW3 (TU23)"));
         }));
     }
 

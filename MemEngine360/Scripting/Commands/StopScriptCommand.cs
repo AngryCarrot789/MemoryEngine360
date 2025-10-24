@@ -48,9 +48,10 @@ public class StopScriptCommand : Command {
         using CancellationTokenSource ctsFinished = TaskUtils.CreateCompletionSource(script.ScriptTask);
         if (askToStop) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Script is running", "The script is still running, so it will be stopped.", MessageBoxButtons.OKCancel, MessageBoxResult.OK, dialogCancellation: ctsFinished.Token);
-            if (result != MessageBoxResult.OK && script.IsRunning) {
+            if (result != MessageBoxResult.OK && script.IsRunning)
                 return false;
-            }
+            if (!script.IsRunning)
+                return true;
         }
 
         if (script.IsRunning) {
@@ -60,16 +61,17 @@ public class StopScriptCommand : Command {
             await Task.WhenAny(script.ScriptTask, Task.Delay(2000, ctsFinished.Token));
             if (script.IsRunning) {
                 MessageBoxResult result2 = await IMessageDialogService.Instance.ShowMessage("Script still running", $"The script is still running. Force kill the script?{Environment.NewLine}{Environment.NewLine}Note, due to .NET restrictions, the lua thread cannot be 'killed' safely.", MessageBoxButtons.OKCancel, MessageBoxResult.OK, dialogCancellation: ctsFinished.Token);
-                if (result2 != MessageBoxResult.OK && script.IsRunning) {
+                if (result2 != MessageBoxResult.OK && script.IsRunning)
                     return false;
-                }
+                if (!script.IsRunning)
+                    return true;
 
                 script.RequestStop(true);
 
                 // Wait 2 seconds for the script to complete normally
                 await Task.WhenAny(script.ScriptTask, Task.Delay(2000, ctsFinished.Token));
                 if (script.IsRunning) {
-                    await IMessageDialogService.Instance.ShowMessage("Script still running", $"Could not stop the script! Please try again later.", MessageBoxButtons.OKCancel, MessageBoxResult.OK);
+                    await IMessageDialogService.Instance.ShowMessage("Script still running", $"Could not stop the script! Please try again later.", MessageBoxButtons.OKCancel, MessageBoxResult.OK, dialogCancellation: ctsFinished.Token);
                     return false;
                 }
             }

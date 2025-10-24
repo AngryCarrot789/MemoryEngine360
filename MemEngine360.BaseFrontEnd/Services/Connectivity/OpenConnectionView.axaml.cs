@@ -56,7 +56,6 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
     private ConnectionTypeEntry? currentSelection;
     private UserConnectionInfo? currentUCInfo;
     private CancellationTokenSource? ctsConnect;
-    private bool isCloseRequested;
 
     /// <summary>
     /// Gets the dialog transaction we used for controlling the dialog
@@ -77,6 +76,7 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
         this.selectedItemBinder.AttachControl(this.PART_ListBox);
 
         this.PART_CancelButton.Command = new AsyncRelayCommand(() => {
+            this.ctsConnect?.Cancel();
             if (!this.DialogOperation.IsCompleted)
                 this.DialogOperation.SetCancelled();
             
@@ -134,9 +134,6 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
                     if (connection != null) {
                         this.DialogOperation.SetResult(new ConnectionResult(connection, info));
                     }
-                    else if (this.isCloseRequested) {
-                        this.DialogOperation.SetCancelled();
-                    }
                 }
                 else {
                     if (connection != null) {
@@ -163,18 +160,6 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
     internal void OnDialogOpened() {
         Debug.Assert(this.OpenConnectionInfo != null && this.DialogOperation != null);
         this.PART_ConfirmButton.Focus();
-    }
-
-    internal void OnDialogTryingToClose(ref bool cancel) {
-        // If the user is trying to close the dialog, but we're still trying to connect,
-        // then cancel the connection operation and stop the window closing.
-        // But we mark ourselves as trying to close so we close as soon as the connect operation finishes
-        if (this.ctsConnect != null) {
-            this.isCloseRequested = true;
-            
-            this.ctsConnect.Cancel();
-            cancel = true;
-        }
     }
 
     internal void OnDialogClosed() {

@@ -214,25 +214,22 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         this.ConsoleDebugger = new ConsoleDebugger(this);
         this.ScriptingManager = new ScriptingManager(this);
 
-        this.ToolsMenu = new MenuEntryGroup("Tools") {
+        this.ToolsMenu = new MenuEntryGroup("_Tools") {
             UniqueID = "memoryengine.tools",
             Items = {
-                new CommandMenuEntry("commands.memengine.ShowMemoryViewCommand", "Memory View", "Opens the memory viewer/hex editor"),
-                new CommandMenuEntry("commands.memengine.ShowTaskSequencerCommand", "Task Sequencer", "Opens the task sequencer"),
-                new CommandMenuEntry("commands.memengine.ShowDebuggerCommand", "Debugger"),
-                new CommandMenuEntry("commands.memengine.ShowPointerScannerCommand", "Pointer Scanner"),
-                new CommandMenuEntry("commands.memengine.ShowConsoleEventViewerCommand", "Event Viewer", "Shows the event viewer window for viewing console system events"),
-                new CommandMenuEntry("commands.scripting.ShowScriptingWindowCommand", "Scripting"),
+                new CommandMenuEntry("commands.memengine.ShowMemoryViewCommand", "_Memory View", "Opens the memory viewer/hex editor"),
+                new CommandMenuEntry("commands.memengine.ShowTaskSequencerCommand", "_Task Sequencer", "Opens the task sequencer"),
+                new CommandMenuEntry("commands.memengine.ShowDebuggerCommand", "_Debugger"),
+                new CommandMenuEntry("commands.memengine.ShowPointerScannerCommand", "_Pointer Scanner"),
+                new CommandMenuEntry("commands.memengine.ShowConsoleEventViewerCommand", "_Event Viewer", "Shows the event viewer window for viewing console system events"),
+                new CommandMenuEntry("commands.scripting.ShowScriptingWindowCommand", "_Scripting"),
                 new SeparatorEntry(),
-                new CommandMenuEntry("commands.memengine.ShowModulesCommand", "Module Explorer", "Opens a window which presents the modules"),
+                new CommandMenuEntry("commands.memengine.ShowModulesCommand", "Module E_xplorer", "Opens a window which presents the modules"),
                 new CommandMenuEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),
                 new CommandMenuEntry("commands.memengine.ShowFileBrowserCommand", "File Explorer"),
                 new SeparatorEntry(),
                 new MenuEntryGroup("Cool Utils") {
-                    UniqueID = "memoryengine.tools.coolutils",
-                    Items = {
-                        new CustomLambdaMenuEntry("[BO1 SP] Find AI's X pos near camera", ExecuteFindAINearBO1Camera, (c) => c.ContainsKey(EngineDataKey.Id))
-                    }
+                    UniqueID = "memoryengine.tools.coolutils"
                 }
             }
         };
@@ -240,7 +237,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         // update all tools when connection changes, since most if not all tools rely on a connection
         this.ToolsMenu.AddCanExecuteChangeUpdaterForEvent(EngineDataKey, nameof(this.ConnectionChanged));
 
-        this.RemoteControlsMenu = new MenuEntryGroup("Remote Controls") {
+        this.RemoteControlsMenu = new MenuEntryGroup("_Remote Controls") {
             ProvideDisabledHint = (ctx, registry) => {
                 if (!EngineDataKey.TryGetContext(ctx, out MemoryEngine? engine))
                     return null;
@@ -651,140 +648,6 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
             case DataType.ByteArray: await connection.WriteBytes(address, ((DataValueByteArray) value).Value).ConfigureAwait(false); break;
             default:                 throw new InvalidOperationException("Data value's data type is invalid: " + value.DataType);
         }
-    }
-
-    private static async Task ExecuteFindAINearBO1Camera(IContextData ctx) {
-        if (!EngineDataKey.TryGetContext(ctx, out MemoryEngine? engine))
-            return;
-
-        // new DynamicAddress(0x82000000, [0x1AD74, 0x1758, 0x18C4, 0x144, 0x118, 0x11C])
-        // new DynamicAddress(0x82000000, [0x1AD74, 0x1758, 0x18C4, 0x144, 0x1A4, 0x1EC8])
-        await engine.BeginBusyOperationUsingActivityAsync(async (t, c) => {
-            if (engine.ScanningProcessor.IsScanning) {
-                await IMessageDialogService.Instance.ShowMessage("Currently scanning", "Cannot run. Engine is scanning for a value");
-                return;
-            }
-
-            SingleUserInputInfo info = new SingleUserInputInfo("Range", "Input maximum radius from you", "Radius", "100.0") {
-                Validate = args => {
-                    if (!float.TryParse(args.Input, out _))
-                        args.Errors.Add("Invalid float");
-                }
-            };
-
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(ctx)) != true) {
-                return;
-            }
-
-            float radius = float.Parse(info.Text);
-
-            // BO1 stores positions as X Z Y. Or maybe they treat Z as up/down.
-            const uint addr_p1_x = 0x82DC184C;
-
-            float p1_x;
-            float p1_z;
-            float p1_y;
-
-            try {
-                p1_x = await c.ReadValue<float>(addr_p1_x);
-                p1_z = await c.ReadValue<float>(addr_p1_x + 0x4);
-                p1_y = await c.ReadValue<float>(addr_p1_x + 0x8);
-            }
-            catch (Exception e) when (e is TimeoutException || e is IOException) {
-                await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + e.Message);
-                return;
-            }
-
-            AddressRange range = new AddressRange(engine.ScanningProcessor.StartAddress, engine.ScanningProcessor.ScanLength);
-            List<(uint, float)> results = new List<(uint, float)>();
-            using CancellationTokenSource cts = new CancellationTokenSource();
-            ActivityTask task = ActivityManager.Instance.RunTask(async () => {
-                ActivityTask activity = ActivityManager.Instance.CurrentTask;
-                IActivityProgress prog = activity.Progress;
-                IFeatureIceCubes? iceCubes = c.GetFeatureOrDefault<IFeatureIceCubes>();
-                bool isAlreadyFrozen = false;
-
-                if (iceCubes != null && engine.ScanningProcessor.PauseConsoleDuringScan)
-                    isAlreadyFrozen = await iceCubes.DebugFreeze() == FreezeResult.AlreadyFrozen;
-
-                if (engine.ScanningProcessor.HasDoneFirstScan) {
-                    List<ScanResultViewModel> list = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => engine.ScanningProcessor.GetScanResultsAndQueued());
-                    using PopCompletionStateRangeToken token = prog.CompletionState.PushCompletionRange(0, 1.0 / list.Count);
-                    foreach (ScanResultViewModel result in list) {
-                        activity.ThrowIfCancellationRequested();
-                        prog.CompletionState.OnProgress(1);
-
-                        if (!(result.CurrentValue is DataValueFloat floatval)) {
-                            continue;
-                        }
-
-                        DataValueFloat currVal = (DataValueFloat) await ReadDataValue(c, result.Address, floatval);
-                        if (Math.Abs(currVal.Value - p1_x) <= radius) {
-                            results.Add((result.Address, currVal.Value));
-                        }
-                    }
-                }
-                else {
-                    using PopCompletionStateRangeToken token = prog.CompletionState.PushCompletionRange(0, 1.0 / range.Length);
-                    bool isLE = c.IsLittleEndian;
-                    byte[] buffer = new byte[0x10008]; // read 8 over for Z and Y axis
-                    int chunkIdx = 0;
-                    uint totalChunks = range.Length / 0x10000;
-                    for (uint addr = range.BaseAddress, end = range.EndAddress; addr < end; addr += 0x10000) {
-                        activity.ThrowIfCancellationRequested();
-                        prog.CompletionState.OnProgress(0x10000);
-                        prog.Text = $"Chunk {++chunkIdx}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(range.Length - (end - addr), false)}/{ValueScannerUtils.ByteFormatter.ToString(range.Length, false)})";
-                        await c.ReadBytes(addr, buffer, 0, buffer.Length);
-
-                        float x, z, y;
-                        for (int offset = 0; offset < (buffer.Length - 0x8) /* X10008-8=65535 */; offset += 4) {
-                            x = AsFloat(buffer, offset, isLE);
-                            z = AsFloat(buffer, offset + 4, isLE);
-                            y = AsFloat(buffer, offset + 8, isLE);
-                            if (Math.Abs(x - p1_x) <= radius && Math.Abs(z - p1_z) <= radius && Math.Abs(y - p1_y) <= radius) {
-                                if (!(Math.Abs(x - p1_x) < 0.001F) && !(Math.Abs(z - p1_z) < 0.001F) && !(Math.Abs(y - p1_y) < 0.001F)) {
-                                    if (addr + (uint) offset != addr_p1_x)
-                                        results.Add((addr + (uint) offset, x));
-                                }
-                            }
-                        }
-                    }
-                }
-
-
-                if (iceCubes != null && !isAlreadyFrozen && engine.ScanningProcessor.PauseConsoleDuringScan)
-                    await iceCubes.DebugUnFreeze();
-                return;
-
-                static float AsFloat(byte[] buffer, int offset, bool isDataLittleEndian) {
-                    float value = Unsafe.ReadUnaligned<float>(ref buffer[offset]);
-                    if (BitConverter.IsLittleEndian != isDataLittleEndian) {
-                        MemoryMarshal.CreateSpan(ref Unsafe.As<float, byte>(ref value), sizeof(float)).Reverse();
-                    }
-
-                    return value;
-                }
-            }, cts);
-
-            await task;
-            if (task.Exception is TimeoutException || task.Exception is IOException) {
-                await IMessageDialogService.Instance.ShowMessage("Network error", "Error while reading data from console: " + task.Exception.Message);
-            }
-
-            if (results.Count > 0) {
-                engine.ScanningProcessor.ResetScan();
-                engine.ScanningProcessor.DataType = DataType.Float;
-                engine.ScanningProcessor.FloatScanOption = FloatScanOption.RoundToQuery;
-                engine.ScanningProcessor.NumericScanType = NumericScanType.Between;
-                engine.ScanningProcessor.InputA = (p1_x - radius).ToString("F4");
-                engine.ScanningProcessor.InputB = (p1_x + radius).ToString("F4");
-                engine.ScanningProcessor.ScanResults.AddRange(results.Select(x => new ScanResultViewModel(engine.ScanningProcessor, x.Item1, DataType.Float, NumericDisplayType.Normal, StringType.ASCII, new DataValueFloat(x.Item2))));
-                engine.ScanningProcessor.HasDoneFirstScan = true;
-            }
-            else {
-                await IMessageDialogService.Instance.ShowMessage("No results!", "Did not find anything nearby");
-            }
-        });
     }
 }
 

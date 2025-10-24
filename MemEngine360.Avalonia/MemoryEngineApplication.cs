@@ -166,7 +166,6 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.remote.GetTemperaturesCommand", new GetTemperaturesCommand());
         manager.Register("commands.memengine.remote.GetTitleIDCommand", new GetTitleIDCommand());
         manager.Register("commands.memengine.remote.GetMoBoTypeCommand", new GetMoBoTypeCommand());
-        manager.Register("commands.memengine.remote.TestRPCCommand", new TestRPCCommand());
 
         // Hex editor commands
         manager.Register("commands.hexeditor.ReloadSelectionFromConsole", new ReloadSelectionFromConsole());
