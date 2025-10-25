@@ -29,11 +29,9 @@ namespace MemEngine360.Connections.Features;
 public interface IFeatureXboxDebugging : IConsoleFeature, IFeatureXboxThreads, IFeatureIceCubesEx, IFeatureXboxExecutionState {
     Task AddBreakpoint(uint address);
 
-    Task AddDataBreakpoint(uint address, XboxBreakpointType type, uint size);
-
     Task RemoveBreakpoint(uint address);
-
-    Task RemoveDataBreakpoint(uint address, XboxBreakpointType type, uint size);
+    
+    Task SetDataBreakpoint(uint address, XboxBreakpointType type, uint size);
 
     /// <summary>
     /// Reads the registers of the current thread. Returns null if the thread doesn't exist

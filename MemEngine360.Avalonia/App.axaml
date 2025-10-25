@@ -45,6 +45,7 @@
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Activities/ActivityControlStyles.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Notifications/NotificationStyles.axaml"/>
                 <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/SavedAddressing/AddressTableTreeViewStyles.axaml"/>
+                <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/StructViewing/StructViewerTreeViewStyles.axaml"/>
                 <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/FileBrowsing/FileBrowserTreeViewStyles.axaml"/>
                 <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/MemEngineConfigurationPageStyles.axaml"/>
             </ResourceDictionary.MergedDictionaries>

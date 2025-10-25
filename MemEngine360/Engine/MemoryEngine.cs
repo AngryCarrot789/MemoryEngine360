@@ -18,16 +18,12 @@
 // 
 
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
-using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.FileBrowsing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
-using MemEngine360.Engine.Scanners;
 using MemEngine360.PointerScanning;
 using MemEngine360.Scripting;
 using MemEngine360.Sequencing;
@@ -42,8 +38,6 @@ using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Logging;
-using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine;
@@ -223,6 +217,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
                 new CommandMenuEntry("commands.memengine.ShowPointerScannerCommand", "_Pointer Scanner"),
                 new CommandMenuEntry("commands.memengine.ShowConsoleEventViewerCommand", "_Event Viewer", "Shows the event viewer window for viewing console system events"),
                 new CommandMenuEntry("commands.scripting.ShowScriptingWindowCommand", "_Scripting"),
+                // new CommandMenuEntry("commands.structviewer.ShowStructViewerWindowCommand", "Struct Viewer"),
                 new SeparatorEntry(),
                 new CommandMenuEntry("commands.memengine.ShowModulesCommand", "Module E_xplorer", "Opens a window which presents the modules"),
                 new CommandMenuEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),

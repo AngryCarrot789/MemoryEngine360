@@ -71,12 +71,12 @@ public class EditScanResultValueCommand : Command {
         }
 
         if (engine.Connection == null) {
-            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_NoConnection, StandardEngineMessages.Message_NoConnection);
+            await MessageBoxes.NoConnection.ShowMessage();
             return;
         }
 
         if (engine.Connection.IsClosed) {
-            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_ConnectionClosed, StandardEngineMessages.Message_ConnectionClosed);
+            await MessageBoxes.ClosedConnection.ShowMessage();
             return;
         }
 
@@ -122,7 +122,7 @@ public class EditScanResultValueCommand : Command {
 
             foreach (ScanResultViewModel scanResult in scanResults) {
                 ActivityManager.Instance.CurrentTask.ThrowIfCancellationRequested();
-                await MemoryEngine.WriteDataValue(engine.Connection, scanResult.Address, value!);
+                await MemoryEngine.WriteDataValue(engine.Connection, scanResult.Address, value);
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     scanResult.CurrentValue = value;
                 });

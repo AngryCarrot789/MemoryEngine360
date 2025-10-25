@@ -23,6 +23,7 @@ using Lua.Runtime;
 using Lua.Standard;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using MemEngine360.Scripting.LuaFeatures;
 using PFXToolKitUI;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;

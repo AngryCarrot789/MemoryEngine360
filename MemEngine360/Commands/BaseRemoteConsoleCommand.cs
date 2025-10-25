@@ -18,15 +18,12 @@
 // 
 
 using System.Collections.ObjectModel;
-using System.Globalization;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
-using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Shortcuts;
 using PFXToolKitUI.Utils;
 
@@ -64,12 +61,9 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
 
             engine.CheckConnection(token);
 
-            if (connection == null) {
-                await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_NoConnection, StandardEngineMessages.Message_NoConnection + shortcuts);
-            }
-            else {
-                await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_ConnectionClosed, StandardEngineMessages.Message_ConnectionClosed + shortcuts);
-            }
+            MessageBoxInfo info = (connection == null ? MessageBoxes.NoConnection : MessageBoxes.ClosedConnection).CreateInfo();
+            info.Message += shortcuts;
+            await IMessageDialogService.Instance.ShowMessage(info);
         }
         else if (await this.TryBeginExecuteAsync(engine, connection, e)) {
             await ActivityManager.Instance.RunTask(async () => {

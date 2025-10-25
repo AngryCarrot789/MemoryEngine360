@@ -23,7 +23,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
+using MemEngine360.Engine.Debugging;
+using MemEngine360.XboxBase.Modules;
 using XDevkit;
+using XboxBreakpointType = MemEngine360.XboxBase.XboxBreakpointType;
 using XboxExecutionState = MemEngine360.Connections.Features.XboxExecutionState;
 
 namespace MemEngine360.Xbox360XDevkit;
@@ -169,7 +172,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         });
     }
 
-    private class FeaturesImpl : IConsoleFeature, IFeatureXboxThreads, IFeatureMemoryRegions, IFeatureIceCubesEx/*, IFeatureFileSystemInfo*/ { // IFeatureSystemEvents
+    private class FeaturesImpl : IConsoleFeature, IFeatureXboxDebugging, IFeatureXboxThreads, IFeatureMemoryRegions, IFeatureIceCubesEx /*, IFeatureFileSystemInfo*/ { // IFeatureSystemEvents
         private readonly XDevkitConsoleConnection connection;
 
         public IConsoleConnection Connection => this.connection;
@@ -295,5 +298,75 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         //         }
         //     }
         // }
+
+        public async Task AddBreakpoint(uint address) {
+            this.connection.EnsureNotClosed();
+            using BusyToken token = this.connection.CreateBusyToken();
+
+            await Task.Run(() => {
+                this.connection.console.DebugTarget.SetBreakpoint(address);
+            });
+        }
+
+        public async Task SetDataBreakpoint(uint address, XboxBreakpointType type, uint size) {
+            this.connection.EnsureNotClosed();
+            using BusyToken token = this.connection.CreateBusyToken();
+
+            await Task.Run(() => {
+                this.connection.console.DebugTarget.SetDataBreakpoint(address, (XDevkit.XboxBreakpointType) type, size);
+            });
+        }
+
+        public async Task RemoveBreakpoint(uint address) {
+            this.connection.EnsureNotClosed();
+            using BusyToken token = this.connection.CreateBusyToken();
+
+            await Task.Run(() => {
+                this.connection.console.DebugTarget.RemoveBreakpoint(address);
+            });
+        }
+
+        public Task<RegisterContext?> GetThreadRegisters(uint threadId) {
+            return Task.FromResult<RegisterContext?>(null);
+        }
+
+        public async Task SuspendThread(uint threadId) {
+            this.connection.EnsureNotClosed();
+            using BusyToken token = this.connection.CreateBusyToken();
+
+            await Task.Run(() => {
+                foreach (IXboxThread thread in this.connection.console.DebugTarget.Threads) {
+                    if (thread.ThreadId == threadId) {
+                        thread.Suspend();
+                        return;
+                    }
+                }
+            });
+        }
+
+        public async Task ResumeThread(uint threadId) {
+            this.connection.EnsureNotClosed();
+            using BusyToken token = this.connection.CreateBusyToken();
+
+            await Task.Run(() => {
+                foreach (IXboxThread thread in this.connection.console.DebugTarget.Threads) {
+                    if (thread.ThreadId == threadId) {
+                        thread.Resume();
+                        return;
+                    }
+                }
+            });
+        }
+
+        public async Task StepThread(uint threadId) {
+        }
+
+        public async Task<FunctionCallEntry?[]> FindFunctions(uint[] iar) {
+            return new FunctionCallEntry?[iar.Length];
+        }
+
+        public async Task<ConsoleModule?> GetModuleForAddress(uint address, bool bNeedSections) {
+            return null;
+        }
     }
 }

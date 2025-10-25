@@ -212,7 +212,7 @@ public class ConsoleDebugger : IUserLocalContext {
     }
 
     public async Task UpdateAllThreads(CancellationToken busyCancellationToken) {
-        using IBusyToken? token = await this.busyLocker.BeginBusyOperationUsingActivity("", cancellationToken: busyCancellationToken);
+        using IBusyToken? token = await this.busyLocker.BeginBusyOperationUsingActivity("", busyCancellation: busyCancellationToken);
         if (token == null || busyCancellationToken.IsCancellationRequested || this.ignoreActiveThreadChange) {
             return;
         }

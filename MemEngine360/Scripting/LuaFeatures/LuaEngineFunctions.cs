@@ -22,10 +22,12 @@ using Lua;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
+using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
+using MemEngine360.XboxBase;
 
-namespace MemEngine360.Scripting;
+namespace MemEngine360.Scripting.LuaFeatures;
 
 public sealed class LuaEngineFunctions {
     private readonly LuaScriptMachine machine;
@@ -40,18 +42,15 @@ public sealed class LuaEngineFunctions {
         _ = new EngineFunctions(this, state, engineTable);
         _ = new FileSystemFunctions(this, state, engineTable);
         _ = new JRPCFunctions(this, state, engineTable);
+        _ = new DebugFunctions(this, state, engineTable);
         _ = new MessageBoxFunctions(this, state);
     }
 
-    private static void AssignFunction(LuaTable luaTable, LuaFunction function) {
+    internal static void AssignFunction(LuaTable luaTable, LuaFunction function) {
         luaTable[(LuaValue) function.Name] = (LuaValue) function;
     }
 
-    private static LuaRuntimeException InvalidOperation(LuaFunctionExecutionContext ctx, string message) {
-        return new LuaRuntimeException(ctx.State.GetTraceback(), message);
-    }
-
-    private IConsoleConnection GetConnection(ref LuaFunctionExecutionContext ctx) {
+    private IConsoleConnection GetConnection(in LuaFunctionExecutionContext ctx) {
         IConsoleConnection? conn = this.machine.Connection;
         if (conn == null)
             throw new LuaRuntimeException(ctx.State.GetTraceback(), "Not connected to console");
@@ -60,7 +59,7 @@ public sealed class LuaEngineFunctions {
         return conn;
     }
 
-    private Task<IBusyToken> GetBusyToken(ref LuaFunctionExecutionContext context, CancellationToken ct) {
+    private Task<IBusyToken> GetBusyToken(in LuaFunctionExecutionContext context, CancellationToken ct) {
         return this.GetBusyToken(context.State, ct);
     }
 
@@ -74,80 +73,14 @@ public sealed class LuaEngineFunctions {
         return token;
     }
 
-    private T GetConsoleFeature<T>(ref LuaFunctionExecutionContext ctx, string errorMessage) where T : class, IConsoleFeature {
-        IConsoleConnection conn = this.GetConnection(ref ctx);
+    private T GetConsoleFeature<T>(in LuaFunctionExecutionContext context, string errorMessage) where T : class, IConsoleFeature {
+        IConsoleConnection conn = this.GetConnection(in context);
         if (!conn.TryGetFeature(out T? feature))
-            throw new LuaRuntimeException(ctx.State.GetTraceback(), errorMessage);
+            throw new LuaRuntimeException(context.State.GetTraceback(), errorMessage);
         return feature;
     }
 
-    private static uint GetHexNumber(LuaFunctionExecutionContext ctx, int index) {
-        LuaValue arg = ctx.GetArgument(index);
-        if (arg.Type == LuaValueType.String) {
-            string text = arg.Read<string>() ?? "";
-            ReadOnlySpan<char> span = text.StartsWith("0x") ? text.AsSpan(2) : text.AsSpan();
-            return uint.Parse(span, NumberStyles.HexNumber);
-        }
-
-        if (arg.TryRead(out int value)) {
-            return (uint) value;
-        }
-
-        throw InvalidOperation(ctx, "Invalid hex value: " + arg);
-    }
-
-    private static uint GetUIntFromValue(ref LuaFunctionExecutionContext context, LuaValue addressArgument) {
-        uint address;
-        if (addressArgument.Type == LuaValueType.Number) {
-            addressArgument.TryRead(out double addr);
-            if (addr < 0)
-                throw InvalidOperation(context, "UInt argument cannot be a negative number");
-            address = (uint) addr;
-        }
-        else if (addressArgument.TryRead(out string str)) {
-            if (str.StartsWith("0x")) {
-                if (!uint.TryParse(str.AsSpan(2), NumberStyles.HexNumber, null, out address))
-                    throw InvalidOperation(context, "Invalid uint argument: " + str);
-            }
-            else if (!uint.TryParse(str, out address))
-                throw InvalidOperation(context, "Invalid uint argument: " + str);
-
-            return address;
-        }
-        else {
-            throw InvalidOperation(context, "Invalid uint argument: " + addressArgument);
-        }
-
-        return address;
-    }
-
-    private static DataType GetDataTypeFromString(ref LuaFunctionExecutionContext context, string type) {
-        switch (type.ToUpperInvariant()) {
-            case "BYTE":
-            case "INT8":
-                return DataType.Byte;
-            case "SHORT":
-            case "INT16":
-                return DataType.Int16;
-            case "INT":
-            case "INT32":
-                return DataType.Int32;
-            case "LONG":
-            case "INT64":
-                return DataType.Int64;
-            case "FLOAT":
-            case "SINGLE":
-            case "FLOAT32":
-                return DataType.Float;
-            case "DOUBLE":
-            case "DOUBLE64":
-            case "FLOAT64":
-                return DataType.Double;
-            default: throw InvalidOperation(context, "Unknown data type: " + type);
-        }
-    }
-
-    private sealed class EngineFunctions {
+    internal sealed class EngineFunctions {
         private readonly LuaEngineFunctions functions;
 
         public EngineFunctions(LuaEngineFunctions functions, LuaState state, LuaTable engineTable) {
@@ -163,10 +96,10 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> ReadNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = GetUIntFromValue(ref context, context.GetArgument(0));
-            DataType dataType = GetDataTypeFromString(ref context, context.GetArgument<string>(1));
-            IConsoleConnection conn = this.functions.GetConnection(ref context);
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            uint address = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(0));
+            DataType dataType = LuaArgUtils.GetDataTypeFromString(in context, context.GetArgument<string>(1));
+            IConsoleConnection conn = this.functions.GetConnection(in context);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             LuaValue value;
             switch (dataType) {
@@ -184,60 +117,60 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> WriteNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = GetUIntFromValue(ref context, context.GetArgument(0));
-            DataType dataType = GetDataTypeFromString(ref context, context.GetArgument<string>(1));
+            uint address = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(0));
+            DataType dataType = LuaArgUtils.GetDataTypeFromString(in context, context.GetArgument<string>(1));
             double d = context.GetArgument<double>(2);
             IDataValue theValue;
             switch (dataType) {
                 case DataType.Byte:
                     if (d < byte.MinValue || d > byte.MaxValue)
-                        throw InvalidOperation(context, "Value is out of range for type 'byte': " + d);
+                        throw LuaArgUtils.InvalidOperation(in context, "Value is out of range for type 'byte': " + d);
                     theValue = new DataValueByte((byte) d);
                     break;
                 case DataType.Int16:
                     if (d < short.MinValue || d > short.MaxValue)
-                        throw InvalidOperation(context, "Value is out of range for type 'short': " + d);
+                        throw LuaArgUtils.InvalidOperation(in context, "Value is out of range for type 'short': " + d);
                     theValue = new DataValueInt16((short) d);
                     break;
                 case DataType.Int32:
                     if (d < int.MinValue || d > int.MaxValue)
-                        throw InvalidOperation(context, "Value is out of range for type 'int': " + d);
+                        throw LuaArgUtils.InvalidOperation(in context, "Value is out of range for type 'int': " + d);
                     theValue = new DataValueInt32((int) d);
                     break;
                 case DataType.Int64:
                     if (d < long.MinValue || d > long.MaxValue)
-                        throw InvalidOperation(context, "Value is out of range for type 'long': " + d);
+                        throw LuaArgUtils.InvalidOperation(in context, "Value is out of range for type 'long': " + d);
                     theValue = new DataValueInt64((long) d);
                     break;
                 case DataType.Float:
                     if (d < float.MinValue || d > float.MaxValue)
-                        throw InvalidOperation(context, "Value is out of range for type 'float': " + d);
+                        throw LuaArgUtils.InvalidOperation(in context, "Value is out of range for type 'float': " + d);
                     theValue = new DataValueFloat((float) d);
                     break;
                 case DataType.Double: theValue = new DataValueDouble(d); break;
                 default:              throw new ArgumentOutOfRangeException();
             }
 
-            IConsoleConnection conn = this.functions.GetConnection(ref context);
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IConsoleConnection conn = this.functions.GetConnection(in context);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             await MemoryEngine.WriteDataValue(conn, address, theValue);
             return 0;
         }
 
         public async ValueTask<int> ReadString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = GetUIntFromValue(ref context, context.GetArgument(0));
+            uint address = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(0));
             int count = context.GetArgument<int>(1);
             if (count < 0)
-                throw InvalidOperation(context, "Cannot read negative length string: " + count);
+                throw LuaArgUtils.InvalidOperation(in context, "Cannot read negative length string: " + count);
 
             if (count == 0) {
                 buffer.Span[0] = (LuaValue) string.Empty;
                 return 1;
             }
 
-            IConsoleConnection conn = this.functions.GetConnection(ref context);
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IConsoleConnection conn = this.functions.GetConnection(in context);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             string result = await conn.ReadStringASCII(address, count, removeNull: true);
             buffer.Span[0] = (LuaValue) result;
@@ -245,14 +178,14 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> WriteString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = GetUIntFromValue(ref context, context.GetArgument(0));
+            uint address = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(0));
             string value = context.GetArgument<string>(1);
             if (string.IsNullOrEmpty(value)) {
                 return 0; // no point in writing "", since nothing would change
             }
 
-            IConsoleConnection conn = this.functions.GetConnection(ref context);
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IConsoleConnection conn = this.functions.GetConnection(in context);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             await conn.WriteString(address, value);
             return 0;
@@ -260,8 +193,8 @@ public sealed class LuaEngineFunctions {
 
         public async ValueTask<int> SetIsFrozen(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             bool freeze = context.GetArgument<bool>(0);
-            IFeatureIceCubes cubes = this.functions.GetConsoleFeature<IFeatureIceCubes>(ref context, "Console does not support changing the frozen state");
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IFeatureIceCubes cubes = this.functions.GetConsoleFeature<IFeatureIceCubes>(in context, "Console does not support changing the frozen state");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             if (freeze) {
                 FreezeResult result = await cubes.DebugFreeze();
@@ -276,8 +209,8 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> GetIsFrozen(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            IFeatureIceCubesEx cubes = this.functions.GetConsoleFeature<IFeatureIceCubesEx>(ref context, "Console does not support querying the frozen state");
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IFeatureIceCubesEx cubes = this.functions.GetConsoleFeature<IFeatureIceCubesEx>(in context, "Console does not support querying the frozen state");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             bool result = await cubes.IsFrozen();
             buffer.Span[0] = result;
@@ -287,13 +220,13 @@ public sealed class LuaEngineFunctions {
         private async ValueTask<int> SendNotification(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             string type = context.GetArgument<string>(0);
             if (!Enum.TryParse(type, true, out XNotifyLogo logoType)) {
-                throw InvalidOperation(context, "Invalid XNotifyLogo: " + type);
+                throw LuaArgUtils.InvalidOperation(in context, "Invalid XNotifyLogo: " + type);
             }
 
             string? message = context.HasArgument(1) ? context.GetArgument<string>(1) : null;
 
-            IFeatureXboxNotifications feature = this.functions.GetConsoleFeature<IFeatureXboxNotifications>(ref context, "JRPC2 is not installed");
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IFeatureXboxNotifications feature = this.functions.GetConsoleFeature<IFeatureXboxNotifications>(in context, "JRPC2 is not installed");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             await feature.ShowNotification(logoType, message);
             return 0;
@@ -305,8 +238,8 @@ public sealed class LuaEngineFunctions {
             bool p3 = context.GetArgument<bool>(2);
             bool p4 = context.GetArgument<bool>(3);
 
-            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not installed");
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not installed");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             await jrpc.SetLEDs(p1, p2, p3, p4);
             return 0;
@@ -328,8 +261,8 @@ public sealed class LuaEngineFunctions {
         }
 
         private async ValueTask<int> GetDriveList(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(in context, "Remote file system not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             List<DriveEntry> result = await fsInfo.GetDriveList();
 
@@ -357,8 +290,8 @@ public sealed class LuaEngineFunctions {
                 return 1;
             }
 
-            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(in context, "Remote file system not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             List<FileSystemEntry> results = await fsInfo.GetFileSystemEntries(path);
             int count = files && !directories
@@ -386,8 +319,8 @@ public sealed class LuaEngineFunctions {
         private async ValueTask<int> DeleteFileOrFolder(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             string path = context.GetArgument<string>(0);
 
-            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(in context, "Remote file system not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             bool result = await fsInfo.DeleteFileSystemEntryRecursive(path);
             buffer.Span[0] = result;
@@ -396,8 +329,8 @@ public sealed class LuaEngineFunctions {
 
         private async ValueTask<int> LaunchFile(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             string path = context.GetArgument<string>(0);
-            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(in context, "Remote file system not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             await fsInfo.LaunchFile(path);
             return 0;
@@ -406,8 +339,8 @@ public sealed class LuaEngineFunctions {
         private async ValueTask<int> MoveFile(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             string oldPath = context.GetArgument<string>(0);
             string newPath = context.GetArgument<string>(1);
-            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(in context, "Remote file system not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             await fsInfo.MoveFile(oldPath, newPath);
             return 0;
@@ -415,15 +348,15 @@ public sealed class LuaEngineFunctions {
 
         private async ValueTask<int> CreateDirectory(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             string dirPath = context.GetArgument<string>(0);
-            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(in context, "Remote file system not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             await fsInfo.CreateDirectory(dirPath);
             return 0;
         }
 
         private ValueTask<int> GetPathSeparator(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(ref context, "Remote file system not supported by connection");
+            IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(in context, "Remote file system not supported by connection");
 
             buffer.Span[0] = fsInfo.GetPathSeparatorChar().ToString();
             return ValueTask.FromResult(1);
@@ -460,9 +393,9 @@ public sealed class LuaEngineFunctions {
 
         private async ValueTask<int> GetProcedureAddress(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             string modName = context.GetArgument<string>(0);
-            uint ordinal = GetHexNumber(context, 1);
-            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not installed");
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            uint ordinal = LuaArgUtils.GetHexNumber(context, 1);
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not installed");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             uint address = await jrpc.ResolveFunction(modName, ordinal);
             if (address == 0) {
@@ -613,29 +546,29 @@ public sealed class LuaEngineFunctions {
         #endregion
 
         private async Task DoCallVoidAt(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
-            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not supported on the console");
-            uint address = GetUIntFromValue(ref context, context.GetArgument(0));
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not supported on the console");
+            uint address = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(0));
             object[] args = new object[context.ArgumentCount - 1];
             for (int i = 0; i < args.Length; i++) {
                 args[i] = ParseValue(context, i + 1).Item2;
             }
 
             ThreadType type = system ? ThreadType.System : ThreadType.Title;
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
             await (vm ? jrpc.CallVMVoid(type, address, args) : jrpc.CallVoid(type, address, args));
         }
 
         private async Task<object> DoCallAt(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
-            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not supported on the console");
-            RPCDataType dataType = ParseDataType(ref context, context.GetArgument<string>(0), out int arraySize);
-            uint address = GetUIntFromValue(ref context, context.GetArgument(1));
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not supported on the console");
+            RPCDataType dataType = ParseDataType(in context, context.GetArgument<string>(0), out int arraySize);
+            uint address = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(1));
             object[] args = new object[context.ArgumentCount - 2];
             for (int i = 0; i < args.Length; i++) {
                 args[i] = ParseValue(context, i + 2).Item2;
             }
 
             ThreadType type = system ? ThreadType.System : ThreadType.Title;
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
             switch (dataType) {
                 case RPCDataType.Byte:        return await (vm ? jrpc.CallVM<byte>(type, address, args) : jrpc.Call<byte>(type, address, args));
                 case RPCDataType.Int:         return await (vm ? jrpc.CallVM<int>(type, address, args) : jrpc.Call<int>(type, address, args));
@@ -651,31 +584,31 @@ public sealed class LuaEngineFunctions {
         }
 
         private async Task DoCallVoidIn(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
-            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not supported on the console");
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not supported on the console");
             string module = context.GetArgument<string>(0);
-            uint ordinal = GetUIntFromValue(ref context, context.GetArgument(1));
+            uint ordinal = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(1));
             object[] args = new object[context.ArgumentCount - 2];
             for (int i = 0; i < args.Length; i++) {
                 args[i] = ParseValue(context, i + 2).Item2;
             }
 
             ThreadType type = system ? ThreadType.System : ThreadType.Title;
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
             await (vm ? jrpc.CallVMVoid(type, module, (int) ordinal, args) : jrpc.CallVoid(type, module, (int) ordinal, args));
         }
 
         private async Task<object> DoCallIn(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
-            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(ref context, "JRPC2 not supported on the console");
-            RPCDataType dataType = ParseDataType(ref context, context.GetArgument<string>(0), out int arraySize);
+            IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not supported on the console");
+            RPCDataType dataType = ParseDataType(in context, context.GetArgument<string>(0), out int arraySize);
             string module = context.GetArgument<string>(1);
-            uint ordinal = GetUIntFromValue(ref context, context.GetArgument(2));
+            uint ordinal = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(2));
             object[] args = new object[context.ArgumentCount - 3];
             for (int i = 0; i < args.Length; i++) {
                 args[i] = ParseValue(context, i + 3).Item2;
             }
 
             ThreadType type = system ? ThreadType.System : ThreadType.Title;
-            using IBusyToken token = await this.functions.GetBusyToken(ref context, ct);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
             switch (dataType) {
                 case RPCDataType.Byte:        return await (vm ? jrpc.CallVM<byte>(type, module, (int) ordinal, args) : jrpc.Call<byte>(type, module, (int) ordinal, args));
                 case RPCDataType.Int:         return await (vm ? jrpc.CallVM<int>(type, module, (int) ordinal, args) : jrpc.Call<int>(type, module, (int) ordinal, args));
@@ -690,7 +623,7 @@ public sealed class LuaEngineFunctions {
             }
         }
 
-        private static RPCDataType ParseDataType(ref LuaFunctionExecutionContext ctx, string value, out int arraySize) {
+        private static RPCDataType ParseDataType(in LuaFunctionExecutionContext ctx, string value, out int arraySize) {
             arraySize = 0;
             switch (value.ToUpperInvariant()) {
                 case "BYTE":   return RPCDataType.Byte;
@@ -796,6 +729,117 @@ public sealed class LuaEngineFunctions {
         }
     }
 
+    private sealed class DebugFunctions {
+        private readonly LuaEngineFunctions functions;
+
+        public DebugFunctions(LuaEngineFunctions functions, LuaState state, LuaTable engineTable) {
+            this.functions = functions;
+
+            LuaTable debugTable = new LuaTable(0, 17);
+            state.Environment[(LuaValue) "debug"] = (LuaValue) debugTable;
+            state.LoadedModules[(LuaValue) "debug"] = (LuaValue) debugTable;
+            AssignFunction(debugTable, new NetworkHandlingLuaFunction("add_breakpoint", this.AddBreakpoint));
+            AssignFunction(debugTable, new NetworkHandlingLuaFunction("remove_breakpoint", this.RemoveBreakpoint));
+            AssignFunction(debugTable, new NetworkHandlingLuaFunction("set_data_breakpoint", this.SetDataBreakpoint));
+            AssignFunction(debugTable, new NetworkHandlingLuaFunction("incr_suspend", this.SuspendThread));
+            AssignFunction(debugTable, new NetworkHandlingLuaFunction("decr_suspend", this.ResumeThread));
+            AssignFunction(debugTable, new NetworkHandlingLuaFunction("find_functions", this.FindFunctions));
+            /*
+
+             */
+        }
+
+        private async ValueTask<int> AddBreakpoint(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            IFeatureXboxDebugging debug = this.functions.GetConsoleFeature<IFeatureXboxDebugging>(in context, "Debugging not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            uint address = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(0));
+            await debug.AddBreakpoint(address);
+            return 0;
+        }
+
+        private async ValueTask<int> RemoveBreakpoint(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            IFeatureXboxDebugging debug = this.functions.GetConsoleFeature<IFeatureXboxDebugging>(in context, "Debugging not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            uint address = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(0));
+            await debug.RemoveBreakpoint(address);
+            return 0;
+        }
+
+        private async ValueTask<int> SetDataBreakpoint(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            IFeatureXboxDebugging debug = this.functions.GetConsoleFeature<IFeatureXboxDebugging>(in context, "Debugging not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            uint address = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(0));
+            string type = context.GetArgument<string>(1);
+            XboxBreakpointType breakType = type switch {
+                "w" => XboxBreakpointType.OnWrite,
+                "rw" => XboxBreakpointType.OnReadOrWrite,
+                "exec" => XboxBreakpointType.OnExecute,
+                _ => XboxBreakpointType.None
+            };
+
+            uint size = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(2));
+            if (size != 1 && size != 2 && size != 4) {
+                throw LuaArgUtils.InvalidOperation(in context, "Size must be 1, 2 or 4");
+            }
+            
+            await debug.SetDataBreakpoint(address, breakType, size);
+            return 0;
+        }
+
+        private async ValueTask<int> SuspendThread(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            IFeatureXboxDebugging debug = this.functions.GetConsoleFeature<IFeatureXboxDebugging>(in context, "Debugging not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            uint threadId = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(0));
+            await debug.SuspendThread(threadId);
+            return 0;
+        }
+
+        private async ValueTask<int> ResumeThread(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            IFeatureXboxDebugging debug = this.functions.GetConsoleFeature<IFeatureXboxDebugging>(in context, "Debugging not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            uint threadId = LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(0));
+            await debug.ResumeThread(threadId);
+            return 0;
+        }
+
+        private async ValueTask<int> FindFunctions(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            IFeatureXboxDebugging debug = this.functions.GetConsoleFeature<IFeatureXboxDebugging>(in context, "Debugging not supported by connection");
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            List<uint> args = new List<uint>();
+            for (int i = 0; i < context.ArgumentCount; i++) {
+                args.Add(LuaArgUtils.GetUIntFromValue(in context, context.GetArgument(i)));
+            }
+
+            FunctionCallEntry?[] results = await debug.FindFunctions(args.ToArray());
+            LuaTable table = new LuaTable(results.Length, 0);
+            buffer.Span[0] = table;
+            Span<LuaValue> tableSpan = table.GetArraySpan();
+
+            for (int i = 0; i < results.Length; i++) {
+                FunctionCallEntry? entry = results[i];
+                if (entry == null) {
+                    buffer.Span[i] = LuaValue.Nil;
+                }
+                else {
+                    LuaTable subTable = new LuaTable(0, 4);
+                    subTable["module"] = entry.ModuleName;
+                    subTable["address"] = entry.Address;
+                    subTable["size"] = entry.Size;
+                    subTable["unwind_info"] = entry.unwindInfoAddressOrData;
+                    tableSpan[i] = subTable;
+                }
+            }
+
+            return 1;
+        }
+    }
+
     private sealed class MessageBoxFunctions {
         private readonly LuaEngineFunctions functions;
 
@@ -818,7 +862,7 @@ public sealed class LuaEngineFunctions {
         //     return ValueTask.FromResult(1);
         // }
     }
-    
+
     private sealed class NetworkHandlingLuaFunction : LuaFunction {
         public NetworkHandlingLuaFunction(string name, Func<LuaFunctionExecutionContext, Memory<LuaValue>, CancellationToken, ValueTask<int>> func) : base(name, async (ctx, buffer, ct) => {
             try {

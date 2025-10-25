@@ -28,4 +28,7 @@ namespace MemEngine360;
 public static class MessageBoxes {
     public static readonly MessageBoxTemplate Dummy = new MessageBoxTemplate("Caption", "Header here", "Message body here", MessageBoxButtons.OKCancel, MessageBoxResult.OK, icon: MessageBoxIcons.WarningIcon, persistentDialogName: "dialog.dummytemplated");
     public static readonly MessageBoxTemplate AlreadyConnectedToConsole = new MessageBoxTemplate("Already Connected", "Already connected to a console. Close existing connection first?", MessageBoxButtons.OKCancel, MessageBoxResult.OK, persistentDialogName: OpenConsoleConnectionDialogCommand.AlreadyOpenDialogName);
+    
+    public static readonly MessageBoxTemplate NoConnection = new MessageBoxTemplate(StandardEngineMessages.Caption_NoConnection, StandardEngineMessages.Message_NoConnection);
+    public static readonly MessageBoxTemplate ClosedConnection = new MessageBoxTemplate(StandardEngineMessages.Caption_ConnectionClosed, StandardEngineMessages.Message_ConnectionClosed);
 }

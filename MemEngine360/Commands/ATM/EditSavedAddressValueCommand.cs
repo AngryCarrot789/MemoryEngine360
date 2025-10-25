@@ -53,12 +53,12 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
     protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
         IConsoleConnection? connection = engine.Connection;
         if (connection == null) {
-            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_NoConnection, StandardEngineMessages.Message_NoConnection);
+            await MessageBoxes.NoConnection.ShowMessage();
             return;
         }
 
         if (connection.IsClosed) {
-            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_ConnectionClosed, StandardEngineMessages.Message_ConnectionClosed);
+            await MessageBoxes.ClosedConnection.ShowMessage();
             return;
         }
 

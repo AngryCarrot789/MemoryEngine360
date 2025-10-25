@@ -31,7 +31,7 @@ namespace MemEngine360.Engine;
 
 public delegate void BusyLockEventHandler(BusyLock busyLock);
 
-public delegate void BusyLockQuickReleaseRequestedEventHandler(BusyLock busyLock, TaskCompletionSource tcsQuickActionFinished);
+public delegate void BusyLockQuickReleaseRequestedEventHandler(BusyLock busyLock, Task tcsQuickActionFinished);
 
 /// <summary>
 /// An asynchronous lock implementation, used primarily used by the <see cref="MemoryEngine"/>,
@@ -111,11 +111,11 @@ public sealed class BusyLock {
     /// This method does not throw <see cref="OperationCanceledException"/> when the token is cancelled, instead, the method returns a null token
     /// </para>
     /// </summary>
-    /// <param name="cancellationToken">A cancellation token used to stop trying to acquire the busy token</param>
+    /// <param name="busyCancellation">A cancellation token used to stop trying to acquire the busy token</param>
     /// <returns>The acquired token, or null if the cancellation token became cancelled before the token could be acquired</returns>
     /// <remarks>This method does not throw <see cref="OperationCanceledException"/></remarks>
-    public Task<IBusyToken?> BeginBusyOperation(CancellationToken cancellationToken) {
-        return this.BeginBusyOperation(new BusyTokenRequest() { CancellationToken = cancellationToken, QuickReleaseIntention = false });
+    public Task<IBusyToken?> BeginBusyOperation(CancellationToken busyCancellation) {
+        return this.BeginBusyOperation(new BusyTokenRequest() { BusyCancellation = busyCancellation, QuickReleaseIntention = false });
     }
 
     /// <summary>
@@ -127,10 +127,10 @@ public sealed class BusyLock {
     /// </para>
     /// </summary>
     /// <param name="timeoutMilliseconds">The maximum amount of time to wait to try and begin the operations. -1 means we wait forever</param>
-    /// <param name="cancellationToken">Used to cancel the operation, causing the task to return a null busy token</param>
+    /// <param name="busyCancellation">Used to cancel the operation, causing the task to return a null busy token</param>
     /// <returns>The token, or null, if the timeout elapsed or the cancellation token becomes cancelled</returns>
-    public Task<IBusyToken?> BeginBusyOperation(int timeoutMilliseconds, CancellationToken cancellationToken = default) {
-        return this.BeginBusyOperation(new BusyTokenRequest() { CancellationToken = cancellationToken, TimeoutMilliseconds = timeoutMilliseconds });
+    public Task<IBusyToken?> BeginBusyOperation(int timeoutMilliseconds, CancellationToken busyCancellation = default) {
+        return this.BeginBusyOperation(new BusyTokenRequest() { BusyCancellation = busyCancellation, TimeoutMilliseconds = timeoutMilliseconds });
     }
 
     /// <summary>
@@ -143,9 +143,9 @@ public sealed class BusyLock {
     /// <returns>
     /// A task with the token, or null if the user cancelled the operation or some other weird error occurred
     /// </returns>
-    public Task<IBusyToken?> BeginBusyOperationUsingActivity(string caption = "New Operation", string message = WaitingMessage, CancellationToken cancellationToken = default) {
+    public Task<IBusyToken?> BeginBusyOperationUsingActivity(string caption = "New Operation", string message = WaitingMessage, CancellationToken busyCancellation = default) {
         return this.BeginBusyOperationUsingActivity(new BusyTokenRequestUsingActivity() {
-            CancellationToken = cancellationToken,
+            BusyCancellation = busyCancellation,
             Progress = { Caption = caption, Text = message }
         });
     }
@@ -177,7 +177,7 @@ public sealed class BusyLock {
             return token;
         }
 
-        using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(request.CancellationToken);
+        using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(request.BusyCancellation);
         if (request.TimeoutMilliseconds > 0) {
             cts.CancelAfter(request.TimeoutMilliseconds);
         }
@@ -212,7 +212,7 @@ public sealed class BusyLock {
         }
 
         // A CTS that can be cancelled by the activity itself or via 'cancellationToken' or via the timeout
-        using CancellationTokenSource ctsBusyOperation = CancellationTokenSource.CreateLinkedTokenSource(request.CancellationToken);
+        using CancellationTokenSource ctsBusyOperation = CancellationTokenSource.CreateLinkedTokenSource(request.BusyCancellation);
         if (request.TimeoutMilliseconds > 0) {
             ctsBusyOperation.CancelAfter(request.TimeoutMilliseconds);
         }
@@ -400,7 +400,7 @@ public sealed class BusyLock {
 
         // Broadcast to listeners to give up their busy token. Hopefully they will
         // release them in the call frame, but that probably won't happen
-        this.UserQuickReleaseRequested?.Invoke(this, myTcs);
+        this.UserQuickReleaseRequested?.Invoke(this, myTcs.Task);
 
         // Try and exchange the current tcs with ours.
         // If unsuccessful, we get the current one and just wait for it
@@ -609,17 +609,17 @@ public readonly struct BusyTokenRequest {
     /// <summary>
     /// Gets the cancellation token used to cancel waiting for the busy token
     /// </summary>
-    public required CancellationToken CancellationToken { get; init; }
+    public required CancellationToken BusyCancellation { get; init; }
 
     /// <summary>
-    /// Gets the amount of milliseconds to wait. Default is -1, meaning wait forever (until <see cref="CancellationToken"/> is cancelled)
+    /// Gets the amount of milliseconds to wait. Default is -1, meaning wait forever (until <see cref="BusyCancellation"/> is cancelled)
     /// </summary>
     public int TimeoutMilliseconds { get; init; } = -1;
 
     /// <summary>
-    /// Gets whether the caller has quick release intention, meaning they don't intent on
-    /// using the token for long, and any activities running that were using the token can
-    /// resume once the caller has finished 
+    /// Gets whether the caller has quick release intention, meaning they don't intent on using the token for long,
+    /// and the "priority" of the upcoming action is great enough such that it should notify any background activity
+    /// using the busy token to pause, and then resume once the caller has finished
     /// </summary>
     public bool QuickReleaseIntention { get; init; }
 
@@ -634,10 +634,10 @@ public readonly struct BusyTokenRequestUsingActivity {
     /// <summary>
     /// Gets the cancellation token used to cancel waiting for the busy token and therefore cancel the activity
     /// </summary>
-    public CancellationToken CancellationToken { get; init; }
+    public CancellationToken BusyCancellation { get; init; }
 
     /// <summary>
-    /// Gets the amount of milliseconds to wait. Default is -1, meaning wait forever (until <see cref="CancellationToken"/> is cancelled)
+    /// Gets the amount of milliseconds to wait. Default is -1, meaning wait forever (until <see cref="BusyCancellation"/> is cancelled)
     /// </summary>
     public int TimeoutMilliseconds { get; init; } = -1;
 

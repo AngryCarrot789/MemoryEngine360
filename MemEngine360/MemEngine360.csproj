@@ -24,7 +24,6 @@
 
 	<ItemGroup>
 	  <Folder Include="Connections\Utils\" />
-	  <Folder Include="Scripting\LuaFeatures\" />
 	</ItemGroup>
 
 </Project>

@@ -54,6 +54,8 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
         this.ctx = context ?? throw new ArgumentNullException(nameof(context));
         this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
         this.myBusyTokenRef = busyTokenRef ?? throw new ArgumentNullException(nameof(busyTokenRef));
+        
+        // RunOperation does not call TryObtainBusyToken on first run, so it won't add two handlers. 
         this.ctx.Processor.MemoryEngine.BusyLock.UserQuickReleaseRequested += this.BusyLockOnUserQuickReleaseRequested;
         this.iceCubes = connection.GetFeatureOrDefault<IFeatureIceCubes>();
         this.rgIdx = 0;
@@ -80,10 +82,10 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
         this.myBusyTokenRef.Value = null;
     }
 
-    private void BusyLockOnUserQuickReleaseRequested(BusyLock busyLock, TaskCompletionSource tcsQuickActionFinished) {
+    private void BusyLockOnUserQuickReleaseRequested(BusyLock busyLock, Task task) {
         this.RequestPause(out _, out _);
 
-        tcsQuickActionFinished.Task.ContinueWith(t => {
+        task.ContinueWith(t => {
             this.RequestResume(out _, out _);
         }, this.CancellationToken);
     }

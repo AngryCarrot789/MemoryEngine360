@@ -17,11 +17,25 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.XboxBase;
+using PFXToolKitUI;
+using PFXToolKitUI.CommandSystem;
 
-public enum XboxBreakpointType {
-    None,          // DMBREAK_NONE
-    OnWrite,       // DMBREAK_WRITE
-    OnReadOrWrite, // DMBREAK_READWRITE
-    OnExecute,     // DMBREAK_EXECUTE 
+namespace MemEngine360.Engine.StructViewing;
+
+public class ShowStructViewerWindowCommand : Command {
+    protected override Executability CanExecuteCore(CommandEventArgs e) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+            return Executability.Invalid;
+        }
+
+        return Executability.Valid;
+    }
+
+    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+            return;
+        }
+
+        ApplicationPFX.GetComponent<IStructViewerService>().Show(StructViewerManager.Instance);
+    }
 }

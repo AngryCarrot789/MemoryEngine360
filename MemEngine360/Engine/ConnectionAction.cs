@@ -18,7 +18,6 @@
 // 
 
 using System.Diagnostics;
-using MemEngine360.Commands;
 using MemEngine360.Connections;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Interactivity.Windowing;
@@ -276,13 +275,13 @@ public class ConnectionAction {
     protected async Task<bool> CheckIsConnected(IConsoleConnection? connection, bool isAfterBusyTokenAcquisition) {
         if (connection == null) {
             this.Error = ErrorState.NoConnection;
-            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_NoConnection, StandardEngineMessages.Message_NoConnection);
+            await MessageBoxes.NoConnection.ShowMessage();
             return false;
         }
 
         if (connection.IsClosed) {
             this.Error = ErrorState.ConnectionClosed;
-            await IMessageDialogService.Instance.ShowMessage(StandardEngineMessages.Caption_ConnectionClosed, StandardEngineMessages.Message_ConnectionClosed);
+            await MessageBoxes.ClosedConnection.ShowMessage();
             return false;
         }
 

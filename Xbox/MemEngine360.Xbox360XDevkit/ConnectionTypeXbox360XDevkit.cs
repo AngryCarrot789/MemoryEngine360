@@ -47,6 +47,8 @@ public class ConnectionTypeXbox360XDevkit : RegisteredConnectionType {
 
     public override IEnumerable<PlatformIconInfo> PlatformIcons => [new(PlatformIcon.WindowsIcon, "XDevkit is only supported on windows")];
 
+    public override bool MaybeSupportsDebugging => true;
+
     private XboxManager? xboxManager;
 
     private ConnectionTypeXbox360XDevkit() {

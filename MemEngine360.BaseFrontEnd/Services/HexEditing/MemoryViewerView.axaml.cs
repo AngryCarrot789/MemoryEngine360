@@ -770,10 +770,10 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             this.myBusyToken = null;
         }
 
-        private void BusyLockOnUserQuickReleaseRequested(BusyLock busyLock, TaskCompletionSource tcsQuickActionFinished) {
+        private void BusyLockOnUserQuickReleaseRequested(BusyLock busyLock, Task task) {
             this.RequestPause(out _, out _);
 
-            tcsQuickActionFinished.Task.ContinueWith(t => {
+            task.ContinueWith(t => {
                 this.RequestResume(out _, out _);
             }, this.CancellationToken);
         }

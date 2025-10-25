@@ -40,6 +40,7 @@ using MemEngine360.BaseFrontEnd.Scripting;
 using MemEngine360.BaseFrontEnd.Services;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.BaseFrontEnd.Services.HexEditing;
+using MemEngine360.BaseFrontEnd.StructViewing;
 using MemEngine360.BaseFrontEnd.TaskSequencing;
 using MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 using MemEngine360.BaseFrontEnd.Themes;
@@ -57,6 +58,7 @@ using MemEngine360.Engine.FileBrowsing;
 using MemEngine360.Engine.FileBrowsing.Commands;
 using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.HexEditing.Commands;
+using MemEngine360.Engine.StructViewing;
 using MemEngine360.Engine.View;
 using MemEngine360.PointerScanning;
 using MemEngine360.PS3;
@@ -222,6 +224,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.scripting.ConnectScriptToConsoleCommand", new ConnectScriptToConsoleCommand());
         manager.Register("commands.scripting.OpenScriptFileCommand", new OpenScriptFileCommand());
 
+        manager.Register("commands.structviewer.ShowStructViewerWindowCommand", new ShowStructViewerWindowCommand());
+        
         // History
         // manager.Register("commands.application.UndoCommand", new UndoCommand());
         // manager.Register("commands.application.RedoCommand", new RedoCommand());
@@ -252,6 +256,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.AddComponent<IDebuggerViewService>(new DebuggerViewServiceImpl());
         manager.AddComponent<IFileBrowserService>(new FileBrowserServiceImpl());
         manager.AddComponent<IScriptingViewService>(new DesktopScriptingViewServiceImpl());
+        manager.AddComponent<IStructViewerService>(new StructViewerServiceImpl());
 
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }

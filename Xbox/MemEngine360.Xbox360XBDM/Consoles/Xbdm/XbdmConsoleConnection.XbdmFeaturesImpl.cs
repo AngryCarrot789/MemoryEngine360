@@ -236,14 +236,15 @@ public partial class XbdmConsoleConnection {
 
         public Task AddBreakpoint(uint address) => this.SetBreakpoint(address, false);
 
-        public Task AddDataBreakpoint(uint address, XboxBreakpointType type, uint size) => this.SetDataBreakpoint(address, type, size, false);
+        public Task SetDataBreakpoint(uint address, XboxBreakpointType type, uint size) => this.SetDataBreakpoint(address, type, size, false);
 
         public Task RemoveBreakpoint(uint address) => this.SetBreakpoint(address, true);
 
         public Task RemoveDataBreakpoint(uint address, XboxBreakpointType type, uint size) => this.SetDataBreakpoint(address, type, size, true);
 
         public async Task SetBreakpoint(uint address, bool clear) {
-            await this.connection.SendCommand($"break addr=0x{address:X8}{(clear ? " clear" : "")}");
+            XbdmResponse response1 = await this.connection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"");
+            XbdmResponse response2 = await this.connection.SendCommand($"break addr=0x{address:X8}{(clear ? " clear" : "")}");
         }
 
         public async Task SetDataBreakpoint(uint address, XboxBreakpointType type, uint size, bool clear) {
@@ -253,17 +254,17 @@ public partial class XbdmConsoleConnection {
                 case XboxBreakpointType.OnWrite:
                     strType = "write";
                     break;
-                case XboxBreakpointType.OnReadWrite: strType = "read"; break;
-                case XboxBreakpointType.OnExecuteHW:
+                case XboxBreakpointType.OnReadOrWrite: strType = "read"; break;
                 case XboxBreakpointType.OnExecute:
                     strType = "execute";
                     break;
                 default: throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
 
+            await this.connection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"");
             await this.connection.SendCommand($"break {strType}=0x{address:X8} size=0x{size:X8}{(clear ? " clear" : "")}");
         }
-        
+
         public async Task<RegisterContext?> GetThreadRegisters(uint threadId) {
             this.connection.EnsureNotClosed();
             using BusyToken x = this.connection.CreateBusyToken();
@@ -313,7 +314,7 @@ public partial class XbdmConsoleConnection {
         public async Task<ConsoleModule?> GetModuleForAddress(uint address, bool bNeedSections) {
             List<string> modules = await this.connection.SendCommandAndReceiveLines("modules");
             using BusyToken x = this.connection.CreateBusyToken();
-            
+
             foreach (string moduleLine in modules) {
                 if (!ParamUtils.GetStrParam(moduleLine, "name", true, out string? name) ||
                     !ParamUtils.GetDwParam(moduleLine, "base", true, out uint modBase) ||
@@ -391,7 +392,7 @@ public partial class XbdmConsoleConnection {
 
             List<string> modules = await this.connection.SendCommandAndReceiveLines("modules");
             using BusyToken x = this.connection.CreateBusyToken();
-            
+
             foreach (string moduleLine in modules) {
                 if (!ParamUtils.GetStrParam(moduleLine, "name", true, out string? modName)) {
                     continue;
