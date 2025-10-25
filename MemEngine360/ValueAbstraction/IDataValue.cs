@@ -151,6 +151,7 @@ public interface IDataValue : IEquatable<IDataValue> {
     static DataValueNumeric<int> CreateNumeric(int value) => new DataValueInt32(value);
     static DataValueNumeric<int> CreateNumeric(uint value) => new DataValueInt32((int) value);
     static DataValueNumeric<long> CreateNumeric(long value) => new DataValueInt64(value);
+    static DataValueNumeric<long> CreateNumeric(ulong value) => new DataValueInt64((long) value);
     static DataValueNumeric<float> CreateNumeric(float value) => new DataValueFloat(value);
     static DataValueNumeric<double> CreateNumeric(double value) => new DataValueDouble(value);
 

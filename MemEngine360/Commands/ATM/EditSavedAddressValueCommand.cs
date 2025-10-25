@@ -79,12 +79,18 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
         AddressTableEntry lastResult = savedList[count - 1];
         NumericDisplayType ndt = lastResult.NumericDisplayType;
         StringType strType = lastResult.StringType;
+        IDataValue? initialDataValue = lastResult.Value;
         SingleUserInputInfo input = new SingleUserInputInfo(
             $"Change {count} value{Lang.S(count)}",
             $"Immediately change the value at {Lang.ThisThese(count)} address{Lang.Es(count)}", "Value",
-            lastResult.Value != null ? DataValueUtils.GetStringFromDataValue(lastResult, lastResult.Value) : "") {
+            initialDataValue != null ? DataValueUtils.GetStringFromDataValue(lastResult, initialDataValue) : "") {
             Validate = (args) => {
-                DataValueUtils.TryParseTextAsDataValue(args, dataType, ndt, strType, out _, canParseAsExpression: true);
+                if (dataType.IsNumeric()) {
+                    DataValueUtils.TryParseNumericExpressionAsDataValue(args, dataType, ndt, out _, initialDataValue);
+                }
+                else {
+                    DataValueUtils.TryParseTextAsDataValue(args, dataType, ndt, strType, out _, canParseAsExpression: true);
+                }
             },
             DebounceErrorsDelay = 300 // add a delay between parsing, to reduce typing lag due to expression parsing
         };
@@ -98,7 +104,10 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             return;
         }
 
-        IDataValue value = DataValueUtils.ParseTextAsDataValue(input.Text, dataType, ndt, strType, canParseAsExpression: true);
+        IDataValue value = dataType.IsNumeric() 
+            ? DataValueUtils.ParseNumericExpressionAsDataValue(input.Text, dataType, ndt, initialDataValue) 
+            : DataValueUtils.ParseTextAsDataValue(input.Text, dataType, ndt, strType, canParseAsExpression: true);
+        
         // TODO: use ConnectionAction
 
         ITopLevel? parentTopLevel = ITopLevel.FromContext(e.ContextData);

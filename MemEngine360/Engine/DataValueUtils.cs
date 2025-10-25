@@ -35,6 +35,13 @@ namespace MemEngine360.Engine;
 /// A helper class for serializing and deserializing data values, reading/writing them through connections, etc.
 /// </summary>
 public static class DataValueUtils {
+    private static readonly IEvaluationContext<uint> DefaultU32EvalCtx = EvaluationContexts.CreateForInteger<uint>();
+    private static readonly IEvaluationContext<int> DefaultI32EvalCtx = EvaluationContexts.CreateForInteger<int>();
+    private static readonly IEvaluationContext<ulong> DefaultU64EvalCtx = EvaluationContexts.CreateForInteger<ulong>();
+    private static readonly IEvaluationContext<long> DefaultI64EvalCtx = EvaluationContexts.CreateForInteger<long>();
+    private static readonly IEvaluationContext<float> DefaultFloatCtx = EvaluationContexts.CreateForFloat();
+    private static readonly IEvaluationContext<double> DefaultDoubleCtx = EvaluationContexts.CreateForDouble();
+    
     /// <summary>
     /// Attempts to parse a string input as a <see cref="IDataValue"/> using the given information (the type of data expected, numeric display type and string type)
     /// </summary>
@@ -57,7 +64,7 @@ public static class DataValueUtils {
     /// </param>
     /// <returns>True when parsed successfully, false when the input couldn't be parsed</returns>
     public static bool TryParseTextAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, StringType stringType, [NotNullWhen(true)] out IDataValue? value, bool canParseAsExpression = false) {
-        return (value = TryParseTextAsDataValue(args, dataType, ndt, stringType, canParseAsExpression)) != null;
+        return (value = DoTryParseTextAsDataValue(args, dataType, ndt, stringType, canParseAsExpression)) != null;
     }
 
     /// <summary>
@@ -65,7 +72,17 @@ public static class DataValueUtils {
     /// </summary>
     public static IDataValue ParseTextAsDataValue(string input, DataType dataType, NumericDisplayType ndt, StringType stringType, bool canParseAsExpression = false) {
         ValidationArgs args = new ValidationArgs(input, [], false);
-        IDataValue? value = TryParseTextAsDataValue(args, dataType, ndt, stringType, canParseAsExpression);
+        IDataValue? value = DoTryParseTextAsDataValue(args, dataType, ndt, stringType, canParseAsExpression);
+        if (value != null) {
+            return value;
+        }
+
+        throw new Exception("Invalid input" + (args.Errors.Count > 0 ? (": " + args.Errors[0]) : ""));
+    }
+    
+    public static IDataValue ParseNumericExpressionAsDataValue(string input, DataType dataType, NumericDisplayType ndt, IDataValue? initialValue = null) {
+        ValidationArgs args = new ValidationArgs(input, [], false);
+        IDataValue? value = DoTryParseNumericExpressionAsDataValue(args, dataType, ndt, initialValue);
         if (value != null) {
             return value;
         }
@@ -73,9 +90,9 @@ public static class DataValueUtils {
         throw new Exception("Invalid input" + (args.Errors.Count > 0 ? (": " + args.Errors[0]) : ""));
     }
 
-    private static IDataValue? TryParseTextAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, StringType stringType, bool canParseAsExpression = false) {
+    private static IDataValue? DoTryParseTextAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, StringType stringType, bool canParseAsExpression = false) {
         if (canParseAsExpression && dataType.IsNumeric()) {
-            return TryParseIntegerExpressionAsDataValue(args, dataType, ndt);
+            return DoTryParseNumericExpressionAsDataValue(args, dataType, ndt);
         }
 
         NumberStyles nsInt = ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
@@ -186,17 +203,20 @@ public static class DataValueUtils {
 
         return null;
     }
-    
-    private static readonly IEvaluationContext<uint> DefaultU32EvalCtx = EvaluationContexts.CreateForInteger<uint>();
-    private static readonly IEvaluationContext<int> DefaultI32EvalCtx = EvaluationContexts.CreateForInteger<int>();
-    private static readonly IEvaluationContext<ulong> DefaultU64EvalCtx = EvaluationContexts.CreateForInteger<ulong>();
-    private static readonly IEvaluationContext<long> DefaultI64EvalCtx = EvaluationContexts.CreateForInteger<long>();
-    private static readonly IEvaluationContext<float> DefaultFloatCtx = EvaluationContexts.CreateForFloat();
-    private static readonly IEvaluationContext<double> DefaultDoubleCtx = EvaluationContexts.CreateForDouble();
 
-    private static IDataValue? TryParseIntegerExpressionAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt) {
+    public static bool TryParseNumericExpressionAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, [NotNullWhen(true)] out IDataValue? value, IDataValue? initialValue = null) {
+        return (value = DoTryParseNumericExpressionAsDataValue(args, dataType, ndt, initialValue)) != null;
+    }
+    
+    private static IDataValue? DoTryParseNumericExpressionAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, IDataValue? initialValue = null) {
+        if (initialValue != null && dataType != initialValue.DataType) {
+            throw new ArgumentException("Data type does not match initial value's data type");
+        }
+        
         ParsingContext ctx = new ParsingContext() {
-            DefaultIntegerParseMode = ndt == NumericDisplayType.Hexadecimal ? IntegerParseMode.Hexadecimal : IntegerParseMode.Integer
+            DefaultIntegerParseMode = dataType.IsInteger() && ndt == NumericDisplayType.Hexadecimal 
+                ? IntegerParseMode.Hexadecimal 
+                : IntegerParseMode.Integer
         };
 
         const CompilationMethod CompilationMethod = CompilationMethod.Functional;
@@ -207,7 +227,11 @@ public static class DataValueUtils {
                 case DataType.Int16:
                 case DataType.Int32: {
                     if (ndt != NumericDisplayType.Normal) {
-                        uint value = MathEvaluation.CompileExpression<uint>("", args.Input, ctx, CompilationMethod)(DefaultU32EvalCtx);
+                        IEvaluationContext<uint> evalCtx = initialValue == null ? DefaultU32EvalCtx : EvaluationContexts.CreateForInteger<uint>();
+                        if (initialValue != null)
+                            ((EvaluationContext<uint>) evalCtx).SetVariable("v", (uint) ((DataValueNumeric) initialValue).ToInt());
+                        
+                        uint value = MathEvaluation.CompileExpression<uint>("", args.Input, ctx, CompilationMethod)(evalCtx);
                         return dataType switch {
                             DataType.Byte => IDataValue.CreateNumeric((byte) value),
                             DataType.Int16 => IDataValue.CreateNumeric((short) value),
@@ -216,11 +240,15 @@ public static class DataValueUtils {
                         };
                     }
                     else {
-                        int value = MathEvaluation.CompileExpression<int>("", args.Input, ctx, CompilationMethod)(DefaultI32EvalCtx);
+                        IEvaluationContext<int> evalCtx = initialValue == null ? DefaultI32EvalCtx : EvaluationContexts.CreateForInteger<int>();
+                        if (initialValue != null)
+                            ((EvaluationContext<int>) evalCtx).SetVariable("v", ((DataValueNumeric) initialValue).ToInt());
+                        
+                        int value = MathEvaluation.CompileExpression<int>("", args.Input, ctx, CompilationMethod)(evalCtx);
                         return dataType switch {
                             DataType.Byte => IDataValue.CreateNumeric((byte) value),
                             DataType.Int16 => IDataValue.CreateNumeric((short) value),
-                            DataType.Int32 => IDataValue.CreateNumeric((int) value),
+                            DataType.Int32 => IDataValue.CreateNumeric(value),
                             _ => throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null)
                         };
                     }
@@ -228,19 +256,35 @@ public static class DataValueUtils {
                 case DataType.Int64: {
                     long value;
                     if (ndt != NumericDisplayType.Normal) {
-                        value = (long) MathEvaluation.CompileExpression<ulong>("", args.Input, ctx, CompilationMethod)(DefaultU64EvalCtx);
+                        IEvaluationContext<ulong> evalCtx = initialValue == null ? DefaultU64EvalCtx : EvaluationContexts.CreateForInteger<ulong>();
+                        if (initialValue != null)
+                            ((EvaluationContext<ulong>) evalCtx).SetVariable("v", (ulong) ((DataValueNumeric) initialValue).ToLong());
+                        
+                        value = (long) MathEvaluation.CompileExpression<ulong>("", args.Input, ctx, CompilationMethod)(evalCtx);
                     }
                     else {
-                        value = MathEvaluation.CompileExpression<long>("", args.Input, ctx, CompilationMethod)(DefaultI64EvalCtx);
+                        IEvaluationContext<long> evalCtx = initialValue == null ? DefaultI64EvalCtx : EvaluationContexts.CreateForInteger<long>();
+                        if (initialValue != null)
+                            ((EvaluationContext<long>) evalCtx).SetVariable("v", ((DataValueNumeric) initialValue).ToLong());
+                        
+                        value = MathEvaluation.CompileExpression<long>("", args.Input, ctx, CompilationMethod)(evalCtx);
                     }
 
                     return new DataValueInt64(value);
                 }
                 case DataType.Float: {
-                    return new DataValueFloat(MathEvaluation.CompileExpression<float>("", args.Input, ctx, CompilationMethod)(DefaultFloatCtx));
+                    IEvaluationContext<float> evalCtx = initialValue == null ? DefaultFloatCtx : EvaluationContexts.CreateForFloat();
+                    if (initialValue != null)
+                        ((EvaluationContext<float>) evalCtx).SetVariable("v", ((DataValueNumeric) initialValue).ToFloat());
+                    
+                    return new DataValueFloat(MathEvaluation.CompileExpression<float>("", args.Input, ctx, CompilationMethod)(evalCtx));
                 }
                 case DataType.Double: {
-                    return new DataValueDouble(MathEvaluation.CompileExpression<double>("", args.Input, ctx, CompilationMethod)(DefaultDoubleCtx));
+                    IEvaluationContext<double> evalCtx = initialValue == null ? DefaultDoubleCtx : EvaluationContexts.CreateForDouble();
+                    if (initialValue != null)
+                        ((EvaluationContext<double>) evalCtx).SetVariable("v", ((DataValueNumeric) initialValue).ToDouble());
+
+                    return new DataValueDouble(MathEvaluation.CompileExpression<double>("", args.Input, ctx, CompilationMethod)(evalCtx));
                 }
                 default: throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
             }

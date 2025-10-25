@@ -90,12 +90,18 @@ public class EditScanResultValueCommand : Command {
 
         int c = scanResults.Count;
         ScanResultViewModel lastResult = scanResults[scanResults.Count - 1];
+        IDataValue initialDataValue = lastResult.CurrentValue;
         SingleUserInputInfo input = new SingleUserInputInfo(
             $"Change {c} value{Lang.S(c)}",
             $"Immediately change the value at {Lang.ThisThese(c)} address{Lang.Es(c)}", "Value",
-            DataValueUtils.GetStringFromDataValue(lastResult, lastResult.CurrentValue)) {
+            DataValueUtils.GetStringFromDataValue(lastResult, initialDataValue)) {
             Validate = (args) => {
-                DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out _, canParseAsExpression: true);
+                if (dataType.IsNumeric()) {
+                    DataValueUtils.TryParseNumericExpressionAsDataValue(args, dataType, lastResult.NumericDisplayType, out _, initialDataValue);
+                }
+                else {
+                    DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out _, canParseAsExpression: true);
+                }
             },
             DebounceErrorsDelay = 300 // add a delay between parsing, to reduce typing lag due to expression parsing
         };
@@ -105,7 +111,10 @@ public class EditScanResultValueCommand : Command {
             return;
         }
 
-        IDataValue value = DataValueUtils.ParseTextAsDataValue(input.Text, dataType, lastResult.NumericDisplayType, lastResult.StringType, canParseAsExpression: true);
+        IDataValue value = dataType.IsNumeric()
+            ? DataValueUtils.ParseNumericExpressionAsDataValue(input.Text, dataType, lastResult.NumericDisplayType)
+            : DataValueUtils.ParseTextAsDataValue(input.Text, dataType, lastResult.NumericDisplayType, lastResult.StringType, canParseAsExpression: true);
+
         Debug.Assert(dataType == value.DataType);
 
         using CancellationTokenSource cts = new CancellationTokenSource();
@@ -115,7 +124,7 @@ public class EditScanResultValueCommand : Command {
                 QuickReleaseIntention = true,
                 ForegroundInfo = topLevel != null ? new InForegroundInfo(topLevel) : null
             });
-            
+
             if (token == null || engine.Connection == null) {
                 return;
             }
