@@ -211,7 +211,7 @@ public static class DataValueUtils {
                         return dataType switch {
                             DataType.Byte => IDataValue.CreateNumeric((byte) value),
                             DataType.Int16 => IDataValue.CreateNumeric((short) value),
-                            DataType.Int32 => IDataValue.CreateNumeric(value),
+                            DataType.Int32 => IDataValue.CreateNumeric((int) value),
                             _ => throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null)
                         };
                     }
@@ -220,7 +220,7 @@ public static class DataValueUtils {
                         return dataType switch {
                             DataType.Byte => IDataValue.CreateNumeric((byte) value),
                             DataType.Int16 => IDataValue.CreateNumeric((short) value),
-                            DataType.Int32 => IDataValue.CreateNumeric(value),
+                            DataType.Int32 => IDataValue.CreateNumeric((int) value),
                             _ => throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null)
                         };
                     }

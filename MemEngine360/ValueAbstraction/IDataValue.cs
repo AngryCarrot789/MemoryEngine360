@@ -144,6 +144,15 @@ public interface IDataValue : IEquatable<IDataValue> {
             return Unsafe.As<DataValueNumeric<T>>(new DataValueDouble(Unsafe.As<T, double>(ref value)));
         throw new ArgumentOutOfRangeException(nameof(value), value, "Unsupported value type: " + typeof(T));
     }
+    
+    static DataValueNumeric<byte> CreateNumeric(byte value) => new DataValueByte(value);
+    static DataValueNumeric<short> CreateNumeric(short value) => new DataValueInt16(value);
+    static DataValueNumeric<short> CreateNumeric(ushort value) => new DataValueInt16((short) value);
+    static DataValueNumeric<int> CreateNumeric(int value) => new DataValueInt32(value);
+    static DataValueNumeric<int> CreateNumeric(uint value) => new DataValueInt32((int) value);
+    static DataValueNumeric<long> CreateNumeric(long value) => new DataValueInt64(value);
+    static DataValueNumeric<float> CreateNumeric(float value) => new DataValueFloat(value);
+    static DataValueNumeric<double> CreateNumeric(double value) => new DataValueDouble(value);
 
     /// <summary>
     /// Creates a float data value from the floating point number. <see cref="T"/> can be float or double.
