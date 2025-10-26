@@ -199,11 +199,9 @@ public partial class ModToolManagerView : UserControl {
             this.isUpdatingCodeEditorText = true;
             this.PART_CodeEditor.Document = document;
             this.isUpdatingCodeEditorText = false;
-            this.PART_ModToolPanel.IsEnabled = true;
         }
         else {
             this.PART_CodeEditor.Document = new TextDocument();
-            this.PART_ModToolPanel.IsEnabled = false;
         }
 
         this.binderClearConsoleOnEachRun.SwitchModel(newSel);

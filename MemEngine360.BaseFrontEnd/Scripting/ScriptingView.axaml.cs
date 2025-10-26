@@ -199,11 +199,9 @@ public partial class ScriptingView : UserControl {
             this.isUpdatingCodeEditorText = true;
             this.PART_CodeEditor.Document = document;
             this.isUpdatingCodeEditorText = false;
-            this.PART_ScriptPanel.IsEnabled = true;
         }
         else {
             this.PART_CodeEditor.Document = new TextDocument();
-            this.PART_ScriptPanel.IsEnabled = false;
         }
 
         this.binderClearConsoleOnEachRun.SwitchModel(newSel);
