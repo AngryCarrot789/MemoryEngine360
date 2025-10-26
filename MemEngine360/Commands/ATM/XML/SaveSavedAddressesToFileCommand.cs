@@ -69,25 +69,28 @@ public class SaveSavedAddressesToFileCommand : Command {
 
     private static void AddToGroup(AddressTableGroupEntry entry, XmlAddressEntryGroup group) {
         foreach (BaseAddressTableEntry item in entry.Items) {
-            if (item is AddressTableGroupEntry subEntry1) {
-                XmlAddressEntryGroup subGroup = new XmlAddressEntryGroup() {
-                    Description = subEntry1.Description
-                };
+            switch (item) {
+                case AddressTableGroupEntry subEntry1: {
+                    XmlAddressEntryGroup subGroup = new XmlAddressEntryGroup() {
+                        Description = subEntry1.Description
+                    };
 
-                group.Items.Add(subGroup);
-                AddToGroup(subEntry1, subGroup);
-            }
-            else {
-                AddressTableEntry subEntry2 = (AddressTableEntry) item;
-                group.Items.Add(new XmlAddressEntry() {
-                    DataType = subEntry2.DataType,
-                    Address = subEntry2.MemoryAddress.ToString(),
-                    Description = subEntry2.Description,
-                    NumericDisplayType = subEntry2.NumericDisplayType,
-                    StringType = subEntry2.StringType,
-                    StringLength = subEntry2.StringLength,
-                    IsRefreshActive = subEntry2.IsAutoRefreshEnabled,
-                });
+                    group.Items.Add(subGroup);
+                    AddToGroup(subEntry1, subGroup);
+                    break;
+                }
+                case AddressTableEntry subEntry2: {
+                    group.Items.Add(new XmlAddressEntry() {
+                        DataType = subEntry2.DataType,
+                        Address = subEntry2.MemoryAddress.ToString(),
+                        Description = subEntry2.Description,
+                        NumericDisplayType = subEntry2.NumericDisplayType,
+                        StringType = subEntry2.StringType,
+                        StringLength = subEntry2.StringLength,
+                        IsRefreshActive = subEntry2.IsAutoRefreshEnabled,
+                    });
+                    break;
+                }
             }
         }
     }

@@ -1,0 +1,191 @@
+﻿<UserControl x:Class="MemEngine360.BaseFrontEnd.ModTools.ModToolManagerView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:ae="https://github.com/avaloniaui/avaloniaedit"
+             xmlns:attached="clr-namespace:PFXToolKitUI.Avalonia.Themes.Attached;assembly=PFXToolKitUI.Avalonia"
+             xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.ModTools"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:me360="clr-namespace:MemEngine360;assembly=MemEngine360"
+             xmlns:pfx="clr-namespace:PFXToolKitUI;assembly=PFXToolKitUI"
+             xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
+             xmlns:c2="clr-namespace:MemEngine360.BaseFrontEnd.ModTools.Commands"
+             d:DesignHeight="450"
+             d:DesignWidth="800"
+             mc:Ignorable="d">
+    <Border BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}" BorderThickness="0,1,0,0">
+        <DockPanel>
+            <local:ModToolTabControl
+                BorderBrush="{DynamicResource ABrush.Tone1.Border.Static}"
+                BorderThickness="0"
+                DockPanel.Dock="Top"
+                x:Name="PART_TabControl">
+                <attached:TabControlStripExtras.RightContent>
+                    <Button CornerRadius="2"
+                            HorizontalAlignment="Center"
+                            Margin="3"
+                            Padding="4,1"
+                            VerticalAlignment="Center"
+                            cu:CommandUsageManager.SimpleButtonCommandId="commands.modtools.CreateModToolCommand">
+                        <TextBlock Margin="0,-1,0,0" Text="+"/>
+                    </Button>
+                </attached:TabControlStripExtras.RightContent>
+
+                <local:ModToolTabControl.ItemContainerTheme>
+                    <ControlTheme TargetType="{x:Type local:ModToolTabItem}">
+                        <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
+                        <Setter Property="Background" Value="{DynamicResource ABrush.Tone6.Background.Static}"/>
+                        <Setter Property="BorderBrush" Value="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=TabControl}, Path=BorderBrush}"/>
+                        <Setter Property="Margin" Value="-1,-1,-1,0"/>
+                        <Setter Property="Padding" Value="8,4,8,4"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Template">
+                            <ControlTemplate>
+                                <Grid x:Name="templateRoot">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="1,1,1,1"
+                                            Margin="0"
+                                            x:Name="mainBorder"/>
+                                    <DockPanel>
+                                        <Button Background="Transparent"
+                                                BorderThickness="0"
+                                                Content="X"
+                                                DockPanel.Dock="Right"
+                                                Margin="2,3"
+                                                Padding="5,1"
+                                                x:Name="PART_CloseTabButton"/>
+                                        <ContentPresenter Content="{TemplateBinding Header}"
+                                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                                          CornerRadius="{TemplateBinding CornerRadius}"
+                                                          HorizontalAlignment="Stretch"
+                                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                          Margin="{TemplateBinding Padding}"
+                                                          VerticalAlignment="Center"
+                                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                          x:Name="PART_ContentPresenter"/>
+                                    </DockPanel>
+                                    <Border Background="{DynamicResource ABrush.ColourfulGlyph.Static}"
+                                            Height="3"
+                                            IsVisible="False"
+                                            Margin="0"
+                                            VerticalAlignment="Bottom"
+                                            x:Name="PART_SelectionLine"/>
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter>
+                        <Style Selector="^:pointerover /template/ Border#mainBorder">
+                            <Setter Property="Background" Value="{DynamicResource TabItem.MouseOver.Background}"/>
+                        </Style>
+                        <Style Selector="^:selected">
+                            <Setter Property="ZIndex" Value="1"/>
+                            <Style Selector="^ /template/ Border#mainBorder">
+                                <Setter Property="Background" Value="{DynamicResource TabItem.Selected.Background}"/>
+                            </Style>
+                            <Style Selector="^ /template/ Border#PART_SelectionLine">
+                                <Setter Property="IsVisible" Value="True"/>
+                            </Style>
+                        </Style>
+                        <Style Selector="^[TabStripPlacement=Left]">
+                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                        </Style>
+                        <Style Selector="^[TabStripPlacement=Right]">
+                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                        </Style>
+                    </ControlTheme>
+                </local:ModToolTabControl.ItemContainerTheme>
+            </local:ModToolTabControl>
+
+            <Grid Background="Transparent"
+                  RowDefinitions="*,1,180"
+                  x:Name="PART_ModToolPanel">
+                <ae:TextEditor BorderThickness="0"
+                               FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
+                               Grid.Row="0"
+                               ShowLineNumbers="True"
+                               x:Name="PART_CodeEditor"/>
+                <c:GroupBox BorderBrush="{DynamicResource PanelBorderBrush}"
+                            BorderThickness="0"
+                            Grid.Row="2"
+                            HeaderPadding="0"
+                            HorizontalHeaderAlignment="Stretch"
+                            VerticalHeaderAlignment="Stretch">
+                    <c:GroupBox.Header>
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Left"
+                                        Margin="4,2"
+                                        Orientation="Horizontal"
+                                        Spacing="2">
+                                <TextBlock Padding="2,0"
+                                           Text="Console"
+                                           VerticalAlignment="Center"/>
+                                <Separator Margin="4,2" Theme="{StaticResource VerticalSeparatorTheme}"/>
+                                <Button Background="Transparent"
+                                        Content="Restart" Padding="5,2"
+                                        BorderThickness="0"
+                                        CornerRadius="2"
+                                        DockPanel.Dock="Left"
+                                        Height="20"
+                                        ToolTip.ShowOnDisabled="True"
+                                        VerticalAlignment="Center"
+                                        attached:DisabledButtonExtras.IgnoreDisabledBackground="True"
+                                        cu:CommandUsageManager.SimpleButtonCommandId="commands.modtools.RestartModToolCommand"
+                                        x:Name="PART_RunButton">
+                                </Button>
+                                <avc:IconButton Background="Transparent"
+                                                BorderThickness="0"
+                                                CornerRadius="2"
+                                                DockPanel.Dock="Left"
+                                                Height="20"
+                                                Icon="{x:Static me360:SimpleIcons.ConnectToConsoleDedicatedIcon}"
+                                                VerticalAlignment="Center"
+                                                cu:CommandUsageManager.UsageClassType="{x:Type c2:ConnectModToolToConsoleCommandUsage}"
+                                                Width="20"/>
+                                <Separator Margin="4,2" Theme="{StaticResource VerticalSeparatorTheme}"/>
+                                <avc:IconButton Background="Transparent"
+                                                BorderThickness="0"
+                                                CornerRadius="2"
+                                                DockPanel.Dock="Left"
+                                                Height="20"
+                                                Icon="{x:Static me360:SimpleIcons.OpenedFolderIcon}"
+                                                VerticalAlignment="Center"
+                                                cu:CommandUsageManager.SimpleButtonCommandId="commands.modtools.OpenModToolScriptFileCommand"/>
+                            </StackPanel>
+                            <HyperlinkButton Content="Help (Wiki)"
+                                             tt:ToolTipEx.Tip="Open the MemoryEngine360 wiki on the Mod Tools page"
+                                             DockPanel.Dock="Right"
+                                             Margin="5,0" VerticalAlignment="Center"
+                                             NavigateUri="https://github.com/AngryCarrot789/MemoryEngine360/wiki/Mod-Tools"/>
+                            <CheckBox Content="Clear console on each run"
+                                      DockPanel.Dock="Right"
+                                      Margin="5,0"
+                                      VerticalAlignment="Center"
+                                      tt:ToolTipEx.Tip="Clear the console each time you run the mod tool"
+                                      x:Name="PART_ClearConsoleOnEachRun"/>
+                            <c:TargetingGridSplitter ResizeDirection="Rows"
+                                                     TargetGrid="{Binding ElementName=PART_ModToolPanel}"
+                                                     TargetRow="1"/>
+                        </DockPanel>
+                    </c:GroupBox.Header>
+                    <ListBox BorderThickness="0"
+                             FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
+                             x:Name="PART_ConsoleTextList">
+                        <ListBox.ItemContainerTheme>
+                            <ControlTheme BasedOn="{StaticResource {x:Type ListBoxItem}}" TargetType="{x:Type ListBoxItem}">
+                                <Setter Property="BorderThickness" Value="0"/>
+                            </ControlTheme>
+                        </ListBox.ItemContainerTheme>
+                    </ListBox>
+                </c:GroupBox>
+                <Border Background="{DynamicResource PanelBorderBrush}" Grid.Row="1"/>
+                <GridSplitter Background="Transparent"
+                              Grid.Row="1"
+                              Margin="0,-7,0,-3"/>
+            </Grid>
+        </DockPanel>
+    </Border>
+</UserControl>

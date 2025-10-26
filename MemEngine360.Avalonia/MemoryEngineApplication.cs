@@ -35,6 +35,7 @@ using MemEngine360.BaseFrontEnd.EventViewing;
 using MemEngine360.BaseFrontEnd.FileBrowsing;
 using MemEngine360.BaseFrontEnd.FileConnections;
 using MemEngine360.BaseFrontEnd.MemRegions;
+using MemEngine360.BaseFrontEnd.ModTools;
 using MemEngine360.BaseFrontEnd.PointerScanning;
 using MemEngine360.BaseFrontEnd.Scripting;
 using MemEngine360.BaseFrontEnd.Services;
@@ -60,6 +61,8 @@ using MemEngine360.Engine.HexEditing;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.StructViewing;
 using MemEngine360.Engine.View;
+using MemEngine360.ModTools;
+using MemEngine360.ModTools.Commands;
 using MemEngine360.PointerScanning;
 using MemEngine360.PS3;
 using MemEngine360.Scripting;
@@ -87,6 +90,7 @@ using PFXToolKitUI.Composition;
 using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Windowing;
+using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Themes;
@@ -224,8 +228,20 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.scripting.ConnectScriptToConsoleCommand", new ConnectScriptToConsoleCommand());
         manager.Register("commands.scripting.OpenScriptFileCommand", new OpenScriptFileCommand());
 
+        // struct viewer
         manager.Register("commands.structviewer.ShowStructViewerWindowCommand", new ShowStructViewerWindowCommand());
         
+        // mod tools
+        manager.Register("commands.modtools.ShowModToolsWindowCommand", new ShowModToolsWindowCommand());
+        manager.Register("commands.modtools.CreateModToolCommand", new CreateModToolCommand());
+        manager.Register("commands.modtools.ConnectModToolToConsoleCommand", new ConnectModToolToConsoleCommand());
+        manager.Register("commands.modtools.OpenModToolScriptFileCommand", new OpenModToolScriptFileCommand());
+        manager.Register("commands.modtools.RestartModToolCommand", new RestartModToolCommand());
+        manager.Register("commands.modtools.SaveModToolCommand", new SaveModToolCommand(false));
+        manager.Register("commands.modtools.SaveModToolAsCommand", new SaveModToolCommand(true));
+        manager.Register("commands.modtools.SaveAllModToolsCommand", new SaveAllModToolsCommand());
+        manager.Register("commands.modtools.CloseModToolCommand", new CloseModToolCommand());
+
         // History
         // manager.Register("commands.application.UndoCommand", new UndoCommand());
         // manager.Register("commands.application.RedoCommand", new RedoCommand());
@@ -256,7 +272,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.AddComponent<IDebuggerViewService>(new DebuggerViewServiceImpl());
         manager.AddComponent<IFileBrowserService>(new FileBrowserServiceImpl());
         manager.AddComponent<IScriptingViewService>(new DesktopScriptingViewServiceImpl());
-        manager.AddComponent<IStructViewerService>(new StructViewerServiceImpl());
+        manager.AddComponent<IStructViewerService>(new DesktopStructViewerServiceImpl());
+        manager.AddComponent<IModToolViewService>(new DesktopModToolViewServiceImpl());
 
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }
@@ -400,6 +417,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     MainWindow = true
                 });
 
+                MemoryEngine engine = ((EngineView) ((OverlayContentHostRoot) window.Content!).Content!).MemoryEngine;
+                
                 // Instance.ComponentStorage.AddComponent<IOverlayWindowManager>(new OverlayWindowManagerImpl((OverlayContentHostRoot) window.Content!));
 
                 window.Opened += static (s, e) => {
@@ -423,6 +442,41 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 };
 
                 await window.ShowAsync();
+                
+                ActivityManager.Instance.RunTask(async () => {
+                    ActivityTask activity = ActivityTask.Current;
+                    activity.Progress.SetCaptionAndText("Reload last mod tools");
+                    foreach (string path in BasicApplicationConfiguration.Instance.LoadedModToolPaths) {
+                        activity.CancellationToken.ThrowIfCancellationRequested();
+                        try {
+                            if (string.IsNullOrWhiteSpace(path) || !path.EndsWith(".lua") || !File.Exists(path)) {
+                                continue;
+                            }
+                        }
+                        catch {
+                            continue; // Not sure if File.Exists() throws for invalid paths
+                        }
+
+                        string text;
+                        try {
+                            text = await File.ReadAllTextAsync(path, activity.CancellationToken);
+                        }
+                        catch (Exception e) {
+                            AppLogger.Instance.WriteLine("Failed to reload mod tool file from config: " + e.GetToString());
+                            continue; // ignored
+                        }
+
+                        Instance.Dispatcher.Post(() => {
+                            ModTool script = new ModTool() {
+                                SourceCode = text,
+                                HasUnsavedChanges = false
+                            };
+
+                            script.SetFilePath(path);
+                            engine.ModToolManager.AddModTool(script);
+                        }, DispatchPriority.Background);
+                    }
+                }, true);
 
                 // using CancellationTokenSource taskCts1 = new CancellationTokenSource();
                 // using CancellationTokenSource taskCts2 = new CancellationTokenSource();
@@ -480,6 +534,17 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 }
 
                 BasicApplicationConfiguration.Instance.LoadedScriptPaths = pathsToSave.ToArray();
+            }
+            
+            {
+                List<string> pathsToSave = new List<string>();
+                foreach (ModTool tool in engine.ModToolManager.ModTools) {
+                    if (!string.IsNullOrWhiteSpace(tool.FilePath) && File.Exists(tool.FilePath)) {
+                        pathsToSave.Add(tool.FilePath);
+                    }
+                }
+
+                BasicApplicationConfiguration.Instance.LoadedModToolPaths = pathsToSave.ToArray();
             }
 
             engine.IsShuttingDown = true;

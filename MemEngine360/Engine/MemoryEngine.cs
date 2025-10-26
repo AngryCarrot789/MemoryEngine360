@@ -24,6 +24,7 @@ using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.FileBrowsing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.ModTools;
 using MemEngine360.PointerScanning;
 using MemEngine360.Scripting;
 using MemEngine360.Sequencing;
@@ -128,6 +129,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     public ConsoleDebugger ConsoleDebugger { get; }
     
     public ScriptingManager ScriptingManager { get; }
+    
+    public ModToolManager ModToolManager { get; }
 
     public IMutableContextData UserContext { get; } = new ContextData();
 
@@ -207,6 +210,16 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         this.PointerScanner = new PointerScanner(this);
         this.ConsoleDebugger = new ConsoleDebugger(this);
         this.ScriptingManager = new ScriptingManager(this);
+        
+        MenuEntryGroup modToolMenu = new MenuEntryGroup("Mod Tools") {
+            UniqueID = "memoryengine.tools.modtools",
+            Items = {
+                new CommandMenuEntry("commands.modtools.ShowModToolsWindowCommand", "Mod Tools Manager"),
+                new SeparatorEntry()
+            }
+        };
+        
+        this.ModToolManager = new ModToolManager(this, modToolMenu);
 
         this.ToolsMenu = new MenuEntryGroup("_Tools") {
             UniqueID = "memoryengine.tools",
@@ -223,9 +236,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
                 new CommandMenuEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),
                 new CommandMenuEntry("commands.memengine.ShowFileBrowserCommand", "File Explorer"),
                 new SeparatorEntry(),
-                new MenuEntryGroup("Cool Utils") {
-                    UniqueID = "memoryengine.tools.coolutils"
-                }
+                modToolMenu
             }
         };
 

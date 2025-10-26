@@ -37,7 +37,7 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
     /// This just returns true when <see cref="BaseAddressTableEntry.Parent"/> is null
     /// </summary>
     public bool IsHiddenRootNode => this.Parent == null;
-    
+
     public AddressTableGroupEntry() {
         this.Items = new ObservableList<BaseAddressTableEntry>();
         this.Items.ValidateAdd += (list, index, items) => {
@@ -125,10 +125,10 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
 
     public void GetAllEntries(List<AddressTableEntry> entries) {
         foreach (BaseAddressTableEntry entry in this.Items) {
-            if (entry is AddressTableGroupEntry group)
-                group.GetAllEntries(entries);
-            else
-                entries.Add((AddressTableEntry) entry);
+            switch (entry) {
+                case AddressTableGroupEntry g: g.GetAllEntries(entries); break;
+                case AddressTableEntry ate:    entries.Add(ate); break;
+            }
         }
     }
 

@@ -1,7 +1,5 @@
 ﻿using System.Diagnostics;
-using MemEngine360.BaseFrontEnd.Scripting;
 using MemEngine360.Engine.StructViewing;
-using MemEngine360.Scripting;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Interactivity.Windowing;
@@ -10,7 +8,7 @@ using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.StructViewing;
 
-public class StructViewerServiceImpl : IStructViewerService {
+public class DesktopStructViewerServiceImpl : IStructViewerService {
     public void Show(StructViewerManager manager) {
         if (ITopLevel.TryGetFromContext(manager.UserContext, out ITopLevel? sequencerTopLevel)) {
             IDesktopWindow window = (IDesktopWindow) sequencerTopLevel;

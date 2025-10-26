@@ -137,6 +137,12 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
             "LoadedScriptPaths",
             defaultValue: null,
             owner => owner.loadedScriptPaths, (x, y) => x.loadedScriptPaths = y, false);
+        
+    public static readonly PersistentProperty<string[]> LoadedModToolPathsProperty =
+        PersistentProperty.RegisterStringArray<BasicApplicationConfiguration>(
+            "LoadedModToolPaths",
+            defaultValue: null,
+            owner => owner.loadedModToolPaths, (x, y) => x.loadedModToolPaths = y, false);
 
     public static BasicApplicationConfiguration Instance => ApplicationPFX.Instance.PersistentStorageManager.GetConfiguration<BasicApplicationConfiguration>();
 
@@ -159,6 +165,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     private bool useNaNInfProtection = UseNaNInfProtectionProperty.DefaultValue;
     private double floatingPointEpsilon = FloatingPointEpsilonProperty.DefaultValue;
     private string[] loadedScriptPaths = LoadedScriptPathsProperty.DefaultValue;
+    private string[] loadedModToolPaths = LoadedModToolPathsProperty.DefaultValue;
 
     /// <summary>
     /// Gets or sets the last host name that was entered when connecting to an xbox 360. This is just a convenience feature
@@ -269,6 +276,11 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public string[] LoadedScriptPaths {
         get => LoadedScriptPathsProperty.GetValue(this);
         set => LoadedScriptPathsProperty.SetValue(this, value);
+    }
+    
+    public string[] LoadedModToolPaths {
+        get => LoadedModToolPathsProperty.GetValue(this);
+        set => LoadedModToolPathsProperty.SetValue(this, value);
     }
 
     public BasicApplicationConfiguration() {

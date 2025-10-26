@@ -21,10 +21,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
-using MemEngine360.Engine.StructViewing.ClassBuilding;
 using MemEngine360.Engine.StructViewing.Entries;
 using PFXToolKitUI.Avalonia.AdvancedMenuService;
-using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 

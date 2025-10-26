@@ -20,11 +20,11 @@
 using System.Diagnostics;
 using Lua;
 using Lua.CodeAnalysis;
-using Lua.CodeAnalysis.Compilation;
-using Lua.CodeAnalysis.Syntax;
 using Lua.Runtime;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using MemEngine360.ModTools.Gui;
+using MemEngine360.Scripting;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Composition;
@@ -35,20 +35,20 @@ using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.RDA;
 
-namespace MemEngine360.Scripting;
+namespace MemEngine360.ModTools;
 
-public delegate void ScriptEventHandler(Script sender);
+public delegate void ScriptEventHandler(ModTool sender);
 
-public delegate void ScriptDedicatedConnectionChangedEventHandler(Script sender, IConsoleConnection? oldDedicatedConnection, IConsoleConnection? newDedicatedConnection);
+public delegate void ScriptDedicatedConnectionChangedEventHandler(ModTool sender, IConsoleConnection? oldDedicatedConnection, IConsoleConnection? newDedicatedConnection);
 
-public delegate void ScriptSourceCodeChangedEventHandler(Script sender, string oldSourceCode, string newSourceCode);
+public delegate void ScriptSourceCodeChangedEventHandler(ModTool sender, string oldSourceCode, string newSourceCode);
 
-public delegate void ScriptCompilationFailureEventHandler(Script sender, string? chunkName, SourcePosition sourcePosition);
+public delegate void ScriptCompilationFailureEventHandler(ModTool sender, string? chunkName, SourcePosition sourcePosition);
 
-public class Script : IComponentManager, IUserLocalContext {
-    public static readonly DataKey<Script> DataKey = DataKeys.Create<Script>(nameof(Script));
+public class ModTool : IComponentManager, IUserLocalContext {
+    public static readonly DataKey<ModTool> DataKey = DataKeys.Create<ModTool>(nameof(ModTool));
 
-    internal ScriptingManager? myManager;
+    internal ModToolManager? myManager;
     private bool isTryingToStop;
     private bool hasUnsavedChanges;
     private bool clearConsoleOnRun = true;
@@ -58,7 +58,7 @@ public class Script : IComponentManager, IUserLocalContext {
 
     // Lua
     private Chunk? myChunk;
-    private LuaScriptMachine? myRunningMachine;
+    private LuaModToolMachine? myRunningMachine;
     private TaskCompletionSource? myRunningTcs;
 
     public IMutableContextData UserContext { get; } = new ContextData();
@@ -146,7 +146,7 @@ public class Script : IComponentManager, IUserLocalContext {
     /// <summary>
     /// Gets the scripting manager that this script exists in
     /// </summary>
-    public ScriptingManager? Manager => this.myManager;
+    public ModToolManager? Manager => this.myManager;
 
     /// <summary>
     /// Gets the task that represents the script. Returns <see cref="Task.CompletedTask"/> when the script is not running.
@@ -167,6 +167,8 @@ public class Script : IComponentManager, IUserLocalContext {
     /// </summary>
     public Task CompileTask { get; private set; } = Task.CompletedTask;
 
+    public LuaModToolMachine? Machine => this.myRunningMachine;
+
     /// <summary>
     /// Fired when <see cref="Name"/> or <see cref="FilePath"/> changes
     /// </summary>
@@ -186,8 +188,11 @@ public class Script : IComponentManager, IUserLocalContext {
     private readonly ComponentStorage componentStorage;
     ComponentStorage IComponentManager.ComponentStorage => this.componentStorage;
 
-    public Script() {
+    public ModToolGUI Gui { get; }
+
+    public ModTool() {
         this.componentStorage = new ComponentStorage(this);
+        this.Gui = new ModToolGUI(this);
         this.rldaPrintToConsole = RateLimitedDispatchActionBase.ForDispatcherSync(() => {
             lock (this.consoleQueueLock) {
                 const int EntryLimit = 500;
@@ -275,7 +280,7 @@ public class Script : IComponentManager, IUserLocalContext {
                     ActivityTask activity = ActivityTask.Current;
                     activity.Progress.SetCaptionAndText("Compile Lua");
                     activity.Progress.IsIndeterminate = true;
-                    return CompileSource(code, this.Name ?? "Script", activity.Progress, activity.CancellationToken);
+                    return Script.CompileSource(code, this.Name ?? "Script", activity.Progress, activity.CancellationToken);
                 }, this.ctsCompile);
 
                 this.myChunk = result.GetValueOrDefault();
@@ -319,7 +324,7 @@ public class Script : IComponentManager, IUserLocalContext {
         IConsoleConnection? connection = this.dedicatedConnection ?? this.Manager!.MemoryEngine.Connection;
         BusyLock busyLock = this.dedicatedConnection != null ? this.DedicatedBusyLock : this.Manager!.MemoryEngine.BusyLock;
         
-        this.myRunningMachine = new LuaScriptMachine(this, this.myChunk, connection, busyLock);
+        this.myRunningMachine = new LuaModToolMachine(this, this.myChunk, connection, busyLock);
         this.myRunningMachine.LinePrinted += this.OnLuaLinePrinted;
         this.myRunningMachine.Start();
         this.IsRunningChanged?.Invoke(this);
@@ -378,73 +383,17 @@ public class Script : IComponentManager, IUserLocalContext {
     }
 
     // Invoked when lua thread starts
-    internal static void InternalOnLuaMachineStarting(Script script) {
+    internal static void InternalOnLuaMachineStarting(ModTool script) {
     }
 
     // Invoked when lua machine is fully booted and about to start running code.
     // May not be called if the user somehow manages to stop the script so quickly that
     // it never fully boots up.
-    internal static void InternalOnLuaMachineRunning(Script script) {
+    internal static void InternalOnLuaMachineRunning(ModTool script) {
     }
 
     // Invoked when the lua thread is about to exit.
-    internal static void InternalOnLuaMachineStopped(Script script) {
-        ApplicationPFX.Instance.Dispatcher.Post(t => ((Script) t!).OnLuaScriptCompleted(), script, DispatchPriority.Send);
-    }
-
-    /// <summary>
-    /// Compiles LUA source code into a chunk.
-    /// </summary>
-    /// <param name="source">The source code</param>
-    /// <param name="progress">Optional compilation progress</param>
-    /// <param name="cancellationToken">Cancel the compilation process</param>
-    /// <returns>The compiled chunk</returns>
-    public static async Task<Chunk> CompileSource(string source, string chunkName, IActivityProgress? progress, CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        TaskCompletionSource<Chunk> tcs = new TaskCompletionSource<Chunk>();
-        Thread threadParseAndCompile = new Thread(() => {
-            bool hasResult = false;
-            try {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (progress != null)
-                    progress.Text = "[Lexer] Parsing...";
-
-                Lexer lexer = new Lexer() {
-                    Source = source.AsMemory(),
-                    ChunkName = chunkName
-                };
-
-                Parser parser = new Parser() { ChunkName = chunkName };
-                while (lexer.MoveNext()) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    parser.Add(lexer.Current);
-                }
-
-                if (progress != null)
-                    progress.Text = "Creating syntax tree...";
-
-                LuaSyntaxTree syntaxTree = parser.Parse();
-                Chunk compilationResult = LuaCompiler.Default.Compile(syntaxTree, chunkName);
-                tcs.TrySetResult(compilationResult);
-                hasResult = true;
-            }
-            catch (OperationCanceledException e) {
-                tcs.TrySetCanceled(e.CancellationToken);
-                hasResult = true;
-            }
-            catch (Exception e) {
-                tcs.TrySetException(e);
-                hasResult = true;
-            }
-            finally {
-                if (!hasResult)
-                    tcs.TrySetCanceled(cancellationToken);
-            }
-        });
-
-        await using (cancellationToken.Register((t, self) => ((TaskCompletionSource<Chunk>) t!).TrySetCanceled(self), tcs)) {
-            threadParseAndCompile.Start();
-            return await tcs.Task;
-        }
+    internal static void InternalOnLuaMachineStopped(ModTool script) {
+        ApplicationPFX.Instance.Dispatcher.Post(t => ((ModTool) t!).OnLuaScriptCompleted(), script, DispatchPriority.Send);
     }
 }
