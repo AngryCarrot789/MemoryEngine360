@@ -66,7 +66,7 @@ public partial class ModToolView : UserControl {
 
     public async Task<bool> ShouldCancelWindowClosing(bool forced) {
         ModTool? tool = this.ModTool;
-        if (tool == null || !tool.IsRunning || await RestartModToolCommand.StopModTool(tool, !forced)) {
+        if (tool == null || !tool.IsRunning || await RestartModToolCommand.StopModTool(tool, false)) {
             return false;
         }
 

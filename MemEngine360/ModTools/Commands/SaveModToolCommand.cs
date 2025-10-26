@@ -47,7 +47,7 @@ public class SaveModToolCommand : Command {
         }
 
         ModToolViewState.GetInstance(script).RaiseFlushEditorToScript();
-        if (script.HasUnsavedChanges || !File.Exists(script.FilePath)) {
+        if (this.SaveAs || script.HasUnsavedChanges || !File.Exists(script.FilePath)) {
             await SaveModToolAsync(script, this.SaveAs);
         }
     }

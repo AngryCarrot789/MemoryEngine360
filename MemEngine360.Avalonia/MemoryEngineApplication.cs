@@ -241,6 +241,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.modtools.SaveModToolAsCommand", new SaveModToolCommand(true));
         manager.Register("commands.modtools.SaveAllModToolsCommand", new SaveAllModToolsCommand());
         manager.Register("commands.modtools.CloseModToolCommand", new CloseModToolCommand());
+        manager.Register("commands.modtools.RenameModToolCommand", new RenameModToolCommand());
 
         // History
         // manager.Register("commands.application.UndoCommand", new UndoCommand());

@@ -47,7 +47,7 @@ public class SaveScriptCommand : Command {
         }
 
         ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
-        if (script.HasUnsavedChanges || !File.Exists(script.FilePath)) {
+        if (this.SaveAs || script.HasUnsavedChanges || !File.Exists(script.FilePath)) {
             await SaveScriptAsync(script, this.SaveAs);
         }
     }

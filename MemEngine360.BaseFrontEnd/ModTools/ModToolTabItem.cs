@@ -69,5 +69,8 @@ public class ModToolTabItem : TabItem {
         
         this.nameBinder.SwitchModel(newValue);
         DataManager.GetContextData(this).Set(ModTool.DataKey, newValue);
+        
+        if (newValue != null)
+            AdvancedContextMenu.SetContextRegistry(this, ModToolTabContextRegistry.Registry);
     }
 }
