@@ -23,6 +23,8 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using ILMath;
+using ILMath.Compiler;
+using ILMath.SyntaxTree;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.ValueAbstraction;
@@ -41,7 +43,7 @@ public static class DataValueUtils {
     private static readonly IEvaluationContext<long> DefaultI64EvalCtx = EvaluationContexts.CreateForInteger<long>();
     private static readonly IEvaluationContext<float> DefaultFloatCtx = EvaluationContexts.CreateForFloat();
     private static readonly IEvaluationContext<double> DefaultDoubleCtx = EvaluationContexts.CreateForDouble();
-    
+
     /// <summary>
     /// Attempts to parse a string input as a <see cref="IDataValue"/> using the given information (the type of data expected, numeric display type and string type)
     /// </summary>
@@ -79,10 +81,10 @@ public static class DataValueUtils {
 
         throw new Exception("Invalid input" + (args.Errors.Count > 0 ? (": " + args.Errors[0]) : ""));
     }
-    
-    public static IDataValue ParseNumericExpressionAsDataValue(string input, DataType dataType, NumericDisplayType ndt, IDataValue? initialValue = null) {
+
+    public static IDataValue ParseNumericExpressionAsDataValue(string input, DataType dataType, NumericDisplayType ndt, out bool isInitialValueReferenced, IDataValue? initialValue = null) {
         ValidationArgs args = new ValidationArgs(input, [], false);
-        IDataValue? value = DoTryParseNumericExpressionAsDataValue(args, dataType, ndt, initialValue);
+        IDataValue? value = DoTryParseNumericExpressionAsDataValue(args, dataType, ndt, out isInitialValueReferenced, initialValue);
         if (value != null) {
             return value;
         }
@@ -92,7 +94,7 @@ public static class DataValueUtils {
 
     private static IDataValue? DoTryParseTextAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, StringType stringType, bool canParseAsExpression = false) {
         if (canParseAsExpression && dataType.IsNumeric()) {
-            return DoTryParseNumericExpressionAsDataValue(args, dataType, ndt);
+            return DoTryParseNumericExpressionAsDataValue(args, dataType, ndt, out _);
         }
 
         NumberStyles nsInt = ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
@@ -204,18 +206,43 @@ public static class DataValueUtils {
         return null;
     }
 
-    public static bool TryParseNumericExpressionAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, [NotNullWhen(true)] out IDataValue? value, IDataValue? initialValue = null) {
-        return (value = DoTryParseNumericExpressionAsDataValue(args, dataType, ndt, initialValue)) != null;
+    public static bool TryParseNumericExpressionAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, [NotNullWhen(true)] out IDataValue? value, out bool isInitialValueReferenced, IDataValue? initialValue = null) {
+        return (value = DoTryParseNumericExpressionAsDataValue(args, dataType, ndt, out isInitialValueReferenced, initialValue)) != null;
     }
-    
-    private static IDataValue? DoTryParseNumericExpressionAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, IDataValue? initialValue = null) {
+
+    public static Evaluator<T> CompileExpressionHelper<T>(string functionName, string expression, ParsingContext parsingContext, CompilationMethod method, out bool isInitialValueReferenced) where T : unmanaged, INumber<T> {
+        Lexer lexer = new Lexer(expression, parsingContext);
+        Parser<T> parser = new Parser<T>(lexer, parsingContext);
+        INode node = parser.Parse();
+        isInitialValueReferenced = IsVariableAccessed(node, "v");
+        ICompiler<T> compiler = MathEvaluation.CreateCompiler<T>(method);
+        return compiler.Compile(functionName, node);
+    }
+
+    private static bool IsVariableAccessed(INode node, string identifier) {
+        switch (node) {
+            case FunctionNode fn:
+                foreach (INode param in fn.Parameters) {
+                    if (IsVariableAccessed(param, identifier))
+                        return true;
+                }
+
+                return false;
+            case OperatorNode op:       return IsVariableAccessed(op.Left, identifier) || IsVariableAccessed(op.Right, identifier);
+            case UnaryNode un:          return IsVariableAccessed(un.Child, identifier);
+            case VariableNode variable: return identifier.Equals(variable.Identifier);
+            default:                    throw new ArgumentOutOfRangeException(nameof(node));
+        }
+    }
+
+    private static IDataValue? DoTryParseNumericExpressionAsDataValue(ValidationArgs args, DataType dataType, NumericDisplayType ndt, out bool isInitialValueReferenced, IDataValue? initialValue = null) {
         if (initialValue != null && dataType != initialValue.DataType) {
             throw new ArgumentException("Data type does not match initial value's data type");
         }
-        
+
         ParsingContext ctx = new ParsingContext() {
-            DefaultIntegerParseMode = dataType.IsInteger() && ndt == NumericDisplayType.Hexadecimal 
-                ? IntegerParseMode.Hexadecimal 
+            DefaultIntegerParseMode = dataType.IsInteger() && ndt == NumericDisplayType.Hexadecimal
+                ? IntegerParseMode.Hexadecimal
                 : IntegerParseMode.Integer
         };
 
@@ -230,8 +257,8 @@ public static class DataValueUtils {
                         IEvaluationContext<uint> evalCtx = initialValue == null ? DefaultU32EvalCtx : EvaluationContexts.CreateForInteger<uint>();
                         if (initialValue != null)
                             ((EvaluationContext<uint>) evalCtx).SetVariable("v", (uint) ((DataValueNumeric) initialValue).ToInt());
-                        
-                        uint value = MathEvaluation.CompileExpression<uint>("", args.Input, ctx, CompilationMethod)(evalCtx);
+
+                        uint value = CompileExpressionHelper<uint>("", args.Input, ctx, CompilationMethod, out isInitialValueReferenced)(evalCtx);
                         return dataType switch {
                             DataType.Byte => IDataValue.CreateNumeric((byte) value),
                             DataType.Int16 => IDataValue.CreateNumeric((short) value),
@@ -243,8 +270,8 @@ public static class DataValueUtils {
                         IEvaluationContext<int> evalCtx = initialValue == null ? DefaultI32EvalCtx : EvaluationContexts.CreateForInteger<int>();
                         if (initialValue != null)
                             ((EvaluationContext<int>) evalCtx).SetVariable("v", ((DataValueNumeric) initialValue).ToInt());
-                        
-                        int value = MathEvaluation.CompileExpression<int>("", args.Input, ctx, CompilationMethod)(evalCtx);
+
+                        int value = CompileExpressionHelper<int>("", args.Input, ctx, CompilationMethod, out isInitialValueReferenced)(evalCtx);
                         return dataType switch {
                             DataType.Byte => IDataValue.CreateNumeric((byte) value),
                             DataType.Int16 => IDataValue.CreateNumeric((short) value),
@@ -259,15 +286,15 @@ public static class DataValueUtils {
                         IEvaluationContext<ulong> evalCtx = initialValue == null ? DefaultU64EvalCtx : EvaluationContexts.CreateForInteger<ulong>();
                         if (initialValue != null)
                             ((EvaluationContext<ulong>) evalCtx).SetVariable("v", (ulong) ((DataValueNumeric) initialValue).ToLong());
-                        
-                        value = (long) MathEvaluation.CompileExpression<ulong>("", args.Input, ctx, CompilationMethod)(evalCtx);
+
+                        value = (long) CompileExpressionHelper<ulong>("", args.Input, ctx, CompilationMethod, out isInitialValueReferenced)(evalCtx);
                     }
                     else {
                         IEvaluationContext<long> evalCtx = initialValue == null ? DefaultI64EvalCtx : EvaluationContexts.CreateForInteger<long>();
                         if (initialValue != null)
                             ((EvaluationContext<long>) evalCtx).SetVariable("v", ((DataValueNumeric) initialValue).ToLong());
-                        
-                        value = MathEvaluation.CompileExpression<long>("", args.Input, ctx, CompilationMethod)(evalCtx);
+
+                        value = CompileExpressionHelper<long>("", args.Input, ctx, CompilationMethod, out isInitialValueReferenced)(evalCtx);
                     }
 
                     return new DataValueInt64(value);
@@ -276,21 +303,22 @@ public static class DataValueUtils {
                     IEvaluationContext<float> evalCtx = initialValue == null ? DefaultFloatCtx : EvaluationContexts.CreateForFloat();
                     if (initialValue != null)
                         ((EvaluationContext<float>) evalCtx).SetVariable("v", ((DataValueNumeric) initialValue).ToFloat());
-                    
-                    return new DataValueFloat(MathEvaluation.CompileExpression<float>("", args.Input, ctx, CompilationMethod)(evalCtx));
+
+                    return new DataValueFloat(CompileExpressionHelper<float>("", args.Input, ctx, CompilationMethod, out isInitialValueReferenced)(evalCtx));
                 }
                 case DataType.Double: {
                     IEvaluationContext<double> evalCtx = initialValue == null ? DefaultDoubleCtx : EvaluationContexts.CreateForDouble();
                     if (initialValue != null)
                         ((EvaluationContext<double>) evalCtx).SetVariable("v", ((DataValueNumeric) initialValue).ToDouble());
 
-                    return new DataValueDouble(MathEvaluation.CompileExpression<double>("", args.Input, ctx, CompilationMethod)(evalCtx));
+                    return new DataValueDouble(CompileExpressionHelper<double>("", args.Input, ctx, CompilationMethod, out isInitialValueReferenced)(evalCtx));
                 }
                 default: throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
             }
         }
         catch (Exception e) {
             args.Errors.Add("Invalid value or expression: " + e.Message);
+            isInitialValueReferenced = false;
             return null;
         }
     }

@@ -97,7 +97,7 @@ public class EditScanResultValueCommand : Command {
             DataValueUtils.GetStringFromDataValue(lastResult, initialDataValue)) {
             Validate = (args) => {
                 if (dataType.IsNumeric()) {
-                    DataValueUtils.TryParseNumericExpressionAsDataValue(args, dataType, lastResult.NumericDisplayType, out _, initialDataValue);
+                    DataValueUtils.TryParseNumericExpressionAsDataValue(args, dataType, lastResult.NumericDisplayType, out _, out _, initialDataValue);
                 }
                 else {
                     DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out _, canParseAsExpression: true);
@@ -111,11 +111,15 @@ public class EditScanResultValueCommand : Command {
             return;
         }
 
-        IDataValue value = dataType.IsNumeric()
-            ? DataValueUtils.ParseNumericExpressionAsDataValue(input.Text, dataType, lastResult.NumericDisplayType)
-            : DataValueUtils.ParseTextAsDataValue(input.Text, dataType, lastResult.NumericDisplayType, lastResult.StringType, canParseAsExpression: true);
-
-        Debug.Assert(dataType == value.DataType);
+        IDataValue? directValue = dataType.IsNumeric() ? null : DataValueUtils.ParseTextAsDataValue(input.Text, dataType, lastResult.NumericDisplayType, lastResult.StringType, canParseAsExpression: true);
+        if (directValue == null) {
+            directValue = DataValueUtils.ParseNumericExpressionAsDataValue(input.Text, dataType, lastResult.NumericDisplayType, out bool isInitialValueReferenced, initialDataValue);
+            if (isInitialValueReferenced) {
+                directValue = null;
+            }
+        }
+        
+        Debug.Assert(directValue == null || dataType == directValue.DataType);
 
         using CancellationTokenSource cts = new CancellationTokenSource();
         await ActivityManager.Instance.RunTask(async () => {
@@ -131,9 +135,16 @@ public class EditScanResultValueCommand : Command {
 
             foreach (ScanResultViewModel scanResult in scanResults) {
                 ActivityManager.Instance.CurrentTask.ThrowIfCancellationRequested();
-                await MemoryEngine.WriteDataValue(engine.Connection, scanResult.Address, value);
+                if (directValue != null) {
+                    await MemoryEngine.WriteDataValue(engine.Connection, scanResult.Address, directValue);
+                }
+                else {
+                    Debug.Assert(scanResult.CurrentValue.DataType == dataType);
+                    directValue = DataValueUtils.ParseNumericExpressionAsDataValue(input.Text, dataType, lastResult.NumericDisplayType, out _, scanResult.CurrentValue);
+                }
+
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                    scanResult.CurrentValue = value;
+                    scanResult.CurrentValue = directValue;
                 });
             }
         }, cts);

@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
@@ -43,13 +44,13 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             return Executability.ValidButCannotExecute;
         return Executability.Valid;
     }
-    
+
     protected override DisabledHintInfo? ProvideDisabledHintOverride(MemoryEngine engine, IContextData context, ContextRegistry? sourceContextMenu) {
         if (BaseMemoryEngineCommand.TryProvideNotConnectedDisabledHintInfo(engine, out DisabledHintInfo? hintInfo))
             return hintInfo;
         return null;
     }
-    
+
     protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
         IConsoleConnection? connection = engine.Connection;
         if (connection == null) {
@@ -79,14 +80,14 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
         AddressTableEntry lastResult = savedList[count - 1];
         NumericDisplayType ndt = lastResult.NumericDisplayType;
         StringType strType = lastResult.StringType;
-        IDataValue? initialDataValue = lastResult.Value;
+        IDataValue initialDataValue = lastResult.Value ?? IDataValue.CreateDefault(lastResult.DataType, lastResult.StringType);
         SingleUserInputInfo input = new SingleUserInputInfo(
             $"Change {count} value{Lang.S(count)}",
             $"Immediately change the value at {Lang.ThisThese(count)} address{Lang.Es(count)}", "Value",
-            initialDataValue != null ? DataValueUtils.GetStringFromDataValue(lastResult, initialDataValue) : "") {
+            count > 1 ? "v" : DataValueUtils.GetStringFromDataValue(lastResult, initialDataValue)) {
             Validate = (args) => {
                 if (dataType.IsNumeric()) {
-                    DataValueUtils.TryParseNumericExpressionAsDataValue(args, dataType, ndt, out _, initialDataValue);
+                    DataValueUtils.TryParseNumericExpressionAsDataValue(args, dataType, ndt, out _, out _, initialDataValue);
                 }
                 else {
                     DataValueUtils.TryParseTextAsDataValue(args, dataType, ndt, strType, out _, canParseAsExpression: true);
@@ -104,10 +105,14 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             return;
         }
 
-        IDataValue value = dataType.IsNumeric() 
-            ? DataValueUtils.ParseNumericExpressionAsDataValue(input.Text, dataType, ndt, initialDataValue) 
-            : DataValueUtils.ParseTextAsDataValue(input.Text, dataType, ndt, strType, canParseAsExpression: true);
-        
+        IDataValue? directValue = dataType.IsNumeric() ? null : DataValueUtils.ParseTextAsDataValue(input.Text, dataType, ndt, strType, canParseAsExpression: true);
+        if (directValue == null) {
+            directValue = DataValueUtils.ParseNumericExpressionAsDataValue(input.Text, dataType, ndt, out bool isInitialValueReferenced, initialDataValue);
+            if (isInitialValueReferenced) {
+                directValue = null;
+            }
+        }
+
         // TODO: use ConnectionAction
 
         ITopLevel? parentTopLevel = ITopLevel.FromContext(e.ContextData);
@@ -121,6 +126,7 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
                 ForegroundInfo = parentTopLevel != null ? new InForegroundInfo(parentTopLevel) : null
             });
 
+            List<string> tmpErrors = new List<string>();
             if (token != null && engine.Connection != null) {
                 ActivityTask.Current.Progress.SetCaptionAndText("Edit value", "Editing values");
                 int success = 0;
@@ -131,21 +137,36 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
                         continue; // pointer could not be resolved
 
                     success++;
-                    await MemoryEngine.WriteDataValue(engine.Connection, address.Value, value);
-                    
-                    IDataValue latestValue = await MemoryEngine.ReadDataValue(engine.Connection, address.Value, value);
-                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                        switch (latestValue) {
-                            case DataValueString str:
-                                lastResult.StringType = str.StringType;
-                                lastResult.StringLength = str.Value.Length;
-                                break;
-                            case DataValueByteArray arr: lastResult.ArrayLength = arr.Value.Length; break;
-                        }
 
-                        scanResult.DataType = latestValue.DataType;
-                        scanResult.Value = latestValue;
-                    }, token: CancellationToken.None);
+                    IDataValue? setValue = null;
+                    if (directValue != null) {
+                        await MemoryEngine.WriteDataValue(engine.Connection, address.Value, directValue);
+                        setValue = directValue;
+                    }
+                    else if (scanResult.Value != null && scanResult.DataType == dataType) {
+                        if (DataValueUtils.TryParseNumericExpressionAsDataValue(new ValidationArgs(input.Text, tmpErrors, false), dataType, lastResult.NumericDisplayType, out IDataValue? value, out _, scanResult.Value)) {
+                            await MemoryEngine.WriteDataValue(engine.Connection, address.Value, value);
+                            setValue = value;
+                        }
+                    }
+
+                    tmpErrors.Clear();
+
+                    if (setValue != null) {
+                        IDataValue latestValue = await MemoryEngine.ReadDataValue(engine.Connection, address.Value, setValue);
+                        await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                            switch (latestValue) {
+                                case DataValueString str:
+                                    lastResult.StringType = str.StringType;
+                                    lastResult.StringLength = str.Value.Length;
+                                    break;
+                                case DataValueByteArray arr: lastResult.ArrayLength = arr.Value.Length; break;
+                            }
+
+                            scanResult.DataType = latestValue.DataType;
+                            scanResult.Value = latestValue;
+                        }, token: CancellationToken.None);
+                    }
                 }
 
                 return success;
