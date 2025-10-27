@@ -196,23 +196,23 @@ public class LuaGuiFunctions {
     private static async ValueTask<int> AddElementToGridPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         LuaTable table = ctx.GetArgument<LuaTable>(0);
         LuaTable toAdd;
-        int row = ctx.GetArgument<int>(1);
-        if (row < 0)
-            throw LuaArgUtils.InvalidOperation(in ctx, "Row span must be greater than or equal to zero");
-
-        int column = ctx.GetArgument<int>(2);
+        int column = ctx.GetArgument<int>(1);
         if (column < 0)
-            throw LuaArgUtils.InvalidOperation(in ctx, "Row span must be greater than or equal to zero");
+            throw LuaArgUtils.InvalidOperation(in ctx, "Column must be greater than or equal to zero");
 
-        int rowSpan = 1, colSpan = 1;
+        int row = ctx.GetArgument<int>(2);
+        if (row < 0)
+            throw LuaArgUtils.InvalidOperation(in ctx, "Row must be greater than or equal to zero");
+
+        int colSpan = 1, rowSpan = 1;
         if (ctx.ArgumentCount >= 6) {
-            rowSpan = ctx.GetArgument<int>(3);
-            if (rowSpan < 1)
-                throw LuaArgUtils.InvalidOperation(in ctx, "Row span must be greater than zero");
-
-            colSpan = ctx.GetArgument<int>(4);
+            colSpan = ctx.GetArgument<int>(3);
             if (colSpan < 1)
                 throw LuaArgUtils.InvalidOperation(in ctx, "Column span must be greater than zero");
+
+            rowSpan = ctx.GetArgument<int>(4);
+            if (rowSpan < 1)
+                throw LuaArgUtils.InvalidOperation(in ctx, "Row span must be greater than zero");
 
             toAdd = ctx.GetArgument<LuaTable>(5);
         }
