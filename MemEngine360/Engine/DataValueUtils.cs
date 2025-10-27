@@ -231,7 +231,7 @@ public static class DataValueUtils {
             case OperatorNode op:       return IsVariableAccessed(op.Left, identifier) || IsVariableAccessed(op.Right, identifier);
             case UnaryNode un:          return IsVariableAccessed(un.Child, identifier);
             case VariableNode variable: return identifier.Equals(variable.Identifier);
-            default:                    throw new ArgumentOutOfRangeException(nameof(node));
+            default:                    return false;
         }
     }
 
