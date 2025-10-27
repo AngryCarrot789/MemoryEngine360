@@ -57,8 +57,10 @@
                 </Grid.ColumnDefinitions>
                 <Border Grid.Column="3" Grid.Row="1">
                     <Grid RowDefinitions="Auto,5,Auto,5,*,Auto">
-                        <Grid ColumnDefinitions="*,5,*,5,*" Grid.Row="0" Height="22">
-                            <Button Grid.Column="0" Content="First Scan" cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:FirstScanCommandUsage}">
+                        <Grid ColumnDefinitions="*,5,*,5,*,5,Auto" Grid.Row="0" Height="22">
+                            <Button Grid.Column="0" Content="First Scan" 
+                                    cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:FirstScanCommandUsage}"
+                                    ToolTip.ShowOnDisabled="true">
                                 <tt:ToolTipEx.Tip>
                                     <StackPanel Orientation="Horizontal" Spacing="5">
                                         <TextBlock Text="Search the console memory for the value, and display all found results" VerticalAlignment="Center"/>
@@ -66,7 +68,9 @@
                                     </StackPanel>
                                 </tt:ToolTipEx.Tip>
                             </Button>
-                            <Button Grid.Column="2" Content="Next Scan" cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:NextScanCommandUsage}">
+                            <Button Grid.Column="2" Content="Next Scan" 
+                                    cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:NextScanCommandUsage}"
+                                    ToolTip.ShowOnDisabled="true">
                                 <tt:ToolTipEx.Tip>
                                     <StackPanel Orientation="Horizontal" Spacing="5">
                                         <TextBlock Text="Search the scan result list for the value, and keeps results that still match" VerticalAlignment="Center"/>
@@ -74,7 +78,9 @@
                                     </StackPanel>
                                 </tt:ToolTipEx.Tip>
                             </Button>
-                            <Button Grid.Column="4" Content="Reset" cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:ResetScanCommandUsage}">
+                            <Button Grid.Column="4" Content="Reset" 
+                                    cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:ResetScanCommandUsage}"
+                                    ToolTip.ShowOnDisabled="true">
                                 <tt:ToolTipEx.Tip>
                                     <StackPanel Orientation="Horizontal" Spacing="5">
                                         <TextBlock Text="Clears the scan result list, allowing for the first scan to be performed again" VerticalAlignment="Center"/>
@@ -82,6 +88,17 @@
                                     </StackPanel>
                                 </tt:ToolTipEx.Tip>
                             </Button>
+                            <avc:IconButton Grid.Column="6" Width="22"
+                                            cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:CancelScanCommandUsage}"
+                                            Icon="{x:Static pfxToolKitUi:StandardIcons.CancelActivityIcon}"
+                                            ToolTip.ShowOnDisabled="True">
+                                <tt:ToolTipEx.Tip>
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <TextBlock Text="Stop the scan" VerticalAlignment="Center"/>
+                                        <avc:ShortcutLabel CommandId="commands.memengine.CancelScanCommand"/>
+                                    </StackPanel>
+                                </tt:ToolTipEx.Tip>
+                            </avc:IconButton>
                         </Grid>
                         <Grid Grid.Row="2">
                             <Grid x:Name="PART_Grid_ScanInput" ColumnDefinitions="64,0,*,Auto,Auto" RowDefinitions="24,3,24,3,Auto,Auto" Margin="0">
@@ -92,13 +109,15 @@
                                     <ToggleButton Grid.Row="0" Padding="5,0" x:Name="PART_UseFirstValue"
                                                   BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                                                   VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                                                  tt:ToolTipEx.Tip="Use the rows' First Value as the search value">
+                                                  tt:ToolTipEx.Tip="Use the rows' First Value as the search value"
+                                                  ToolTip.ShowOnDisabled="true">
                                         <TextBlock Text="First" FontSize="8" FontFamily="{StaticResource FontOxanium}" Padding="0" Margin="0,-1,0,0"/>
                                     </ToggleButton>
                                     <ToggleButton Grid.Row="2" Padding="5,0" x:Name="PART_UsePreviousValue"
                                                   BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                                                   VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                                                  tt:ToolTipEx.Tip="Use the rows' Previous Value as the search value">
+                                                  tt:ToolTipEx.Tip="Use the rows' Previous Value as the search value"
+                                                  ToolTip.ShowOnDisabled="true">
                                         <TextBlock Text="Prev" FontSize="8" FontFamily="{StaticResource FontOxanium}" Padding="0" Margin="0,-1,0,0"/>
                                     </ToggleButton>
                                 </Grid>
@@ -143,7 +162,7 @@
                                               Grid.Column="4" Grid.Row="2"
                                               Margin="3,0,0,0"
                                               Content="Expr."
-                                              tt:ToolTipEx.Tip="Toggles whether to use an expression to match the value instead of Compare Mode. Also note, when you toggle 'Parse value(s) as hexadecimal' for integers, the data type becomes unsigned, so no negative number support."/>
+                                              tt:ToolTipEx.Tip="Toggles whether to use an expression to match the value instead of Compare Mode."/>
                                 
                                 <TabControl Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="4"
                                             x:Name="PART_ScanSettingsTabControl"
@@ -160,8 +179,20 @@
                                                         <Run Text="When false, they are parsed as regular integers (400 == 400)"/>
                                                         <LineBreak/>
                                                         <Run Text="If the scan type is Between, this option is applied to both fields"/>
-                                                        <LineBreak/>
-                                                        <Run Text="NOTE! For expressions, this causes the data type to become unsigned"/>
+                                                    </TextBlock>
+                                                </tt:ToolTipEx.Tip>
+                                            </CheckBox>
+                                            
+                                            <TextBlock x:Name="PART_WarningExpressionHexTextBlock" 
+                                                       Text="Expressions must prefix hex values with '0x'"
+                                                       Foreground="{DynamicResource ABrush.Foreground.Deeper}"
+                                                       TextWrapping="Wrap"
+                                                       IsVisible="False"/>
+                                            
+                                            <CheckBox x:Name="PART_DTInt_IsUnsigned" Content="Unsigned">
+                                                <tt:ToolTipEx.Tip>
+                                                    <TextBlock Padding="4">
+                                                        <Run Text="Toggles whether to treat integers as unsigned, meaning no negatives"/>
                                                     </TextBlock>
                                                 </tt:ToolTipEx.Tip>
                                             </CheckBox>

@@ -80,7 +80,7 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
     private DataType dataType;
     private StringType stringScanOption;
     private int stringLength, arrayLength;
-    private bool displayAsHex, displayAsSigned;
+    private bool displayAsHex, displayAsUnsigned;
 
     public DataType DataType {
         get => this.dataType;
@@ -117,14 +117,14 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
     }
 
     public bool DisplayAsUnsigned {
-        get => this.displayAsSigned;
+        get => this.displayAsUnsigned;
         set {
-            if (this.displayAsSigned != value) {
+            if (this.displayAsUnsigned != value) {
                 if (value && this.DisplayAsHex) {
                     this.DisplayAsHex = false;
                 }
 
-                this.displayAsSigned = value;
+                this.displayAsUnsigned = value;
                 this.DisplayAsUnsignedChanged?.Invoke(this);
             }
         }
@@ -144,7 +144,7 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
         this.stringLength = result.StringLength;
         this.arrayLength = result.ArrayLength;
         this.displayAsHex = result.NumericDisplayType == NumericDisplayType.Hexadecimal;
-        this.displayAsSigned = result.NumericDisplayType == NumericDisplayType.Unsigned;
+        this.displayAsUnsigned = result.NumericDisplayType == NumericDisplayType.Unsigned;
         this.dataType = result.DataType;
         this.stringScanOption = result.StringType;
     }

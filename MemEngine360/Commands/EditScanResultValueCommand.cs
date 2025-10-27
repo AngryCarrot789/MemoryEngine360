@@ -91,16 +91,17 @@ public class EditScanResultValueCommand : Command {
         int c = scanResults.Count;
         ScanResultViewModel lastResult = scanResults[scanResults.Count - 1];
         IDataValue initialDataValue = lastResult.CurrentValue;
+        NumericDisplayType ndt = lastResult.NumericDisplayType;
         SingleUserInputInfo input = new SingleUserInputInfo(
             $"Change {c} value{Lang.S(c)}",
             $"Immediately change the value at {Lang.ThisThese(c)} address{Lang.Es(c)}", "Value",
             DataValueUtils.GetStringFromDataValue(lastResult, initialDataValue)) {
             Validate = (args) => {
                 if (dataType.IsNumeric()) {
-                    DataValueUtils.TryParseNumericExpressionAsDataValue(args, dataType, lastResult.NumericDisplayType, out _, out _, initialDataValue);
+                    DataValueUtils.TryParseNumericExpressionAsDataValue(args, dataType, ndt, out _, out _, initialDataValue);
                 }
                 else {
-                    DataValueUtils.TryParseTextAsDataValue(args, dataType, lastResult.NumericDisplayType, lastResult.StringType, out _, canParseAsExpression: true);
+                    DataValueUtils.TryParseTextAsDataValue(args, dataType, ndt, lastResult.StringType, out _, canParseAsExpression: true);
                 }
             },
             DebounceErrorsDelay = 300 // add a delay between parsing, to reduce typing lag due to expression parsing
@@ -111,14 +112,14 @@ public class EditScanResultValueCommand : Command {
             return;
         }
 
-        IDataValue? directValue = dataType.IsNumeric() ? null : DataValueUtils.ParseTextAsDataValue(input.Text, dataType, lastResult.NumericDisplayType, lastResult.StringType, canParseAsExpression: true);
+        IDataValue? directValue = dataType.IsNumeric() ? null : DataValueUtils.ParseTextAsDataValue(input.Text, dataType, ndt, lastResult.StringType, canParseAsExpression: true);
         if (directValue == null) {
-            directValue = DataValueUtils.ParseNumericExpressionAsDataValue(input.Text, dataType, lastResult.NumericDisplayType, out bool isInitialValueReferenced, initialDataValue);
+            directValue = DataValueUtils.ParseNumericExpressionAsDataValue(input.Text, dataType, ndt, out bool isInitialValueReferenced, initialDataValue);
             if (isInitialValueReferenced) {
                 directValue = null;
             }
         }
-        
+
         Debug.Assert(directValue == null || dataType == directValue.DataType);
 
         using CancellationTokenSource cts = new CancellationTokenSource();
@@ -133,19 +134,26 @@ public class EditScanResultValueCommand : Command {
                 return;
             }
 
+            List<string> tmpErrors = new List<string>();
             foreach (ScanResultViewModel scanResult in scanResults) {
+                IDataValue? setValue = null;
                 ActivityManager.Instance.CurrentTask.ThrowIfCancellationRequested();
                 if (directValue != null) {
                     await MemoryEngine.WriteDataValue(engine.Connection, scanResult.Address, directValue);
+                    setValue = directValue;
                 }
                 else {
-                    Debug.Assert(scanResult.CurrentValue.DataType == dataType);
-                    directValue = DataValueUtils.ParseNumericExpressionAsDataValue(input.Text, dataType, lastResult.NumericDisplayType, out _, scanResult.CurrentValue);
+                    tmpErrors.Clear();
+                    IDataValue cv = scanResult.CurrentValue;
+                    if (cv.DataType == dataType && DataValueUtils.TryParseNumericExpressionAsDataValue(new ValidationArgs(input.Text, tmpErrors, false), dataType, ndt, out var value, out _, cv)) {
+                        await MemoryEngine.WriteDataValue(engine.Connection, scanResult.Address, value);
+                        setValue = value;
+                    }
                 }
 
-                await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                    scanResult.CurrentValue = directValue;
-                });
+                if (setValue != null) {
+                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(void () => scanResult.CurrentValue = setValue);
+                }
             }
         }, cts);
     }

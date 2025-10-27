@@ -144,18 +144,16 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
                         setValue = directValue;
                     }
                     else if (scanResult.Value != null && scanResult.DataType == dataType) {
+                        tmpErrors.Clear();
                         if (DataValueUtils.TryParseNumericExpressionAsDataValue(new ValidationArgs(input.Text, tmpErrors, false), dataType, lastResult.NumericDisplayType, out IDataValue? value, out _, scanResult.Value)) {
                             await MemoryEngine.WriteDataValue(engine.Connection, address.Value, value);
                             setValue = value;
                         }
                     }
 
-                    tmpErrors.Clear();
-
                     if (setValue != null) {
-                        IDataValue latestValue = await MemoryEngine.ReadDataValue(engine.Connection, address.Value, setValue);
                         await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                            switch (latestValue) {
+                            switch (setValue) {
                                 case DataValueString str:
                                     lastResult.StringType = str.StringType;
                                     lastResult.StringLength = str.Value.Length;
@@ -163,8 +161,8 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
                                 case DataValueByteArray arr: lastResult.ArrayLength = arr.Value.Length; break;
                             }
 
-                            scanResult.DataType = latestValue.DataType;
-                            scanResult.Value = latestValue;
+                            scanResult.DataType = setValue.DataType;
+                            scanResult.Value = setValue;
                         }, token: CancellationToken.None);
                     }
                 }

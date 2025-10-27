@@ -44,13 +44,14 @@ public sealed class DataTypedScanningContext : ScanningContext {
     internal const int ChunkSize = 0x10000; // 65536
     internal readonly double floatEpsilon = BasicApplicationConfiguration.Instance.FloatingPointEpsilon;
     internal readonly string inputA, inputB;
-    internal readonly bool isIntInputHexadecimal;
+    internal readonly bool isIntInputHexadecimal, isIntInputUnsigned;
     internal readonly bool nextScanUsesFirstValue, nextScanUsesPreviousValue;
     internal readonly FloatScanOption floatScanOption;
     internal readonly StringType stringType;
     internal readonly DataType dataType;
     internal readonly NumericScanType numericScanType;
     internal readonly StringComparison stringComparison;
+    internal readonly NumericDisplayType ndtInt;
     internal readonly bool isSecondInputRequired;
     internal readonly bool useExpressionParsing;
 
@@ -85,6 +86,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
         this.inputB = processor.InputB.Trim();
         this.useExpressionParsing = processor.UseExpressionParsing;
         this.isIntInputHexadecimal = processor.IsIntInputHexadecimal;
+        this.isIntInputUnsigned = processor.IsIntInputUnsigned;
         this.nextScanUsesFirstValue = !this.useExpressionParsing && processor.UseFirstValueForNextScan;
         this.nextScanUsesPreviousValue = !this.useExpressionParsing && processor.UsePreviousValueForNextScan;
         this.floatScanOption = processor.FloatScanOption;
@@ -97,6 +99,19 @@ public sealed class DataTypedScanningContext : ScanningContext {
                                      && this.dataType.IsNumeric()
                                      && !this.nextScanUsesFirstValue
                                      && !this.nextScanUsesPreviousValue;
+
+        if (!this.dataType.IsInteger()) {
+            this.ndtInt = NumericDisplayType.Normal;
+        }
+        else if (this.isIntInputHexadecimal) {
+            this.ndtInt = NumericDisplayType.Hexadecimal;
+        }
+        else if (this.isIntInputUnsigned) {
+            this.ndtInt = NumericDisplayType.Unsigned;
+        }
+        else {
+            this.ndtInt = NumericDisplayType.Normal;
+        }
     }
 
     /// <summary>
@@ -153,55 +168,57 @@ public sealed class DataTypedScanningContext : ScanningContext {
 
         if (this.useExpressionParsing) {
             try {
-                ParsingContext ctx = new ParsingContext() {
-                    DefaultIntegerParseMode = this.isIntInputHexadecimal ? IntegerParseMode.Hexadecimal : IntegerParseMode.Integer
-                };
-
-                const CompilationMethod method = CompilationMethod.IntermediateLanguage;
+                const CompilationMethod compileMethod = CompilationMethod.IntermediateLanguage;
                 switch (this.dataType) {
                     case DataType.Byte:
                     case DataType.Int16:
                     case DataType.Int32:
-                        if (this.isIntInputHexadecimal) {
+                        if (this.isIntInputUnsigned) {
                             this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForInteger<uint>());
-                            ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<uint>) this.evaluationContext);
-                            ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<uint>) this.evaluationContext);
-                            this.evaluator = MathEvaluation.CompileExpression<uint>("", this.inputA, ctx, method);
+                            this.evaluator = MathEvaluation.CompileExpression<uint>("", this.inputA, new ParsingContext {
+                                ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<uint>) this.evaluationContext),
+                                ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<uint>) this.evaluationContext)
+                            }, compileMethod);
                         }
                         else {
                             this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForInteger<int>());
-                            ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<int>) this.evaluationContext);
-                            ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<int>) this.evaluationContext);
-                            this.evaluator = MathEvaluation.CompileExpression<int>("", this.inputA, ctx, method);
+                            this.evaluator = MathEvaluation.CompileExpression<int>("", this.inputA, new ParsingContext {
+                                ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<int>) this.evaluationContext),
+                                ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<int>) this.evaluationContext)
+                            }, compileMethod);
                         }
 
                         break;
                     case DataType.Int64:
-                        if (this.isIntInputHexadecimal) {
+                        if (this.isIntInputUnsigned) {
                             this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForInteger<ulong>());
-                            ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<ulong>) this.evaluationContext);
-                            ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<ulong>) this.evaluationContext);
-                            this.evaluator = MathEvaluation.CompileExpression<ulong>("", this.inputA, ctx, method);
+                            this.evaluator = MathEvaluation.CompileExpression<ulong>("", this.inputA, new ParsingContext {
+                                ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<ulong>) this.evaluationContext),
+                                ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<ulong>) this.evaluationContext)
+                            }, compileMethod);
                         }
                         else {
                             this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForInteger<long>());
-                            ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<long>) this.evaluationContext);
-                            ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<long>) this.evaluationContext);
-                            this.evaluator = MathEvaluation.CompileExpression<long>("", this.inputA, ctx, method);
+                            this.evaluator = MathEvaluation.CompileExpression<long>("", this.inputA, new ParsingContext {
+                                ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<long>) this.evaluationContext),
+                                ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<long>) this.evaluationContext)
+                            }, compileMethod);
                         }
 
                         break;
                     case DataType.Float:
                         this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForFloat());
-                        ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext);
-                        ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext);
-                        this.evaluator = MathEvaluation.CompileExpression<float>("", this.inputA, ctx, method);
+                        this.evaluator = MathEvaluation.CompileExpression<float>("", this.inputA, new ParsingContext {
+                            ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext),
+                            ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext)
+                        }, compileMethod);
                         break;
                     case DataType.Double:
                         this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForDouble());
-                        ctx.ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<double>) this.evaluationContext);
-                        ctx.ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<double>) this.evaluationContext);
-                        this.evaluator = MathEvaluation.CompileExpression<double>("", this.inputA, ctx, method);
+                        this.evaluator = MathEvaluation.CompileExpression<double>("", this.inputA, new ParsingContext {
+                            ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<double>) this.evaluationContext),
+                            ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<double>) this.evaluationContext)
+                        }, compileMethod);
                         break;
                     case DataType.String:
                         await IMessageDialogService.Instance.ShowMessage("Data Type", "Cannot use strings when using expression parsing", icon: MessageBoxIcons.ErrorIcon);
@@ -224,14 +241,13 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
 
         if (this.dataType.IsNumeric() && !this.useExpressionParsing) {
-            NumericDisplayType ndt = this.dataType.IsInteger() && this.isIntInputHexadecimal ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
-            if (!TryParseNumeric(this.inputA, this.dataType, ndt, out this.numericInputA /*, this.reverseEndianness*/)) {
+            if (!this.TryParseNumeric(this.inputA, out this.numericInputA /*, this.reverseEndianness*/)) {
                 await IMessageDialogService.Instance.ShowMessage("Invalid input", $"{(this.isSecondInputRequired ? "FROM value" : "Input")} is invalid '{this.inputA}'. Cannot be parsed as {this.dataType}.", icon: MessageBoxIcons.ErrorIcon);
                 return false;
             }
 
             if (this.isSecondInputRequired) {
-                if (!TryParseNumeric(this.inputB, this.dataType, ndt, out this.numericInputB /*, this.reverseEndianness*/)) {
+                if (!this.TryParseNumeric(this.inputB, out this.numericInputB /*, this.reverseEndianness*/)) {
                     await IMessageDialogService.Instance.ShowMessage("Invalid input", $"TO value is invalid '{this.inputB}'. Cannot be parsed as {this.dataType}.", icon: MessageBoxIcons.ErrorIcon);
                     return false;
                 }
@@ -267,7 +283,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
             ctx.SetVariable("f", default);
             ctx.SetVariable("p", default);
         }
-        
+
         return ctx;
     }
 
@@ -309,8 +325,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 }
 
                 if (matchBoxed != null) {
-                    NumericDisplayType ndt = this.isIntInputHexadecimal && this.dataType.IsInteger() ? NumericDisplayType.Hexadecimal : NumericDisplayType.Normal;
-                    this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, this.dataType, ndt, this.stringType, matchBoxed));
+                    this.ResultFound?.Invoke(this, new ScanResultViewModel(this.Processor, address + i, this.dataType, this.ndtInt, this.stringType, matchBoxed));
                 }
             }
         }
@@ -363,7 +378,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
 
     private IDataValue? RunEvaluator32(ReadOnlySpan<byte> memory, ScanResultViewModel? scanResult) {
         int value = ValueScannerUtils.CreateInt32FromBytes(this.dataType, memory, this.isConnectionLittleEndian);
-        if (this.isIntInputHexadecimal) {
+        if (this.isIntInputUnsigned) {
             EvaluationContext<uint> ctx = Unsafe.As<object, EvaluationContext<uint>>(ref this.evaluationContext!);
             ctx.SetVariable("v", (uint) value);
             if (scanResult != null) {
@@ -422,7 +437,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
 
     private IDataValue? RunEvaluator64(ReadOnlySpan<byte> memory, ScanResultViewModel? scanResult) {
         long value = this.isConnectionLittleEndian ? BinaryPrimitives.ReadInt64LittleEndian(memory) : BinaryPrimitives.ReadInt64BigEndian(memory);
-        if (this.isIntInputHexadecimal) {
+        if (this.isIntInputUnsigned) {
             EvaluationContext<ulong> ctx = Unsafe.As<object, EvaluationContext<ulong>>(ref this.evaluationContext!);
             ctx.SetVariable("v", (ulong) value);
             if (scanResult != null) {
@@ -734,35 +749,56 @@ public sealed class DataTypedScanningContext : ScanningContext {
     }
 
     [SuppressMessage("ReSharper", "AssignmentInConditionalExpression")]
-    private static bool TryParseNumeric(string text, DataType dataType, NumericDisplayType ndt, out ulong value /*, bool reverseEndianness*/) {
+    private bool TryParseNumeric(string text, out ulong value /*, bool reverseEndianness*/) {
         const NumberStyles floatNs = NumberStyles.Integer | NumberStyles.AllowDecimalPoint;
 
         bool result;
         value = 0;
-        NumberStyles intNumStyle = ndt == NumericDisplayType.Hexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
-        switch (dataType) {
+        NumberStyles intNumStyle = this.isIntInputHexadecimal ? NumberStyles.HexNumber : NumberStyles.Integer;
+        switch (this.dataType) {
             case DataType.Byte: {
                 if (result = byte.TryParse(text, intNumStyle, null, out byte val))
                     value = val;
                 break;
             }
             case DataType.Int16: {
-                if (result = short.TryParse(text, intNumStyle, null, out short val))
-                    value = (ulong) val;
+                if (this.isIntInputUnsigned) {
+                    if (result = ushort.TryParse(text, intNumStyle, null, out ushort val))
+                        value = val;
+                }
+                else {
+                    if (result = short.TryParse(text, intNumStyle, null, out short val))
+                        value = (ulong) val;
+                }
+
                 break;
             }
             case DataType.Int32: {
-                if (result = int.TryParse(text, intNumStyle, null, out int val))
-                    value = (ulong) val;
+                if (this.isIntInputUnsigned) {
+                    if (result = uint.TryParse(text, intNumStyle, null, out uint val))
+                        value = val;
+                }
+                else {
+                    if (result = int.TryParse(text, intNumStyle, null, out int val))
+                        value = (ulong) val;
+                }
+
                 break;
             }
             case DataType.Int64: {
-                if (result = long.TryParse(text, intNumStyle, null, out long val))
-                    value = (ulong) val;
+                if (this.isIntInputUnsigned) {
+                    if (result = ulong.TryParse(text, intNumStyle, null, out ulong val))
+                        value = val;
+                }
+                else {
+                    if (result = long.TryParse(text, intNumStyle, null, out long val))
+                        value = (ulong) val;
+                }
+
                 break;
             }
             case DataType.Float: {
-                if (ndt == NumericDisplayType.Hexadecimal) {
+                if (this.isIntInputHexadecimal) {
                     if (result = uint.TryParse(text, NumberStyles.HexNumber, null, out uint val)) {
                         value = val;
                     }
@@ -778,7 +814,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 break;
             }
             case DataType.Double: {
-                if (ndt == NumericDisplayType.Hexadecimal) {
+                if (this.isIntInputHexadecimal) {
                     if (result = ulong.TryParse(text, NumberStyles.HexNumber, null, out ulong val)) {
                         value = val;
                     }

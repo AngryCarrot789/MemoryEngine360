@@ -48,7 +48,8 @@ public class ScanningProcessor {
     private bool hasDoneFirstScan;
     private bool isScanning;
     private uint alignment;
-    private bool pauseConsoleDuringScan, scanMemoryPages, isIntInputHexadecimal;
+    private bool pauseConsoleDuringScan, scanMemoryPages;
+    private bool isIntInputHexadecimal, isIntInputUnsigned;
     private bool nextScanUsesFirstValue, nextScanUsesPreviousValue;
     private FloatScanOption floatScanOption;
     private StringType stringScanOption;
@@ -161,6 +162,26 @@ public class ScanningProcessor {
                 this.IsIntInputHexadecimalChanged?.Invoke(this);
                 BasicApplicationConfiguration.Instance.DTInt_UseHexValue = value;
             }
+            
+            if (value) {
+                this.IsIntInputUnsigned = false;
+                this.UseExpressionParsing = false;
+            }
+        }
+    }
+
+    public bool IsIntInputUnsigned {
+        get => this.isIntInputUnsigned;
+        set {
+            if (this.isIntInputUnsigned != value) {
+                this.isIntInputUnsigned = value;
+                this.IsIntInputUnsignedChanged?.Invoke(this);
+                BasicApplicationConfiguration.Instance.DTInt_UseUnsignedValue = value;
+
+                if (value) {
+                    this.IsIntInputHexadecimal = false;
+                }
+            }
         }
     }
 
@@ -245,6 +266,7 @@ public class ScanningProcessor {
             if (this.useExpressionParsing != value) {
                 if (value) {
                     this.ScanForAnyDataType = false;
+                    this.IsIntInputHexadecimal = false;
                 }
 
                 if (value && (this.DataType == DataType.ByteArray || this.DataType == DataType.String)) {
@@ -318,6 +340,7 @@ public class ScanningProcessor {
     public event ScanningProcessorEventHandler? IsScanningChanged;
     public event ScanningProcessorEventHandler? PauseConsoleDuringScanChanged;
     public event ScanningProcessorEventHandler? IsIntInputHexadecimalChanged;
+    public event ScanningProcessorEventHandler? IsIntInputUnsignedChanged;
     public event ScanningProcessorEventHandler? UseFirstValueForNextScanChanged;
     public event ScanningProcessorEventHandler? UsePreviousValueForNextScanChanged;
     public event ScanningProcessorEventHandler? FloatScanModeChanged;
@@ -353,13 +376,14 @@ public class ScanningProcessor {
             this.ScanLength = uint.MaxValue - this.StartAddress;
         }
 
-        this.alignment = this.dataType.GetAlignmentFromDataType();
-        this.pauseConsoleDuringScan = cfg.PauseConsoleDuringScan;
-        this.scanMemoryPages = cfg.ScanMemoryPages;
-        this.isIntInputHexadecimal = cfg.DTInt_UseHexValue;
-        this.floatScanOption = cfg.DTFloat_Mode;
-        this.stringScanOption = cfg.DTString_Mode;
-        this.stringIgnoreCase = cfg.DTString_IgnoreCase;
+        this.Alignment = this.dataType.GetAlignmentFromDataType();
+        this.PauseConsoleDuringScan = cfg.PauseConsoleDuringScan;
+        this.ScanMemoryPages = cfg.ScanMemoryPages;
+        this.IsIntInputHexadecimal = cfg.DTInt_UseHexValue;
+        this.IsIntInputUnsigned = cfg.DTInt_UseUnsignedValue;
+        this.FloatScanOption = cfg.DTFloat_Mode;
+        this.StringScanOption = cfg.DTString_Mode;
+        this.StringIgnoreCase = cfg.DTString_IgnoreCase;
 
         this.resultBuffer = new ConcurrentQueue<ScanResultViewModel>();
 

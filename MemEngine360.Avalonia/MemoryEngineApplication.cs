@@ -124,6 +124,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.FirstScanCommand", new FirstScanCommand());
         manager.Register("commands.memengine.NextScanCommand", new NextScanCommand());
         manager.Register("commands.memengine.ResetScanCommand", new ResetScanCommand());
+        manager.Register("commands.memengine.CancelScanCommand", new CancelScanCommand());
         manager.Register("commands.memengine.ClearSavedAddressesCommand", new ClearSavedAddressesCommand());
         manager.Register("commands.memengine.AddSavedAddressCommand", new AddSavedAddressCommand());
         manager.Register("commands.memengine.EditScanResultValueCommand", new EditScanResultValueCommand());

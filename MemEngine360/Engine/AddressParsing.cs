@@ -79,14 +79,13 @@ public static class AddressParsing {
             }
 
             if (canParseAsExpression) {
-                ParsingContext ctx = new ParsingContext() { DefaultIntegerParseMode = IntegerParseMode.Hexadecimal };
                 try {
                     if (is32bit) {
-                        Evaluator<uint> expression = MathEvaluation.CompileExpression<uint>("", input, ctx, CompilationMethod.Functional);
+                        Evaluator<uint> expression = MathEvaluation.CompileExpression<uint>("", input, CompilationMethod.Functional);
                         value = expression(DefaultU32EvalCtx);
                     }
                     else {
-                        Evaluator<ulong> expression = MathEvaluation.CompileExpression<ulong>("", input, ctx, CompilationMethod.Functional);
+                        Evaluator<ulong> expression = MathEvaluation.CompileExpression<ulong>("", input, CompilationMethod.Functional);
                         value = expression(DefaultU64EvalCtx);
                     }
 

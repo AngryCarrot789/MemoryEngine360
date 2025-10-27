@@ -77,6 +77,12 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
             "DTInt_UseHexValue",
             defaultValue: false,
             owner => owner.dtInt_UseHexValueProperty, (x, y) => x.dtInt_UseHexValueProperty = y, false);
+    
+    public static readonly PersistentProperty<bool> DTInt_UseUnsignedValueProperty =
+        PersistentProperty.RegisterBool<BasicApplicationConfiguration>(
+            "DTInt_UseUnsignedValue",
+            defaultValue: false,
+            owner => owner.dtInt_UseUnsignedValueProperty, (x, y) => x.dtInt_UseUnsignedValueProperty = y, false);
 
     public static readonly PersistentProperty<bool> DTString_IgnoreCaseProperty =
         PersistentProperty.RegisterBool<BasicApplicationConfiguration>(
@@ -155,6 +161,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     private bool pauseConsoleDuringScan = PauseConsoleDuringScanProperty.DefaultValue;
     private bool scanMemoryPages = ScanMemoryPagesProperty.DefaultValue;
     private bool dtInt_UseHexValueProperty = DTInt_UseHexValueProperty.DefaultValue;
+    private bool dtInt_UseUnsignedValueProperty = DTInt_UseUnsignedValueProperty.DefaultValue;
     private bool dtString_IgnoreCase = DTString_IgnoreCaseProperty.DefaultValue;
     private FloatScanOption dtFloat_Mode = DTFloat_ModeProperty.DefaultValue;
     private StringType dtString_Mode = DTString_ModeProperty.DefaultValue;
@@ -226,6 +233,11 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public bool DTInt_UseHexValue {
         get => DTInt_UseHexValueProperty.GetValue(this);
         set => DTInt_UseHexValueProperty.SetValue(this, value);
+    }
+    
+    public bool DTInt_UseUnsignedValue {
+        get => DTInt_UseUnsignedValueProperty.GetValue(this);
+        set => DTInt_UseUnsignedValueProperty.SetValue(this, value);
     }
 
     public bool DTString_IgnoreCase {

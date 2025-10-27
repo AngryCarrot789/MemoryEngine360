@@ -64,3 +64,4 @@ public class BaseScanCommandUsage : EngineButtonCommandUsage {
 public class FirstScanCommandUsage() : BaseScanCommandUsage("commands.memengine.FirstScanCommand");
 public class NextScanCommandUsage() : BaseScanCommandUsage("commands.memengine.NextScanCommand");
 public class ResetScanCommandUsage() : BaseScanCommandUsage("commands.memengine.ResetScanCommand");
+public class CancelScanCommandUsage() : BaseScanCommandUsage("commands.memengine.CancelScanCommand");

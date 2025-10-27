@@ -115,6 +115,7 @@ public partial class EngineView : UserControl {
     private readonly EventPropertyEnumBinder<FloatScanOption> floatScanModeBinder = new EventPropertyEnumBinder<FloatScanOption>(typeof(ScanningProcessor), nameof(ScanningProcessor.FloatScanModeChanged), (x) => ((ScanningProcessor) x).FloatScanOption, (x, v) => ((ScanningProcessor) x).FloatScanOption = v);
     private readonly EventPropertyEnumBinder<StringType> stringScanModeBinder = new EventPropertyEnumBinder<StringType>(typeof(ScanningProcessor), nameof(ScanningProcessor.StringScanModeChanged), (x) => ((ScanningProcessor) x).StringScanOption, (x, v) => ((ScanningProcessor) x).StringScanOption = v);
     private readonly IBinder<ScanningProcessor> int_isHexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.IsIntInputHexadecimalChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.IsIntInputHexadecimal, (b) => b.Model.IsIntInputHexadecimal = ((ToggleButton) b.Control).IsChecked == true);
+    private readonly IBinder<ScanningProcessor> int_isUnsignedBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.IsIntInputUnsignedChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.IsIntInputUnsigned, (b) => b.Model.IsIntInputUnsigned = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> useFirstValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.UseFirstValueForNextScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.UseFirstValueForNextScan, (b) => b.Model.UseFirstValueForNextScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> usePrevValueBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.UsePreviousValueForNextScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.UsePreviousValueForNextScan, (b) => b.Model.UsePreviousValueForNextScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(ScanningProcessor), nameof(ScanningProcessor.DataTypeChanged), (x) => ((ScanningProcessor) x).DataType, (x, y) => ((ScanningProcessor) x).DataType = y);
@@ -387,6 +388,7 @@ public partial class EngineView : UserControl {
         this.floatScanModeBinder.Attach(processor);
         this.stringScanModeBinder.Attach(processor);
         this.int_isHexBinder.Attach(this.PART_DTInt_IsHex, processor);
+        this.int_isUnsignedBinder.Attach(this.PART_DTInt_IsUnsigned, processor);
         this.useFirstValueBinder.Attach(this.PART_UseFirstValue, processor);
         this.usePrevValueBinder.Attach(this.PART_UsePreviousValue, processor);
         this.dataTypeBinder.Attach(this.PART_DataTypeCombo, processor);
@@ -486,6 +488,7 @@ public partial class EngineView : UserControl {
         this.floatScanModeBinder.Detach();
         this.stringScanModeBinder.Detach();
         this.int_isHexBinder.Detach();
+        this.int_isUnsignedBinder.Detach();
         this.useFirstValueBinder.Detach();
         this.usePrevValueBinder.Detach();
         this.dataTypeBinder.Detach();
@@ -541,7 +544,11 @@ public partial class EngineView : UserControl {
             this.PART_ValueFieldLabel.Text = isExpr ? "Expression" : "Value";
             this.PART_UseFirstOrPrevButtonGrid.IsVisible = !isExpr && !isAny && isNumeric;
             this.PART_CompareModePanelInteger.IsVisible = !isExpr;
+            this.PART_WarningExpressionHexTextBlock.IsVisible = isExpr;
+            this.PART_DTInt_IsHex.IsEnabled = !isExpr;
             this.PART_CompareModePanelFloating.IsVisible = !isExpr;
+            this.PART_DTFloat_Truncate.IsVisible = !isExpr;
+            this.PART_DTFloat_RoundToQuery.IsVisible = !isExpr;
 
             if (this.inputBetweenABinder.IsFullyAttached)
                 this.inputBetweenABinder.Detach();
