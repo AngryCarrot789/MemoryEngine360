@@ -228,6 +228,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.scripting.SaveAllScriptsCommand", new SaveAllScriptsCommand());
         manager.Register("commands.scripting.ConnectScriptToConsoleCommand", new ConnectScriptToConsoleCommand());
         manager.Register("commands.scripting.OpenScriptFileCommand", new OpenScriptFileCommand());
+        manager.Register("commands.scripting.CopyScriptFilePathCommand", new CopyScriptFilePathCommand());
 
         // struct viewer
         manager.Register("commands.structviewer.ShowStructViewerWindowCommand", new ShowStructViewerWindowCommand());
@@ -243,6 +244,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.modtools.SaveAllModToolsCommand", new SaveAllModToolsCommand());
         manager.Register("commands.modtools.CloseModToolCommand", new CloseModToolCommand());
         manager.Register("commands.modtools.RenameModToolCommand", new RenameModToolCommand());
+        manager.Register("commands.modtools.CopyModToolFilePathCommand", new CopyModToolFilePathCommand());
 
         // History
         // manager.Register("commands.application.UndoCommand", new UndoCommand());
@@ -405,7 +407,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     desktop.ApplicationLifetime.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
                 IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
-                    Title = "Memory Engine 360 v1.2.0",
+                    Title = "Memory Engine 360 v1.2.1",
                     FocusPath = "EngineWindow",
                     Content = new OverlayContentHostRoot() {
                         Content = new EngineView()

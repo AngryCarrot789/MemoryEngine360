@@ -46,6 +46,8 @@ public static class ScriptTabContextRegistry {
         general.AddCommand("commands.scripting.SaveScriptAsCommand", "Save As...");
         general.AddCommand("commands.scripting.SaveAllScriptsCommand", "Save All");
         general.AddSeparator();
+        general.AddCommand("commands.scripting.CopyScriptFilePathCommand", "Copy File Path");
+        general.AddSeparator();
         general.AddCommand("commands.scripting.ConnectScriptToConsoleCommand", "Connect to console...", "Connect using a dedicated connection instead of using the engine's connection", SimpleIcons.ConnectToConsoleDedicatedIcon);
     }
 }

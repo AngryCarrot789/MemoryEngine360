@@ -38,11 +38,13 @@ public class ModToolTabItem : TabItem {
     }
 
     private readonly IBinder<ModTool> nameBinder = new MultiEventUpdateBinder<ModTool>([nameof(ModTool.FilePathChanged), nameof(ModTool.HasUnsavedChangesChanged)], b => ((ModToolTabItem) b.Control).Header = (b.Model.Name ?? "(unnammed script)") + (b.Model.HasUnsavedChanges ? "*" : ""));
+    private readonly IBinder<ModTool> toolTipBinder = new EventUpdateBinder<ModTool>(nameof(ModTool.FilePathChanged), b => ToolTip.SetTip((ModToolTabItem) b.Control, b.Model.FilePath ?? AvaloniaProperty.UnsetValue));
 
     private Button? PART_CloseTabButton;
 
     public ModToolTabItem() {
         this.nameBinder.AttachControl(this);
+        this.toolTipBinder.AttachControl(this);
     }
 
     static ModToolTabItem() {
@@ -68,6 +70,7 @@ public class ModToolTabItem : TabItem {
             AdvancedContextMenu.SetContextRegistry(this, null);
         
         this.nameBinder.SwitchModel(newValue);
+        this.toolTipBinder.SwitchModel(newValue);
         DataManager.GetContextData(this).Set(ModTool.DataKey, newValue);
         
         if (newValue != null)

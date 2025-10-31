@@ -41,6 +41,9 @@ public delegate void ScanningContextResultEventHandler(ScanningContext sender, S
 /// A class used to perform scanning operations. This class takes a snapshot of the options in <see cref="ScanningProcessor"/>
 /// </summary>
 public sealed class DataTypedScanningContext : ScanningContext {
+    public const string FirstValueVariableName = "first";
+    public const string PreviousValueVariableName = "prev";
+    
     internal const int ChunkSize = 0x10000; // 65536
     internal readonly double floatEpsilon = BasicApplicationConfiguration.Instance.FloatingPointEpsilon;
     internal readonly string inputA, inputB;
@@ -167,6 +170,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
 
         if (this.useExpressionParsing) {
+            IntegerParseMode parseMode = this.dataType.IsInteger() && this.isIntInputHexadecimal ? IntegerParseMode.Hexadecimal : IntegerParseMode.Integer;
             try {
                 const CompilationMethod compileMethod = CompilationMethod.IntermediateLanguage;
                 switch (this.dataType) {
@@ -177,14 +181,16 @@ public sealed class DataTypedScanningContext : ScanningContext {
                             this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForInteger<uint>());
                             this.evaluator = MathEvaluation.CompileExpression<uint>("", this.inputA, new ParsingContext {
                                 ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<uint>) this.evaluationContext),
-                                ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<uint>) this.evaluationContext)
+                                ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<uint>) this.evaluationContext),
+                                DefaultIntegerParseMode = parseMode
                             }, compileMethod);
                         }
                         else {
                             this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForInteger<int>());
                             this.evaluator = MathEvaluation.CompileExpression<int>("", this.inputA, new ParsingContext {
                                 ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<int>) this.evaluationContext),
-                                ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<int>) this.evaluationContext)
+                                ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<int>) this.evaluationContext),
+                                DefaultIntegerParseMode = parseMode
                             }, compileMethod);
                         }
 
@@ -194,14 +200,16 @@ public sealed class DataTypedScanningContext : ScanningContext {
                             this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForInteger<ulong>());
                             this.evaluator = MathEvaluation.CompileExpression<ulong>("", this.inputA, new ParsingContext {
                                 ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<ulong>) this.evaluationContext),
-                                ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<ulong>) this.evaluationContext)
+                                ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<ulong>) this.evaluationContext),
+                                DefaultIntegerParseMode = parseMode
                             }, compileMethod);
                         }
                         else {
                             this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForInteger<long>());
                             this.evaluator = MathEvaluation.CompileExpression<long>("", this.inputA, new ParsingContext {
                                 ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<long>) this.evaluationContext),
-                                ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<long>) this.evaluationContext)
+                                ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<long>) this.evaluationContext),
+                                DefaultIntegerParseMode = parseMode
                             }, compileMethod);
                         }
 
@@ -210,14 +218,16 @@ public sealed class DataTypedScanningContext : ScanningContext {
                         this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForFloat());
                         this.evaluator = MathEvaluation.CompileExpression<float>("", this.inputA, new ParsingContext {
                             ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext),
-                            ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext)
+                            ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<float>) this.evaluationContext),
+                            DefaultIntegerParseMode = parseMode
                         }, compileMethod);
                         break;
                     case DataType.Double:
                         this.evaluationContext = this.AssignDefaultVariables(EvaluationContexts.CreateForDouble());
                         this.evaluator = MathEvaluation.CompileExpression<double>("", this.inputA, new ParsingContext {
                             ValidateFunction = ParsingContext.CreateFunctionValidatorForEvaluationContext((IEvaluationContext<double>) this.evaluationContext),
-                            ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<double>) this.evaluationContext)
+                            ValidateVariable = ParsingContext.CreateVariableValidatorForEvaluationContext((IEvaluationContext<double>) this.evaluationContext),
+                            DefaultIntegerParseMode = parseMode
                         }, compileMethod);
                         break;
                     case DataType.String:
@@ -280,8 +290,8 @@ public sealed class DataTypedScanningContext : ScanningContext {
     private EvaluationContext<T> AssignDefaultVariables<T>(EvaluationContext<T> ctx) where T : unmanaged, INumber<T> {
         ctx.SetVariable("v", default);
         if (this.Processor.HasDoneFirstScan) {
-            ctx.SetVariable("f", default);
-            ctx.SetVariable("p", default);
+            ctx.SetVariable(FirstValueVariableName, default);
+            ctx.SetVariable(PreviousValueVariableName, default);
         }
 
         return ctx;
@@ -382,14 +392,14 @@ public sealed class DataTypedScanningContext : ScanningContext {
             EvaluationContext<uint> ctx = Unsafe.As<object, EvaluationContext<uint>>(ref this.evaluationContext!);
             ctx.SetVariable("v", (uint) value);
             if (scanResult != null) {
-                ctx.SetVariable("f", this.dataType switch {
+                ctx.SetVariable(FirstValueVariableName, this.dataType switch {
                     DataType.Byte => ((DataValueByte) scanResult.FirstValue).Value,
                     DataType.Int16 => (ushort) ((DataValueInt16) scanResult.FirstValue).Value,
                     DataType.Int32 => (uint) ((DataValueInt32) scanResult.FirstValue).Value,
                     _ => throw new ArgumentOutOfRangeException()
                 });
 
-                ctx.SetVariable("p", this.dataType switch {
+                ctx.SetVariable(PreviousValueVariableName, this.dataType switch {
                     DataType.Byte => ((DataValueByte) scanResult.PreviousValue).Value,
                     DataType.Int16 => (ushort) ((DataValueInt16) scanResult.PreviousValue).Value,
                     DataType.Int32 => (uint) ((DataValueInt32) scanResult.PreviousValue).Value,
@@ -406,14 +416,14 @@ public sealed class DataTypedScanningContext : ScanningContext {
             EvaluationContext<int> ctx = Unsafe.As<object, EvaluationContext<int>>(ref this.evaluationContext!);
             ctx.SetVariable("v", value);
             if (scanResult != null) {
-                ctx.SetVariable("f", this.dataType switch {
+                ctx.SetVariable(FirstValueVariableName, this.dataType switch {
                     DataType.Byte => ((DataValueByte) scanResult.FirstValue).Value,
                     DataType.Int16 => ((DataValueInt16) scanResult.FirstValue).Value,
                     DataType.Int32 => ((DataValueInt32) scanResult.FirstValue).Value,
                     _ => throw new ArgumentOutOfRangeException()
                 });
 
-                ctx.SetVariable("p", this.dataType switch {
+                ctx.SetVariable(PreviousValueVariableName, this.dataType switch {
                     DataType.Byte => ((DataValueByte) scanResult.PreviousValue).Value,
                     DataType.Int16 => ((DataValueInt16) scanResult.PreviousValue).Value,
                     DataType.Int32 => ((DataValueInt32) scanResult.PreviousValue).Value,
@@ -441,8 +451,8 @@ public sealed class DataTypedScanningContext : ScanningContext {
             EvaluationContext<ulong> ctx = Unsafe.As<object, EvaluationContext<ulong>>(ref this.evaluationContext!);
             ctx.SetVariable("v", (ulong) value);
             if (scanResult != null) {
-                ctx.SetVariable("f", (ulong) ((DataValueInt64) scanResult.FirstValue).Value);
-                ctx.SetVariable("p", (ulong) ((DataValueInt64) scanResult.PreviousValue).Value);
+                ctx.SetVariable(FirstValueVariableName, (ulong) ((DataValueInt64) scanResult.FirstValue).Value);
+                ctx.SetVariable(PreviousValueVariableName, (ulong) ((DataValueInt64) scanResult.PreviousValue).Value);
             }
 
             ulong result = Unsafe.As<Delegate, Evaluator<ulong>>(ref this.evaluator!)(ctx);
@@ -452,8 +462,8 @@ public sealed class DataTypedScanningContext : ScanningContext {
             EvaluationContext<long> ctx = Unsafe.As<object, EvaluationContext<long>>(ref this.evaluationContext!);
             ctx.SetVariable("v", value);
             if (scanResult != null) {
-                ctx.SetVariable("f", ((DataValueInt64) scanResult.FirstValue).Value);
-                ctx.SetVariable("p", ((DataValueInt64) scanResult.PreviousValue).Value);
+                ctx.SetVariable(FirstValueVariableName, ((DataValueInt64) scanResult.FirstValue).Value);
+                ctx.SetVariable(PreviousValueVariableName, ((DataValueInt64) scanResult.PreviousValue).Value);
             }
 
             long result = Unsafe.As<Delegate, Evaluator<long>>(ref this.evaluator!)(ctx);
@@ -466,8 +476,8 @@ public sealed class DataTypedScanningContext : ScanningContext {
         EvaluationContext<float> ctx = Unsafe.As<object, EvaluationContext<float>>(ref this.evaluationContext!);
         ctx.SetVariable("v", value);
         if (scanResult != null) {
-            ctx.SetVariable("f", ((DataValueFloat) scanResult.FirstValue).Value);
-            ctx.SetVariable("p", ((DataValueFloat) scanResult.PreviousValue).Value);
+            ctx.SetVariable(FirstValueVariableName, ((DataValueFloat) scanResult.FirstValue).Value);
+            ctx.SetVariable(PreviousValueVariableName, ((DataValueFloat) scanResult.PreviousValue).Value);
         }
 
         float result = Unsafe.As<Delegate, Evaluator<float>>(ref this.evaluator!)(ctx);
@@ -480,8 +490,8 @@ public sealed class DataTypedScanningContext : ScanningContext {
         EvaluationContext<double> ctx = Unsafe.As<object, EvaluationContext<double>>(ref this.evaluationContext!);
         ctx.SetVariable("v", value);
         if (scanResult != null) {
-            ctx.SetVariable("f", ((DataValueDouble) scanResult.FirstValue).Value);
-            ctx.SetVariable("p", ((DataValueDouble) scanResult.PreviousValue).Value);
+            ctx.SetVariable(FirstValueVariableName, ((DataValueDouble) scanResult.FirstValue).Value);
+            ctx.SetVariable(PreviousValueVariableName, ((DataValueDouble) scanResult.PreviousValue).Value);
         }
 
         double result = Unsafe.As<Delegate, Evaluator<double>>(ref this.evaluator!)(ctx);

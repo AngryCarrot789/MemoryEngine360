@@ -63,9 +63,8 @@ public static class AddressParsing {
                 }
                 else if (ulong.TryParse(inputSpan, NumberStyles.HexNumber, formatProvider, out _)) {
                     error = "Address is too large. The maximum is 0xFFFFFFFF";
-                }
-                else {
-                    error = null;
+                    value = 0;
+                    return false;
                 }
             }
             else {
@@ -74,18 +73,17 @@ public static class AddressParsing {
                     value = u64value;
                     return true;
                 }
-
-                error = null;
             }
 
             if (canParseAsExpression) {
+                ParsingContext ctx = new ParsingContext() { DefaultIntegerParseMode = IntegerParseMode.Hexadecimal };
                 try {
                     if (is32bit) {
-                        Evaluator<uint> expression = MathEvaluation.CompileExpression<uint>("", input, CompilationMethod.Functional);
+                        Evaluator<uint> expression = MathEvaluation.CompileExpression<uint>("", input, ctx, CompilationMethod.Functional);
                         value = expression(DefaultU32EvalCtx);
                     }
                     else {
-                        Evaluator<ulong> expression = MathEvaluation.CompileExpression<ulong>("", input, CompilationMethod.Functional);
+                        Evaluator<ulong> expression = MathEvaluation.CompileExpression<ulong>("", input, ctx, CompilationMethod.Functional);
                         value = expression(DefaultU64EvalCtx);
                     }
 

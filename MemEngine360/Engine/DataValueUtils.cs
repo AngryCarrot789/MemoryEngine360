@@ -240,6 +240,12 @@ public static class DataValueUtils {
             throw new ArgumentException("Data type does not match initial value's data type");
         }
 
+        ParsingContext ctx = new ParsingContext() {
+            DefaultIntegerParseMode = dataType.IsInteger() && ndt == NumericDisplayType.Hexadecimal
+                ? IntegerParseMode.Hexadecimal
+                : IntegerParseMode.Integer
+        };
+        
         const CompilationMethod CompilationMethod = CompilationMethod.Functional;
 
         try {
@@ -252,7 +258,7 @@ public static class DataValueUtils {
                         if (initialValue != null)
                             ((EvaluationContext<uint>) evalCtx).SetVariable("v", (uint) ((DataValueNumeric) initialValue).ToInt());
 
-                        uint value = CompileExpressionHelper<uint>("", args.Input, default, CompilationMethod, out isInitialValueReferenced)(evalCtx);
+                        uint value = CompileExpressionHelper<uint>("", args.Input, ctx, CompilationMethod, out isInitialValueReferenced)(evalCtx);
                         return dataType switch {
                             DataType.Byte => IDataValue.CreateNumeric((byte) value),
                             DataType.Int16 => IDataValue.CreateNumeric((short) value),
@@ -265,7 +271,7 @@ public static class DataValueUtils {
                         if (initialValue != null)
                             ((EvaluationContext<int>) evalCtx).SetVariable("v", ((DataValueNumeric) initialValue).ToInt());
 
-                        int value = CompileExpressionHelper<int>("", args.Input, default, CompilationMethod, out isInitialValueReferenced)(evalCtx);
+                        int value = CompileExpressionHelper<int>("", args.Input, ctx, CompilationMethod, out isInitialValueReferenced)(evalCtx);
                         return dataType switch {
                             DataType.Byte => IDataValue.CreateNumeric((byte) value),
                             DataType.Int16 => IDataValue.CreateNumeric((short) value),
@@ -281,14 +287,14 @@ public static class DataValueUtils {
                         if (initialValue != null)
                             ((EvaluationContext<ulong>) evalCtx).SetVariable("v", (ulong) ((DataValueNumeric) initialValue).ToLong());
 
-                        value = (long) CompileExpressionHelper<ulong>("", args.Input, default, CompilationMethod, out isInitialValueReferenced)(evalCtx);
+                        value = (long) CompileExpressionHelper<ulong>("", args.Input, ctx, CompilationMethod, out isInitialValueReferenced)(evalCtx);
                     }
                     else {
                         IEvaluationContext<long> evalCtx = initialValue == null ? DefaultI64EvalCtx : EvaluationContexts.CreateForInteger<long>();
                         if (initialValue != null)
                             ((EvaluationContext<long>) evalCtx).SetVariable("v", ((DataValueNumeric) initialValue).ToLong());
 
-                        value = CompileExpressionHelper<long>("", args.Input, default, CompilationMethod, out isInitialValueReferenced)(evalCtx);
+                        value = CompileExpressionHelper<long>("", args.Input, ctx, CompilationMethod, out isInitialValueReferenced)(evalCtx);
                     }
 
                     return new DataValueInt64(value);
@@ -298,14 +304,14 @@ public static class DataValueUtils {
                     if (initialValue != null)
                         ((EvaluationContext<float>) evalCtx).SetVariable("v", ((DataValueNumeric) initialValue).ToFloat());
 
-                    return new DataValueFloat(CompileExpressionHelper<float>("", args.Input, default, CompilationMethod, out isInitialValueReferenced)(evalCtx));
+                    return new DataValueFloat(CompileExpressionHelper<float>("", args.Input, ctx, CompilationMethod, out isInitialValueReferenced)(evalCtx));
                 }
                 case DataType.Double: {
                     IEvaluationContext<double> evalCtx = initialValue == null ? DefaultDoubleCtx : EvaluationContexts.CreateForDouble();
                     if (initialValue != null)
                         ((EvaluationContext<double>) evalCtx).SetVariable("v", ((DataValueNumeric) initialValue).ToDouble());
 
-                    return new DataValueDouble(CompileExpressionHelper<double>("", args.Input, default, CompilationMethod, out isInitialValueReferenced)(evalCtx));
+                    return new DataValueDouble(CompileExpressionHelper<double>("", args.Input, ctx, CompilationMethod, out isInitialValueReferenced)(evalCtx));
                 }
                 default: throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
             }

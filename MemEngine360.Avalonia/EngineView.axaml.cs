@@ -544,8 +544,6 @@ public partial class EngineView : UserControl {
             this.PART_ValueFieldLabel.Text = isExpr ? "Expression" : "Value";
             this.PART_UseFirstOrPrevButtonGrid.IsVisible = !isExpr && !isAny && isNumeric;
             this.PART_CompareModePanelInteger.IsVisible = !isExpr;
-            this.PART_WarningExpressionHexTextBlock.IsVisible = isExpr;
-            this.PART_DTInt_IsHex.IsEnabled = !isExpr;
             this.PART_CompareModePanelFloating.IsVisible = !isExpr;
             this.PART_DTFloat_Truncate.IsVisible = !isExpr;
             this.PART_DTFloat_RoundToQuery.IsVisible = !isExpr;

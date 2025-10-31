@@ -34,7 +34,7 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 public partial class SetMemoryOperationListContent : BaseOperationListContent {
     private readonly ConstantDataValueHandler constDataValueHandler;
 
-    private readonly IBinder<SetMemoryOperation> addressBinder = new TextBoxToEventPropertyBinder<SetMemoryOperation>(nameof(SetMemoryOperation.AddressChanged), (b) => b.Model.Address.ToString()!, (b, text) => BinderParsingUtils.TryParseAddressEx(text, b, (a, v) => a.Model.Address = v));
+    private readonly IBinder<SetMemoryOperation> addressBinder = new TextBoxToEventPropertyBinder<SetMemoryOperation>(nameof(SetMemoryOperation.AddressChanged), (b) => b.Model.Address.ToString(), (b, text) => BinderParsingUtils.TryParseAddressEx(text, b, (a, v) => a.Model.Address = v));
     private readonly ComboBoxToEventPropertyEnumBinder<DataType> dataTypeBinder = new ComboBoxToEventPropertyEnumBinder<DataType>(typeof(DataProviderHandler), nameof(DataProviderHandler.DataTypeChanged), (x) => ((DataProviderHandler) x).DataType, (x, y) => ((DataProviderHandler) x).DataType = y);
 
     private readonly IBinder<SetMemoryOperation> iterateBinder = new TextBoxToEventPropertyBinder<SetMemoryOperation>(nameof(SetMemoryOperation.IterateCountChanged), (b) => b.Model.IterateCount.ToString(), async (b, text) => {

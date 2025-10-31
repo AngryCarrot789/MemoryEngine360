@@ -27,7 +27,7 @@ namespace MemEngine360.BaseFrontEnd.ModTools.Commands;
 public abstract class BaseModToolCommandUsage : SimpleButtonCommandUsage {
     public MemoryEngine? Engine { get; private set; }
 
-    public ModTool? Script { get; private set; }
+    public ModTool? ModTool { get; private set; }
 
     protected BaseModToolCommandUsage(string commandId) : base(commandId) {
     }
@@ -39,18 +39,18 @@ public abstract class BaseModToolCommandUsage : SimpleButtonCommandUsage {
 
     protected override void OnContextChanged() {
         base.OnContextChanged();
-        ModTool? oldSeq = this.Script;
-        ModTool? newSeq = null;
+        ModTool? oldTool = this.ModTool;
+        ModTool? newTool = null;
         if (this.GetContextData() is IContextData data) {
-            ModTool.DataKey.TryGetContext(data, out newSeq);
+            ModTool.DataKey.TryGetContext(data, out newTool);
         }
 
-        if (oldSeq != newSeq) {
+        if (oldTool != newTool) {
             MemoryEngine? oldEngine = this.Engine;
-            MemoryEngine? newEngine = newSeq?.Manager?.MemoryEngine;
+            MemoryEngine? newEngine = newTool?.Manager?.MemoryEngine;
 
-            this.Script = newSeq;
-            this.OnScriptChanged(oldSeq, newSeq);
+            this.ModTool = newTool;
+            this.OnModToolChanged(oldTool, newTool);
             if (oldEngine != newEngine) {
                 this.Engine = newEngine;
                 this.OnEngineChanged(oldEngine, newEngine);
@@ -60,11 +60,11 @@ public abstract class BaseModToolCommandUsage : SimpleButtonCommandUsage {
         }
     }
 
-    protected virtual void OnScriptChanged(ModTool? oldTool, ModTool? newTool) {
+    protected virtual void OnModToolChanged(ModTool? oldTool, ModTool? newTool) {
     }
 
     /// <summary>
-    /// Always called after <see cref="OnScriptChanged"/>. Invoked when the effective engine changes
+    /// Always called after <see cref="OnModToolChanged"/>. Invoked when the effective engine changes
     /// </summary>
     /// <param name="oldEngine">Previous engine ref</param>
     /// <param name="newEngine">New engine ref</param>
@@ -76,8 +76,8 @@ public abstract class BaseModToolIsRunningDependentCommandUsage : BaseModToolCom
     protected BaseModToolIsRunningDependentCommandUsage(string commandId) : base(commandId) {
     }
 
-    protected override void OnScriptChanged(ModTool? oldTool, ModTool? newTool) {
-        base.OnScriptChanged(oldTool, newTool);
+    protected override void OnModToolChanged(ModTool? oldTool, ModTool? newTool) {
+        base.OnModToolChanged(oldTool, newTool);
         if (oldTool != null)
             oldTool.IsRunningChanged -= this.OnIsRunningChanged;
         if (newTool != null)

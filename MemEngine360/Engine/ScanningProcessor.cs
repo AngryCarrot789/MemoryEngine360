@@ -165,7 +165,6 @@ public class ScanningProcessor {
             
             if (value) {
                 this.IsIntInputUnsigned = false;
-                this.UseExpressionParsing = false;
             }
         }
     }

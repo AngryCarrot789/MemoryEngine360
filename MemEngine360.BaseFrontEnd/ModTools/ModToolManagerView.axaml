@@ -136,7 +136,7 @@
                                         ToolTip.ShowOnDisabled="True"
                                         VerticalAlignment="Center"
                                         attached:DisabledButtonExtras.IgnoreDisabledBackground="True"
-                                        cu:CommandUsageManager.SimpleButtonCommandId="commands.modtools.RestartModToolCommand"
+                                        cu:CommandUsageManager.UsageClassType="{x:Type c2:RestartModToolCommandUsage}"
                                         x:Name="PART_RunButton">
                                 </Button>
                                 <avc:IconButton Background="Transparent"

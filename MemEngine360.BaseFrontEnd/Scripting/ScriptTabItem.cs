@@ -38,11 +38,13 @@ public class ScriptTabItem : TabItem {
     }
 
     private readonly IBinder<Script> nameBinder = new MultiEventUpdateBinder<Script>([nameof(Script.FilePathChanged), nameof(Script.HasUnsavedChangesChanged)], b => ((ScriptTabItem) b.Control).Header = (b.Model.Name ?? "(unnammed script)") + (b.Model.HasUnsavedChanges ? "*" : ""));
+    private readonly IBinder<Script> toolTipBinder = new EventUpdateBinder<Script>(nameof(Script.FilePathChanged), b => ToolTip.SetTip((ScriptTabItem) b.Control, b.Model.FilePath ?? AvaloniaProperty.UnsetValue));
 
     private Button? PART_CloseTabButton;
 
     public ScriptTabItem() {
         this.nameBinder.AttachControl(this);
+        this.toolTipBinder.AttachControl(this);
     }
 
     static ScriptTabItem() {
@@ -68,6 +70,7 @@ public class ScriptTabItem : TabItem {
             AdvancedContextMenu.SetContextRegistry(this, null);
         
         this.nameBinder.SwitchModel(newValue);
+        this.toolTipBinder.SwitchModel(newValue);
         DataManager.GetContextData(this).Set(Script.DataKey, newValue);
         
         if (newValue != null)

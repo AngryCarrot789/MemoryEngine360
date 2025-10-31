@@ -35,15 +35,21 @@ public static class ModToolTabContextRegistry {
                 registry.ObjectName = null;
             }
         };
-        
+
         FixedWeightedMenuEntryGroup general = Registry.GetFixedGroup("General");
         general.AddCommand("commands.modtools.RenameModToolCommand", "Rename", icon: StandardIcons.ABCTextIcon);
         general.AddCommand("commands.modtools.CloseModToolCommand", "Close", icon: StandardIcons.CancelActivityIcon);
         general.AddSeparator();
-        general.AddEntry(new CommandMenuEntry("commands.modtools.RestartModToolCommand", "Restart"));
+        general.AddEntry(new CommandMenuEntry("commands.modtools.RestartModToolCommand", "Restart").
+            AddContextValueChangeHandlerWithEvent(
+                ModTool.DataKey,
+                nameof(ModTool.IsRunningChanged),
+                static (entry, tool) => entry.DisplayName = tool == null || !tool.IsRunning ? "Run Tool" : "Restart"));
         general.AddEntry(new CommandMenuEntry("commands.modtools.SaveModToolCommand", "Save", icon: SimpleIcons.SaveFileIcon));
         general.AddCommand("commands.modtools.SaveModToolAsCommand", "Save As...");
         general.AddCommand("commands.modtools.SaveAllModToolsCommand", "Save All");
+        general.AddSeparator();
+        general.AddCommand("commands.modtools.CopyModToolFilePathCommand", "Copy File Path");
         general.AddSeparator();
         general.AddCommand("commands.modtools.ConnectModToolToConsoleCommand", "Connect to console...", "Connect using a dedicated connection instead of using the engine's connection", SimpleIcons.ConnectToConsoleDedicatedIcon);
     }

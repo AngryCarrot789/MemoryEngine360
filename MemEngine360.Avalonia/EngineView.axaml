@@ -183,12 +183,6 @@
                                                 </tt:ToolTipEx.Tip>
                                             </CheckBox>
                                             
-                                            <TextBlock x:Name="PART_WarningExpressionHexTextBlock" 
-                                                       Text="Expressions must prefix hex values with '0x'"
-                                                       Foreground="{DynamicResource ABrush.Foreground.Deeper}"
-                                                       TextWrapping="Wrap"
-                                                       IsVisible="False"/>
-                                            
                                             <CheckBox x:Name="PART_DTInt_IsUnsigned" Content="Unsigned">
                                                 <tt:ToolTipEx.Tip>
                                                     <TextBlock Padding="4">
@@ -311,7 +305,7 @@
                                            x:Name="PART_ExpressionNamingHint">
                                     <Run Text="The variable 'v' contains the console value."/>
                                     <LineBreak/>
-                                    <Run Text="For next scans, 'f' and 'p' contain the first and previous values"/>
+                                    <Run Text="For next scans, 'first' and 'prev' contain the first and previous values"/>
                                 </TextBlock>
                             </Grid>
                         </Grid>
