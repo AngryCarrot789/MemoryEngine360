@@ -49,13 +49,15 @@ public class LuaGuiFunctions {
         this.Button_SetTextFunction = new LuaFunction("set_text", this.SetButtonText);
         this.TextBlock_SetTextFunction = new LuaFunction("set_text", this.SetTextBlockText);
 
-        LuaTable luaTable = new LuaTable(0, 6);
-        LuaModToolMachine.AssignFunction(luaTable, new LuaFunction("create_dockpanel", CreateDockPanel));
-        LuaModToolMachine.AssignFunction(luaTable, new LuaFunction("create_stackpanel", CreateStackPanel));
-        LuaModToolMachine.AssignFunction(luaTable, new LuaFunction("create_gridpanel", CreateGridPanel));
-        LuaModToolMachine.AssignFunction(luaTable, new LuaFunction("create_button", this.CreateButton));
-        LuaModToolMachine.AssignFunction(luaTable, new LuaFunction("create_text", this.CreateTextBlock));
-        LuaModToolMachine.AssignFunction(luaTable, new LuaFunction("set_root_panel", this.SetWindowRootPanel));
+        LuaTable luaTable = new LuaTable(0, 7);
+        LuaUtils.AssignFunction(luaTable, new LuaFunction("create_dockpanel", CreateDockPanel));
+        LuaUtils.AssignFunction(luaTable, new LuaFunction("create_stackpanel", CreateStackPanel));
+        LuaUtils.AssignFunction(luaTable, new LuaFunction("create_gridpanel", CreateGridPanel));
+        LuaUtils.AssignFunction(luaTable, new LuaFunction("create_button", this.CreateButton));
+        LuaUtils.AssignFunction(luaTable, new LuaFunction("create_text", this.CreateTextBlock));
+        LuaUtils.AssignFunction(luaTable, new LuaFunction("set_root_panel", this.SetWindowRootPanel));
+        LuaUtils.AssignFunction(luaTable, new LuaFunction("create_timer", this.CreateTimer));
+        LuaUtils.AssignFunction(luaTable, new LuaFunction("destroy_timer", this.DestroyTimer));
         state.Environment[(LuaValue) "gui"] = (LuaValue) luaTable;
         state.LoadedModules[(LuaValue) "gui"] = (LuaValue) luaTable;
     }
@@ -169,13 +171,13 @@ public class LuaGuiFunctions {
                 "top" => MTDockPanel.DockType.Top,
                 "right" => MTDockPanel.DockType.Right,
                 "bottom" => MTDockPanel.DockType.Bottom,
-                _ => throw LuaArgUtils.InvalidOperation(in ctx, "Unknown dock type: " + type)
+                _ => throw LuaUtils.InvalidOperation(in ctx, "Unknown dock type: " + type)
             };
 
             toAdd = ctx.GetArgument<LuaTable>(2);
         }
         else {
-            throw LuaArgUtils.InvalidOperation(in ctx, "Invalid arg count");
+            throw LuaUtils.InvalidOperation(in ctx, "Invalid arg count");
         }
 
         MTDockPanel targetPanel = GetElementFromTable<MTDockPanel>(table);
@@ -198,21 +200,21 @@ public class LuaGuiFunctions {
         LuaTable toAdd;
         int column = ctx.GetArgument<int>(1);
         if (column < 0)
-            throw LuaArgUtils.InvalidOperation(in ctx, "Column must be greater than or equal to zero");
+            throw LuaUtils.InvalidOperation(in ctx, "Column must be greater than or equal to zero");
 
         int row = ctx.GetArgument<int>(2);
         if (row < 0)
-            throw LuaArgUtils.InvalidOperation(in ctx, "Row must be greater than or equal to zero");
+            throw LuaUtils.InvalidOperation(in ctx, "Row must be greater than or equal to zero");
 
         int colSpan = 1, rowSpan = 1;
         if (ctx.ArgumentCount >= 6) {
             colSpan = ctx.GetArgument<int>(3);
             if (colSpan < 1)
-                throw LuaArgUtils.InvalidOperation(in ctx, "Column span must be greater than zero");
+                throw LuaUtils.InvalidOperation(in ctx, "Column span must be greater than zero");
 
             rowSpan = ctx.GetArgument<int>(4);
             if (rowSpan < 1)
-                throw LuaArgUtils.InvalidOperation(in ctx, "Row span must be greater than zero");
+                throw LuaUtils.InvalidOperation(in ctx, "Row span must be greater than zero");
 
             toAdd = ctx.GetArgument<LuaTable>(5);
         }
@@ -252,7 +254,7 @@ public class LuaGuiFunctions {
             string valueString = s.Substring(0, s.Length - 1).Trim();
             if (valueString.Length > 0) {
                 if (!double.TryParse(valueString, out dval))
-                    throw LuaArgUtils.InvalidOperation(ctx, "Invalid number: " + valueString);
+                    throw LuaUtils.InvalidOperation(ctx, "Invalid number: " + valueString);
             }
             else {
                 dval = 1;
@@ -262,7 +264,7 @@ public class LuaGuiFunctions {
         }
         else {
             if (!double.TryParse(s, out dval))
-                throw LuaArgUtils.InvalidOperation(ctx, "Invalid number: " + s);
+                throw LuaUtils.InvalidOperation(ctx, "Invalid number: " + s);
             return new MTGridPanel.GridDefinitionSize(dval, MTGridPanel.GridSizeType.Pixel);
         }
     }
@@ -319,7 +321,7 @@ public class LuaGuiFunctions {
             "LEFT" or "L" => BaseMTElement.EnumHorizontalAlign.Left,
             "CENTER" or "C" => BaseMTElement.EnumHorizontalAlign.Center,
             "RIGHT" or "R" => BaseMTElement.EnumHorizontalAlign.Right,
-            _ => throw LuaArgUtils.InvalidOperation(in ctx, "Unknown horizontal align: " + text)
+            _ => throw LuaUtils.InvalidOperation(in ctx, "Unknown horizontal align: " + text)
         };
 
         MTButton button = GetElementFromTable<MTButton>(table);
@@ -335,7 +337,7 @@ public class LuaGuiFunctions {
             "TOP" or "T" => BaseMTElement.EnumVerticalAlign.Top,
             "CENTER" or "C" => BaseMTElement.EnumVerticalAlign.Center,
             "BOTTOM" or "B" => BaseMTElement.EnumVerticalAlign.Bottom,
-            _ => throw LuaArgUtils.InvalidOperation(in ctx, "Unknown vertical align: " + text)
+            _ => throw LuaUtils.InvalidOperation(in ctx, "Unknown vertical align: " + text)
         };
 
         MTButton button = GetElementFromTable<MTButton>(table);
@@ -349,5 +351,54 @@ public class LuaGuiFunctions {
 
     private static T GetElementFromTable<T>(LuaTable table) where T : BaseMTElement {
         return table["_internal_CLR_object"].Read<T>();
+    }
+    
+    private ValueTask<int> CreateTimer(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+        const int MaxSecondsInt = int.MaxValue / 1000;
+        
+        double seconds = ctx.GetArgument<double>(0);
+        if (seconds <= 0.0 || seconds > MaxSecondsInt) {
+            throw LuaUtils.InvalidOperation(in ctx, $"Invalid interval: {seconds}. Must be > 0 and <= {MaxSecondsInt} seconds");
+        }
+
+        LuaFunction function = ctx.GetArgument<LuaFunction>(1);
+        
+        TimeSpan span = TimeSpan.FromMilliseconds(seconds * 1000.0);
+        
+        Timer timer = new Timer(static o => {
+            Tuple<LuaGuiFunctions, LuaFunction> tuple = (Tuple<LuaGuiFunctions, LuaFunction>) o!;
+            tuple.Item1.OnTimerCallback(tuple.Item2);
+;        }, new Tuple<LuaGuiFunctions, LuaFunction>(this, function), span, span);
+
+        List<Timer> list = this.machine.UserTimers;
+        lock (list) {
+            list.Add(timer);
+        }
+        
+        buffer.Span[0] = new LuaValue(timer);
+        return ValueTask.FromResult(1);
+    }
+    
+    private ValueTask<int> DestroyTimer(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+        object timerObject = ctx.GetArgument<object>(0);
+        if (!(timerObject is Timer timer)) {
+            throw LuaUtils.InvalidOperation(in ctx, "Invalid timer object");
+        }
+
+        List<Timer> list = this.machine.UserTimers;
+        lock (list) {
+            if (!list.Remove(timer)) {
+                return ValueTask.FromResult(0);
+            }
+        }
+        
+        timer.Dispose();
+        return ValueTask.FromResult(0);
+    }
+
+    private void OnTimerCallback(LuaFunction function) {
+        this.machine.PostMessage(async (ctx, o, ct) => {
+            await ((LuaFunction) o!).InvokeAsync(ctx.State, Array.Empty<LuaValue>(), ct);
+        }, function);
     }
 }

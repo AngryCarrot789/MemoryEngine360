@@ -9,6 +9,7 @@ This is a remake of Cheat Engine, but for consoles. This project was inspired by
 - Pointer Scanner
 - Memory Viewer (hex editor)
 - Lua Scripting with JRPC support
+- Lua Mod Tools for making lua GUIs
 
 > Please take care when changing ('poking') values on your console. 
 > You may break things, maybe even permanently if you change the wrong things.
@@ -19,7 +20,7 @@ This is a remake of Cheat Engine, but for consoles. This project was inspired by
 
 If you wish to publish as a single .exe with a few (native) DLLs alongside, run `publish.bat` in the folder `MemEngine360.Avalonia`. This is how I create releases for this project
 
-The current version is v1.1.8-dev. Dev builds most definitely have bugs.
+The current version is v1.2.1.
 
 # How to use
 Visit the wiki at https://github.com/AngryCarrot789/MemoryEngine360/wiki to see the quick start guide, as well as docs for developers that wish to improve MemoryEngine360.

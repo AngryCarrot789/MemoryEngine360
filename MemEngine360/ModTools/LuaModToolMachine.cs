@@ -25,16 +25,17 @@ using Lua.Standard;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.ModTools.LuaFeatures;
+using MemEngine360.Scripting;
 using MemEngine360.Scripting.LuaFeatures;
 using PFXToolKitUI;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Utils;
-using LuaEngineFunctions = MemEngine360.ModTools.LuaFeatures.LuaEngineFunctions;
+using LuaEngineFunctions = MemEngine360.Scripting.LuaFeatures.LuaEngineFunctions;
 
 namespace MemEngine360.ModTools;
 
-public sealed class LuaModToolMachine {
+public sealed class LuaModToolMachine : ILuaMachine {
     public delegate ValueTask MessageCallback(LuaFunctionExecutionContext ctx, object? state, CancellationToken ct);
 
     private readonly ModTool owner;
@@ -84,6 +85,12 @@ public sealed class LuaModToolMachine {
     /// Gets the mod tool that started this lua machien
     /// </summary>
     public ModTool Owner => this.owner;
+
+    /// <summary>
+    /// Gets the list of timers that the user created via create_timer but has not yet destroyed via destroy_timer.
+    /// We keep track of timers so that we can dispose them if the script is stopped or throws an error
+    /// </summary>
+    public List<Timer> UserTimers { get; } = new List<Timer>();
 
     /// <summary>
     /// An event fired when a line is printed from the lua script. 
@@ -165,17 +172,17 @@ public sealed class LuaModToolMachine {
             {
                 // Use custom OpenOSLibrary implementation, to remove things like changing OS things
                 LuaTable luaTable = new LuaTable(0, 3);
-                AssignFunction(luaTable, new LuaFunction("clock", OperatingSystemLibrary.Instance.Clock));
-                AssignFunction(luaTable, new LuaFunction("date", OperatingSystemLibrary.Instance.Date));
-                AssignFunction(luaTable, new LuaFunction("time", OperatingSystemLibrary.Instance.Time));
+                LuaUtils.AssignFunction(luaTable, new LuaFunction("clock", OperatingSystemLibrary.Instance.Clock));
+                LuaUtils.AssignFunction(luaTable, new LuaFunction("date", OperatingSystemLibrary.Instance.Date));
+                LuaUtils.AssignFunction(luaTable, new LuaFunction("time", OperatingSystemLibrary.Instance.Time));
                 this.luaState.Environment[(LuaValue) "os"] = (LuaValue) luaTable;
                 this.luaState.LoadedModules[(LuaValue) "os"] = (LuaValue) luaTable;
             }
 
             {
                 LuaTable luaTable = new LuaTable(0, 2);
-                AssignFunction(luaTable, new LuaFunction("run_messages", this.RunMessages));
-                AssignFunction(luaTable, new LuaFunction("try_run_messages", this.TryRunMessages));
+                LuaUtils.AssignFunction(luaTable, new LuaFunction("run_messages", this.RunMessages));
+                LuaUtils.AssignFunction(luaTable, new LuaFunction("try_run_messages", this.TryRunMessages));
                 this.luaState.Environment[(LuaValue) "pump"] = (LuaValue) luaTable;
                 this.luaState.LoadedModules[(LuaValue) "pump"] = (LuaValue) luaTable;
             }
@@ -217,6 +224,17 @@ public sealed class LuaModToolMachine {
             this.luaState = null;
             Interlocked.Exchange(ref this.initialCts, null)?.Dispose();
             Interlocked.Exchange(ref this.killCts, null)?.Dispose();
+            lock (this.UserTimers) {
+                foreach (Timer timer in this.UserTimers) {
+                    // Don't use async overload. Not entirely sure how it works but we don't
+                    // want to potentially wait for work that will never complete.
+                    // ReSharper disable once MethodHasAsyncOverload
+                    timer.Dispose();
+                }
+                
+                this.UserTimers.Clear();
+            }
+            
             ModTool.InternalOnLuaMachineStopped(this.owner);
         }
     }
@@ -258,7 +276,7 @@ public sealed class LuaModToolMachine {
 
     private async ValueTask<int> RunMessages(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         if (Interlocked.CompareExchange(ref this.isProcessingMessagesSYNC, 1, 0) != 0) {
-            throw LuaArgUtils.InvalidOperation(in ctx, "Already processing messages");
+            throw LuaUtils.InvalidOperation(in ctx, "Already processing messages");
         }
 
         try {
@@ -343,34 +361,30 @@ public sealed class LuaModToolMachine {
     private void OpenBasicLibrary(LuaState theState) {
         theState.Environment[(LuaValue) "_G"] = (LuaValue) theState.Environment;
         theState.Environment[(LuaValue) "_VERSION"] = (LuaValue) "Lua 5.2";
-        AssignFunction(theState.Environment, new LuaFunction("assert", BasicLibrary.Instance.Assert));
-        AssignFunction(theState.Environment, new LuaFunction("error", BasicLibrary.Instance.Error));
-        AssignFunction(theState.Environment, new LuaFunction("getmetatable", BasicLibrary.Instance.GetMetatable));
-        AssignFunction(theState.Environment, new LuaFunction("ipairs", BasicLibrary.Instance.IPairs));
-        AssignFunction(theState.Environment, new LuaFunction("next", BasicLibrary.Instance.Next));
-        AssignFunction(theState.Environment, new LuaFunction("pairs", BasicLibrary.Instance.Pairs));
-        AssignFunction(theState.Environment, new LuaFunction("pcall", BasicLibrary.Instance.PCall));
-        AssignFunction(theState.Environment, new LuaFunction("print", this.Print));
-        AssignFunction(theState.Environment, new LuaFunction("rawequal", BasicLibrary.Instance.RawEqual));
-        AssignFunction(theState.Environment, new LuaFunction("rawget", BasicLibrary.Instance.RawGet));
-        AssignFunction(theState.Environment, new LuaFunction("rawlen", BasicLibrary.Instance.RawLen));
-        AssignFunction(theState.Environment, new LuaFunction("rawset", BasicLibrary.Instance.RawSet));
-        AssignFunction(theState.Environment, new LuaFunction("select", BasicLibrary.Instance.Select));
-        AssignFunction(theState.Environment, new LuaFunction("setmetatable", BasicLibrary.Instance.SetMetatable));
-        AssignFunction(theState.Environment, new LuaFunction("tonumber", BasicLibrary.Instance.ToNumber));
-        AssignFunction(theState.Environment, new LuaFunction("tostring", BasicLibrary.Instance.ToString));
-        AssignFunction(theState.Environment, new LuaFunction("type", BasicLibrary.Instance.Type));
-        AssignFunction(theState.Environment, new LuaFunction("xpcall", BasicLibrary.Instance.XPCall));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("assert", BasicLibrary.Instance.Assert));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("error", BasicLibrary.Instance.Error));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("getmetatable", BasicLibrary.Instance.GetMetatable));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("ipairs", BasicLibrary.Instance.IPairs));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("next", BasicLibrary.Instance.Next));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("pairs", BasicLibrary.Instance.Pairs));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("pcall", BasicLibrary.Instance.PCall));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("print", this.Print));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("rawequal", BasicLibrary.Instance.RawEqual));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("rawget", BasicLibrary.Instance.RawGet));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("rawlen", BasicLibrary.Instance.RawLen));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("rawset", BasicLibrary.Instance.RawSet));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("select", BasicLibrary.Instance.Select));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("setmetatable", BasicLibrary.Instance.SetMetatable));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("tonumber", BasicLibrary.Instance.ToNumber));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("tostring", BasicLibrary.Instance.ToString));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("type", BasicLibrary.Instance.Type));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("xpcall", BasicLibrary.Instance.XPCall));
 
         theState.Environment[(LuaValue) "sleep"] = new LuaFunction(async (context, buffer, ct) => {
             double sec = context.GetArgument<double>(0);
             await Task.Delay(TimeSpan.FromSeconds(sec), ct);
             return 0;
         });
-    }
-
-    internal static void AssignFunction(LuaTable luaTable, LuaFunction function) {
-        luaTable[(LuaValue) function.Name] = (LuaValue) function;
     }
 
     #endregion

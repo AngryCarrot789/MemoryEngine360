@@ -4,7 +4,7 @@ using MemEngine360.Engine.Modes;
 
 namespace MemEngine360.Scripting.LuaFeatures;
 
-public static class LuaArgUtils {
+public static class LuaUtils {
     public static uint GetHexNumber(LuaFunctionExecutionContext ctx, int index) {
         LuaValue arg = ctx.GetArgument(index);
         if (arg.Type == LuaValueType.String) {
@@ -71,5 +71,9 @@ public static class LuaArgUtils {
 
     public static LuaRuntimeException InvalidOperation(in LuaFunctionExecutionContext ctx, string message) {
         return new LuaRuntimeException(ctx.State.GetTraceback(), message);
+    }
+
+    public static void AssignFunction(LuaTable table, LuaFunction function) {
+        table[function.Name] = function;
     }
 }

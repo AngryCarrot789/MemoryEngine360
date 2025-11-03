@@ -30,7 +30,7 @@ using PFXToolKitUI.Interactivity.Windowing;
 
 namespace MemEngine360.Scripting;
 
-public sealed class LuaScriptMachine {
+public sealed class LuaScriptMachine : ILuaMachine {
     private readonly Script ownerScript;
     private readonly Chunk sourceChunk;
     private CancellationTokenSource? initialCts;
@@ -144,9 +144,9 @@ public sealed class LuaScriptMachine {
             {
                 // Use custom OpenOSLibrary implementation, to remove things like changing OS things
                 LuaTable luaTable = new LuaTable(0, 3);
-                AssignFunction(luaTable, new LuaFunction("clock", OperatingSystemLibrary.Instance.Clock));
-                AssignFunction(luaTable, new LuaFunction("date", OperatingSystemLibrary.Instance.Date));
-                AssignFunction(luaTable, new LuaFunction("time", OperatingSystemLibrary.Instance.Time));
+                LuaUtils.AssignFunction(luaTable, new LuaFunction("clock", OperatingSystemLibrary.Instance.Clock));
+                LuaUtils.AssignFunction(luaTable, new LuaFunction("date", OperatingSystemLibrary.Instance.Date));
+                LuaUtils.AssignFunction(luaTable, new LuaFunction("time", OperatingSystemLibrary.Instance.Time));
                 this.luaState.Environment[(LuaValue) "os"] = (LuaValue) luaTable;
                 this.luaState.LoadedModules[(LuaValue) "os"] = (LuaValue) luaTable;
             }
@@ -214,34 +214,30 @@ public sealed class LuaScriptMachine {
     private void OpenBasicLibrary(LuaState theState) {
         theState.Environment[(LuaValue) "_G"] = (LuaValue) theState.Environment;
         theState.Environment[(LuaValue) "_VERSION"] = (LuaValue) "Lua 5.2";
-        AssignFunction(theState.Environment, new LuaFunction("assert", BasicLibrary.Instance.Assert));
-        AssignFunction(theState.Environment, new LuaFunction("error", BasicLibrary.Instance.Error));
-        AssignFunction(theState.Environment, new LuaFunction("getmetatable", BasicLibrary.Instance.GetMetatable));
-        AssignFunction(theState.Environment, new LuaFunction("ipairs", BasicLibrary.Instance.IPairs));
-        AssignFunction(theState.Environment, new LuaFunction("next", BasicLibrary.Instance.Next));
-        AssignFunction(theState.Environment, new LuaFunction("pairs", BasicLibrary.Instance.Pairs));
-        AssignFunction(theState.Environment, new LuaFunction("pcall", BasicLibrary.Instance.PCall));
-        AssignFunction(theState.Environment, new LuaFunction("print", this.Print));
-        AssignFunction(theState.Environment, new LuaFunction("rawequal", BasicLibrary.Instance.RawEqual));
-        AssignFunction(theState.Environment, new LuaFunction("rawget", BasicLibrary.Instance.RawGet));
-        AssignFunction(theState.Environment, new LuaFunction("rawlen", BasicLibrary.Instance.RawLen));
-        AssignFunction(theState.Environment, new LuaFunction("rawset", BasicLibrary.Instance.RawSet));
-        AssignFunction(theState.Environment, new LuaFunction("select", BasicLibrary.Instance.Select));
-        AssignFunction(theState.Environment, new LuaFunction("setmetatable", BasicLibrary.Instance.SetMetatable));
-        AssignFunction(theState.Environment, new LuaFunction("tonumber", BasicLibrary.Instance.ToNumber));
-        AssignFunction(theState.Environment, new LuaFunction("tostring", BasicLibrary.Instance.ToString));
-        AssignFunction(theState.Environment, new LuaFunction("type", BasicLibrary.Instance.Type));
-        AssignFunction(theState.Environment, new LuaFunction("xpcall", BasicLibrary.Instance.XPCall));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("assert", BasicLibrary.Instance.Assert));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("error", BasicLibrary.Instance.Error));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("getmetatable", BasicLibrary.Instance.GetMetatable));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("ipairs", BasicLibrary.Instance.IPairs));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("next", BasicLibrary.Instance.Next));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("pairs", BasicLibrary.Instance.Pairs));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("pcall", BasicLibrary.Instance.PCall));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("print", this.Print));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("rawequal", BasicLibrary.Instance.RawEqual));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("rawget", BasicLibrary.Instance.RawGet));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("rawlen", BasicLibrary.Instance.RawLen));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("rawset", BasicLibrary.Instance.RawSet));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("select", BasicLibrary.Instance.Select));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("setmetatable", BasicLibrary.Instance.SetMetatable));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("tonumber", BasicLibrary.Instance.ToNumber));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("tostring", BasicLibrary.Instance.ToString));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("type", BasicLibrary.Instance.Type));
+        LuaUtils.AssignFunction(theState.Environment, new LuaFunction("xpcall", BasicLibrary.Instance.XPCall));
 
         theState.Environment[(LuaValue) "sleep"] = new LuaFunction(async (context, buffer, ct) => {
             double sec = context.GetArgument<double>(0);
             await Task.Delay(TimeSpan.FromSeconds(sec), ct);
             return 0;
         });
-    }
-
-    private static void AssignFunction(LuaTable luaTable, LuaFunction function) {
-        luaTable[(LuaValue) function.Name] = (LuaValue) function;
     }
 
     #endregion
