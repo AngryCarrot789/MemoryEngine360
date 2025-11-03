@@ -234,14 +234,14 @@ public sealed class LuaEngineFunctions {
 
                 return bytes;
             }
-            
+
             throw new LuaRuntimeException(ctx.State.GetTraceback(), $"Invalid argument at {index + 1}: invalid argument type: " + argument.Type);
         }
 
         public async ValueTask<int> WriteBytes(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             uint address = LuaUtils.GetUIntFromValue(in context, context.GetArgument(0));
             byte[] data = ByteArrayFromArgument(context, 1);
-            
+
             IConsoleConnection conn = this.functions.GetConnection(in context);
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
@@ -729,7 +729,8 @@ public sealed class LuaEngineFunctions {
                 throw new LuaRuntimeException(ctx.State.GetTraceback(), "JRPC argument table must contain string as the type. Got " + value1 + " instead");
             }
 
-            switch (type.ToUpperInvariant()) {
+            string typeUpper = type.ToUpperInvariant();
+            switch (typeUpper) {
                 case "BYTE":
                     if (value2.TryRead(out int val1)) {
                         if (val1 < byte.MinValue || val1 > byte.MaxValue)
@@ -770,16 +771,41 @@ public sealed class LuaEngineFunctions {
                 case "INT[]":
                 case "ULONG[]":
                 case "FLOAT[]":
-                    if (!value2.TryRead(out string val5))
-                        throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1} does not contain a comma separated string containing the array elements. Got " + value2 + " instead");
-                    string[] elements = val5.Split(',', StringSplitOptions.TrimEntries);
-                    switch (type.ToUpperInvariant()) {
-                        case "BYTE[]":  return (RPCDataType.ByteArray, elements.Select(x => byte.TryParse(x, out byte v) ? v : (x.Length > 2 && byte.TryParse(x.AsSpan(2), NumberStyles.HexNumber, null, out v)) ? v : throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1}'s value contains an invalid byte: " + x)).ToArray());
-                        case "INT[]":   return (RPCDataType.ByteArray, elements.Select(x => int.TryParse(x, out int v) ? v : (x.Length > 2 && int.TryParse(x.AsSpan(2), NumberStyles.HexNumber, null, out v)) ? v : throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1}'s value contains an invalid int: " + x)).ToArray());
-                        case "ULONG[]": return (RPCDataType.ByteArray, elements.Select(x => ulong.TryParse(x, out ulong v) ? v : (x.Length > 2 && ulong.TryParse(x.AsSpan(2), NumberStyles.HexNumber, null, out v)) ? v : throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1}'s value contains an invalid ulong: " + x)).ToArray());
-                        case "FLOAT[]": return (RPCDataType.ByteArray, elements.Select(x => float.TryParse(x, out float v) ? v : throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1}'s value contains an invalid float: " + x)).ToArray());
-                        default:        throw new Exception("Fatal error");
+                    if (value2.TryRead(out string val5)) {
+                        string[] elements = val5.Split(',', StringSplitOptions.TrimEntries);
+                        switch (typeUpper) {
+                            case "BYTE[]":  return (RPCDataType.ByteArray, elements.Select(x => byte.TryParse(x, out byte v) ? v : (x.Length > 2 && byte.TryParse(x.AsSpan(2), NumberStyles.HexNumber, null, out v)) ? v : throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1}'s value contains an invalid byte: " + x)).ToArray());
+                            case "INT[]":   return (RPCDataType.IntArray, elements.Select(x => int.TryParse(x, out int v) ? v : (x.Length > 2 && int.TryParse(x.AsSpan(2), NumberStyles.HexNumber, null, out v)) ? v : throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1}'s value contains an invalid int: " + x)).ToArray());
+                            case "ULONG[]": return (RPCDataType.Uint64Array, elements.Select(x => ulong.TryParse(x, out ulong v) ? v : (x.Length > 2 && ulong.TryParse(x.AsSpan(2), NumberStyles.HexNumber, null, out v)) ? v : throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1}'s value contains an invalid ulong: " + x)).ToArray());
+                            case "FLOAT[]": return (RPCDataType.FloatArray, elements.Select(x => float.TryParse(x, out float v) ? v : throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1}'s value contains an invalid float: " + x)).ToArray());
+                            default:        throw new Exception("Fatal error");
+                        }
                     }
+                    else if (value2.TryRead(out LuaTable val5tab)) {
+                        LuaValue[] values = val5tab.GetArraySpan().Slice(val5tab.ArrayLength).ToArray();
+                        switch (typeUpper) {
+                            case "BYTE[]":
+                                return (RPCDataType.ByteArray, values.Select(x => {
+                                    long d = x.Read<long>();
+                                    if (d < 0 || d > 255)
+                                        throw new LuaRuntimeException(ctx.State.GetTraceback(), "");
+                                    return (byte) d;
+                                }).ToArray());
+                            case "INT[]":
+                                return (RPCDataType.IntArray, values.Select(x => {
+                                    long d = x.Read<long>();
+                                    if (d < int.MinValue || d > uint.MaxValue)
+                                        throw new LuaRuntimeException(ctx.State.GetTraceback(), "");
+                                    return (int) d;
+                                }).ToArray());
+                            case "ULONG[]":
+                                return (RPCDataType.Uint64Array, values.Select(x => (ulong) x.Read<long>()).ToArray());
+                            case "FLOAT[]": return (RPCDataType.FloatArray, values.Select(x => x.Read<float>()).ToArray());
+                            default:        throw new Exception("Fatal error");
+                        }
+                    }
+
+                    throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1} does not contain a comma separated string containing the array elements. Got " + value2 + " instead");
                 case "STRING":
                     if (!value2.TryRead(out string val6))
                         throw new LuaRuntimeException(ctx.State.GetTraceback(), $"JRPC argument table {index + 1} does not contain a string. Got " + value2 + " instead");

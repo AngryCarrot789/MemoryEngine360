@@ -144,8 +144,8 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
         return address;
     }
 
-    public async Task<T> Call<T>(uint address, params object[] Arguments) where T : struct {
-        return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), null, 0, address, 0, false, Arguments);
+    public async Task<T> Call<T>(uint address, params object[] args) where T : struct {
+        return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), null, 0, address, 0, false, args);
     }
 
     public async Task<T> Call<T>(string module, int ordinal, params object[] args) where T : struct {
@@ -216,76 +216,76 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
         return (string) await this.CallArgs(thread == ThreadType.System, RPCDataType.String, typeof(string), module, ordinal, 0, 0, false, args);
     }
 
-    public async Task<T> CallVM<T>(uint Address, params object[] Arguments) where T : struct {
-        return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), null, 0, Address, 0, true, Arguments);
+    public async Task<T> CallVM<T>(uint Address, params object[] args) where T : struct {
+        return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), null, 0, Address, 0, true, args);
     }
 
-    public async Task<T> CallVM<T>(string module, int ordinal, params object[] Arguments) where T : struct {
-        return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), module, ordinal, 0, 0, true, Arguments);
+    public async Task<T> CallVM<T>(string module, int ordinal, params object[] args) where T : struct {
+        return (T) await this.CallArgs(true, TypeToRPCType<T>(false), typeof(T), module, ordinal, 0, 0, true, args);
     }
 
-    public async Task<T> CallVM<T>(ThreadType Type, uint Address, params object[] Arguments) where T : struct {
-        return (T) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(false), typeof(T), null, 0, Address, 0, true, Arguments);
+    public async Task<T> CallVM<T>(ThreadType Type, uint Address, params object[] args) where T : struct {
+        return (T) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(false), typeof(T), null, 0, Address, 0, true, args);
     }
 
-    public async Task<T> CallVM<T>(ThreadType Type, string module, int ordinal, params object[] Arguments) where T : struct {
-        return (T) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(false), typeof(T), module, ordinal, 0, 0, true, Arguments);
+    public async Task<T> CallVM<T>(ThreadType Type, string module, int ordinal, params object[] args) where T : struct {
+        return (T) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(false), typeof(T), module, ordinal, 0, 0, true, args);
     }
 
-    public Task CallVMVoid(uint Address, params object[] Arguments) {
-        return this.CallArgs(true, RPCDataType.Void, typeof(void), null, 0, Address, 0, true, Arguments);
+    public Task CallVMVoid(uint Address, params object[] args) {
+        return this.CallArgs(true, RPCDataType.Void, typeof(void), null, 0, Address, 0, true, args);
     }
 
-    public Task CallVMVoid(string module, int ordinal, params object[] Arguments) {
-        return this.CallArgs(true, RPCDataType.Void, typeof(void), module, ordinal, 0, 0, true, Arguments);
+    public Task CallVMVoid(string module, int ordinal, params object[] args) {
+        return this.CallArgs(true, RPCDataType.Void, typeof(void), module, ordinal, 0, 0, true, args);
     }
 
-    public Task CallVMVoid(ThreadType Type, uint Address, params object[] Arguments) {
-        return this.CallArgs(Type == ThreadType.System, RPCDataType.Void, typeof(void), null, 0, Address, 0, true, Arguments);
+    public Task CallVMVoid(ThreadType Type, uint Address, params object[] args) {
+        return this.CallArgs(Type == ThreadType.System, RPCDataType.Void, typeof(void), null, 0, Address, 0, true, args);
     }
 
-    public Task CallVMVoid(ThreadType Type, string module, int ordinal, params object[] Arguments) {
-        return this.CallArgs(Type == ThreadType.System, RPCDataType.Void, typeof(void), module, ordinal, 0, 0, true, Arguments);
+    public Task CallVMVoid(ThreadType Type, string module, int ordinal, params object[] args) {
+        return this.CallArgs(Type == ThreadType.System, RPCDataType.Void, typeof(void), module, ordinal, 0, 0, true, args);
     }
 
-    public async Task<T[]> CallVMArray<T>(uint Address, uint ArraySize, params object[] Arguments) where T : struct {
+    public async Task<T[]> CallVMArray<T>(uint Address, uint ArraySize, params object[] args) where T : struct {
         if (ArraySize == 0)
             return new T[1];
-        return (T[]) await this.CallArgs(true, TypeToRPCType<T>(true), typeof(T), null, 0, Address, ArraySize, true, Arguments);
+        return (T[]) await this.CallArgs(true, TypeToRPCType<T>(true), typeof(T), null, 0, Address, ArraySize, true, args);
     }
 
-    public async Task<T[]> CallVMArray<T>(string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct {
+    public async Task<T[]> CallVMArray<T>(string module, int ordinal, uint ArraySize, params object[] args) where T : struct {
         if (ArraySize == 0)
             return new T[1];
-        return (T[]) await this.CallArgs(true, TypeToRPCType<T>(true), typeof(T), module, ordinal, 0, ArraySize, true, Arguments);
+        return (T[]) await this.CallArgs(true, TypeToRPCType<T>(true), typeof(T), module, ordinal, 0, ArraySize, true, args);
     }
 
-    public async Task<T[]> CallVMArray<T>(ThreadType Type, uint Address, uint ArraySize, params object[] Arguments) where T : struct {
+    public async Task<T[]> CallVMArray<T>(ThreadType Type, uint Address, uint ArraySize, params object[] args) where T : struct {
         if (ArraySize == 0)
             return new T[1];
-        return (T[]) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(true), typeof(T), null, 0, Address, ArraySize, true, Arguments);
+        return (T[]) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(true), typeof(T), null, 0, Address, ArraySize, true, args);
     }
 
-    public async Task<T[]> CallVMArray<T>(ThreadType Type, string module, int ordinal, uint ArraySize, params object[] Arguments) where T : struct {
+    public async Task<T[]> CallVMArray<T>(ThreadType Type, string module, int ordinal, uint ArraySize, params object[] args) where T : struct {
         if (ArraySize == 0)
             return new T[1];
-        return (T[]) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(true), typeof(T), module, ordinal, 0, ArraySize, true, Arguments);
+        return (T[]) await this.CallArgs(Type == ThreadType.System, TypeToRPCType<T>(true), typeof(T), module, ordinal, 0, ArraySize, true, args);
     }
 
-    public async Task<string> CallVMString(uint Address, params object[] Arguments) {
-        return (string) await this.CallArgs(true, RPCDataType.String, typeof(string), null, 0, Address, 0, true, Arguments);
+    public async Task<string> CallVMString(uint Address, params object[] args) {
+        return (string) await this.CallArgs(true, RPCDataType.String, typeof(string), null, 0, Address, 0, true, args);
     }
 
-    public async Task<string> CallVMString(string module, int ordinal, params object[] Arguments) {
-        return (string) await this.CallArgs(true, RPCDataType.String, typeof(string), module, ordinal, 0, 0, true, Arguments);
+    public async Task<string> CallVMString(string module, int ordinal, params object[] args) {
+        return (string) await this.CallArgs(true, RPCDataType.String, typeof(string), module, ordinal, 0, 0, true, args);
     }
 
-    public async Task<string> CallVMString(ThreadType Type, uint Address, params object[] Arguments) {
-        return (string) await this.CallArgs(Type == ThreadType.System, RPCDataType.String, typeof(string), null, 0, Address, 0, true, Arguments);
+    public async Task<string> CallVMString(ThreadType Type, uint Address, params object[] args) {
+        return (string) await this.CallArgs(Type == ThreadType.System, RPCDataType.String, typeof(string), null, 0, Address, 0, true, args);
     }
 
-    public async Task<string> CallVMString(ThreadType Type, string module, int ordinal, params object[] Arguments) {
-        return (string) await this.CallArgs(Type == ThreadType.System, RPCDataType.String, typeof(string), module, ordinal, 0, 0, true, Arguments);
+    public async Task<string> CallVMString(ThreadType Type, string module, int ordinal, params object[] args) {
+        return (string) await this.CallArgs(Type == ThreadType.System, RPCDataType.String, typeof(string), module, ordinal, 0, 0, true, args);
     }
 
     private async Task<string?> SendCommand(string Command) {
@@ -322,12 +322,13 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
             throw new IOException("Invalid argument");
 
         CancellationToken cancellation = ActivityManager.Instance.TryGetCurrentTask(out ActivityTask? task) ? task.CancellationToken : CancellationToken.None;
-        while (response.Contains(findText) && !cancellation.IsCancellationRequested) {
-            await Task.Delay(100);
+        for (int i = 0; response.Contains(findText) && !cancellation.IsCancellationRequested; i++) {
             uint address = uint.Parse(response.AsSpan(response.IndexOf(findText) + findText.Length), NumberStyles.HexNumber);
             response = await this.SendCommand("consolefeatures " + findText + "0x" + address.ToString("X"));
             if (response == null)
                 throw new IOException("Invalid argument");
+            if (i == 10)
+                throw new IOException("JRPC error: infinite loop");
         }
 
         switch (dataType) {
