@@ -372,7 +372,7 @@ public sealed class LuaEngineFunctions {
             LuaTable jrpcTable = new LuaTable(0, 17);
             state.Environment[(LuaValue) "jrpc"] = (LuaValue) jrpcTable;
             state.LoadedModules[(LuaValue) "jrpc"] = (LuaValue) jrpcTable;
-            AssignFunction(engineTable, new NetworkHandlingLuaFunction("getprocaddress", this.GetProcedureAddress));
+            AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("getprocaddress", this.GetProcedureAddress));
             AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callvoidat", this.CallVoidAt));
             AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callvoidin", this.CallVoidIn));
             AssignFunction(jrpcTable, new NetworkHandlingLuaFunction("callvoidat_vm", this.CallVoidAt_VM));
@@ -402,7 +402,7 @@ public sealed class LuaEngineFunctions {
                 buffer.Span[0] = LuaValue.Nil;
             }
             else {
-                buffer.Span[0] = (LuaValue) address.ToString("X8");
+                buffer.Span[0] = address;
             }
 
             return 1;
