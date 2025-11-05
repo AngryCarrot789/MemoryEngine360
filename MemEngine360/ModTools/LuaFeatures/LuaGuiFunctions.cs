@@ -40,7 +40,7 @@ public class LuaGuiFunctions {
     private readonly LuaFunction TextBlock_SetTextFunction;
     private readonly LuaModToolMachine machine;
     private readonly LuaState state;
-    private long lastSet;
+    private long lastGuiUpdateTicks;
 
     public LuaGuiFunctions(LuaModToolMachine machine, LuaState state) {
         this.machine = machine;
@@ -171,13 +171,13 @@ public class LuaGuiFunctions {
                 "top" => MTDockPanel.DockType.Top,
                 "right" => MTDockPanel.DockType.Right,
                 "bottom" => MTDockPanel.DockType.Bottom,
-                _ => throw LuaUtils.InvalidOperation(in ctx, "Unknown dock type: " + type)
+                _ => throw LuaUtils.BadArgument(in ctx, 1, DockPanel_Add.Name, "left or top or right or bottom", type)
             };
 
             toAdd = ctx.GetArgument<LuaTable>(2);
         }
         else {
-            throw LuaUtils.InvalidOperation(in ctx, "Invalid arg count");
+            throw LuaUtils.NotEnoughArgs(in ctx, DockPanel_Add.Name, "2 or 3");
         }
 
         MTDockPanel targetPanel = GetElementFromTable<MTDockPanel>(table);
@@ -200,21 +200,21 @@ public class LuaGuiFunctions {
         LuaTable toAdd;
         int column = ctx.GetArgument<int>(1);
         if (column < 0)
-            throw LuaUtils.InvalidOperation(in ctx, "Column must be greater than or equal to zero");
+            throw LuaUtils.BadArgument(in ctx, 1, GridPanel_Add.Name, "Column must be greater than or equal to zero");
 
         int row = ctx.GetArgument<int>(2);
         if (row < 0)
-            throw LuaUtils.InvalidOperation(in ctx, "Row must be greater than or equal to zero");
+            throw LuaUtils.BadArgument(in ctx, 2, GridPanel_Add.Name, "Row must be greater than or equal to zero");
 
         int colSpan = 1, rowSpan = 1;
         if (ctx.ArgumentCount >= 6) {
             colSpan = ctx.GetArgument<int>(3);
             if (colSpan < 1)
-                throw LuaUtils.InvalidOperation(in ctx, "Column span must be greater than zero");
+                throw LuaUtils.BadArgument(in ctx, 3, GridPanel_Add.Name, "Column span must be greater than zero");
 
             rowSpan = ctx.GetArgument<int>(4);
             if (rowSpan < 1)
-                throw LuaUtils.InvalidOperation(in ctx, "Row span must be greater than zero");
+                throw LuaUtils.BadArgument(in ctx, 4, GridPanel_Add.Name, "Row span must be greater than zero");
 
             toAdd = ctx.GetArgument<LuaTable>(5);
         }
@@ -228,33 +228,35 @@ public class LuaGuiFunctions {
         return 0;
     }
 
-    private static async ValueTask<int> AddGridPanelRow(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+    private static ValueTask<int> AddGridPanelRow(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         LuaTable table = ctx.GetArgument<LuaTable>(0);
-        MTGridPanel.GridDefinitionSize size = ParseDefinitionSize(in ctx, ctx.GetArgument<string>(1));
+        MTGridPanel.GridDefinitionSize size = ParseDefinitionSize(in ctx, 1, "add_row");
         MTGridPanel targetPanel = GetElementFromTable<MTGridPanel>(table);
         targetPanel.Rows.Add(new MTGridPanel.RowDefinition(size));
-        return 0;
+        return ValueTask.FromResult(0);
     }
 
-    private static async ValueTask<int> AddGridPanelColumn(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+    private static ValueTask<int> AddGridPanelColumn(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         LuaTable table = ctx.GetArgument<LuaTable>(0);
-        MTGridPanel.GridDefinitionSize size = ParseDefinitionSize(in ctx, ctx.GetArgument<string>(1));
+        MTGridPanel.GridDefinitionSize size = ParseDefinitionSize(in ctx, 1, "add_column");
         MTGridPanel targetPanel = GetElementFromTable<MTGridPanel>(table);
         targetPanel.Columns.Add(new MTGridPanel.ColumnDefinition(size));
-        return 0;
+        return ValueTask.FromResult(0);
     }
 
-    public static MTGridPanel.GridDefinitionSize ParseDefinitionSize(in LuaFunctionExecutionContext ctx, string s) {
+    public static MTGridPanel.GridDefinitionSize ParseDefinitionSize(in LuaFunctionExecutionContext ctx, int index, string functionName) {
+        string s = ctx.GetArgument<string>(index);
+        
         double dval;
         s = s.ToUpperInvariant();
         if (s == "AUTO") {
             return new MTGridPanel.GridDefinitionSize(0, MTGridPanel.GridSizeType.Auto);
         }
         else if (s.EndsWith("*")) {
-            string valueString = s.Substring(0, s.Length - 1).Trim();
+            ReadOnlySpan<char> valueString = s.AsSpan(0, s.Length - 1).Trim();
             if (valueString.Length > 0) {
                 if (!double.TryParse(valueString, out dval))
-                    throw LuaUtils.InvalidOperation(ctx, "Invalid number: " + valueString);
+                    throw LuaUtils.BadArgument(in ctx, index, functionName, "Invalid number: " + valueString.ToString());
             }
             else {
                 dval = 1;
@@ -264,7 +266,7 @@ public class LuaGuiFunctions {
         }
         else {
             if (!double.TryParse(s, out dval))
-                throw LuaUtils.InvalidOperation(ctx, "Invalid number: " + s);
+                throw LuaUtils.BadArgument(in ctx, index, functionName, "Invalid number: " + s);
             return new MTGridPanel.GridDefinitionSize(dval, MTGridPanel.GridSizeType.Pixel);
         }
     }
@@ -303,10 +305,10 @@ public class LuaGuiFunctions {
 
     private DispatchPriority GetSafePriorityForSetText() {
         long timeNow = Time.GetSystemTicks();
-        long last = Interlocked.Exchange(ref this.lastSet, timeNow);
+        long last = Interlocked.Exchange(ref this.lastGuiUpdateTicks, timeNow);
 
         // If calling since < 1ms, then use a low priority to prevent the UI stalling
-        if (last == 0 || (timeNow - last) < Time.TICK_PER_MILLIS) {
+        if (last == 0 || (timeNow - last) < TimeSpan.TicksPerMillisecond) {
             return DispatchPriority.Background;
         }
 
@@ -321,7 +323,7 @@ public class LuaGuiFunctions {
             "LEFT" or "L" => BaseMTElement.EnumHorizontalAlign.Left,
             "CENTER" or "C" => BaseMTElement.EnumHorizontalAlign.Center,
             "RIGHT" or "R" => BaseMTElement.EnumHorizontalAlign.Right,
-            _ => throw LuaUtils.InvalidOperation(in ctx, "Unknown horizontal align: " + text)
+            _ => throw LuaUtils.BadArgument(in ctx, 1, "set_align_h", "Unknown horizontal align: " + text)
         };
 
         MTButton button = GetElementFromTable<MTButton>(table);
@@ -337,7 +339,7 @@ public class LuaGuiFunctions {
             "TOP" or "T" => BaseMTElement.EnumVerticalAlign.Top,
             "CENTER" or "C" => BaseMTElement.EnumVerticalAlign.Center,
             "BOTTOM" or "B" => BaseMTElement.EnumVerticalAlign.Bottom,
-            _ => throw LuaUtils.InvalidOperation(in ctx, "Unknown vertical align: " + text)
+            _ => throw LuaUtils.BadArgument(in ctx, 1, "set_align_v", "Unknown vertical align: " + text)
         };
 
         MTButton button = GetElementFromTable<MTButton>(table);
@@ -358,7 +360,7 @@ public class LuaGuiFunctions {
         
         double seconds = ctx.GetArgument<double>(0);
         if (seconds <= 0.0 || seconds > MaxSecondsInt) {
-            throw LuaUtils.InvalidOperation(in ctx, $"Invalid interval: {seconds}. Must be > 0 and <= {MaxSecondsInt} seconds");
+            throw LuaUtils.BadArgument(in ctx, 0, "create_timer", $"Invalid interval: {seconds}. Must be > 0 and <= {MaxSecondsInt} seconds");
         }
 
         LuaFunction function = ctx.GetArgument<LuaFunction>(1);
@@ -382,7 +384,7 @@ public class LuaGuiFunctions {
     private ValueTask<int> DestroyTimer(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         object timerObject = ctx.GetArgument<object>(0);
         if (!(timerObject is Timer timer)) {
-            throw LuaUtils.InvalidOperation(in ctx, "Invalid timer object");
+            throw LuaUtils.BadArgument(in ctx, 0, "destroy_timer", "Invalid timer object");
         }
 
         List<Timer> list = this.machine.UserTimers;

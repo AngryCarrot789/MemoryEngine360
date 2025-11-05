@@ -85,6 +85,10 @@ public sealed class BusyLock {
     /// <para>
     /// Example operations that might cause this event are editing the value of scan or saved address values
     /// </para>
+    /// <para>
+    /// The task object passed as the 2nd parameter will become completed (never cancelled) once the
+    /// quick release intention caller has successfully obtained the busy token, or it cancelled the operation. 
+    /// </para>
     /// </summary>
     /// <remarks>
     /// During the call frame for handlers, a busy token will remain unobtainable, because the caller will
@@ -273,7 +277,7 @@ public sealed class BusyLock {
         if (token != null) {
             return token;
         }
-        
+
         // Check if someone passes the activity's cancellation token as a parameter
         // to this method. Nothing should go wrong if we passed two of the came CTs
         // to CreateLinkedTokenSource, but we may as well check anyway.
@@ -321,7 +325,7 @@ public sealed class BusyLock {
                     result = await service.WaitForActivity(new WaitForActivityOptions(foregroundInfo.Value.TopLevel, request.CurrentTask, ctsDialog.Token) {
                         CancelActivityOnCloseRequest = false, // when the user tries to close it, just close the dialog
                         WaitForActivityOnCloseRequest = false, // do not wait for the activity to complete!!!
-                        
+
                         // It can only be minimized when the activity can be cancelled via the activity list in the main UI,
                         // because we can't guarantee the caller has its own way of cancelling the activity
                         CanMinimizeIntoBackgroundActivity = request.CurrentTask.IsDirectlyCancellable
@@ -398,48 +402,54 @@ public sealed class BusyLock {
         // Create a TCS that is only marked as completed
         CancellableTaskCompletionSource myTcs = new CancellableTaskCompletionSource(cancellationToken, setSuccessfulInsteadOfCancelled: true);
 
-        // Broadcast to listeners to give up their busy token. Hopefully they will
-        // release them in the call frame, but that probably won't happen
-        this.UserQuickReleaseRequested?.Invoke(this, myTcs.Task);
-
-        // Try and exchange the current tcs with ours.
-        // If unsuccessful, we get the current one and just wait for it
-        TaskCompletionSource? oldTcs;
-        while ((oldTcs = Interlocked.CompareExchange(ref this.tcsPrimaryQuickReleaseAction, myTcs, null)) != null) {
-            try {
-                await oldTcs.Task.WaitAsync(cancellationToken);
-            }
-            catch (OperationCanceledException e) {
-                Debug.Assert(cancellationToken.IsCancellationRequested && e.CancellationToken == cancellationToken);
-                return null;
-            }
-        }
-
-        Debug.Assert(this.tcsPrimaryQuickReleaseAction == myTcs, "whaaaT!");
-
         try {
-            // At this point, we are now the main waiter for the quick action.
-            // tcsQuickActionBeginning will stay as myTcs until we replace it.
-            if ((token = this.InternalTryTakeBusyToken(myTcs)) != null) {
-                return token;
+            // Broadcast to listeners to give up their busy token. Hopefully they will
+            // release them in the call frame, but that probably won't happen
+            this.UserQuickReleaseRequested?.Invoke(this, myTcs.Task);
+
+            // Try and exchange the current tcs with ours.
+            // If unsuccessful, we get the current one and just wait for it
+            TaskCompletionSource? oldTcs;
+            while ((oldTcs = Interlocked.CompareExchange(ref this.tcsPrimaryQuickReleaseAction, myTcs, null)) != null) {
+                try {
+                    await oldTcs.Task.WaitAsync(cancellationToken);
+                }
+                catch (OperationCanceledException e) {
+                    Debug.Assert(cancellationToken.IsCancellationRequested && e.CancellationToken == cancellationToken);
+                    return null;
+                }
             }
 
-            return await this.InternalTryTakeBusyTokenLoop(cancellationToken, myTcs);
-        }
-        catch (OperationCanceledException) {
-            // ignored
-        }
-        catch (Exception) {
-            Debug.Fail("Unexpected exception");
+            Debug.Assert(this.tcsPrimaryQuickReleaseAction == myTcs, "whaaaT!");
+
+            try {
+                // At this point, we are now the main waiter for the quick action.
+                // tcsQuickActionBeginning will stay as myTcs until we replace it.
+                if ((token = this.InternalTryTakeBusyToken(myTcs)) != null) {
+                    return token;
+                }
+
+                return await this.InternalTryTakeBusyTokenLoop(cancellationToken, myTcs);
+            }
+            catch (OperationCanceledException) {
+                // ignored
+            }
+            catch (Exception) {
+                Debug.Fail("Unexpected exception");
+            }
+            finally {
+                // Set as null first, which will hopefully prevent potential wasted energy
+                // awaiting it again if we were to SetResult() first.
+                this.tcsPrimaryQuickReleaseAction = null;
+            }
         }
         finally {
-            // Set as null first, which will hopefully prevent potential wasted energy
-            // awaiting it again if we were to SetResult() first.
-            this.tcsPrimaryQuickReleaseAction = null;
-
-            // We don't mark it as cancelled because there's no need since this is the only
-            // class waiting on it, so it's just a waste of a new OperationCancelledException
-            // allocation. And it might result in an unobserved exception issue if cancelled
+            // We must always mark it as completed, because if a handler to UserQuickReleaseRequested added
+            // a continuation to the task (which is likely), then it might get stuck forever waiting for
+            // a task that would never complete.
+            
+            // We also never mark it as cancelled because there's no reason to differentiate between
+            // success and cancelled from a UserQuickReleaseRequested handler's POV, and it saves an OCE allocation
             myTcs.SetResult();
         }
 
@@ -471,7 +481,7 @@ public sealed class BusyLock {
                 ctsDebug.CancelAfter(2000);
                 waitToken = ctsDebug.Token;
 #endif
-                
+
                 try {
                     await tcsBusyLock.Task.WaitAsync(waitToken);
                 }
@@ -479,7 +489,7 @@ public sealed class BusyLock {
                     if (cancellationToken.IsCancellationRequested) {
                         return null;
                     }
-                    
+
                     // continue if the ctsDebug token was cancelled
                 }
             }

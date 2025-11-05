@@ -772,10 +772,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
 
         private void BusyLockOnUserQuickReleaseRequested(BusyLock busyLock, Task task) {
             this.RequestPause(out _, out _);
-
-            task.ContinueWith(t => {
-                this.RequestResume(out _, out _);
-            }, this.CancellationToken);
+            task.ContinueWith(static (t, s) => ((AutoRefreshTask) s!).RequestResume(out _, out _), this, this.CancellationToken);
         }
 
         protected override async Task OnPaused(bool isFirst) {

@@ -272,7 +272,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
 
                 await Task.Delay(250);
                 if (cfg.IsAutoRefreshResultsEnabled && !this.IsShuttingDown) {
-                    if ((DateTime.Now.Ticks - timeSinceRefreshedAddresses) >= (cfg.RefreshRateMillis * Time.TICK_PER_MILLIS)) {
+                    if ((DateTime.Now.Ticks - timeSinceRefreshedAddresses) >= (cfg.RefreshRateMillis * TimeSpan.TicksPerMillisecond)) {
                         await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.ScanningProcessor.RefreshSavedAddressesAsync());
                         timeSinceRefreshedAddresses = DateTime.Now.Ticks;
                     }

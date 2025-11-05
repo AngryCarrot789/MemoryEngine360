@@ -276,7 +276,7 @@ public sealed class LuaModToolMachine : ILuaMachine {
 
     private async ValueTask<int> RunMessages(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         if (Interlocked.CompareExchange(ref this.isProcessingMessagesSYNC, 1, 0) != 0) {
-            throw LuaUtils.InvalidOperation(in ctx, "Already processing messages");
+            throw LuaUtils.Exception(in ctx, "Already processing messages");
         }
 
         try {

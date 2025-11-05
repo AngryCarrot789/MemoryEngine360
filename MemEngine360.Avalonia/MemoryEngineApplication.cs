@@ -427,6 +427,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
                 window.Opened += static (s, e) => {
                     EngineView view = (EngineView) ((OverlayContentHostRoot) s.Content!).Content!;
+                    view.MemoryEngine.UserContext.Set(ITopLevel.TopLevelDataKey, s);
                     MemoryEngineViewState.GetInstance(view.MemoryEngine).IsActivityListVisible = false;
                     DataManager.GetContextData(s.Control).Set(MemoryEngine.EngineDataKey, view.MemoryEngine);
 
@@ -441,6 +442,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
                 window.Closed += static (s, e) => {
                     EngineView view = (EngineView) ((OverlayContentHostRoot) s.Content!).Content!;
+                    view.MemoryEngine.UserContext.Remove(ITopLevel.TopLevelDataKey);
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
                     DataManager.GetContextData(s.Control).Remove(MemoryEngine.EngineDataKey);
                 };

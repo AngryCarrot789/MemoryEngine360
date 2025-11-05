@@ -5,7 +5,7 @@ using MemEngine360.Engine.Modes;
 namespace MemEngine360.Scripting.LuaFeatures;
 
 public static class LuaUtils {
-    public static uint GetHexNumber(LuaFunctionExecutionContext ctx, int index) {
+    public static uint GetHexNumber(LuaFunctionExecutionContext ctx, int index, string functionName) {
         LuaValue arg = ctx.GetArgument(index);
         if (arg.Type == LuaValueType.String) {
             string text = arg.Read<string>() ?? "";
@@ -17,27 +17,29 @@ public static class LuaUtils {
             return (uint) value;
         }
 
-        throw InvalidOperation(in ctx, "Invalid hex value: " + arg);
+        throw BadArgument(in ctx, index, functionName, "Invalid hex value: " + arg);
     }
 
-    public static uint GetUIntFromValue(in LuaFunctionExecutionContext context, LuaValue addressArgument) {
+    public static uint GetUIntFromValue(in LuaFunctionExecutionContext context, int index, string functionName) {
+        LuaValue addressArgument = context.GetArgument(index);
+        
         uint address;
         if (addressArgument.Type == LuaValueType.Number) {
             addressArgument.TryRead(out double addr);
             if (addr < 0)
-                throw InvalidOperation(in context, "UInt argument cannot be a negative number");
+                throw BadArgument(in context, index, functionName, "UInt argument cannot be a negative number");
             address = (uint) addr;
         }
         else if (addressArgument.TryRead(out string str)) {
             if (str.StartsWith("0x")) {
                 if (!uint.TryParse(str.AsSpan(2), NumberStyles.HexNumber, null, out address))
-                    throw InvalidOperation(in context, "Invalid uint argument: " + str);
+                    throw BadArgument(in context, index, functionName, "Invalid uint argument: " + str);
             }
             else if (!uint.TryParse(str, out address))
-                throw InvalidOperation(in context, "Invalid uint argument: " + str);
+                throw BadArgument(in context, index, functionName, "Invalid uint argument: " + str);
         }
         else {
-            throw InvalidOperation(in context, "Invalid uint argument: " + addressArgument);
+            throw BadArgument(in context, index, functionName, "Invalid uint argument: " + addressArgument);
         }
 
         return address;
@@ -65,15 +67,51 @@ public static class LuaUtils {
             case "DOUBLE64":
             case "FLOAT64":
                 return DataType.Double;
-            default: throw InvalidOperation(in context, "Unknown data type: " + type);
+            default: throw Exception(in context, "Unknown data type: " + type);
         }
     }
 
-    public static LuaRuntimeException InvalidOperation(in LuaFunctionExecutionContext ctx, string message) {
+    public static LuaRuntimeException Exception(in LuaFunctionExecutionContext ctx, string message) {
         return new LuaRuntimeException(ctx.State.GetTraceback(), message);
     }
 
     public static void AssignFunction(LuaTable table, LuaFunction function) {
         table[function.Name] = function;
+    }
+
+    public static LuaRuntimeException AttemptInvalidOperation(in LuaFunctionExecutionContext ctx, string op, LuaValue a, LuaValue b) {
+        return new LuaRuntimeException(ctx.State.GetTraceback(), $"attempt to {op} a '{a.Type}' with a '{b.Type}'");
+    }
+
+    public static LuaRuntimeException AttemptInvalidOperation(in LuaFunctionExecutionContext ctx, string op, LuaValue a) {
+        return new LuaRuntimeException(ctx.State.GetTraceback(), $"attempt to {op} a '{a.Type}' value");
+    }
+
+    public static LuaRuntimeException BadArgument(in LuaFunctionExecutionContext ctx, int argumentId, string functionName) {
+        return new LuaRuntimeException(ctx.State.GetTraceback(), $"bad argument #{argumentId} to '{functionName}' (value expected)");
+    }
+
+    public static LuaRuntimeException BadArgument(in LuaFunctionExecutionContext ctx, int argumentId, string functionName, LuaValueType[] expected) {
+        return new LuaRuntimeException(ctx.State.GetTraceback(), $"bad argument #{argumentId} to '{functionName}' ({string.Join(" or ", expected)} expected)");
+    }
+
+    public static LuaRuntimeException BadArgument(in LuaFunctionExecutionContext ctx, int argumentId, string functionName, string expected, string actual) {
+        return new LuaRuntimeException(ctx.State.GetTraceback(), $"bad argument #{argumentId} to '{functionName}' ({expected} expected, got {actual})");
+    }
+
+    public static LuaRuntimeException BadArgument(in LuaFunctionExecutionContext ctx, int argumentId, string functionName, string message) {
+        return new LuaRuntimeException(ctx.State.GetTraceback(), $"bad argument #{argumentId} to '{functionName}' ({message})");
+    }
+
+    public static LuaRuntimeException BadArgumentNumberIsNotInteger(in LuaFunctionExecutionContext ctx, int argumentId, string functionName) {
+        return new LuaRuntimeException(ctx.State.GetTraceback(), $"bad argument #{argumentId} to '{functionName}' (number has no integer representation)");
+    }
+    
+    public static LuaRuntimeException NotEnoughArgs(in LuaFunctionExecutionContext ctx, string functionName, int expectedCount) {
+        return new LuaRuntimeException(ctx.State.GetTraceback(), $"not enough args to '{functionName}' ({expectedCount} expected, got {ctx.ArgumentCount})");
+    }
+    
+    public static LuaRuntimeException NotEnoughArgs(in LuaFunctionExecutionContext ctx, string functionName, string message) {
+        return new LuaRuntimeException(ctx.State.GetTraceback(), $"not enough args to '{functionName}' ({message})");
     }
 }

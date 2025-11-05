@@ -123,8 +123,8 @@ public abstract class RegisteredConnectionType {
     ///     a flag to change the behaviour of what this function does (e.g. do not show a "connecting..." dialog)
     /// </param>
     /// <param name="cancellation">
-    ///     A reference to the CTS created by the Connect to console dialog. It is cancelled when either the user clicks the cancel
-    ///     button in the activity status bar (or list) or when the user closes the connect to console window
+    ///     A reference to the CTS created by the Connect to console dialog. It is automatically
+    ///     cancelled when the user clicks the cancel button in the Connect to a console window
     /// </param>
     /// <returns>
     /// The valid console connection, or null if a connection could not be made, or cancellation was requested

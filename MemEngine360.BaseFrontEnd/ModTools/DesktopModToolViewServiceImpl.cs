@@ -69,6 +69,10 @@ public class DesktopModToolViewServiceImpl : IModToolViewService {
     }
 
     public async Task ShowOrFocusGui(ModTool tool) {
+        if (tool.Manager == null) {
+            return;
+        }
+        
         if (ToolGuiDataKey.TryGetContext(tool.UserContext, out IDesktopWindow? currentWindow)) {
             currentWindow.Activate();
             return;
@@ -84,6 +88,7 @@ public class DesktopModToolViewServiceImpl : IModToolViewService {
             Content = new ModToolView() {
                 ModTool = tool,
             },
+            Parent = ITopLevel.FromContext(tool.Manager.MemoryEngine.UserContext) as IDesktopWindow,
             TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.Sequencer.TitleBarBackground"),
             BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
             MinWidth = 250, MinHeight = 120,
