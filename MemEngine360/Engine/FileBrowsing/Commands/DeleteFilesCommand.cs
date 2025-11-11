@@ -73,7 +73,7 @@ public class DeleteFilesCommand : BaseFileExplorerCommand {
             },
             Execute = async (action, connection) => {
                 ActivityTask activity = ActivityManager.Instance.RunTask(async () => {
-                    IActivityProgress progress = ActivityManager.Instance.CurrentTask.Progress;
+                    IActivityProgress progress = ActivityTask.Current.Progress;
                     progress.Caption = $"Deleting {paths!.Count} item{Lang.S(paths.Count)}";
 
                     using PopCompletionStateRangeToken token = progress.CompletionState.PushCompletionRange(0, 1.0 / paths.Count);

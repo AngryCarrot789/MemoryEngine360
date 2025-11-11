@@ -111,7 +111,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
         }
 
         Debug.Assert(!this.connection.IsClosed);
-        IActivityProgress progress = ActivityManager.Instance.CurrentTask.Progress;
+        IActivityProgress progress = ActivityTask.Current.Progress;
 
         uint overlap = this.ctx.Overlap;
         byte[] tmpBuffer = new byte[DataTypedScanningContext.ChunkSize + overlap];

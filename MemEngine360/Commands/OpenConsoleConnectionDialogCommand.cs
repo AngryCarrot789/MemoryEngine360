@@ -113,7 +113,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
     public static async Task<bool> DisconnectInActivity(ITopLevel engineTopLevel, MemoryEngine engine, ulong frame) {
         using CancellationTokenSource cts = new CancellationTokenSource();
         Result<bool> result = await ActivityManager.Instance.RunTask(async () => {
-            ActivityTask task = ActivityManager.Instance.CurrentTask;
+            ActivityTask task = ActivityTask.Current;
             task.Progress.Caption = "Disconnect from connection";
             task.Progress.Text = "Stopping all tasks...";
 

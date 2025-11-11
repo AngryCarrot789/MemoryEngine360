@@ -50,9 +50,9 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         this.console = console;
         IXboxDebugTarget dbgTarget = this.console.DebugTarget;
         dbgTarget.MemoryCacheEnabled = false;
-        XboxEvents_OnStdNotifyEventHandler handler = this.OnStdNotify;
-        this.console.add_OnStdNotify(handler);
-        this.console.add_OnTextNotify(this.OnTextNotify);
+        // XboxEvents_OnStdNotifyEventHandler handler = this.OnStdNotify;
+        // this.console.add_OnStdNotify(handler);
+        // this.console.add_OnTextNotify(this.OnTextNotify);
         this.isConnectedAsDebugger = true;
         this.features = new FeaturesImpl(this);
 
@@ -92,6 +92,41 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         System.Console.WriteLine($"[TextNotify] {source} -> {notification}");
     }
 
+    public static Task RunActionWithComErrorHandling(Action action) {
+        TaskCompletionSource tcs = new TaskCompletionSource();
+        _ = Task.Run(() => {
+            try {
+                action();
+                tcs.SetResult();
+            }
+            catch (COMException e) {
+                tcs.SetException(new IOException("XDevkit COM error: " + e.Message));
+            }
+            catch (Exception e) {
+                tcs.SetException(new IOException("XDevkit error: " + e.Message, e));
+            }
+        });
+
+        return tcs.Task;
+    }
+
+    public static Task<T> RunActionWithComErrorHandling<T>(Func<T> action) {
+        TaskCompletionSource<T> tcs = new TaskCompletionSource<T>();
+        _ = Task.Run(() => {
+            try {
+                tcs.SetResult(action());
+            }
+            catch (COMException e) {
+                tcs.SetException(new IOException("XDevkit COM error: " + e.Message));
+            }
+            catch (Exception e) {
+                tcs.SetException(new IOException("XDevkit error: " + e.Message, e));
+            }
+        });
+
+        return tcs.Task;
+    }
+
     public override Task<bool?> IsMemoryInvalidOrProtected(uint address, int count) {
         return Task.FromResult<bool?>(null);
     }
@@ -99,16 +134,23 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
     protected override void CloseOverride() {
         if (this.isConnectedAsDebugger) {
             this.isConnectedAsDebugger = false;
-            this.console.remove_OnStdNotify(this.OnStdNotify);
-            this.console.remove_OnTextNotify(this.OnTextNotify);
-            this.console.DebugTarget.DisconnectAsDebugger();
+            Task.Run(() => {
+                // this.console.remove_OnStdNotify(this.OnStdNotify);
+                // this.console.remove_OnTextNotify(this.OnTextNotify);
+                try {
+                    this.console.DebugTarget.DisconnectAsDebugger();
+                }
+                catch {
+                    // ignored
+                }
+            });
         }
     }
 
     public async Task<FreezeResult> DebugFreeze() {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
-        return await Task.Run(() => {
+        return await RunActionWithComErrorHandling(() => {
             this.console.DebugTarget.Stop(out bool isAlreadyStopped);
             return isAlreadyStopped ? FreezeResult.AlreadyFrozen : FreezeResult.Success;
         }).ConfigureAwait(false);
@@ -117,7 +159,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
     public async Task<UnFreezeResult> DebugUnFreeze() {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
-        return await Task.Run(() => {
+        return await RunActionWithComErrorHandling(() => {
             this.console.DebugTarget.Go(out bool isAlreadyGoing);
             return isAlreadyGoing ? UnFreezeResult.AlreadyUnfrozen : UnFreezeResult.Success;
         }).ConfigureAwait(false);
@@ -140,7 +182,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         //     }
         // }
 
-        return await Task.Run(() => {
+        return await RunActionWithComErrorHandling(() => {
             List<MemoryRegion> regionList = new List<MemoryRegion>();
             try {
                 IXboxMemoryRegions regions = this.console.DebugTarget.MemoryRegions;
@@ -157,7 +199,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
     }
 
     protected override Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
-        return Task.Run(() => {
+        return RunActionWithComErrorHandling(() => {
             IXboxDebugTarget target = this.console.DebugTarget;
             target.GetMemory_cpp(address, (uint) count, ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dstBuffer), offset), out uint cbRead);
             if (cbRead < count) {
@@ -167,7 +209,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
     }
 
     protected override Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
-        return Task.Run(() => {
+        return RunActionWithComErrorHandling(() => {
             this.console.DebugTarget.SetMemory_cpp(address, (uint) count, ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(srcBuffer), offset), out uint cbWritten);
         });
     }
@@ -204,7 +246,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
             this.connection.EnsureNotClosed();
             using BusyToken token = this.connection.CreateBusyToken();
 
-            return await Task.Run(() => {
+            return await RunActionWithComErrorHandling(() => {
                 foreach (IXboxThread thread in this.connection.console.DebugTarget.Threads) {
                     if (thread.ThreadId == threadId) {
                         return XBThreadFromCOM(thread);
@@ -219,7 +261,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
             this.connection.EnsureNotClosed();
             using BusyToken token = this.connection.CreateBusyToken();
 
-            return await Task.Run(() => {
+            return await RunActionWithComErrorHandling(() => {
                 List<XboxThread> threads = new List<XboxThread>();
                 foreach (IXboxThread thread in this.connection.console.DebugTarget.Threads) {
                     threads.Add(XBThreadFromCOM(thread));
@@ -246,7 +288,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         //     this.connection.EnsureNotClosed();
         //     using BusyToken token = this.connection.CreateBusyToken();
         //
-        //     await Task.Run(() => {
+        //     await RunActionWithComErrorHandling(() => {
         //         this.connection.console.DeleteFile(path);
         //     });
         // }
@@ -254,7 +296,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         // public async Task LaunchFile(string path) {
         //     this.connection.EnsureNotClosed();
         //     using BusyToken token = this.connection.CreateBusyToken();
-        //     await Task.Run(() => {
+        //     await RunActionWithComErrorHandling(() => {
         //         string[] lines = path.Split('\\');
         //         StringBuilder dirSb = new StringBuilder();
         //         for (int i = 0; i < lines.Length - 1; i++)
@@ -303,7 +345,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
             this.connection.EnsureNotClosed();
             using BusyToken token = this.connection.CreateBusyToken();
 
-            await Task.Run(() => {
+            await RunActionWithComErrorHandling(() => {
                 this.connection.console.DebugTarget.SetBreakpoint(address);
             });
         }
@@ -312,7 +354,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
             this.connection.EnsureNotClosed();
             using BusyToken token = this.connection.CreateBusyToken();
 
-            await Task.Run(() => {
+            await RunActionWithComErrorHandling(() => {
                 this.connection.console.DebugTarget.SetDataBreakpoint(address, (XDevkit.XboxBreakpointType) type, size);
             });
         }
@@ -321,7 +363,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
             this.connection.EnsureNotClosed();
             using BusyToken token = this.connection.CreateBusyToken();
 
-            await Task.Run(() => {
+            await RunActionWithComErrorHandling(() => {
                 this.connection.console.DebugTarget.RemoveBreakpoint(address);
             });
         }
@@ -334,7 +376,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
             this.connection.EnsureNotClosed();
             using BusyToken token = this.connection.CreateBusyToken();
 
-            await Task.Run(() => {
+            await RunActionWithComErrorHandling(() => {
                 foreach (IXboxThread thread in this.connection.console.DebugTarget.Threads) {
                     if (thread.ThreadId == threadId) {
                         thread.Suspend();
@@ -348,7 +390,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
             this.connection.EnsureNotClosed();
             using BusyToken token = this.connection.CreateBusyToken();
 
-            await Task.Run(() => {
+            await RunActionWithComErrorHandling(() => {
                 foreach (IXboxThread thread in this.connection.console.DebugTarget.Threads) {
                     if (thread.ThreadId == threadId) {
                         thread.Resume();

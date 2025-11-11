@@ -510,7 +510,7 @@ public class ScanningProcessor {
             return;
 
             async Task RunScanInAction() {
-                ActivityTask thisTask = ActivityManager.Instance.CurrentTask;
+                ActivityTask thisTask = ActivityTask.Current;
                 await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                     // If for some reason it gets force disconnected in an already scheduled
                     // dispatcher operation, we should just safely stop scanning
@@ -563,7 +563,7 @@ public class ScanningProcessor {
                                     await IMessageDialogService.Instance.ShowMessage(e is IOException ? "Connection IO Error" : "Connection Timed Out", "Error freezing console", e.Message);
                                 }
                                 catch (Exception e) {
-                                    await LogExceptionHelper.ShowMessageAndPrintToLogs("Unexpected Error", "Unexpected error freezing console.", e);
+                                    await IMessageDialogService.Instance.ShowExceptionMessage("Unexpected Error", "Unexpected error freezing console.", e);
                                 }
 
                                 if (canContinue) {
@@ -579,7 +579,7 @@ public class ScanningProcessor {
                                         result = false;
                                     }
                                     catch (Exception e) {
-                                        await LogExceptionHelper.ShowMessageAndPrintToLogs("Unexpected Error", "Error performing next scan.", e);
+                                        await IMessageDialogService.Instance.ShowExceptionMessage("Unexpected Error", "Error performing next scan.", e);
                                         result = false;
                                     }
 
@@ -593,7 +593,7 @@ public class ScanningProcessor {
                                         result = false;
                                     }
                                     catch (Exception e) {
-                                        await LogExceptionHelper.ShowMessageAndPrintToLogs("Unexpected Error", "Unexpected error unfreezing console.", e);
+                                        await IMessageDialogService.Instance.ShowExceptionMessage("Unexpected Error", "Unexpected error unfreezing console.", e);
                                         result = false;
                                     }
                                 }
@@ -619,7 +619,7 @@ public class ScanningProcessor {
                                 result = false;
                             }
                             catch (Exception e) {
-                                await LogExceptionHelper.ShowMessageAndPrintToLogs("Unexpected Error", "Error performing first scan.", e);
+                                await IMessageDialogService.Instance.ShowExceptionMessage("Unexpected Error", "Error performing first scan.", e);
                                 result = false;
                             }
                         }

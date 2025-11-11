@@ -62,7 +62,7 @@ public class ShowModulesCommand : BaseMemoryEngineCommand {
         Result<bool> result = await ActivityManager.Instance.RunTask(async () => await ModuleViewer.TryFillModuleManager(engine, connection, viewer), cts);
         if (result.Exception != null) {
             if (!(result.Exception is OperationCanceledException)) {
-                await LogExceptionHelper.ShowMessageAndPrintToLogs("Error refreshing modules", result.Exception.Message, result.Exception);
+                await IMessageDialogService.Instance.ShowExceptionMessage("Error refreshing modules", result.Exception.Message, result.Exception);
             }
         }
         else if (result.Value) {

@@ -21,6 +21,7 @@ using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.FilePicking;
+using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.ModTools.Commands;
@@ -65,7 +66,7 @@ public class OpenModToolScriptFileCommand : Command {
             return;
         }
         catch (Exception ex) {
-            await LogExceptionHelper.ShowMessageAndPrintToLogs("File Error", $"Failed to read file '{path}': " + ex.Message, ex);
+            await IMessageDialogService.Instance.ShowExceptionMessage("File Error", $"Failed to read file '{path}': " + ex.Message, ex);
             return;
         }
         

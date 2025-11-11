@@ -328,7 +328,7 @@ public class AnyTypeScanningContext : ScanningContext {
     /// <param name="srcList">The source list of items</param>
     /// <param name="busyTokenRef"></param>
     internal override async Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IBusyToken?> busyTokenRef) {
-        ActivityTask task = ActivityManager.Instance.CurrentTask;
+        ActivityTask task = ActivityTask.Current;
         using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
             for (int i = 0; i < srcList.Count; i++) {
                 ScanResultViewModel res = srcList[i];

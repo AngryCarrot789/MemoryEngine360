@@ -30,6 +30,7 @@ using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Dialogs;
+using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 
@@ -127,7 +128,7 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
                 }
                 catch (Exception e) {
                     connection = null;
-                    await LogExceptionHelper.ShowMessageAndPrintToLogs("Error", "An unhandled exception occurred while opening connection", e);
+                    await IMessageDialogService.Instance.ShowExceptionMessage("Error", "An unhandled exception occurred while opening connection", e);
                 }
 
                 if (!this.DialogOperation.IsCompleted) {

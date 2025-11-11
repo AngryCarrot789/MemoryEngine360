@@ -209,7 +209,7 @@ public class PointerScanner {
         this.IsScanRunning = true;
         await ActivityManager.Instance.RunTask(async () => {
             TaskCompletionSource tcs = new TaskCompletionSource();
-            PointerScanThreadOptions options = new PointerScanThreadOptions(ActivityManager.Instance.CurrentTask, tcs);
+            PointerScanThreadOptions options = new PointerScanThreadOptions(ActivityTask.Current, tcs);
             Thread thread = new Thread(this.ThreadedPointerScanMain) {
                 Name = "Pointer Scan Thread",
                 IsBackground = true,
@@ -265,7 +265,7 @@ public class PointerScanner {
                 // ignored
             }
             catch (Exception e) {
-                await LogExceptionHelper.ShowMessageAndPrintToLogs("Pointer Scan Eror", "Error while scanning", e);
+                await IMessageDialogService.Instance.ShowExceptionMessage("Pointer Scan Error", "Error while scanning", e);
             }
         }, new DispatcherActivityProgress(DispatchPriority.Background), cts);
         this.IsScanRunning = false;

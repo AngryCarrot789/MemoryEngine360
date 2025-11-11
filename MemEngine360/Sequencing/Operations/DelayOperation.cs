@@ -48,15 +48,15 @@ public class DelayOperation : BaseSequenceOperation {
     public DelayOperation() {
     }
 
-    public DelayOperation(uint delayMillis) {
-        this.delay = TimeSpan.FromMilliseconds(delayMillis);
+    public DelayOperation(int delayMillis) {
+        this.Delay = TimeSpan.FromMilliseconds(delayMillis);
     }
 
     protected override async Task RunOperation(SequenceExecutionContext ctx, CancellationToken token) {
-        double totalms = this.Delay.TotalMilliseconds;
-        ctx.Progress.Text = $"Waiting {Math.Round(totalms, 2)} ms";
+        double totalMs = this.Delay.TotalMilliseconds;
+        ctx.Progress.Text = $"Waiting {Math.Round(totalMs, 2)} ms";
 
-        if (DoubleUtils.GreaterThanOrClose(totalms, 20.0)) {
+        if (DoubleUtils.GreaterThanOrClose(totalMs, 20.0)) {
             await Task.Delay(this.Delay, token);
         }
         else {

@@ -71,7 +71,7 @@ public class PluginXbox360Xbdm : Plugin {
     }
 
     private static async Task FillModuleManager(MemoryEngine engine, XbdmConsoleConnection connection, ModuleViewer viewer) {
-        ActivityTask task = ActivityManager.Instance.CurrentTask;
+        ActivityTask task = ActivityTask.Current;
         task.Progress.Caption = "Reading Modules";
         task.Progress.Text = "Reading modules...";
         task.Progress.IsIndeterminate = true;

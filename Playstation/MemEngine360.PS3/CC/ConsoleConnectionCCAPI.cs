@@ -59,8 +59,6 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection, INetworkConsoleConn
     }
 
     protected override void CloseOverride() {
-        base.CloseOverride();
-        
         Task.Run(() => {
             try {
                 this.api.DisconnectFromConsole(true);

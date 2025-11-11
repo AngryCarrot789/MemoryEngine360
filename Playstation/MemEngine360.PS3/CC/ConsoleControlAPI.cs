@@ -31,7 +31,16 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.PS3.CC;
 
 [SupportedOSPlatform("windows")]
-public class ConsoleControlAPI : IDisposable {
+public class ConsoleControlAPI {
+    private delegate void ThreadedAction(ConsoleControlAPI api, object? param1, object? param2, CancellationToken cancellation);
+
+    private readonly struct ThreadedActionInfo(ThreadedAction action, object? param1, object? param2, CancellationToken cancellation) {
+        public readonly ThreadedAction action = action;
+        public readonly object? param1 = param1;
+        public readonly object? param2 = param2;
+        public readonly CancellationToken cancellation = cancellation;
+    }
+
     /*
      * CCAPI is native library compiled in x86, however, MemoryEngine360 is x64.
      *
@@ -58,7 +67,10 @@ public class ConsoleControlAPI : IDisposable {
     private NetworkStream? stream;
     private Thread? threadCCAPI;
 
-    private Action<ConsoleControlAPI>? threadAction;
+    private readonly Lock threadActionInfoLock = new Lock();
+    private bool hasThreadActionInfo; // guarded by lock
+    private ThreadedActionInfo threadActionInfo; // guarded by lock
+    
     private readonly ManualResetEvent threadMre;
     private bool keepThreadRunning;
 
@@ -87,64 +99,6 @@ public class ConsoleControlAPI : IDisposable {
 
         this.threadCCAPI.Start();
     }
-
-    #region Threading
-
-    private void ThreadMainConsoleControl() {
-        while (this.keepThreadRunning) {
-            this.threadMre.WaitOne();
-            Action<ConsoleControlAPI>? action = Interlocked.Exchange(ref this.threadAction, null);
-            try {
-                action?.Invoke(this);
-            }
-            catch (Exception e) {
-                // Typically IO or Timeout exception
-                this.FailureException = e;
-                this.NativeFailure?.Invoke(this, EventArgs.Empty);
-                return;
-            }
-        }
-    }
-
-    private Task RunThreadActionLater(Action<ConsoleControlAPI> func, CancellationToken cancellation = default) {
-        return this.RunThreadActionLater<object?>((t) => {
-            func(t);
-            return null;
-        }, cancellation);
-    }
-
-    private Task<T> RunThreadActionLater<T>(Func<ConsoleControlAPI, T> func, CancellationToken cancellation = default) {
-        TaskCompletionSource<T> tcs = new TaskCompletionSource<T>();
-        Action<ConsoleControlAPI> delegateAction = (t) => {
-            if (cancellation.IsCancellationRequested) {
-                tcs.SetCanceled(cancellation);
-                return;
-            }
-
-            if (!t.keepThreadRunning) {
-                tcs.SetCanceled(CancellationToken.None); // None can be used to tell difference between cancelled and aborted 
-                return;
-            }
-
-            try {
-                this.EnsureNotDisposed();
-                tcs.SetResult(func(t));
-            }
-            catch (Exception e) {
-                tcs.SetException(e);
-                throw;
-            }
-        };
-
-        if (Interlocked.CompareExchange(ref this.threadAction, delegateAction, null) != null) {
-            throw new InvalidOperationException("Another action already queued");
-        }
-
-        this.threadMre.Set();
-        return tcs.Task;
-    }
-
-    #endregion
 
     public static async Task<ConsoleControlAPI> Run(int port = 45678, CancellationToken cancellationToken = default) {
         if (port < 0 || port > ushort.MaxValue)
@@ -222,30 +176,30 @@ public class ConsoleControlAPI : IDisposable {
     }
 
     private Task SelfTest(CancellationToken cancellationToken = default) {
-        return this.RunThreadActionLater(_ => {
+        return this.RunThreadActionLater(static api => {
             const string TestText = "hello!!!";
             byte[] textBuffer = Encoding.UTF8.GetBytes(TestText);
             byte[] fullBuffer = new byte[4 + textBuffer.Length];
             Unsafe.As<byte, int>(ref fullBuffer[0]) = textBuffer.Length;
             textBuffer.AsSpan().CopyTo(fullBuffer.AsSpan(4));
-            this.WritePacket(19, fullBuffer);
+            api.WritePacket(19, fullBuffer);
 
-            int argc = this.ReadFromNetwork<byte>();
+            int argc = api.ReadFromNetwork<byte>();
             if (argc != 3 /* vars count */) {
                 throw new Exception("Self-test failed. Expected 3 args, got " + argc);
             }
 
-            string text = this.ReadTaggedString();
+            string text = api.ReadTaggedString();
             if (text != TestText) {
                 throw new Exception($"Self-test failed. Expected string to be '{TestText}', got '{text}' instead");
             }
 
-            string string2 = this.ReadTaggedString();
+            string string2 = api.ReadTaggedString();
             if (string2 != "This is param 1!!!") {
                 throw new Exception($"Self-test failed. Expected next string to be 'This is param 1!!!', got '{text}' instead");
             }
 
-            int nextInt = this.ReadFromNetwork<int>();
+            int nextInt = api.ReadFromNetwork<int>();
             if (nextInt != 1234567) {
                 throw new Exception($"Self-test failed. Expected next int to be '1234567', got '{nextInt}' instead");
             }
@@ -309,22 +263,22 @@ public class ConsoleControlAPI : IDisposable {
     }
 
     public Task<List<(uint, string?)>> GetAllProcesses() {
-        return this.RunThreadActionLater(_ => {
-            this.WritePacket(8, Span<byte>.Empty);
+        return this.RunThreadActionLater(static api => {
+            api.WritePacket(8, Span<byte>.Empty);
 
             List<(uint, string?)> list = new List<(uint, string?)>();
-            int length = this.ReadFromNetwork<ushort>();
+            int length = api.ReadFromNetwork<ushort>();
 
             Span<byte> buffer8 = stackalloc byte[8];
             for (int i = 0; i < length; i++) {
-                this.ReadFullyFromNetwork(buffer8);
+                api.ReadFullyFromNetwork(buffer8);
 
                 string? processName;
                 uint pid = Unsafe.As<byte, uint>(ref buffer8[0]);
                 int nameLength = Unsafe.As<byte, int>(ref buffer8[4]);
                 if (nameLength > 0) {
                     byte[] asciiBuffer = new byte[nameLength];
-                    this.ReadFullyFromNetwork(asciiBuffer, 0, nameLength);
+                    api.ReadFullyFromNetwork(asciiBuffer, 0, nameLength);
                     processName = Encoding.ASCII.GetString(asciiBuffer);
                 }
                 else {
@@ -477,7 +431,7 @@ public class ConsoleControlAPI : IDisposable {
         this.ReadFullyFromNetwork(buffer, 0, length);
         return length;
     }
-    
+
     private string ReadTaggedString() {
         int length = this.ReadFromNetwork<int>();
 
@@ -485,11 +439,113 @@ public class ConsoleControlAPI : IDisposable {
         try {
             this.ReadFullyFromNetwork(buffer, 0, length);
             string text = Encoding.ASCII.GetString(buffer, 0, length);
-            return text;    
+            return text;
         }
-        finally{
-            ArrayPool<byte>.Shared.Return(buffer);   
+        finally {
+            ArrayPool<byte>.Shared.Return(buffer);
         }
+    }
+
+    #endregion
+    
+    #region Threading
+
+    private void ThreadMainConsoleControl() {
+        while (this.keepThreadRunning) {
+            this.threadMre.WaitOne();
+            
+            ThreadedActionInfo info;
+            lock (this.threadActionInfoLock) {
+                if (!this.hasThreadActionInfo) {
+                    continue;
+                }
+
+                this.hasThreadActionInfo = false;
+                info = this.threadActionInfo;
+                this.threadActionInfo = default;
+                Debug.Assert(info.action != null, "Invalid thread action info");
+            }
+
+            try {
+                info.action(this, info.param1, info.param2, info.cancellation);
+            }
+            catch (Exception e) {
+                // Typically IO or Timeout exception
+                this.FailureException = e;
+                this.NativeFailure?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+        }
+    }
+
+    private Task RunThreadActionLater(Action<ConsoleControlAPI> action, CancellationToken cancellation = default) {
+        TaskCompletionSource theTcs = new TaskCompletionSource();
+        this.PostAction(static (api, p1, p2, token) => {
+            Action<ConsoleControlAPI> act = (Action<ConsoleControlAPI>) p1!;
+            TaskCompletionSource tcs = (TaskCompletionSource) p2!;
+            if (token.IsCancellationRequested) {
+                tcs.SetCanceled(token);
+                return;
+            }
+
+            if (!api.keepThreadRunning) {
+                tcs.SetCanceled(CancellationToken.None); // None can be used to tell difference between cancelled and aborted 
+                return;
+            }
+
+            try {
+                api.EnsureNotDisposed();
+                act(api);
+                tcs.SetResult();
+            }
+            catch (Exception e) {
+                tcs.SetException(e);
+                throw; // stop thread, causing API to get disposed
+            }
+        }, action, theTcs, cancellation);
+        
+        return theTcs.Task;
+    }
+
+    private Task<T> RunThreadActionLater<T>(Func<ConsoleControlAPI, T> func, CancellationToken cancellation = default) {
+        TaskCompletionSource<T> theTcs = new TaskCompletionSource<T>();
+        this.PostAction(static (api, p1, p2, token) => {
+            Func<ConsoleControlAPI, T> fn = (Func<ConsoleControlAPI, T>) p1!;
+            TaskCompletionSource<T> tcs = (TaskCompletionSource<T>) p2!;
+            if (token.IsCancellationRequested) {
+                tcs.SetCanceled(token);
+                return;
+            }
+
+            if (!api.keepThreadRunning) {
+                tcs.SetCanceled(CancellationToken.None); // None can be used to tell difference between cancelled and aborted 
+                return;
+            }
+
+            try {
+                api.EnsureNotDisposed();
+                tcs.SetResult(fn(api));
+            }
+            catch (Exception e) {
+                tcs.SetException(e);
+                throw; // stop thread, causing API to get disposed
+            }
+        }, func, theTcs, cancellation);
+        
+        return theTcs.Task;
+    }
+    
+    private void PostAction(ThreadedAction action, object? param1, object? param2, CancellationToken cancellation) {
+        lock (this.threadActionInfoLock) {
+            if (this.hasThreadActionInfo) {
+                throw new InvalidOperationException("Another action already queued");
+            }
+
+            this.hasThreadActionInfo = true;
+            this.threadActionInfo = new ThreadedActionInfo(action, param1, param2, cancellation);
+        }
+
+        this.threadMre.Set();
     }
 
     #endregion

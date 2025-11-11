@@ -137,7 +137,7 @@ public class EditScanResultValueCommand : Command {
             List<string> tmpErrors = new List<string>();
             foreach (ScanResultViewModel scanResult in scanResults) {
                 IDataValue? setValue = null;
-                ActivityManager.Instance.CurrentTask.ThrowIfCancellationRequested();
+                ActivityTask.Current.ThrowIfCancellationRequested();
                 if (directValue != null) {
                     await MemoryEngine.WriteDataValue(engine.Connection, scanResult.Address, directValue);
                     setValue = directValue;

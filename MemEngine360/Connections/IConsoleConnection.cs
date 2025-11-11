@@ -174,6 +174,16 @@ public interface IConsoleConnection {
     /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
     Task<string> ReadString(uint address, int charCount, Encoding encoding);
+    
+    /// <summary>
+    /// Reads a c-style (null-terminated) ascii string from the connection
+    /// </summary>
+    /// <param name="address">The address to read from</param>
+    /// <param name="cancellationToken">Signals to cancel reading the remainder of the string if a null char has not been found yet</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
+    /// <exception cref="OperationCanceledException">The token became cancelled</exception>
+    Task<string> ReadCString(uint address, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Writes the exact number of bytes to the console. If for some reason the amount of bytes count not be written, an <see cref="IOException"/> is thrown
@@ -328,9 +338,9 @@ public interface IConsoleConnection {
     /// <summary>
     /// Closes this connection, making <see cref="IsClosed"/> become true and <see cref="Closed"/> is fired.
     /// </summary>
-    /// <exception cref="AggregateException">One ore more exception occurred while closing this connection</exception>
+    /// <exception cref="AggregateException">One or more exception occurred while closing this connection</exception>
     void Close();
-
+    
     /// <summary>
     /// Gets a feature by its feature type
     /// </summary>

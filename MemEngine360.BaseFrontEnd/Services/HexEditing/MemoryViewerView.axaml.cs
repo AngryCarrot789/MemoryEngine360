@@ -446,7 +446,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 await IMessageDialogService.Instance.ShowMessage(result.Exception is IOException ? "Connection IO Error" : "Connection Timed Out", "Error uploading selection to console", result.Exception.Message);
             }
             else {
-                await LogExceptionHelper.ShowMessageAndPrintToLogs("Connection Error", "Error uploading selection to console", result.Exception);
+                await IMessageDialogService.Instance.ShowExceptionMessage("Connection Error", "Error uploading selection to console", result.Exception);
             }
 
             return;
@@ -483,7 +483,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
 
         using CancellationTokenSource cts = new CancellationTokenSource();
         ActivityTask activity = ActivityManager.Instance.RunTask(async () => {
-            IActivityProgress progress = ActivityManager.Instance.CurrentTask.Progress;
+            IActivityProgress progress = ActivityTask.Current.Progress;
             progress.SetCaptionAndText("Write data from Hex Editor");
             await info.MemoryEngine.BeginBusyOperationFromActivityAsync(async (_, c) => {
                 bool isAlreadyFrozen = false;
@@ -504,7 +504,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
 
                 byte[] buffer = new byte[count];
                 int read = this.myBinarySource!.ReadAvailableData(start, buffer);
-                await c.WriteBytes(start, buffer, 0, read, c.GetRecommendedReadChunkSize(read), completion, ActivityManager.Instance.CurrentTask.CancellationToken);
+                await c.WriteBytes(start, buffer, 0, read, c.GetRecommendedReadChunkSize(read), completion, ActivityTask.Current.CancellationToken);
 
                 if (!isAlreadyFrozen && iceCubes != null && info.MemoryEngine.ScanningProcessor.PauseConsoleDuringScan) {
                     progress.Text = "Unfreezing console...";
@@ -519,7 +519,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 await IMessageDialogService.Instance.ShowMessage(activity.Exception is IOException ? "Connection IO Error" : "Connection Timed Out", "Error uploading selection to console", activity.Exception.Message);
             }
             else {
-                await LogExceptionHelper.ShowMessageAndPrintToLogs("Connection Error", "Error uploading selection to console", activity.Exception);
+                await IMessageDialogService.Instance.ShowExceptionMessage("Connection Error", "Error uploading selection to console", activity.Exception);
             }
         }
 

@@ -21,6 +21,7 @@ using Lua;
 using MemEngine360.ModTools.Gui;
 using MemEngine360.Scripting.LuaFeatures;
 using PFXToolKitUI;
+using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.ModTools.LuaFeatures;
@@ -29,8 +30,16 @@ public class LuaGuiFunctions {
     private static readonly LuaFunction DockPanel_Add = new LuaFunction("add", AddElementToDockPanel);
     private static readonly LuaFunction StackPanel_Add = new LuaFunction("add", AddElementToStackPanel);
     private static readonly LuaFunction GridPanel_Add = new LuaFunction("add", AddElementToGridPanel);
+    private static readonly LuaFunction DockPanel_Remove = new LuaFunction("remove_at", RemoveElementInDockPanel);
+    private static readonly LuaFunction StackPanel_Remove = new LuaFunction("remove_at", RemoveElementInStackPanel);
+    private static readonly LuaFunction GridPanel_Remove = new LuaFunction("remove_at", RemoveElementInGridPanel);
+    private static readonly LuaFunction DockPanel_IndexOf = new LuaFunction("index_of", IndexOfElementInDockPanel);
+    private static readonly LuaFunction StackPanel_IndexOf = new LuaFunction("index_of", IndexOfElementInStackPanel);
+    private static readonly LuaFunction GridPanel_IndexOf = new LuaFunction("index_of", IndexOfElementInGridPanel);
     private static readonly LuaFunction GridPanel_AddRow = new LuaFunction("add_row", AddGridPanelRow);
     private static readonly LuaFunction GridPanel_AddCol = new LuaFunction("add_column", AddGridPanelColumn);
+    private static readonly LuaFunction GridPanel_RemoveRow = new LuaFunction("remove_row", RemoveGridPanelRow);
+    private static readonly LuaFunction GridPanel_RemoveCol = new LuaFunction("remove_column", RemoveGridPanelColumn);
     private static readonly LuaFunction Button_SetPressFunction = new LuaFunction("set_press_function", SetButtonOnPressedFunction);
     private static readonly LuaFunction Button_SetHoldFunction = new LuaFunction("set_holding_function", SetButtonOnHoldingFunction);
     private static readonly LuaFunction Elem_SetHorzAlign = new LuaFunction("set_align_h", SetElementHorizontalAlignment);
@@ -74,6 +83,8 @@ public class LuaGuiFunctions {
         LuaTable table = new LuaTable(0, 4);
         table["_internal_CLR_object"] = new LuaValue(dockPanel);
         table[DockPanel_Add.Name] = DockPanel_Add;
+        table[DockPanel_Remove.Name] = DockPanel_Remove;
+        table[DockPanel_IndexOf.Name] = DockPanel_Add;
         table[Elem_SetHorzAlign.Name] = Elem_SetHorzAlign;
         table[Elem_SetVertAlign.Name] = Elem_SetVertAlign;
 
@@ -93,6 +104,8 @@ public class LuaGuiFunctions {
         LuaTable table = new LuaTable(0, 4);
         table["_internal_CLR_object"] = new LuaValue(stackPanel);
         table[StackPanel_Add.Name] = StackPanel_Add;
+        table[StackPanel_Remove.Name] = StackPanel_Remove;
+        table[StackPanel_IndexOf.Name] = StackPanel_Add;
         table[Elem_SetHorzAlign.Name] = Elem_SetHorzAlign;
         table[Elem_SetVertAlign.Name] = Elem_SetVertAlign;
 
@@ -105,8 +118,12 @@ public class LuaGuiFunctions {
         LuaTable table = new LuaTable(0, 6);
         table["_internal_CLR_object"] = new LuaValue(stackPanel);
         table[GridPanel_Add.Name] = GridPanel_Add;
+        table[GridPanel_Remove.Name] = GridPanel_Remove;
+        table[GridPanel_IndexOf.Name] = GridPanel_Add;
         table[GridPanel_AddRow.Name] = GridPanel_AddRow;
         table[GridPanel_AddCol.Name] = GridPanel_AddCol;
+        table[GridPanel_RemoveRow.Name] = GridPanel_RemoveRow;
+        table[GridPanel_RemoveCol.Name] = GridPanel_RemoveCol;
         table[Elem_SetHorzAlign.Name] = Elem_SetHorzAlign;
         table[Elem_SetVertAlign.Name] = Elem_SetVertAlign;
 
@@ -186,6 +203,27 @@ public class LuaGuiFunctions {
         return 0;
     }
 
+    private static async ValueTask<int> RemoveElementInDockPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+        MTDockPanel targetPanel = GetElementFromTable<MTDockPanel>(ctx.GetArgument<LuaTable>(0));
+        int index = ctx.GetArgument<int>(1);
+        if (index < 0)
+            throw LuaUtils.BadArgument(in ctx, 1, DockPanel_Remove.Name, "Negative index");
+
+        int count = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.Count, token: ct);
+        if (index >= count)
+            throw LuaUtils.BadArgument(in ctx, 1, DockPanel_Remove.Name, "Index out of range");
+
+        await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.RemoveAt(index), token: ct);
+        return 0;
+    }
+    
+    private static async ValueTask<int> IndexOfElementInDockPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+        MTDockPanel targetPanel = GetElementFromTable<MTDockPanel>(ctx.GetArgument<LuaTable>(0));
+        BaseMTElement element = GetElementFromTable(ctx.GetArgument<LuaTable>(1));
+        buffer.Span[1] = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.FindIndex(element, (e, s) => e.Item1 == s), token: ct);
+        return 1;
+    }
+
     private static async ValueTask<int> AddElementToStackPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         LuaTable table = ctx.GetArgument<LuaTable>(0);
         LuaTable toAdd = ctx.GetArgument<LuaTable>(1);
@@ -195,6 +233,27 @@ public class LuaGuiFunctions {
         return 0;
     }
 
+    private static async ValueTask<int> RemoveElementInStackPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+        MTStackPanel targetPanel = GetElementFromTable<MTStackPanel>(ctx.GetArgument<LuaTable>(0));
+        int index = ctx.GetArgument<int>(1);
+        if (index < 0)
+            throw LuaUtils.BadArgument(in ctx, 1, StackPanel_Remove.Name, "Negative index");
+
+        int count = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.Count, token: ct);
+        if (index >= count)
+            throw LuaUtils.BadArgument(in ctx, 1, StackPanel_Remove.Name, "Index out of range");
+
+        await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.RemoveAt(index), token: ct);
+        return 0;
+    }
+    
+    private static async ValueTask<int> IndexOfElementInStackPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+        MTStackPanel targetPanel = GetElementFromTable<MTStackPanel>(ctx.GetArgument<LuaTable>(0));
+        BaseMTElement element = GetElementFromTable(ctx.GetArgument<LuaTable>(1));
+        buffer.Span[1] = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.IndexOf(element), token: ct);
+        return 1;
+    }
+    
     private static async ValueTask<int> AddElementToGridPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         LuaTable table = ctx.GetArgument<LuaTable>(0);
         LuaTable toAdd;
@@ -228,25 +287,73 @@ public class LuaGuiFunctions {
         return 0;
     }
 
-    private static ValueTask<int> AddGridPanelRow(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+    private static async ValueTask<int> RemoveElementInGridPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+        MTGridPanel targetPanel = GetElementFromTable<MTGridPanel>(ctx.GetArgument<LuaTable>(0));
+        int index = ctx.GetArgument<int>(1);
+        if (index < 0)
+            throw LuaUtils.BadArgument(in ctx, 1, GridPanel_Remove.Name, "Negative index");
+
+        int count = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.Count, token: ct);
+        if (index >= count)
+            throw LuaUtils.BadArgument(in ctx, 1, GridPanel_Remove.Name, "Index out of range");
+
+        await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.RemoveAt(index), token: ct);
+        return 0;
+    }
+    
+    private static async ValueTask<int> AddGridPanelRow(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         LuaTable table = ctx.GetArgument<LuaTable>(0);
         MTGridPanel.GridDefinitionSize size = ParseDefinitionSize(in ctx, 1, "add_row");
         MTGridPanel targetPanel = GetElementFromTable<MTGridPanel>(table);
-        targetPanel.Rows.Add(new MTGridPanel.RowDefinition(size));
-        return ValueTask.FromResult(0);
+        await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Rows.Add(new MTGridPanel.RowDefinition(size)), token: ct);
+        return 0;
+    }  
+    private static async ValueTask<int> RemoveGridPanelRow(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+        MTGridPanel targetPanel = GetElementFromTable<MTGridPanel>(ctx.GetArgument<LuaTable>(0));
+        int index = ctx.GetArgument<int>(1);
+        if (index < 0)
+            throw LuaUtils.BadArgument(in ctx, 1, GridPanel_RemoveRow.Name, "Negative index");
+
+        int count = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Rows.Count, token: ct);
+        if (index >= count)
+            throw LuaUtils.BadArgument(in ctx, 1, GridPanel_RemoveRow.Name, "Index out of range");
+        
+        await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Rows.RemoveAt(index), token: ct);
+        return 0;
     }
 
-    private static ValueTask<int> AddGridPanelColumn(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+    private static async ValueTask<int> AddGridPanelColumn(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         LuaTable table = ctx.GetArgument<LuaTable>(0);
         MTGridPanel.GridDefinitionSize size = ParseDefinitionSize(in ctx, 1, "add_column");
         MTGridPanel targetPanel = GetElementFromTable<MTGridPanel>(table);
-        targetPanel.Columns.Add(new MTGridPanel.ColumnDefinition(size));
-        return ValueTask.FromResult(0);
+        await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Columns.Add(new MTGridPanel.ColumnDefinition(size)), token: ct);
+        return 0;
+    }
+    
+    private static async ValueTask<int> RemoveGridPanelColumn(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+        MTGridPanel targetPanel = GetElementFromTable<MTGridPanel>(ctx.GetArgument<LuaTable>(0));
+        int index = ctx.GetArgument<int>(1);
+        if (index < 0)
+            throw LuaUtils.BadArgument(in ctx, 1, GridPanel_RemoveCol.Name, "Negative index");
+
+        int count = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Columns.Count, token: ct);
+        if (index >= count)
+            throw LuaUtils.BadArgument(in ctx, 1, GridPanel_RemoveCol.Name, "Index out of range");
+        
+        await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Columns.RemoveAt(index), token: ct);
+        return 0;
+    }
+    
+    private static async ValueTask<int> IndexOfElementInGridPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
+        MTGridPanel targetPanel = GetElementFromTable<MTGridPanel>(ctx.GetArgument<LuaTable>(0));
+        BaseMTElement element = GetElementFromTable(ctx.GetArgument<LuaTable>(1));
+        buffer.Span[1] = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.FindIndex(element, (e, s) => e.Element == s), token: ct);
+        return 1;
     }
 
     public static MTGridPanel.GridDefinitionSize ParseDefinitionSize(in LuaFunctionExecutionContext ctx, int index, string functionName) {
         string s = ctx.GetArgument<string>(index);
-        
+
         double dval;
         s = s.ToUpperInvariant();
         if (s == "AUTO") {
@@ -354,33 +461,34 @@ public class LuaGuiFunctions {
     private static T GetElementFromTable<T>(LuaTable table) where T : BaseMTElement {
         return table["_internal_CLR_object"].Read<T>();
     }
-    
+
     private ValueTask<int> CreateTimer(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         const int MaxSecondsInt = int.MaxValue / 1000;
-        
+
         double seconds = ctx.GetArgument<double>(0);
         if (seconds <= 0.0 || seconds > MaxSecondsInt) {
             throw LuaUtils.BadArgument(in ctx, 0, "create_timer", $"Invalid interval: {seconds}. Must be > 0 and <= {MaxSecondsInt} seconds");
         }
 
         LuaFunction function = ctx.GetArgument<LuaFunction>(1);
-        
+
         TimeSpan span = TimeSpan.FromMilliseconds(seconds * 1000.0);
-        
+
         Timer timer = new Timer(static o => {
             Tuple<LuaGuiFunctions, LuaFunction> tuple = (Tuple<LuaGuiFunctions, LuaFunction>) o!;
             tuple.Item1.OnTimerCallback(tuple.Item2);
-;        }, new Tuple<LuaGuiFunctions, LuaFunction>(this, function), span, span);
+            ;
+        }, new Tuple<LuaGuiFunctions, LuaFunction>(this, function), span, span);
 
         List<Timer> list = this.machine.UserTimers;
         lock (list) {
             list.Add(timer);
         }
-        
+
         buffer.Span[0] = new LuaValue(timer);
         return ValueTask.FromResult(1);
     }
-    
+
     private ValueTask<int> DestroyTimer(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         object timerObject = ctx.GetArgument<object>(0);
         if (!(timerObject is Timer timer)) {
@@ -393,7 +501,7 @@ public class LuaGuiFunctions {
                 return ValueTask.FromResult(0);
             }
         }
-        
+
         timer.Dispose();
         return ValueTask.FromResult(0);
     }

@@ -325,6 +325,29 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         }
     }
 
+    public async Task<string> ReadCString(uint address, CancellationToken cancellationToken = default) {
+        this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
+        
+        StringBuilder sb = new StringBuilder(32);
+        
+        // Read in chunks of 32 chars
+        using (RentHelper.RentArray(32, out byte[] buffer)) {
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                
+                await this.ReadBytes(address, buffer, 0, 32).ConfigureAwait(false);
+                for (int i = 0; i < 32; i++) {
+                    byte b = buffer[i];
+                    if (b == 0)
+                        return sb.ToString();
+                    
+                    sb.Append((char) b);
+                }
+            }
+        }
+    }
+
     public Task WriteBytes(uint address, byte[] srcBuffer) => this.WriteBytes(address, srcBuffer, 0, srcBuffer.Length);
 
     public async Task WriteBytes(uint address, byte[] srcBuffer, int offset, int count) {

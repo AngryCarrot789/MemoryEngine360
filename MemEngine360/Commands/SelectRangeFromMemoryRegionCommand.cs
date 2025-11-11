@@ -58,7 +58,7 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
             }
 
             result = await ActivityManager.Instance.RunTask(() => {
-                IActivityProgress prog = ActivityManager.Instance.CurrentTask.Progress;
+                IActivityProgress prog = ActivityTask.Current.Progress;
                 prog.Caption = "Memory Regions";
                 prog.Text = "Reading memory regions...";
                 prog.IsIndeterminate = true;

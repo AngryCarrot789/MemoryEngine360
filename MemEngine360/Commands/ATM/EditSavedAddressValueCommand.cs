@@ -130,7 +130,7 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
                 ActivityTask.Current.Progress.SetCaptionAndText("Edit value", "Editing values");
                 int success = 0;
                 foreach (AddressTableEntry scanResult in savedList) {
-                    ActivityManager.Instance.CurrentTask.ThrowIfCancellationRequested();
+                    ActivityTask.Current.ThrowIfCancellationRequested();
                     uint? address = await scanResult.MemoryAddress.TryResolveAddress(engine.Connection);
                     if (!address.HasValue)
                         continue; // pointer could not be resolved

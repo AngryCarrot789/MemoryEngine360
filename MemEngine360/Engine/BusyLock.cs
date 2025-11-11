@@ -394,6 +394,10 @@ public sealed class BusyLock {
 
     // Same as InternalTryTakeBusyTokenLoop except we set up the quick release state before entering the loop
     private async Task<IBusyToken?> InternalQuickReleaseLoop(CancellationToken cancellationToken = default) {
+        if (cancellationToken.IsCancellationRequested) {
+            return null;
+        }
+        
         IBusyToken? token = this.TryBeginBusyOperation();
         if (token != null) {
             return token; // heh, nice. No headaches!
@@ -450,7 +454,8 @@ public sealed class BusyLock {
             
             // We also never mark it as cancelled because there's no reason to differentiate between
             // success and cancelled from a UserQuickReleaseRequested handler's POV, and it saves an OCE allocation
-            myTcs.SetResult();
+            myTcs.TrySetResult();
+            myTcs.Dispose(); // dispose cancellation callback registration
         }
 
         return null;

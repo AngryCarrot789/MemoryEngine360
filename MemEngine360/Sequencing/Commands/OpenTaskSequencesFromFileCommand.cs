@@ -21,6 +21,7 @@ using System.Xml;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.FilePicking;
+using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Sequencing.Commands;
@@ -40,7 +41,7 @@ public class OpenTaskSequencesFromFileCommand : Command {
         }
 
         Result<XmlDocument> result = await ActivityManager.Instance.RunTask(() => {
-            IActivityProgress progress = ActivityManager.Instance.CurrentTask.Progress;
+            IActivityProgress progress = ActivityTask.Current.Progress;
             progress.IsIndeterminate = true;
             progress.Text = "Reading document...";
             XmlDocument document = new XmlDocument();
@@ -49,13 +50,13 @@ public class OpenTaskSequencesFromFileCommand : Command {
         });
         
         if (result.Exception != null) {
-            await LogExceptionHelper.ShowMessageAndPrintToLogs("Error reading document", result.Exception.Message, result.Exception);
+            await IMessageDialogService.Instance.ShowExceptionMessage("Error reading document", result.Exception.Message, result.Exception);
             return;
         }
 
         Result<List<TaskSequence>> listResult = result.Map(XmlTaskSequenceSerialization.DeserializeDocument);
         if (listResult.Exception != null) {
-            await LogExceptionHelper.ShowMessageAndPrintToLogs("Error parsing task sequences", listResult.Exception.Message, listResult.Exception);
+            await IMessageDialogService.Instance.ShowExceptionMessage("Error parsing task sequences", listResult.Exception.Message, listResult.Exception);
             return;
         }
         

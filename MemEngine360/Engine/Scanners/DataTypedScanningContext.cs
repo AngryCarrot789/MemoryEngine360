@@ -528,7 +528,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
     }
 
     internal override async Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IBusyToken?> busyTokenRef) {
-        ActivityTask task = ActivityManager.Instance.CurrentTask;
+        ActivityTask task = ActivityTask.Current;
         if (this.dataType.IsNumeric()) {
             using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
                 byte[] buffer = new byte[this.cbDataType];

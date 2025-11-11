@@ -515,7 +515,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 // return;
                 //
                 // static Task RunTask(string caption, string desc) {
-                //     ActivityTask task = ActivityManager.Instance.CurrentTask;
+                //     ActivityTask task = ActivityTask.Current;
                 //     task.Progress.Caption = caption;
                 //     task.Progress.Text = desc;
                 //     task.Progress.IsIndeterminate = true;

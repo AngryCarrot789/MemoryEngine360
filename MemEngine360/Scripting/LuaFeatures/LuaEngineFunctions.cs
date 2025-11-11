@@ -178,6 +178,16 @@ public sealed class LuaEngineFunctions {
             buffer.Span[0] = (LuaValue) result;
             return 1;
         }
+        
+        public async ValueTask<int> ReadCString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            uint address = LuaUtils.GetUIntFromValue(in context, 0, "readcstr");
+            IConsoleConnection conn = this.functions.GetConnection(in context);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            string result = await conn.ReadCString(address, ct);
+            buffer.Span[0] = (LuaValue) result;
+            return 1;
+        }
 
         public async ValueTask<int> WriteString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             uint address = LuaUtils.GetUIntFromValue(in context, 0, "writestring");
@@ -619,7 +629,7 @@ public sealed class LuaEngineFunctions {
 
         private async Task<object> DoCallAt(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
             IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not supported on the console");
-            RPCDataType dataType = ParseDataType(in context, context.GetArgument<string>(0), out int arraySize);
+            RPCDataType returnType = ParseDataType(in context, context.GetArgument<string>(0), out int arraySize);
             uint address = LuaUtils.GetUIntFromValue(in context, 1, "call<X>");
             object[] args = new object[context.ArgumentCount - 2];
             for (int i = 0; i < args.Length; i++) {
@@ -628,7 +638,7 @@ public sealed class LuaEngineFunctions {
 
             ThreadType type = system ? ThreadType.System : ThreadType.Title;
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
-            switch (dataType) {
+            switch (returnType) {
                 case RPCDataType.Byte:        return await (vm ? jrpc.CallVM<byte>(type, address, args) : jrpc.Call<byte>(type, address, args));
                 case RPCDataType.Int:         return await (vm ? jrpc.CallVM<int>(type, address, args) : jrpc.Call<int>(type, address, args));
                 case RPCDataType.Uint64:      return await (vm ? jrpc.CallVM<ulong>(type, address, args) : jrpc.Call<ulong>(type, address, args));
@@ -658,7 +668,7 @@ public sealed class LuaEngineFunctions {
 
         private async Task<object> DoCallIn(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
             IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not supported on the console");
-            RPCDataType dataType = ParseDataType(in context, context.GetArgument<string>(0), out int arraySize);
+            RPCDataType returnType = ParseDataType(in context, context.GetArgument<string>(0), out int arraySize);
             string module = context.GetArgument<string>(1);
             uint ordinal = LuaUtils.GetUIntFromValue(in context, 2, "callin<X>");
             object[] args = new object[context.ArgumentCount - 3];
@@ -668,7 +678,7 @@ public sealed class LuaEngineFunctions {
 
             ThreadType type = system ? ThreadType.System : ThreadType.Title;
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
-            switch (dataType) {
+            switch (returnType) {
                 case RPCDataType.Byte:        return await (vm ? jrpc.CallVM<byte>(type, module, (int) ordinal, args) : jrpc.Call<byte>(type, module, (int) ordinal, args));
                 case RPCDataType.Int:         return await (vm ? jrpc.CallVM<int>(type, module, (int) ordinal, args) : jrpc.Call<int>(type, module, (int) ordinal, args));
                 case RPCDataType.Uint64:      return await (vm ? jrpc.CallVM<ulong>(type, module, (int) ordinal, args) : jrpc.Call<ulong>(type, module, (int) ordinal, args));
@@ -798,8 +808,7 @@ public sealed class LuaEngineFunctions {
                                         throw new LuaRuntimeException(ctx.State.GetTraceback(), "");
                                     return (int) d;
                                 }).ToArray());
-                            case "ULONG[]":
-                                return (RPCDataType.Uint64Array, values.Select(x => (ulong) x.Read<long>()).ToArray());
+                            case "ULONG[]": return (RPCDataType.Uint64Array, values.Select(x => (ulong) x.Read<long>()).ToArray());
                             case "FLOAT[]": return (RPCDataType.FloatArray, values.Select(x => x.Read<float>()).ToArray());
                             default:        throw new Exception("Fatal error");
                         }

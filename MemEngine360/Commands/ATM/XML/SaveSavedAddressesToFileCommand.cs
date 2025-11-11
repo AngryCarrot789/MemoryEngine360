@@ -47,7 +47,7 @@ public class SaveSavedAddressesToFileCommand : Command {
         }
 
         await ActivityManager.Instance.RunTask(async () => {
-            ActivityTask task = ActivityManager.Instance.CurrentTask;
+            ActivityTask task = ActivityTask.Current;
             task.Progress.Caption = "Save addresses to XML";
             task.Progress.Text = "Serializing...";
             task.Progress.IsIndeterminate = true;

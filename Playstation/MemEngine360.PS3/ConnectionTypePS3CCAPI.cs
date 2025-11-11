@@ -102,11 +102,11 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
                 return new ConsoleConnectionCCAPI(api);
             }
             else {
-                await IMessageDialogService.Instance.ShowMessage("Failed to connect", "Failed to connect to PS3 at " + info.IpAddress);
+                await IMessageDialogService.Instance.ShowMessage("Failed to connect", "CCAPI could not connect to PS3 at " + info.IpAddress);
             }
         }
         catch (Exception e) {
-            await LogExceptionHelper.ShowMessageAndPrintToLogs("CCAPI", "Failed to setup CCAPI: " + e.Message, e);
+            await IMessageDialogService.Instance.ShowExceptionMessage("CCAPI", "Failed to setup CCAPI: " + e.Message, e);
         }
 
         if (api != null) {

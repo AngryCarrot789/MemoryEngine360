@@ -71,7 +71,7 @@ public class ConnectToXboxInfo : UserConnectionInfo {
         //
         // this.refreshCts = new CancellationTokenSource();
         // this.lastRefreshConsolesTask = ActivityManager.Instance.RunTask(async () => {
-        //     ActivityTask activity = ActivityManager.Instance.CurrentTask;
+        //     ActivityTask activity = ActivityTask.Current;
         //
         //     using UdpClient client = new UdpClient();
         //     client.EnableBroadcast = true;

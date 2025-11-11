@@ -100,7 +100,7 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
                         byte[]? data;
                         using (CancellationTokenSource cts = new CancellationTokenSource()) {
                             Result<byte[]> dataResult = await ActivityManager.Instance.RunTask(async () => {
-                                ActivityTask task = ActivityManager.Instance.CurrentTask;
+                                ActivityTask task = ActivityTask.Current;
                                 task.Progress.Caption = task.Progress.Text = "Reading binary response";
                                 task.Progress.IsIndeterminate = true;
 

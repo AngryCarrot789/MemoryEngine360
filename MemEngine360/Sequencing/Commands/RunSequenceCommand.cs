@@ -82,7 +82,7 @@ public class RunSequenceCommand : Command, IDisabledHintProvider {
                 ITopLevel? topLevel = TopLevelContextUtils.GetTopLevelFromContext();
                 using IActivityProgress.State state = sequence.Progress.SaveState(BusyLock.WaitingMessage, BusyLock.WaitingMessage);
                 Result<IBusyToken?> tokenResult = await ActivityManager.Instance.RunTask(() => {
-                    ActivityTask task = ActivityManager.Instance.CurrentTask;
+                    ActivityTask task = ActivityTask.Current;
                     task.Progress.Caption = $"Start '{sequence.DisplayName}'";
 
                     // Cancellable via the activity itself, so no need to pass a CTS
@@ -134,14 +134,12 @@ public class RunSequenceCommand : Command, IDisabledHintProvider {
                     ITopLevel? topLevel = manager?.UserContext != null ? ITopLevel.FromContext(manager.UserContext) : null;
                     using (CommandManager.LocalContextManager.PushContext(new ContextData().Set(ITopLevel.TopLevelDataKey, topLevel))) {
                         if (except is IOException || except is TimeoutException) {
-                            await LogExceptionHelper.ShowMessageAndPrintToLogs("Task Sequencer",
-                                useEngineConnection
-                                    ? $"'{sequence.DisplayName}' engine connection timed out while running sequence"
-                                    : $"'{sequence.DisplayName}' connection timed out while running sequence"
-                                , except);
+                            await IMessageDialogService.Instance.ShowExceptionMessage("Task Sequencer", useEngineConnection
+                                ? $"'{sequence.DisplayName}' engine connection timed out while running sequence"
+                                : $"'{sequence.DisplayName}' connection timed out while running sequence", except);
                         }
                         else {
-                            await LogExceptionHelper.ShowMessageAndPrintToLogs("Task Sequencer", $"'{sequence.DisplayName}': An exception occured while running sequence", except);
+                            await IMessageDialogService.Instance.ShowExceptionMessage("Task Sequencer", $"'{sequence.DisplayName}': An exception occured while running sequence", except);
                         }
                     }
                 }
