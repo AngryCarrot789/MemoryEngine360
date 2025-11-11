@@ -303,7 +303,7 @@ public class LuaGuiFunctions {
     
     private static async ValueTask<int> AddGridPanelRow(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         LuaTable table = ctx.GetArgument<LuaTable>(0);
-        MTGridPanel.GridDefinitionSize size = ParseDefinitionSize(in ctx, 1, "add_row");
+        MTGridPanel.GridDefinitionSize size = ParseDefinitionSize(in ctx, 1);
         MTGridPanel targetPanel = GetElementFromTable<MTGridPanel>(table);
         await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Rows.Add(new MTGridPanel.RowDefinition(size)), token: ct);
         return 0;
@@ -324,7 +324,7 @@ public class LuaGuiFunctions {
 
     private static async ValueTask<int> AddGridPanelColumn(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         LuaTable table = ctx.GetArgument<LuaTable>(0);
-        MTGridPanel.GridDefinitionSize size = ParseDefinitionSize(in ctx, 1, "add_column");
+        MTGridPanel.GridDefinitionSize size = ParseDefinitionSize(in ctx, 1);
         MTGridPanel targetPanel = GetElementFromTable<MTGridPanel>(table);
         await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Columns.Add(new MTGridPanel.ColumnDefinition(size)), token: ct);
         return 0;
@@ -351,7 +351,7 @@ public class LuaGuiFunctions {
         return 1;
     }
 
-    public static MTGridPanel.GridDefinitionSize ParseDefinitionSize(in LuaFunctionExecutionContext ctx, int index, string functionName) {
+    public static MTGridPanel.GridDefinitionSize ParseDefinitionSize(in LuaFunctionExecutionContext ctx, int index) {
         string s = ctx.GetArgument<string>(index);
 
         double dval;
@@ -363,7 +363,7 @@ public class LuaGuiFunctions {
             ReadOnlySpan<char> valueString = s.AsSpan(0, s.Length - 1).Trim();
             if (valueString.Length > 0) {
                 if (!double.TryParse(valueString, out dval))
-                    throw LuaUtils.BadArgument(in ctx, index, functionName, "Invalid number: " + valueString.ToString());
+                    throw LuaUtils.BadArgument(in ctx, index, ctx.Thread.GetCurrentFrame().Function.Name, "Invalid number: " + valueString.ToString());
             }
             else {
                 dval = 1;
@@ -373,7 +373,7 @@ public class LuaGuiFunctions {
         }
         else {
             if (!double.TryParse(s, out dval))
-                throw LuaUtils.BadArgument(in ctx, index, functionName, "Invalid number: " + s);
+                throw LuaUtils.BadArgument(in ctx, index, ctx.Thread.GetCurrentFrame().Function.Name, "Invalid number: " + s);
             return new MTGridPanel.GridDefinitionSize(dval, MTGridPanel.GridSizeType.Pixel);
         }
     }

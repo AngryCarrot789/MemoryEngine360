@@ -5,7 +5,7 @@ using MemEngine360.Engine.Modes;
 namespace MemEngine360.Scripting.LuaFeatures;
 
 public static class LuaUtils {
-    public static uint GetHexNumber(LuaFunctionExecutionContext ctx, int index, string functionName) {
+    public static uint GetHexNumber(in LuaFunctionExecutionContext ctx, int index) {
         LuaValue arg = ctx.GetArgument(index);
         if (arg.Type == LuaValueType.String) {
             string text = arg.Read<string>() ?? "";
@@ -17,29 +17,29 @@ public static class LuaUtils {
             return (uint) value;
         }
 
-        throw BadArgument(in ctx, index, functionName, "Invalid hex value: " + arg);
+        throw BadArgument(in ctx, index, ctx.Thread.GetCurrentFrame().Function.Name, "Invalid hex value: " + arg);
     }
 
-    public static uint GetUIntFromValue(in LuaFunctionExecutionContext context, int index, string functionName) {
+    public static uint GetUIntFromValue(in LuaFunctionExecutionContext context, int index) {
         LuaValue addressArgument = context.GetArgument(index);
         
         uint address;
         if (addressArgument.Type == LuaValueType.Number) {
             addressArgument.TryRead(out double addr);
             if (addr < 0)
-                throw BadArgument(in context, index, functionName, "UInt argument cannot be a negative number");
+                throw BadArgument(in context, index, context.Thread.GetCurrentFrame().Function.Name, "UInt argument cannot be a negative number");
             address = (uint) addr;
         }
         else if (addressArgument.TryRead(out string str)) {
             if (str.StartsWith("0x")) {
                 if (!uint.TryParse(str.AsSpan(2), NumberStyles.HexNumber, null, out address))
-                    throw BadArgument(in context, index, functionName, "Invalid uint argument: " + str);
+                    throw BadArgument(in context, index, context.Thread.GetCurrentFrame().Function.Name, "Invalid uint argument: " + str);
             }
             else if (!uint.TryParse(str, out address))
-                throw BadArgument(in context, index, functionName, "Invalid uint argument: " + str);
+                throw BadArgument(in context, index, context.Thread.GetCurrentFrame().Function.Name, "Invalid uint argument: " + str);
         }
         else {
-            throw BadArgument(in context, index, functionName, "Invalid uint argument: " + addressArgument);
+            throw BadArgument(in context, index, context.Thread.GetCurrentFrame().Function.Name, "Invalid uint argument: " + addressArgument);
         }
 
         return address;

@@ -165,6 +165,7 @@ public sealed class LuaModToolMachine : ILuaMachine {
             // this.luaState.OpenCoroutineLibrary();
 
             this.luaState.OpenBitwiseLibrary();
+            this.luaState.OpenVectorAndMatrixLibraries();
             this.luaState.OpenMathLibrary();
             this.luaState.OpenStringLibrary();
             this.luaState.OpenTableLibrary();

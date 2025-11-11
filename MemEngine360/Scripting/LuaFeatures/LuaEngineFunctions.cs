@@ -17,8 +17,13 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Buffers.Binary;
 using System.Globalization;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Lua;
+using Lua.Standard;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
@@ -26,6 +31,7 @@ using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
 using MemEngine360.XboxBase;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Scripting.LuaFeatures;
 
@@ -91,6 +97,12 @@ public sealed class LuaEngineFunctions {
             AssignFunction(engineTable, new NetworkHandlingLuaFunction("writestring", this.WriteString));
             AssignFunction(engineTable, new NetworkHandlingLuaFunction("readbytes", this.ReadBytes));
             AssignFunction(engineTable, new NetworkHandlingLuaFunction("writebytes", this.WriteBytes));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("readmat4x4", this.ReadMatrix4x4));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("writemat4x4", this.WriteMatrix4x4));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("readvec3", this.ReadVector3));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("writevec3", this.WriteVector3));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("readvec4", this.ReadVector4));
+            AssignFunction(engineTable, new NetworkHandlingLuaFunction("writevec4", this.WriteVector4));
             AssignFunction(engineTable, new NetworkHandlingLuaFunction("setfrozen", this.SetIsFrozen));
             AssignFunction(engineTable, new NetworkHandlingLuaFunction("isfrozen", this.GetIsFrozen));
             AssignFunction(engineTable, new NetworkHandlingLuaFunction("sendnotification", this.SendNotification));
@@ -98,7 +110,7 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> ReadNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = LuaUtils.GetUIntFromValue(in context, 0, "readnumber");
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
             DataType dataType = LuaUtils.GetDataTypeFromString(in context, context.GetArgument<string>(1));
             IConsoleConnection conn = this.functions.GetConnection(in context);
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
@@ -119,7 +131,7 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> WriteNumber(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = LuaUtils.GetUIntFromValue(in context, 0, "writenumber");
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
             DataType dataType = LuaUtils.GetDataTypeFromString(in context, context.GetArgument<string>(1));
             double d = context.GetArgument<double>(2);
             IDataValue theValue;
@@ -161,7 +173,7 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> ReadString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = LuaUtils.GetUIntFromValue(in context, 0, "readstring");
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
             int count = context.GetArgument<int>(1);
             if (count < 0)
                 throw LuaUtils.BadArgument(in context, 1, "readstring", "Cannot read negative length string: " + count);
@@ -178,9 +190,9 @@ public sealed class LuaEngineFunctions {
             buffer.Span[0] = (LuaValue) result;
             return 1;
         }
-        
+
         public async ValueTask<int> ReadCString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = LuaUtils.GetUIntFromValue(in context, 0, "readcstr");
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
             IConsoleConnection conn = this.functions.GetConnection(in context);
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
@@ -190,7 +202,7 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> WriteString(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = LuaUtils.GetUIntFromValue(in context, 0, "writestring");
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
             string value = context.GetArgument<string>(1);
             if (string.IsNullOrEmpty(value)) {
                 return 0; // no point in writing "", since nothing would change
@@ -204,8 +216,8 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> ReadBytes(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = LuaUtils.GetUIntFromValue(in context, 0, "readbytes");
-            uint count = LuaUtils.GetUIntFromValue(in context, 1, "readbytes");
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
+            uint count = LuaUtils.GetUIntFromValue(in context, 1);
             if (count > short.MaxValue)
                 throw LuaUtils.BadArgument(in context, 1, "readbytes", "Too many bytes to read: " + count + " > " + short.MaxValue);
 
@@ -249,13 +261,194 @@ public sealed class LuaEngineFunctions {
         }
 
         public async ValueTask<int> WriteBytes(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
-            uint address = LuaUtils.GetUIntFromValue(in context, 0, "writebytes");
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
             byte[] data = ByteArrayFromArgument(context, 1);
 
             IConsoleConnection conn = this.functions.GetConnection(in context);
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
             await conn.WriteBytes(address, data);
+
+            return 0;
+        }
+
+        private static float ReadFloatFromSpan(Span<byte> data, int offset, bool reverse) {
+            uint value = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref MemoryMarshal.GetReference(data), offset));
+            if (reverse)
+                value = BinaryPrimitives.ReverseEndianness(value);
+
+            return Unsafe.As<uint, float>(ref value);
+        }
+
+        private static void WriteFloatToSpan(Span<byte> dst, int offset, float value, bool reverse) {
+            if (reverse) {
+                uint val = Unsafe.As<float, uint>(ref value);
+                val = BinaryPrimitives.ReverseEndianness(val);
+                value = Unsafe.As<uint, float>(ref val);
+            }
+
+            Unsafe.As<byte, float>(ref Unsafe.Add(ref MemoryMarshal.GetReference(dst), offset)) = value;
+        }
+
+        public async ValueTask<int> ReadMatrix4x4(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
+
+            IConsoleConnection conn = this.functions.GetConnection(in context);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+            
+            bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
+            const int count = sizeof(float) * 16;
+            using (RentHelper.RentArray(count, out byte[] array)) {
+                await conn.ReadBytes(address, array, 0, count);
+
+                Span<byte> span = array.AsSpan(count);
+                Matrix4x4 mat = new Matrix4x4 {
+                    M11 = ReadFloatFromSpan(span, 0 * sizeof(float), reverse),
+                    M12 = ReadFloatFromSpan(span, 1 * sizeof(float), reverse),
+                    M13 = ReadFloatFromSpan(span, 2 * sizeof(float), reverse),
+                    M14 = ReadFloatFromSpan(span, 3 * sizeof(float), reverse),
+                    M21 = ReadFloatFromSpan(span, 4 * sizeof(float), reverse),
+                    M22 = ReadFloatFromSpan(span, 5 * sizeof(float), reverse),
+                    M23 = ReadFloatFromSpan(span, 6 * sizeof(float), reverse),
+                    M24 = ReadFloatFromSpan(span, 7 * sizeof(float), reverse),
+                    M31 = ReadFloatFromSpan(span, 8 * sizeof(float), reverse),
+                    M32 = ReadFloatFromSpan(span, 9 * sizeof(float), reverse),
+                    M33 = ReadFloatFromSpan(span, 10 * sizeof(float), reverse),
+                    M34 = ReadFloatFromSpan(span, 11 * sizeof(float), reverse),
+                    M41 = ReadFloatFromSpan(span, 12 * sizeof(float), reverse),
+                    M42 = ReadFloatFromSpan(span, 13 * sizeof(float), reverse),
+                    M43 = ReadFloatFromSpan(span, 14 * sizeof(float), reverse),
+                    M44 = ReadFloatFromSpan(span, 15 * sizeof(float), reverse),
+                };
+
+                buffer.Span[0] = Matrix4x4Library.CreateTableFromMatrix(mat);
+            }
+
+            return 1;
+        }
+
+        public async ValueTask<int> WriteMatrix4x4(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
+            Matrix4x4 m = Matrix4x4Library.ReadMatrixArgument(in context, 1);
+
+            IConsoleConnection conn = this.functions.GetConnection(in context);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
+            const int count = sizeof(float) * 16;
+            using (RentHelper.RentArray(count, out byte[] array)) {
+                Span<byte> span = array.AsSpan(count);
+                WriteFloatToSpan(span, 0 * sizeof(float), m.M11, reverse);
+                WriteFloatToSpan(span, 1 * sizeof(float), m.M12, reverse);
+                WriteFloatToSpan(span, 2 * sizeof(float), m.M13, reverse);
+                WriteFloatToSpan(span, 3 * sizeof(float), m.M14, reverse);
+                WriteFloatToSpan(span, 4 * sizeof(float), m.M21, reverse);
+                WriteFloatToSpan(span, 5 * sizeof(float), m.M22, reverse);
+                WriteFloatToSpan(span, 6 * sizeof(float), m.M23, reverse);
+                WriteFloatToSpan(span, 7 * sizeof(float), m.M24, reverse);
+                WriteFloatToSpan(span, 8 * sizeof(float), m.M31, reverse);
+                WriteFloatToSpan(span, 9 * sizeof(float), m.M32, reverse);
+                WriteFloatToSpan(span, 10 * sizeof(float), m.M33, reverse);
+                WriteFloatToSpan(span, 11 * sizeof(float), m.M34, reverse);
+                WriteFloatToSpan(span, 12 * sizeof(float), m.M41, reverse);
+                WriteFloatToSpan(span, 13 * sizeof(float), m.M42, reverse);
+                WriteFloatToSpan(span, 14 * sizeof(float), m.M43, reverse);
+                WriteFloatToSpan(span, 15 * sizeof(float), m.M44, reverse);
+
+                await conn.WriteBytes(address, array, 0, count);
+            }
+
+            return 0;
+        }
+        
+        public async ValueTask<int> ReadVector3(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
+
+            IConsoleConnection conn = this.functions.GetConnection(in context);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
+            const int count = sizeof(float) * 3;
+            using (RentHelper.RentArray(count, out byte[] array)) {
+                await conn.ReadBytes(address, array, 0, count);
+
+                Span<byte> span = array.AsSpan(count);
+                Vector3 v = new Vector3 {
+                    X = ReadFloatFromSpan(span, 0 * sizeof(float), reverse),
+                    Y = ReadFloatFromSpan(span, 1 * sizeof(float), reverse),
+                    Z = ReadFloatFromSpan(span, 2 * sizeof(float), reverse),
+                };
+
+                buffer.Span[0] = Vector3Library.CreateTableFromVector3(v);
+            }
+
+            return 1;
+        }
+        
+        public async ValueTask<int> WriteVector3(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
+            Vector3 v = Vector3Library.ReadVector3Argument(in context, 1);
+
+            IConsoleConnection conn = this.functions.GetConnection(in context);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
+            const int count = sizeof(float) * 3;
+            using (RentHelper.RentArray(count, out byte[] array)) {
+                Span<byte> span = array.AsSpan(count);
+                WriteFloatToSpan(span, 0 * sizeof(float), v.X, reverse);
+                WriteFloatToSpan(span, 1 * sizeof(float), v.Y, reverse);
+                WriteFloatToSpan(span, 2 * sizeof(float), v.Z, reverse);
+
+                await conn.WriteBytes(address, array, 0, count);
+            }
+
+            return 0;
+        }
+        
+        public async ValueTask<int> ReadVector4(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
+
+            IConsoleConnection conn = this.functions.GetConnection(in context);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
+            const int count = sizeof(float) * 4;
+            using (RentHelper.RentArray(count, out byte[] array)) {
+                await conn.ReadBytes(address, array, 0, count);
+
+                Span<byte> span = array.AsSpan(count);
+                Vector4 v = new Vector4 {
+                    X = ReadFloatFromSpan(span, 0 * sizeof(float), reverse),
+                    Y = ReadFloatFromSpan(span, 1 * sizeof(float), reverse),
+                    Z = ReadFloatFromSpan(span, 2 * sizeof(float), reverse),
+                    W = ReadFloatFromSpan(span, 3 * sizeof(float), reverse),
+                };
+
+                buffer.Span[0] = Vector4Library.CreateTableFromVector4(v);
+            }
+
+            return 1;
+        }
+        
+        public async ValueTask<int> WriteVector4(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
+            Vector4 v = Vector4Library.ReadVector4Argument(in context, 1);
+
+            IConsoleConnection conn = this.functions.GetConnection(in context);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
+            const int count = sizeof(float) * 4;
+            using (RentHelper.RentArray(count, out byte[] array)) {
+                Span<byte> span = array.AsSpan(count);
+                WriteFloatToSpan(span, 0 * sizeof(float), v.X, reverse);
+                WriteFloatToSpan(span, 1 * sizeof(float), v.Y, reverse);
+                WriteFloatToSpan(span, 2 * sizeof(float), v.Z, reverse);
+                WriteFloatToSpan(span, 3 * sizeof(float), v.Z, reverse);
+
+                await conn.WriteBytes(address, array, 0, count);
+            }
 
             return 0;
         }
@@ -462,7 +655,7 @@ public sealed class LuaEngineFunctions {
 
         private async ValueTask<int> GetProcedureAddress(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             string modName = context.GetArgument<string>(0);
-            uint ordinal = LuaUtils.GetHexNumber(context, 1, "getprocaddress");
+            uint ordinal = LuaUtils.GetHexNumber(in context, 1);
             IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not installed");
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
@@ -616,7 +809,7 @@ public sealed class LuaEngineFunctions {
 
         private async Task DoCallVoidAt(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
             IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not supported on the console");
-            uint address = LuaUtils.GetUIntFromValue(in context, 0, "callvoid<X>");
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
             object[] args = new object[context.ArgumentCount - 1];
             for (int i = 0; i < args.Length; i++) {
                 args[i] = ParseValue(context, i + 1).Item2;
@@ -630,7 +823,7 @@ public sealed class LuaEngineFunctions {
         private async Task<object> DoCallAt(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
             IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not supported on the console");
             RPCDataType returnType = ParseDataType(in context, context.GetArgument<string>(0), out int arraySize);
-            uint address = LuaUtils.GetUIntFromValue(in context, 1, "call<X>");
+            uint address = LuaUtils.GetUIntFromValue(in context, 1);
             object[] args = new object[context.ArgumentCount - 2];
             for (int i = 0; i < args.Length; i++) {
                 args[i] = ParseValue(context, i + 2).Item2;
@@ -655,7 +848,7 @@ public sealed class LuaEngineFunctions {
         private async Task DoCallVoidIn(LuaFunctionExecutionContext context, bool vm, bool system, CancellationToken ct) {
             IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not supported on the console");
             string module = context.GetArgument<string>(0);
-            uint ordinal = LuaUtils.GetUIntFromValue(in context, 1, "callvoid<X>");
+            uint ordinal = LuaUtils.GetUIntFromValue(in context, 1);
             object[] args = new object[context.ArgumentCount - 2];
             for (int i = 0; i < args.Length; i++) {
                 args[i] = ParseValue(context, i + 2).Item2;
@@ -670,7 +863,7 @@ public sealed class LuaEngineFunctions {
             IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not supported on the console");
             RPCDataType returnType = ParseDataType(in context, context.GetArgument<string>(0), out int arraySize);
             string module = context.GetArgument<string>(1);
-            uint ordinal = LuaUtils.GetUIntFromValue(in context, 2, "callin<X>");
+            uint ordinal = LuaUtils.GetUIntFromValue(in context, 2);
             object[] args = new object[context.ArgumentCount - 3];
             for (int i = 0; i < args.Length; i++) {
                 args[i] = ParseValue(context, i + 3).Item2;
@@ -848,7 +1041,7 @@ public sealed class LuaEngineFunctions {
             IFeatureXboxDebugging debug = this.functions.GetConsoleFeature<IFeatureXboxDebugging>(in context, "Debugging not supported by connection");
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
-            uint address = LuaUtils.GetUIntFromValue(in context, 0, "add_breakpoint");
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
             await debug.AddBreakpoint(address);
             return 0;
         }
@@ -857,7 +1050,7 @@ public sealed class LuaEngineFunctions {
             IFeatureXboxDebugging debug = this.functions.GetConsoleFeature<IFeatureXboxDebugging>(in context, "Debugging not supported by connection");
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
-            uint address = LuaUtils.GetUIntFromValue(in context, 0, "remove_breakpoint");
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
             await debug.RemoveBreakpoint(address);
             return 0;
         }
@@ -866,7 +1059,7 @@ public sealed class LuaEngineFunctions {
             IFeatureXboxDebugging debug = this.functions.GetConsoleFeature<IFeatureXboxDebugging>(in context, "Debugging not supported by connection");
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
-            uint address = LuaUtils.GetUIntFromValue(in context, 0, "set_data_breakpoint");
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
             string type = context.GetArgument<string>(1);
             XboxBreakpointType breakType = type switch {
                 "w" => XboxBreakpointType.OnWrite,
@@ -875,7 +1068,7 @@ public sealed class LuaEngineFunctions {
                 _ => XboxBreakpointType.None
             };
 
-            uint size = LuaUtils.GetUIntFromValue(in context, 2, "set_data_breakpoint");
+            uint size = LuaUtils.GetUIntFromValue(in context, 2);
             if (size != 1 && size != 2 && size != 4) {
                 throw LuaUtils.BadArgument(in context, 2, "set_data_breakpoint", "Size must be 1, 2 or 4");
             }
@@ -888,7 +1081,7 @@ public sealed class LuaEngineFunctions {
             IFeatureXboxDebugging debug = this.functions.GetConsoleFeature<IFeatureXboxDebugging>(in context, "Debugging not supported by connection");
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
-            uint threadId = LuaUtils.GetUIntFromValue(in context, 0, "incr_suspend");
+            uint threadId = LuaUtils.GetUIntFromValue(in context, 0);
             await debug.SuspendThread(threadId);
             return 0;
         }
@@ -897,7 +1090,7 @@ public sealed class LuaEngineFunctions {
             IFeatureXboxDebugging debug = this.functions.GetConsoleFeature<IFeatureXboxDebugging>(in context, "Debugging not supported by connection");
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
-            uint threadId = LuaUtils.GetUIntFromValue(in context, 0, "decr_suspend");
+            uint threadId = LuaUtils.GetUIntFromValue(in context, 0);
             await debug.ResumeThread(threadId);
             return 0;
         }
@@ -908,7 +1101,7 @@ public sealed class LuaEngineFunctions {
 
             List<uint> args = new List<uint>();
             for (int i = 0; i < context.ArgumentCount; i++) {
-                args.Add(LuaUtils.GetUIntFromValue(in context, i, "find_functions"));
+                args.Add(LuaUtils.GetUIntFromValue(in context, i));
             }
 
             FunctionCallEntry?[] results = await debug.FindFunctions(args.ToArray());
