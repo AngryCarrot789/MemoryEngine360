@@ -21,12 +21,13 @@ using Lua;
 using MemEngine360.ModTools.Gui;
 using MemEngine360.Scripting.LuaFeatures;
 using PFXToolKitUI;
-using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.ModTools.LuaFeatures;
 
 public class LuaGuiFunctions {
+    public const string CLRElementObjectKey = "_internal_CLR_object";
+    
     private static readonly LuaFunction DockPanel_Add = new LuaFunction("add", AddElementToDockPanel);
     private static readonly LuaFunction StackPanel_Add = new LuaFunction("add", AddElementToStackPanel);
     private static readonly LuaFunction GridPanel_Add = new LuaFunction("add", AddElementToGridPanel);
@@ -76,12 +77,12 @@ public class LuaGuiFunctions {
         if (ctx.ArgumentCount > 0)
             fillLast = ctx.GetArgument<bool>(0);
 
+        LuaTable table = new LuaTable(0, 6);
         MTDockPanel dockPanel = new MTDockPanel() {
-            FillLast = fillLast
+            FillLast = fillLast, ownerTable = table
         };
 
-        LuaTable table = new LuaTable(0, 4);
-        table["_internal_CLR_object"] = new LuaValue(dockPanel);
+        table[CLRElementObjectKey] = new LuaValue(dockPanel);
         table[DockPanel_Add.Name] = DockPanel_Add;
         table[DockPanel_Remove.Name] = DockPanel_Remove;
         table[DockPanel_IndexOf.Name] = DockPanel_Add;
@@ -97,12 +98,12 @@ public class LuaGuiFunctions {
         if (ctx.ArgumentCount > 0)
             isVertical = ctx.GetArgument<bool>(0);
 
+        LuaTable table = new LuaTable(0, 6);
         MTStackPanel stackPanel = new MTStackPanel() {
-            IsVertical = isVertical
+            IsVertical = isVertical, ownerTable = table
         };
 
-        LuaTable table = new LuaTable(0, 4);
-        table["_internal_CLR_object"] = new LuaValue(stackPanel);
+        table[CLRElementObjectKey] = new LuaValue(stackPanel);
         table[StackPanel_Add.Name] = StackPanel_Add;
         table[StackPanel_Remove.Name] = StackPanel_Remove;
         table[StackPanel_IndexOf.Name] = StackPanel_Add;
@@ -114,9 +115,12 @@ public class LuaGuiFunctions {
     }
 
     private static ValueTask<int> CreateGridPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
-        MTGridPanel stackPanel = new MTGridPanel();
-        LuaTable table = new LuaTable(0, 6);
-        table["_internal_CLR_object"] = new LuaValue(stackPanel);
+        LuaTable table = new LuaTable(0, 10);
+        MTGridPanel stackPanel = new MTGridPanel() {
+            ownerTable = table
+        };
+        
+        table[CLRElementObjectKey] = new LuaValue(stackPanel);
         table[GridPanel_Add.Name] = GridPanel_Add;
         table[GridPanel_Remove.Name] = GridPanel_Remove;
         table[GridPanel_IndexOf.Name] = GridPanel_Add;
@@ -133,12 +137,12 @@ public class LuaGuiFunctions {
 
     private ValueTask<int> CreateButton(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         string text = ctx.GetArgument<string>(0);
-        MTButton button = new MTButton() {
-            Text = text,
-        };
-
         LuaTable table = new LuaTable(0, 6);
-        table["_internal_CLR_object"] = new LuaValue(button);
+        MTButton button = new MTButton() {
+            Text = text, ownerTable = table
+        };
+        
+        table[CLRElementObjectKey] = new LuaValue(button);
         table[Button_SetPressFunction.Name] = Button_SetPressFunction;
         table[Button_SetHoldFunction.Name] = Button_SetHoldFunction;
         table[this.Button_SetTextFunction.Name] = this.Button_SetTextFunction;
@@ -151,12 +155,12 @@ public class LuaGuiFunctions {
 
     private ValueTask<int> CreateTextBlock(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         string text = ctx.GetArgument<string>(0);
+        LuaTable table = new LuaTable(0, 4);
         MTTextBlock button = new MTTextBlock() {
-            Text = text,
+            Text = text, ownerTable = table
         };
 
-        LuaTable table = new LuaTable(0, 4);
-        table["_internal_CLR_object"] = new LuaValue(button);
+        table[CLRElementObjectKey] = new LuaValue(button);
         table[this.TextBlock_SetTextFunction.Name] = this.TextBlock_SetTextFunction;
         table[Elem_SetHorzAlign.Name] = Elem_SetHorzAlign;
         table[Elem_SetVertAlign.Name] = Elem_SetVertAlign;
@@ -220,7 +224,8 @@ public class LuaGuiFunctions {
     private static async ValueTask<int> IndexOfElementInDockPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         MTDockPanel targetPanel = GetElementFromTable<MTDockPanel>(ctx.GetArgument<LuaTable>(0));
         BaseMTElement element = GetElementFromTable(ctx.GetArgument<LuaTable>(1));
-        buffer.Span[1] = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.FindIndex(element, (e, s) => e.Item1 == s), token: ct);
+        int whyDoesThisHaveToBeAVariable = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.FindIndex(element, (e, s) => e.Item1 == s), token: ct);
+        buffer.Span[1] = whyDoesThisHaveToBeAVariable;
         return 1;
     }
 
@@ -250,7 +255,8 @@ public class LuaGuiFunctions {
     private static async ValueTask<int> IndexOfElementInStackPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         MTStackPanel targetPanel = GetElementFromTable<MTStackPanel>(ctx.GetArgument<LuaTable>(0));
         BaseMTElement element = GetElementFromTable(ctx.GetArgument<LuaTable>(1));
-        buffer.Span[1] = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.IndexOf(element), token: ct);
+        int whyDoesThisHaveToBeAVariable = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.IndexOf(element), token: ct);
+        buffer.Span[1] = whyDoesThisHaveToBeAVariable;
         return 1;
     }
     
@@ -347,7 +353,8 @@ public class LuaGuiFunctions {
     private static async ValueTask<int> IndexOfElementInGridPanel(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         MTGridPanel targetPanel = GetElementFromTable<MTGridPanel>(ctx.GetArgument<LuaTable>(0));
         BaseMTElement element = GetElementFromTable(ctx.GetArgument<LuaTable>(1));
-        buffer.Span[1] = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.FindIndex(element, (e, s) => e.Element == s), token: ct);
+        int whyDoesThisHaveToBeAVariable = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => targetPanel.Children.FindIndex(element, (e, s) => e.Element == s), token: ct);
+        buffer.Span[1] = whyDoesThisHaveToBeAVariable;
         return 1;
     }
 
@@ -455,11 +462,11 @@ public class LuaGuiFunctions {
     }
 
     private static BaseMTElement GetElementFromTable(LuaTable table) {
-        return table["_internal_CLR_object"].Read<BaseMTElement>();
+        return table[CLRElementObjectKey].Read<BaseMTElement>();
     }
 
     private static T GetElementFromTable<T>(LuaTable table) where T : BaseMTElement {
-        return table["_internal_CLR_object"].Read<T>();
+        return table[CLRElementObjectKey].Read<T>();
     }
 
     private ValueTask<int> CreateTimer(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {

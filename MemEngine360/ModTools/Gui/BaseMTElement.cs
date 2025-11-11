@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using Lua;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.ModTools.Gui;
@@ -57,6 +58,9 @@ public abstract class BaseMTElement {
     public event BaseMTElementParentChangedEventHandler? ParentChanged;
     public event BaseMTElementEventHandler? HorizontalAlignmentChanged;
     public event BaseMTElementEventHandler? VerticalAlignmentChanged;
+    
+    // The table that is associated with this object
+    internal LuaTable? ownerTable;
 
     protected BaseMTElement() {
     }

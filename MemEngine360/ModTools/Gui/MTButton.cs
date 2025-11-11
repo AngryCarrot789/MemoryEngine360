@@ -72,7 +72,7 @@ public sealed class MTButton : BaseMTElement {
                 double delta = elapsed - lastTime;
                 lastTime = elapsed;
                 
-                LuaValue[] result = await holdFunc.InvokeAsync(ctx.State, new LuaValue[1] {new LuaValue(delta)}, ct);
+                LuaValue[] result = await holdFunc.InvokeAsync(ctx.State, [this.ownerTable!, new LuaValue(delta)], ct);
                 if (result.Length > 0 && result[0].TryRead(out bool s) && s) {
                     break;
                 }
@@ -92,7 +92,7 @@ public sealed class MTButton : BaseMTElement {
         this.tcsReleased = null;
         this.pressedMachine?.PostMessage(async (ctx, ct) => {
             if (this.PressFunction != null) {
-                await this.PressFunction.InvokeAsync(ctx.State, new LuaValue[0], ct);
+                await this.PressFunction.InvokeAsync(ctx.State, [this.ownerTable!], ct);
             }
         });
     }
