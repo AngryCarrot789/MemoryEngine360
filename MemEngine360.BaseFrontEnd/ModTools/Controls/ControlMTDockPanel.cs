@@ -19,9 +19,7 @@
 
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
 using MemEngine360.ModTools.Gui;
-using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
@@ -37,15 +35,14 @@ public class ControlMTDockPanel : DockPanel {
     }
 
     private ObservableItemProcessorIndexing<(BaseMTElement, MTDockPanel.DockType?)>? processor;
-    private readonly IBinder<MTDockPanel> horzAlignBinder = new EventUpdateBinder<MTDockPanel>(nameof(BaseMTElement.HorizontalAlignmentChanged), (b) => b.Control.HorizontalAlignment = (HorizontalAlignment) b.Model.HorizontalAlignment);
-    private readonly IBinder<MTDockPanel> vertAlignBinder = new EventUpdateBinder<MTDockPanel>(nameof(BaseMTElement.VerticalAlignmentChanged), (b) => b.Control.VerticalAlignment = (VerticalAlignment) b.Model.VerticalAlignment);
+    private readonly BaseControlBindingHelper baseBindingHelper;
     private readonly AttachedModelHelper<MTDockPanel> fullyLoadedHelper;
 
     protected override Type StyleKeyOverride => typeof(DockPanel);
 
     public ControlMTDockPanel() {
+        this.baseBindingHelper = new BaseControlBindingHelper(this);
         this.fullyLoadedHelper = new AttachedModelHelper<MTDockPanel>(this, this.OnIsFullyLoadedChanged);
-        Binders.AttachControls(this, this.horzAlignBinder, this.vertAlignBinder);
     }
 
     static ControlMTDockPanel() {
@@ -60,9 +57,7 @@ public class ControlMTDockPanel : DockPanel {
     }
 
     private void OnIsFullyLoadedChanged(MTDockPanel panel, bool attached) {
-        this.horzAlignBinder.SwitchModel(attached ? panel : null);
-        this.vertAlignBinder.SwitchModel(attached ? panel : null);
-        
+        this.baseBindingHelper.SetModel(attached ? panel : null);
         if (!attached) {
             this.processor!.RemoveExistingItems();
             this.processor!.Dispose();

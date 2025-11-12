@@ -1024,8 +1024,8 @@ public sealed class LuaEngineFunctions {
             this.functions = functions;
 
             LuaTable debugTable = new LuaTable(0, 17);
-            state.Environment[(LuaValue) "debug"] = (LuaValue) debugTable;
-            state.LoadedModules[(LuaValue) "debug"] = (LuaValue) debugTable;
+            state.Environment[(LuaValue) "debugger"] = (LuaValue) debugTable;
+            state.LoadedModules[(LuaValue) "debugger"] = (LuaValue) debugTable;
             AssignFunction(debugTable, new NetworkHandlingLuaFunction("add_breakpoint", this.AddBreakpoint));
             AssignFunction(debugTable, new NetworkHandlingLuaFunction("remove_breakpoint", this.RemoveBreakpoint));
             AssignFunction(debugTable, new NetworkHandlingLuaFunction("set_data_breakpoint", this.SetDataBreakpoint));

@@ -160,6 +160,13 @@ public sealed class LuaModToolMachine : ILuaMachine {
             // run files or shutdown the app forcefully
             this.OpenBasicLibrary(this.luaState);
 
+// #if DEBUG
+//             if (Debugger.IsAttached) {
+//                 Debug.WriteLine("Lua ModTool debug library opened");
+//                 this.luaState.OpenDebugLibrary();
+//             }
+// #endif
+
             // coroutines are slightly buggy and can result in the script being unstoppable
             // without killing the native thread, which isn't possible via managed code
             // this.luaState.OpenCoroutineLibrary();

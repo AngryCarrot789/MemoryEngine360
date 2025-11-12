@@ -155,10 +155,12 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
     public MemoryViewerView() {
         this.InitializeComponent();
         this.offsetBinder.AttachControl(this.PART_AddressTextBox);
-        this.offsetBinder.ValueConfirmed += (b, oldText) => {
-            this.PART_HexEditor.HexView.ScrollToByteOffset(b.Model.Offset, out _);
-            this.PART_HexEditor.Caret.Location = new BitLocation(b.Model.Offset);
-            this.PART_HexEditor.Selection.Range = new BitRange(b.Model.Offset, b.Model.Offset + 1);
+        this.offsetBinder.ValueConfirmed += (b, e) => {
+            if (e.IsSuccess) {
+                this.PART_HexEditor.HexView.ScrollToByteOffset(b.Model.Offset, out _);
+                this.PART_HexEditor.Caret.Location = new BitLocation(b.Model.Offset);
+                this.PART_HexEditor.Selection.Range = new BitRange(b.Model.Offset, b.Model.Offset + 1);
+            }
         };
 
         this.bytesPerRowBinder.AttachControl(this.PART_BytesPerRowTextBox);

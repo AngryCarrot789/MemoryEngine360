@@ -19,7 +19,6 @@
 
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
 using MemEngine360.ModTools.Gui;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Utils;
@@ -36,14 +35,14 @@ public class ControlMTTextBlock : TextBlock {
     }
     
     private readonly IBinder<MTTextBlock> textBinder = new EventUpdateBinder<MTTextBlock>(nameof(MTTextBlock.TextChanged), (b) => ((ControlMTTextBlock) b.Control).Text = b.Model.Text);
-    private readonly IBinder<MTTextBlock> horzAlignBinder = new EventUpdateBinder<MTTextBlock>(nameof(BaseMTElement.HorizontalAlignmentChanged), (b) => b.Control.HorizontalAlignment = (HorizontalAlignment) b.Model.HorizontalAlignment);
-    private readonly IBinder<MTTextBlock> vertAlignBinder = new EventUpdateBinder<MTTextBlock>(nameof(BaseMTElement.VerticalAlignmentChanged), (b) => b.Control.VerticalAlignment = (VerticalAlignment) b.Model.VerticalAlignment);
     private readonly AttachedModelHelper<MTTextBlock> fullyLoadedHelper;
+    private readonly BaseControlBindingHelper baseBindingHelper;
 
     protected override Type StyleKeyOverride => typeof(TextBlock);
     
     public ControlMTTextBlock() {
-        Binders.AttachControls(this, this.textBinder, this.horzAlignBinder, this.vertAlignBinder);
+        Binders.AttachControls(this, this.textBinder);
+        this.baseBindingHelper = new BaseControlBindingHelper(this);
         this.fullyLoadedHelper = new AttachedModelHelper<MTTextBlock>(this, this.OnIsFullyLoadedChanged);
         this.Padding = new Thickness(4, 2);
     }
@@ -58,7 +57,6 @@ public class ControlMTTextBlock : TextBlock {
     
     private void OnIsFullyLoadedChanged(MTTextBlock tb, bool attached) {
         this.textBinder.SwitchModel(attached ? tb : null);
-        this.horzAlignBinder.SwitchModel(attached ? tb : null);
-        this.vertAlignBinder.SwitchModel(attached ? tb : null);
+        this.baseBindingHelper.SetModel(attached ? tb : null);
     }
 }

@@ -19,9 +19,7 @@
 
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
 using MemEngine360.ModTools.Gui;
-using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
@@ -39,15 +37,14 @@ public class ControlMTGridPanel : Grid {
     private ObservableItemProcessorIndexing<MTGridPanel.Entry>? itemsProcessor;
     private ObservableItemProcessorIndexing<MTGridPanel.RowDefinition>? rowsProcessor;
     private ObservableItemProcessorIndexing<MTGridPanel.ColumnDefinition>? columnsProcessor;
-    private readonly IBinder<MTGridPanel> horzAlignBinder = new EventUpdateBinder<MTGridPanel>(nameof(BaseMTElement.HorizontalAlignmentChanged), (b) => b.Control.HorizontalAlignment = (HorizontalAlignment) b.Model.HorizontalAlignment);
-    private readonly IBinder<MTGridPanel> vertAlignBinder = new EventUpdateBinder<MTGridPanel>(nameof(BaseMTElement.VerticalAlignmentChanged), (b) => b.Control.VerticalAlignment = (VerticalAlignment) b.Model.VerticalAlignment);
+    private readonly BaseControlBindingHelper baseBindingHelper;
     private readonly AttachedModelHelper<MTGridPanel> fullyLoadedHelper;
 
     protected override Type StyleKeyOverride => typeof(Grid);
     
     public ControlMTGridPanel() {
+        this.baseBindingHelper = new BaseControlBindingHelper(this);
         this.fullyLoadedHelper = new AttachedModelHelper<MTGridPanel>(this, this.OnIsFullyLoadedChanged);
-        Binders.AttachControls(this, this.horzAlignBinder, this.vertAlignBinder);
     }
 
     static ControlMTGridPanel() {
@@ -59,9 +56,7 @@ public class ControlMTGridPanel : Grid {
     }
     
     private void OnIsFullyLoadedChanged(MTGridPanel panel, bool attached) {
-        this.horzAlignBinder.SwitchModel(attached ? panel : null);
-        this.vertAlignBinder.SwitchModel(attached ? panel : null);
-        
+        this.baseBindingHelper.SetModel(attached ? panel : null);
         if (!attached) {
             this.itemsProcessor!.RemoveExistingItems();
             this.itemsProcessor!.Dispose();

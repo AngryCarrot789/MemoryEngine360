@@ -71,7 +71,6 @@ public partial class ModToolView : UserControl {
         }
 
         return true;
-
     }
 
     public void OnWindowClosed() {
@@ -90,6 +89,7 @@ public partial class ModToolView : UserControl {
             case MTGridPanel e:  return new ControlMTGridPanel() { MTGridPanel = e };
             case MTButton e:     return new ControlMTButton() { MTButton = e };
             case MTTextBlock e:  return new ControlMTTextBlock() { MTTextBlock = e };
+            case MTTextBox e:    return new ControlMTTextBox() { MTTextBox = e };
             default:             throw new ArgumentOutOfRangeException(nameof(element));
         }
     }

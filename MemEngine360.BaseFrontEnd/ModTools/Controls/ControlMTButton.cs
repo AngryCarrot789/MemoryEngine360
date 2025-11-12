@@ -39,6 +39,7 @@ public class ControlMTButton : Button {
     private readonly IBinder<MTButton> textBinder = new EventUpdateBinder<MTButton>(nameof(MTButton.TextChanged), (b) => ((Button) b.Control).Content = b.Model.Text);
     private readonly IBinder<MTButton> horzAlignBinder = new EventUpdateBinder<MTButton>(nameof(BaseMTElement.HorizontalAlignmentChanged), (b) => b.Control.HorizontalAlignment = (HorizontalAlignment) b.Model.HorizontalAlignment);
     private readonly IBinder<MTButton> vertAlignBinder = new EventUpdateBinder<MTButton>(nameof(BaseMTElement.VerticalAlignmentChanged), (b) => b.Control.VerticalAlignment = (VerticalAlignment) b.Model.VerticalAlignment);
+    private readonly BaseControlBindingHelper baseBindingHelper;
     private readonly AttachedModelHelper<MTButton> fullyLoadedHelper;
     private bool isPressed;
 
@@ -46,6 +47,7 @@ public class ControlMTButton : Button {
 
     public ControlMTButton() {
         Binders.AttachControls(this, this.textBinder, this.horzAlignBinder, this.vertAlignBinder);
+        this.baseBindingHelper = new BaseControlBindingHelper(this);
         this.fullyLoadedHelper = new AttachedModelHelper<MTButton>(this, this.OnIsFullyLoadedChanged);
         this.Padding = new Thickness(4, 2);
     }
@@ -92,8 +94,7 @@ public class ControlMTButton : Button {
 
     private void OnIsFullyLoadedChanged(MTButton button, bool attached) {
         this.textBinder.SwitchModel(attached ? button : null);
-        this.horzAlignBinder.SwitchModel(attached ? button : null);
-        this.vertAlignBinder.SwitchModel(attached ? button : null);
+        this.baseBindingHelper.SetModel(attached ? button : null);
         if (!attached && this.isPressed) {
             this.isPressed = false;
             button.OnReleased();

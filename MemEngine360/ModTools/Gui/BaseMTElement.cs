@@ -33,6 +33,7 @@ public abstract class BaseMTElement {
     private BaseMTPanel? parent;
     private EnumHorizontalAlign horizontalAlignment;
     private EnumVerticalAlign verticalAlignment;
+    private double? width, height, minWidth, minHeight, maxWidth, maxHeight;
 
     public ModToolGUI? GUI {
         get => this.gui;
@@ -54,10 +55,21 @@ public abstract class BaseMTElement {
         set => PropertyHelper.SetAndRaiseINE(ref this.verticalAlignment, value, this, static t => t.VerticalAlignmentChanged?.Invoke(t));
     }
     
+    public double? Width { get => this.width; set => PropertyHelper.SetAndRaiseINE(ref this.width, value, this, static t => t.WidthChanged?.Invoke(t)); }
+    public double? Height { get => this.height; set => PropertyHelper.SetAndRaiseINE(ref this.height, value, this, static t => t.HeightChanged?.Invoke(t)); }
+    public double? MinWidth { get => this.minWidth; set => PropertyHelper.SetAndRaiseINE(ref this.minWidth, value, this, static t => t.MinWidthChanged?.Invoke(t)); }
+    public double? MinHeight { get => this.minHeight; set => PropertyHelper.SetAndRaiseINE(ref this.minHeight, value, this, static t => t.MinHeightChanged?.Invoke(t)); }
+    public double? MaxWidth { get => this.maxWidth; set => PropertyHelper.SetAndRaiseINE(ref this.maxWidth, value, this, static t => t.MaxWidthChanged?.Invoke(t)); }
+    public double? MaxHeight { get => this.maxHeight; set => PropertyHelper.SetAndRaiseINE(ref this.maxHeight, value, this, static t => t.MaxHeightChanged?.Invoke(t)); }
+    
     public event BaseMTElementGUIChangedEventHandler? GUIChanged;
     public event BaseMTElementParentChangedEventHandler? ParentChanged;
     public event BaseMTElementEventHandler? HorizontalAlignmentChanged;
     public event BaseMTElementEventHandler? VerticalAlignmentChanged;
+    
+    public event BaseMTElementEventHandler? WidthChanged, HeightChanged;
+    public event BaseMTElementEventHandler? MinWidthChanged, MinHeightChanged;
+    public event BaseMTElementEventHandler? MaxWidthChanged, MaxHeightChanged;
     
     // The table that is associated with this object
     internal LuaTable? ownerTable;
