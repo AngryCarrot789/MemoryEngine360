@@ -184,7 +184,7 @@ public abstract class DataValueNumeric<T> : DataValueNumeric where T : unmanaged
     }
 }
 
-public abstract class DataValueInteger<T> : DataValueNumeric<T> where T : unmanaged, IBinaryNumber<T> {
+public abstract class DataValueInteger<T> : DataValueNumeric<T> where T : unmanaged, IBinaryInteger<T> {
     internal DataValueInteger(T myValue, DataType dataType) : base(myValue, dataType) {
     }
 }

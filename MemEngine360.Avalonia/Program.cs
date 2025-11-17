@@ -79,8 +79,8 @@ class Program {
                       WithInterFont().
                       // We use LowLatencyDxgiSwapChain so that we can use custom title bar close/minimize/etc buttons that allow mouse hit testing
                       With(new Win32PlatformOptions() {
-                          CompositionMode = [Win32CompositionMode.LowLatencyDxgiSwapChain],
-                          RenderingMode = [Win32RenderingMode.AngleEgl],
+                          // CompositionMode = [Win32CompositionMode.LowLatencyDxgiSwapChain],
+                          // RenderingMode = [Win32RenderingMode.AngleEgl],
                           DpiAwareness = Win32DpiAwareness.PerMonitorDpiAware
                       }).
                       LogToTrace();

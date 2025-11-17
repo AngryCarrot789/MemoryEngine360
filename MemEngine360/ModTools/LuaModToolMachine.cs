@@ -388,9 +388,18 @@ public sealed class LuaModToolMachine : ILuaMachine {
         LuaUtils.AssignFunction(theState.Environment, new LuaFunction("type", BasicLibrary.Instance.Type));
         LuaUtils.AssignFunction(theState.Environment, new LuaFunction("xpcall", BasicLibrary.Instance.XPCall));
 
-        theState.Environment[(LuaValue) "sleep"] = new LuaFunction(async (context, buffer, ct) => {
+        theState.Environment[(LuaValue) "sleep"] = new LuaFunction("sleep", async (context, buffer, ct) => {
             double sec = context.GetArgument<double>(0);
-            await Task.Delay(TimeSpan.FromSeconds(sec), ct);
+            try {
+                await Task.Delay(TimeSpan.FromSeconds(sec), ct);
+            }
+            catch (OverflowException e) {
+                throw new LuaRuntimeException(context.State.GetTraceback(), "Invalid delay: " + e.Message);
+            }
+            catch (ArgumentException e) {
+                throw new LuaRuntimeException(context.State.GetTraceback(), "Invalid delay: " + e.Message);
+            }
+
             return 0;
         });
     }

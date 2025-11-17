@@ -14,6 +14,7 @@
              xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
              xmlns:c2="clr-namespace:MemEngine360.BaseFrontEnd.ModTools.Commands"
              xmlns:avalonia="clr-namespace:PFXToolKitUI.Avalonia.Shortcuts.Avalonia;assembly=PFXToolKitUI.Avalonia"
+             xmlns:scripting="clr-namespace:MemEngine360.BaseFrontEnd.Scripting"
              d:DesignHeight="450"
              d:DesignWidth="800"
              mc:Ignorable="d">
@@ -105,12 +106,12 @@
                   RowDefinitions="*,1,180"
                   x:Name="PART_ModToolPanel"
                   avalonia:UIInputManager.FocusPath="ModToolManagerWindow/ContentPanel">
-                <ae:TextEditor BorderThickness="0"
-                               FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
-                               Grid.Row="0"
-                               ShowLineNumbers="True"
-                               x:Name="PART_CodeEditor"
-                               avalonia:UIInputManager.FocusPath="ModToolManagerWindow/ContentPanel/CodeEditor"/>
+                <scripting:LuaTextEditor BorderThickness="0"
+                                         FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
+                                         Grid.Row="0"
+                                         ShowLineNumbers="True"
+                                         x:Name="PART_CodeEditor"
+                                         avalonia:UIInputManager.FocusPath="ModToolManagerWindow/ContentPanel/CodeEditor"/>
                 <c:GroupBox BorderBrush="{DynamicResource PanelBorderBrush}"
                             BorderThickness="0"
                             Grid.Row="2"

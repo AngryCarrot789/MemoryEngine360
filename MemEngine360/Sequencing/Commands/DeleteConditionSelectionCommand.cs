@@ -22,7 +22,7 @@ using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Ranges;
 
 namespace MemEngine360.Sequencing.Commands;
 
@@ -75,11 +75,11 @@ public class DeleteConditionSelectionCommand : Command {
         if (selectionModel == null) {
             return; // ConditionHost somehow changed
         }
-        
-        List<LongRange> selection = selectionModel.ToLongRangeUnion().ToList();
+
+        IReadOnlyList<IntegerRange<int>> selection = selectionModel.ToIntegerRangeUnion().Ranges;
         selectionModel.Clear();
         for (int i = selection.Count - 1; i >= 0; i--) {
-            selectionModel.SourceList.RemoveRange((int) selection[i].Start, (int) selection[i].Length);
+            selectionModel.SourceList.RemoveRange(selection[i].Start, selection[i].Length);
         }
     }
 }

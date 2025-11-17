@@ -94,11 +94,11 @@
                   Background="Transparent"
                   x:Name="PART_ScriptPanel"
                   avalonia:UIInputManager.FocusPath="ScriptingWindow/ContentPanel">
-                <ae:TextEditor Grid.Row="0" x:Name="PART_CodeEditor"
-                               ShowLineNumbers="True"
-                               FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
-                               BorderThickness="0"
-                               avalonia:UIInputManager.FocusPath="ScriptingWindow/ContentPanel/CodeEditor"/>
+                <local:LuaTextEditor Grid.Row="0" x:Name="PART_CodeEditor"
+                                     ShowLineNumbers="True"
+                                     FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
+                                     BorderThickness="0"
+                                     avalonia:UIInputManager.FocusPath="ScriptingWindow/ContentPanel/CodeEditor"/>
                 <c:GroupBox Grid.Row="2" BorderThickness="0" BorderBrush="{DynamicResource PanelBorderBrush}"
                             HorizontalHeaderAlignment="Stretch" VerticalHeaderAlignment="Stretch" HeaderPadding="0">
                     <c:GroupBox.Header>
@@ -189,10 +189,10 @@
                                              DockPanel.Dock="Right"
                                              Margin="5,0" VerticalAlignment="Center"
                                              NavigateUri="https://github.com/AngryCarrot789/MemoryEngine360/wiki/Lua-Scripting"/>
-                            <CheckBox x:Name="PART_ClearConsoleOnEachRun" 
-                                      Content="Clear console on each run" 
+                            <CheckBox x:Name="PART_ClearConsoleOnEachRun"
+                                      Content="Clear console on each run"
                                       tt:ToolTipEx.Tip="Clear the console each time you run the script"
-                                      DockPanel.Dock="Right" 
+                                      DockPanel.Dock="Right"
                                       Margin="5,0" VerticalAlignment="Center"/>
                             <c:TargetingGridSplitter TargetGrid="{Binding ElementName=PART_ScriptPanel}" TargetRow="1" ResizeDirection="Rows"/>
                         </DockPanel>

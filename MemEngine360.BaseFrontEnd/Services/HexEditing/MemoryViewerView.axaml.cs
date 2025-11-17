@@ -45,6 +45,7 @@ using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
+using PFXToolKitUI.Utils.Ranges;
 using AsciiColumn = AvaloniaHex.Async.Rendering.AsciiColumn;
 using HexColumn = AvaloniaHex.Async.Rendering.HexColumn;
 using OffsetColumn = AvaloniaHex.Async.Rendering.OffsetColumn;
@@ -379,12 +380,15 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         this.PART_Inspector.UpdateFields();
     }
 
-    private void OnValidRangesChanged(IObservableULongRangeUnion sender, IList<ULongRange> added, IList<ULongRange> removed) {
+    private void OnValidRangesChanged(IObservableIntegerSet<ulong> union, IReadOnlyList<IntegerRange<ulong>> addedIndices, IReadOnlyList<IntegerRange<ulong>> removedIndices) {
         ApplicationPFX.Instance.Dispatcher.Post(() => {
-            ULongRange range = ULongRange.FromStartAndLength(this.SelectionRange.Start.ByteIndex, 8);
+            IntegerRange<ulong> range = IntegerRange.FromStartAndLength(this.SelectionRange.Start.ByteIndex, 8UL);
             // ignore removed ranges to maintain previous data in the inspector
-            if (added.Any(x => x.Overlaps(range))) {
-                this.PART_Inspector.UpdateFields();
+            foreach (IntegerRange<ulong> addedRange in addedIndices) {
+                if (addedRange.Overlaps(range)) {
+                    this.PART_Inspector.UpdateFields();
+                    break;
+                }
             }
         });
     }

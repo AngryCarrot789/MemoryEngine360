@@ -21,6 +21,7 @@ using AvaloniaHex.Base.Document;
 using MemEngine360.Connections;
 using PFXToolKitUI;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Ranges;
 using PFXToolKitUI.Utils.RDA;
 
 namespace MemEngine360.Engine.HexEditing;
@@ -28,11 +29,11 @@ namespace MemEngine360.Engine.HexEditing;
 public class ConsoleHexBinarySource : IBinarySource {
     private readonly FragmentedMemoryBuffer cachedMemory;
     private readonly RateLimitedDispatchAction rldaRead;
-    private readonly BitRangeUnion requestedRanges = new BitRangeUnion();
-    private readonly BitRangeUnion availableRanges = new BitRangeUnion();
+    private readonly IntegerSet<ulong> requestedRanges = new IntegerSet<ulong>();
+    private readonly IntegerSet<ulong> availableRanges = new IntegerSet<ulong>();
     private readonly IConnectionLockPair pair;
     private readonly Lock memoryLock = new Lock();
-    private readonly ULongRangeUnionEx validRanges = new ULongRangeUnionEx();
+    private readonly ObservableIntegerSet<ulong> validRanges = new ObservableIntegerSet<ulong>();
 
     // We cannot use ((ulong) uint.MaxValue) + 1 because for some reason XBDM cannot
     // read 16 bytes at 0xFFFFFFF0. It can read 15 bytes no problem.
@@ -42,11 +43,11 @@ public class ConsoleHexBinarySource : IBinarySource {
     /// <summary>
     /// Gets the IntRange union of valid ranges 
     /// </summary>
-    public IObservableULongRangeUnion ValidRanges => this.validRanges;
+    public IObservableIntegerSet<ulong> ValidRanges => this.validRanges;
 
+    public IReadOnlyIntegerSet<ulong> AvailableDataRanges => this.availableRanges;
+    
     public bool CanWriteBackInto => true;
-
-    public IReadOnlyBitRangeUnion AvailableDataRanges => this.availableRanges;
 
     public event EventHandler<DataReceivedEventArgs>? DataReceived;
 
@@ -59,7 +60,7 @@ public class ConsoleHexBinarySource : IBinarySource {
     private async Task ReadFromConsole() {
         BusyLock busyLocker = this.pair.BusyLock;
         if (busyLocker.IsBusy) {
-            if (this.requestedRanges.Count > 0)
+            if (this.requestedRanges.Ranges.Count > 0)
                 this.rldaRead.InvokeAsync();
             return;
         }
@@ -70,7 +71,7 @@ public class ConsoleHexBinarySource : IBinarySource {
             return;
         }
 
-        List<BitRange> requests;
+        List<IntegerRange<ulong>> requests;
         lock (this.requestedRanges) {
             requests = this.requestedRanges.ToList();
             this.requestedRanges.Clear();
@@ -80,11 +81,11 @@ public class ConsoleHexBinarySource : IBinarySource {
             return;
         }
 
-        BitRangeUnion union = new BitRangeUnion();
-        foreach (BitRange range in requests) {
+        IntegerSet<ulong> union = new IntegerSet<ulong>();
+        foreach (IntegerRange<ulong> range in requests) {
             byte[] buffer;
             try {
-                buffer = await connection.ReadBytes((uint) range.Start.ByteIndex, (int) range.ByteLength);
+                buffer = await connection.ReadBytes((uint) range.Start, (int) range.Length);
             }
             catch (Exception) {
                 continue;
@@ -92,15 +93,15 @@ public class ConsoleHexBinarySource : IBinarySource {
 
             union.Add(range);
             using (this.memoryLock.EnterScope()) {
-                this.cachedMemory.Write(range.Start.ByteIndex, buffer);
-                this.availableRanges.Add(BitRange.FromLength(range.Start.ByteIndex, (ulong) buffer.Length));
-                this.validRanges.Add(ULongRange.FromStartAndEnd(range.Start.ByteIndex, range.Start.ByteIndex + (ulong) buffer.Length));
+                this.cachedMemory.Write(range.Start, buffer);
+                this.availableRanges.Add(IntegerRange.FromStartAndLength(range.Start, (ulong) buffer.Length));
+                this.validRanges.Add(IntegerRange.FromStartAndEnd(range.Start, range.Start + (ulong) buffer.Length));
             }
         }
 
         await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-            foreach (BitRange range in union) {
-                this.DataReceived?.Invoke(this, new DataReceivedEventArgs(range.Start.ByteIndex, range.ByteLength));
+            foreach (IntegerRange<ulong> range in union) {
+                this.DataReceived?.Invoke(this, new DataReceivedEventArgs(range.Start, range.Length));
             }
         });
     }
@@ -111,11 +112,11 @@ public class ConsoleHexBinarySource : IBinarySource {
         
         lock (this.requestedRanges) {
             using (this.memoryLock.EnterScope()) {
-                BitRange range = BitRange.FromLength(offset, count);
+                IntegerRange<ulong> range = IntegerRange.FromStartAndLength(offset, count);
                 this.requestedRanges.Remove(range);
                 this.cachedMemory.Clear(offset, count);
                 this.availableRanges.Remove(range);
-                this.validRanges.Remove(ULongRange.FromStartAndEnd(range.Start.ByteIndex, range.Start.ByteIndex + range.ByteLength));
+                this.validRanges.Remove(range);
             }
         }
     }
@@ -159,7 +160,7 @@ public class ConsoleHexBinarySource : IBinarySource {
 
     public void RequestDataLater(ulong offset, ulong count) {
         lock (this.requestedRanges) {
-            this.requestedRanges.Add(BitRange.FromLength(offset, count));
+            this.requestedRanges.Add(IntegerRange.FromStartAndLength(offset, count));
         }
 
         this.rldaRead.InvokeAsync();
@@ -180,7 +181,7 @@ public class ConsoleHexBinarySource : IBinarySource {
     public void WriteBytesToCache(uint address, Span<byte> buffer) {
         lock (this.requestedRanges) {
             using (this.memoryLock.EnterScope()) {
-                BitRange range = BitRange.FromLength(address, (uint) buffer.Length);
+                IntegerRange<ulong> range = IntegerRange.FromStartAndLength(address, (ulong) buffer.Length);
                 this.requestedRanges.Remove(range);
                 this.cachedMemory.Write(address, buffer);
                 this.availableRanges.Add(range);
