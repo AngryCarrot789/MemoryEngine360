@@ -30,6 +30,18 @@ public class HexEditorChangeManager {
     private readonly Stack<ChangedRegionLayer> layerCache;
     private readonly List<ChangedRegionLayer> myLayers;
     private const int MaxCache = 128;
+    
+    // Duration of the animation
+    internal const double AnimDurationMillis = 1400;
+
+    // Amount of time to wait before starting the animation
+    internal const double AnimDebounceDelay = 300;
+    
+    // Amount of time an animation has to have run for, for its bounds to be resized.
+    // 300 millis is how long it has left in its life, and at that point, is barely visible on screen,
+    // and therefore it's more performant to reuse it and restart the animation, that to potentially
+    // have to create a new layer object.
+    internal const double AnimDurationLivedToMerge = AnimDurationMillis - 300;
 
     public AsyncHexEditor Editor { get; }
 
@@ -128,7 +140,7 @@ public class HexEditorChangeManager {
 
         foreach (ChangedRegionLayer layer in this.myLayers) {
             int timeLived = (DateTime.Now - layer.LastUpdatedTime).Milliseconds;
-            if (timeLived >= 1200 ? RangesOverlapOrNearby(layer.Range, newRange) : layer.Range == newRange) {
+            if (timeLived >= AnimDurationLivedToMerge ? RangesOverlapOrNearby(layer.Range, newRange) : layer.Range == newRange) {
                 layer.SetRange(new BitRange(Math.Min(layer.Range.Start.ByteIndex, newRange.Start.ByteIndex), Math.Max(layer.Range.End.ByteIndex, newRange.End.ByteIndex)));
                 return;
             }
@@ -143,7 +155,7 @@ public class HexEditorChangeManager {
     private void CleanupInvalidatedRanges() {
         for (int i = this.myLayers.Count - 1; i >= 0; i--) {
             ChangedRegionLayer theLayer = this.myLayers[i];
-            if ((DateTime.Now - theLayer.LastUpdatedTime).Milliseconds >= 1500) {
+            if ((DateTime.Now - theLayer.LastUpdatedTime).Milliseconds >= AnimDurationMillis) {
                 this.View.Layers.Remove(theLayer);
                 this.myLayers.RemoveAt(i);
                 this.PushLayerAsCached(theLayer);

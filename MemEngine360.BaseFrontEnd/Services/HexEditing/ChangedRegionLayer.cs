@@ -27,6 +27,7 @@ using AvaloniaHex.Base.Document;
 using AvaloniaHex.Async.Editing;
 using AvaloniaHex.Async.Rendering;
 using PFXToolKitUI;
+using PFXToolKitUI.Utils.Debouncing;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
 
@@ -64,24 +65,29 @@ public class ChangedRegionLayer : Layer {
     /// </summary>
     public BitRange Range => this.theRange;
 
-    public HexEditorChangeManager Manager => this.manager;
+    public HexEditorChangeManager Manager { get; }
 
-    public DateTime LastUpdatedTime => this.lastUpdatedTime;
+    public DateTime LastUpdatedTime { get; private set; }
 
     /// <inheritdoc />
     public override LayerRenderMoments UpdateMoments => LayerRenderMoments.NoResizeRearrange;
 
-    private readonly Lock ctsLock = new Lock();
-    private CancellationTokenSource? cts;
-    private readonly HexEditorChangeManager manager;
+    private CancellationTokenSource? animCts;
     private readonly Caret theCaret;
     private BitRange theRange;
-    private DateTime lastUpdatedTime;
     private Animation? animation;
 
+    // We use a debouncer to partially delay the animation for a short period that is barely noticeable to the user.
+    // This also massively reduces GC activity
+    private readonly TimerDispatcherDebouncer animDelayDebouncer;
+
     public ChangedRegionLayer(HexEditorChangeManager manager) {
-        this.manager = manager;
+        this.Manager = manager;
         this.theCaret = manager.Editor.Caret;
+        this.animDelayDebouncer = new TimerDispatcherDebouncer(
+            TimeSpan.FromMilliseconds(HexEditorChangeManager.AnimDebounceDelay),
+            static s => ((ChangedRegionLayer) s!).OnDebounceAnimation(),
+            this);
     }
 
     static ChangedRegionLayer() {
@@ -89,26 +95,29 @@ public class ChangedRegionLayer : Layer {
     }
 
     public void SetRange(BitRange newRange) {
-        this.lastUpdatedTime = DateTime.Now;
-        this.theRange = newRange;
-        this.InvalidateVisual();
-        using (this.ctsLock.EnterScope()) {
-            if (Interlocked.Exchange(ref this.cts, null) is CancellationTokenSource oldCts) {
-                try {
-                    oldCts.Cancel();
-                }
-                catch (ObjectDisposedException) {
-                    Debug.Fail("Impossible");
-                }
-                finally {
-                    oldCts.Dispose();
-                }
-            }
+        this.LastUpdatedTime = DateTime.Now;
+        if (this.theRange != newRange) {
+            this.theRange = newRange;
+            this.InvalidateVisual();
         }
 
-        this.cts = new CancellationTokenSource();
+        this.TryCancelAnimation();
+        if (this.Opacity < 1.0) {
+            this.Opacity = 1.0;
+        }
+
+        this.animDelayDebouncer.Reset();
+        this.animDelayDebouncer.InvokeOrPostpone();
+    }
+
+    private void OnDebounceAnimation() {
+        _ = this.RunAnimationAsync();
+    }
+
+    private async Task RunAnimationAsync() {
+        Debug.Assert(this.animCts == null);
         this.animation ??= new Animation {
-            Duration = TimeSpan.FromSeconds(1.5),
+            Duration = TimeSpan.FromMilliseconds(HexEditorChangeManager.AnimDurationMillis),
             Easing = new SineEaseOut(), FillMode = FillMode.Forward,
             Children = {
                 new KeyFrame {
@@ -126,43 +135,32 @@ public class ChangedRegionLayer : Layer {
             }
         };
 
-        CancellationToken token = this.cts.Token;
-        this.animation.RunAsync(this, token).ContinueWith(async (t) => {
-            try {
-                if (!token.IsCancellationRequested) {
-                    await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                        if (!token.IsCancellationRequested)
-                            this.manager.OnFadeOutCompleted(this);
-                    });
-                }
+        this.animCts = new CancellationTokenSource();
+
+        try {
+            await this.animation.RunAsync(this, this.animCts.Token);
+            if (!this.animCts.IsCancellationRequested) {
+                this.Manager.OnFadeOutCompleted(this);
             }
-            finally {
-                using (this.ctsLock.EnterScope()) {
-                    if (Interlocked.Exchange(ref this.cts, null) is CancellationTokenSource oldCts) {
-                        try {
-                            oldCts.Cancel();
-                        }
-                        catch (ObjectDisposedException) {
-                            Debug.Fail("Impossible");
-                        }
-                        finally {
-                            oldCts.Dispose();
-                        }
-                    }
-                }
-            }
-        }, TaskContinuationOptions.ExecuteSynchronously);
+        }
+        finally {
+            this.animCts.Dispose();
+            this.animCts = null;
+        }
     }
 
-    /// <inheritdoc />
+    private void TryCancelAnimation() {
+        this.animCts?.Cancel();
+    }
+
     public override void Render(DrawingContext context) {
         base.Render(context);
 
         if (this.HexView == null || this.GetVisibleSelectionRange() is not { } range)
             return;
 
-        for (int i = 0; i < this.HexView.Columns.Count; i++) {
-            if (this.HexView.Columns[i] is CellBasedColumn { IsVisible: true } column)
+        foreach (Column c in this.HexView.Columns) {
+            if (c is CellBasedColumn { IsVisible: true } column)
                 this.DrawSelection(context, column, range);
         }
     }
@@ -175,12 +173,9 @@ public class ChangedRegionLayer : Layer {
 
     private void DrawSelection(DrawingContext context, CellBasedColumn column, BitRange range) {
         Geometry? geometry = CellGeometryBuilder.CreateBoundingGeometry(column, range);
-        if (geometry == null)
-            return;
-
-        if (this.theCaret.PrimaryColumnIndex == column.Index)
-            context.DrawGeometry(null, this.PrimarySelectionBorder, geometry);
-        else
-            context.DrawGeometry(null, this.SecondarySelectionBorder, geometry);
+        if (geometry != null) {
+            IPen? pen = this.theCaret.PrimaryColumnIndex == column.Index ? this.PrimarySelectionBorder : this.SecondarySelectionBorder;
+            context.DrawGeometry(null, pen, geometry);
+        }
     }
 }
