@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections;
 using MemEngine360.Engine;
 
 namespace MemEngine360.BaseFrontEnd.Commands;
@@ -44,19 +43,19 @@ public class BaseScanCommandUsage : EngineButtonCommandUsage {
         }
     }
 
-    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
+    private void OnConnectionChanged(object? o, ConnectionChangedEventArgs args) {
         this.UpdateCanExecuteLater();
     }
 
-    private void OnIsScanningChanged(ScanningProcessor sender) {
+    private void OnIsScanningChanged(object? o, EventArgs e) {
         this.UpdateCanExecuteLater();
     }
     
-    private void OnIsBusyChanged(MemoryEngine sender) {
+    private void OnIsBusyChanged(object? o, EventArgs e) {
         this.UpdateCanExecuteLater();
     }
     
-    private void OnHasFirstScanChanged(ScanningProcessor sender) {
+    private void OnHasFirstScanChanged(object? o, EventArgs e) {
         this.UpdateCanExecuteLater();
     }
 }

@@ -20,17 +20,14 @@
 using System.Diagnostics;
 using MemEngine360.Sequencing.Conditions;
 using PFXToolKitUI.Interactivity.Contexts;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing;
-
-public delegate void BaseSequenceConditionEventHandler(BaseSequenceCondition sender);
 
 public abstract class BaseSequenceCondition {
     public static readonly DataKey<BaseSequenceCondition> DataKey = DataKeys.Create<BaseSequenceCondition>(nameof(BaseSequenceCondition));
     
     private bool isEnabled = true;
-    private bool isCurrentlyMet;
     private ConditionOutputMode outputMode;
 
     private bool lastMetState;
@@ -40,7 +37,7 @@ public abstract class BaseSequenceCondition {
 
     public bool IsEnabled {
         get => this.isEnabled;
-        set => PropertyHelper.SetAndRaiseINE(ref this.isEnabled, value, this, static t => t.IsEnabledChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.isEnabled, value, this, this.IsEnabledChanged);
     }
 
     /// <summary>
@@ -48,8 +45,8 @@ public abstract class BaseSequenceCondition {
     /// and is updated when the sequence queries the conditions
     /// </summary>
     public bool IsCurrentlyMet {
-        get => this.isCurrentlyMet;
-        private set => PropertyHelper.SetAndRaiseINE(ref this.isCurrentlyMet, value, this, static t => t.IsCurrentlyMetChanged?.Invoke(t));
+        get => field;
+        private set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsCurrentlyMetChanged);
     }
 
     /// <summary>
@@ -74,9 +71,9 @@ public abstract class BaseSequenceCondition {
     /// </summary>
     public IConditionsHost? Owner { get; private set; }
 
-    public event BaseSequenceConditionEventHandler? IsEnabledChanged;
-    public event BaseSequenceConditionEventHandler? IsCurrentlyMetChanged;
-    public event BaseSequenceConditionEventHandler? OutputModeChanged;
+    public event EventHandler? IsEnabledChanged;
+    public event EventHandler? IsCurrentlyMetChanged;
+    public event EventHandler? OutputModeChanged;
 
     protected BaseSequenceCondition() {
     }
@@ -84,7 +81,7 @@ public abstract class BaseSequenceCondition {
     private void OnOutputModeChangedUnderLock() {
         this.lastMetState = false;
         this.isOnceModeLocked = null;
-        this.OutputModeChanged?.Invoke(this);
+        this.OutputModeChanged?.Invoke(this, EventArgs.Empty);
     }
 
     protected internal void OnSequenceStarted() {

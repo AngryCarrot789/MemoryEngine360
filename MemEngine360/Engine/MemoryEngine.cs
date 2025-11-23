@@ -40,14 +40,9 @@ using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Engine;
-
-public delegate void MemoryEngineEventHandler(MemoryEngine sender);
-
-public delegate Task MemoryEngineConnectionChangingEventHandler(MemoryEngine sender, ulong frame, IActivityProgress progress);
-
-public delegate void MemoryEngineConnectionChangedEventHandler(MemoryEngine sender, ulong frame, IConsoleConnection? oldConnection, IConsoleConnection? newConnection, ConnectionChangeCause cause);
 
 /// <summary>
 /// The main manager class for a the memory engine window. Also provides utilities for reading/writing data values
@@ -62,7 +57,6 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     public static readonly DataKey<bool> IsDisconnectFromNotification = DataKeys.Create<bool>("IsDisconnectFromNotification");
 
     private IConsoleConnection? connection;
-    private bool isShuttingDown;
     private ulong currentConnectionAboutToChangeFrame;
 
     /// <summary>
@@ -138,8 +132,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working
     /// </summary>
     public bool IsShuttingDown {
-        get => this.isShuttingDown;
-        set => PropertyHelper.SetAndRaiseINE(ref this.isShuttingDown, value, this, static t => t.IsShuttingDownChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsShuttingDownChanged);
     }
 
     /// <summary>
@@ -173,18 +167,18 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// main thread then you risk another handler's code being invoked between your await usage
     /// </para>
     /// </summary>
-    public event MemoryEngineConnectionChangingEventHandler? ConnectionAboutToChange;
+    public event AsyncEventHandler<ConnectionChangingEventArgs>? ConnectionAboutToChange;
 
     /// <summary>
     /// Fired when <see cref="Connection"/> changes. It is crucial that no 'busy' operations
     /// are performed in the event handlers, otherwise, a deadlock could occur.
     /// </summary>
-    public event MemoryEngineConnectionChangedEventHandler? ConnectionChanged;
+    public event EventHandler<ConnectionChangedEventArgs>? ConnectionChanged;
 
     /// <summary>
     /// An event fired when <see cref="IsShuttingDown"/> changes. Ideally this should only be fired once per instance of <see cref="MemoryEngine"/>
     /// </summary>
-    public event MemoryEngineEventHandler? IsShuttingDownChanged;
+    public event EventHandler? IsShuttingDownChanged;
 
     /// <summary>
     /// Fired when the <see cref="IsConnectionBusy"/> state changes. It is crucial that no 'busy' operations are performed
@@ -194,7 +188,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// the light of day, and the next handlers in the list will not be invoked, potentially leading to application wide corruption
     /// </para>
     /// </summary>
-    public event MemoryEngineEventHandler? IsBusyChanged;
+    public event EventHandler? IsBusyChanged;
 
     private readonly ComponentStorage myComponentStorage;
     ComponentStorage IComponentManager.ComponentStorage => this.myComponentStorage;
@@ -202,7 +196,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     public MemoryEngine() {
         this.myComponentStorage = new ComponentStorage(this);
         this.BusyLock = new BusyLock();
-        this.BusyLock.IsBusyChanged += e => this.IsBusyChanged?.Invoke(this);
+        this.BusyLock.IsBusyChanged += (s, _) => this.IsBusyChanged?.Invoke(this, EventArgs.Empty);
         this.ScanningProcessor = new ScanningProcessor(this);
         this.AddressTableManager = new AddressTableManager(this);
         this.FileTreeExplorer = new FileTreeExplorer(this);
@@ -281,10 +275,10 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         });
     }
 
-    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
+    private void OnConnectionChanged(object? o, ConnectionChangedEventArgs args) {
         this.RemoteControlsMenu.Items.Clear();
-        if (newConn != null) {
-            this.RemoteControlsMenu.Items.AddRange(newConn.ConnectionType.GetRemoteContextOptions());
+        if (args.NewConnection != null) {
+            this.RemoteControlsMenu.Items.AddRange(args.NewConnection.ConnectionType.GetRemoteContextOptions());
         }
     }
 
@@ -304,7 +298,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         List<SubActivity> progressions = new List<SubActivity>(list.Length);
         Task[] tasks = new Task[list.Length];
         for (int i = 0; i < list.Length; i++) {
-            MemoryEngineConnectionChangingEventHandler handler = (MemoryEngineConnectionChangingEventHandler) list[i];
+            AsyncEventHandler<ConnectionChangingEventArgs> handler = (AsyncEventHandler<ConnectionChangingEventArgs>) list[i];
             DispatcherActivityProgress progress = new DispatcherActivityProgress();
             TaskCompletionSource tcs = new TaskCompletionSource();
             progressions.Add(new SubActivity(progress, tcs.Task, null));
@@ -315,7 +309,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
                 progress.Text = "Waiting";
 
                 try {
-                    await handler(this, frame, progress);
+                    await handler(this, new ConnectionChangingEventArgs(frame, progress));
                 }
                 catch (OperationCanceledException) {
                     // ignored
@@ -389,7 +383,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
             if (newConnection != null)
                 this.LastUserConnectionInfo = userConnectionInfo;
 
-            this.ConnectionChanged?.Invoke(this, frame, oldConnection, newConnection, cause);
+            this.ConnectionChanged?.Invoke(this, new ConnectionChangedEventArgs(frame, oldConnection, newConnection, cause));
         }
         
         // Try to disconnect in the future, just in case the connection was immediately closed.
@@ -553,7 +547,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         }
     }
 
-    private void OnConnectionClosed(IConsoleConnection sender) {
+    private void OnConnectionClosed(object? sender, EventArgs e) {
         if (sender == this.connection) {
             this.CheckConnection();
         }
@@ -699,4 +693,40 @@ public static class NumericDisplayTypeExtensions {
             default:                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
     }
+}
+
+public readonly struct ConnectionChangingEventArgs(ulong frame, IActivityProgress progress) {
+    /// <summary>
+    /// Gets the changing frame. This is unique for each call to <see cref="MemoryEngine.BroadcastConnectionAboutToChange"/>,
+    /// and can be used to track which call was followed by <see cref="MemoryEngine.ConnectionChanged"/>
+    /// </summary>
+    public ulong Frame { get; } = frame;
+
+    /// <summary>
+    /// Gets the progress for the specific handler to <see cref="MemoryEngine.ConnectionAboutToChange"/>.
+    /// This is used to show the user the possible reason for why the app is not responding
+    /// </summary>
+    public IActivityProgress Progress { get; } = progress;
+}
+
+public readonly struct ConnectionChangedEventArgs(ulong frame, IConsoleConnection? oldConnection, IConsoleConnection? newConnection, ConnectionChangeCause cause) {
+    /// <summary>
+    /// Gets the changing frame.
+    /// </summary>
+    public ulong Frame { get; } = frame;
+
+    /// <summary>
+    /// Gets the old connection
+    /// </summary>
+    public IConsoleConnection? OldConnection { get; } = oldConnection;
+
+    /// <summary>
+    /// Gets the new connection
+    /// </summary>
+    public IConsoleConnection? NewConnection { get; } = newConnection;
+
+    /// <summary>
+    /// Gets the cause for the connection changing (e.g. user disconnected, we lost connection, etc.)
+    /// </summary>
+    public ConnectionChangeCause Cause { get; } = cause;
 }

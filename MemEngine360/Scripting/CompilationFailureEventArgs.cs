@@ -1,5 +1,5 @@
 ﻿// 
-// Copyright (c) 2024-2025 REghZy
+// Copyright (c) 2025-2025 REghZy
 // 
 // This file is part of MemoryEngine360.
 // 
@@ -17,9 +17,12 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-namespace MemEngine360.Engine.FileBrowsing;
+using Lua.CodeAnalysis;
 
-public class FileTreeNodeFile : BaseFileTreeNode {
-    public FileTreeNodeFile() {
-    }
+namespace MemEngine360.Scripting;
+
+public readonly struct CompilationFailureEventArgs(string? chunkName, SourcePosition sourcePosition) {
+    public string? ChunkName { get; } = chunkName;
+    
+    public SourcePosition SourcePosition { get; } = sourcePosition;
 }

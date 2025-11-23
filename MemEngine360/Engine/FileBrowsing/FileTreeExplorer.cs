@@ -60,7 +60,7 @@ public class FileTreeExplorer : IComponentManager {
         this.refreshRootCommand = new AsyncRelayCommand(this.RefreshRootDirectories);
     }
 
-    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
+    private void OnConnectionChanged(object? o, ConnectionChangedEventArgs args) {
         ApplicationPFX.Instance.Dispatcher.Post(static t => ((AsyncRelayCommand) t!).Execute(null), this.refreshRootCommand);
     }
 

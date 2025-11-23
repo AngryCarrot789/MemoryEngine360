@@ -28,6 +28,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.PropertyEditing.DataTransfer.Enums;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent;
 
@@ -73,19 +74,19 @@ public partial class SetMemoryOperationEditorContent : BaseOperationEditorConten
         if (oldOperation is SetMemoryOperation oldOp) {
             oldOp.DataValueProviderChanged -= this.OnDataValueProviderChanged;
             if (oldOp.DataValueProvider != null)
-                this.OnDataValueProviderChanged(oldOp, oldOp.DataValueProvider, null);
+                this.OnDataValueProviderChanged(oldOp, new ValueChangedEventArgs<DataValueProvider?>(oldOp.DataValueProvider, null));
         }
 
         if (newOperation is SetMemoryOperation newOp) {
             newOp.DataValueProviderChanged += this.OnDataValueProviderChanged;
             if (newOp.DataValueProvider != null)
-                this.OnDataValueProviderChanged(newOp, null, newOp.DataValueProvider);
+                this.OnDataValueProviderChanged(newOp, new ValueChangedEventArgs<DataValueProvider?>(null, newOp.DataValueProvider));
         }
 
         this.selectedTabIndexBinder.SwitchModel(newOperation as SetMemoryOperation);
     }
 
-    private void OnDataValueProviderChanged(SetMemoryOperation sender, DataValueProvider? oldProvider, DataValueProvider? newProvider) {
+    private void OnDataValueProviderChanged(object? o, ValueChangedEventArgs<DataValueProvider?> e) {
         if (this.myDataProviderEditorHandler != null) {
             this.dataTypeBinder.Detach();
             this.parseIntAsHexBinder.DetachModel();
@@ -96,18 +97,18 @@ public partial class SetMemoryOperationEditorContent : BaseOperationEditorConten
             this.myDataProviderEditorHandler = null;
         }
 
-        if (newProvider != null) {
-            switch (newProvider) {
+        if (e.NewValue != null) {
+            switch (e.NewValue) {
                 case ConstantDataProvider:     this.myDataProviderEditorHandler = new ConstantDataValueHandler(this.PART_ConstantValueTextBox); break;
                 case RandomNumberDataProvider: this.myDataProviderEditorHandler = new RandomNumericDataValueHandler(this.PART_RangedValueATextBox, this.PART_RangedValueBTextBox); break;
             }
 
             if (this.myDataProviderEditorHandler != null) {
-                this.myDataProviderEditorHandler.Connect(newProvider);
+                this.myDataProviderEditorHandler.Connect(e.NewValue);
                 
-                if (newProvider is ConstantDataProvider)
+                if (e.NewValue is ConstantDataProvider)
                     this.dataTypeBinder.Attach(this.PART_DataTypeCombo, this.myDataProviderEditorHandler);
-                else if (newProvider is RandomNumberDataProvider)
+                else if (e.NewValue is RandomNumberDataProvider)
                     this.dataTypeBinder.Attach(this.PART_DataTypeCombo, this.myDataProviderEditorHandler, RandomDataTypeInfo);
                 
                 this.parseIntAsHexBinder.AttachModel(this.myDataProviderEditorHandler);

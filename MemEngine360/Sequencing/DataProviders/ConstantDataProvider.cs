@@ -19,58 +19,52 @@
 
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing.DataProviders;
 
-public delegate void ConstantDataProviderEventHandler(ConstantDataProvider sender);
-
 public sealed class ConstantDataProvider : DataValueProvider {
-    private DataType dataType = DataType.Int32;
-    private IDataValue? dataValue;
-    private StringType stringType;
-    private bool parseIntAsHex;
-
     public DataType DataType {
-        get => this.dataType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, static t => t.DataTypeChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.DataTypeChanged);
+    } = DataType.Int32;
 
     public IDataValue? DataValue {
-        get => this.dataValue;
+        get => field;
         set {
-            PropertyHelper.SetAndRaiseINE(ref this.dataValue, null, this, static t => t.DataValueChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, null, this, static t => t.DataValueChanged?.Invoke(t, EventArgs.Empty));
             if (value != null) {
                 this.DataType = value.DataType;
-                PropertyHelper.SetAndRaiseINE(ref this.dataValue, value, this, static t => t.DataValueChanged?.Invoke(t));
+                PropertyHelper.SetAndRaiseINE(ref field, value, this, this.DataValueChanged);
             }
         }
     }
 
     public StringType StringType {
-        get => this.stringType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.stringType, value, this, static t => t.StringTypeChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.StringTypeChanged);
     }
 
     public bool ParseIntAsHex {
-        get => this.parseIntAsHex;
-        set => PropertyHelper.SetAndRaiseINE(ref this.parseIntAsHex, value, this, static t => t.ParseIntAsHexChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ParseIntAsHexChanged);
     }
 
-    public event ConstantDataProviderEventHandler? DataTypeChanged;
-    public event ConstantDataProviderEventHandler? DataValueChanged;
-    public event ConstantDataProviderEventHandler? StringTypeChanged;
-    public event ConstantDataProviderEventHandler? ParseIntAsHexChanged;
+    public event EventHandler? DataTypeChanged;
+    public event EventHandler? DataValueChanged;
+    public event EventHandler? StringTypeChanged;
+    public event EventHandler? ParseIntAsHexChanged;
 
     public ConstantDataProvider() {
     }
 
     public ConstantDataProvider(IDataValue dataValue) {
-        this.dataType = dataValue.DataType;
-        this.dataValue = dataValue;
+        this.DataType = dataValue.DataType;
+        this.DataValue = dataValue;
     }
 
-    public override IDataValue? Provide() => this.dataValue;
+    public override IDataValue? Provide() => this.DataValue;
+
     public override DataValueProvider CreateClone() {
         return new ConstantDataProvider() {
             DataType = this.DataType,

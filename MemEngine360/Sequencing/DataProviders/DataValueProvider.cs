@@ -18,24 +18,20 @@
 // 
 
 using MemEngine360.ValueAbstraction;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing.DataProviders;
 
-public delegate void DataValueProviderEventHandler(DataValueProvider sender);
-
 public abstract class DataValueProvider {
-    private bool appendNullCharToString = true;
-
     /// <summary>
     /// Gets or sets whether to add a null-character to the end of strings. Setting this to false could cause the
     /// game to become unstable/laggy if the original null char gets overwritten and the next one is really far away
     /// (since it may try to render a million characters)
     /// </summary>
     public bool AppendNullCharToString {
-        get => this.appendNullCharToString;
-        set => PropertyHelper.SetAndRaiseINE(ref this.appendNullCharToString, value, this, static t => t.AppendNullCharToStringChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.AppendNullCharToStringChanged);
+    } = true;
 
     /// <summary>
     /// Gets a lock that should be acquired when reading/writing properties that may be accessed by multiple threads.
@@ -43,7 +39,7 @@ public abstract class DataValueProvider {
     /// </summary>
     public Lock Lock { get; } = new Lock();
     
-    public event DataValueProviderEventHandler? AppendNullCharToStringChanged;
+    public event EventHandler? AppendNullCharToStringChanged;
     
     protected DataValueProvider() {
     }

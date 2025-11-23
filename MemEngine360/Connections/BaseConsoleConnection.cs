@@ -53,7 +53,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// </summary>
     public abstract AddressRange AddressableRange { get; }
 
-    public event ConsoleConnectionEventHandler? Closed;
+    public event EventHandler? Closed;
 
     protected BaseConsoleConnection() {
     }
@@ -106,7 +106,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         }
 
         try {
-            this.Closed?.Invoke(this);
+            this.Closed?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception e) {
             list.Add(e);

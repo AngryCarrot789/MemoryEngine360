@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using PFXToolKitUI;
@@ -47,7 +48,7 @@ public partial class SplashScreenWindow : Window, IApplicationStartupProgress {
         this.CompletionState.CompletionValueChanged += this.CompletionStateOnCompletionValueChanged;
     }
 
-    private void CompletionStateOnCompletionValueChanged(CompletionState state) {
+    private void CompletionStateOnCompletionValueChanged(object? sender, EventArgs e) {
         this.PART_ProgressBar.Value = this.CompletionState.TotalCompletion;
     }
 

@@ -22,14 +22,10 @@ using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Interactivity.Contexts;
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing;
-
-public delegate void BaseSequenceOperationEventHandler(BaseSequenceOperation sender);
-
-public delegate void BaseSequenceOperationStateChangedEventHandler(BaseSequenceOperation sender, OperationState oldState, OperationState newState);
 
 /// <summary>
 /// The base class for a sequencer operation
@@ -39,10 +35,6 @@ public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost
 
     internal SequenceOperationViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using IComponentManager
 
-    private OperationState state = OperationState.NotRunning;
-    private bool isEnabled = true;
-    private OperationConditionBehaviour conditionBehaviour = OperationConditionBehaviour.Wait;
-
     public TransferableData TransferableData { get; }
 
     /// <summary>
@@ -51,25 +43,25 @@ public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost
     public TaskSequence? TaskSequence { get; private set; }
 
     public OperationState State {
-        get => this.state;
-        set => PropertyHelper.SetAndRaiseINE(ref this.state, value, this, static (t, o, n) => t.StateChanged?.Invoke(t, o, n));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.StateChanged);
+    } = OperationState.NotRunning;
 
     /// <summary>
     /// Gets or sets whether this operation is enabled, meaning can it actually run when the sequence is running
     /// </summary>
     public bool IsEnabled {
-        get => this.isEnabled;
-        set => PropertyHelper.SetAndRaiseINE(ref this.isEnabled, value, this, static t => t.IsEnabledChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsEnabledChanged);
+    } = true;
 
     /// <summary>
     /// Gets or sets the behaviour for when conditions are not met
     /// </summary>
     public OperationConditionBehaviour ConditionBehaviour {
-        get => this.conditionBehaviour;
-        set => PropertyHelper.SetAndRaiseINE(ref this.conditionBehaviour, value, this, static t => t.ConditionBehaviourChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ConditionBehaviourChanged);
+    } = OperationConditionBehaviour.Wait;
 
     /// <summary>
     /// Gets a short readable description of this operation, e.g. "Set Memory"
@@ -85,9 +77,9 @@ public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost
 
     public ObservableList<BaseSequenceCondition> Conditions { get; }
 
-    public event BaseSequenceOperationStateChangedEventHandler? StateChanged;
-    public event BaseSequenceOperationEventHandler? IsEnabledChanged;
-    public event BaseSequenceOperationEventHandler? ConditionBehaviourChanged;
+    public event EventHandler? StateChanged;
+    public event EventHandler? IsEnabledChanged;
+    public event EventHandler? ConditionBehaviourChanged;
 
     private const string CheckNotRunningMessage = "Cannot modify condition list of an operation while its owner sequence is running";
 

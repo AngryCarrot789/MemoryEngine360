@@ -25,6 +25,7 @@ using MemEngine360.ModTools;
 using MemEngine360.ModTools.Commands;
 using MemEngine360.ModTools.Gui;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.ModTools;
 
@@ -56,8 +57,8 @@ public partial class ModToolView : UserControl {
         this.Content = CreateControl(newValue?.Gui.RootPanel);
     }
 
-    private void OnGuiRootPanelChanged(ModToolGUI sender, BaseMTPanel? oldRootPanel, BaseMTPanel? newRootPanel) {
-        this.Content = CreateControl(newRootPanel);
+    private void OnGuiRootPanelChanged(object? o, ValueChangedEventArgs<BaseMTPanel?> e) {
+        this.Content = CreateControl(e.NewValue);
     }
 
     public void OnWindowOpened(IDesktopWindow sender) {

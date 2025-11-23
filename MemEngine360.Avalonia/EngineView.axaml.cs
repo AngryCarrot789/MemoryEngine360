@@ -57,6 +57,8 @@ using PFXToolKitUI.Themes;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Commands;
+using PFXToolKitUI.Utils.Events;
+using PFXToolKitUI.Utils.Reactive;
 
 namespace MemEngine360.Avalonia;
 
@@ -172,7 +174,7 @@ public partial class EngineView : UserControl {
     private readonly TreeViewSelectionModelBinder<BaseAddressTableEntry> addressTableSelectionBinder;
 
     private readonly ColourBrushHandler titleBarToMenuBackgroundBrushHandler;
-
+    
     public EngineView() {
         this.InitializeComponent();
 
@@ -213,25 +215,21 @@ public partial class EngineView : UserControl {
                 }
             };
 
-            info.TextChanged += UpdateFooter;
-            UpdateFooter(info);
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, this.myOwnerWindow_onLoaded) == true) {
-                p.Alignment = NumberUtils.ParseHexOrRegular<uint>(info.Text);
-            }
-
-            return;
-
-            static void UpdateFooter(SingleUserInputInfo inf) {
-                if (inf.TextErrors != null) {
-                    inf.Footer = "Cannot show examples: invalid alignment";
+            using IDisposable _ = Observable.ForEvent(info, static s => {
+                if (s.TextErrors != null) {
+                    s.Footer = "Cannot show examples: invalid alignment";
                 }
                 else {
-                    int align = (int) NumberUtils.ParseHexOrRegular<uint>(inf.Text);
+                    int align = (int) NumberUtils.ParseHexOrRegular<uint>(s.Text);
                     StringBuilder sb = new StringBuilder().Append(0);
                     for (int i = 1, j = align; i < 5; i++, j += align)
                         sb.Append(", ").Append(j);
-                    inf.Footer = "We will scan " + sb.Append(", etc.");
+                    s.Footer = "We will scan " + sb.Append(", etc.");
                 }
+            }, static (s, e) => s.TextChanged += e, static (s, e) => s.TextChanged -= e, initialCallback: true);
+            
+            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, this.myOwnerWindow_onLoaded) == true) {
+                p.Alignment = NumberUtils.ParseHexOrRegular<uint>(info.Text);
             }
         });
 
@@ -358,6 +356,7 @@ public partial class EngineView : UserControl {
         this.PART_Run_CountResults.Text = $"{count} results{(pending > 0 ? $" ({pending} {(processor.IsScanning ? "pending" : "hidden")})" : "")}";
     }
 
+
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
         MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(this.MemoryEngine);
@@ -410,7 +409,7 @@ public partial class EngineView : UserControl {
         processor.ScanForAnyDataTypeChanged += this.UpdateNonBetweenInput;
         processor.UseExpressionParsingChanged += this.OnUseExpressionParsingChanged;
 
-        this.OnUseExpressionParsingChanged(processor);
+        this.OnUseExpressionParsingChanged(processor, EventArgs.Empty);
 
         this.PART_OrderListBox.SetScanningProcessor(processor);
 
@@ -421,12 +420,13 @@ public partial class EngineView : UserControl {
         }
     }
 
-    private void OnUseExpressionParsingChanged(ScanningProcessor sender) {
+    private void OnUseExpressionParsingChanged(object? o, EventArgs e) {
+        ScanningProcessor processor = this.MemoryEngine.ScanningProcessor;
         this.UpdateUIForScanTypeAndDataType();
-        this.UpdateSingleInputField(sender);
+        this.UpdateSingleInputField();
 
-        this.dataTypeBinder.SetIsEnabled(DataType.String, !sender.UseExpressionParsing);
-        this.dataTypeBinder.SetIsEnabled(DataType.ByteArray, !sender.UseExpressionParsing);
+        this.dataTypeBinder.SetIsEnabled(DataType.String, !processor.UseExpressionParsing);
+        this.dataTypeBinder.SetIsEnabled(DataType.ByteArray, !processor.UseExpressionParsing);
     }
 
     private void UpdateStatusBarConnectionText(IConsoleConnection? console) {
@@ -434,7 +434,8 @@ public partial class EngineView : UserControl {
         this.PART_ConnectedHostName.SetValue(TextBlock.TextProperty, text);
     }
 
-    private void OnIsActivityListVisibleChanged(MemoryEngineViewState sender) {
+    private void OnIsActivityListVisibleChanged(object? o, EventArgs e) {
+        MemoryEngineViewState sender = (MemoryEngineViewState) o!;
         if (this.PART_ActivityListPanel.IsVisible != sender.IsActivityListVisible) {
             this.PART_ActivityListPanel.IsVisible = sender.IsActivityListVisible;
             this.PART_ActivityList.ActivityManager = sender.IsActivityListVisible ? ActivityManager.Instance : null;
@@ -442,7 +443,7 @@ public partial class EngineView : UserControl {
         }
     }
 
-    private void OnRequestFocusOnSavedAddress(MemoryEngineViewState state, BaseAddressTableEntry address) {
+    private void OnRequestFocusOnSavedAddress(object? sender, BaseAddressTableEntry address) {
         if (this.PART_SavedAddressTree.ItemMap.TryGetControl(address, out AddressTableTreeViewItem? item)) {
             item.IsSelected = true;
             item.Focus();
@@ -514,7 +515,7 @@ public partial class EngineView : UserControl {
         this.PART_OrderListBox.SetScanningProcessor(null);
     }
 
-    private void ScanningProcessorOnNumericScanTypeChanged(ScanningProcessor sender) {
+    private void ScanningProcessorOnNumericScanTypeChanged(object? o, EventArgs e) {
         this.UpdateUIForScanTypeAndDataType();
     }
 
@@ -556,10 +557,11 @@ public partial class EngineView : UserControl {
                 this.inputValueBinder.Attach(this.PART_Input_Value1, sp);
         }
 
-        this.UpdateNonBetweenInput(sp);
+        this.UpdateSingleInputField();
     }
 
-    private void OnScanningProcessorOnDataTypeChanged(ScanningProcessor p) {
+    private void OnScanningProcessorOnDataTypeChanged(object? sender, EventArgs e) {
+        ScanningProcessor p = (ScanningProcessor) sender!;
         if (p.DataType.IsFloatingPoint()) {
             this.lastFloatDataType = p.DataType;
         }
@@ -568,11 +570,12 @@ public partial class EngineView : UserControl {
         }
     }
 
-    private void UpdateNonBetweenInput(ScanningProcessor p) {
-        this.UpdateSingleInputField(p);
+    private void UpdateNonBetweenInput(object? sender, EventArgs e) {
+        this.UpdateSingleInputField();
     }
 
-    private void UpdateSingleInputField(ScanningProcessor p) {
+    private void UpdateSingleInputField() {
+        ScanningProcessor p = this.MemoryEngine.ScanningProcessor;
         bool isEnabled = p.ScanForAnyDataType
                          || p.UseExpressionParsing
                          || p.DataType == DataType.ByteArray
@@ -589,20 +592,20 @@ public partial class EngineView : UserControl {
         }
     }
 
-    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConn, IConsoleConnection? newConn, ConnectionChangeCause cause) {
+    private void OnConnectionChanged(object? o, ConnectionChangedEventArgs args) {
         TextNotification notification = this.connectionNotification ??= new TextNotification() {
             ContextData = new ContextData().Set(MemoryEngine.EngineDataKey, this.MemoryEngine).
                                             Set(ITopLevel.TopLevelDataKey, this.myOwnerWindow_onLoaded)
         };
 
-        if (oldConn != null)
-            oldConn.ConnectionType.StatusBarTextInvalidated -= this.TypeOnStatusBarTextInvalidated;
+        if (args.OldConnection != null)
+            args.OldConnection.ConnectionType.StatusBarTextInvalidated -= this.TypeOnStatusBarTextInvalidated;
 
-        if (newConn != null) {
-            newConn.ConnectionType.StatusBarTextInvalidated += this.TypeOnStatusBarTextInvalidated;
+        if (args.NewConnection != null) {
+            args.NewConnection.ConnectionType.StatusBarTextInvalidated += this.TypeOnStatusBarTextInvalidated;
 
             notification.Caption = "Connected";
-            notification.Text = $"Connected to '{newConn.ConnectionType.DisplayName}'";
+            notification.Text = $"Connected to '{args.NewConnection.ConnectionType.DisplayName}'";
             notification.Actions.Clear();
             notification.Actions.Add(this.connectionNotificationCommandGetStarted ??= new LambdaNotificationAction("Get Started", static async (c) => {
                 ITopLevel topLevel = ITopLevel.TopLevelDataKey.GetContext(c.ContextData!)!;
@@ -627,28 +630,28 @@ public partial class EngineView : UserControl {
 
             notification.CanAutoHide = true;
 
-            MemoryEngineManager.Instance.RaiseProvidePostConnectionActions(this.MemoryEngine, newConn, notification);
+            MemoryEngineManager.Instance.RaiseProvidePostConnectionActions(this.MemoryEngine, args.NewConnection, notification);
 
             notification.Show(NotificationManager.GetInstance(this.MemoryEngine));
             this.PART_LatestActivity.Text = notification.Text;
         }
         else {
-            notification.Text = $"Disconnected from '{oldConn!.ConnectionType.DisplayName}'";
+            notification.Text = $"Disconnected from '{args.OldConnection!.ConnectionType.DisplayName}'";
             this.PART_LatestActivity.Text = notification.Text;
-            if (cause != ConnectionChangeCause.ClosingWindow && (!MemoryEngine.IsDisconnectFromNotification.TryGetContext(notification.ContextData!, out bool b) || !b)) {
-                notification.Caption = cause switch {
+            if (args.Cause != ConnectionChangeCause.ClosingWindow && (!MemoryEngine.IsDisconnectFromNotification.TryGetContext(notification.ContextData!, out bool b) || !b)) {
+                notification.Caption = args.Cause switch {
                     ConnectionChangeCause.LostConnection => "Lost Connection",
                     ConnectionChangeCause.ConnectionError => "Connection error",
                     _ => "Disconnected"
                 };
 
                 notification.AlertMode =
-                    cause == ConnectionChangeCause.LostConnection
+                    args.Cause == ConnectionChangeCause.LostConnection
                         ? NotificationAlertMode.UntilUserInteraction
                         : NotificationAlertMode.None;
 
                 notification.Actions.Clear();
-                if (cause == ConnectionChangeCause.LostConnection || cause == ConnectionChangeCause.ConnectionError) {
+                if (args.Cause == ConnectionChangeCause.LostConnection || args.Cause == ConnectionChangeCause.ConnectionError) {
                     notification.CanAutoHide = false;
                     notification.Actions.Add(this.connectionNotificationCommandReconnect ??= new LambdaNotificationAction("Reconnect", static async (c) => {
                         // ContextData ensured non-null by LambdaNotificationCommand.requireContext
@@ -701,12 +704,12 @@ public partial class EngineView : UserControl {
             }
         }
 
-        this.UpdateStatusBarConnectionText(newConn);
+        this.UpdateStatusBarConnectionText(args.NewConnection);
     }
 
-    private void TypeOnStatusBarTextInvalidated(IConsoleConnection connection) {
-        if (connection == this.MemoryEngine.Connection) {
-            this.UpdateStatusBarConnectionText(connection);
+    private void TypeOnStatusBarTextInvalidated(object? sender, EventArgs e) {
+        if (sender == this.MemoryEngine.Connection) {
+            this.UpdateStatusBarConnectionText(this.MemoryEngine.Connection);
         }
     }
 
@@ -760,10 +763,10 @@ public partial class EngineView : UserControl {
 
         // Sort of pointless unless the user tries to connect to a console while it's booting
         // and then they open the File menu, they'll see that this entry is greyed out until we
-        // connect, then once connected, it's either now invisible or clickable. This is just a POF really
-        private void OnCapturedContextChanged(BaseMenuEntry sender, IContextData? oldCapturedContext, IContextData? newCapturedContext) {
-            if (newCapturedContext != null) {
-                if (MemoryEngine.EngineDataKey.TryGetContext(newCapturedContext, out MemoryEngine? engine) && !ReferenceEquals(this.myEngine, engine)) {
+        // connect, then once connected, it's either now invisible or clickable. This is just a point of concept really
+        private void OnCapturedContextChanged(object? o, ValueChangedEventArgs<IContextData?> e) {
+            if (e.NewValue != null) {
+                if (MemoryEngine.EngineDataKey.TryGetContext(e.NewValue, out MemoryEngine? engine) && !ReferenceEquals(this.myEngine, engine)) {
                     if (this.myEngine != null)
                         this.myEngine.ConnectionChanged -= this.OnContextEngineConnectionChanged;
                     (this.myEngine = engine).ConnectionChanged += this.OnContextEngineConnectionChanged;
@@ -775,7 +778,7 @@ public partial class EngineView : UserControl {
             }
         }
 
-        private void OnContextEngineConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
+        private void OnContextEngineConnectionChanged(object? o, ConnectionChangedEventArgs args) {
             this.RaiseCanExecuteChanged();
         }
 

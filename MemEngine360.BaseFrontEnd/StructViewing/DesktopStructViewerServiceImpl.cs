@@ -31,7 +31,7 @@ public class DesktopStructViewerServiceImpl : IStructViewerService {
                 Width = 960, Height = 640
             });
 
-            window.Closed += (sender, args) => ((StructViewerTreeView) sender.Content!).StructViewerManager = null;
+            window.Closed += (s, args) => ((StructViewerTreeView) ((IDesktopWindow) s!).Content!).StructViewerManager = null;
 
             manager.UserContext.Set(ITopLevel.TopLevelDataKey, window);
             _ = window.ShowAsync();

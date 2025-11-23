@@ -52,8 +52,8 @@ public sealed class AddressTableTreeViewItem : TreeViewItem {
     public BaseAddressTableEntry? EntryObject { get; private set; }
 
     public bool IsFolderItem {
-        get => this.isFolderItem;
-        private set => this.SetAndRaise(IsFolderItemProperty, ref this.isFolderItem, value);
+        get => field;
+        private set => this.SetAndRaise(IsFolderItemProperty, ref field, value);
     }
 
     private readonly IBinder<BaseAddressTableEntry> descriptionBinder = new EventUpdateBinder<BaseAddressTableEntry>(nameof(BaseAddressTableEntry.DescriptionChanged), b => b.Control.SetValue(HeaderProperty, b.Model.Description));
@@ -66,7 +66,6 @@ public sealed class AddressTableTreeViewItem : TreeViewItem {
     private readonly IBinder<AddressTableEntry> valueTextBinder = new MultiEventUpdateBinder<AddressTableEntry>([nameof(AddressTableEntry.ValueChanged), nameof(AddressTableEntry.NumericDisplayTypeChanged), nameof(AddressTableEntry.DataTypeChanged)], b => b.Control.SetValue(TextBlock.TextProperty, b.Model.Value != null ? DataValueUtils.GetStringFromDataValue(b.Model, b.Model.Value, putStringInQuotes: true) : ""));
     private ObservableItemProcessorIndexing<BaseAddressTableEntry>? compositeListener;
     private Border? PART_DragDropMoveBorder;
-    private bool isFolderItem;
 
     private TextBlock? PART_AddressTextBlock;
     private TextBlock? PART_Description;
@@ -151,7 +150,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem {
                 this.PART_DataTypeText!.Text = "";
             if (this.PART_ValueText != null)
                 this.PART_ValueText!.Text = "";
-            this.OnIsAutoRefreshEnabledChanged(null);
+            this.OnIsAutoRefreshEnabledChanged(null, EventArgs.Empty);
         }
 
         if (this.EntryObject is AddressTableEntry entry) {
@@ -159,14 +158,15 @@ public sealed class AddressTableTreeViewItem : TreeViewItem {
             this.dataTypeTextBinder.AttachModel(entry);
             this.valueTextBinder.AttachModel(entry);
             entry.IsAutoRefreshEnabledChanged += this.OnIsAutoRefreshEnabledChanged;
-            this.OnIsAutoRefreshEnabledChanged(entry);
+            this.OnIsAutoRefreshEnabledChanged(entry, EventArgs.Empty);
         }
 
         DataManager.GetContextData(this).Set(BaseAddressTableEntry.DataKey, this.EntryObject!);
         AdvancedContextMenu.SetContextRegistry(this, AddressTableContextRegistry.Registry);
     }
 
-    private void OnIsAutoRefreshEnabledChanged(AddressTableEntry? sender) {
+    private void OnIsAutoRefreshEnabledChanged(object? o, EventArgs eventArgs) {
+        AddressTableEntry? sender = (AddressTableEntry?) o;
         if (sender == null || sender.IsAutoRefreshEnabled) {
             this.Opacity = 1.0;
         }

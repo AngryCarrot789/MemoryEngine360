@@ -41,6 +41,7 @@ using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Themes.BrushFactories;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Logging;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.Debugging;
 
@@ -54,7 +55,7 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
     
     public IDesktopWindow? Window { get; private set; }
 
-    private readonly IBinder<ConsoleDebugger> autoRefreshBinder = new AvaloniaPropertyToEventPropertyBinder<ConsoleDebugger>(ToggleButton.IsCheckedProperty, nameof(ConsoleDebugger.RefreshRegistersOnActiveThreadChangeChanged), (b) => b.Control.SetValue(ToggleButton.IsCheckedProperty, b.Model.RefreshRegistersOnActiveThreadChange), b => b.Model.RefreshRegistersOnActiveThreadChange = ((ToggleButton) b.Control).IsChecked == true);
+    private readonly IBinder<ConsoleDebugger> autoRefreshBinder = new AvaloniaPropertyToEventPropertyBinder<ConsoleDebugger>(ToggleButton.IsCheckedProperty, nameof(ConsoleDebugger.ShouldRefreshRegistersWhenActiveThreadChangesChanged), (b) => b.Control.SetValue(ToggleButton.IsCheckedProperty, b.Model.ShouldRefreshRegistersWhenActiveThreadChanges), b => b.Model.ShouldRefreshRegistersWhenActiveThreadChanges = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ConsoleDebugger> autoAddRemoveThreadsBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.AutoAddOrRemoveThreadsChanged), (b) => b.Control.SetValue(CheckBox.IsCheckedProperty, b.Model.AutoAddOrRemoveThreads));
     private readonly IBinder<ConsoleDebugger> currentConnectionTypeBinder = new EventUpdateBinder<ConsoleDebugger>(nameof(ConsoleDebugger.ConnectionChanged), (b) => ((TextBlock) b.Control).Text = (b.Model.Connection?.ConnectionType.DisplayName ?? "Not Connected"));
 
@@ -253,9 +254,9 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
         this.RestartAutoRefresh();
     }
 
-    private void OnConsoleConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldConn, IConsoleConnection? newConn) {
+    private void OnConsoleConnectionChanged(object? o, ValueChangedEventArgs<IConsoleConnection?> args) {
         if (this.Window != null && this.Window.OpenState == OpenState.Open)
-            this.SetSourceForConnection(newConn);
+            this.SetSourceForConnection(args.NewValue);
     }
 
     private void SetSourceForConnection(IConsoleConnection? connection, bool restartAutoRefresh = false) {
@@ -288,13 +289,13 @@ public partial class DebuggerView : UserControl, IDebuggerWindow {
         }
     }
 
-    private void OnIsConsoleRunningChanged(ConsoleDebugger sender) {
-        this.timer.IsEnabled = sender.IsConsoleRunning != true;
+    private void OnIsConsoleRunningChanged(object? s, EventArgs e) {
+        this.timer.IsEnabled = ((ConsoleDebugger) s!).IsConsoleRunning != true;
     }
 
-    private void OnActiveThreadChanged(ConsoleDebugger sender, ThreadEntry? oldThread, ThreadEntry? newThread) {
+    private void OnActiveThreadChanged(object? s, ValueChangedEventArgs<ThreadEntry?> args) {
         this.isUpdatingSelectedLBI = true;
-        this.PART_ThreadListBox.SelectedModel = newThread;
+        this.PART_ThreadListBox.SelectedModel = args.NewValue;
         this.isUpdatingSelectedLBI = false;
     }
 

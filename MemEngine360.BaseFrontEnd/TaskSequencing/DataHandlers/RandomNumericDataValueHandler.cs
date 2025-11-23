@@ -24,11 +24,9 @@ using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.DataHandlers;
-
-public delegate void RandomDataValueHandlerEventHandler(RandomNumericDataValueHandler sender);
 
 public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDataProvider> {
     private readonly TextBoxToEventPropertyBinder<RandomNumericDataValueHandler> minimumBinder = new TextBoxToEventPropertyBinder<RandomNumericDataValueHandler>(nameof(ParsingMinimumTextChanged), (b) => b.Model.ParsingMinimumText, async (b, text) => {
@@ -87,20 +85,19 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
         return result != null;
     });
 
-    private string parsingMinimumText = "", parsingMaximumText = "";
     private bool isUpdatingProviderValues;
 
     public string ParsingMinimumText {
-        get => this.parsingMinimumText;
-        set => PropertyHelper.SetAndRaiseINE(ref this.parsingMinimumText, value, this, static t => t.ParsingMinimumTextChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ParsingMinimumTextChanged);
+    } = "";
 
     public string ParsingMaximumText {
-        get => this.parsingMaximumText;
-        set => PropertyHelper.SetAndRaiseINE(ref this.parsingMaximumText, value, this, static t => t.ParsingMaximumTextChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ParsingMaximumTextChanged);
+    } = "";
 
-    public event RandomDataValueHandlerEventHandler? ParsingMinimumTextChanged, ParsingMaximumTextChanged;
+    public event EventHandler? ParsingMinimumTextChanged, ParsingMaximumTextChanged;
 
     public TextBox PART_Minimum { get; }
 
@@ -160,17 +157,18 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
         this.Provider.ParseIntAsHexChanged -= this.OnProviderParseIntAsHexChanged;
     }
 
-    private void OnProviderMinimumChanged(RandomNumberDataProvider sender) {
+    private void OnProviderMinimumChanged(object? o, EventArgs eventArgs) {
         if (!this.isUpdatingProviderValues)
             this.UpdateTextFromMinimumValue();
     }
 
-    private void OnProviderMaximumChanged(RandomNumberDataProvider sender) {
+    private void OnProviderMaximumChanged(object? o, EventArgs eventArgs) {
         if (!this.isUpdatingProviderValues)
             this.UpdateTextFromMaximumValue();
     }
 
-    private void OnProviderDataTypeChanged(RandomNumberDataProvider sender) {
+    private void OnProviderDataTypeChanged(object? o, EventArgs eventArgs) {
+        RandomNumberDataProvider sender = (RandomNumberDataProvider) o!;
         lock (sender.Lock) {
             DataValueNumeric? oldMin = sender.Minimum, oldMax = sender.Maximum;
             sender.Minimum = sender.Maximum = null;
@@ -185,7 +183,8 @@ public class RandomNumericDataValueHandler : DataProviderHandler<RandomNumberDat
         }
     }
 
-    private void OnProviderParseIntAsHexChanged(RandomNumberDataProvider sender) {
+    private void OnProviderParseIntAsHexChanged(object? o, EventArgs eventArgs) {
+        RandomNumberDataProvider sender = (RandomNumberDataProvider) o!;
         this.ParseIntAsHex = sender.ParseIntAsHex;
         if (!this.isUpdatingProviderValues) {
             this.UpdateTextFromMinimumValue();

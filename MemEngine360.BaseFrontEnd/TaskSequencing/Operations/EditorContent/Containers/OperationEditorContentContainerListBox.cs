@@ -25,15 +25,13 @@ using PFXToolKitUI.Avalonia.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.Containers;
 
-public delegate void OperationEditorContentContainerListBoxCurrentOperationChangedEventHandler(OperationEditorContentContainerListBox sender);
-
 public class OperationEditorContentContainerListBox : ModelBasedListBox<OperationEditorContentModel> {
     private bool isListLoaded;
     private ModelTypeMultiControlList<BaseOperationEditorContent>? currentSelectionList;
 
     public BaseSequenceOperation? CurrentOperation { get; private set; }
 
-    public event OperationEditorContentContainerListBoxCurrentOperationChangedEventHandler? CurrentOperationChanged;
+    public event EventHandler? CurrentOperationChanged;
 
     public OperationEditorContentContainerListBox() : base(32) {
     }
@@ -73,6 +71,6 @@ public class OperationEditorContentContainerListBox : ModelBasedListBox<Operatio
             this.AddModels(this.currentSelectionList.Controls.Select(x => new OperationEditorContentModel(x, newOperation)));
         }
 
-        this.CurrentOperationChanged?.Invoke(this);
+        this.CurrentOperationChanged?.Invoke(this, EventArgs.Empty);
     }
 }

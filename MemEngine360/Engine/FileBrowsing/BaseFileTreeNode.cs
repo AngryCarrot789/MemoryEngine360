@@ -21,15 +21,9 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Engine.FileBrowsing;
-
-public delegate void BaseAddressTableEntryEventHandler(BaseFileTreeNode sender);
-
-public delegate void BaseAddressTableEntryParentChangedEventHandler(BaseFileTreeNode sender, FileTreeNodeDirectory? oldPar, FileTreeNodeDirectory? newPar);
-
-public delegate void BaseAddressTableEntryManagerChangedEventHandler(BaseFileTreeNode sender, FileTreeExplorer? oldATM, FileTreeExplorer? newATM);
 
 /// <summary>
 /// Base class for files within a file tree
@@ -37,11 +31,8 @@ public delegate void BaseAddressTableEntryManagerChangedEventHandler(BaseFileTre
 public abstract class BaseFileTreeNode {
     public static readonly DataKey<BaseFileTreeNode> DataKey = DataKeys.Create<BaseFileTreeNode>(nameof(BaseFileTreeNode));
 
-    private string? fileName, fullPath;
-    private string? errorText;
-    private ulong size;
-    private DateTime creationTimeUtc, modifiedTimeUtc;
-    
+    private string? fullPath;
+
     /// <summary>
     /// Gets the file tree manager this entry currently exists in
     /// </summary>
@@ -51,19 +42,19 @@ public abstract class BaseFileTreeNode {
     /// Gets or sets the group entry that is a direct parent to this entry
     /// </summary>
     public FileTreeNodeDirectory? ParentDirectory { get; private set; }
-    
+
     /// <summary>
     /// Returns true when this entry is either the invisible root directory or is a top level entry
     /// </summary>
     public bool IsTopLevelEntry => this.ParentDirectory?.ParentDirectory == null;
 
     public string? FileName {
-        get => this.fileName;
+        get => field;
         set {
-            if (this.fileName != value) {
+            if (field != value) {
                 this.fullPath = null;
-                this.fileName = value;
-                this.FileNameChanged?.Invoke(this);
+                field = value;
+                this.FileNameChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
@@ -88,43 +79,43 @@ public abstract class BaseFileTreeNode {
     }
 
     public string? ErrorText {
-        get => this.errorText;
-        set => PropertyHelper.SetAndRaiseINE(ref this.errorText, value, this, static t => t.ErrorTextChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ErrorTextChanged);
     }
-    
+
     public ulong Size {
-        get => this.size;
-        set => PropertyHelper.SetAndRaiseINE(ref this.size, value, this, static t => t.SizeChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.SizeChanged);
     }
 
     public DateTime CreationTimeUtc {
-        get => this.creationTimeUtc;
-        set => PropertyHelper.SetAndRaiseINE(ref this.creationTimeUtc, value, this, static t => t.CreationTimeUtcChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.CreationTimeUtcChanged);
     }
-    
+
     public DateTime ModifiedTimeUtc {
-        get => this.modifiedTimeUtc;
-        set => PropertyHelper.SetAndRaiseINE(ref this.modifiedTimeUtc, value, this, static t => t.ModifiedTimeUtcChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ModifiedTimeUtcChanged);
     }
-    
+
     /// <summary>
     /// An event fired when our <see cref="ParentDirectory"/> property changes.
     /// If the new parent is attached to a address table manager, our address table manager will be updates
     /// after this event is fired (see <see cref="FileTreeManagerChanged"/>)
     /// </summary>
-    public event BaseAddressTableEntryParentChangedEventHandler? ParentChanged;
+    public event EventHandler<ValueChangedEventArgs<FileTreeNodeDirectory?>>? ParentChanged;
 
     /// <summary>
     /// An event fired when our <see cref="FileTreeManager"/> property changes due to address table manager attachment or detachment.
     /// </summary>
-    public event BaseAddressTableEntryManagerChangedEventHandler? FileTreeManagerChanged;
+    public event EventHandler<ValueChangedEventArgs<FileTreeExplorer?>>? FileTreeManagerChanged;
 
-    public event BaseAddressTableEntryEventHandler? FileNameChanged;
-    public event BaseAddressTableEntryEventHandler? ErrorTextChanged;
-    public event BaseAddressTableEntryEventHandler? SizeChanged;
-    public event BaseAddressTableEntryEventHandler? CreationTimeUtcChanged;
-    public event BaseAddressTableEntryEventHandler? ModifiedTimeUtcChanged;
-    
+    public event EventHandler? FileNameChanged;
+    public event EventHandler? ErrorTextChanged;
+    public event EventHandler? SizeChanged;
+    public event EventHandler? CreationTimeUtcChanged;
+    public event EventHandler? ModifiedTimeUtcChanged;
+
     protected BaseFileTreeNode() {
     }
 
@@ -217,12 +208,12 @@ public abstract class BaseFileTreeNode {
         entry.ParentDirectory = newParent;
         entry.fullPath = null;
         entry.OnParentChanged(null, newParent);
-        entry.ParentChanged?.Invoke(entry, null, newParent);
+        entry.ParentChanged?.Invoke(entry, new ValueChangedEventArgs<FileTreeNodeDirectory?>(null, newParent));
 
         if (newParent.FileTreeManager != null) {
             entry.FileTreeManager = newParent.FileTreeManager;
             entry.OnAttachedToFileTreeManager(entry);
-            entry.FileTreeManagerChanged?.Invoke(entry, null, entry.FileTreeManager);
+            entry.FileTreeManagerChanged?.Invoke(entry, new ValueChangedEventArgs<FileTreeExplorer?>(null, entry.FileTreeManager));
         }
 
         if (entry is FileTreeNodeDirectory asGroup) {
@@ -238,7 +229,7 @@ public abstract class BaseFileTreeNode {
             if (origin.FileTreeManager != null) {
                 child.FileTreeManager = origin.FileTreeManager;
                 child.OnAttachedToFileTreeManager(origin);
-                child.FileTreeManagerChanged?.Invoke(child, null, child.FileTreeManager);
+                child.FileTreeManagerChanged?.Invoke(child, new ValueChangedEventArgs<FileTreeExplorer?>(null, child.FileTreeManager));
             }
 
             if (child is FileTreeNodeDirectory childAsComposition) {
@@ -257,13 +248,13 @@ public abstract class BaseFileTreeNode {
         if (oldATM != null) {
             entry.FileTreeManager = null;
             entry.OnDetachedFromFileTreeManager(entry, oldATM);
-            entry.FileTreeManagerChanged?.Invoke(entry, oldATM, null);
+            entry.FileTreeManagerChanged?.Invoke(entry, new ValueChangedEventArgs<FileTreeExplorer?>(oldATM, null));
         }
 
         entry.ParentDirectory = null;
         entry.fullPath = null;
         entry.OnParentChanged(oldParent, null);
-        entry.ParentChanged?.Invoke(entry, oldParent, null);
+        entry.ParentChanged?.Invoke(entry, new ValueChangedEventArgs<FileTreeNodeDirectory?>(oldParent, null));
 
         if (entry is FileTreeNodeDirectory asComposition) {
             foreach (BaseFileTreeNode child in asComposition.Items) {
@@ -280,7 +271,7 @@ public abstract class BaseFileTreeNode {
 
                 child.FileTreeManager = null;
                 child.OnDetachedFromFileTreeManager(origin, oldATM);
-                child.FileTreeManagerChanged?.Invoke(child, oldATM, null);
+                child.FileTreeManagerChanged?.Invoke(child, new ValueChangedEventArgs<FileTreeExplorer?>(oldATM, null));
             }
 
             child.OnHierarchicalParentChanged(origin, originOldParent);

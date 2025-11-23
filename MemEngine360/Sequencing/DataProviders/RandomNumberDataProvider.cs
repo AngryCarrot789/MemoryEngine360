@@ -19,33 +19,28 @@
 
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing.DataProviders;
-
-public delegate void RandomNumberDataProviderEventHandler(RandomNumberDataProvider sender);
 
 public sealed class RandomNumberDataProvider : DataValueProvider {
     private readonly Random random;
     private DataValueNumeric? minimum, maximum;
 
-    private DataType dataType = DataType.Int32;
-    private bool parseIntAsHex;
-
     public DataType DataType {
-        get => this.dataType;
+        get => field;
         set {
             if (!value.IsFloatingPoint() && !value.IsInteger()) {
                 throw new ArgumentOutOfRangeException(nameof(value), value, "Only floats or integers are allowed");
             }
 
-            PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, static t => t.DataTypeChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.DataTypeChanged);
         }
-    }
+    } = DataType.Int32;
 
     public bool ParseIntAsHex {
-        get => this.parseIntAsHex;
-        set => PropertyHelper.SetAndRaiseINE(ref this.parseIntAsHex, value, this, static t => t.ParseIntAsHexChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ParseIntAsHexChanged);
     }
 
     public DataValueNumeric? Minimum {
@@ -54,7 +49,7 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
             if (value != null && value.DataType != this.DataType)
                 throw new ArgumentException("New value's data type does not match our data type: " + value.DataType + " != " + this.DataType);
 
-            PropertyHelper.SetAndRaiseINE(ref this.minimum, value, this, static t => t.MinimumChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref this.minimum, value, this, this.MinimumChanged);
         }
     }
 
@@ -64,13 +59,13 @@ public sealed class RandomNumberDataProvider : DataValueProvider {
             if (value != null && value.DataType != this.DataType)
                 throw new ArgumentException("New value's data type does not match our data type: " + value.DataType + " != " + this.DataType);
 
-            PropertyHelper.SetAndRaiseINE(ref this.maximum, value, this, static t => t.MaximumChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref this.maximum, value, this, this.MaximumChanged);
         }
     }
 
-    public event RandomNumberDataProviderEventHandler? DataTypeChanged;
-    public event RandomNumberDataProviderEventHandler? ParseIntAsHexChanged;
-    public event RandomNumberDataProviderEventHandler? MinimumChanged, MaximumChanged;
+    public event EventHandler? DataTypeChanged;
+    public event EventHandler? ParseIntAsHexChanged;
+    public event EventHandler? MinimumChanged, MaximumChanged;
 
     public RandomNumberDataProvider() {
         this.random = new Random();

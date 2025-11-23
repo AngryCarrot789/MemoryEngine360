@@ -17,21 +17,15 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing.Operations;
-
-public delegate void JumpToLabelOperationEventHandler(JumpToLabelOperation sender);
-
-public delegate void JumpToLabelOperationCurrentTargetChangedEventHandler(JumpToLabelOperation sender, LabelOperation? oldTarget, LabelOperation? newTarget);
 
 /// <summary>
 /// An operation that just jumps to a <see cref="LabelOperation"/> when it runs
 /// </summary>
 public class JumpToLabelOperation : BaseSequenceOperation {
     public override string DisplayName => "Jump to";
-
-    private string? targetLabel;
 
     /// <summary>
     /// Gets the currently located target label
@@ -42,17 +36,17 @@ public class JumpToLabelOperation : BaseSequenceOperation {
     /// Gets the target label's name
     /// </summary>
     public string? TargetLabel {
-        get => this.targetLabel;
+        get => field;
         private set {
             if (string.IsNullOrWhiteSpace(value))
                 value = null;
-            PropertyHelper.SetAndRaiseINE(ref this.targetLabel, value, this, static t => t.TargetLabelChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.TargetLabelChanged);
         }
     }
 
-    public event JumpToLabelOperationEventHandler? TargetLabelChanged;
+    public event EventHandler? TargetLabelChanged;
     
-    public event JumpToLabelOperationCurrentTargetChangedEventHandler? CurrentTargetChanged;
+    public event EventHandler<ValueChangedEventArgs<LabelOperation?>>? CurrentTargetChanged;
 
     public JumpToLabelOperation() {
     }
@@ -82,11 +76,11 @@ public class JumpToLabelOperation : BaseSequenceOperation {
             if (operation != null)
                 operation.LabelNameChanged += this.OnCurrentTargetNameChanged;
             
-            this.CurrentTargetChanged?.Invoke(this, oldTarget, operation);
+            this.CurrentTargetChanged?.Invoke(this, new ValueChangedEventArgs<LabelOperation?>(oldTarget, operation));
         }
     }
 
-    private void OnCurrentTargetNameChanged(LabelOperation sender) {
-        this.TargetLabel = sender.LabelName;
+    private void OnCurrentTargetNameChanged(object? o, EventArgs e) {
+        this.TargetLabel = ((LabelOperation) o!).LabelName;
     }
 }

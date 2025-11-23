@@ -16,7 +16,7 @@ public class RestartModToolCommandUsage : BaseModToolCommandUsage {
             newTool.IsRunningChanged += this.OnIsRunningChanged;
     }
 
-    private void OnIsRunningChanged(ModTool sender) {
+    private void OnIsRunningChanged(object? o, EventArgs e) {
         this.UpdateCanExecuteLater();
     }
 

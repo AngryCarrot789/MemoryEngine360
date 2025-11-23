@@ -29,12 +29,9 @@ using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing;
-
-public delegate void TaskSequenceEventHandler(TaskSequence sender);
-
-public delegate void TaskSequenceDedicatedConnectionChangedEventHandler(TaskSequence sender, IConsoleConnection? oldDedicatedConnection, IConsoleConnection? newDedicatedConnection);
 
 /// <summary>
 /// A sequence that contains a list of operations
@@ -49,8 +46,6 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
     private string displayName = "Empty Sequence";
     private int runCount = 1;
     private bool hasEngineConnectionPriority;
-    private bool useEngineConnection = true;
-    private IConsoleConnection? dedicatedConnection;
 
     // Running info
     private volatile int isRunning;
@@ -66,14 +61,14 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
         private set {
             int newState = value ? 1 : 0;
             if (Interlocked.Exchange(ref this.isRunning, newState) != newState) {
-                this.IsRunningChanged?.Invoke(this);
+                this.IsRunningChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
 
     public string DisplayName {
         get => this.displayName;
-        set => PropertyHelper.SetAndRaiseINE(ref this.displayName, value, this, static t => t.DisplayNameChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.displayName, value, this, this.DisplayNameChanged);
     }
 
     /// <summary>
@@ -84,7 +79,7 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
         set {
             ApplicationPFX.Instance.Dispatcher.VerifyAccess();
             this.CheckNotRunning($"Cannot change {nameof(this.RunCount)} while running");
-            PropertyHelper.SetAndRaiseINE(ref this.runCount, value, this, static t => t.RunCountChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref this.runCount, value, this, this.RunCountChanged);
         }
     }
 
@@ -93,7 +88,7 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
         set {
             ApplicationPFX.Instance.Dispatcher.VerifyAccess();
             this.CheckNotRunning($"Cannot change {nameof(this.HasEngineConnectionPriority)} while running");
-            PropertyHelper.SetAndRaiseINE(ref this.hasEngineConnectionPriority, value, this, static t => t.HasEngineConnectionPriorityChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref this.hasEngineConnectionPriority, value, this, this.HasEngineConnectionPriorityChanged);
         }
     }
 
@@ -101,20 +96,20 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
     /// Gets or sets if we should use the engine connection or our own dedicated connection
     /// </summary>
     public bool UseEngineConnection {
-        get => this.useEngineConnection;
+        get => field;
         set {
             ApplicationPFX.Instance.Dispatcher.VerifyAccess();
             this.CheckNotRunning($"Cannot change {nameof(this.UseEngineConnection)} while running");
-            PropertyHelper.SetAndRaiseINE(ref this.useEngineConnection, value, this, static t => t.UseEngineConnectionChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.UseEngineConnectionChanged);
         }
-    }
+    } = true;
 
     public IConsoleConnection? DedicatedConnection {
-        get => this.dedicatedConnection;
+        get => field;
         set {
             ApplicationPFX.Instance.Dispatcher.VerifyAccess();
             this.CheckNotRunning("Cannot change dedicated connection while running");
-            PropertyHelper.SetAndRaiseINE(ref this.dedicatedConnection, value, this, static (t, a, b) => t.DedicatedConnectionChanged?.Invoke(t, a, b));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.DedicatedConnectionChanged);
         }
     }
 
@@ -147,18 +142,18 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
     /// <summary>
     /// An event fired when our running state changes. When this fires, the first operation will not have run yet.
     /// </summary>
-    public event TaskSequenceEventHandler? IsRunningChanged;
+    public event EventHandler? IsRunningChanged;
 
-    public event TaskSequenceEventHandler? DisplayNameChanged;
-    public event TaskSequenceEventHandler? RunCountChanged;
-    public event TaskSequenceEventHandler? HasEngineConnectionPriorityChanged;
-    public event TaskSequenceEventHandler? UseEngineConnectionChanged;
+    public event EventHandler? DisplayNameChanged;
+    public event EventHandler? RunCountChanged;
+    public event EventHandler? HasEngineConnectionPriorityChanged;
+    public event EventHandler? UseEngineConnectionChanged;
 
     /// <summary>
     /// Raised when <see cref="DedicatedConnection"/> changes. When <see cref="UseEngineConnection"/> is being set to true,
     /// the dedicated connection is closed and set to null, in which case, this event fires BEFORE <see cref="UseEngineConnection"/> is set to true
     /// </summary>
-    public event TaskSequenceDedicatedConnectionChangedEventHandler? DedicatedConnectionChanged;
+    public event EventHandler<ValueChangedEventArgs<IConsoleConnection?>>? DedicatedConnectionChanged;
 
     public TaskSequence() {
         this.Progress = new DispatcherActivityProgress();

@@ -83,12 +83,12 @@ public abstract class BaseConditionListContent : UserControl {
         this.UpdateOpacity();
     }
 
-    private void OnIsEnabledChanged(BaseSequenceCondition condition) {
+    private void OnIsEnabledChanged(object? sender, EventArgs eventArgs) {
         this.UpdateOpacity();
     }
 
-    private void OnIsCurrentMetChanged(BaseSequenceCondition sender) {
-        ApplicationPFX.Instance.Dispatcher.Post(() => this.TransitionToMetState(sender.IsCurrentlyMet, false));
+    private void OnIsCurrentMetChanged(object? o, EventArgs eventArgs) {
+        ApplicationPFX.Instance.Dispatcher.Post(() => this.TransitionToMetState(((BaseSequenceCondition) o!).IsCurrentlyMet, false));
     }
 
     private void UpdateOpacity() {

@@ -35,15 +35,14 @@ public class SaveAllScriptsCommand : Command {
         return Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager)) {
-            return;
-        }
+    public static async Task<bool> SaveAllAsync(IEnumerable<Script> scripts) {
+        IList<Script> list = scripts as IList<Script> ?? scripts.ToList();
         
         using CancellationTokenSource cts = new CancellationTokenSource();
-        List<(Task Task, string Path, Script Script)> tasks = new List<(Task Task, string Path, Script Script)>();
-        for (int i = 0; i < manager.Scripts.Count; i++) {
-            Script script = manager.Scripts[i];
+        List<(Script, string)> newScriptPaths = new List<(Script, string)>(list.Count);
+
+        for (int i = 0; i < list.Count; i++) {
+            Script script = list[i];
             ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
             if (!script.HasUnsavedChanges) {
                 continue;
@@ -52,14 +51,19 @@ public class SaveAllScriptsCommand : Command {
             if (!File.Exists(script.FilePath)) {
                 string? path = await IFilePickDialogService.Instance.SaveFile($"Save script '{script.Name ?? $"<script #{i + 1}>"}'", [Filters.Lua, Filters.All], script.FilePath ?? script.Name);
                 if (path == null) {
-                    break;
+                    return false;
                 }
 
-                tasks.Add((File.WriteAllTextAsync(path, script.SourceCode, cts.Token), path, script));
+                newScriptPaths.Add((script, path));
             }
             else {
-                tasks.Add((File.WriteAllTextAsync(script.FilePath, script.SourceCode, cts.Token), script.FilePath, script));
+                newScriptPaths.Add((script, script.FilePath));
             }
+        }
+        
+        List<(Task Task, string Path, Script Script)> tasks = new List<(Task Task, string Path, Script Script)>(newScriptPaths.Count);
+        foreach ((Script script, string path) pair in newScriptPaths) {
+            tasks.Add((File.WriteAllTextAsync(pair.path, pair.script.SourceCode, cts.Token), pair.path, pair.script));
         }
 
         Task saveAllTask = Task.WhenAll(tasks.Select(x => x.Task));
@@ -122,5 +126,15 @@ public class SaveAllScriptsCommand : Command {
             string errorMsg = string.Join(Environment.NewLine, exceptions.Select(x => x.Item1.Name != null ? (x.Item1.Name + ": " + x.Item2.Message) : x.Item2.Message));
             await IMessageDialogService.Instance.ShowMessage("Error", $"One or more errors occurred while saving files{NL}{NL}{errorMsg}");
         }
+
+        return true;
+    }
+    
+    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager)) {
+            return;
+        }
+        
+        await SaveAllAsync(manager.Scripts);
     }
 }

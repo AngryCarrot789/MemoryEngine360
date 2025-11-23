@@ -20,41 +20,35 @@
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Engine.SavedAddressing;
 
-public delegate void AddressTableEntryEventHandler(AddressTableEntry sender);
-
-public delegate void AddressTableEntryMemoryAddressChangedEventHandler(AddressTableEntry sender, IMemoryAddress oldMemoryAddress, IMemoryAddress newMemoryAddress);
-
 public class AddressTableEntry : BaseAddressTableEntry {
-    private bool isAutoRefreshEnabled = true;
-    private IMemoryAddress memoryAddress = StaticAddress.Zero;
     private IDataValue? value;
     private DataType dataType = DataType.Byte;
     private StringType stringType = StringType.ASCII;
-    private int stringLength = 0, arrayLength = 0;
+    private int stringLength = 0;
     private NumericDisplayType numericDisplayType;
 
     /// <summary>
     /// Gets or sets if this saved address is active, as in, being refreshed every so often. False disables auto-refresh
     /// </summary>
     public bool IsAutoRefreshEnabled {
-        get => this.isAutoRefreshEnabled;
-        set => PropertyHelper.SetAndRaiseINE(ref this.isAutoRefreshEnabled, value, this, static t => t.IsAutoRefreshEnabledChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsAutoRefreshEnabledChanged);
+    } = true;
 
     /// <summary>
     /// Gets this entry's memory address. This value is never null, but may be <see cref="StaticAddress.Zero"/>
     /// </summary>
     public IMemoryAddress MemoryAddress {
-        get => this.memoryAddress;
+        get => field;
         set {
             ArgumentNullException.ThrowIfNull(value);
-            PropertyHelper.SetAndRaiseINE(ref this.memoryAddress, value, this, static (t, o, n) => t.MemoryAddressChanged?.Invoke(t, o, n));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.MemoryAddressChanged);
         }
-    }
+    } = StaticAddress.Zero;
 
     /// <summary>
     /// Gets or sets the current presented value
@@ -68,7 +62,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
 
                 this.value = value;
                 this.CurrentValueDisplayType = this.NumericDisplayType;
-                this.ValueChanged?.Invoke(this);
+                this.ValueChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
@@ -78,7 +72,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// </summary>
     public DataType DataType {
         get => this.dataType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, static t => t.DataTypeChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, this.DataTypeChanged);
     }
 
     /// <summary>
@@ -86,7 +80,7 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// </summary>
     public StringType StringType {
         get => this.stringType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.stringType, value, this, static t => t.StringTypeChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.stringType, value, this, this.StringTypeChanged);
     }
 
     /// <summary>
@@ -98,26 +92,26 @@ public class AddressTableEntry : BaseAddressTableEntry {
             if (value < 0)
                 throw new ArgumentOutOfRangeException(nameof(value), value, nameof(value) + " cannot be negative");
 
-            PropertyHelper.SetAndRaiseINE(ref this.stringLength, value, this, static t => t.StringLengthChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref this.stringLength, value, this, this.StringLengthChanged);
         }
     }
 
     public int ArrayLength {
-        get => this.arrayLength;
+        get => field;
         set {
             if (value < 0)
                 throw new ArgumentOutOfRangeException(nameof(value), value, nameof(value) + " cannot be negative");
 
-            PropertyHelper.SetAndRaiseINE(ref this.arrayLength, value, this, static t => t.ArrayLengthChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ArrayLengthChanged);
         }
-    }
+    } = 0;
 
     /// <summary>
     /// Gets or sets how to present the value as a string
     /// </summary>
     public NumericDisplayType NumericDisplayType {
         get => this.numericDisplayType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.numericDisplayType, value, this, static t => t.NumericDisplayTypeChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.numericDisplayType, value, this, this.NumericDisplayTypeChanged);
     }
 
     /// <summary>
@@ -131,14 +125,14 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// </summary>
     public bool IsVisibleInMainSavedResultList { get; set; } = true;
 
-    public event AddressTableEntryEventHandler? IsAutoRefreshEnabledChanged;
-    public event AddressTableEntryMemoryAddressChangedEventHandler? MemoryAddressChanged;
-    public event AddressTableEntryEventHandler? ValueChanged;
-    public event AddressTableEntryEventHandler? DataTypeChanged;
-    public event AddressTableEntryEventHandler? StringTypeChanged;
-    public event AddressTableEntryEventHandler? StringLengthChanged;
-    public event AddressTableEntryEventHandler? ArrayLengthChanged;
-    public event AddressTableEntryEventHandler? NumericDisplayTypeChanged;
+    public event EventHandler? IsAutoRefreshEnabledChanged;
+    public event EventHandler? MemoryAddressChanged;
+    public event EventHandler? ValueChanged;
+    public event EventHandler? DataTypeChanged;
+    public event EventHandler? StringTypeChanged;
+    public event EventHandler? StringLengthChanged;
+    public event EventHandler? ArrayLengthChanged;
+    public event EventHandler? NumericDisplayTypeChanged;
 
     public AddressTableEntry() {
     }

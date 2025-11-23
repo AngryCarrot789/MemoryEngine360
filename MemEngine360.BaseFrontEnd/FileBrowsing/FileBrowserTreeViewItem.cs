@@ -55,8 +55,8 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem {
     public BaseFileTreeNode? EntryObject { get; private set; }
 
     public bool IsFolderItem {
-        get => this.isFolderItem;
-        private set => this.SetAndRaise(IsFolderItemProperty, ref this.isFolderItem, value);
+        get => field;
+        private set => this.SetAndRaise(IsFolderItemProperty, ref field, value);
     }
 
     private readonly IBinder<BaseFileTreeNode> fileNameBinder = new EventUpdateBinder<BaseFileTreeNode>(nameof(BaseFileTreeNode.FileNameChanged), b => b.Control.SetValue(HeaderProperty, b.Model.FileName));
@@ -65,7 +65,6 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem {
     private readonly IBinder<BaseFileTreeNode> dateModifiedBinder = new EventUpdateBinder<BaseFileTreeNode>(nameof(BaseFileTreeNode.ModifiedTimeUtcChanged), b => b.Control.SetValue(TextBlock.TextProperty, !b.Model.IsTopLevelEntry ? b.Model.ModifiedTimeUtc.ToString() : ""));
     private ObservableItemProcessorIndexing<BaseFileTreeNode>? compositeListener;
     private Border? PART_DragDropMoveBorder;
-    private bool isFolderItem;
 
     private TextBlock? PART_DateCreated;
     private TextBlock? PART_FileName;

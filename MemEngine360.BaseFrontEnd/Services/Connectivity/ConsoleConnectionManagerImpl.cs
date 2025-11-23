@@ -46,8 +46,8 @@ public class ConsoleConnectionManagerImpl : ConsoleConnectionManager {
 
         ((OpenConnectionView) window.Content!).DialogOperation = DialogOperations.WrapDesktopWindow<ConnectionResult>(window);
 
-        window.Opened += static (sender, args) => ((OpenConnectionView) sender.Content!).OnDialogOpened();
-        window.Closed += static (sender, args) => ((OpenConnectionView) sender.Content!).OnDialogClosed();
+        window.Opened += static (s, args) => ((OpenConnectionView) ((IDesktopWindow) s!).Content!).OnDialogOpened();
+        window.Closed += static (s, args) => ((OpenConnectionView) ((IDesktopWindow) s!).Content!).OnDialogClosed();
         
         await window.ShowAsync();
         return (OpenConnectionView) window.Content!;

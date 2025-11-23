@@ -18,16 +18,12 @@
 // 
 
 using PFXToolKitUI.Composition;
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Scripting;
 
-public delegate void ScriptingManagerViewStateSelectedScriptChangedEventHandler(ScriptingManagerViewState sender, Script? oldSelectedScript, Script? newSelectedScript);
-
 public class ScriptingManagerViewState {
-    private Script? selectedScript;
-
     /// <summary>
     /// Gets the task sequence manager for this state
     /// </summary>
@@ -37,11 +33,11 @@ public class ScriptingManagerViewState {
     /// Gets or sets the script being viewed in the editor
     /// </summary>
     public Script? SelectedScript {
-        get => this.selectedScript;
-        set => PropertyHelper.SetAndRaiseINE(ref this.selectedScript, value, this, static (t, o, n) => t.SelectedScriptChanged?.Invoke(t, o, n));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.SelectedScriptChanged);
     }
 
-    public event ScriptingManagerViewStateSelectedScriptChangedEventHandler? SelectedScriptChanged;
+    public event EventHandler<ValueChangedEventArgs<Script?>>? SelectedScriptChanged;
 
     private ScriptingManagerViewState(ScriptingManager ScriptingManager) {
         this.ScriptingManager = ScriptingManager;

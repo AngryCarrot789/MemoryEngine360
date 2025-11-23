@@ -23,8 +23,6 @@ using PFXToolKitUI.Notifications;
 
 namespace MemEngine360.Engine;
 
-public delegate void MemoryEngineManagerEventHandler(MemoryEngineManager manager, MemoryEngine engineUI);
-
 public delegate void MemoryEngineManagerNotificationEventHandler(MemoryEngineManager manager, MemoryEngine engine, IConsoleConnection connection, Notification notification);
 
 /// <summary>
@@ -43,12 +41,12 @@ public abstract class MemoryEngineManager {
     /// <summary>
     /// A global event fired when any mem engine view opens
     /// </summary>
-    public event MemoryEngineManagerEventHandler? EngineOpened;
+    public event EventHandler<MemoryEngine>? EngineOpened;
 
     /// <summary>
     /// A global event fired when any mem engine view closes
     /// </summary>
-    public event MemoryEngineManagerEventHandler? EngineClosed;
+    public event EventHandler<MemoryEngine>? EngineClosed;
     
     public event MemoryEngineManagerNotificationEventHandler? ProvidePostConnectionActions;
     

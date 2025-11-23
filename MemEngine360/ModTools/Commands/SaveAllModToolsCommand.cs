@@ -35,15 +35,13 @@ public class SaveAllModToolsCommand : Command {
         return Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ModToolManager.DataKey.TryGetContext(e.ContextData, out ModToolManager? manager)) {
-            return;
-        }
+    public static async Task<bool> SaveAllAsync(IEnumerable<ModTool> modTools) {
+        IList<ModTool> list = modTools as IList<ModTool> ?? modTools.ToList();
         
         using CancellationTokenSource cts = new CancellationTokenSource();
-        List<(Task Task, string Path, ModTool ModTool)> tasks = new List<(Task Task, string Path, ModTool ModTool)>();
-        for (int i = 0; i < manager.ModTools.Count; i++) {
-            ModTool modTool = manager.ModTools[i];
+        List<(ModTool, string)> newToolPaths = new List<(ModTool, string)>(list.Count);
+        for (int i = 0; i < list.Count; i++) {
+            ModTool modTool = list[i];
             ModToolViewState.GetInstance(modTool).RaiseFlushEditorToScript();
             if (!modTool.HasUnsavedChanges) {
                 continue;
@@ -52,14 +50,19 @@ public class SaveAllModToolsCommand : Command {
             if (!File.Exists(modTool.FilePath)) {
                 string? path = await IFilePickDialogService.Instance.SaveFile($"Save mod tool '{modTool.Name ?? $"<ModTool #{i + 1}>"}'", [Filters.Lua, Filters.All], modTool.FilePath ?? modTool.Name);
                 if (path == null) {
-                    break;
+                    return false;
                 }
 
-                tasks.Add((File.WriteAllTextAsync(path, modTool.SourceCode, cts.Token), path, modTool));
+                newToolPaths.Add((modTool, path));
             }
             else {
-                tasks.Add((File.WriteAllTextAsync(modTool.FilePath, modTool.SourceCode, cts.Token), modTool.FilePath, modTool));
+                newToolPaths.Add((modTool, modTool.FilePath));
             }
+        }
+
+        List<(Task Task, string Path, ModTool ModTool)> tasks = new List<(Task Task, string Path, ModTool ModTool)>(newToolPaths.Count);
+        foreach ((ModTool tool, string path) pair in newToolPaths) {
+            tasks.Add((File.WriteAllTextAsync(pair.path, pair.tool.SourceCode, cts.Token), pair.path, pair.tool));
         }
 
         Task saveAllTask = Task.WhenAll(tasks.Select(x => x.Task));
@@ -122,5 +125,15 @@ public class SaveAllModToolsCommand : Command {
             string errorMsg = string.Join(Environment.NewLine, exceptions.Select(x => x.Item1.Name != null ? (x.Item1.Name + ": " + x.Item2.Message) : x.Item2.Message));
             await IMessageDialogService.Instance.ShowMessage("Error", $"One or more errors occurred while saving files{NL}{NL}{errorMsg}");
         }
+
+        return true;
+    }
+
+    protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+        if (!ModToolManager.DataKey.TryGetContext(e.ContextData, out ModToolManager? manager)) {
+            return;
+        }
+
+        await SaveAllAsync(manager.ModTools);
     }
 }

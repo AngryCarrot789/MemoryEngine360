@@ -49,15 +49,15 @@ public class TaskSequencerServiceImpl : ITaskSequencerService {
                 Width = 960, Height = 640
             });
 
-            window.Opened += (sender, args) => ((TaskSequencerView) sender.Content!).OnWindowOpened(sender);
-            window.Closing += (sender, args) => {
+            window.Opened += (s, args) => ((TaskSequencerView) ((IDesktopWindow) s!).Content!).OnWindowOpened((IDesktopWindow) s!);
+            window.Closing += (s, args) => {
                 // prevent memory leak
-                TaskSequenceManager tsm = ((TaskSequencerView) sender.Content!).TaskSequenceManager;
+                TaskSequenceManager tsm = ((TaskSequencerView) ((IDesktopWindow) s!).Content!).TaskSequenceManager;
                 tsm.UserContext.Remove(ITopLevel.TopLevelDataKey);
             };
             
-            window.Closed += (sender, args) => {
-                ((TaskSequencerView) sender.Content!).OnWindowClosed();
+            window.Closed += (s, args) => {
+                ((TaskSequencerView) ((IDesktopWindow) s!).Content!).OnWindowClosed();
             };
             
             sequencer.UserContext.Set(ITopLevel.TopLevelDataKey, window);

@@ -84,7 +84,7 @@ public abstract class BaseModToolIsRunningDependentCommandUsage : BaseModToolCom
             newTool.IsRunningChanged += this.OnIsRunningChanged;
     }
 
-    protected virtual void OnIsRunningChanged(ModTool sender) {
+    protected virtual void OnIsRunningChanged(object? o, EventArgs e) {
         this.UpdateCanExecuteLater();
     }
 }

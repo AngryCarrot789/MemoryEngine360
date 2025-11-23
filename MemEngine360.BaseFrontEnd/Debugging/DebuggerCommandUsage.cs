@@ -23,6 +23,7 @@ using MemEngine360.Engine.Debugging.Commands;
 using PFXToolKitUI.Avalonia.CommandUsages;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.Debugging;
 
@@ -67,7 +68,7 @@ public abstract class DebuggerConnectionDependentCommandUsage : DebuggerCommandU
         }
     }
 
-    private void OnConnectionChanged(ConsoleDebugger sender, IConsoleConnection? oldconnection, IConsoleConnection? newconnection) {
+    private void OnConnectionChanged(object? o, ValueChangedEventArgs<IConsoleConnection?> args) {
         this.UpdateCanExecuteLater();
     }
 }
@@ -88,7 +89,7 @@ public abstract class DebuggerConsoleExecStateCommandUsage : DebuggerConnectionD
         }
     }
 
-    private void OnIsRunningChanged(ConsoleDebugger sender) {
+    private void OnIsRunningChanged(object? o, EventArgs args) {
         this.UpdateCanExecuteLater();
     }
 }
@@ -106,7 +107,7 @@ public abstract class DebugThreadCommandUsage : DebuggerCommandUsage {
             newDebugger.ActiveThreadChanged += this.OnActiveThreadChanged;
     }
 
-    private void OnActiveThreadChanged(ConsoleDebugger sender, ThreadEntry? oldactivethread, ThreadEntry? newactivethread) {
+    private void OnActiveThreadChanged(object? o, ValueChangedEventArgs<ThreadEntry?> args) {
         this.UpdateCanExecuteLater();
     }
 }
@@ -138,7 +139,7 @@ public class OpenDebuggerConnectionCommandUsage : DebuggerConnectionDependentCom
         }
     }
 
-    private void SignalOnCanExecuteChanged(CommandUsageSignal sender) {
+    private void SignalOnCanExecuteChanged(object? o, EventArgs eventArgs) {
         this.UpdateCanExecuteLater();
     }
 }

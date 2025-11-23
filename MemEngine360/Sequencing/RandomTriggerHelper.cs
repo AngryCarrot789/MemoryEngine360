@@ -17,19 +17,15 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing;
-
-public delegate void RandomTriggerHelperEventHandler(RandomTriggerHelper sender);
 
 /// <summary>
 /// A helper class for sequence operations that allows them to randomly trigger
 /// </summary>
 public class RandomTriggerHelper {
     private readonly Random random = new Random();
-    private TimeSpan? waitForTriggerInterval;
-    private uint chance = 1;
     private uint minimumTriesToTrigger;
     private uint triggerAttemptsRemaining; // this is set to minimumTriesToTrigger on successful trigger 
     private readonly Lock triggerDataLock = new Lock();
@@ -39,13 +35,13 @@ public class RandomTriggerHelper {
     /// <see cref="TryTrigger"/> is guaranteed to return true unless cancelled.
     /// </summary>
     public TimeSpan? WaitForTriggerInterval {
-        get => this.waitForTriggerInterval;
+        get => field;
         set {
             if (value is TimeSpan ts && (ts.TotalMilliseconds < 0 || ts.TotalMilliseconds >= uint.MaxValue)) {
                 throw new ArgumentOutOfRangeException(nameof(value), value, "TimeSpan is out of range. Cannot be negative or millis cannot exceed uint.MaxValue");
             }
 
-            PropertyHelper.SetAndRaiseINE(ref this.waitForTriggerInterval, value, this, static t => t.WaitForTriggerIntervalChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.WaitForTriggerIntervalChanged);
         }
     }
 
@@ -54,12 +50,12 @@ public class RandomTriggerHelper {
     /// For example. if set to 10, there's a 1/10 chance of triggering. If set to a value equal or below 1, we can always trigger
     /// </summary>
     public uint Chance {
-        get => this.chance;
+        get => field;
         set {
             value = Math.Max(value, 1);
-            PropertyHelper.SetAndRaiseINE(ref this.chance, value, this, static t => t.ChanceChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ChanceChanged);
         }
-    }
+    } = 1;
 
     /// <summary>
     /// Gets or sets the minimum amount of tries since the last successful trigger that must be attempted before
@@ -78,14 +74,14 @@ public class RandomTriggerHelper {
                     this.minimumTriesToTrigger = value;   
                 }
                 
-                this.MinimumTriesToTriggerChanged?.Invoke(this);
+                this.MinimumTriesToTriggerChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
 
-    public event RandomTriggerHelperEventHandler? ChanceChanged;
-    public event RandomTriggerHelperEventHandler? WaitForTriggerIntervalChanged;
-    public event RandomTriggerHelperEventHandler? MinimumTriesToTriggerChanged;
+    public event EventHandler? ChanceChanged;
+    public event EventHandler? WaitForTriggerIntervalChanged;
+    public event EventHandler? MinimumTriesToTriggerChanged;
 
     public RandomTriggerHelper() {
     }

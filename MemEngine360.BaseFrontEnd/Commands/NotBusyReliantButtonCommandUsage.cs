@@ -33,7 +33,7 @@ public abstract class NotBusyReliantButtonCommandUsage : EngineButtonCommandUsag
             newEngine.IsBusyChanged += this.OnIsBusyChanged;
     }
 
-    private void OnIsBusyChanged(MemoryEngine sender) {
+    private void OnIsBusyChanged(object? o, EventArgs e) {
         this.UpdateCanExecuteLater();
     }
 }

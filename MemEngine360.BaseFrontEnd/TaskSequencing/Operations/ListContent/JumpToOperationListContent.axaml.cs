@@ -23,6 +23,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 
@@ -75,18 +76,19 @@ public partial class JumpToOperationListContent : BaseOperationListContent {
             JumpToLabelOperation jump = (JumpToLabelOperation) newOperation;
             jump.CurrentTargetChanged += this.OnCurrentTargetLabelChanged;
             if (jump.CurrentTarget != null)
-                this.OnCurrentTargetLabelChanged(jump, null, jump.CurrentTarget);
+                this.OnCurrentTargetLabelChanged(jump, new ValueChangedEventArgs<LabelOperation?>(null, jump.CurrentTarget));
         }
     }
 
-    private void OnCurrentTargetLabelChanged(JumpToLabelOperation sender, LabelOperation? oldTarget, LabelOperation? newTarget) {
-        if (oldTarget != null)
-            oldTarget.LabelNameChanged -= this.OnTargetLabelNameChanged;
-        if (newTarget != null)
-            newTarget.LabelNameChanged += this.OnTargetLabelNameChanged;
+    private void OnCurrentTargetLabelChanged(object? o, ValueChangedEventArgs<LabelOperation?> e) {
+        JumpToLabelOperation sender = (JumpToLabelOperation) o!;
+        if (e.OldValue != null)
+            e.OldValue.LabelNameChanged -= this.OnTargetLabelNameChanged;
+        if (e.NewValue != null)
+            e.NewValue.LabelNameChanged += this.OnTargetLabelNameChanged;
     }
 
-    private void OnTargetLabelNameChanged(LabelOperation sender) {
+    private void OnTargetLabelNameChanged(object? o, EventArgs e) {
         this.labelNameBinder.UpdateControl();
     }
 }

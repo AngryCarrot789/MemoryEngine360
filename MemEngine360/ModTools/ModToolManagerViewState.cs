@@ -18,16 +18,12 @@
 // 
 
 using PFXToolKitUI.Composition;
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.ModTools;
 
-public delegate void ModToolManagerViewStateSelectedScriptChangedEventHandler(ModToolManagerViewState sender, ModTool? oldSelectedScript, ModTool? newSelectedScript);
-
 public class ModToolManagerViewState {
-    private ModTool? selectedModTool;
-
     /// <summary>
     /// Gets the task sequence manager for this state
     /// </summary>
@@ -37,11 +33,11 @@ public class ModToolManagerViewState {
     /// Gets or sets the script being viewed in the editor
     /// </summary>
     public ModTool? SelectedModTool {
-        get => this.selectedModTool;
-        set => PropertyHelper.SetAndRaiseINE(ref this.selectedModTool, value, this, static (t, o, n) => t.SelectedModToolChanged?.Invoke(t, o, n));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.SelectedModToolChanged);
     }
 
-    public event ModToolManagerViewStateSelectedScriptChangedEventHandler? SelectedModToolChanged;
+    public event EventHandler<ValueChangedEventArgs<ModTool?>>? SelectedModToolChanged;
 
     private ModToolManagerViewState(ModToolManager modToolManager) {
         this.ModToolManager = modToolManager;

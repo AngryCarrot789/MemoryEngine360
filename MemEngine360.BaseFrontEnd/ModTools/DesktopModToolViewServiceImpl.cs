@@ -55,13 +55,23 @@ public class DesktopModToolViewServiceImpl : IModToolViewService {
                 Width = 960, Height = 640
             });
 
-            window.Opened += (sender, args) => ((ModToolManagerView) sender.Content!).OnWindowOpened(sender);
-            window.Closing += (sender, args) => {
-                ModToolManager tsm = ((ModToolManagerView) sender.Content!).ModToolManager!;
+            window.Opened += static (s, args) => ((ModToolManagerView) ((IDesktopWindow) s!).Content!).OnWindowOpened((IDesktopWindow) s!);
+
+            window.TryCloseAsync += static async (s, args) => {
+                await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+                    bool cancel = await ((ModToolManagerView) ((IDesktopWindow) s!).Content!).OnClosingAsync((IDesktopWindow) s!);
+                    if (cancel) {
+                        args.SetCancelled();
+                    }
+                });
+            };
+            
+            window.Closing += static (s, args) => {
+                ModToolManager tsm = ((ModToolManagerView) ((IDesktopWindow) s!).Content!).ModToolManager!;
                 tsm.UserContext.Remove(ITopLevel.TopLevelDataKey);
             };
 
-            window.Closed += (sender, args) => ((ModToolManagerView) sender.Content!).OnWindowClosed();
+            window.Closed += static (s, args) => ((ModToolManagerView) ((IDesktopWindow) s!).Content!).OnWindowClosed();
 
             modToolManager.UserContext.Set(ITopLevel.TopLevelDataKey, window);
             await window.ShowAsync();
@@ -95,27 +105,27 @@ public class DesktopModToolViewServiceImpl : IModToolViewService {
             Width = 500, Height = 500
         });
 
-        window.Opened += static (sender, args) => ((ModToolView) sender.Content!).OnWindowOpened(sender);
-        window.TryCloseAsync += static async (sender, args) => {
+        window.Opened += static (s, args) => ((ModToolView) ((IDesktopWindow) s!).Content!).OnWindowOpened((IDesktopWindow) s);
+        window.TryCloseAsync += static async (s, args) => {
             bool cancel = await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-                return await ((ModToolView) sender.Content!).ShouldCancelWindowClosing(false);
+                return await ((ModToolView) ((IDesktopWindow) s!).Content!).ShouldCancelWindowClosing(false);
             });
             
             if (cancel)
                 args.SetCancelled();
         };
         
-        window.ClosingAsync += async static (sender, args) => {
+        window.ClosingAsync += async static (s, args) => {
             await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-                await ((ModToolView) sender.Content!).ShouldCancelWindowClosing(true);
+                await ((ModToolView) ((IDesktopWindow) s!).Content!).ShouldCancelWindowClosing(true);
                 
-                ModTool t = ((ModToolView) sender.Content!).ModTool!;
+                ModTool t = ((ModToolView) ((IDesktopWindow) s!).Content!).ModTool!;
                 t.UserContext.Remove(ToolGuiDataKey);
             });
         };
 
-        window.Closed += (sender, args) => {
-            ModToolView view = (ModToolView) sender.Content!;
+        window.Closed += (s, args) => {
+            ModToolView view = (ModToolView) ((IDesktopWindow) s!).Content!;
             view.OnWindowClosed();
         };
 

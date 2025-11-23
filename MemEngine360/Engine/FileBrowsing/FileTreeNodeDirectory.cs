@@ -17,27 +17,23 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Engine.FileBrowsing;
-
-public delegate void FileTreeNodeDirectoryEventHandler(FileTreeNodeDirectory sender);
 
 /// <summary>
 /// A group entry contains its own entry hierarchy which can be rendered like a raster entry
 /// </summary>
 public sealed class FileTreeNodeDirectory : BaseFileTreeNode {
-    private bool hasLoadedContents;
-
     public ObservableList<BaseFileTreeNode> Items { get; }
 
     public bool HasLoadedContents {
-        get => this.hasLoadedContents;
-        set => PropertyHelper.SetAndRaiseINE(ref this.hasLoadedContents, value, this, static t => t.HasLoadedContentsChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.HasLoadedContentsChanged);
     }
 
-    public event FileTreeNodeDirectoryEventHandler? HasLoadedContentsChanged;
+    public event EventHandler? HasLoadedContentsChanged;
 
     public FileTreeNodeDirectory() {
         this.Items = new ObservableList<BaseFileTreeNode>();

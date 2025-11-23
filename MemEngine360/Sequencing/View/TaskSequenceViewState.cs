@@ -18,18 +18,14 @@
 // 
 
 using PFXToolKitUI.Interactivity.Selections;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing.View;
-
-public delegate void TaskSequenceViewStatePrimarySelectedOperationChangedEventHandler(TaskSequenceViewState sender, BaseSequenceOperation? oldPrimarySelectedOperation, BaseSequenceOperation? newPrimarySelectedOperation);
 
 /// <summary>
 /// Represents the persistent view state of a task sequence
 /// </summary>
 public class TaskSequenceViewState {
-    private BaseSequenceOperation? primarySelectedOperation;
-
     /// <summary>
     /// Gets the sequence that this view state represents
     /// </summary>
@@ -49,11 +45,11 @@ public class TaskSequenceViewState {
     /// Gets the primary selected operation
     /// </summary>
     public BaseSequenceOperation? PrimarySelectedOperation {
-        get => this.primarySelectedOperation;
-        private set => PropertyHelper.SetAndRaiseINE(ref this.primarySelectedOperation, value, this, static (t, o, n) => t.PrimarySelectedOperationChanged?.Invoke(t, o, n));
+        get => field;
+        private set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.PrimarySelectedOperationChanged);
     }
 
-    public event TaskSequenceViewStatePrimarySelectedOperationChangedEventHandler? PrimarySelectedOperationChanged;
+    public event EventHandler<ValueChangedEventArgs<BaseSequenceOperation?>>? PrimarySelectedOperationChanged;
 
     internal TaskSequenceViewState(TaskSequence sequence) {
         this.Sequence = sequence;

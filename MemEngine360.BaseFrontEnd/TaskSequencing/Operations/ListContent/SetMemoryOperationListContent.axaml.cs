@@ -28,6 +28,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 
@@ -74,23 +75,23 @@ public partial class SetMemoryOperationListContent : BaseOperationListContent {
         if (oldOperation is SetMemoryOperation oldOp) {
             oldOp.DataValueProviderChanged -= this.OnDataValueProviderChanged;
             if (oldOp.DataValueProvider != null)
-                this.OnDataValueProviderChanged(oldOp, oldOp.DataValueProvider, null);
+                this.OnDataValueProviderChanged(oldOp, new ValueChangedEventArgs<DataValueProvider?>(oldOp.DataValueProvider, null));
         }
 
         if (newOperation is SetMemoryOperation newOp) {
             newOp.DataValueProviderChanged += this.OnDataValueProviderChanged;
             if (newOp.DataValueProvider != null)
-                this.OnDataValueProviderChanged(newOp, null, newOp.DataValueProvider);
+                this.OnDataValueProviderChanged(newOp, new ValueChangedEventArgs<DataValueProvider?>(null, newOp.DataValueProvider));
         }
     }
 
-    private void OnDataValueProviderChanged(SetMemoryOperation sender, DataValueProvider? oldProvider, DataValueProvider? newProvider) {
-        this.PART_ValueStackPanel.IsVisible = newProvider == null || newProvider is ConstantDataProvider;
-        if (oldProvider is ConstantDataProvider) {
+    private void OnDataValueProviderChanged(object? o, ValueChangedEventArgs<DataValueProvider?> e) {
+        this.PART_ValueStackPanel.IsVisible = e.NewValue == null || e.NewValue is ConstantDataProvider;
+        if (e.OldValue is ConstantDataProvider) {
             this.constDataValueHandler.Disconnect();
         }
 
-        if (newProvider is ConstantDataProvider const2) {
+        if (e.NewValue is ConstantDataProvider const2) {
             this.constDataValueHandler.Connect(const2);
         }
     }

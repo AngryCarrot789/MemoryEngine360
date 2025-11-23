@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.View;
 using PFXToolKitUI.Interactivity.Selections;
@@ -39,7 +38,7 @@ public abstract class EngineConnectionReliantButtonCommandUsage : EngineButtonCo
             newEngine.ConnectionChanged += this.OnConnectionChanged;
     }
     
-    protected virtual void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
+    protected virtual void OnConnectionChanged(object? o, ConnectionChangedEventArgs args) {
         this.UpdateCanExecuteLater();
     }
 }
@@ -61,7 +60,7 @@ public class RefreshSavedAddressesCommandUsage : EngineConnectionReliantButtonCo
         }
     }
 
-    private void DoUpdate(ScanningProcessor sender) => this.UpdateCanExecuteLater();
+    private void DoUpdate(object? o, EventArgs e) => this.UpdateCanExecuteLater();
 }
 
 public class AddSelectedScanResultsToSavedAddressListCommandUsage : EngineButtonCommandUsage {
@@ -93,7 +92,7 @@ public class ResetScanOptionsCommandUsage() : EngineConnectionReliantButtonComma
             newEngine.ScanningProcessor.IsScanningChanged += this.OnIsScanningChanged;
     }
 
-    private void OnIsScanningChanged(ScanningProcessor sender) {
+    private void OnIsScanningChanged(object? o, EventArgs e) {
         this.UpdateCanExecuteLater();
     }
 }

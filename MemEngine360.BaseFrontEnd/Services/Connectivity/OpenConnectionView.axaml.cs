@@ -33,10 +33,9 @@ using PFXToolKitUI.Interactivity.Dialogs;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
-
-public delegate void OpenConnectionViewConnectionChangedEventHandler(OpenConnectionView sender, IConsoleConnection? oldConnection, IConsoleConnection? newConnection);
 
 /// <summary>
 /// The view used to present a means of connecting to a console
@@ -103,8 +102,8 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
         this.OnSelectionChanged(newValue?.SelectedConnectionType);
     }
 
-    private void OnSelectedConnectionTypeChanged(OpenConnectionInfo sender, ConnectionTypeEntry? oldSelection, ConnectionTypeEntry? newSelection) {
-        this.OnSelectionChanged(newSelection);
+    private void OnSelectedConnectionTypeChanged(object? o, ValueChangedEventArgs<ConnectionTypeEntry?> e) {
+        this.OnSelectionChanged(e.NewValue);
     }
 
     private async Task TryConnectToConsoleAsCommandAsync(CommandEventArgs args) {
@@ -197,8 +196,8 @@ public partial class OpenConnectionView : UserControl, IOpenConnectionView {
         this.OnActiveUserConnectionInfoChanged(selection?.Info);
     }
 
-    private void OnCurrentSelectionUserConnectionInfoChanged(ConnectionTypeEntry sender, UserConnectionInfo? oldinfo, UserConnectionInfo? newinfo) {
-        this.OnActiveUserConnectionInfoChanged(newinfo);
+    private void OnCurrentSelectionUserConnectionInfoChanged(object? o, ValueChangedEventArgs<UserConnectionInfo?> e) {
+        this.OnActiveUserConnectionInfoChanged(e.NewValue);
     }
 
     private void OnActiveUserConnectionInfoChanged(UserConnectionInfo? info) {

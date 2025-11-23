@@ -255,7 +255,7 @@ public partial class ConsoleEventViewerView : UserControl {
         }
     }
 
-    private void OnEvent(IConsoleConnection sender, ConsoleSystemEventArgs e) {
+    private void OnEvent(object? o, ConsoleSystemEventArgs e) {
         if (this.isUnloadedState != 0 || this.pendingInsertionCount >= 50000) {
             return;
         }

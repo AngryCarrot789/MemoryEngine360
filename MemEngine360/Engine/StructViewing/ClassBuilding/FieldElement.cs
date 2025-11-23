@@ -1,18 +1,11 @@
-﻿using PFXToolKitUI.Utils;
+﻿using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Engine.StructViewing.ClassBuilding;
-
-public delegate void FieldElementEventHandler(FieldElement sender);
-
-public delegate void FieldElementOwnerChangedEventHandler(FieldElement sender, ClassType? oldOwner, ClassType? newOwner);
-
-public delegate void FieldElementFieldTypeChangedEventHandler(FieldElement sender, TypeDescriptor oldFieldType, TypeDescriptor newFieldType);
 
 /// <summary>
 /// A field entry in a <see cref="ClassType"/>
 /// </summary>
 public sealed class FieldElement {
-    private ClassType? owner;
     private uint offset;
     private TypeDescriptor fieldType;
     private string fieldName;
@@ -21,8 +14,8 @@ public sealed class FieldElement {
     /// Gets or sets the class that owns this field
     /// </summary>
     public ClassType? Owner {
-        get => this.owner;
-        internal set => PropertyHelper.SetAndRaiseINE(ref this.owner, value, this, static (t, o, n) => t.OwnerChanged?.Invoke(t, o, n));
+        get => field;
+        internal set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.OwnerChanged);
     }
 
     /// <summary>
@@ -32,7 +25,7 @@ public sealed class FieldElement {
         get => this.offset;
         internal set {
             ArgumentOutOfRangeException.ThrowIfNegative(value);
-            PropertyHelper.SetAndRaiseINE(ref this.offset, value, this, static t => t.OffsetChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref this.offset, value, this, this.OffsetChanged);
         }
     }
 
@@ -43,7 +36,7 @@ public sealed class FieldElement {
         get => this.fieldType;
         set {
             ArgumentNullException.ThrowIfNull(value);
-            PropertyHelper.SetAndRaiseINE(ref this.fieldType, value, this, static (t, o, n) => t.FieldTypeChanged?.Invoke(t, o, n));
+            PropertyHelper.SetAndRaiseINE(ref this.fieldType, value, this, this.FieldTypeChanged);
         }
     }
 
@@ -52,13 +45,13 @@ public sealed class FieldElement {
     /// </summary>
     public string FieldName {
         get => this.fieldName;
-        set => PropertyHelper.SetAndRaiseINE(ref this.fieldName, value, this, static t => t.FieldNameChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.fieldName, value, this, this.FieldNameChanged);
     }
     
-    public event FieldElementOwnerChangedEventHandler? OwnerChanged;
-    public event FieldElementEventHandler? OffsetChanged;
-    public event FieldElementFieldTypeChangedEventHandler? FieldTypeChanged;
-    public event FieldElementEventHandler? FieldNameChanged;
+    public event EventHandler? OwnerChanged;
+    public event EventHandler? OffsetChanged;
+    public event EventHandler? FieldTypeChanged;
+    public event EventHandler? FieldNameChanged;
     
     public FieldElement(uint offset, string fieldName, TypeDescriptor fieldType) {
         this.offset = offset;

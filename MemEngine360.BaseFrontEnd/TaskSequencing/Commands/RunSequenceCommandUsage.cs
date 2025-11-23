@@ -20,6 +20,7 @@
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Sequencing;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Commands;
 
@@ -35,7 +36,7 @@ public abstract class BaseSequenceIsRunningDependentCommandUsage : BaseSequenceC
             newSeq.IsRunningChanged += this.OnIsRunningChanged;
     }
 
-    protected virtual void OnIsRunningChanged(TaskSequence sender) {
+    protected virtual void OnIsRunningChanged(object? o, EventArgs e) {
         this.UpdateCanExecuteLater();
     }
 }
@@ -67,15 +68,15 @@ public class RunSequenceCommandUsage : BaseSequenceIsRunningDependentCommandUsag
             newEngine.ConnectionChanged += this.OnConnectionChanged;
     }
 
-    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldC, IConsoleConnection? newC, ConnectionChangeCause cause) {
+    private void OnConnectionChanged(object? o, ConnectionChangedEventArgs e) {
         this.UpdateCanExecuteLater();
     }
     
-    private void OnUseEngineConnectionChanged(TaskSequence sender) {
+    private void OnUseEngineConnectionChanged(object? o, EventArgs e) {
         this.UpdateCanExecuteLater();
     }
 
-    private void OnDedicatedConnectionChanged(TaskSequence sender, IConsoleConnection? olddedicatedconnection, IConsoleConnection? newdedicatedconnection) {
+    private void OnDedicatedConnectionChanged(object? o, ValueChangedEventArgs<IConsoleConnection?> e) {
         this.UpdateCanExecuteLater();
     }
 }

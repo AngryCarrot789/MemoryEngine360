@@ -17,32 +17,26 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.ModTools.Gui;
-
-public delegate void ModToolGUIRootPanelChangedEventHandler(ModToolGUI sender, BaseMTPanel? oldRootPanel, BaseMTPanel? newRootPanel);
 
 /// <summary>
 /// Contains the GUI structure of a mod tool
 /// </summary>
 public sealed class ModToolGUI {
-    private BaseMTPanel? rootPanel;
-
     public BaseMTPanel? RootPanel {
-        get => this.rootPanel;
-        set => PropertyHelper.SetAndRaiseINE(ref this.rootPanel, value, this, static (t, o, n) => {
-            t.RootPanelChanged?.Invoke(t, o, n);
-            if (o != null)
-                o.GUI = null;
-            if (n != null)
-                n.GUI = t;
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, static (t, o, n) => {
+            t.RootPanelChanged?.Invoke(t, new ValueChangedEventArgs<BaseMTPanel?>(o, n));
+            o?.GUI = null;
+            n?.GUI = t;
         });
     }
 
     public ModTool ModTool { get; }
     
-    public event ModToolGUIRootPanelChangedEventHandler? RootPanelChanged;
+    public event EventHandler<ValueChangedEventArgs<BaseMTPanel?>>? RootPanelChanged;
 
     public ModToolGUI(ModTool modTool) {
         this.ModTool = modTool;

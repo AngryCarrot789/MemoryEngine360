@@ -95,6 +95,7 @@ using PFXToolKitUI.Services;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Themes;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 using SkiaSharp;
 
 namespace MemEngine360.Avalonia;
@@ -110,7 +111,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
     private static void TaskSchedulerOnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) {
         if (Debugger.IsAttached) {
             Debug.Fail("Unobserved task exception");
-            
+
             Instance.Dispatcher.Post(() => ExceptionDispatchInfo.Throw(e.Exception), DispatchPriority.Send);
         }
     }
@@ -232,7 +233,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
         // struct viewer
         manager.Register("commands.structviewer.ShowStructViewerWindowCommand", new ShowStructViewerWindowCommand());
-        
+
         // mod tools
         manager.Register("commands.modtools.ShowModToolsWindowCommand", new ShowModToolsWindowCommand());
         manager.Register("commands.modtools.CreateModToolCommand", new CreateModToolCommand());
@@ -282,8 +283,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }
 
-    private static void OnActiveThemeChanged(ThemeManager manager, Theme oldTheme, Theme newTheme) {
-        BasicApplicationConfiguration.Instance.DefaultTheme = newTheme.Name;
+    private static void OnActiveThemeChanged(object? sender, ValueChangedEventArgs<Theme> e) {
+        BasicApplicationConfiguration.Instance.DefaultTheme = e.NewValue.Name;
     }
 
     protected override async Task OnSetupApplication(IApplicationStartupProgress progress) {
@@ -422,34 +423,34 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 });
 
                 MemoryEngine engine = ((EngineView) ((OverlayContentHostRoot) window.Content!).Content!).MemoryEngine;
-                
+
                 // Instance.ComponentStorage.AddComponent<IOverlayWindowManager>(new OverlayWindowManagerImpl((OverlayContentHostRoot) window.Content!));
 
                 window.Opened += static (s, e) => {
-                    EngineView view = (EngineView) ((OverlayContentHostRoot) s.Content!).Content!;
-                    view.MemoryEngine.UserContext.Set(ITopLevel.TopLevelDataKey, s);
+                    EngineView view = (EngineView) ((OverlayContentHostRoot) ((IDesktopWindow) s!).Content!).Content!;
+                    view.MemoryEngine.UserContext.Set(ITopLevel.TopLevelDataKey, (IDesktopWindow) s!);
                     MemoryEngineViewState.GetInstance(view.MemoryEngine).IsActivityListVisible = false;
-                    DataManager.GetContextData(s.Control).Set(MemoryEngine.EngineDataKey, view.MemoryEngine);
+                    DataManager.GetContextData(((IDesktopWindow) s!).Control).Set(MemoryEngine.EngineDataKey, view.MemoryEngine);
 
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.MemoryEngine);
                 };
 
                 window.ClosingAsync += static (s, e) => {
                     return Instance.Dispatcher.InvokeAsync(() => {
-                        return CommandManager.Instance.RunActionAsync(_ => OnEngineWindowAboutToClose(s), s.LocalContextData);
+                        return CommandManager.Instance.RunActionAsync(_ => OnEngineWindowAboutToClose((IDesktopWindow) s!), ((IDesktopWindow) s!).LocalContextData);
                     }).Unwrap();
                 };
 
                 window.Closed += static (s, e) => {
-                    EngineView view = (EngineView) ((OverlayContentHostRoot) s.Content!).Content!;
+                    EngineView view = (EngineView) ((OverlayContentHostRoot) ((IDesktopWindow) s!).Content!).Content!;
                     view.MemoryEngine.UserContext.Remove(ITopLevel.TopLevelDataKey);
                     ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
-                    DataManager.GetContextData(s.Control).Remove(MemoryEngine.EngineDataKey);
+                    DataManager.GetContextData(((IDesktopWindow) s!).Control).Remove(MemoryEngine.EngineDataKey);
                 };
 
                 await window.ShowAsync();
-                
-                ActivityManager.Instance.RunTask(async () => {
+
+                _ = ActivityManager.Instance.RunTask(async () => {
                     ActivityTask activity = ActivityTask.Current;
                     activity.Progress.SetCaptionAndText("Reload last mod tools");
                     foreach (string path in BasicApplicationConfiguration.Instance.LoadedModToolPaths) {
@@ -541,7 +542,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
                 BasicApplicationConfiguration.Instance.LoadedScriptPaths = pathsToSave.ToArray();
             }
-            
+
             {
                 List<string> pathsToSave = new List<string>();
                 foreach (ModTool tool in engine.ModToolManager.ModTools) {

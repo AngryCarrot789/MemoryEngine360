@@ -22,23 +22,15 @@ using System.Diagnostics.CodeAnalysis;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Engine.SavedAddressing;
-
-public delegate void BaseAddressTableEntryEventHandler(BaseAddressTableEntry sender);
-
-public delegate void BaseAddressTableEntryParentChangedEventHandler(BaseAddressTableEntry sender, AddressTableGroupEntry? oldPar, AddressTableGroupEntry? newPar);
-
-public delegate void BaseAddressTableEntryManagerChangedEventHandler(BaseAddressTableEntry sender, AddressTableManager? oldATM, AddressTableManager? newATM);
 
 /// <summary>
 /// The base class for an object in the entry hierarchy for a address table manager
 /// </summary>
 public abstract class BaseAddressTableEntry : ITransferableData {
     public static readonly DataKey<BaseAddressTableEntry> DataKey = DataKeys.Create<BaseAddressTableEntry>("BaseLayerTreeObject");
-
-    private string? description;
 
     /// <summary>
     /// Gets the address table manager this entry currently exists in
@@ -53,8 +45,8 @@ public abstract class BaseAddressTableEntry : ITransferableData {
     public TransferableData TransferableData { get; }
 
     public string? Description {
-        get => this.description;
-        set => PropertyHelper.SetAndRaiseINE(ref this.description, value, this, static t => t.DescriptionChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.DescriptionChanged);
     }
 
     /// <summary>
@@ -62,7 +54,7 @@ public abstract class BaseAddressTableEntry : ITransferableData {
     /// </summary>
     public bool IsTopLevelEntry => this.Parent != null && this.Parent.Parent == null;
 
-    public event BaseAddressTableEntryEventHandler? DescriptionChanged;
+    public event EventHandler? DescriptionChanged;
 
     protected BaseAddressTableEntry() {
         this.TransferableData = new TransferableData(this);

@@ -27,12 +27,12 @@ public static class ModToolTabContextRegistry {
 
     static ModToolTabContextRegistry() {
         Registry = new ContextRegistry("Mod Tool");
-        Registry.Opened += static (registry, context) => {
+        Registry.Opened += static (_, context) => {
             if (ModTool.DataKey.TryGetContext(context, out ModTool? tool) && !string.IsNullOrWhiteSpace(tool.Name)) {
-                registry.ObjectName = tool.Name;
+                Registry.ObjectName = tool.Name;
             }
             else {
-                registry.ObjectName = null;
+                Registry.ObjectName = null;
             }
         };
 

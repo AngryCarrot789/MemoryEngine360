@@ -17,34 +17,23 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.XboxBase.Modules;
 
-public delegate void ConsoleModuleEventHandler(ConsoleModule sender);
-
 public class ConsoleModule {
-    private string? name;
-    private string? fullName;
-    private uint baseAddress;
-    private uint moduleSize;
-    private uint originalModuleSize;
-    private DateTime timestamp;
-    private uint entryPoint;
-    private string peModuleName = "";
-
     /// <summary>
     /// Gets or sets the shorthand name, typically the file name (e.g. default.xex). When set to an empty value
     /// or a value consisting of only whitespaces, the value will become null.
     /// </summary>
     public string? Name {
-        get => this.name;
+        get => field;
         set {
             if (string.IsNullOrWhiteSpace(value))
                 value = null;
 
-            PropertyHelper.SetAndRaiseINE(ref this.name, value, this, static t => t.NameChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.NameChanged);
         }
     }
 
@@ -52,12 +41,12 @@ public class ConsoleModule {
     /// Gets or sets the long name. When set to an empty value or a value consisting of only whitespaces, the value will become null.
     /// </summary>
     public string? FullName {
-        get => this.fullName;
+        get => field;
         set {
             if (string.IsNullOrWhiteSpace(value))
                 value = null;
 
-            PropertyHelper.SetAndRaiseINE(ref this.fullName, value, this, static t => t.FullNameChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.FullNameChanged);
         }
     }
 
@@ -65,16 +54,16 @@ public class ConsoleModule {
     /// Gets the base address of the module
     /// </summary>
     public uint BaseAddress {
-        get => this.baseAddress;
-        set => PropertyHelper.SetAndRaiseINE(ref this.baseAddress, value, this, static t => t.BaseAddressChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.BaseAddressChanged);
     }
 
     /// <summary>
     /// Gets the size of the module, as in, the total amount of bytes it takes up in memory.
     /// </summary>
     public uint ModuleSize {
-        get => this.moduleSize;
-        set => PropertyHelper.SetAndRaiseINE(ref this.moduleSize, value, this, static t => t.ModuleSizeChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ModuleSizeChanged);
     }
 
     /// <summary>
@@ -82,46 +71,46 @@ public class ConsoleModule {
     /// size of the xex in memory before it starts allocating its own shit on the heap
     /// </summary>
     public uint OriginalModuleSize {
-        get => this.originalModuleSize;
-        set => PropertyHelper.SetAndRaiseINE(ref this.originalModuleSize, value, this, static t => t.OriginalModuleSizeChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.OriginalModuleSizeChanged);
     }
 
     public DateTime Timestamp {
-        get => this.timestamp;
-        set => PropertyHelper.SetAndRaiseINE(ref this.timestamp, value, this, static t => t.TimestampChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.TimestampChanged);
     }
-    
+
     /// <summary>
     /// Gets the memory address of the entry point
     /// </summary>
     public uint EntryPoint {
-        get => this.entryPoint;
-        set => PropertyHelper.SetAndRaiseINE(ref this.entryPoint, value, this, static t => t.EntryPointChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.EntryPointChanged);
     }
 
     /// <summary>
     /// No fucking clue lol
     /// </summary>
     public string PEModuleName {
-        get => this.peModuleName;
-        set => PropertyHelper.SetAndRaiseINE(ref this.peModuleName, value, this, static t => t.PEModuleNameChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.PEModuleNameChanged);
+    } = "";
     
-    public ObservableList<ConsoleModuleSection> Sections { get; }
-
     /// <summary>
     /// Gets the manager this module exists in
     /// </summary>
     public ModuleViewer? Viewer { get; internal set; }
 
-    public event ConsoleModuleEventHandler? NameChanged;
-    public event ConsoleModuleEventHandler? FullNameChanged;
-    public event ConsoleModuleEventHandler? BaseAddressChanged;
-    public event ConsoleModuleEventHandler? ModuleSizeChanged;
-    public event ConsoleModuleEventHandler? OriginalModuleSizeChanged;
-    public event ConsoleModuleEventHandler? TimestampChanged;
-    public event ConsoleModuleEventHandler? EntryPointChanged;
-    public event ConsoleModuleEventHandler? PEModuleNameChanged;
+    public ObservableList<ConsoleModuleSection> Sections { get; }
+
+    public event EventHandler? NameChanged;
+    public event EventHandler? FullNameChanged;
+    public event EventHandler? BaseAddressChanged;
+    public event EventHandler? ModuleSizeChanged;
+    public event EventHandler? OriginalModuleSizeChanged;
+    public event EventHandler? TimestampChanged;
+    public event EventHandler? EntryPointChanged;
+    public event EventHandler? PEModuleNameChanged;
 
     public ConsoleModule() {
         this.Sections = new ObservableList<ConsoleModuleSection>();

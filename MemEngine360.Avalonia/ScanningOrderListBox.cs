@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using MemEngine360.Engine;
@@ -62,8 +63,8 @@ public class ScanningOrderListBoxItem : ModelBasedListBoxItem<ScanningOrderModel
         this.SetDragSourceControl(e.NameScope.GetTemplateChild<Border>("PART_DragGrip"));
     }
 
-    private void OnDataTypeChanged(ScanningOrderModel sender) {
-        this.PART_Toggle!.Content = sender.DataType.ToString();
+    private void OnDataTypeChanged(object? o, EventArgs e) {
+        this.PART_Toggle!.Content = this.Model!.DataType.ToString();
     }
 
     protected override void OnAddingToList() {

@@ -26,8 +26,6 @@ using PFXToolKitUI.Activities;
 
 namespace MemEngine360.Connections;
 
-public delegate void ConsoleConnectionEventHandler(IConsoleConnection sender);
-
 /// <summary>
 /// Represents a connection to a console. Reading/writing operations may
 /// throw <see cref="IOException"/> or <see cref="TimeoutException"/> at any time.
@@ -53,7 +51,7 @@ public interface IConsoleConnection {
     /// <summary>
     /// An event fired when this connection becomes closed
     /// </summary>
-    event ConsoleConnectionEventHandler Closed;
+    event EventHandler Closed;
 
     /// <summary>
     /// Gets the recommended number of bytes to be read in one call. For some connections this might not

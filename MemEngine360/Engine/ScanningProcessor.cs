@@ -33,32 +33,17 @@ using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 using PFXToolKitUI.Utils.RDA;
 
 namespace MemEngine360.Engine;
 
-public delegate void ScanningProcessorEventHandler(ScanningProcessor sender);
-
-public delegate void ScanningProcessorScanRangeChangedEventHandler(ScanningProcessor sender, uint oldAddress, uint oldLength);
-
-public delegate void UnknownDataTypeOptionsEventHandler(UnknownDataTypeOptions sender);
-
 public class ScanningProcessor {
     private string inputA, inputB;
     private bool hasDoneFirstScan;
-    private bool isScanning;
-    private uint alignment;
-    private bool pauseConsoleDuringScan, scanMemoryPages;
-    private bool isIntInputHexadecimal, isIntInputUnsigned;
-    private bool nextScanUsesFirstValue, nextScanUsesPreviousValue;
-    private FloatScanOption floatScanOption;
-    private StringType stringScanOption;
     private DataType dataType;
-    private bool scanForAnyDataType;
     private NumericScanType numericScanType;
-    private bool useExpressionParsing;
     private bool stringIgnoreCase;
-    private bool isRefreshingAddresses;
 
     public ActivityTask? ScanningActivity { get; private set; }
 
@@ -67,7 +52,7 @@ public class ScanningProcessor {
     /// </summary>
     public string InputA {
         get => this.inputA;
-        set => PropertyHelper.SetAndRaiseINE(ref this.inputA, value ?? "", this, static t => t.InputAChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.inputA, value ?? "", this, this.InputAChanged);
     }
 
     /// <summary>
@@ -75,7 +60,7 @@ public class ScanningProcessor {
     /// </summary>
     public string InputB {
         get => this.inputB;
-        set => PropertyHelper.SetAndRaiseINE(ref this.inputB, value ?? "", this, static t => t.InputBChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.inputB, value ?? "", this, this.InputBChanged);
     }
 
     /// <summary>
@@ -83,7 +68,7 @@ public class ScanningProcessor {
     /// </summary>
     public bool HasDoneFirstScan {
         get => this.hasDoneFirstScan;
-        set => PropertyHelper.SetAndRaiseINE(ref this.hasDoneFirstScan, value, this, static t => t.HasFirstScanChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.hasDoneFirstScan, value, this, this.HasFirstScanChanged);
     }
 
     /// <summary>
@@ -95,8 +80,8 @@ public class ScanningProcessor {
     /// Gets whether we're currently scanning.
     /// </summary>
     public bool IsScanning {
-        get => this.isScanning;
-        private set => PropertyHelper.SetAndRaiseINE(ref this.isScanning, value, this, static t => t.IsScanningChanged?.Invoke(t));
+        get => field;
+        private set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsScanningChanged);
     }
 
     /// <summary>
@@ -116,11 +101,11 @@ public class ScanningProcessor {
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">Alignment cannot be 0</exception>
     public uint Alignment {
-        get => this.alignment;
+        get => field;
         set {
             if (value == 0)
                 throw new ArgumentOutOfRangeException(nameof(value), value, "Alignment cannot be zero");
-            PropertyHelper.SetAndRaiseINE(ref this.alignment, value, this, static t => t.AlignmentChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.AlignmentChanged);
         }
     }
 
@@ -129,11 +114,11 @@ public class ScanningProcessor {
     /// Freezing the console during a scan massively increases data transfer rates
     /// </summary>
     public bool PauseConsoleDuringScan {
-        get => this.pauseConsoleDuringScan;
+        get => field;
         set {
-            if (this.pauseConsoleDuringScan != value) {
-                this.pauseConsoleDuringScan = value;
-                this.PauseConsoleDuringScanChanged?.Invoke(this);
+            if (field != value) {
+                field = value;
+                this.PauseConsoleDuringScanChanged?.Invoke(this, EventArgs.Empty);
                 BasicApplicationConfiguration.Instance.PauseConsoleDuringScan = value;
             }
         }
@@ -144,25 +129,25 @@ public class ScanningProcessor {
     /// rather than blindly scanning the entirety of the configured memory region
     /// </summary>
     public bool ScanMemoryPages {
-        get => this.scanMemoryPages;
+        get => field;
         set {
-            if (this.scanMemoryPages != value) {
-                this.scanMemoryPages = value;
-                this.ScanMemoryPagesChanged?.Invoke(this);
+            if (field != value) {
+                field = value;
+                this.ScanMemoryPagesChanged?.Invoke(this, EventArgs.Empty);
                 BasicApplicationConfiguration.Instance.ScanMemoryPages = value;
             }
         }
     }
 
     public bool IsIntInputHexadecimal {
-        get => this.isIntInputHexadecimal;
+        get => field;
         set {
-            if (this.isIntInputHexadecimal != value) {
-                this.isIntInputHexadecimal = value;
-                this.IsIntInputHexadecimalChanged?.Invoke(this);
+            if (field != value) {
+                field = value;
+                this.IsIntInputHexadecimalChanged?.Invoke(this, EventArgs.Empty);
                 BasicApplicationConfiguration.Instance.DTInt_UseHexValue = value;
             }
-            
+
             if (value) {
                 this.IsIntInputUnsigned = false;
             }
@@ -170,11 +155,11 @@ public class ScanningProcessor {
     }
 
     public bool IsIntInputUnsigned {
-        get => this.isIntInputUnsigned;
+        get => field;
         set {
-            if (this.isIntInputUnsigned != value) {
-                this.isIntInputUnsigned = value;
-                this.IsIntInputUnsignedChanged?.Invoke(this);
+            if (field != value) {
+                field = value;
+                this.IsIntInputUnsignedChanged?.Invoke(this, EventArgs.Empty);
                 BasicApplicationConfiguration.Instance.DTInt_UseUnsignedValue = value;
 
                 if (value) {
@@ -185,11 +170,11 @@ public class ScanningProcessor {
     }
 
     public bool UseFirstValueForNextScan {
-        get => this.nextScanUsesFirstValue;
+        get => field;
         set {
-            if (this.nextScanUsesFirstValue != value) {
-                this.nextScanUsesFirstValue = value;
-                this.UseFirstValueForNextScanChanged?.Invoke(this);
+            if (field != value) {
+                field = value;
+                this.UseFirstValueForNextScanChanged?.Invoke(this, EventArgs.Empty);
                 if (value)
                     this.UsePreviousValueForNextScan = false;
             }
@@ -197,11 +182,11 @@ public class ScanningProcessor {
     }
 
     public bool UsePreviousValueForNextScan {
-        get => this.nextScanUsesPreviousValue;
+        get => field;
         set {
-            if (this.nextScanUsesPreviousValue != value) {
-                this.nextScanUsesPreviousValue = value;
-                this.UsePreviousValueForNextScanChanged?.Invoke(this);
+            if (field != value) {
+                field = value;
+                this.UsePreviousValueForNextScanChanged?.Invoke(this, EventArgs.Empty);
                 if (value)
                     this.UseFirstValueForNextScan = false;
             }
@@ -209,22 +194,22 @@ public class ScanningProcessor {
     }
 
     public FloatScanOption FloatScanOption {
-        get => this.floatScanOption;
+        get => field;
         set {
-            if (this.floatScanOption != value) {
-                this.floatScanOption = value;
-                this.FloatScanModeChanged?.Invoke(this);
+            if (field != value) {
+                field = value;
+                this.FloatScanModeChanged?.Invoke(this, EventArgs.Empty);
                 BasicApplicationConfiguration.Instance.DTFloat_Mode = value;
             }
         }
     }
 
     public StringType StringScanOption {
-        get => this.stringScanOption;
+        get => field;
         set {
-            if (this.stringScanOption != value) {
-                this.stringScanOption = value;
-                this.StringScanModeChanged?.Invoke(this);
+            if (field != value) {
+                field = value;
+                this.StringScanModeChanged?.Invoke(this, EventArgs.Empty);
                 BasicApplicationConfiguration.Instance.DTString_Mode = value;
             }
         }
@@ -235,22 +220,22 @@ public class ScanningProcessor {
         set {
             if (this.dataType != value) {
                 this.dataType = value;
-                this.DataTypeChanged?.Invoke(this);
+                this.DataTypeChanged?.Invoke(this, EventArgs.Empty);
                 this.Alignment = this.dataType.GetAlignmentFromDataType();
             }
         }
     }
 
     public bool ScanForAnyDataType {
-        get => this.scanForAnyDataType;
+        get => field;
         set {
-            if (this.scanForAnyDataType != value) {
+            if (field != value) {
                 if (value) {
                     this.UseExpressionParsing = false;
                 }
-                
-                this.scanForAnyDataType = value;
-                this.ScanForAnyDataTypeChanged?.Invoke(this);
+
+                field = value;
+                this.ScanForAnyDataTypeChanged?.Invoke(this, EventArgs.Empty);
                 this.Alignment = value ? 1 : this.dataType.GetAlignmentFromDataType();
             }
         }
@@ -260,9 +245,9 @@ public class ScanningProcessor {
     /// Gets or sets if the value field should be parsed as an expression, disabling <see cref="NumericScanType"/>
     /// </summary>
     public bool UseExpressionParsing {
-        get => this.useExpressionParsing;
+        get => field;
         set {
-            if (this.useExpressionParsing != value) {
+            if (field != value) {
                 if (value) {
                     this.ScanForAnyDataType = false;
                     this.IsIntInputHexadecimal = false;
@@ -271,9 +256,9 @@ public class ScanningProcessor {
                 if (value && (this.DataType == DataType.ByteArray || this.DataType == DataType.String)) {
                     this.DataType = DataType.Int32;
                 }
-                
-                this.useExpressionParsing = value;
-                this.UseExpressionParsingChanged?.Invoke(this);
+
+                field = value;
+                this.UseExpressionParsingChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
@@ -283,7 +268,7 @@ public class ScanningProcessor {
     /// </summary>
     public NumericScanType NumericScanType {
         get => this.numericScanType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.numericScanType, value, this, static t => t.NumericScanTypeChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.numericScanType, value, this, this.NumericScanTypeChanged);
     }
 
     /// <summary>
@@ -294,7 +279,7 @@ public class ScanningProcessor {
         set {
             if (this.stringIgnoreCase != value) {
                 this.stringIgnoreCase = value;
-                this.StringIgnoreCaseChanged?.Invoke(this);
+                this.StringIgnoreCaseChanged?.Invoke(this, EventArgs.Empty);
                 BasicApplicationConfiguration.Instance.DTString_IgnoreCase = value;
             }
         }
@@ -304,8 +289,8 @@ public class ScanningProcessor {
     /// Returns true when we are currently in the process of refreshing the scan results and saved addresses
     /// </summary>
     public bool IsRefreshingAddresses {
-        get => this.isRefreshingAddresses;
-        private set => PropertyHelper.SetAndRaiseINE(ref this.isRefreshingAddresses, value, this, static t => t.IsRefreshingAddressesChanged?.Invoke(t));
+        get => field;
+        private set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsRefreshingAddressesChanged);
     }
 
     /// <summary>
@@ -334,29 +319,29 @@ public class ScanningProcessor {
 
     public MemoryEngine MemoryEngine { get; }
 
-    public event ScanningProcessorEventHandler? InputAChanged, InputBChanged;
-    public event ScanningProcessorEventHandler? HasFirstScanChanged;
-    public event ScanningProcessorEventHandler? IsScanningChanged;
-    public event ScanningProcessorEventHandler? PauseConsoleDuringScanChanged;
-    public event ScanningProcessorEventHandler? IsIntInputHexadecimalChanged;
-    public event ScanningProcessorEventHandler? IsIntInputUnsignedChanged;
-    public event ScanningProcessorEventHandler? UseFirstValueForNextScanChanged;
-    public event ScanningProcessorEventHandler? UsePreviousValueForNextScanChanged;
-    public event ScanningProcessorEventHandler? FloatScanModeChanged;
-    public event ScanningProcessorEventHandler? StringScanModeChanged;
-    public event ScanningProcessorEventHandler? DataTypeChanged;
-    public event ScanningProcessorEventHandler? ScanForAnyDataTypeChanged;
-    public event ScanningProcessorEventHandler? NumericScanTypeChanged;
-    public event ScanningProcessorEventHandler? UseExpressionParsingChanged;
-    public event ScanningProcessorEventHandler? StringIgnoreCaseChanged;
-    public event ScanningProcessorEventHandler? AlignmentChanged;
-    public event ScanningProcessorEventHandler? ScanMemoryPagesChanged;
-    public event ScanningProcessorEventHandler? IsRefreshingAddressesChanged;
+    public event EventHandler? InputAChanged, InputBChanged;
+    public event EventHandler? HasFirstScanChanged;
+    public event EventHandler? IsScanningChanged;
+    public event EventHandler? PauseConsoleDuringScanChanged;
+    public event EventHandler? IsIntInputHexadecimalChanged;
+    public event EventHandler? IsIntInputUnsignedChanged;
+    public event EventHandler? UseFirstValueForNextScanChanged;
+    public event EventHandler? UsePreviousValueForNextScanChanged;
+    public event EventHandler? FloatScanModeChanged;
+    public event EventHandler? StringScanModeChanged;
+    public event EventHandler? DataTypeChanged;
+    public event EventHandler? ScanForAnyDataTypeChanged;
+    public event EventHandler? NumericScanTypeChanged;
+    public event EventHandler? UseExpressionParsingChanged;
+    public event EventHandler? StringIgnoreCaseChanged;
+    public event EventHandler? AlignmentChanged;
+    public event EventHandler? ScanMemoryPagesChanged;
+    public event EventHandler? IsRefreshingAddressesChanged;
 
     /// <summary>
     /// An event fired when <see cref="SetScanRange"/> is invoked. This provides the old values for <see cref="StartAddress"/> and <see cref="ScanLength"/>
     /// </summary>
-    public event ScanningProcessorScanRangeChangedEventHandler? ScanRangeChanged;
+    public event EventHandler<ScanRangeChangedEventArgs>? ScanRangeChanged;
 
     private readonly ConcurrentQueue<ScanResultViewModel> resultBuffer;
     private readonly RateLimitedDispatchAction rldaMoveBufferIntoResultList;
@@ -403,10 +388,8 @@ public class ScanningProcessor {
         this.MemoryEngine.ConnectionAboutToChange += this.OnEngineConnectionAboutToChange;
     }
 
-    private async Task OnEngineConnectionAboutToChange(MemoryEngine sender, ulong frame, IActivityProgress progress) {
-        progress.Caption = "Scanning Engine";
-        progress.Text = "Stopping current scan...";
-
+    private async Task OnEngineConnectionAboutToChange(object? o, ConnectionChangingEventArgs args) {
+        args.Progress.SetCaptionAndText("Memory Scan", "Stopping current scan...");
         if (this.ScanningActivity != null && this.ScanningActivity.IsRunning) {
             if (this.ScanningActivity.TryCancel()) { // should always return true
                 await this.ScanningActivity;
@@ -437,7 +420,7 @@ public class ScanningProcessor {
         this.StartAddress = newStartAddress;
         this.ScanLength = newScanLength;
 
-        this.ScanRangeChanged?.Invoke(this, oldStart, oldLength);
+        this.ScanRangeChanged?.Invoke(this, new ScanRangeChangedEventArgs(oldStart, oldLength));
 
         if (updateConfiguration) {
             BasicApplicationConfiguration.Instance.StartAddress = this.StartAddress;
@@ -463,7 +446,7 @@ public class ScanningProcessor {
     public async Task ScanFirstOrNext() {
         ApplicationPFX.Instance.Dispatcher.VerifyAccess();
 
-        if (this.isScanning)
+        if (this.IsScanning)
             throw new InvalidOperationException("Currently scanning");
 
         IConsoleConnection? connection = this.MemoryEngine.Connection;
@@ -483,7 +466,7 @@ public class ScanningProcessor {
             if (this.MemoryEngine.IsShuttingDown)
                 return; // program shutting down before token acquired
 
-            bool pauseDuringScan = this.pauseConsoleDuringScan;
+            bool pauseDuringScan = this.PauseConsoleDuringScan;
             bool scanForAnything = this.ScanForAnyDataType;
             ScanningContext context =
                 (this.hasDoneFirstScan ? this.FirstScanWasUnknownDataType : scanForAnything)
@@ -496,7 +479,7 @@ public class ScanningProcessor {
 
             // should be impossible since we obtain the busy token which is required before scanning
 
-            Debug.Assert(this.isScanning == false, "WTF");
+            Debug.Assert(!this.IsScanning, "WTF");
 
             DispatcherActivityProgress progress = new DispatcherActivityProgress {
                 Caption = "Memory Scan", Text = "Beginning scan..."
@@ -687,7 +670,7 @@ public class ScanningProcessor {
     }
 
     public void ResetScan() {
-        if (this.isScanning)
+        if (this.IsScanning)
             throw new InvalidOperationException("Currently scanning");
 
         this.ClearResults();
@@ -899,11 +882,6 @@ public sealed class UnknownDataTypeOptions {
     private readonly ScanningOrderModel orderInt32;
     private readonly ScanningOrderModel orderInt64;
 
-    private bool canSearchForFloat = true;
-    private bool canSearchForDouble = true;
-    private bool canSearchForString = true;
-    private bool canRunNextScanForByteArray = true;
-
     public bool CanSearchForByte => this.orderByte.IsEnabled;
 
     public bool CanSearchForShort => this.orderInt16.IsEnabled;
@@ -913,29 +891,29 @@ public sealed class UnknownDataTypeOptions {
     public bool CanSearchForLong => this.orderInt64.IsEnabled;
 
     public bool CanSearchForFloat {
-        get => this.canSearchForFloat;
-        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForFloat, value, this, static t => t.CanSearchForFloatChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.CanSearchForFloatChanged);
+    } = true;
 
     public bool CanSearchForDouble {
-        get => this.canSearchForDouble;
-        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForDouble, value, this, static t => t.CanSearchForDoubleChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.CanSearchForDoubleChanged);
+    } = true;
 
     public bool CanSearchForString {
-        get => this.canSearchForString;
-        set => PropertyHelper.SetAndRaiseINE(ref this.canSearchForString, value, this, static t => t.CanSearchForStringChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.CanSearchForStringChanged);
+    } = true;
 
     public bool CanRunNextScanForByteArray {
-        get => this.canRunNextScanForByteArray;
-        set => PropertyHelper.SetAndRaiseINE(ref this.canRunNextScanForByteArray, value, this, static t => t.CanRunNextScanForByteArrayChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.CanRunNextScanForByteArrayChanged);
+    } = true;
 
-    public event UnknownDataTypeOptionsEventHandler? CanSearchForFloatChanged;
-    public event UnknownDataTypeOptionsEventHandler? CanSearchForDoubleChanged;
-    public event UnknownDataTypeOptionsEventHandler? CanSearchForStringChanged;
-    public event UnknownDataTypeOptionsEventHandler? CanRunNextScanForByteArrayChanged;
+    public event EventHandler? CanSearchForFloatChanged;
+    public event EventHandler? CanSearchForDoubleChanged;
+    public event EventHandler? CanSearchForStringChanged;
+    public event EventHandler? CanRunNextScanForByteArrayChanged;
 
     public UnknownDataTypeOptions() {
         this.Orders = new ObservableList<ScanningOrderModel>() {
@@ -963,4 +941,9 @@ public sealed class UnknownDataTypeOptions {
 
         return array;
     }
+}
+
+public readonly struct ScanRangeChangedEventArgs(uint oldAddress, uint oldLength) {
+    public uint OldAddress { get; } = oldAddress;
+    public uint OldLength { get; } = oldLength;
 }

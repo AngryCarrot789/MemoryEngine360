@@ -3,17 +3,14 @@ using MemEngine360.Configs;
 using PFXToolKitUI;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Connections;
-
-public delegate void OpenConnectionInfoSelectedConnectionTypeChangedEventHandler(OpenConnectionInfo sender, ConnectionTypeEntry? oldSelectedConnectionType, ConnectionTypeEntry? newSelectedConnectionType);
 
 /// <summary>
 /// Contains information used in a <see cref="IOpenConnectionView"/>, such as applicable connections
 /// </summary>
 public sealed class OpenConnectionInfo {
-    private ConnectionTypeEntry? selectedConnectionType;
-
     /// <summary>
     /// Gets the list of available connections the user can connect to
     /// </summary>
@@ -23,11 +20,11 @@ public sealed class OpenConnectionInfo {
     /// Gets or sets the selected connection type in the list
     /// </summary>
     public ConnectionTypeEntry? SelectedConnectionType {
-        get => this.selectedConnectionType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.selectedConnectionType, value, this, static (t, o, n) => t.SelectedConnectionTypeChanged?.Invoke(t, o, n));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.SelectedConnectionTypeChanged);
     }
 
-    public event OpenConnectionInfoSelectedConnectionTypeChangedEventHandler? SelectedConnectionTypeChanged;
+    public event EventHandler<ValueChangedEventArgs<ConnectionTypeEntry?>>? SelectedConnectionTypeChanged;
 
     public OpenConnectionInfo() {
         this.ConnectionTypes = new ObservableList<ConnectionTypeEntry>();
@@ -71,14 +68,7 @@ public sealed class OpenConnectionInfo {
     }
 }
 
-public delegate void ControlTypeEntryEventHandler(ConnectionTypeEntry sender);
-
-public delegate void ConnectionTypeEntryInfoChangedEventHandler(ConnectionTypeEntry sender, UserConnectionInfo? oldInfo, UserConnectionInfo? newInfo);
-
 public sealed class ConnectionTypeEntry {
-    private bool isEnabled = true;
-    private UserConnectionInfo? info;
-
     /// <summary>
     /// Gets the connection type
     /// </summary>
@@ -89,27 +79,27 @@ public sealed class ConnectionTypeEntry {
     /// For example, connections on unsupported platforms cannot be clicked
     /// </summary>
     public bool IsEnabled {
-        get => this.isEnabled;
-        set => PropertyHelper.SetAndRaiseINE(ref this.isEnabled, value, this, static t => t.IsEnabledChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsEnabledChanged);
+    } = true;
 
     /// <summary>
     /// Gets or sets the open connection info presented for this connection type.
     /// This is lazily created by the UI when the console type is clicked for the first time.
     /// </summary>
     public UserConnectionInfo? Info {
-        get => this.info;
+        get => field;
         set {
-            UserConnectionInfo? oldValue = this.info;
+            UserConnectionInfo? oldValue = field;
             if (!Equals(oldValue, value)) {
                 bool wasVisible = false;
                 if (oldValue != null && UserConnectionInfo.IsShownInView(oldValue)) {
                     wasVisible = true;
                     UserConnectionInfo.InternalHide(oldValue);
                 }
-                
-                this.info = value;
-                this.InfoChanged?.Invoke(this, oldValue, value);
+
+                field = value;
+                this.InfoChanged?.Invoke(this, new ValueChangedEventArgs<UserConnectionInfo?>(oldValue, value));
 
                 if (value != null && wasVisible) {
                     UserConnectionInfo.InternalShow(value);
@@ -118,8 +108,8 @@ public sealed class ConnectionTypeEntry {
         }
     }
 
-    public event ControlTypeEntryEventHandler? IsEnabledChanged;
-    public event ConnectionTypeEntryInfoChangedEventHandler? InfoChanged;
+    public event EventHandler? IsEnabledChanged;
+    public event EventHandler<ValueChangedEventArgs<UserConnectionInfo?>>? InfoChanged;
 
     public ConnectionTypeEntry(RegisteredConnectionType type) {
         this.Type = type;

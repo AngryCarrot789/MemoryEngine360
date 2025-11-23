@@ -80,9 +80,9 @@ public class ShowModulesCommand : BaseMemoryEngineCommand {
                 FocusPath = "ModuleViewerWindow"
             });
 
-            window.Closed += static (sender, args) => {
-                ((ModuleViewerView) sender.Content!).XboxModuleManager = null;
-                ((ModuleViewerView) sender.Content!).MemoryEngine = null;
+            window.Closed += static (s, args) => {
+                ((ModuleViewerView) ((IDesktopWindow) s!).Content!).XboxModuleManager = null;
+                ((ModuleViewerView) ((IDesktopWindow) s!).Content!).MemoryEngine = null;
             };
             await window.ShowAsync();
         }

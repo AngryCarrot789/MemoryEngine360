@@ -35,8 +35,6 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Scanners;
 
-public delegate void ScanningContextResultEventHandler(ScanningContext sender, ScanResultViewModel result);
-
 /// <summary>
 /// A class used to perform scanning operations. This class takes a snapshot of the options in <see cref="ScanningProcessor"/>
 /// </summary>
@@ -81,7 +79,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
     /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result
     /// </summary>
-    public override event ScanningContextResultEventHandler? ResultFound;
+    public override event EventHandler<ScanResultViewModel>? ResultFound;
 
     public DataTypedScanningContext(ScanningProcessor processor) : base(processor) {
         Debug.Assert(!processor.ScanForAnyDataType);

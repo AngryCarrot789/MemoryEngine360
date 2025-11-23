@@ -21,8 +21,6 @@ using PFXToolKitUI.Composition;
 
 namespace MemEngine360.Scripting;
 
-public delegate void ScriptViewStateEventHandler(ScriptViewState sender);
-
 public class ScriptViewState {
     /// <summary>
     /// Gets the task sequence manager for this state
@@ -39,7 +37,7 @@ public class ScriptViewState {
     /// Requests the UI to flush the text editor document associated with this
     /// script view state to our script's <see cref="Scripting.Script.SourceCode"/>
     /// </summary>
-    public event ScriptViewStateEventHandler? FlushEditorToScript;
+    public event EventHandler? FlushEditorToScript;
 
     private ScriptViewState(Script script) {
         this.Script = script;
@@ -48,7 +46,7 @@ public class ScriptViewState {
     /// <summary>
     /// Raises the <see cref="FlushEditorToScript"/> event
     /// </summary>
-    public void RaiseFlushEditorToScript() => this.FlushEditorToScript?.Invoke(this);
+    public void RaiseFlushEditorToScript() => this.FlushEditorToScript?.Invoke(this, EventArgs.Empty);
     
     public static ScriptViewState GetInstance(Script manager) {
         return ((IComponentManager) manager).GetOrCreateComponent((t) => new ScriptViewState((Script) t));

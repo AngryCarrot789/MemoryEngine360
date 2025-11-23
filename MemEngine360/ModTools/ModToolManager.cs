@@ -100,8 +100,8 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
             return ((IComponentManager) tool).GetOrCreateComponent(static t => new ExecuteModToolMenuEntry((ModTool) t));
         }
 
-        private void OnFilePathChanged(ModTool sender) {
-            this.DisplayName = sender.Name ?? "";
+        private void OnFilePathChanged(object? o, EventArgs e) {
+            this.DisplayName = ((ModTool) o!).Name ?? "";
         }
 
         public override bool CanExecute(IContextData context) {

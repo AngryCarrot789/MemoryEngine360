@@ -25,9 +25,9 @@ using PFXToolKitUI.Interactivity.Selections;
 namespace MemEngine360.Sequencing.Contexts;
 
 public static class ConditionsContextRegistry {
-    private readonly struct CurrentConditionInfo(BaseSequenceCondition condition, BaseSequenceConditionEventHandler isEnabledHandler) {
+    private readonly struct CurrentConditionInfo(BaseSequenceCondition condition, EventHandler isEnabledHandler) {
         public readonly BaseSequenceCondition Condition = condition;
-        public readonly BaseSequenceConditionEventHandler IsEnabledHandler = isEnabledHandler;
+        public readonly EventHandler IsEnabledHandler = isEnabledHandler;
     }
 
     private static readonly DataKey<CurrentConditionInfo> CurrentConditionDataKey = DataKeys.Create<CurrentConditionInfo>(nameof(ConditionsContextRegistry) + "_internal_" + nameof(CurrentConditionDataKey));
@@ -52,7 +52,7 @@ public static class ConditionsContextRegistry {
                 ListSelectionModel<BaseSequenceCondition>? conditions = TaskSequenceManagerViewState.GetInstance(newManager).SelectedConditionsFromHost;
                 if (conditions != null && conditions.Count == 1) {
                     BaseSequenceCondition newCond = conditions[0];
-                    CurrentConditionInfo info = new CurrentConditionInfo(newCond, _ => entry.RaiseIsCheckedChanged());
+                    CurrentConditionInfo info = new CurrentConditionInfo(newCond, (s, e) => entry.RaiseIsCheckedChanged());
                     entry.UserContext.Set(CurrentConditionDataKey, info);
                     entry.DisplayName = "Is Enabled";
                     entry.IsCheckedFunction = static e => CurrentConditionDataKey.GetContext(e.UserContext).Condition.IsEnabled;

@@ -2,17 +2,11 @@
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity.Selections;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Engine.View;
 
-public delegate void MemoryEngineViewStateEventHandler(MemoryEngineViewState sender);
-
-public delegate void FocusSavedAddressEventHandler(MemoryEngineViewState viewState, BaseAddressTableEntry entry);
-
 public sealed class MemoryEngineViewState {
-    private bool isActivityListVisible;
-    
     /// <summary>
     /// Gets the engine model instance
     /// </summary>
@@ -37,8 +31,8 @@ public sealed class MemoryEngineViewState {
     /// Gets or sets if the activity list is visible or not
     /// </summary>
     public bool IsActivityListVisible {
-        get => this.isActivityListVisible;
-        set => PropertyHelper.SetAndRaiseINE(ref this.isActivityListVisible, value, this, static t => t.IsActivityListVisibleChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsActivityListVisibleChanged);
     }
 
     /// <summary>
@@ -49,9 +43,9 @@ public sealed class MemoryEngineViewState {
     /// <summary>
     /// Requests a saved address to be focused in the UI. This will also select the item
     /// </summary>
-    public event FocusSavedAddressEventHandler? RequestFocusOnSavedAddress;
+    public event EventHandler<BaseAddressTableEntry>? RequestFocusOnSavedAddress;
 
-    public event MemoryEngineViewStateEventHandler? IsActivityListVisibleChanged;
+    public event EventHandler? IsActivityListVisibleChanged;
     
     private MemoryEngineViewState(MemoryEngine engine) {
         this.Engine = engine;

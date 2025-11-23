@@ -24,23 +24,21 @@ using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 
-public delegate void EditConditionOutputModeWindowEventHandler(EditConditionOutputModeView sender);
-
 public partial class EditConditionOutputModeView : UserControl {
     private readonly EventPropertyEnumBinder<ConditionOutputMode> binder = new EventPropertyEnumBinder<ConditionOutputMode>(typeof(EditConditionOutputModeView), nameof(TriggerModeChanged), (b) => ((EditConditionOutputModeView) b).OutputMode, (b, v) => ((EditConditionOutputModeView) b).OutputMode = v);
-    private ConditionOutputMode outputMode;
 
     public ConditionOutputMode OutputMode {
-        get => this.outputMode;
-        set => PropertyHelper.SetAndRaiseINE(ref this.outputMode, value, this, static t => t.TriggerModeChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.TriggerModeChanged);
     }
 
     public IWindowBase? Window { get; set; }
 
-    public event EditConditionOutputModeWindowEventHandler? TriggerModeChanged;
+    public event EventHandler? TriggerModeChanged;
 
     public EditConditionOutputModeView() {
         this.InitializeComponent();

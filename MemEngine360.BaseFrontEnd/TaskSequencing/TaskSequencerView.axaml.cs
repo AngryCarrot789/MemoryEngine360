@@ -35,6 +35,7 @@ using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Utils.Commands;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
@@ -134,15 +135,15 @@ public partial class TaskSequencerView : UserControl {
         }
     }
 
-    private void OnEngineConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
+    private void OnEngineConnectionChanged(object? o, ConnectionChangedEventArgs connectionChangedEventArgs) {
         TaskSequence? seq = this.State.PrimarySelectedSequence;
         if (seq != null && seq.UseEngineConnection) {
             this.currentConnectionTypeBinder.UpdateControl();
         }
     }
 
-    private void OnPrimarySelectedSequenceChanged(TaskSequenceManagerViewState sender, TaskSequence? oldSeq, TaskSequence? newSeq) {
-        this.OnPrimarySequenceChanged(oldSeq, newSeq);
+    private void OnPrimarySelectedSequenceChanged(object? o, ValueChangedEventArgs<TaskSequence?> e) {
+        this.OnPrimarySequenceChanged(e.OldValue, e.NewValue);
     }
 
     private void OnPrimarySequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {
@@ -166,18 +167,18 @@ public partial class TaskSequencerView : UserControl {
         this.useDedicatedConnectionBinder.SwitchModel(newSeq);
         this.currentConnectionTypeBinder.SwitchModel(newSeq);
         this.busyLockPriorityBinder.SwitchModel(newSeq);
-        this.OnSequenceProgressTextChanged(newSeq?.Progress);
+        this.OnSequenceProgressTextChanged(newSeq?.Progress, EventArgs.Empty);
         ((BaseRelayCommand) this.PART_UseDedicatedConnection.Command!).RaiseCanExecuteChanged();
     }
 
-    private void OnPrimarySequenceIsRunningChanged(TaskSequence sender) {
+    private void OnPrimarySequenceIsRunningChanged(object? o, EventArgs e) {
         ((BaseRelayCommand) this.PART_UseDedicatedConnection.Command!).RaiseCanExecuteChanged();
     }
 
-    private void OnSequenceProgressTextChanged(IActivityProgress? tracker) {
-        this.PART_ActivityStatusText.Text = tracker?.Text ?? "";
+    private void OnSequenceProgressTextChanged(object? sender, EventArgs e) {
+        this.PART_ActivityStatusText.Text = ((IActivityProgress?) sender)?.Text ?? "";
     }
-
+    
     private void PART_ClearOperationsClick(object? sender, RoutedEventArgs e) {
         TaskSequence? sequence = this.State.PrimarySelectedSequence;
         if (sequence != null && !sequence.IsRunning) {

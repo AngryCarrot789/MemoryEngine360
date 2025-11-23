@@ -24,23 +24,19 @@ using MemEngine360.ValueAbstraction;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.DataHandlers;
 
-public delegate void DataProviderHandlerEventHandler(DataProviderHandler sender);
-
 // The data provider handlers massively simplify creating value binding between the list content and editor content controls
 
 public abstract class DataProviderHandler {
     protected DataValueProvider? internalProvider;
-    private DataType myDataType;
-    private bool parseIntAsHex;
 
     /// <summary>
     /// Gets or sets the data type that this handler should use to parse text box values
     /// </summary>
     public DataType DataType {
-        get => this.myDataType;
+        get => field;
         set {
-            if (this.myDataType != value) {
-                this.myDataType = value;
+            if (field != value) {
+                field = value;
                 this.OnDataTypeChanged();
             }
         }
@@ -50,10 +46,10 @@ public abstract class DataProviderHandler {
     /// Gets or sets if this handler should parse text as hexadecimal when <see cref="DataType"/> is integer based
     /// </summary>
     public bool ParseIntAsHex {
-        get => this.parseIntAsHex;
+        get => field;
         set {
-            if (this.parseIntAsHex != value) {
-                this.parseIntAsHex = value;
+            if (field != value) {
+                field = value;
                 this.OnParseIntAsHexChanged();
             }
         }
@@ -61,8 +57,8 @@ public abstract class DataProviderHandler {
 
     public bool IsConnected => this.internalProvider != null;
 
-    public event DataProviderHandlerEventHandler? DataTypeChanged;
-    public event DataProviderHandlerEventHandler? ParseIntAsHexChanged;
+    public event EventHandler? DataTypeChanged;
+    public event EventHandler? ParseIntAsHexChanged;
 
     protected DataProviderHandler() {
     }
@@ -94,11 +90,11 @@ public abstract class DataProviderHandler {
     }
 
     protected virtual void OnDataTypeChanged() {
-        this.DataTypeChanged?.Invoke(this);
+        this.DataTypeChanged?.Invoke(this, EventArgs.Empty);
     }
 
     protected virtual void OnParseIntAsHexChanged() {
-        this.ParseIntAsHexChanged?.Invoke(this);
+        this.ParseIntAsHexChanged?.Invoke(this, EventArgs.Empty);
     }
 
     protected static string GetTextFromDataValue(IDataValue? value, bool parseIntAsHex) {

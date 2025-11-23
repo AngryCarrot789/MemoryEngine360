@@ -225,10 +225,10 @@ public partial class PointerScannerView : UserControl {
             oldValue.IsScanRunningChanged -= this.OnUpdateStartStopCommands;
         if (newValue != null)
             newValue.IsScanRunningChanged += this.OnUpdateStartStopCommands;
-        this.OnUpdateStartStopCommands(null!);
+        this.OnUpdateStartStopCommands(null!, EventArgs.Empty);
     }
 
-    private void OnUpdateStartStopCommands(PointerScanner _) {
+    private void OnUpdateStartStopCommands(object? sender, EventArgs eventArgs) {
         ApplicationPFX.Instance.Dispatcher.Post(() => ((AsyncRelayCommand) this.PART_StopScan.Command!).RaiseCanExecuteChanged());
         ApplicationPFX.Instance.Dispatcher.Post(() => ((AsyncRelayCommand) this.PART_RunScan.Command!).RaiseCanExecuteChanged());
     }

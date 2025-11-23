@@ -20,18 +20,15 @@
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using PFXToolKitUI.DataTransfer;
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Accessing;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Xbox360XDevkit.Views;
-
-public delegate void ConnectToXboxInfoEventHandler(ConnectToXboxInfo sender);
 
 public class ConnectToXboxInfo : UserConnectionInfo {
     public static readonly DataParameterString IpAddressParameter = DataParameter.Register(new DataParameterString(typeof(ConnectToXboxInfo), nameof(IpAddress), "", ValueAccessors.Reflective<string?>(typeof(ConnectToXboxInfo), nameof(ipAddress))));
 
     private string? ipAddress;
-    private bool isLittleEndian /* = false // xbox 360 is big endian */;
 
     public string? IpAddress {
         get => this.ipAddress;
@@ -39,11 +36,11 @@ public class ConnectToXboxInfo : UserConnectionInfo {
     }
 
     public bool IsLittleEndian {
-        get => this.isLittleEndian;
-        set => PropertyHelper.SetAndRaiseINE(ref this.isLittleEndian, value, this, static t => t.IsLittleEndianChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsLittleEndianChanged);
+    } /* = false // xbox 360 is big endian */
 
-    public event ConnectToXboxInfoEventHandler? IsLittleEndianChanged;
+    public event EventHandler? IsLittleEndianChanged;
 
     public ConnectToXboxInfo() : base(ConnectionTypeXbox360XDevkit.Instance) {
         // Try get last entered IP address. Helps with debugging and user experience ;)

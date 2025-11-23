@@ -82,9 +82,9 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
         this.myBusyTokenRef.Value = null;
     }
 
-    private void BusyLockOnUserQuickReleaseRequested(BusyLock busyLock, Task task) {
+    private void BusyLockOnUserQuickReleaseRequested(object? sender, QuickReleaseRequestedEventArgs args) {
         this.RequestPause(out _, out _);
-        task.ContinueWith(static (t, s) => ((FirstTypedScanTask) s!).RequestResume(out _, out _), this, this.CancellationToken);
+        args.AcquisitionTask.ContinueWith(static (t, s) => ((FirstTypedScanTask) s!).RequestResume(out _, out _), this, this.CancellationToken);
     }
 
     protected override async Task RunOperation(CancellationToken pauseOrCancelToken, bool isFirstRun) {

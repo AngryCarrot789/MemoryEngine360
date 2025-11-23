@@ -24,6 +24,7 @@ using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Debugging;
+using MemEngine360.Engine.Events;
 using MemEngine360.XboxBase;
 using MemEngine360.XboxBase.Modules;
 using ConsoleColor = MemEngine360.Connections.Features.ConsoleColor;
@@ -445,6 +446,6 @@ public partial class XbdmConsoleConnection {
             return entries;
         }
 
-        public IDisposable SubscribeToEvents(ConsoleSystemEventHandler handler) => this.connection.SubscribeToEvents(handler);
+        public IDisposable SubscribeToEvents(EventHandler<ConsoleSystemEventArgs> handler) => this.connection.SubscribeToEvents(handler);
     }
 }

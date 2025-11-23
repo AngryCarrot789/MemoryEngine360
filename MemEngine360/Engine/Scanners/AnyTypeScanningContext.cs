@@ -64,7 +64,7 @@ public class AnyTypeScanningContext : ScanningContext {
     /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result
     /// </summary>
-    public override event ScanningContextResultEventHandler? ResultFound;
+    public override event EventHandler<ScanResultViewModel>? ResultFound;
 
     public AnyTypeScanningContext(ScanningProcessor processor) : base(processor) {
         Debug.Assert(processor.ScanForAnyDataType);

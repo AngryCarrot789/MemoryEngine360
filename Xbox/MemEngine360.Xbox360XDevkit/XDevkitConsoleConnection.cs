@@ -316,7 +316,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
             return Task.FromResult(XboxExecutionState.Unknown);
         }
 
-        // public IDisposable SubscribeToEvents(ConsoleSystemEventHandler handler) {
+        // public IDisposable SubscribeToEvents(EventHandler<ConsoleSystemEventArgs> handler) {
         //     Dispos
         //     
         //     return this.connection.SubscribeToEvents(handler);
@@ -326,7 +326,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
         //     private volatile XbdmFeaturesImpl? featureImpl;
         //     private readonly XboxEvents_OnStdNotifyEventHandler handler;
         //
-        //     public UnsubscribeDisposable(XbdmFeaturesImpl featureImpl, ConsoleSystemEventHandler theHandler) {
+        //     public UnsubscribeDisposable(XbdmFeaturesImpl featureImpl, EventHandler<ConsoleSystemEventArgs> theHandler) {
         //         this.featureImpl = featureImpl;
         //         this.handler = (code, info) => {
         //             theHandler()

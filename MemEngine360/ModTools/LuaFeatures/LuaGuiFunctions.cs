@@ -602,11 +602,11 @@ public class LuaGuiFunctions {
     private async ValueTask<int> SetElementHorizontalAlignment(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         LuaTable table = ctx.GetArgument<LuaTable>(0);
         string text = ctx.GetArgument<string>(1) ?? "";
-        BaseMTElement.EnumHorizontalAlign align = text.ToUpperInvariant() switch {
-            "STRETCH" or "S" => BaseMTElement.EnumHorizontalAlign.Stretch,
-            "LEFT" or "L" => BaseMTElement.EnumHorizontalAlign.Left,
-            "CENTER" or "C" => BaseMTElement.EnumHorizontalAlign.Center,
-            "RIGHT" or "R" => BaseMTElement.EnumHorizontalAlign.Right,
+        EnumHorizontalAlign align = text.ToUpperInvariant() switch {
+            "STRETCH" or "S" => EnumHorizontalAlign.Stretch,
+            "LEFT" or "L" => EnumHorizontalAlign.Left,
+            "CENTER" or "C" => EnumHorizontalAlign.Center,
+            "RIGHT" or "R" => EnumHorizontalAlign.Right,
             _ => throw LuaUtils.BadArgument(in ctx, 1, "set_align_h", "Unknown horizontal align: " + text)
         };
 
@@ -618,11 +618,11 @@ public class LuaGuiFunctions {
     private async ValueTask<int> SetElementVerticalAlignment(LuaFunctionExecutionContext ctx, Memory<LuaValue> buffer, CancellationToken ct) {
         LuaTable table = ctx.GetArgument<LuaTable>(0);
         string text = ctx.GetArgument<string>(1) ?? "";
-        BaseMTElement.EnumVerticalAlign align = text.ToUpperInvariant() switch {
-            "STRETCH" or "S" => BaseMTElement.EnumVerticalAlign.Stretch,
-            "TOP" or "T" => BaseMTElement.EnumVerticalAlign.Top,
-            "CENTER" or "C" => BaseMTElement.EnumVerticalAlign.Center,
-            "BOTTOM" or "B" => BaseMTElement.EnumVerticalAlign.Bottom,
+        EnumVerticalAlign align = text.ToUpperInvariant() switch {
+            "STRETCH" or "S" => EnumVerticalAlign.Stretch,
+            "TOP" or "T" => EnumVerticalAlign.Top,
+            "CENTER" or "C" => EnumVerticalAlign.Center,
+            "BOTTOM" or "B" => EnumVerticalAlign.Bottom,
             _ => throw LuaUtils.BadArgument(in ctx, 1, "set_align_v", "Unknown vertical align: " + text)
         };
 

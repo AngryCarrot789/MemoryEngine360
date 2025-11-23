@@ -18,48 +18,41 @@
 // 
 
 using MemEngine360.Connections;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.FileConnections;
 
-public delegate void OpenDebuggingFileInfoEventHandler(OpenBinaryFileInfo sender);
-
 public class OpenBinaryFileInfo : UserConnectionInfo {
-    private string? filePath;
-    private uint baseAddress;
-    private bool allowResizingFile;
-    private bool isLittleEndian;
-
     public string? FilePath {
-        get => this.filePath;
-        set => PropertyHelper.SetAndRaiseINE(ref this.filePath, value, this, static t => t.FilePathChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.FilePathChanged);
     }
 
     public uint BaseAddress {
-        get => this.baseAddress;
-        set => PropertyHelper.SetAndRaiseINE(ref this.baseAddress, value, this, static t => t.BaseAddressChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.BaseAddressChanged);
     }
 
     /// <summary>
     /// Gets or sets if resizing the file is allowed by the connection
     /// </summary>
     public bool AllowResizingFile {
-        get => this.allowResizingFile;
-        set => PropertyHelper.SetAndRaiseINE(ref this.allowResizingFile, value, this, static t => t.AllowResizingFileChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.AllowResizingFileChanged);
     }
 
     /// <summary>
     /// Gets or sets if the data file should be treated as little endian. Default is false
     /// </summary>
     public bool IsLittleEndian {
-        get => this.isLittleEndian;
-        set => PropertyHelper.SetAndRaiseINE(ref this.isLittleEndian, value, this, static t => t.IsLittleEndianChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsLittleEndianChanged);
     }
 
-    public event OpenDebuggingFileInfoEventHandler? FilePathChanged;
-    public event OpenDebuggingFileInfoEventHandler? BaseAddressChanged;
-    public event OpenDebuggingFileInfoEventHandler? AllowResizingFileChanged;
-    public event OpenDebuggingFileInfoEventHandler? IsLittleEndianChanged;
+    public event EventHandler? FilePathChanged;
+    public event EventHandler? BaseAddressChanged;
+    public event EventHandler? AllowResizingFileChanged;
+    public event EventHandler? IsLittleEndianChanged;
 
     public OpenBinaryFileInfo() : base(ConnectionTypeBinaryFile.Instance) {
     }

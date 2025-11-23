@@ -23,6 +23,7 @@ using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Interactivity.Selections;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
@@ -38,11 +39,11 @@ public class ConditionSourcePresenter {
         this.window.State.ConditionHostChanged += this.OnConditionHostChanged;
     }
 
-    private void OnConditionHostChanged(TaskSequenceManagerViewState sender, IConditionsHost? oldConditionHost, IConditionsHost? newConditionHost) {
-        if (newConditionHost is TaskSequence sequence) {
+    private void OnConditionHostChanged(object? o, ValueChangedEventArgs<IConditionsHost?> e) {
+        if (e.NewValue is TaskSequence sequence) {
             this.SetTaskSequenceSource(sequence);
         }
-        else if (newConditionHost is BaseSequenceOperation operation) {
+        else if (e.NewValue is BaseSequenceOperation operation) {
             this.SetOperationSource(operation);
         }
         else {
@@ -127,7 +128,7 @@ public class ConditionSourcePresenter {
         this.UpdateTextForNothing(false);
     }
     
-    private void OnSequenceDisplayNameChanged(TaskSequence sender) => this.UpdateTextForSequence(sender);
+    private void OnSequenceDisplayNameChanged(object? o, EventArgs e) => this.UpdateTextForSequence((TaskSequence) o!);
 
     private void UpdateTextForSequence(TaskSequence? sequence) {
         int selectCount = this.window.State.SelectedSequences.Count;

@@ -28,10 +28,9 @@ using PFXToolKitUI.Activities;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.PointerScanning;
-
-public delegate void PointerScannerEventHandler(PointerScanner sender);
 
 public class PointerScanner {
     private readonly object DummyNonNull = new object();
@@ -45,8 +44,6 @@ public class PointerScanner {
     private uint secondaryMaximumOffset = 0x4000;
     private uint searchAddress;
     private uint alignment = 4;
-    private bool hasPointerMap;
-    private bool isScanRunning;
 
     /// <summary>
     /// Gets the base address of the addressable memory space, as in, the smallest address a pointer can be
@@ -57,7 +54,7 @@ public class PointerScanner {
             if (this.addressableBase != value) {
                 this.addressableBase = value;
                 this.addressableEnd = value + this.addressableLength;
-                this.AddressableBaseChanged?.Invoke(this);
+                this.AddressableBaseChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
@@ -71,7 +68,7 @@ public class PointerScanner {
             if (this.addressableLength != value) {
                 this.addressableLength = value;
                 this.addressableEnd = this.addressableBase + value;
-                this.AddressableLengthChanged?.Invoke(this);
+                this.AddressableLengthChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
@@ -81,7 +78,7 @@ public class PointerScanner {
     /// </summary>
     public byte MaxDepth {
         get => this.maxDepth;
-        set => PropertyHelper.SetAndRaiseINE(ref this.maxDepth, value, this, static t => t.MaxDepthChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.maxDepth, value, this, this.MaxDepthChanged);
     }
 
     /// <summary>
@@ -89,7 +86,7 @@ public class PointerScanner {
     /// </summary>
     public uint MinimumOffset {
         get => this.minimumOffset;
-        set => PropertyHelper.SetAndRaiseINE(ref this.minimumOffset, value, this, static t => t.MinimumOffsetChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.minimumOffset, value, this, this.MinimumOffsetChanged);
     }
 
     /// <summary>
@@ -105,7 +102,7 @@ public class PointerScanner {
     /// </summary>
     public uint PrimaryMaximumOffset {
         get => this.primaryMaximumOffset;
-        set => PropertyHelper.SetAndRaiseINE(ref this.primaryMaximumOffset, value, this, static t => t.PrimaryMaximumOffsetChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.primaryMaximumOffset, value, this, this.PrimaryMaximumOffsetChanged);
     }
 
     /// <summary>
@@ -113,7 +110,7 @@ public class PointerScanner {
     /// </summary>
     public uint SecondaryMaximumOffset {
         get => this.secondaryMaximumOffset;
-        set => PropertyHelper.SetAndRaiseINE(ref this.secondaryMaximumOffset, value, this, static t => t.SecondaryMaximumOffsetChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.secondaryMaximumOffset, value, this, this.SecondaryMaximumOffsetChanged);
     }
 
     /// <summary>
@@ -121,7 +118,7 @@ public class PointerScanner {
     /// </summary>
     public uint SearchAddress {
         get => this.searchAddress;
-        set => PropertyHelper.SetAndRaiseINE(ref this.searchAddress, value, this, static t => t.SearchAddressChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.searchAddress, value, this, this.SearchAddressChanged);
     }
 
     /// <summary>
@@ -129,31 +126,31 @@ public class PointerScanner {
     /// </summary>
     public uint Alignment {
         get => this.alignment;
-        set => PropertyHelper.SetAndRaiseINE(ref this.alignment, value, this, static t => t.AlignmentChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.alignment, value, this, this.AlignmentChanged);
     }
 
     public bool HasPointerMap {
-        get => this.hasPointerMap;
-        private set => PropertyHelper.SetAndRaiseINE(ref this.hasPointerMap, value, this, static t => t.HasPointerMapChanged?.Invoke(t));
+        get => field;
+        private set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.HasPointerMapChanged);
     }
 
     public bool IsScanRunning {
-        get => this.isScanRunning;
-        private set => PropertyHelper.SetAndRaiseINE(ref this.isScanRunning, value, this, static t => t.IsScanRunningChanged?.Invoke(t));
+        get => field;
+        private set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsScanRunningChanged);
     }
 
     public IReadOnlyDictionary<uint, uint> PointerMap => this.basePointers;
 
-    public event PointerScannerEventHandler? AddressableBaseChanged;
-    public event PointerScannerEventHandler? AddressableLengthChanged;
-    public event PointerScannerEventHandler? MaxDepthChanged;
-    public event PointerScannerEventHandler? MinimumOffsetChanged;
-    public event PointerScannerEventHandler? PrimaryMaximumOffsetChanged;
-    public event PointerScannerEventHandler? SecondaryMaximumOffsetChanged;
-    public event PointerScannerEventHandler? SearchAddressChanged;
-    public event PointerScannerEventHandler? AlignmentChanged;
-    public event PointerScannerEventHandler? HasPointerMapChanged;
-    public event PointerScannerEventHandler? IsScanRunningChanged;
+    public event EventHandler? AddressableBaseChanged;
+    public event EventHandler? AddressableLengthChanged;
+    public event EventHandler? MaxDepthChanged;
+    public event EventHandler? MinimumOffsetChanged;
+    public event EventHandler? PrimaryMaximumOffsetChanged;
+    public event EventHandler? SecondaryMaximumOffsetChanged;
+    public event EventHandler? SearchAddressChanged;
+    public event EventHandler? AlignmentChanged;
+    public event EventHandler? HasPointerMapChanged;
+    public event EventHandler? IsScanRunningChanged;
 
     private IntPtr hMemoryDump;
     private IntPtr cbMemoryDump;

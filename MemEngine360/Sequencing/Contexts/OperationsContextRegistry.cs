@@ -25,9 +25,9 @@ using PFXToolKitUI.Interactivity.Selections;
 namespace MemEngine360.Sequencing.Contexts;
 
 public static class OperationsContextRegistry {
-    private readonly struct CurrentOperationInfo(BaseSequenceOperation operation, BaseSequenceOperationEventHandler isEnabledHandler) {
+    private readonly struct CurrentOperationInfo(BaseSequenceOperation operation, EventHandler isEnabledHandler) {
         public readonly BaseSequenceOperation Operation = operation;
-        public readonly BaseSequenceOperationEventHandler IsEnabledHandler = isEnabledHandler;
+        public readonly EventHandler IsEnabledHandler = isEnabledHandler;
     }
 
     private static readonly DataKey<CurrentOperationInfo> CurrentOperationDataKey = DataKeys.Create<CurrentOperationInfo>(nameof(OperationsContextRegistry) + "_internal_" + nameof(CurrentOperationDataKey));
@@ -52,7 +52,7 @@ public static class OperationsContextRegistry {
                 ListSelectionModel<BaseSequenceOperation>? operations = TaskSequenceManagerViewState.GetInstance(newManager).SelectedOperations;
                 if (operations != null && operations.Count == 1) {
                     BaseSequenceOperation newOp = operations[0];
-                    CurrentOperationInfo info = new CurrentOperationInfo(newOp, _ => entry.RaiseIsCheckedChanged());
+                    CurrentOperationInfo info = new CurrentOperationInfo(newOp, (s, e) => entry.RaiseIsCheckedChanged());
                     entry.UserContext.Set(CurrentOperationDataKey, info);
                     entry.DisplayName = "Is Enabled";
                     entry.IsCheckedFunction = static e => CurrentOperationDataKey.GetContext(e.UserContext).Operation.IsEnabled;

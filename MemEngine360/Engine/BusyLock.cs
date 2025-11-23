@@ -29,10 +29,6 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine;
 
-public delegate void BusyLockEventHandler(BusyLock busyLock);
-
-public delegate void BusyLockQuickReleaseRequestedEventHandler(BusyLock busyLock, Task tcsQuickActionFinished);
-
 /// <summary>
 /// An asynchronous lock implementation, used primarily used by the <see cref="MemoryEngine"/>,
 /// to synchronize access to a resource without blocking at all. The lock is used to ensure only one
@@ -76,7 +72,7 @@ public sealed class BusyLock {
     /// It is also vital that no handler ever tries to obtain the busy token in the same call frame.
     /// </para>
     /// </summary>
-    public event BusyLockEventHandler? IsBusyChanged;
+    public event EventHandler? IsBusyChanged;
 
     /// <summary>
     /// Fired when a short running operation is trying to obtain the busy token, and the operation is substantial enough
@@ -94,7 +90,7 @@ public sealed class BusyLock {
     /// During the call frame for handlers, a busy token will remain unobtainable, because the caller will
     /// have already tried to obtain it and will be the first priority, no matter what
     /// </remarks>
-    public event BusyLockQuickReleaseRequestedEventHandler? UserQuickReleaseRequested;
+    public event EventHandler<QuickReleaseRequestedEventArgs>? UserQuickReleaseRequested;
 
     public BusyLock() {
     }
@@ -409,7 +405,7 @@ public sealed class BusyLock {
         try {
             // Broadcast to listeners to give up their busy token. Hopefully they will
             // release them in the call frame, but that probably won't happen
-            this.UserQuickReleaseRequested?.Invoke(this, myTcs.Task);
+            this.UserQuickReleaseRequested?.Invoke(this, new QuickReleaseRequestedEventArgs(myTcs.Task));
 
             // Try and exchange the current tcs with ours.
             // If unsuccessful, we get the current one and just wait for it
@@ -545,7 +541,7 @@ public sealed class BusyLock {
         Debug.Assert(this.CriticalLock.IsHeldByCurrentThread, "Busy lock not acquired");
         if (Interlocked.Increment(ref this.busyCount) == 1) {
             try {
-                this.IsBusyChanged?.Invoke(this);
+                this.IsBusyChanged?.Invoke(this, EventArgs.Empty);
             }
             catch {
                 Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
@@ -562,7 +558,7 @@ public sealed class BusyLock {
         this.activeToken = null;
         if (Interlocked.Decrement(ref this.busyCount) == 0) {
             try {
-                this.IsBusyChanged?.Invoke(this);
+                this.IsBusyChanged?.Invoke(this, EventArgs.Empty);
             }
             catch {
                 Debugger.Break(); // exceptions are swallowed because it's the user's fault for not catching errors :D
@@ -615,6 +611,18 @@ public sealed class BusyLock {
             }
         }
     }
+}
+
+/// <summary>
+/// Represents information about the <see cref="BusyLock.UserQuickReleaseRequested"/> event
+/// </summary>
+public readonly struct QuickReleaseRequestedEventArgs(Task acquisitionTask) {
+    /// <summary>
+    /// Gets the task that represents the operation of obtaining the token. This task becomes completed (always successfully)
+    /// once the sender has either obtained the token or cancelled the operation. Use one of the ContinueWith overloads to
+    /// run user code after the operation completes to, for example, re-obtain the token and continue a background task
+    /// </summary>
+    public Task AcquisitionTask { get; } = acquisitionTask;
 }
 
 /// <summary>

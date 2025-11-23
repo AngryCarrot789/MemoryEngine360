@@ -22,7 +22,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using MemEngine360.Commands;
-using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.XboxBase;
@@ -212,7 +211,7 @@ public partial class ModuleViewerView : UserControl {
             newValue.ConnectionChanged += this.OnEngineConnectionChanged;
     }
 
-    private void OnEngineConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldConnection, IConsoleConnection? newConnection, ConnectionChangeCause cause) {
+    private void OnEngineConnectionChanged(object? o, ConnectionChangedEventArgs args) {
         this.dumpModuleMemoryCommand.RaiseCanExecuteChanged();
     }
 }

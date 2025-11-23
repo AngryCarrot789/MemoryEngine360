@@ -22,11 +22,9 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing.Conditions;
-
-public delegate void CompareMemoryConditionEventHandler(CompareMemoryCondition sender);
 
 /// <summary>
 /// A sequencer condition that reads a value from the console and compares it to a constant value.
@@ -42,7 +40,7 @@ public class CompareMemoryCondition : BaseSequenceCondition {
     /// </summary>
     public IMemoryAddress Address {
         get => this.address;
-        set => PropertyHelper.SetAndRaiseINE(ref this.address, value, this, static t => t.AddressChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.address, value, this, this.AddressChanged);
     }
 
     /// <summary>
@@ -51,7 +49,7 @@ public class CompareMemoryCondition : BaseSequenceCondition {
     /// </summary>
     public CompareType CompareType {
         get => this.compareType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.compareType, value, this, static t => t.CompareTypeChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.compareType, value, this, this.CompareTypeChanged);
     }
 
     /// <summary>
@@ -68,7 +66,7 @@ public class CompareMemoryCondition : BaseSequenceCondition {
                 }
             }
 
-            PropertyHelper.SetAndRaiseINE(ref this.compareTo, value, this, static t => t.CompareToChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref this.compareTo, value, this, this.CompareToChanged);
         }
     }
 
@@ -77,13 +75,13 @@ public class CompareMemoryCondition : BaseSequenceCondition {
     /// </summary>
     public bool ParseIntAsHex {
         get => this.parseIntAsHex;
-        set => PropertyHelper.SetAndRaiseINE(ref this.parseIntAsHex, value, this, static t => t.ParseIntAsHexChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.parseIntAsHex, value, this, this.ParseIntAsHexChanged);
     }
 
-    public event CompareMemoryConditionEventHandler? AddressChanged;
-    public event CompareMemoryConditionEventHandler? CompareTypeChanged;
-    public event CompareMemoryConditionEventHandler? CompareToChanged;
-    public event CompareMemoryConditionEventHandler? ParseIntAsHexChanged;
+    public event EventHandler? AddressChanged;
+    public event EventHandler? CompareTypeChanged;
+    public event EventHandler? CompareToChanged;
+    public event EventHandler? ParseIntAsHexChanged;
 
     public CompareMemoryCondition() {
     }

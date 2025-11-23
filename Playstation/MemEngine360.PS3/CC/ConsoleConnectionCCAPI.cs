@@ -22,15 +22,13 @@ using System.Runtime.Versioning;
 using MemEngine360.Connections;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.PS3.CC;
-
-public delegate void ConsoleConnectionCCAPIEventHandler(ConsoleConnectionCCAPI sender);
 
 [SupportedOSPlatform("windows")]
 public class ConsoleConnectionCCAPI : BaseConsoleConnection, INetworkConsoleConnection {
     private readonly ConsoleControlAPI api;
-    private uint attachedProcess = 0xFFFFFFFF;
 
     public override RegisteredConnectionType ConnectionType => ConnectionTypePS3CCAPI.Instance;
     
@@ -42,16 +40,16 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection, INetworkConsoleConn
     /// Gets or sets the process we use to read and write memory 
     /// </summary>
     public uint AttachedProcess {
-        get => this.attachedProcess;
-        set => PropertyHelper.SetAndRaiseINE(ref this.attachedProcess, value, this, static t => {
-            t.AttachedProcessChanged?.Invoke(t);
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, static t => {
+            t.AttachedProcessChanged?.Invoke(t, EventArgs.Empty);
             t.ConnectionType.RaiseConnectionStatusBarTextInvalidated(t);
         });
-    }
+    } = 0xFFFFFFFF;
 
     public EndPoint? EndPoint => !this.IsClosed ? this.api.EndPoint : null;
 
-    public event ConsoleConnectionCCAPIEventHandler? AttachedProcessChanged;
+    public event EventHandler? AttachedProcessChanged;
     
     public ConsoleConnectionCCAPI(ConsoleControlAPI api) {
         this.api = api;

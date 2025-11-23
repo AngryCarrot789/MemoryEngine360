@@ -18,59 +18,69 @@
 // 
 
 using Lua;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.ModTools.Gui;
 
-public delegate void BaseMTElementEventHandler(BaseMTElement sender);
-
-public delegate void BaseMTElementGUIChangedEventHandler(BaseMTElement sender, ModToolGUI? oldGUI, ModToolGUI? newGUI);
-
-public delegate void BaseMTElementParentChangedEventHandler(BaseMTElement sender, BaseMTPanel? oldParent, BaseMTPanel? newParent);
-
 public abstract class BaseMTElement {
-    private ModToolGUI? gui;
-    private BaseMTPanel? parent;
-    private EnumHorizontalAlign horizontalAlignment;
-    private EnumVerticalAlign verticalAlignment;
-    private double? width, height, minWidth, minHeight, maxWidth, maxHeight;
-
     public ModToolGUI? GUI {
-        get => this.gui;
-        internal set => PropertyHelper.SetAndRaiseINE(ref this.gui, value, this, static (t, o, n) => t.OnGUIChanged(o, n));
+        get => field;
+        internal set => PropertyHelper.SetAndRaiseINE(ref field, value, this, static (t, o, n) => t.OnGUIChanged(o, n));
     }
 
     public BaseMTPanel? Parent {
-        get => this.parent;
-        set => PropertyHelper.SetAndRaiseINE(ref this.parent, value, this, static (t, o, n) => t.ParentChanged?.Invoke(t, o, n));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ParentChanged);
     }
 
     public EnumHorizontalAlign HorizontalAlignment {
-        get => this.horizontalAlignment;
-        set => PropertyHelper.SetAndRaiseINE(ref this.horizontalAlignment, value, this, static t => t.HorizontalAlignmentChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.HorizontalAlignmentChanged);
     }
-    
+
     public EnumVerticalAlign VerticalAlignment {
-        get => this.verticalAlignment;
-        set => PropertyHelper.SetAndRaiseINE(ref this.verticalAlignment, value, this, static t => t.VerticalAlignmentChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.VerticalAlignmentChanged);
     }
-    
-    public double? Width { get => this.width; set => PropertyHelper.SetAndRaiseINE(ref this.width, value, this, static t => t.WidthChanged?.Invoke(t)); }
-    public double? Height { get => this.height; set => PropertyHelper.SetAndRaiseINE(ref this.height, value, this, static t => t.HeightChanged?.Invoke(t)); }
-    public double? MinWidth { get => this.minWidth; set => PropertyHelper.SetAndRaiseINE(ref this.minWidth, value, this, static t => t.MinWidthChanged?.Invoke(t)); }
-    public double? MinHeight { get => this.minHeight; set => PropertyHelper.SetAndRaiseINE(ref this.minHeight, value, this, static t => t.MinHeightChanged?.Invoke(t)); }
-    public double? MaxWidth { get => this.maxWidth; set => PropertyHelper.SetAndRaiseINE(ref this.maxWidth, value, this, static t => t.MaxWidthChanged?.Invoke(t)); }
-    public double? MaxHeight { get => this.maxHeight; set => PropertyHelper.SetAndRaiseINE(ref this.maxHeight, value, this, static t => t.MaxHeightChanged?.Invoke(t)); }
-    
-    public event BaseMTElementGUIChangedEventHandler? GUIChanged;
-    public event BaseMTElementParentChangedEventHandler? ParentChanged;
-    public event BaseMTElementEventHandler? HorizontalAlignmentChanged;
-    public event BaseMTElementEventHandler? VerticalAlignmentChanged;
-    
-    public event BaseMTElementEventHandler? WidthChanged, HeightChanged;
-    public event BaseMTElementEventHandler? MinWidthChanged, MinHeightChanged;
-    public event BaseMTElementEventHandler? MaxWidthChanged, MaxHeightChanged;
-    
+
+    public double? Width {
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.WidthChanged);
+    }
+
+    public double? Height {
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.HeightChanged);
+    }
+
+    public double? MinWidth {
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.MinWidthChanged);
+    }
+
+    public double? MinHeight {
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.MinHeightChanged);
+    }
+
+    public double? MaxWidth {
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.MaxWidthChanged);
+    }
+
+    public double? MaxHeight {
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.MaxHeightChanged);
+    }
+
+    public event EventHandler<ValueChangedEventArgs<ModToolGUI?>>? GUIChanged;
+    public event EventHandler<ValueChangedEventArgs<BaseMTPanel?>>? ParentChanged;
+    public event EventHandler? HorizontalAlignmentChanged;
+    public event EventHandler? VerticalAlignmentChanged;
+    public event EventHandler? WidthChanged, HeightChanged;
+    public event EventHandler? MinWidthChanged, MinHeightChanged;
+    public event EventHandler? MaxWidthChanged, MaxHeightChanged;
+
     // The table that is associated with this object
     internal LuaTable? ownerTable;
 
@@ -78,20 +88,20 @@ public abstract class BaseMTElement {
     }
 
     protected virtual void OnGUIChanged(ModToolGUI? oldGui, ModToolGUI? newGui) {
-        this.GUIChanged?.Invoke(this, oldGui, newGui);
+        this.GUIChanged?.Invoke(this, new ValueChangedEventArgs<ModToolGUI?>(oldGui, newGui));
     }
+}
 
-    public enum EnumHorizontalAlign {
-        Stretch,
-        Left,
-        Center,
-        Right,
-    }
-    
-    public enum EnumVerticalAlign {
-        Stretch,
-        Top,
-        Center,
-        Bottom,
-    }
+public enum EnumHorizontalAlign {
+    Stretch,
+    Left,
+    Center,
+    Right,
+}
+
+public enum EnumVerticalAlign {
+    Stretch,
+    Top,
+    Center,
+    Bottom,
 }

@@ -17,31 +17,27 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing.Operations;
-
-public delegate void LabelOperationEventHandler(LabelOperation sender);
 
 /// <summary>
 /// An operation that acts as a label
 /// </summary>
 public class LabelOperation : BaseSequenceOperation, IPlaceholderOperation {
-    private string? labelName;
-
     public override string DisplayName => "Label";
 
     public string? LabelName {
-        get => this.labelName;
+        get => field;
         set {
             if (string.IsNullOrWhiteSpace(value))
                 value = null;
-            PropertyHelper.SetAndRaiseINE(ref this.labelName, value, this, static t => t.LabelNameChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.LabelNameChanged);
             this.TaskSequence?.UpdateAllJumpTargets();
         }
     }
 
-    public event LabelOperationEventHandler? LabelNameChanged;
+    public event EventHandler? LabelNameChanged;
 
     protected override Task RunOperation(SequenceExecutionContext ctx, CancellationToken token) {
         return Task.CompletedTask;

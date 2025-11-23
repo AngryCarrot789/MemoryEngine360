@@ -18,32 +18,29 @@
 // 
 
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing.Operations;
 
-public delegate void DelayOperationEventHandler(DelayOperation sender);
-
 public class DelayOperation : BaseSequenceOperation {
-    private TimeSpan delay = TimeSpan.Zero;
-
     /// <summary>
     /// Gets or sets this operation's delay time. Setting to null results in <see cref="RunOperation"/> returning a completed task
     /// </summary>
     public TimeSpan Delay {
-        get => this.delay;
+        get => field;
         set {
             if (value.TotalMilliseconds < 0)
                 throw new ArgumentOutOfRangeException(nameof(value), value, "Delay must be positive");
             if (value.TotalMilliseconds >= int.MaxValue)
                 throw new ArgumentOutOfRangeException(nameof(value), value, "Delay is too large");
 
-            PropertyHelper.SetAndRaiseINE(ref this.delay, value, this, static t => t.DelayChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.DelayChanged);
         }
-    }
+    } = TimeSpan.Zero;
 
     public override string DisplayName => "Delay";
 
-    public event DelayOperationEventHandler? DelayChanged;
+    public event EventHandler? DelayChanged;
 
     public DelayOperation() {
     }

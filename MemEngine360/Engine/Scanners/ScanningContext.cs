@@ -48,7 +48,7 @@ public abstract class ScanningContext {
     /// <summary>
     /// Fired when a result is found. When scanning for the next value, it fires with a pre-existing result
     /// </summary>
-    public abstract event ScanningContextResultEventHandler? ResultFound;
+    public abstract event EventHandler<ScanResultViewModel>? ResultFound;
 
     protected ScanningContext(ScanningProcessor processor) {
         this.Processor = processor;

@@ -28,6 +28,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
+using MemEngine360.Engine.Events;
 using MemEngine360.Engine.Events.XbdmEvents;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
@@ -61,7 +62,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
     private readonly CancellationTokenSource ctsCheckClosed;
     private readonly bool isEventConnection;
 
-    private readonly List<ConsoleSystemEventHandler> systemEventHandlers = new List<ConsoleSystemEventHandler>();
+    private readonly List<EventHandler<ConsoleSystemEventArgs>> systemEventHandlers = new List<EventHandler<ConsoleSystemEventArgs>>();
     private readonly Lock debugHelperLock = new Lock();
     private int systemEventSubscribeCount;
     private ThreadedEventListener? threadedDebugHelper;
@@ -1049,7 +1050,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         }
     }
 
-    public IDisposable SubscribeToEvents(ConsoleSystemEventHandler handler) {
+    public IDisposable SubscribeToEvents(EventHandler<ConsoleSystemEventArgs> handler) {
         ArgumentNullException.ThrowIfNull(handler);
         if (this.isEventConnection)
             throw new InvalidOperationException("Attempt to subscribe to events on an event connection");
@@ -1068,7 +1069,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         return new EventSubscriber(this, handler);
     }
 
-    private void UnsubscribeFromEvents(ConsoleSystemEventHandler handler) {
+    private void UnsubscribeFromEvents(EventHandler<ConsoleSystemEventArgs> handler) {
         lock (this.systemEventHandlers) {
             this.systemEventHandlers.Remove(handler);
         }
@@ -1083,9 +1084,9 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
 
     private class EventSubscriber : IDisposable {
         private volatile XbdmConsoleConnection? connection;
-        private readonly ConsoleSystemEventHandler handler;
+        private readonly EventHandler<ConsoleSystemEventArgs> handler;
 
-        public EventSubscriber(XbdmConsoleConnection connection, ConsoleSystemEventHandler handler) {
+        public EventSubscriber(XbdmConsoleConnection connection, EventHandler<ConsoleSystemEventArgs> handler) {
             this.connection = connection;
             this.handler = handler;
         }
@@ -1231,13 +1232,13 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         }
 
         private void InvokeHandlersAndWait(params ReadOnlySpan<XbdmEventArgs> preRunEvents) {
-            List<ConsoleSystemEventHandler> eventHandlerList;
+            List<EventHandler<ConsoleSystemEventArgs>> eventHandlerList;
             lock (this.connection.systemEventHandlers) {
                 eventHandlerList = this.connection.systemEventHandlers.ToList();
             }
 
             foreach (XbdmEventArgs tmpEvent in preRunEvents) {
-                foreach (ConsoleSystemEventHandler handler in eventHandlerList) {
+                foreach (EventHandler<ConsoleSystemEventArgs> handler in eventHandlerList) {
                     handler(this.connection, tmpEvent);
                 }
             }

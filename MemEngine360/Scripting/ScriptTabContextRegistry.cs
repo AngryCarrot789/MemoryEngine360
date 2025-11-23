@@ -27,12 +27,12 @@ public static class ScriptTabContextRegistry {
 
     static ScriptTabContextRegistry() {
         Registry = new ContextRegistry("Script");
-        Registry.Opened += static (registry, context) => {
+        Registry.Opened += static (_, context) => {
             if (Script.DataKey.TryGetContext(context, out Script? script) && !string.IsNullOrWhiteSpace(script.Name)) {
-                registry.ObjectName = script.Name;
+                Registry.ObjectName = script.Name;
             }
             else {
-                registry.ObjectName = null;
+                Registry.ObjectName = null;
             }
         };
         

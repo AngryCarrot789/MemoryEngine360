@@ -1,8 +1,6 @@
-﻿using PFXToolKitUI.Utils;
+﻿using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Engine.StructViewing.ClassBuilding;
-
-public delegate void TypeDescriptorEventHandler(TypeDescriptor descriptor);
 
 /// <summary>
 /// Describes a type
@@ -17,7 +15,7 @@ public abstract class TypeDescriptor {
     /// An event fired when the <see cref="ReadableName"/> property changed. Note, you must remove handlers
     /// once no longer required, because adding a handler may require an event proxy to other objects
     /// </summary>
-    public abstract event TypeDescriptorEventHandler? ReadableNameChanged;
+    public abstract event EventHandler? ReadableNameChanged;
 
     protected TypeDescriptor() {
     }
@@ -35,24 +33,22 @@ public abstract class TypeDescriptor {
     public static ArrayTypeDescriptor ArrayOf(TypeDescriptor type, int elementCount) => new ArrayTypeDescriptor(type, elementCount);
 }
 
-public delegate void PrimitiveTypeDescriptorPrimitiveTypeChangedEventHandler(PrimitiveTypeDescriptor sender);
-
 public sealed class PrimitiveTypeDescriptor : TypeDescriptor {
     private Type primitiveType;
 
     public override string ReadableName => this.primitiveType.ToString();
     
-    public override event TypeDescriptorEventHandler? ReadableNameChanged;
+    public override event EventHandler? ReadableNameChanged;
 
     public Type PrimitiveType {
         get => this.primitiveType;
         set => PropertyHelper.SetAndRaiseINE(ref this.primitiveType, value, this, static t => {
-            t.PrimitiveTypeChanged?.Invoke(t);
-            t.ReadableNameChanged?.Invoke(t);
+            t.PrimitiveTypeChanged?.Invoke(t, EventArgs.Empty);
+            t.ReadableNameChanged?.Invoke(t, EventArgs.Empty);
         });
     }
 
-    public event PrimitiveTypeDescriptorPrimitiveTypeChangedEventHandler? PrimitiveTypeChanged;
+    public event EventHandler? PrimitiveTypeChanged;
     
     public PrimitiveTypeDescriptor() {
     }
@@ -73,14 +69,14 @@ public sealed class PrimitiveTypeDescriptor : TypeDescriptor {
 
 public sealed class ClassTypeDescriptor : TypeDescriptor {
     private int rncHandlers;
-    private TypeDescriptorEventHandler? myRnc;
-    private readonly ClassTypeEventHandler cachedNameChangedHandler;
+    private EventHandler? myRnc;
+    private readonly EventHandler cachedNameChangedHandler;
 
     public ClassType ClassType { get; }
 
     public override string ReadableName => this.ClassType.Name;
 
-    public override event TypeDescriptorEventHandler? ReadableNameChanged {
+    public override event EventHandler? ReadableNameChanged {
         add => MulticastUtils.AddProxy(ref this.rncHandlers, ref this.myRnc, value, this, t => t.ClassType.NameChanged += t.cachedNameChangedHandler);
         remove => MulticastUtils.RemoveProxy(ref this.rncHandlers, ref this.myRnc, value, this, t => t.ClassType.NameChanged -= t.cachedNameChangedHandler);
     }
@@ -90,19 +86,19 @@ public sealed class ClassTypeDescriptor : TypeDescriptor {
         this.cachedNameChangedHandler = this.OnClassTypeNameChanged;
     }
 
-    private void OnClassTypeNameChanged(ClassType sender) => this.myRnc?.Invoke(this);
+    private void OnClassTypeNameChanged(object? o, EventArgs e) => this.myRnc?.Invoke(this, EventArgs.Empty);
 }
 
 public sealed class PointerTypeDescriptor : TypeDescriptor {
     private int rncHandlers;
-    private TypeDescriptorEventHandler? myRnc;
-    private readonly TypeDescriptorEventHandler cachedReadableNameChangedHandler;
+    private EventHandler? myRnc;
+    private readonly EventHandler cachedReadableNameChangedHandler;
 
     public TypeDescriptor PointerType { get; }
 
     public override string ReadableName => this.PointerType.ReadableName + '*';
 
-    public override event TypeDescriptorEventHandler? ReadableNameChanged {
+    public override event EventHandler? ReadableNameChanged {
         add => MulticastUtils.AddProxy(ref this.rncHandlers, ref this.myRnc, value, this, t => t.PointerType.ReadableNameChanged += t.cachedReadableNameChangedHandler);
         remove => MulticastUtils.RemoveProxy(ref this.rncHandlers, ref this.myRnc, value, this, t => t.PointerType.ReadableNameChanged -= t.cachedReadableNameChangedHandler);
     }
@@ -112,36 +108,34 @@ public sealed class PointerTypeDescriptor : TypeDescriptor {
         this.cachedReadableNameChangedHandler = this.OnPointerTypeReadableNameChanged;
     }
 
-    private void OnPointerTypeReadableNameChanged(TypeDescriptor descriptor) => this.myRnc?.Invoke(this);
+    private void OnPointerTypeReadableNameChanged(object? sender, EventArgs e) => this.myRnc?.Invoke(this, EventArgs.Empty);
 }
-
-public delegate void ArrayTypeDescriptorEventHandler(ArrayTypeDescriptor sender);
 
 public sealed class ArrayTypeDescriptor : TypeDescriptor {
     private int elementCount;
 
     private int rncHandlers;
-    private TypeDescriptorEventHandler? myRnc;
-    private readonly TypeDescriptorEventHandler cachedReadableNameChangedHandler;
+    private EventHandler? myRnc;
+    private readonly EventHandler cachedReadableNameChangedHandler;
 
     public TypeDescriptor ElementType { get; }
 
     public int ElementCount {
         get => this.elementCount;
         set => PropertyHelper.SetAndRaiseINE(ref this.elementCount, value, this, static t => {
-            t.ElementCountChanged?.Invoke(t);
-            t.myRnc?.Invoke(t);
+            t.ElementCountChanged?.Invoke(t, EventArgs.Empty);
+            t.myRnc?.Invoke(t, EventArgs.Empty);
         });
     }
 
     public override string ReadableName => $"{this.ElementType.ReadableName}[{this.ElementCount}]";
 
-    public override event TypeDescriptorEventHandler? ReadableNameChanged {
+    public override event EventHandler? ReadableNameChanged {
         add => MulticastUtils.AddProxy(ref this.rncHandlers, ref this.myRnc, value, this, t => t.ElementType.ReadableNameChanged += t.cachedReadableNameChangedHandler);
         remove => MulticastUtils.RemoveProxy(ref this.rncHandlers, ref this.myRnc, value, this, t => t.ElementType.ReadableNameChanged -= t.cachedReadableNameChangedHandler);
     }
 
-    public event ArrayTypeDescriptorEventHandler? ElementCountChanged;
+    public event EventHandler? ElementCountChanged;
 
     public ArrayTypeDescriptor(TypeDescriptor elementType, int elementCount = 0) {
         this.ElementType = elementType;
@@ -149,5 +143,5 @@ public sealed class ArrayTypeDescriptor : TypeDescriptor {
         this.cachedReadableNameChangedHandler = this.OnElementTypeReadableNameChanged;
     }
 
-    private void OnElementTypeReadableNameChanged(TypeDescriptor descriptor) => this.myRnc?.Invoke(this);
+    private void OnElementTypeReadableNameChanged(object? sender, EventArgs e) => this.myRnc?.Invoke(this, EventArgs.Empty);
 }

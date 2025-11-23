@@ -21,8 +21,6 @@ using PFXToolKitUI.Composition;
 
 namespace MemEngine360.ModTools;
 
-public delegate void ScriptViewStateEventHandler(ModToolViewState sender);
-
 public class ModToolViewState {
     /// <summary>
     /// Gets the task sequence manager for this state
@@ -39,7 +37,7 @@ public class ModToolViewState {
     /// Requests the UI to flush the text editor document associated with this
     /// script view state to our script's <see cref="Scripting.Script.SourceCode"/>
     /// </summary>
-    public event ScriptViewStateEventHandler? FlushEditorToModTool;
+    public event EventHandler? FlushEditorToModTool;
 
     private ModToolViewState(ModTool modTool) {
         this.ModTool = modTool;
@@ -48,7 +46,7 @@ public class ModToolViewState {
     /// <summary>
     /// Raises the <see cref="FlushEditorToModTool"/> event
     /// </summary>
-    public void RaiseFlushEditorToScript() => this.FlushEditorToModTool?.Invoke(this);
+    public void RaiseFlushEditorToScript() => this.FlushEditorToModTool?.Invoke(this, EventArgs.Empty);
     
     public static ModToolViewState GetInstance(ModTool modTool) {
         return ((IComponentManager) modTool).GetOrCreateComponent((t) => new ModToolViewState((ModTool) t));

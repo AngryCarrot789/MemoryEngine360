@@ -17,21 +17,17 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.ModTools.Gui;
 
-public delegate void MTTextBlockEventHandler(MTTextBlock sender);
-
 public sealed class MTTextBlock : BaseMTElement {
-    private string text = "";
-
     public string Text {
-        get => this.text;
-        set => PropertyHelper.SetAndRaiseINE(ref this.text, value, this, static t => t.TextChanged?.Invoke(t));
-    }
-    
-    public event MTTextBlockEventHandler? TextChanged;
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.TextChanged);
+    } = "";
+
+    public event EventHandler? TextChanged;
     
     public MTTextBlock() {
     }

@@ -19,22 +19,19 @@
 
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.ModTools.Gui;
 
-public delegate void MTStackPanelIsHorizontalChangedEventHandler(MTStackPanel sender);
-
 public sealed class MTStackPanel : BaseMTPanel {
-    private bool isVertical;
-
     public ObservableList<BaseMTElement> Children { get; } = new ObservableList<BaseMTElement>();
 
     public bool IsVertical {
-        get => this.isVertical;
-        set => PropertyHelper.SetAndRaiseINE(ref this.isVertical, value, this, static t => t.IsVerticalChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsVerticalChanged);
     }
 
-    public event MTStackPanelIsHorizontalChangedEventHandler? IsVerticalChanged;
+    public event EventHandler? IsVerticalChanged;
 
     public MTStackPanel() {
         this.Children.ItemsAdded += (list, index, items) => items.ForEach(this, (x, self) => self.OnElementAdded(x));

@@ -24,6 +24,7 @@ using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Interactivity.Selections;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
@@ -39,7 +40,7 @@ public class OperationListPresenter {
         this.window.WindowOpened += this.OnWindowOpened;
         this.window.WindowClosed += this.OnWindowClosed;
 
-        this.selectedSequenceDisplayNameBinder.UpdateControlWithoutModel += b => this.UpdateOperationListGroupBoxHeader();
+        this.selectedSequenceDisplayNameBinder.UpdateControlWithoutModel += (s, e) => this.UpdateOperationListGroupBoxHeader();
         this.selectedSequenceDisplayNameBinder.AttachControl(this.window.PART_OperationGroupBoxHeaderTextBlock);
     }
 
@@ -108,8 +109,8 @@ public class OperationListPresenter {
         }
     }
 
-    private void Event_PrimaryOperationChanged(TaskSequenceViewState sender, BaseSequenceOperation? oldOp, BaseSequenceOperation? newOp) {
-        this.OnPrimaryOperationChanged(oldOp, newOp);
+    private void Event_PrimaryOperationChanged(object? o, ValueChangedEventArgs<BaseSequenceOperation?> e) {
+        this.OnPrimaryOperationChanged(e.OldValue, e.NewValue);
     }
 
     private void OnPrimaryOperationChanged(BaseSequenceOperation? oldOperation, BaseSequenceOperation? newOperation) {

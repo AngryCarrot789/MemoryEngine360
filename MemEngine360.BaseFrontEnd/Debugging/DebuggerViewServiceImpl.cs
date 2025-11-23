@@ -40,18 +40,18 @@ public class DebuggerViewServiceImpl : IDebuggerViewService {
             Width = 1280, Height = 720
         });
 
-        window.Opened += (sender, args) => ((DebuggerView) sender.Content!).OnWindowOpened(sender);
-        window.ClosingAsync += (sender, args) => {
+        window.Opened += (s, args) => ((DebuggerView) ((IDesktopWindow) s!).Content!).OnWindowOpened((IDesktopWindow) s!);
+        window.ClosingAsync += (s, args) => {
             return ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                 // prevent memory leak
-                DebuggerView view = (DebuggerView) sender.Content!;
+                DebuggerView view = (DebuggerView) ((IDesktopWindow) s!).Content!;
                 view.ConsoleDebugger!.Engine.UserContext.Remove(OpenedWindowKey);
                 
                 return view.OnClosingAsync(args.Reason);
             }).Unwrap();
         };
         
-        window.Closed += (sender, args) => ((DebuggerView) sender.Content!).OnWindowClosed();
+        window.Closed += (s, args) => ((DebuggerView) ((IDesktopWindow) s!).Content!).OnWindowClosed();
         
         debugger.Engine.UserContext.Set(OpenedWindowKey, window);
         await window.ShowAsync();

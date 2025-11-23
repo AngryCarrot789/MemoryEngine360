@@ -17,21 +17,17 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Connections.Testing;
 
-public delegate void TestConnectionInfoModeChangedEventHandler(TestConnectionInfo sender);
-
 public class TestConnectionInfo : UserConnectionInfo {
-    private TestConnectionMode mode = TestConnectionMode.TimeoutError;
-
     public TestConnectionMode Mode {
-        get => this.mode;
-        set => PropertyHelper.SetAndRaiseINE(ref this.mode, value, this, static t => t.ModeChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ModeChanged);
+    } = TestConnectionMode.TimeoutError;
 
-    public event TestConnectionInfoModeChangedEventHandler? ModeChanged;
+    public event EventHandler? ModeChanged;
 
     public TestConnectionInfo(RegisteredConnectionType connectionType) : base(connectionType) {
     }

@@ -158,20 +158,21 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         this.offsetBinder.AttachControl(this.PART_AddressTextBox);
         this.offsetBinder.ValueConfirmed += (b, e) => {
             if (e.IsSuccess) {
-                this.PART_HexEditor.HexView.ScrollToByteOffset(b.Model.Offset, out _);
-                this.PART_HexEditor.Caret.Location = new BitLocation(b.Model.Offset);
-                this.PART_HexEditor.Selection.Range = new BitRange(b.Model.Offset, b.Model.Offset + 1);
+                MemoryViewer viewer = ((IBinder<MemoryViewer>) b!).Model;
+                this.PART_HexEditor.HexView.ScrollToByteOffset(viewer.Offset, out _);
+                this.PART_HexEditor.Caret.Location = new BitLocation(viewer.Offset);
+                this.PART_HexEditor.Selection.Range = new BitRange(viewer.Offset, viewer.Offset + 1);
             }
         };
 
         this.bytesPerRowBinder.AttachControl(this.PART_BytesPerRowTextBox);
-        this.bytesPerRowBinder.ControlUpdated += b => {
+        this.bytesPerRowBinder.ControlUpdated += (s, e) => {
             this.PART_HexEditor.HexView.BytesPerLine = (int) this.HexDisplayInfo!.BytesPerRow;
         };
 
         // Lazy way to hook into the model's value change
-        this.autoRefreshAddrBinder.ControlUpdated += (b) => this.UpdateAutoRefreshRange();
-        this.autoRefreshLenBinder.ControlUpdated += (b) => this.UpdateAutoRefreshRange();
+        this.autoRefreshAddrBinder.ControlUpdated += (s, e) => this.UpdateAutoRefreshRange();
+        this.autoRefreshLenBinder.ControlUpdated += (s, e) => this.UpdateAutoRefreshRange();
 
         this.autoRefreshAddrBinder.AttachControl(this.PART_AutoRefresh_From);
         this.autoRefreshLenBinder.AttachControl(this.PART_AutoRefresh_Count);
@@ -428,7 +429,8 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 }
 
                 SimpleCompletionState completion = new SimpleCompletionState();
-                completion.CompletionValueChanged += state => {
+                completion.CompletionValueChanged += (s, _) => {
+                    CompletionState state = (CompletionState) s!;
                     task.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
                     task.Progress.Text = $"Reading {ValueScannerUtils.ByteFormatter.ToString(length * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(length, false)}";
                 };
@@ -500,7 +502,8 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 }
 
                 SimpleCompletionState completion = new SimpleCompletionState();
-                completion.CompletionValueChanged += state => {
+                completion.CompletionValueChanged += (s, _) => {
+                    CompletionState state = (CompletionState) s!;
                     progress.CompletionState.TotalCompletion = state.TotalCompletion;
                     progress.Text = $"Writing {ValueScannerUtils.ByteFormatter.ToString(selection.ByteLength * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(selection.ByteLength, false)}";
                 };
@@ -593,12 +596,12 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         }
     }
 
-    private void OnConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
-        this.SetBinarySource(this.HexDisplayInfo != null ? new ConnectionLockPair(sender.BusyLock, newconnection) : null);
+    private void OnConnectionChanged(object? s, ConnectionChangedEventArgs args) {
+        this.SetBinarySource(this.HexDisplayInfo != null ? new ConnectionLockPair(((MemoryEngine) s!).BusyLock, args.NewConnection) : null);
     }
 
-    private void OnEndiannessModeChanged(MemoryViewer sender) {
-        this.PART_Inspector.IsLittleEndian = sender.InspectorEndianness == Endianness.LittleEndian;
+    private void OnEndiannessModeChanged(object? o, EventArgs e) {
+        this.PART_Inspector.IsLittleEndian = ((MemoryViewer) o!).InspectorEndianness == Endianness.LittleEndian;
     }
 
     internal void OnWindowOpened(IDesktopWindow sender) {
@@ -613,14 +616,14 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         this.Window = null;
     }
 
-    private void OnRestartAutoRefresh(MemoryViewer memoryViewer) {
+    private void OnRestartAutoRefresh(object? sender, EventArgs e) {
         if (this.autoRefreshTask != null && !this.autoRefreshTask.IsCompleted && this.autoRefreshTask.RequestCancellation()) {
             this.flagRestartAutoRefresh = true;
         }
     }
 
-    private async Task OnConnectionAboutToChange(MemoryEngine sender, ulong frame, IActivityProgress progress) {
-        progress.Caption = progress.Text = "Stopping auto-refresh";
+    private async Task OnConnectionAboutToChange(object? o, ConnectionChangingEventArgs args) {
+        args.Progress.SetCaptionAndText("Stopping auto-refresh");
         if (this.autoRefreshTask != null) {
             await this.autoRefreshTask.CancelAsync();
         }
@@ -715,7 +718,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 try {
                     // aprox. 50ms to fully read 1.5k bytes, based on simple benchmark with DateTime.Now
                     int read = (int) Math.Min(this.cbRange, int.MaxValue);
-                    
+
                     await connection.ReadBytes(this.startAddress, this.myBuffer, 0, read, connection.GetRecommendedReadChunkSize(read), null, pauseOrCancelToken);
 
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
@@ -776,9 +779,9 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
             this.myBusyToken = null;
         }
 
-        private void BusyLockOnUserQuickReleaseRequested(BusyLock busyLock, Task task) {
+        private void BusyLockOnUserQuickReleaseRequested(object? sender, QuickReleaseRequestedEventArgs args) {
             this.RequestPause(out _, out _);
-            task.ContinueWith(static (t, s) => ((AutoRefreshTask) s!).RequestResume(out _, out _), this, this.CancellationToken);
+            args.AcquisitionTask.ContinueWith(static (t, s) => ((AutoRefreshTask) s!).RequestResume(out _, out _), this, this.CancellationToken);
         }
 
         protected override async Task OnPaused(bool isFirst) {

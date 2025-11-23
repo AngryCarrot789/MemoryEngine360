@@ -28,23 +28,23 @@ public static class TaskSequenceContextRegistry {
     public static readonly ContextRegistry Registry = new ContextRegistry("Task Sequence");
 
     static TaskSequenceContextRegistry() {
-        Registry.Opened += static (registry, context) => {
+        Registry.Opened += static (_, context) => {
             if (TaskSequenceManager.DataKey.TryGetContext(context, out TaskSequenceManager? manager)) {
                 TaskSequenceManagerViewState vs = TaskSequenceManagerViewState.GetInstance(manager);
                 if (vs.SelectedSequences.Count > 0) {
                     if (vs.SelectedSequences.Count == 1) {
                         string first = vs.SelectedSequences.SelectedItems[0].DisplayName;
-                        registry.ObjectName = string.IsNullOrWhiteSpace("(unnammed sequence)") ? null : first;
+                        Registry.ObjectName = string.IsNullOrWhiteSpace("(unnammed sequence)") ? null : first;
                     }
                     else {
-                        registry.ObjectName = $"{vs.SelectedSequences.Count} sequence{Lang.S(vs.SelectedSequences.Count)}";
+                        Registry.ObjectName = $"{vs.SelectedSequences.Count} sequence{Lang.S(vs.SelectedSequences.Count)}";
                     }
 
                     return;
                 }
             }
 
-            registry.ObjectName = null;
+            Registry.ObjectName = null;
         };
 
         FixedWeightedMenuEntryGroup edit = Registry.GetFixedGroup("general");

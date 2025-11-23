@@ -45,10 +45,9 @@ public class LuaTextEditor : TextEditor {
 public class LuaTextArea : TextArea {
     protected override Type StyleKeyOverride => typeof(TextArea);
 
-    private CompletionWindow? myCompletionWindow;
     private OverloadInsightWindow? myInsightWindow;
 
-    private CompletionWindow TheCompletionWindow => this.myCompletionWindow ??= new CompletionWindow(this);
+    private CompletionWindow TheCompletionWindow => field ??= new CompletionWindow(this);
     
     public static readonly ICompletionData[] GlobalTablesCompletion = {
         new MyCompletionData("engine"),

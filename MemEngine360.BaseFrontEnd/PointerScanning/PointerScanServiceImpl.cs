@@ -44,8 +44,8 @@ public class PointerScanServiceImpl : IPointerScanService {
             Parent = parentWindow
         });
 
-        window.Closed += static (sender, args) => {
-            PointerScannerView view = (PointerScannerView) sender.Content!;
+        window.Closed += static (s, args) => {
+            PointerScannerView view = (PointerScannerView) ((IDesktopWindow) s!).Content!;
             if (view.PointerScanner is PointerScanner scanner) {
                 scanner.DisposeMemoryDump();
                 scanner.Clear();

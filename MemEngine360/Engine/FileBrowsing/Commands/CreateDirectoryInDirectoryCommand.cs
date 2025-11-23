@@ -75,8 +75,8 @@ public class CreateDirectoryInDirectoryCommand : BaseFileExplorerCommand {
                     }
                 };
 
-                info.TextChanged += s => {
-                    s.Footer = "Full Path: " + fsInfo.JoinPaths(parentDirPath, s.Text);
+                info.TextChanged += (_, _) => {
+                    info.Footer = "Full Path: " + fsInfo.JoinPaths(parentDirPath, info.Text);
                 };
 
                 info.Text = "New Directory";

@@ -21,8 +21,6 @@ using MemEngine360.Engine.Events;
 
 namespace MemEngine360.Connections.Features;
 
-public delegate void ConsoleSystemEventHandler(IConsoleConnection sender, ConsoleSystemEventArgs e);
-
 /// <summary>
 /// A feature for connections that can notify handlers of system event on the target console.
 /// <para>
@@ -46,5 +44,5 @@ public interface IFeatureSystemEvents : IConsoleFeature {
     /// </summary>
     /// <param name="handler">The handler of the system events. May be invoked from any thread</param>
     /// <returns>An object that unsubscribes when disposed</returns>
-    IDisposable SubscribeToEvents(ConsoleSystemEventHandler handler);
+    IDisposable SubscribeToEvents(EventHandler<ConsoleSystemEventArgs> handler);
 }

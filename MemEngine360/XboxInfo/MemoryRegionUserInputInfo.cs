@@ -22,14 +22,11 @@ using System.Collections.Specialized;
 using MemEngine360.Connections;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.XboxInfo;
 
-public delegate void MemoryRegionUserInputInfoSelectedRegionChangedEventHandler(MemoryRegionUserInputInfo sender, MemoryRegionViewModel? oldSelectedRegion, MemoryRegionViewModel? newSelectedRegion);
-
 public class MemoryRegionUserInputInfo : UserInputInfo {
-    private MemoryRegionViewModel? selectedRegion;
-
     /// <summary>
     /// Gets the collection of memory regions presented to the user
     /// </summary>
@@ -39,23 +36,22 @@ public class MemoryRegionUserInputInfo : UserInputInfo {
     /// Gets or sets the selected region
     /// </summary>
     public MemoryRegionViewModel? SelectedRegion {
-        get => this.selectedRegion;
+        get => field;
         set {
-            MemoryRegionViewModel? oldSelectedRegion = this.selectedRegion;
-            if (oldSelectedRegion == value)
-                return;
-
-            this.selectedRegion = value;
-            this.SelectedRegionChanged?.Invoke(this, oldSelectedRegion, value);
-            if (oldSelectedRegion == null || value == null) {
-                this.RaiseHasErrorsChanged();
+            MemoryRegionViewModel? oldSelectedRegion = field;
+            if (oldSelectedRegion != value) {
+                field = value;
+                this.SelectedRegionChanged?.Invoke(this, new ValueChangedEventArgs<MemoryRegionViewModel?>(oldSelectedRegion, value));
+                if (oldSelectedRegion == null || value == null) {
+                    this.RaiseHasErrorsChanged();
+                }
             }
         }
     }
 
     public Func<uint, string>? RegionFlagsToTextConverter { get; set; }
 
-    public event MemoryRegionUserInputInfoSelectedRegionChangedEventHandler? SelectedRegionChanged;
+    public event EventHandler<ValueChangedEventArgs<MemoryRegionViewModel?>>? SelectedRegionChanged;
 
     public MemoryRegionUserInputInfo() : this(new ObservableCollection<MemoryRegionViewModel>()) {
     }

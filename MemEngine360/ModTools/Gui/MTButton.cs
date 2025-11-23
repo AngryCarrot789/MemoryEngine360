@@ -19,33 +19,28 @@
 
 using System.Diagnostics;
 using Lua;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.ModTools.Gui;
 
-public delegate void MTButtonEventHandler(MTButton sender);
-
 public sealed class MTButton : BaseMTElement {
-    private string text = "";
-    private LuaFunction? pressFunction, holdFunction;
-
     public string Text {
-        get => this.text;
-        set => PropertyHelper.SetAndRaiseINE(ref this.text, value, this, static t => t.TextChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.TextChanged);
+    } = "";
 
     public LuaFunction? PressFunction {
-        get => this.pressFunction;
-        set => PropertyHelper.SetAndRaiseINE(ref this.pressFunction, value, this, static t => t.PressFunctionChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.PressFunctionChanged);
     }
 
     public LuaFunction? HoldFunction {
-        get => this.holdFunction;
-        set => PropertyHelper.SetAndRaiseINE(ref this.holdFunction, value, this, static t => t.HoldFunctionChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.HoldFunctionChanged);
     }
 
-    public event MTButtonEventHandler? TextChanged;
-    public event MTButtonEventHandler? PressFunctionChanged, HoldFunctionChanged;
+    public event EventHandler? TextChanged;
+    public event EventHandler? PressFunctionChanged, HoldFunctionChanged;
 
     private bool isPressed = false;
     private TaskCompletionSource? tcsReleased;

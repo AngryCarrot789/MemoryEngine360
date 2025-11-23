@@ -18,25 +18,19 @@
 // 
 
 using Lua;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.ModTools.Gui;
 
-public delegate void MTTextBoxEventHandler(MTTextBox sender);
-
 public sealed class MTTextBox : BaseMTElement {
-    private string? leftContent, rightContent;
-    private LuaFunction? valueChangeFunction;
-    private LuaFunction? keyPressFunction;
-
     public string? LeftContent {
-        get => this.leftContent;
-        set => PropertyHelper.SetAndRaiseINE(ref this.leftContent, value, this, static t => t.LeftContentChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.LeftContentChanged);
     }
 
     public string? RightContent {
-        get => this.rightContent;
-        set => PropertyHelper.SetAndRaiseINE(ref this.rightContent, value, this, static t => t.RightContentChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.RightContentChanged);
     }
 
     /// <summary>
@@ -53,22 +47,22 @@ public sealed class MTTextBox : BaseMTElement {
     /// Gets or sets the function that runs when the <see cref="Content"/> changes
     /// </summary>
     public LuaFunction? ValueChangeFunction {
-        get => this.valueChangeFunction;
-        set => PropertyHelper.SetAndRaiseINE(ref this.valueChangeFunction, value, this, static t => t.ValueChangeFunctionChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ValueChangeFunctionChanged);
     }
-    
+
     /// <summary>
     /// Gets or sets the function that runs when the user presses or releases a key
     /// </summary>
     public LuaFunction? KeyPressFunction {
-        get => this.keyPressFunction;
-        set => PropertyHelper.SetAndRaiseINE(ref this.keyPressFunction, value, this, static t => t.KeyPressFunctionChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.KeyPressFunctionChanged);
     }
-    
-    public event MTTextBoxEventHandler? LeftContentChanged, RightContentChanged;
-    public event MTTextBoxEventHandler? ContentChanged;
-    public event MTTextBoxEventHandler? ValueChangeFunctionChanged;
-    public event MTTextBoxEventHandler? KeyPressFunctionChanged;
+
+    public event EventHandler? LeftContentChanged, RightContentChanged;
+    public event EventHandler? ContentChanged;
+    public event EventHandler? ValueChangeFunctionChanged;
+    public event EventHandler? KeyPressFunctionChanged;
 
     public MTTextBox() {
     }
@@ -116,7 +110,7 @@ public sealed class MTTextBox : BaseMTElement {
         
         this.Content = content;
         this.ContentType = contentType;
-        this.ContentChanged?.Invoke(this);
+        this.ContentChanged?.Invoke(this, EventArgs.Empty);
 
         LuaFunction? function = this.ValueChangeFunction;
         if (function != null) {

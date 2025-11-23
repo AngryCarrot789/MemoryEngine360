@@ -27,8 +27,6 @@ using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Connections;
 
-public delegate void ConnectionStatusBarTextInvalidatedEventHandler(IConsoleConnection connection);
-
 /// <summary>
 /// Provides information about a specific type of connection to a console. For example, XBDM commands
 /// and XDevkit COM objects are two different connection types (despite the fact XDevkit uses XBDM commands under the hood)
@@ -96,7 +94,7 @@ public abstract class RegisteredConnectionType {
     /// <summary>
     /// An event fired when the result of <see cref="GetStatusBarText"/> will have changed for a specific connection
     /// </summary>
-    public event ConnectionStatusBarTextInvalidatedEventHandler? StatusBarTextInvalidated;
+    public event EventHandler? StatusBarTextInvalidated;
 
     protected RegisteredConnectionType() {
     }
@@ -185,7 +183,7 @@ public abstract class RegisteredConnectionType {
             throw new InvalidOperationException("Invalid connection type");
         }
         
-        this.StatusBarTextInvalidated?.Invoke(connection);
+        this.StatusBarTextInvalidated?.Invoke(connection, EventArgs.Empty);
     }
 
     /// <summary>

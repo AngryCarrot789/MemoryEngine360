@@ -20,19 +20,14 @@
 using MemEngine360.Sequencing.Conditions;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity.Selections;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing.View;
-
-public delegate void TaskSequencerViewStateSelectedSequenceChangedEventHandler(TaskSequenceManagerViewState sender, TaskSequence? oldSelectedSequence, TaskSequence? newSelectedSequence);
-
-public delegate void TaskSequenceManagerViewStateConditionHostChangedEventHandler(TaskSequenceManagerViewState sender, IConditionsHost? oldConditionHost, IConditionsHost? newConditionHost);
 
 /// <summary>
 /// Represents the persistent state of the task sequencer view
 /// </summary>
 public sealed class TaskSequenceManagerViewState {
-    private TaskSequence? primarySelectedSequence;
     private IConditionsHost? conditionHost;
 
     /// <summary>
@@ -67,8 +62,8 @@ public sealed class TaskSequenceManagerViewState {
     /// Gets or sets the primary sequence, that is, the sequence whose operations are being presented
     /// </summary>
     public TaskSequence? PrimarySelectedSequence {
-        get => this.primarySelectedSequence;
-        private set => PropertyHelper.SetAndRaiseINE(ref this.primarySelectedSequence, value, this, (t, o, n) => t.PrimarySelectedSequenceChanged?.Invoke(t, o, n));
+        get => field;
+        private set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.PrimarySelectedSequenceChanged);
     }
 
     /// <summary>
@@ -76,15 +71,15 @@ public sealed class TaskSequenceManagerViewState {
     /// </summary>
     public IConditionsHost? ConditionHost {
         get => this.conditionHost;
-        set => PropertyHelper.SetAndRaiseINE(ref this.conditionHost, value, this, static (t, o, n) => t.ConditionHostChanged?.Invoke(t, o, n));
+        set => PropertyHelper.SetAndRaiseINE(ref this.conditionHost, value, this, this.ConditionHostChanged);
     }
 
     /// <summary>
     /// Fired when the <see cref="PrimarySelectedSequence"/> changes
     /// </summary>
-    public event TaskSequencerViewStateSelectedSequenceChangedEventHandler? PrimarySelectedSequenceChanged;
+    public event EventHandler<ValueChangedEventArgs<TaskSequence?>>? PrimarySelectedSequenceChanged;
 
-    public event TaskSequenceManagerViewStateConditionHostChangedEventHandler? ConditionHostChanged;
+    public event EventHandler<ValueChangedEventArgs<IConditionsHost?>>? ConditionHostChanged;
 
     private TaskSequenceManagerViewState(TaskSequenceManager taskSequenceManager) {
         this.TaskSequenceManager = taskSequenceManager;

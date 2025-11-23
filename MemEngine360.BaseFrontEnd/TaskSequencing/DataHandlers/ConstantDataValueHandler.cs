@@ -24,11 +24,9 @@ using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.DataHandlers;
-
-public delegate void ConstantDataValueHandlerParsingTextChangedEventHandler(ConstantDataValueHandler sender);
 
 public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider> {
     private readonly TextBoxToEventPropertyBinder<ConstantDataValueHandler> valueBinder = new TextBoxToEventPropertyBinder<ConstantDataValueHandler>(nameof(ParsingTextChanged), (b) => b.Model.ParsingText, async (b, text) => {
@@ -43,32 +41,30 @@ public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider
         return result != null;
     });
 
-    private string parsingText;
     private bool isUpdatingProviderDataValue;
-    private StringType stringType;
 
     public TextBox PART_Value { get; }
 
     public string ParsingText {
-        get => this.parsingText;
-        set => PropertyHelper.SetAndRaiseINE(ref this.parsingText, value, this, static t => t.ParsingTextChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ParsingTextChanged);
     }
-    
+
     /// <summary>
     /// Gets or sets the encoding used to encode/decode strings/bytes
     /// </summary>
     public StringType StringType {
-        get => this.stringType;
+        get => field;
         set {
-            if (this.stringType != value) {
-                this.stringType = value;
+            if (field != value) {
+                field = value;
                 this.OnStringTypeChanged();
             }
         }
     }
 
-    public event ConstantDataValueHandlerParsingTextChangedEventHandler? ParsingTextChanged;
-    public event ConstantDataValueHandlerParsingTextChangedEventHandler? StringTypeChanged;
+    public event EventHandler? ParsingTextChanged;
+    public event EventHandler? StringTypeChanged;
 
     public ConstantDataValueHandler(TextBox partValue) {
         this.PART_Value = partValue;
@@ -104,26 +100,26 @@ public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider
         this.Provider.StringTypeChanged -= this.OnProviderStringTypeChanged;
     }
 
-    private void OnProviderDataValueChanged(ConstantDataProvider sender) {
+    private void OnProviderDataValueChanged(object? o, EventArgs eventArgs) {
         if (!this.isUpdatingProviderDataValue) {
-            this.DataType = sender.DataValue?.DataType ?? DataType.Int32;
+            this.DataType = ((ConstantDataProvider) o!).DataValue?.DataType ?? DataType.Int32;
             this.UpdateTextFromProviderValue();
         }
     }
 
-    private void OnProviderParseIntAsHexChanged(ConstantDataProvider sender) {
-        this.ParseIntAsHex = sender.ParseIntAsHex;
+    private void OnProviderParseIntAsHexChanged(object? o, EventArgs eventArgs) {
+        this.ParseIntAsHex = ((ConstantDataProvider) o!).ParseIntAsHex;
         if (!this.isUpdatingProviderDataValue)
             this.UpdateTextFromProviderValue();
     }
 
-    private void OnProviderStringTypeChanged(ConstantDataProvider sender) {
-        this.StringType = sender.StringType;
+    private void OnProviderStringTypeChanged(object? o, EventArgs eventArgs) {
+        this.StringType = ((ConstantDataProvider) o!).StringType;
         if (!this.isUpdatingProviderDataValue)
             this.UpdateTextFromProviderValue();
     }
     
-    private void OnProviderDataTypeChanged(ConstantDataProvider sender) {
+    private void OnProviderDataTypeChanged(object? o, EventArgs eventArgs) {
         this.DataType = this.Provider.DataType;
         this.TryUpdateProviderValueWithConvertedValue();
     }
@@ -134,7 +130,7 @@ public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider
     }
 
     protected void OnStringTypeChanged() {
-        this.StringTypeChanged?.Invoke(this);
+        this.StringTypeChanged?.Invoke(this, EventArgs.Empty);
         this.TryUpdateProviderValueWithConvertedValue();
     }
     

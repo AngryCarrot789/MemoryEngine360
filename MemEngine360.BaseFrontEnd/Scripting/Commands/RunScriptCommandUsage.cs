@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Connections;
 using MemEngine360.Scripting;
 
 namespace MemEngine360.BaseFrontEnd.Scripting.Commands;
@@ -37,7 +36,7 @@ public class RunScriptCommandUsage : BaseScriptIsRunningDependentCommandUsage {
         }
     }
 
-    private void OnDedicatedConnectionChanged(Script script, IConsoleConnection? oldC, IConsoleConnection? newC) {
+    private void OnDedicatedConnectionChanged(object? sender, EventArgs eventArgs) {
         this.UpdateCanExecuteLater();
     }
 }

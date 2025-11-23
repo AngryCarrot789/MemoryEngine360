@@ -19,22 +19,19 @@
 
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.ModTools.Gui;
 
-public delegate void MTDockPanelFillLastChangedEventHandler(MTDockPanel sender);
-
 public sealed class MTDockPanel : BaseMTPanel {
-    private bool fillLast;
-    
     public ObservableList<(BaseMTElement, DockType?)> Children { get; } = new ObservableList<(BaseMTElement, DockType?)>();
 
     public bool FillLast {
-        get => this.fillLast;
-        set => PropertyHelper.SetAndRaiseINE(ref this.fillLast, value, this, static t => t.FillLastChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.FillLastChanged);
     }
 
-    public event MTDockPanelFillLastChangedEventHandler? FillLastChanged;
+    public event EventHandler? FillLastChanged;
 
     public MTDockPanel() {
         this.Children.ItemsAdded += (list, index, items) => items.ForEach(this, (x, self) => self.OnElementAdded(x.Item1));

@@ -112,15 +112,15 @@ public partial class SavedResultDataTypeEditorUserInputControl : UserControl, IU
         this.ArrayLength = this.myData.ArrayLength;
     }
 
-    private void MyDataOnDataTypeChanged(SavedResultDataTypeUserInputInfo sender) {
-        if (sender.DataType.IsNumeric()) {
-            this.lastNumericDataType = sender.DataType;
+    private void MyDataOnDataTypeChanged(object? sender, EventArgs e) {
+        if (((SavedResultDataTypeUserInputInfo) sender!).DataType.IsNumeric()) {
+            this.lastNumericDataType = ((SavedResultDataTypeUserInputInfo) sender!).DataType;
         }
     }
 
-    private void MyDataOnStringLengthChanged(SavedResultDataTypeUserInputInfo sender) => this.StringLength = sender.StringLength;
+    private void MyDataOnStringLengthChanged(object? sender, EventArgs e) => this.StringLength = ((SavedResultDataTypeUserInputInfo) sender!).StringLength;
 
-    private void MyDataOnArrayLengthChanged(SavedResultDataTypeUserInputInfo sender) => this.ArrayLength = sender.ArrayLength;
+    private void MyDataOnArrayLengthChanged(object? sender, EventArgs e) => this.ArrayLength = ((SavedResultDataTypeUserInputInfo) sender!).ArrayLength;
 
     public void Disconnect() {
         this.myData!.StringLengthChanged -= this.MyDataOnStringLengthChanged;

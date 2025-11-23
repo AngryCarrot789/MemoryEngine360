@@ -134,7 +134,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
     protected override void OnRemovedFromList() {
     }
 
-    private void OnIsRunningChanged(TaskSequence sender) => this.UpdateControlsForIsRunning();
+    private void OnIsRunningChanged(object? o, EventArgs e) => this.UpdateControlsForIsRunning();
 
     private void UpdateControlsForIsRunning() {
         if (this.PART_RunCountTextBox != null && this.Model != null) {

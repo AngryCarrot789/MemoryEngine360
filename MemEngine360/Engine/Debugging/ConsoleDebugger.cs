@@ -26,18 +26,12 @@ using PFXToolKitUI;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Destroying;
+using PFXToolKitUI.Utils.Events;
 using PFXToolKitUI.Utils.RDA;
 
 namespace MemEngine360.Engine.Debugging;
-
-public delegate void ConsoleDebuggerActiveThreadChangedEventHandler(ConsoleDebugger sender, ThreadEntry? oldActiveThread, ThreadEntry? newActiveThread);
-
-public delegate void ConsoleDebuggerConnectionChangedEventHandler(ConsoleDebugger sender, IConsoleConnection? oldConnection, IConsoleConnection? newConnection);
-
-public delegate void ConsoleDebuggerEventHandler(ConsoleDebugger sender);
 
 /// <summary>
 /// The memory engine debugger
@@ -47,11 +41,7 @@ public class ConsoleDebugger : IUserLocalContext {
 
     private readonly BusyLock busyLocker;
     private ThreadEntry? activeThread;
-    private bool refreshRegistersOnActiveThreadChange = true;
     private bool autoAddOrRemoveThreads = true;
-    private bool isWindowVisible;
-    private bool? isConsoleRunning;
-    private string? consoleExecutionState;
 
     /// <summary>
     /// Gets the busy lock for the debugger. This is used to synchronize access to <see cref="Connection"/>
@@ -81,8 +71,8 @@ public class ConsoleDebugger : IUserLocalContext {
         set {
             if (value != null && !this.ThreadEntries.Contains(value))
                 throw new InvalidOperationException("Attempt to select a thread that wasn't in our thread entries list");
-            PropertyHelper.SetAndRaiseINE(ref this.activeThread, value, this, static (t, o, n) => t.ActiveThreadChanged?.Invoke(t, o, n));
-
+            
+            PropertyHelper.SetAndRaiseINE(ref this.activeThread, value, this, this.ActiveThreadChanged);
             if (!this.ignoreActiveThreadChange) {
                 this.rldaUpdateForThreadChanged.InvokeAsync();
                 this.rldaUpdateCallFrame.InvokeAsync();
@@ -93,41 +83,41 @@ public class ConsoleDebugger : IUserLocalContext {
     /// <summary>
     /// Gets or sets if the registers should be re-queried when the active thread changes
     /// </summary>
-    public bool RefreshRegistersOnActiveThreadChange {
-        get => this.refreshRegistersOnActiveThreadChange;
-        set => PropertyHelper.SetAndRaiseINE(ref this.refreshRegistersOnActiveThreadChange, value, this, static t => t.RefreshRegistersOnActiveThreadChangeChanged?.Invoke(t));
-    }
+    public bool ShouldRefreshRegistersWhenActiveThreadChanges {
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ShouldRefreshRegistersWhenActiveThreadChangesChanged);
+    } = true;
 
     /// <summary>
     /// Gets or sets if threads should be added to or removed from the threads list when we receive thread create/terminate events
     /// </summary>
     public bool AutoAddOrRemoveThreads {
         get => this.autoAddOrRemoveThreads;
-        set => PropertyHelper.SetAndRaiseINE(ref this.autoAddOrRemoveThreads, value, this, static t => t.AutoAddOrRemoveThreadsChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.autoAddOrRemoveThreads, value, this, this.AutoAddOrRemoveThreadsChanged);
     }
 
     /// <summary>
     /// Gets or sets if the console is running. Obviously, this doesn't actually affect the console itself
     /// </summary>
     public bool? IsConsoleRunning {
-        get => this.isConsoleRunning;
-        set => PropertyHelper.SetAndRaiseINE(ref this.isConsoleRunning, value, this, static t => t.IsConsoleRunningChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsConsoleRunningChanged);
     }
 
     /// <summary>
     /// Gets or sets the readable execution state of the console.
     /// </summary>
     public string? ConsoleExecutionState {
-        get => this.consoleExecutionState;
-        set => PropertyHelper.SetAndRaiseINE(ref this.consoleExecutionState, value, this, static t => t.ConsoleExecutionStateChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ConsoleExecutionStateChanged);
     }
 
     /// <summary>
     /// Gets or sets if the debugger view is currently visible
     /// </summary>
     public bool IsWindowVisible {
-        get => this.isWindowVisible;
-        set => PropertyHelper.SetAndRaiseINE(ref this.isWindowVisible, value, this, static t => t.IsWindowVisibleChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsWindowVisibleChanged);
     }
 
     /// <summary>
@@ -143,13 +133,13 @@ public class ConsoleDebugger : IUserLocalContext {
     
     public IMutableContextData UserContext { get; } = new ContextData();
 
-    public event ConsoleDebuggerConnectionChangedEventHandler? ConnectionChanged;
-    public event ConsoleDebuggerActiveThreadChangedEventHandler? ActiveThreadChanged;
-    public event ConsoleDebuggerEventHandler? RefreshRegistersOnActiveThreadChangeChanged;
-    public event ConsoleDebuggerEventHandler? AutoAddOrRemoveThreadsChanged;
-    public event ConsoleDebuggerEventHandler? IsConsoleRunningChanged;
-    public event ConsoleDebuggerEventHandler? ConsoleExecutionStateChanged;
-    public event ConsoleDebuggerEventHandler? IsWindowVisibleChanged;
+    public event EventHandler<ValueChangedEventArgs<IConsoleConnection?>>? ConnectionChanged;
+    public event EventHandler<ValueChangedEventArgs<ThreadEntry?>>? ActiveThreadChanged;
+    public event EventHandler? ShouldRefreshRegistersWhenActiveThreadChangesChanged;
+    public event EventHandler? AutoAddOrRemoveThreadsChanged;
+    public event EventHandler? IsConsoleRunningChanged;
+    public event EventHandler? ConsoleExecutionStateChanged;
+    public event EventHandler? IsWindowVisibleChanged;
 
     private readonly RateLimitedDispatchAction rldaUpdateForThreadChanged;
     private readonly RateLimitedDispatchAction rldaUpdateCallFrame;
@@ -172,11 +162,11 @@ public class ConsoleDebugger : IUserLocalContext {
 
         this.rldaUpdateForThreadChanged = new RateLimitedDispatchAction(this.OnUpdateForActiveThreadChanged, TimeSpan.FromMilliseconds(100));
         this.rldaUpdateCallFrame = new RateLimitedDispatchAction(this.OnUpdateCallFrameForIsRunningChanged, TimeSpan.FromMilliseconds(500));
-        this.IsConsoleRunningChanged += sender => this.rldaUpdateCallFrame.InvokeAsync();
+        this.IsConsoleRunningChanged += static (s, _) => ((ConsoleDebugger) s!).rldaUpdateCallFrame.InvokeAsync();
     }
 
     private async Task OnUpdateCallFrameForIsRunningChanged() {
-        if (!this.RefreshRegistersOnActiveThreadChange || !this.IsWindowVisible) {
+        if (!this.ShouldRefreshRegistersWhenActiveThreadChanges || !this.IsWindowVisible) {
             return;
         }
 
@@ -204,7 +194,7 @@ public class ConsoleDebugger : IUserLocalContext {
     }
 
     private Task OnUpdateForActiveThreadChanged() {
-        if (this.RefreshRegistersOnActiveThreadChange && this.IsWindowVisible) {
+        if (this.ShouldRefreshRegistersWhenActiveThreadChanges && this.IsWindowVisible) {
             return this.UpdateRegistersForActiveThread(CancellationToken.None);
         }
 
@@ -460,7 +450,7 @@ public class ConsoleDebugger : IUserLocalContext {
             Debug.Assert(this.Connection == oldConnection);
 
             this.Connection = newConnection;
-            this.ConnectionChanged?.Invoke(this, oldConnection, newConnection);
+            this.ConnectionChanged?.Invoke(this, new ValueChangedEventArgs<IConsoleConnection?>(oldConnection, newConnection));
         }
 
         this.ignoreActiveThreadChange = false;
@@ -499,13 +489,13 @@ public class ConsoleDebugger : IUserLocalContext {
         return true;
     }
 
-    private void OnConnectionClosed(IConsoleConnection sender) {
+    private void OnConnectionClosed(object? sender, EventArgs e) {
         if (sender == this.Connection) {
             this.CheckConnection();
         }
     }
 
-    private void OnConsoleEvent(IConsoleConnection sender, ConsoleSystemEventArgs e) {
+    private void OnConsoleEvent(object? o, ConsoleSystemEventArgs e) {
         if (e is XbdmEventArgsExecutionState stateChanged) {
             this.OnHandleStateChange(stateChanged);
         }

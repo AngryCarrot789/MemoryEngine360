@@ -28,23 +28,20 @@ using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.PS3;
-
-public delegate void ConnectionInfoCCAPIIpAddressChangedEventHandler(ConnectToCCAPIInfo sender);
 
 [SupportedOSPlatform("windows")]
 public class ConnectToCCAPIInfo : UserConnectionInfo {
     public static readonly FileFilter RARFile = FileFilter.Builder("RaR Image").Patterns("*.rar").Build();
 
-    private string ipAddress;
-
     public string IpAddress {
-        get => this.ipAddress;
-        set => PropertyHelper.SetAndRaiseINE(ref this.ipAddress, value, this, static t => t.IpAddressChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IpAddressChanged);
     }
 
-    public event ConnectionInfoCCAPIIpAddressChangedEventHandler? IpAddressChanged;
+    public event EventHandler? IpAddressChanged;
     
     // private CancellationTokenSource? ctsApiRun;
 

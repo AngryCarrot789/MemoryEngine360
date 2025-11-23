@@ -28,7 +28,7 @@
                 <attached:TabControlStripExtras.RightContent>
                     <Button CornerRadius="2"
                             HorizontalAlignment="Center"
-                            Margin="3"
+                            Margin="3,0"
                             Padding="4,1"
                             VerticalAlignment="Center"
                             cu:CommandUsageManager.SimpleButtonCommandId="commands.modtools.CreateModToolCommand">

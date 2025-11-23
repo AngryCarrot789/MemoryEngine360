@@ -25,7 +25,6 @@ using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.Sequencing.Operations;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
-using PFXToolKitUI.Activities;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -158,12 +157,11 @@ public class TaskSequenceManager : IComponentManager, IUserLocalContext {
         }
     }
 
-    private async Task OnMemoryEngineConnectionAboutToChange(MemoryEngine sender, ulong frame, IActivityProgress progress) {
-        progress.Caption = "Stopping Sequences";
-        progress.Text = "Waiting for sequences to complete";
+    private async Task OnMemoryEngineConnectionAboutToChange(object? s, ConnectionChangingEventArgs args) {
+        args.Progress.SetCaptionAndText("Task Sequencer", "Waiting for sequences to complete...");
         List<TaskSequence> items = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.ActiveSequences.ToList());
         if (items.Count > 0) {
-            bool isShuttingDown = sender.IsShuttingDown;
+            bool isShuttingDown = ((MemoryEngine) s!).IsShuttingDown;
             foreach (TaskSequence sequence in items) {
                 if (sequence.UseEngineConnection || isShuttingDown)
                     sequence.RequestCancellation();

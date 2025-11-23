@@ -57,13 +57,23 @@ public class DesktopScriptingViewServiceImpl : IScriptingViewService {
                 Width = 960, Height = 640
             });
 
-            window.Opened += (sender, args) => ((ScriptingView) sender.Content!).OnWindowOpened(sender);
-            window.Closing += (sender, args) => {
-                ScriptingManager tsm = ((ScriptingView) sender.Content!).ScriptingManager!;
+            window.Opened += (s, args) => ((ScriptingView) ((IDesktopWindow) s!).Content!).OnWindowOpened((IDesktopWindow) s!);
+            
+            window.TryCloseAsync += static async (s, args) => {
+                await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+                    bool cancel = await ((ScriptingView) ((IDesktopWindow) s!).Content!).OnClosingAsync((IDesktopWindow) s!);
+                    if (cancel) {
+                        args.SetCancelled();
+                    }
+                });
+            };
+            
+            window.Closing += (s, args) => {
+                ScriptingManager tsm = ((ScriptingView) ((IDesktopWindow) s!).Content!).ScriptingManager!;
                 tsm.UserContext.Remove(ITopLevel.TopLevelDataKey);
             };
 
-            window.Closed += (sender, args) => ((ScriptingView) sender.Content!).OnWindowClosed();
+            window.Closed += (s, args) => ((ScriptingView) ((IDesktopWindow) s!).Content!).OnWindowClosed();
 
             scriptingManager.UserContext.Set(ITopLevel.TopLevelDataKey, window);
             await window.ShowAsync();
@@ -71,7 +81,7 @@ public class DesktopScriptingViewServiceImpl : IScriptingViewService {
             if (!hasShownBefore) {
                 hasShownBefore = true;
 
-                ActivityManager.Instance.RunTask(async () => {
+                _ = ActivityManager.Instance.RunTask(async () => {
                     ActivityTask activity = ActivityTask.Current;
                     activity.Progress.SetCaptionAndText("Reload last scripts");
                     foreach (string path in BasicApplicationConfiguration.Instance.LoadedScriptPaths) {

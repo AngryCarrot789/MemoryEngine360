@@ -153,7 +153,8 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             this.buffers = new ConcurrentQueue<(byte[], uint)>();
 
             this.downloadCompletion = new SimpleCompletionState();
-            this.downloadCompletion.CompletionValueChanged += state => {
+            this.downloadCompletion.CompletionValueChanged += (s, _) => {
+                CompletionState state = (CompletionState) s!;
                 this.Activity.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
                 this.Activity.Progress.Text = $"Downloaded {ValueScannerUtils.ByteFormatter.ToString(this.countBytes * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(this.countBytes, false)}";
             };

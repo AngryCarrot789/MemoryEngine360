@@ -22,40 +22,35 @@ using MemEngine360.PS3.CC;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.PS3.ProcessSelector;
-
-public delegate void ProcessSelectorUserInputInfoEventHandler(ProcessSelectorUserInputInfo sender);
-
-public delegate void ProcessSelectorUserInputInfoConnectionChangedEventHandler(ProcessSelectorUserInputInfo sender, ConsoleConnectionCCAPI? oldConnection, ConsoleConnectionCCAPI? newConnection);
 
 [SupportedOSPlatform("windows")]
 public sealed class ProcessSelectorUserInputInfo : UserInputInfo {
     public static readonly DataKey<ProcessSelectorUserInputInfo> DataKey = DataKeys.Create<ProcessSelectorUserInputInfo>(nameof(ProcessSelectorUserInputInfo));
 
     private Ps3Process? selectedProcess;
-    private ConsoleConnectionCCAPI? connection;
 
     public Ps3Process? SelectedProcess {
         get => this.selectedProcess;
         set => PropertyHelper.SetAndRaiseINE(ref this.selectedProcess, value, this, static t => {
-            t.SelectedProcessChanged?.Invoke(t);
+            t.SelectedProcessChanged?.Invoke(t, EventArgs.Empty);
             t.RaiseHasErrorsChanged();
         });
     }
 
     public ConsoleConnectionCCAPI? Connection {
-        get => this.connection;
-        set => PropertyHelper.SetAndRaiseINE(ref this.connection, value, this, static (t, o, n) => t.ConnectionChanged?.Invoke(t, o, n));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ConnectionChanged);
     }
 
-    public event ProcessSelectorUserInputInfoConnectionChangedEventHandler? ConnectionChanged;
+    public event EventHandler? ConnectionChanged;
 
     public ObservableList<Ps3Process> Processes { get; } = new ObservableList<Ps3Process>();
 
-    public event ProcessSelectorUserInputInfoEventHandler? SelectedProcessChanged;
+    public event EventHandler? SelectedProcessChanged;
 
     public ProcessSelectorUserInputInfo() {
         this.Processes.ItemsRemoved += (list, index, items) => {

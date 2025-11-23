@@ -28,15 +28,12 @@ using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 
-public delegate void CompareMemoryConditionListContentEventHandler(CompareMemoryConditionListContent sender);
-
 public partial class CompareMemoryConditionListContent : BaseConditionListContent {
     private DataType dataType;
-    private string parsingText;
 
     private readonly TextBoxToEventPropertyBinder<CompareMemoryConditionListContent> valueBinder = new TextBoxToEventPropertyBinder<CompareMemoryConditionListContent>(nameof(ParsingTextChanged), (b) => b.Model.ParsingText, async (b, text) => {
         DataValueState? newState = await BinderParsingUtils.TryParseTextAsDataValueAndModify(text, b.Model.DataType, b.Model.Condition!.ParseIntAsHex);
@@ -58,7 +55,7 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
     public DataType DataType {
         get => this.dataType;
         set {
-            PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, static t => t.DataTypeChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, this.DataTypeChanged);
             CompareMemoryCondition? condition = this.Condition;
             if (condition?.CompareTo != null && condition.CompareTo.DataType != value) {
                 condition.CompareTo = IDataValue.TryConvertDataValue(condition.CompareTo, value, (condition.CompareTo as DataValueString)?.StringType ?? StringType.ASCII);
@@ -71,14 +68,14 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
             }
         }
     }
-    
+
     public string ParsingText {
-        get => this.parsingText;
-        set => PropertyHelper.SetAndRaiseINE(ref this.parsingText, value, this, static t => t.ParsingTextChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ParsingTextChanged);
     }
 
-    public event CompareMemoryConditionListContentEventHandler? DataTypeChanged;
-    public event CompareMemoryConditionListContentEventHandler? ParsingTextChanged;
+    public event EventHandler? DataTypeChanged;
+    public event EventHandler? ParsingTextChanged;
 
     public new CompareMemoryCondition? Condition => (CompareMemoryCondition?) base.Condition;
 
@@ -117,7 +114,7 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
 
         if (oldCondition is CompareMemoryCondition oldCond) {
             oldCond.CompareToChanged -= this.OnCompareToChanged;
-            oldCond.CompareTypeChanged -= this.OnCompareTypeChangedChanged;
+            oldCond.CompareTypeChanged -= this.OnCompareTypeChanged;
             oldCond.ParseIntAsHexChanged -= this.OnParseIntAsHexChanged;
             this.addressBinder.DetachModel();
             this.valueBinder.DetachModel();
@@ -125,10 +122,10 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
 
         if (newCondition is CompareMemoryCondition newCond) {
             newCond.CompareToChanged += this.OnCompareToChanged;
-            newCond.CompareTypeChanged += this.OnCompareTypeChangedChanged;
+            newCond.CompareTypeChanged += this.OnCompareTypeChanged;
             newCond.ParseIntAsHexChanged += this.OnParseIntAsHexChanged;
             if (newCond.CompareTo != null) {
-                PropertyHelper.SetAndRaiseINE(ref this.dataType, newCond.CompareTo.DataType, this, static t => t.DataTypeChanged?.Invoke(t));
+                PropertyHelper.SetAndRaiseINE(ref this.dataType, newCond.CompareTo.DataType, this, static t => t.DataTypeChanged?.Invoke(t, EventArgs.Empty));
             }
             else {
                 this.DataType = DataType.Int32;
@@ -136,14 +133,15 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
 
             this.addressBinder.AttachModel(newCond);
             this.valueBinder.AttachModel(this);
-            this.OnCompareTypeChangedChanged(newCond);
+            this.OnCompareTypeChanged(newCond, EventArgs.Empty);
             this.UpdateTextFromProviderValue();
         }
     }
 
-    private void OnCompareToChanged(CompareMemoryCondition sender) {
+    private void OnCompareToChanged(object? o, EventArgs eventArgs) {
+        CompareMemoryCondition sender = (CompareMemoryCondition) o!;
         if (sender.CompareTo != null) {
-            PropertyHelper.SetAndRaiseINE(ref this.dataType, sender.CompareTo.DataType, this, static t => t.DataTypeChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref this.dataType, sender.CompareTo.DataType, this, static t => t.DataTypeChanged?.Invoke(t, EventArgs.Empty));
         }
         else {
             this.DataType = DataType.Int32;
@@ -165,7 +163,9 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
         }
     }
 
-    private void OnCompareTypeChangedChanged(CompareMemoryCondition sender) {
+    private void OnCompareTypeChanged(object? o, EventArgs eventArgs) {
+        CompareMemoryCondition sender = (CompareMemoryCondition) o!;
+        
         this.isUpdatingToggleButtons = true;
         this.PART_CMP_EQ.IsChecked = false;
         this.PART_CMP_NEQ.IsChecked = false;
@@ -186,7 +186,7 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
         this.isUpdatingToggleButtons = false;
     }
     
-    private void OnParseIntAsHexChanged(CompareMemoryCondition sender) {
+    private void OnParseIntAsHexChanged(object? o, EventArgs eventArgs) {
         this.UpdateTextFromProviderValue();
     }
 

@@ -33,27 +33,16 @@ using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 using PFXToolKitUI.Utils.RDA;
 
 namespace MemEngine360.Scripting;
-
-public delegate void ScriptEventHandler(Script sender);
-
-public delegate void ScriptDedicatedConnectionChangedEventHandler(Script sender, IConsoleConnection? oldDedicatedConnection, IConsoleConnection? newDedicatedConnection);
-
-public delegate void ScriptSourceCodeChangedEventHandler(Script sender, string oldSourceCode, string newSourceCode);
-
-public delegate void ScriptCompilationFailureEventHandler(Script sender, string? chunkName, SourcePosition sourcePosition);
 
 public class Script : IComponentManager, IUserLocalContext {
     public static readonly DataKey<Script> DataKey = DataKeys.Create<Script>(nameof(Script));
 
     internal ScriptingManager? myManager;
-    private bool isTryingToStop;
-    private bool hasUnsavedChanges;
-    private bool clearConsoleOnRun = true;
     private IConsoleConnection? dedicatedConnection;
-    private string sourceCode = "";
     private CancellationTokenSource? ctsCompile;
 
     // Lua
@@ -62,7 +51,7 @@ public class Script : IComponentManager, IUserLocalContext {
     private TaskCompletionSource? myRunningTcs;
 
     public IMutableContextData UserContext { get; } = new ContextData();
-    
+
     /// <summary>
     /// Gets the name of this script. This is set as the file name of the opened script file, or can be set as custom when no file path is present.
     /// <para>
@@ -95,48 +84,48 @@ public class Script : IComponentManager, IUserLocalContext {
     /// Gets whether the user is trying to stop the script from running, rather than the script stopping on its own
     /// </summary>
     public bool IsTryingToStop {
-        get => this.isTryingToStop;
-        private set => PropertyHelper.SetAndRaiseINE(ref this.isTryingToStop, value, this, static t => t.IsTryingToStopChanged?.Invoke(t));
+        get => field;
+        private set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsTryingToStopChanged);
     }
 
     /// <summary>
     /// Gets or sets if this script's text has changed since it was created/loaded from file
     /// </summary>
     public bool HasUnsavedChanges {
-        get => this.hasUnsavedChanges;
-        set => PropertyHelper.SetAndRaiseINE(ref this.hasUnsavedChanges, value, this, static t => t.HasUnsavedChangesChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.HasUnsavedChangesChanged);
     }
 
     public bool ClearConsoleOnRun {
-        get => this.clearConsoleOnRun;
-        set => PropertyHelper.SetAndRaiseINE(ref this.clearConsoleOnRun, value, this, static t => t.ClearConsoleOnRunChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ClearConsoleOnRunChanged);
+    } = true;
 
     /// <summary>
     /// Gets or sets the dedicated connection that this script will use
     /// </summary>
     public IConsoleConnection? DedicatedConnection {
         get => this.dedicatedConnection;
-        set => PropertyHelper.SetAndRaiseINE(ref this.dedicatedConnection, value, this, static (t, a, b) => t.DedicatedConnectionChanged?.Invoke(t, a, b));
+        set => PropertyHelper.SetAndRaiseINE(ref this.dedicatedConnection, value, this, this.DedicatedConnectionChanged);
     }
 
     /// <summary>
     /// Gets or sets the source code of the script. This may not be immediately set when the user types text into the UI
     /// </summary>
     public string SourceCode {
-        get => this.sourceCode;
+        get => field;
         set {
             ArgumentNullException.ThrowIfNull(value);
 
-            string oldValue = this.sourceCode;
+            string oldValue = field;
             if (!ReferenceEquals(oldValue, value) /* we don't really care about true equality */) {
                 this.myChunk = null;
-                this.sourceCode = value;
-                this.SourceCodeChanged?.Invoke(this, oldValue, value);
+                field = value;
+                this.SourceCodeChanged?.Invoke(this, new ValueChangedEventArgs<string>(oldValue, value));
                 this.HasUnsavedChanges = true;
             }
         }
-    }
+    } = "";
 
     /// <summary>
     /// Gets the busy lock used to synchronize access to <see cref="DedicatedConnection"/>
@@ -170,15 +159,15 @@ public class Script : IComponentManager, IUserLocalContext {
     /// <summary>
     /// Fired when <see cref="Name"/> or <see cref="FilePath"/> changes
     /// </summary>
-    public event ScriptEventHandler? FilePathChanged;
+    public event EventHandler? FilePathChanged;
 
-    public event ScriptEventHandler? IsRunningChanged;
-    public event ScriptEventHandler? IsTryingToStopChanged;
-    public event ScriptEventHandler? HasUnsavedChangesChanged;
-    public event ScriptEventHandler? ClearConsoleOnRunChanged;
-    public event ScriptDedicatedConnectionChangedEventHandler? DedicatedConnectionChanged;
-    public event ScriptSourceCodeChangedEventHandler? SourceCodeChanged;
-    public event ScriptCompilationFailureEventHandler? CompilationFailure;
+    public event EventHandler? IsRunningChanged;
+    public event EventHandler? IsTryingToStopChanged;
+    public event EventHandler? HasUnsavedChangesChanged;
+    public event EventHandler? ClearConsoleOnRunChanged;
+    public event EventHandler? DedicatedConnectionChanged;
+    public event EventHandler<ValueChangedEventArgs<string>>? SourceCodeChanged;
+    public event EventHandler<CompilationFailureEventArgs>? CompilationFailure;
 
     private readonly Lock consoleQueueLock = new Lock();
     private readonly List<string> queuedLines = new List<string>();
@@ -213,7 +202,7 @@ public class Script : IComponentManager, IUserLocalContext {
             this.Name = null;
 
         this.FilePath = newFilePath;
-        this.FilePathChanged?.Invoke(this);
+        this.FilePathChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void SetCustomNameWithoutPath(string? customName) {
@@ -222,7 +211,7 @@ public class Script : IComponentManager, IUserLocalContext {
 
         this.Name = customName;
         this.FilePath = null;
-        this.FilePathChanged?.Invoke(this);
+        this.FilePathChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -288,7 +277,7 @@ public class Script : IComponentManager, IUserLocalContext {
                         if (result.Exception is LuaParseException lpe) {
                             this.PrintToConsole(lpe.Message);
                             if (lpe.Position is SourcePosition pos) {
-                                this.CompilationFailure?.Invoke(this, lpe.ChunkName, pos);
+                                this.CompilationFailure?.Invoke(this, new CompilationFailureEventArgs(lpe.ChunkName, pos));
                             }
                         }
                         else {
@@ -322,7 +311,7 @@ public class Script : IComponentManager, IUserLocalContext {
         this.myRunningMachine = new LuaScriptMachine(this, this.myChunk, connection, busyLock);
         this.myRunningMachine.LinePrinted += this.OnLuaLinePrinted;
         this.myRunningMachine.Start();
-        this.IsRunningChanged?.Invoke(this);
+        this.IsRunningChanged?.Invoke(this, EventArgs.Empty);
         return true;
     }
 
@@ -349,7 +338,7 @@ public class Script : IComponentManager, IUserLocalContext {
         this.myRunningMachine = null;
         this.myRunningTcs!.SetResult(); // notify continuations
         this.myRunningTcs = null;
-        this.IsRunningChanged?.Invoke(this);
+        this.IsRunningChanged?.Invoke(this, EventArgs.Empty);
         this.IsTryingToStop = false;
     }
 

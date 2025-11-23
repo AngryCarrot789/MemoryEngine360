@@ -18,11 +18,9 @@
 // 
 
 using MemEngine360.Engine.Modes;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Engine;
-
-public delegate void ScanningOrderModelEventHandler(ScanningOrderModel sender);
 
 public sealed class ScanningOrderModel {
     private bool isEnabled;
@@ -30,16 +28,16 @@ public sealed class ScanningOrderModel {
 
     public bool IsEnabled {
         get => this.isEnabled;
-        set => PropertyHelper.SetAndRaiseINE(ref this.isEnabled, value, this, static t => t.IsEnabledChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.isEnabled, value, this, this.IsEnabledChanged);
     }
 
     public DataType DataType {
         get => this.dataType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, static t => t.DataTypeChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, this.DataTypeChanged);
     }
 
-    public event ScanningOrderModelEventHandler? IsEnabledChanged;
-    public event ScanningOrderModelEventHandler? DataTypeChanged;
+    public event EventHandler? IsEnabledChanged;
+    public event EventHandler? DataTypeChanged;
 
     public ScanningOrderModel() {
         this.isEnabled = true;

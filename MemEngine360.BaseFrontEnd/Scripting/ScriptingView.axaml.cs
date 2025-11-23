@@ -27,14 +27,19 @@ using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
 using AvaloniaEdit.Rendering;
 using AvaloniaEdit.TextMate;
-using Lua.CodeAnalysis;
 using MemEngine360.Scripting;
+using MemEngine360.Scripting.Commands;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
+using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
+using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Debouncing;
+using PFXToolKitUI.Utils.Events;
 using TextMateSharp.Grammars;
 
 namespace MemEngine360.BaseFrontEnd.Scripting;
@@ -74,7 +79,7 @@ public partial class ScriptingView : UserControl {
         this.PART_CodeEditor.LostFocus += this.OnTextEditorLostFocus;
         this.PART_CodeEditor.Options.ConvertTabsToSpaces = true;
         this.PART_CodeEditor.Options.CutCopyWholeLine = true;
-        
+
         this.binderClearConsoleOnEachRun.AttachControl(this.PART_ClearConsoleOnEachRun);
         this.debounceFlushText = new TimerDispatcherDebouncer(TimeSpan.FromSeconds(2), static t => ((ScriptingView) t!).FlushCurrentDocumentToScript(), this);
 
@@ -153,7 +158,7 @@ public partial class ScriptingView : UserControl {
         if (oldValue != null) {
             ScriptingManagerViewState vs = ScriptingManagerViewState.GetInstance(oldValue);
             if (vs.SelectedScript != null) {
-                this.OnSelectedScriptChanged(vs, vs.SelectedScript, null);
+                this.OnSelectedScriptChanged(vs, new ValueChangedEventArgs<Script?>(vs.SelectedScript, null));
             }
 
             vs.SelectedScriptChanged -= this.OnSelectedScriptChanged;
@@ -165,36 +170,36 @@ public partial class ScriptingView : UserControl {
             this.PART_TabControl.ScriptingManager = newValue;
             vs.SelectedScriptChanged += this.OnSelectedScriptChanged;
             if (vs.SelectedScript != null) {
-                this.OnSelectedScriptChanged(vs, null, vs.SelectedScript);
+                this.OnSelectedScriptChanged(vs, new ValueChangedEventArgs<Script?>(null, vs.SelectedScript));
             }
         }
 
         DataManager.GetContextData(this).Set(ScriptingManager.DataKey, newValue);
     }
 
-    private void OnSelectedScriptChanged(ScriptingManagerViewState sender, Script? oldSel, Script? newSel) {
+    private void OnSelectedScriptChanged(object? o, ValueChangedEventArgs<Script?> e) {
         if (this.isFlushingEditorTextToScript)
             throw new InvalidOperationException("Currently flushing text editor to script source");
 
-        this.activeScript = newSel;
+        this.activeScript = e.NewValue;
         this.debounceFlushText.Reset(); // cancel flush callback
         this.myCompilationFailureMarkerService.Clear();
-        if (oldSel != null) {
-            ScriptViewState.GetInstance(oldSel).FlushEditorToScript -= this.OnRequestFlushEditorToScript;
-            oldSel.SourceCodeChanged -= this.OnScriptSourceCodeChanged;
-            oldSel.CompilationFailure -= this.OnScriptCompilationFailed;
+        if (e.OldValue != null) {
+            ScriptViewState.GetInstance(e.OldValue).FlushEditorToScript -= this.OnRequestFlushEditorToScript;
+            e.OldValue.SourceCodeChanged -= this.OnScriptSourceCodeChanged;
+            e.OldValue.CompilationFailure -= this.OnScriptCompilationFailed;
 
             // in case document wasn't flushed to script, do it now
-            FlushToScript(oldSel, GetScriptTextDocument(oldSel));
+            FlushToScript(e.OldValue, GetScriptTextDocument(e.OldValue));
         }
 
-        if (newSel != null) {
-            ScriptViewState.GetInstance(newSel).FlushEditorToScript += this.OnRequestFlushEditorToScript;
-            newSel.SourceCodeChanged += this.OnScriptSourceCodeChanged;
-            newSel.CompilationFailure += this.OnScriptCompilationFailed;
+        if (e.NewValue != null) {
+            ScriptViewState.GetInstance(e.NewValue).FlushEditorToScript += this.OnRequestFlushEditorToScript;
+            e.NewValue.SourceCodeChanged += this.OnScriptSourceCodeChanged;
+            e.NewValue.CompilationFailure += this.OnScriptCompilationFailed;
 
-            TextDocument document = GetScriptTextDocument(newSel);
-            document.Text = newSel.SourceCode; // source code may have changed, so update document
+            TextDocument document = GetScriptTextDocument(e.NewValue);
+            document.Text = e.NewValue.SourceCode; // source code may have changed, so update document
 
             this.isUpdatingCodeEditorText = true;
             this.PART_CodeEditor.Document = document;
@@ -204,16 +209,17 @@ public partial class ScriptingView : UserControl {
             this.PART_CodeEditor.Document = new TextDocument();
         }
 
-        this.binderClearConsoleOnEachRun.SwitchModel(newSel);
+        this.binderClearConsoleOnEachRun.SwitchModel(e.NewValue);
         this.isUpdatingTabSelection = true;
-        this.PART_TabControl.SelectedIndex = newSel == null ? -1 : (newSel.Manager?.Scripts.IndexOf(newSel) ?? -1);
+        this.PART_TabControl.SelectedIndex = e.NewValue == null ? -1 : (e.NewValue.Manager?.Scripts.IndexOf(e.NewValue) ?? -1);
         this.isUpdatingTabSelection = false;
 
-        this.PART_ConsoleTextList.ItemsSource = newSel?.ConsoleLines;
-        DataManager.GetContextData(this.PART_ScriptPanel).Set(Script.DataKey, newSel);
+        this.PART_ConsoleTextList.ItemsSource = e.NewValue?.ConsoleLines;
+        DataManager.GetContextData(this.PART_ScriptPanel).Set(Script.DataKey, e.NewValue);
     }
 
-    private void OnRequestFlushEditorToScript(ScriptViewState sender) {
+    private void OnRequestFlushEditorToScript(object? o, EventArgs eventArgs) {
+        ScriptViewState sender = (ScriptViewState) o!;
         TextDocument document = GetScriptTextDocument(sender.Script);
         if (document != this.PART_CodeEditor.Document) {
             FlushToScript(sender.Script, document);
@@ -240,38 +246,64 @@ public partial class ScriptingView : UserControl {
         }
     }
 
-    private void OnScriptSourceCodeChanged(Script script, string oldSourceCode, string newSourceCode) {
-        Debug.Assert(this.activeScript == script);
+    private void OnScriptSourceCodeChanged(object? o, ValueChangedEventArgs<string> e) {
+        Script sender = (Script) o!;
+        Debug.Assert(this.activeScript == sender);
 
         if (!this.isFlushingEditorTextToScript) {
             this.isUpdatingCodeEditorText = true;
-            TextDocument document = GetScriptTextDocument(script);
+            TextDocument document = GetScriptTextDocument(sender);
             Debug.Assert(this.PART_CodeEditor.Document == document);
 
-            document.Text = newSourceCode;
+            document.Text = e.NewValue;
             this.isUpdatingCodeEditorText = false;
         }
     }
 
-    private void OnScriptCompilationFailed(Script sender, string? chunkName, SourcePosition position) {
+    private void OnScriptCompilationFailed(object? o, CompilationFailureEventArgs e) {
+        Script sender = (Script) o!;
         TextDocument document = GetScriptTextDocument(sender);
         Debug.Assert(this.PART_CodeEditor.Document == document);
 
         Caret caret = this.PART_CodeEditor.TextArea.Caret;
-        caret.Line = position.Line;
-        caret.Column = position.Column;
-        this.PART_CodeEditor.ScrollTo(position.Line, position.Column);
+        caret.Line = e.SourcePosition.Line;
+        caret.Column = e.SourcePosition.Column;
+        this.PART_CodeEditor.ScrollTo(e.SourcePosition.Line, e.SourcePosition.Column);
 
         ApplicationPFX.Instance.Dispatcher.Post(() => {
-            VisualLine? line = this.PART_CodeEditor.TextArea.TextView.GetVisualLine(position.Line);
+            VisualLine? line = this.PART_CodeEditor.TextArea.TextView.GetVisualLine(e.SourcePosition.Line);
             if (line != null) {
-                this.myCompilationFailureMarkerService.SetMarker(caret.Offset, (line.VisualLength - position.Column) + 1);
+                this.myCompilationFailureMarkerService.SetMarker(caret.Offset, (line.VisualLength - e.SourcePosition.Column) + 1);
             }
         }, DispatchPriority.BeforeRender);
     }
 
     public void OnWindowOpened(IDesktopWindow sender) {
         this.Window = sender;
+    }
+
+    // returns: cancel close
+    public async Task<bool> OnClosingAsync(IDesktopWindow sender) {
+        ScriptingManager? mm = this.ScriptingManager;
+        if (mm == null) {
+            return false;
+        }
+
+        mm.Scripts.ForEach(x => x.RequestCancelCompilation());
+        if (mm.Scripts.Any(x => x.HasUnsavedChanges)) {
+            using var _ = CommandManager.LocalContextManager.PushContext(new ContextData().Set(ITopLevel.TopLevelDataKey, sender));
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Unsaved changes", "Do you want to save changes?", MessageBoxButtons.YesNoCancel, MessageBoxResult.Yes);
+            if (result != MessageBoxResult.Yes && result != MessageBoxResult.No) {
+                return true; // cancel close
+            }
+
+            if (result == MessageBoxResult.Yes) {
+                bool savedAll = await SaveAllScriptsCommand.SaveAllAsync(mm.Scripts.ToList());
+                return !savedAll;
+            }
+        }
+
+        return false;
     }
 
     public void OnWindowClosed() {
@@ -290,7 +322,7 @@ public partial class ScriptingView : UserControl {
                 this.Clear();
                 return;
             }
-            
+
             this.myMarker = new TextSegment() {
                 StartOffset = startOffset,
                 Length = length

@@ -22,10 +22,10 @@ using MemEngine360.Sequencing;
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Commands;
 
 public class ConnectToDedicatedConsoleCommandUsage : BaseSequenceCommandUsage {
-    private readonly TaskSequenceEventHandler somethingChanged;
+    private readonly EventHandler somethingChanged;
     
     public ConnectToDedicatedConsoleCommandUsage() : base("commands.sequencer.ConnectToDedicatedConsoleCommand") {
-        this.somethingChanged = s => this.UpdateCanExecuteLater();
+        this.somethingChanged = (_, _) => this.UpdateCanExecuteLater();
     }
 
     protected override void OnTaskSequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {

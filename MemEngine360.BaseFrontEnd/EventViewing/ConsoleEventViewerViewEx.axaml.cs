@@ -19,7 +19,6 @@
 
 using Avalonia;
 using Avalonia.Controls;
-using MemEngine360.Connections;
 using MemEngine360.Engine;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
@@ -51,8 +50,8 @@ public partial class ConsoleEventViewerViewEx : UserControl {
             newValue.ConnectionChanged += this.OnConsoleConnectionChanged;
     }
 
-    private void OnConsoleConnectionChanged(MemoryEngine sender, ulong frame, IConsoleConnection? oldconnection, IConsoleConnection? newconnection, ConnectionChangeCause cause) {
-        this.PART_EventViewer.ConsoleConnection = newconnection;
+    private void OnConsoleConnectionChanged(object? o, ConnectionChangedEventArgs e) {
+        this.PART_EventViewer.ConsoleConnection = e.NewConnection;
     }
 }
 
@@ -71,13 +70,13 @@ public class ConsoleEventViewerServiceImpl : IConsoleEventViewerService {
                     TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone7.Background.Static"),
                 });
 
-                win.Opened += static (sender, args) => {
-                    ConsoleEventViewerViewEx view = (ConsoleEventViewerViewEx) sender.Content!;
+                win.Opened += static (s, args) => {
+                    ConsoleEventViewerViewEx view = (ConsoleEventViewerViewEx) ((IDesktopWindow) s!).Content!;
                     view.PART_EventViewer.BusyLock = view.MemoryEngine!.BusyLock;
                     view.PART_EventViewer.ConsoleConnection = view.MemoryEngine!.Connection;
                 };
-                win.Closed += static (sender, args) => {
-                    ConsoleEventViewerViewEx view = (ConsoleEventViewerViewEx) sender.Content!;
+                win.Closed += static (s, args) => {
+                    ConsoleEventViewerViewEx view = (ConsoleEventViewerViewEx) ((IDesktopWindow) s!).Content!;
                     view.PART_EventViewer.BusyLock = null;
                     view.PART_EventViewer.ConsoleConnection = null;
                     view.MemoryEngine = null;

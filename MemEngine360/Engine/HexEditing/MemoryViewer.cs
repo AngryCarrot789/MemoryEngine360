@@ -19,54 +19,49 @@
 
 using AvaloniaHex.Base.Document;
 using MemEngine360.Connections;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Engine.HexEditing;
-
-public delegate void MemoryViewerEventHandler(MemoryViewer sender);
 
 public class MemoryViewer {
     public const uint MinimumBytesPerRow = 8;
     public const uint MaximumBytesPerRow = 256;
 
-    private uint offset = 0x82000000;
-    private uint autoRefreshStartAddress, autoRefreshLength;
-    private uint bytesPerRow = 32;
     private Endianness inspectorEndianness = Endianness.BigEndian;
 
     /// <summary>
     /// Gets or sets the address that autorefresh should start at
     /// </summary>
     public uint AutoRefreshStartAddress {
-        get => this.autoRefreshStartAddress;
-        set => PropertyHelper.SetAndRaiseINE(ref this.autoRefreshStartAddress, value, this, static t => t.AutoRefreshStartAddressChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.AutoRefreshStartAddressChanged);
     }
 
     public uint Offset {
-        get => this.offset;
-        set => PropertyHelper.SetAndRaiseINE(ref this.offset, value, this, static t => t.OffsetChanged?.Invoke(t));
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.OffsetChanged);
+    } = 0x82000000;
 
     /// <summary>
     /// Gets or sets the number of bytes to read during autorefresh
     /// </summary>
     public uint AutoRefreshLength {
-        get => this.autoRefreshLength;
-        set => PropertyHelper.SetAndRaiseINE(ref this.autoRefreshLength, value, this, static t => t.AutoRefreshLengthChanged?.Invoke(t));
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.AutoRefreshLengthChanged);
     }
 
     public uint BytesPerRow {
-        get => this.bytesPerRow;
+        get => field;
         set {
             if (value < MinimumBytesPerRow || value > MaximumBytesPerRow)
                 throw new ArgumentOutOfRangeException(nameof(value), value, $"Value must be between {MinimumBytesPerRow} and {MaximumBytesPerRow}");
-            PropertyHelper.SetAndRaiseINE(ref this.bytesPerRow, value, this, static t => t.BytesPerRowChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.BytesPerRowChanged);
         }
-    }
+    } = 32;
 
     public Endianness InspectorEndianness {
         get => this.inspectorEndianness;
-        set => PropertyHelper.SetAndRaiseINE(ref this.inspectorEndianness, value, this, static t => t.InspectorEndiannessChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.inspectorEndianness, value, this, this.InspectorEndiannessChanged);
     }
 
     /// <summary>
@@ -79,12 +74,12 @@ public class MemoryViewer {
     /// </summary>
     public MemoryEngine MemoryEngine { get; }
 
-    public event MemoryViewerEventHandler? RestartAutoRefresh;
-    public event MemoryViewerEventHandler? AutoRefreshStartAddressChanged;
-    public event MemoryViewerEventHandler? OffsetChanged;
-    public event MemoryViewerEventHandler? AutoRefreshLengthChanged;
-    public event MemoryViewerEventHandler? BytesPerRowChanged;
-    public event MemoryViewerEventHandler? InspectorEndiannessChanged;
+    public event EventHandler? RestartAutoRefresh;
+    public event EventHandler? AutoRefreshStartAddressChanged;
+    public event EventHandler? OffsetChanged;
+    public event EventHandler? AutoRefreshLengthChanged;
+    public event EventHandler? BytesPerRowChanged;
+    public event EventHandler? InspectorEndiannessChanged;
 
     public MemoryViewer(MemoryEngine memoryEngine) {
         this.MemoryEngine = memoryEngine;
@@ -93,5 +88,5 @@ public class MemoryViewer {
         }
     }
 
-    public void RaiseRestartAutoRefresh() => this.RestartAutoRefresh?.Invoke(this);
+    public void RaiseRestartAutoRefresh() => this.RestartAutoRefresh?.Invoke(this, EventArgs.Empty);
 }

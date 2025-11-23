@@ -27,13 +27,9 @@ using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Sequencing.DataProviders;
 using MemEngine360.ValueAbstraction;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing.Operations;
-
-public delegate void SetVariableOperationEventHandler(SetMemoryOperation sender);
-
-public delegate void SetVariableOperationDataValueProviderChangedEventHandler(SetMemoryOperation sender, DataValueProvider? oldProvider, DataValueProvider? newProvider);
 
 /// <summary>
 /// An operation that sets a value on the console
@@ -56,7 +52,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
         get => this.address;
         set {
             ArgumentNullException.ThrowIfNull(value);
-            PropertyHelper.SetAndRaiseINE(ref this.address, value, this, static t => t.AddressChanged?.Invoke(t));
+            PropertyHelper.SetAndRaiseINE(ref this.address, value, this, this.AddressChanged);
         }
     }
 
@@ -74,7 +70,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
             DataValueProvider? oldProvider = this.dataValueProvider;
             if (!Equals(oldProvider, value)) {
                 this.dataValueProvider = value;
-                this.DataValueProviderChanged?.Invoke(this, oldProvider, value);
+                this.DataValueProviderChanged?.Invoke(this, new ValueChangedEventArgs<DataValueProvider?>(oldProvider, value));
             }
         }
     }
@@ -84,20 +80,20 @@ public class SetMemoryOperation : BaseSequenceOperation {
     /// </summary>
     public uint IterateCount {
         get => this.iterateCount;
-        set => PropertyHelper.SetAndRaiseINE(ref this.iterateCount, value, this, static t => t.IterateCountChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.iterateCount, value, this, this.IterateCountChanged);
     }
 
     public SetMemoryWriteMode WriteMode {
         get => this.writeMode;
-        set => PropertyHelper.SetAndRaiseINE(ref this.writeMode, value, this, static t => t.WriteModeChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.writeMode, value, this, this.WriteModeChanged);
     }
 
     public override string DisplayName => "Set Memory";
 
-    public event SetVariableOperationEventHandler? AddressChanged;
-    public event SetVariableOperationDataValueProviderChangedEventHandler? DataValueProviderChanged;
-    public event SetVariableOperationEventHandler? IterateCountChanged;
-    public event SetVariableOperationEventHandler? WriteModeChanged;
+    public event EventHandler? AddressChanged;
+    public event EventHandler<ValueChangedEventArgs<DataValueProvider?>>? DataValueProviderChanged;
+    public event EventHandler? IterateCountChanged;
+    public event EventHandler? WriteModeChanged;
 
     public SetMemoryOperation() {
     }

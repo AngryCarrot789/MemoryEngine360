@@ -84,7 +84,7 @@ public abstract class BaseScriptIsRunningDependentCommandUsage : BaseScriptComma
             newScript.IsRunningChanged += this.OnIsRunningChanged;
     }
 
-    protected virtual void OnIsRunningChanged(Script script) {
+    protected virtual void OnIsRunningChanged(object? sender, EventArgs eventArgs) {
         this.UpdateCanExecuteLater();
     }
 }

@@ -42,8 +42,8 @@ public class MemoryViewerViewServiceImpl : IMemoryViewerViewService {
                 FocusPath = "HexDisplayWindow"
             });
 
-            window.Opened += static (sender, args) => ((MemoryViewerView) sender.Content!).OnWindowOpened(sender);
-            window.Closed += static (sender, args) => ((MemoryViewerView) sender.Content!).OnWindowClosed();
+            window.Opened += static (s, args) => ((MemoryViewerView) ((IDesktopWindow) s!).Content!).OnWindowOpened((IDesktopWindow) s!);
+            window.Closed += static (s, args) => ((MemoryViewerView) ((IDesktopWindow) s!).Content!).OnWindowClosed();
             return window.ShowAsync();
         }
 

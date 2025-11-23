@@ -27,14 +27,20 @@ using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
 using AvaloniaEdit.Rendering;
 using AvaloniaEdit.TextMate;
-using Lua.CodeAnalysis;
 using MemEngine360.ModTools;
+using MemEngine360.ModTools.Commands;
+using MemEngine360.Scripting;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
+using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
+using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Debouncing;
+using PFXToolKitUI.Utils.Events;
 using TextMateSharp.Grammars;
 
 namespace MemEngine360.BaseFrontEnd.ModTools;
@@ -153,7 +159,7 @@ public partial class ModToolManagerView : UserControl {
         if (oldValue != null) {
             ModToolManagerViewState vs = ModToolManagerViewState.GetInstance(oldValue);
             if (vs.SelectedModTool != null) {
-                this.OnSelectedModToolChanged(vs, vs.SelectedModTool, null);
+                this.OnSelectedModToolChanged(vs, new ValueChangedEventArgs<ModTool?>(vs.SelectedModTool, null));
             }
 
             vs.SelectedModToolChanged -= this.OnSelectedModToolChanged;
@@ -165,36 +171,36 @@ public partial class ModToolManagerView : UserControl {
             this.PART_TabControl.ModToolManager = newValue;
             vs.SelectedModToolChanged += this.OnSelectedModToolChanged;
             if (vs.SelectedModTool != null) {
-                this.OnSelectedModToolChanged(vs, null, vs.SelectedModTool);
+                this.OnSelectedModToolChanged(vs, new ValueChangedEventArgs<ModTool?>(null, vs.SelectedModTool));
             }
         }
 
         DataManager.GetContextData(this).Set(ModToolManager.DataKey, newValue);
     }
 
-    private void OnSelectedModToolChanged(ModToolManagerViewState sender, ModTool? oldSel, ModTool? newSel) {
+    private void OnSelectedModToolChanged(object? o, ValueChangedEventArgs<ModTool?> e) {
         if (this.isFlushingEditorTextToModTool)
             throw new InvalidOperationException("Currently flushing text editor to mod tool source");
 
-        this.activeModTool = newSel;
+        this.activeModTool = e.NewValue;
         this.debounceFlushText.Reset(); // cancel flush callback
         this.myCompilationFailureMarkerService.Clear();
-        if (oldSel != null) {
-            ModToolViewState.GetInstance(oldSel).FlushEditorToModTool -= this.OnRequestFlushEditorToModTool;
-            oldSel.SourceCodeChanged -= this.OnModToolSourceCodeChanged;
-            oldSel.CompilationFailure -= this.OnModToolCompilationFailed;
+        if (e.OldValue != null) {
+            ModToolViewState.GetInstance(e.OldValue).FlushEditorToModTool -= this.OnRequestFlushEditorToModTool;
+            e.OldValue.SourceCodeChanged -= this.OnModToolSourceCodeChanged;
+            e.OldValue.CompilationFailure -= this.OnModToolCompilationFailed;
 
             // in case document wasn't flushed to mod tool, do it now
-            FlushToModTool(oldSel, GetModToolTextDocument(oldSel));
+            FlushToModTool(e.OldValue, GetModToolTextDocument(e.OldValue));
         }
 
-        if (newSel != null) {
-            ModToolViewState.GetInstance(newSel).FlushEditorToModTool += this.OnRequestFlushEditorToModTool;
-            newSel.SourceCodeChanged += this.OnModToolSourceCodeChanged;
-            newSel.CompilationFailure += this.OnModToolCompilationFailed;
+        if (e.NewValue != null) {
+            ModToolViewState.GetInstance(e.NewValue).FlushEditorToModTool += this.OnRequestFlushEditorToModTool;
+            e.NewValue.SourceCodeChanged += this.OnModToolSourceCodeChanged;
+            e.NewValue.CompilationFailure += this.OnModToolCompilationFailed;
 
-            TextDocument document = GetModToolTextDocument(newSel);
-            document.Text = newSel.SourceCode; // source code may have changed, so update document
+            TextDocument document = GetModToolTextDocument(e.NewValue);
+            document.Text = e.NewValue.SourceCode; // source code may have changed, so update document
 
             this.isUpdatingCodeEditorText = true;
             this.PART_CodeEditor.Document = document;
@@ -204,16 +210,17 @@ public partial class ModToolManagerView : UserControl {
             this.PART_CodeEditor.Document = new TextDocument();
         }
 
-        this.binderClearConsoleOnEachRun.SwitchModel(newSel);
+        this.binderClearConsoleOnEachRun.SwitchModel(e.NewValue);
         this.isUpdatingTabSelection = true;
-        this.PART_TabControl.SelectedIndex = newSel == null ? -1 : (newSel.Manager?.ModTools.IndexOf(newSel) ?? -1);
+        this.PART_TabControl.SelectedIndex = e.NewValue == null ? -1 : (e.NewValue.Manager?.ModTools.IndexOf(e.NewValue) ?? -1);
         this.isUpdatingTabSelection = false;
 
-        this.PART_ConsoleTextList.ItemsSource = newSel?.ConsoleLines;
-        DataManager.GetContextData(this.PART_ModToolPanel).Set(ModTool.DataKey, newSel);
+        this.PART_ConsoleTextList.ItemsSource = e.NewValue?.ConsoleLines;
+        DataManager.GetContextData(this.PART_ModToolPanel).Set(ModTool.DataKey, e.NewValue);
     }
 
-    private void OnRequestFlushEditorToModTool(ModToolViewState sender) {
+    private void OnRequestFlushEditorToModTool(object? o, EventArgs e) {
+        ModToolViewState sender = (ModToolViewState) o!;
         TextDocument document = GetModToolTextDocument(sender.ModTool);
         if (document != this.PART_CodeEditor.Document) {
             FlushToModTool(sender.ModTool, document);
@@ -240,7 +247,8 @@ public partial class ModToolManagerView : UserControl {
         }
     }
 
-    private void OnModToolSourceCodeChanged(ModTool modTool, string oldSourceCode, string newSourceCode) {
+    private void OnModToolSourceCodeChanged(object? sender, ValueChangedEventArgs<string> e) {
+        ModTool modTool = (ModTool) sender!;
         Debug.Assert(this.activeModTool == modTool);
 
         if (!this.isFlushingEditorTextToModTool) {
@@ -248,30 +256,54 @@ public partial class ModToolManagerView : UserControl {
             TextDocument document = GetModToolTextDocument(modTool);
             Debug.Assert(this.PART_CodeEditor.Document == document);
 
-            document.Text = newSourceCode;
+            document.Text = e.NewValue;
             this.isUpdatingCodeEditorText = false;
         }
     }
 
-    private void OnModToolCompilationFailed(ModTool sender, string? chunkName, SourcePosition position) {
-        TextDocument document = GetModToolTextDocument(sender);
+    private void OnModToolCompilationFailed(object? sender, CompilationFailureEventArgs e) {
+        TextDocument document = GetModToolTextDocument((ModTool) sender!);
         Debug.Assert(this.PART_CodeEditor.Document == document);
 
         Caret? caret = this.PART_CodeEditor.TextArea.Caret;
-        caret.Line = position.Line;
-        caret.Column = position.Column;
-        this.PART_CodeEditor.ScrollTo(position.Line, position.Column);
+        caret.Line = e.SourcePosition.Line;
+        caret.Column = e.SourcePosition.Column;
+        this.PART_CodeEditor.ScrollTo(e.SourcePosition.Line, e.SourcePosition.Column);
 
         ApplicationPFX.Instance.Dispatcher.Post(() => {
-            VisualLine? line = this.PART_CodeEditor.TextArea.TextView.GetVisualLine(position.Line);
+            VisualLine? line = this.PART_CodeEditor.TextArea.TextView.GetVisualLine(e.SourcePosition.Line);
             if (line != null) {
-                this.myCompilationFailureMarkerService.SetMarker(caret.Offset, (line.VisualLength - position.Column) + 1);
+                this.myCompilationFailureMarkerService.SetMarker(caret.Offset, (line.VisualLength - e.SourcePosition.Column) + 1);
             }
         }, DispatchPriority.BeforeRender);
     }
 
     public void OnWindowOpened(IDesktopWindow sender) {
         this.Window = sender;
+    }
+    
+    // returns: cancel close
+    public async Task<bool> OnClosingAsync(IDesktopWindow sender) {
+        ModToolManager? mm = this.ModToolManager;
+        if (mm == null) {
+            return false;
+        }
+
+        mm.ModTools.ForEach(x => x.RequestCancelCompilation());
+        if (mm.ModTools.Any(x => x.HasUnsavedChanges)) {
+            using var _ = CommandManager.LocalContextManager.PushContext(new ContextData().Set(ITopLevel.TopLevelDataKey, sender));
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Unsaved changes", "Do you want to save changes?", MessageBoxButtons.YesNoCancel, MessageBoxResult.Yes);
+            if (result != MessageBoxResult.Yes && result != MessageBoxResult.No) {
+                return true; // cancel close
+            }
+
+            if (result == MessageBoxResult.Yes) {
+                bool savedAll = await SaveAllModToolsCommand.SaveAllAsync(mm.ModTools.ToList());
+                return !savedAll;
+            }
+        }
+
+        return false;
     }
 
     public void OnWindowClosed() {

@@ -60,7 +60,7 @@ public class BaseOperationListContent : UserControl {
         this.UpdateOpacity();
     }
 
-    private void OnIsEnabledChanged(BaseSequenceOperation sender) {
+    private void OnIsEnabledChanged(object? o, EventArgs e) {
         this.UpdateOpacity();
     }
 

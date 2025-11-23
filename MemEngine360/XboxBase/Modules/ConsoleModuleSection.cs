@@ -22,59 +22,53 @@ using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.XboxBase.Modules;
 
-public delegate void ConsoleModuleSectionEventHandler(ConsoleModuleSection sender);
-
 public class ConsoleModuleSection : INotifyPropertyChanged {
     public static readonly DataKey<ConsoleModuleSection> DataKey = DataKeys.Create<ConsoleModuleSection>("XboxModuleSection");
 
-    private string? name;
-    private uint baseAddress;
-    private uint size;
-    private uint index;
     private XboxSectionInfoFlags flags;
 
     public string? Name {
-        get => this.name;
+        get => field;
         set {
             if (string.IsNullOrWhiteSpace(value))
                 value = null;
 
-            if (this.name != value) {
-                this.name = value;
-                this.NameChanged?.Invoke(this);
+            if (field != value) {
+                field = value;
+                this.NameChanged?.Invoke(this, EventArgs.Empty);
                 this.OnPropertyChanged(nameof(this.Name));
             }
         }
     }
 
     public uint BaseAddress {
-        get => this.baseAddress;
+        get => field;
         set {
-            if (this.baseAddress != value) {
-                this.baseAddress = value;
-                this.BaseAddressChanged?.Invoke(this);
+            if (field != value) {
+                field = value;
+                this.BaseAddressChanged?.Invoke(this, EventArgs.Empty);
                 this.OnPropertyChanged(nameof(this.BaseAddress));
             }
         }
     }
 
     public uint Size {
-        get => this.size;
+        get => field;
         set {
-            if (this.size != value) {
-                this.size = value;
-                this.SizeChanged?.Invoke(this);
+            if (field != value) {
+                field = value;
+                this.SizeChanged?.Invoke(this, EventArgs.Empty);
                 this.OnPropertyChanged(nameof(this.Size));
             }
         }
     }
 
     public uint Index {
-        get => this.index;
+        get => field;
         set {
-            if (this.index != value) {
-                this.index = value;
-                this.IndexChanged?.Invoke(this);
+            if (field != value) {
+                field = value;
+                this.IndexChanged?.Invoke(this, EventArgs.Empty);
                 this.OnPropertyChanged(nameof(this.Index));
             }
         }
@@ -85,7 +79,7 @@ public class ConsoleModuleSection : INotifyPropertyChanged {
         set {
             if (this.flags != value) {
                 this.flags = value;
-                this.FlagsChanged?.Invoke(this);
+                this.FlagsChanged?.Invoke(this, EventArgs.Empty);
                 this.OnPropertyChanged(nameof(this.Flags));
                 this.OnPropertyChanged(nameof(this.IsLoaded));
                 this.OnPropertyChanged(nameof(this.IsReadable));
@@ -102,11 +96,11 @@ public class ConsoleModuleSection : INotifyPropertyChanged {
     public bool IsExecutable => (this.flags & XboxSectionInfoFlags.Executable) != 0;
     public bool IsUninitialized => (this.flags & XboxSectionInfoFlags.Uninitialized) != 0;
 
-    public event ConsoleModuleSectionEventHandler? NameChanged;
-    public event ConsoleModuleSectionEventHandler? BaseAddressChanged;
-    public event ConsoleModuleSectionEventHandler? SizeChanged;
-    public event ConsoleModuleSectionEventHandler? IndexChanged;
-    public event ConsoleModuleSectionEventHandler? FlagsChanged;
+    public event EventHandler? NameChanged;
+    public event EventHandler? BaseAddressChanged;
+    public event EventHandler? SizeChanged;
+    public event EventHandler? IndexChanged;
+    public event EventHandler? FlagsChanged;
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ConsoleModule? Module { get; internal set; }

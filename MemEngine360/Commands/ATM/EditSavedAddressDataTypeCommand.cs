@@ -22,7 +22,7 @@ using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
-using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Commands.ATM;
 
@@ -74,8 +74,6 @@ public class EditSavedAddressDataTypeCommand : BaseSavedAddressSelectionCommand 
     }
 }
 
-public delegate void SavedResultDataTypeUserInputInfoEventHandler(SavedResultDataTypeUserInputInfo sender);
-
 public class SavedResultDataTypeUserInputInfo : UserInputInfo {
     private DataType dataType;
     private StringType stringScanOption;
@@ -84,22 +82,22 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
 
     public DataType DataType {
         get => this.dataType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, static t => t.DataTypeChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, this.DataTypeChanged);
     }
 
     public StringType StringScanOption {
         get => this.stringScanOption;
-        set => PropertyHelper.SetAndRaiseINE(ref this.stringScanOption, value, this, static t => t.StringScanOptionChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.stringScanOption, value, this, this.StringScanOptionChanged);
     }
 
     public int StringLength {
         get => this.stringLength;
-        set => PropertyHelper.SetAndRaiseINE(ref this.stringLength, value, this, static t => t.StringLengthChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.stringLength, value, this, this.StringLengthChanged);
     }
 
     public int ArrayLength {
         get => this.arrayLength;
-        set => PropertyHelper.SetAndRaiseINE(ref this.arrayLength, value, this, static t => t.ArrayLengthChanged?.Invoke(t));
+        set => PropertyHelper.SetAndRaiseINE(ref this.arrayLength, value, this, this.ArrayLengthChanged);
     }
 
     public bool DisplayAsHex {
@@ -111,7 +109,7 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
                 }
 
                 this.displayAsHex = value;
-                this.DisplayAsHexChanged?.Invoke(this);
+                this.DisplayAsHexChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
@@ -125,17 +123,17 @@ public class SavedResultDataTypeUserInputInfo : UserInputInfo {
                 }
 
                 this.displayAsUnsigned = value;
-                this.DisplayAsUnsignedChanged?.Invoke(this);
+                this.DisplayAsUnsignedChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
 
-    public event SavedResultDataTypeUserInputInfoEventHandler? DataTypeChanged;
-    public event SavedResultDataTypeUserInputInfoEventHandler? StringScanOptionChanged;
-    public event SavedResultDataTypeUserInputInfoEventHandler? StringLengthChanged;
-    public event SavedResultDataTypeUserInputInfoEventHandler? ArrayLengthChanged;
-    public event SavedResultDataTypeUserInputInfoEventHandler? DisplayAsHexChanged;
-    public event SavedResultDataTypeUserInputInfoEventHandler? DisplayAsUnsignedChanged;
+    public event EventHandler? DataTypeChanged;
+    public event EventHandler? StringScanOptionChanged;
+    public event EventHandler? StringLengthChanged;
+    public event EventHandler? ArrayLengthChanged;
+    public event EventHandler? DisplayAsHexChanged;
+    public event EventHandler? DisplayAsUnsignedChanged;
 
     public SavedResultDataTypeUserInputInfo() {
     }
