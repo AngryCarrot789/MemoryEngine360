@@ -38,7 +38,6 @@ using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
-using PFXToolKitUI.Utils.Debouncing;
 using PFXToolKitUI.Utils.Events;
 using TextMateSharp.Grammars;
 
@@ -54,9 +53,7 @@ public partial class ScriptingView : UserControl {
     }
 
     private bool isUpdatingTabSelection;
-    private bool isUpdatingCodeEditorText, isFlushingEditorTextToScript;
     private readonly TextMate.Installation myTextMate;
-    private readonly TimerDispatcherDebouncer debounceFlushText;
 
     // The script currently being shown, i.e. the tab control's selected tab's script
     private Script? activeScript;
@@ -76,12 +73,10 @@ public partial class ScriptingView : UserControl {
         this.InitializeComponent();
         this.PART_TabControl.SelectionChanged += this.PART_TabControlOnSelectionChanged;
         this.PART_CodeEditor.TextChanged += this.PART_CodeEditorOnTextChanged;
-        this.PART_CodeEditor.LostFocus += this.OnTextEditorLostFocus;
         this.PART_CodeEditor.Options.ConvertTabsToSpaces = true;
         this.PART_CodeEditor.Options.CutCopyWholeLine = true;
 
         this.binderClearConsoleOnEachRun.AttachControl(this.PART_ClearConsoleOnEachRun);
-        this.debounceFlushText = new TimerDispatcherDebouncer(TimeSpan.FromSeconds(2), static t => ((ScriptingView) t!).FlushCurrentDocumentToScript(), this);
 
         RegistryOptions options = new RegistryOptions(ThemeName.Dark);
         this.myTextMate = this.PART_CodeEditor.InstallTextMate(options);
@@ -108,43 +103,15 @@ public partial class ScriptingView : UserControl {
     }
 
     private void PART_CodeEditorOnTextChanged(object? sender, EventArgs e) {
-        if (!this.isUpdatingCodeEditorText && this.activeScript != null) {
+        if (this.activeScript != null) {
             this.myCompilationFailureMarkerService.Clear();
-            this.debounceFlushText.InvokeOrPostpone();
             if (this.activeScript != null)
                 this.activeScript.HasUnsavedChanges = true;
         }
     }
 
-    private void OnTextEditorLostFocus(object? sender, RoutedEventArgs e) {
-        this.FlushCurrentDocumentToScript();
-    }
-
-    private void FlushCurrentDocumentToScript() {
-        if (this.isUpdatingCodeEditorText) {
-            throw new InvalidOperationException("Reentrancy -- currently updating editor due to script code changed");
-        }
-
-        if (this.activeScript != null) {
-            this.isFlushingEditorTextToScript = true;
-            TextDocument document = GetScriptTextDocument(this.activeScript);
-            Debug.Assert(document == this.PART_CodeEditor.Document);
-
-            if (this.activeScript.SourceCode != document.Text) {
-                this.activeScript.SourceCode = document.Text;
-            }
-
-            this.isFlushingEditorTextToScript = false;
-        }
-    }
-
     private static TextDocument GetScriptTextDocument(Script script) {
-        TextDocument? doc = ScriptTextDocumentDataKey.GetContext(script.UserContext);
-        if (doc == null) {
-            script.UserContext.Set(ScriptTextDocumentDataKey, doc = new TextDocument(script.SourceCode));
-        }
-
-        return doc;
+        return ((LuaScriptDocument) script.Document).Document;
     }
 
     private void PART_TabControlOnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
@@ -178,32 +145,16 @@ public partial class ScriptingView : UserControl {
     }
 
     private void OnSelectedScriptChanged(object? o, ValueChangedEventArgs<Script?> e) {
-        if (this.isFlushingEditorTextToScript)
-            throw new InvalidOperationException("Currently flushing text editor to script source");
-
         this.activeScript = e.NewValue;
-        this.debounceFlushText.Reset(); // cancel flush callback
         this.myCompilationFailureMarkerService.Clear();
         if (e.OldValue != null) {
-            ScriptViewState.GetInstance(e.OldValue).FlushEditorToScript -= this.OnRequestFlushEditorToScript;
-            e.OldValue.SourceCodeChanged -= this.OnScriptSourceCodeChanged;
             e.OldValue.CompilationFailure -= this.OnScriptCompilationFailed;
-
-            // in case document wasn't flushed to script, do it now
-            FlushToScript(e.OldValue, GetScriptTextDocument(e.OldValue));
         }
 
         if (e.NewValue != null) {
-            ScriptViewState.GetInstance(e.NewValue).FlushEditorToScript += this.OnRequestFlushEditorToScript;
-            e.NewValue.SourceCodeChanged += this.OnScriptSourceCodeChanged;
             e.NewValue.CompilationFailure += this.OnScriptCompilationFailed;
 
-            TextDocument document = GetScriptTextDocument(e.NewValue);
-            document.Text = e.NewValue.SourceCode; // source code may have changed, so update document
-
-            this.isUpdatingCodeEditorText = true;
-            this.PART_CodeEditor.Document = document;
-            this.isUpdatingCodeEditorText = false;
+            this.PART_CodeEditor.Document = GetScriptTextDocument(e.NewValue);
         }
         else {
             this.PART_CodeEditor.Document = new TextDocument();
@@ -216,48 +167,6 @@ public partial class ScriptingView : UserControl {
 
         this.PART_ConsoleTextList.ItemsSource = e.NewValue?.ConsoleLines;
         DataManager.GetContextData(this.PART_ScriptPanel).Set(Script.DataKey, e.NewValue);
-    }
-
-    private void OnRequestFlushEditorToScript(object? o, EventArgs eventArgs) {
-        ScriptViewState sender = (ScriptViewState) o!;
-        TextDocument document = GetScriptTextDocument(sender.Script);
-        if (document != this.PART_CodeEditor.Document) {
-            FlushToScript(sender.Script, document);
-        }
-        else {
-            // When current document equals the script's document, ensure we aren't already doing stuff.
-            // Ideally we never will be unless someone is using dispatcher frames (i.e. Dispatcher.Invoke())
-            Debug.Assert(this.activeScript == sender.Script, "Expected currentScript to equal sender's script when the documents are equal");
-            if (this.isUpdatingCodeEditorText)
-                throw new InvalidOperationException("Already updating text editor from script source");
-            if (this.isFlushingEditorTextToScript)
-                throw new InvalidOperationException("Already flushing text editor to script source");
-
-            this.isFlushingEditorTextToScript = true;
-            FlushToScript(sender.Script, document);
-            this.isFlushingEditorTextToScript = false;
-        }
-    }
-
-    private static void FlushToScript(Script script, TextDocument document) {
-        string newText = document.Text;
-        if (newText != script.SourceCode) {
-            script.SourceCode = newText;
-        }
-    }
-
-    private void OnScriptSourceCodeChanged(object? o, ValueChangedEventArgs<string> e) {
-        Script sender = (Script) o!;
-        Debug.Assert(this.activeScript == sender);
-
-        if (!this.isFlushingEditorTextToScript) {
-            this.isUpdatingCodeEditorText = true;
-            TextDocument document = GetScriptTextDocument(sender);
-            Debug.Assert(this.PART_CodeEditor.Document == document);
-
-            document.Text = e.NewValue;
-            this.isUpdatingCodeEditorText = false;
-        }
     }
 
     private void OnScriptCompilationFailed(object? o, CompilationFailureEventArgs e) {

@@ -190,11 +190,9 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// </summary>
     public event EventHandler? IsBusyChanged;
 
-    private readonly ComponentStorage myComponentStorage;
-    ComponentStorage IComponentManager.ComponentStorage => this.myComponentStorage;
+    ComponentStorage IComponentManager.ComponentStorage => field ??= new ComponentStorage(this);
 
     public MemoryEngine() {
-        this.myComponentStorage = new ComponentStorage(this);
         this.BusyLock = new BusyLock();
         this.BusyLock.IsBusyChanged += (s, _) => this.IsBusyChanged?.Invoke(this, EventArgs.Empty);
         this.ScanningProcessor = new ScanningProcessor(this);

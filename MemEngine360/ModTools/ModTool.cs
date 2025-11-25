@@ -107,24 +107,11 @@ public class ModTool : IComponentManager, IUserLocalContext {
         get => this.dedicatedConnection;
         set => PropertyHelper.SetAndRaiseINE(ref this.dedicatedConnection, value, this, this.DedicatedConnectionChanged);
     }
-
+    
     /// <summary>
-    /// Gets or sets the source code of the script. This may not be immediately set when the user types text into the UI
+    /// Gets the document for this mod tool
     /// </summary>
-    public string SourceCode {
-        get => field;
-        set {
-            ArgumentNullException.ThrowIfNull(value);
-
-            string oldValue = field;
-            if (!ReferenceEquals(oldValue, value) /* we don't really care about true equality */) {
-                this.myChunk = null;
-                field = value;
-                this.SourceCodeChanged?.Invoke(this, new ValueChangedEventArgs<string>(oldValue, value));
-                this.HasUnsavedChanges = true;
-            }
-        }
-    } = "";
+    public ILuaScriptDocument Document { get; }
 
     /// <summary>
     /// Gets the busy lock used to synchronize access to <see cref="DedicatedConnection"/>
@@ -167,19 +154,17 @@ public class ModTool : IComponentManager, IUserLocalContext {
     public event EventHandler? HasUnsavedChangesChanged;
     public event EventHandler? ClearConsoleOnRunChanged;
     public event EventHandler<ValueChangedEventArgs<IConsoleConnection?>>? DedicatedConnectionChanged;
-    public event EventHandler<ValueChangedEventArgs<string>>? SourceCodeChanged;
+    public event EventHandler? SourceCodeChanged;
     public event EventHandler<CompilationFailureEventArgs>? CompilationFailure;
 
     private readonly Lock consoleQueueLock = new Lock();
     private readonly List<string> queuedLines = new List<string>();
     private readonly RateLimitedDispatchAction rldaPrintToConsole;
-    private readonly ComponentStorage componentStorage;
-    ComponentStorage IComponentManager.ComponentStorage => this.componentStorage;
+    ComponentStorage IComponentManager.ComponentStorage => field ??= new ComponentStorage(this);
 
     public ModToolGUI Gui { get; }
 
     public ModTool() {
-        this.componentStorage = new ComponentStorage(this);
         this.Gui = new ModToolGUI(this);
         this.rldaPrintToConsole = RateLimitedDispatchActionBase.ForDispatcherSync(() => {
             lock (this.consoleQueueLock) {
@@ -195,6 +180,15 @@ public class ModTool : IComponentManager, IUserLocalContext {
         }, TimeSpan.FromMilliseconds(50));
 
         this.rldaPrintToConsole.DebugName = "Lua Print to Console";
+        
+        this.Document = ApplicationPFX.GetComponent<ILuaScriptDocumentService>().CreateDocument();
+        this.Document.TextChanged += this.DocumentOnTextChanged;
+    }
+    
+    private void DocumentOnTextChanged(object? sender, EventArgs eventArgs) {
+        this.myChunk = null;
+        this.SourceCodeChanged?.Invoke(this, EventArgs.Empty);
+        this.HasUnsavedChanges = true;
     }
 
     public void SetFilePath(string? newFilePath) {
@@ -254,7 +248,7 @@ public class ModTool : IComponentManager, IUserLocalContext {
             this.ConsoleLines.Clear();
 
         if (this.myChunk == null) {
-            string code = this.SourceCode;
+            string code = this.Document.Text;
             if (string.IsNullOrWhiteSpace(code)) {
                 return false;
             }

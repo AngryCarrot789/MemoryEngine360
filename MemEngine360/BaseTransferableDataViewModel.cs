@@ -48,8 +48,8 @@ public abstract class BaseTransferableDataViewModel : ITransferableData, INotify
     /// </summary>
     /// <param name="parameter">The parameter</param>
     /// <param name="owner">The owner</param>
-    protected static void RaiseObservablePropertyChanged(object? sender, DataParameterValueChangedEventArgs e) {
-        ((BaseTransferableDataViewModel) e.Owner).RaisePropertyChanged(e.DataParameter.Name);
+    protected static void RaiseObservablePropertyChanged(DataParameter sender, DataParameterValueChangedEventArgs e) {
+        ((BaseTransferableDataViewModel) e.Owner).RaisePropertyChanged(sender.Name);
     }
     
     /// <summary>

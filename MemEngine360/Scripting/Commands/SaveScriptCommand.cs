@@ -46,7 +46,6 @@ public class SaveScriptCommand : Command {
             return;
         }
 
-        ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
         if (this.SaveAs || script.HasUnsavedChanges || !File.Exists(script.FilePath)) {
             await SaveScriptAsync(script, this.SaveAs);
         }
@@ -71,7 +70,7 @@ public class SaveScriptCommand : Command {
 
         try {
             using CancellationTokenSource cts = new CancellationTokenSource();
-            Task writeTask = File.WriteAllTextAsync(filePath, script.SourceCode, cts.Token);
+            Task writeTask = File.WriteAllTextAsync(filePath, script.Document.Text, cts.Token);
             await Task.WhenAny(writeTask, Task.Delay(500, cts.Token));
             if (!writeTask.IsCompleted) {
                 ActivityTask activity = ActivityManager.Instance.RunTask(() => {

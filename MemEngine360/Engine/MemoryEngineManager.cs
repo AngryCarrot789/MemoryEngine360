@@ -23,8 +23,6 @@ using PFXToolKitUI.Notifications;
 
 namespace MemEngine360.Engine;
 
-public delegate void MemoryEngineManagerNotificationEventHandler(MemoryEngineManager manager, MemoryEngine engine, IConsoleConnection connection, Notification notification);
-
 /// <summary>
 /// Manages memory engine instances
 /// </summary>
@@ -32,12 +30,12 @@ public abstract class MemoryEngineManager {
     private readonly List<MemoryEngine> engines;
 
     public static MemoryEngineManager Instance => ApplicationPFX.GetComponent<MemoryEngineManager>();
-    
+
     /// <summary>
     /// Gets all opened engine views. This list is read-only
     /// </summary>
     public IList<MemoryEngine> Engines { get; }
-    
+
     /// <summary>
     /// A global event fired when any mem engine view opens
     /// </summary>
@@ -47,9 +45,16 @@ public abstract class MemoryEngineManager {
     /// A global event fired when any mem engine view closes
     /// </summary>
     public event EventHandler<MemoryEngine>? EngineClosed;
-    
-    public event MemoryEngineManagerNotificationEventHandler? ProvidePostConnectionActions;
-    
+
+    /// <summary>
+    /// A custom handler for when the engine's main connection changes and the notification saying "Connected" is shown.
+    /// This allows for adding custom actions to the notification.
+    /// <para>
+    /// This event is invoked before the notification is actually shown
+    /// </para>
+    /// </summary>
+    public event EventHandler<ProvidePostConnectionActionsEventArgs>? ProvidePostConnectionActions;
+
     public MemoryEngineManager() {
         this.Engines = (this.engines = new List<MemoryEngine>(1)).AsReadOnly();
     }
@@ -65,11 +70,17 @@ public abstract class MemoryEngineManager {
     protected void OnEngineClosed(MemoryEngine engineUI) {
         if (!this.engines.Remove(engineUI))
             throw new InvalidOperationException("Engine not opened");
-        
+
         this.EngineClosed?.Invoke(this, engineUI);
     }
 
     public void RaiseProvidePostConnectionActions(MemoryEngine engine, IConsoleConnection connection, Notification notification) {
-        this.ProvidePostConnectionActions?.Invoke(this, engine, connection, notification);
+        this.ProvidePostConnectionActions?.Invoke(this, new ProvidePostConnectionActionsEventArgs(engine, connection, notification));
     }
+}
+
+public readonly struct ProvidePostConnectionActionsEventArgs(MemoryEngine memoryEngine, IConsoleConnection connection, Notification notification) {
+    public MemoryEngine MemoryEngine { get; } = memoryEngine;
+    public IConsoleConnection Connection { get; } = connection;
+    public Notification Notification { get; } = notification;
 }

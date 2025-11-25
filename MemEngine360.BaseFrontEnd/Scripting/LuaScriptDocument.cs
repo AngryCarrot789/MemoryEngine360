@@ -17,21 +17,24 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Composition;
+using AvaloniaEdit.Document;
+using MemEngine360.Scripting;
 
-namespace MemEngine360.ModTools;
+namespace MemEngine360.BaseFrontEnd.Scripting;
 
-public class ModToolViewState {
-    /// <summary>
-    /// Gets the task sequence manager for this state
-    /// </summary>
-    public ModTool ModTool { get; }
+public class LuaScriptDocument : ILuaScriptDocument {
+    public TextDocument Document { get; } = new TextDocument();
 
-    private ModToolViewState(ModTool modTool) {
-        this.ModTool = modTool;
+    public string Text {
+        get => this.Document.Text;
+        set => this.Document.Text = value;
     }
-    
-    public static ModToolViewState GetInstance(ModTool modTool) {
-        return ((IComponentManager) modTool).GetOrCreateComponent((t) => new ModToolViewState((ModTool) t));
+
+    public event EventHandler? TextChanged;
+
+    public LuaScriptDocument() {
+        this.Document.TextChanged += this.DocumentOnTextChanged;
     }
+
+    private void DocumentOnTextChanged(object? sender, EventArgs e) => this.TextChanged?.Invoke(this, EventArgs.Empty);
 }

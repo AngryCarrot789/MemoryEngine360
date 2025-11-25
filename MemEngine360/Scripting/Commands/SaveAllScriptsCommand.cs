@@ -43,7 +43,6 @@ public class SaveAllScriptsCommand : Command {
 
         for (int i = 0; i < list.Count; i++) {
             Script script = list[i];
-            ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
             if (!script.HasUnsavedChanges) {
                 continue;
             }
@@ -63,7 +62,7 @@ public class SaveAllScriptsCommand : Command {
         
         List<(Task Task, string Path, Script Script)> tasks = new List<(Task Task, string Path, Script Script)>(newScriptPaths.Count);
         foreach ((Script script, string path) pair in newScriptPaths) {
-            tasks.Add((File.WriteAllTextAsync(pair.path, pair.script.SourceCode, cts.Token), pair.path, pair.script));
+            tasks.Add((File.WriteAllTextAsync(pair.path, pair.script.Document.Text, cts.Token), pair.path, pair.script));
         }
 
         Task saveAllTask = Task.WhenAll(tasks.Select(x => x.Task));

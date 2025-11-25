@@ -1,5 +1,5 @@
 ﻿// 
-// Copyright (c) 2024-2025 REghZy
+// Copyright (c) 2025-2025 REghZy
 // 
 // This file is part of MemoryEngine360.
 // 
@@ -17,21 +17,16 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Composition;
+namespace MemEngine360.Scripting;
 
-namespace MemEngine360.ModTools;
-
-public class ModToolViewState {
+public interface ILuaScriptDocument {
     /// <summary>
-    /// Gets the task sequence manager for this state
+    /// Gets the raw text for this document
     /// </summary>
-    public ModTool ModTool { get; }
+    string Text { get; set; }
 
-    private ModToolViewState(ModTool modTool) {
-        this.ModTool = modTool;
-    }
-    
-    public static ModToolViewState GetInstance(ModTool modTool) {
-        return ((IComponentManager) modTool).GetOrCreateComponent((t) => new ModToolViewState((ModTool) t));
-    }
+    /// <summary>
+    /// An event raised when <see cref="Text"/> changes
+    /// </summary>
+    event EventHandler? TextChanged;
 }

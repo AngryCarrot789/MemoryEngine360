@@ -32,10 +32,9 @@ public sealed class ConstantDataProvider : DataValueProvider {
     public IDataValue? DataValue {
         get => field;
         set {
-            PropertyHelper.SetAndRaiseINE(ref field, null, this, static t => t.DataValueChanged?.Invoke(t, EventArgs.Empty));
+            PropertyHelper.SetAndRaiseINE(ref field, null, this, this.DataValueChanged);
             if (value != null) {
                 this.DataType = value.DataType;
-                PropertyHelper.SetAndRaiseINE(ref field, value, this, this.DataValueChanged);
             }
         }
     }

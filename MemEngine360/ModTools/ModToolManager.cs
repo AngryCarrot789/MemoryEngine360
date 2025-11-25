@@ -31,12 +31,11 @@ namespace MemEngine360.ModTools;
 public class ModToolManager : IComponentManager, IUserLocalContext {
     public static readonly DataKey<ModToolManager> DataKey = DataKeys.Create<ModToolManager>(nameof(ModToolManager));
 
-    private readonly ComponentStorage componentStorage;
     private readonly ObservableList<ModTool> myModTools;
     private readonly MenuEntryGroup modToolMenu;
     private readonly Dictionary<ModTool, BaseMenuEntry> toolToMenuEntry;
 
-    ComponentStorage IComponentManager.ComponentStorage => this.componentStorage;
+    ComponentStorage IComponentManager.ComponentStorage => field ??= new ComponentStorage(this);
 
     public IMutableContextData UserContext { get; } = new ContextData();
 
@@ -49,7 +48,6 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
 
     public ModToolManager(MemoryEngine memoryEngine, MenuEntryGroup modToolMenu) {
         this.MemoryEngine = memoryEngine;
-        this.componentStorage = new ComponentStorage(this);
         this.myModTools = new ObservableList<ModTool>();
         this.ModTools = new ReadOnlyObservableList<ModTool>(this.myModTools);
         this.toolToMenuEntry = new Dictionary<ModTool, BaseMenuEntry>();
@@ -113,7 +111,6 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
                 return;
             }
 
-            ModToolViewState.GetInstance(this.modTool).RaiseFlushEditorToScript();
             if (!await this.modTool.StartCommand()) {
                 return;
             }

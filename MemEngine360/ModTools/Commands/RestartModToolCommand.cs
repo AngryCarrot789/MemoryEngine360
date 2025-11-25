@@ -39,7 +39,6 @@ public class RestartModToolCommand : Command {
         }
 
         if (await StopModTool(tool, false)) {
-            ModToolViewState.GetInstance(tool).RaiseFlushEditorToScript();
             if (!await tool.StartCommand()) {
                 return;
             }

@@ -60,7 +60,6 @@ public class CloseModToolCommand : Command {
         }
 
         Debug.Assert(!tool.IsCompiling);
-        ModToolViewState.GetInstance(tool).RaiseFlushEditorToScript();
         if (tool.HasUnsavedChanges) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Unsaved changes", "You still have saved changes. Do you want to save to a file?", MessageBoxButtons.YesNoCancel, MessageBoxResult.Yes);
             if (result == MessageBoxResult.Yes) {

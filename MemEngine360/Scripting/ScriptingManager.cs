@@ -29,9 +29,8 @@ namespace MemEngine360.Scripting;
 
 public class ScriptingManager : IComponentManager, IUserLocalContext {
     public static readonly DataKey<ScriptingManager> DataKey = DataKeys.Create<ScriptingManager>(nameof(ScriptingManager));
-    
-    private readonly ComponentStorage componentStorage;
-    ComponentStorage IComponentManager.ComponentStorage => this.componentStorage;
+
+    ComponentStorage IComponentManager.ComponentStorage => field ??= new ComponentStorage(this);
 
     public IMutableContextData UserContext { get; } = new ContextData();
 
@@ -44,7 +43,6 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
 
     public ScriptingManager(MemoryEngine memoryEngine) {
         this.MemoryEngine = memoryEngine;
-        this.componentStorage = new ComponentStorage(this);
         this.Scripts = new ObservableList<Script>();
         this.Scripts.ValidateAdd += (list, index, items) => {
             foreach (Script item in items) {
@@ -73,7 +71,7 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
             oldItem.CheckNotRunning("Cannot replace item while it's running");
             if (oldItem.IsCompiling)
                 Debug.Fail("Script is still compiling but attempted to replace it");
-            
+
             newItem.CheckNotRunning("Replacement item cannot be running");
         };
 
@@ -86,21 +84,21 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
 
         this.Scripts.Add(new Script());
         this.Scripts[0].SetCustomNameWithoutPath("Cool Script.lua");
-        this.Scripts[0].SourceCode = "-- read BO2 ammo count of primary weapon\n" +
-                                     "local oldAmmo = engine.readnumber(\"0x83551E4C\", \"int\")\n" +
-                                     "print(\"Old ammo = \" .. oldAmmo)\n" +
-                                     "\n" +
-                                     "-- add 20 to the primary ammo, slowly\n" +
-                                     "local num = 0\n" +
-                                     "while true do\n" +
-                                     "    num = num + 1\n" +
-                                     "    engine.writenumber(\"0x83551E4C\", \"int\", oldAmmo + num)\n" +
-                                     "    sleep(0.1)\n" +
-                                     "    if (num == 20) then\n" +
-                                     "        local newAmmo = engine.readnumber(\"0x83551E4C\", \"int\")\n" +
-                                     "        print(\"New ammo = \" .. newAmmo)\n" +
-                                     "        return\n" +
-                                     "    end\n" +
-                                     "end";
+        this.Scripts[0].Document.Text = "-- read BO2 ammo count of primary weapon\n" +
+                                        "local oldAmmo = engine.readnumber(\"0x83551E4C\", \"int\")\n" +
+                                        "print(\"Old ammo = \" .. oldAmmo)\n" +
+                                        "\n" +
+                                        "-- add 20 to the primary ammo, slowly\n" +
+                                        "local num = 0\n" +
+                                        "while true do\n" +
+                                        "    num = num + 1\n" +
+                                        "    engine.writenumber(\"0x83551E4C\", \"int\", oldAmmo + num)\n" +
+                                        "    sleep(0.1)\n" +
+                                        "    if (num == 20) then\n" +
+                                        "        local newAmmo = engine.readnumber(\"0x83551E4C\", \"int\")\n" +
+                                        "        print(\"New ammo = \" .. newAmmo)\n" +
+                                        "        return\n" +
+                                        "    end\n" +
+                                        "end";
     }
 }

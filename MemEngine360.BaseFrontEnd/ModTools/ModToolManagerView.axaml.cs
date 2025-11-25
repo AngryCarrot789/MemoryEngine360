@@ -27,6 +27,7 @@ using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
 using AvaloniaEdit.Rendering;
 using AvaloniaEdit.TextMate;
+using MemEngine360.BaseFrontEnd.Scripting;
 using MemEngine360.ModTools;
 using MemEngine360.ModTools.Commands;
 using MemEngine360.Scripting;
@@ -39,14 +40,12 @@ using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
-using PFXToolKitUI.Utils.Debouncing;
 using PFXToolKitUI.Utils.Events;
 using TextMateSharp.Grammars;
 
 namespace MemEngine360.BaseFrontEnd.ModTools;
 
 public partial class ModToolManagerView : UserControl {
-    public static readonly DataKey<TextDocument> ModToolTextDocumentDataKey = DataKeys.Create<TextDocument>(nameof(ModToolTextDocumentDataKey));
     public static readonly StyledProperty<ModToolManager?> ModToolManagerProperty = AvaloniaProperty.Register<ModToolManagerView, ModToolManager?>(nameof(ModToolManager));
 
     public ModToolManager? ModToolManager {
@@ -55,9 +54,7 @@ public partial class ModToolManagerView : UserControl {
     }
 
     private bool isUpdatingTabSelection;
-    private bool isUpdatingCodeEditorText, isFlushingEditorTextToModTool;
     private readonly TextMate.Installation myTextMate;
-    private readonly TimerDispatcherDebouncer debounceFlushText;
 
     // The mod tool currently being shown, i.e. the tab control's selected tab's mod tool
     private ModTool? activeModTool;
@@ -77,12 +74,10 @@ public partial class ModToolManagerView : UserControl {
         this.InitializeComponent();
         this.PART_TabControl.SelectionChanged += this.PART_TabControlOnSelectionChanged;
         this.PART_CodeEditor.TextChanged += this.PART_CodeEditorOnTextChanged;
-        this.PART_CodeEditor.LostFocus += this.OnTextEditorLostFocus;
         this.PART_CodeEditor.Options.ConvertTabsToSpaces = true;
         this.PART_CodeEditor.Options.CutCopyWholeLine = true;
 
         this.binderClearConsoleOnEachRun.AttachControl(this.PART_ClearConsoleOnEachRun);
-        this.debounceFlushText = new TimerDispatcherDebouncer(TimeSpan.FromSeconds(2), static t => ((ModToolManagerView) t!).FlushCurrentDocumentToModTool(), this);
 
         RegistryOptions options = new RegistryOptions(ThemeName.Dark);
         this.myTextMate = this.PART_CodeEditor.InstallTextMate(options);
@@ -109,43 +104,14 @@ public partial class ModToolManagerView : UserControl {
     }
 
     private void PART_CodeEditorOnTextChanged(object? sender, EventArgs e) {
-        if (!this.isUpdatingCodeEditorText && this.activeModTool != null) {
-            this.myCompilationFailureMarkerService.Clear();
-            this.debounceFlushText.InvokeOrPostpone();
-            if (this.activeModTool != null)
-                this.activeModTool.HasUnsavedChanges = true;
-        }
-    }
-
-    private void OnTextEditorLostFocus(object? sender, RoutedEventArgs e) {
-        this.FlushCurrentDocumentToModTool();
-    }
-
-    private void FlushCurrentDocumentToModTool() {
-        if (this.isUpdatingCodeEditorText) {
-            throw new InvalidOperationException("Reentrancy -- currently updating editor due to mod tool code changed");
-        }
-
         if (this.activeModTool != null) {
-            this.isFlushingEditorTextToModTool = true;
-            TextDocument document = GetModToolTextDocument(this.activeModTool);
-            Debug.Assert(document == this.PART_CodeEditor.Document);
-
-            if (this.activeModTool.SourceCode != document.Text) {
-                this.activeModTool.SourceCode = document.Text;
-            }
-
-            this.isFlushingEditorTextToModTool = false;
+            this.myCompilationFailureMarkerService.Clear();
+            this.activeModTool?.HasUnsavedChanges = true;
         }
     }
 
     private static TextDocument GetModToolTextDocument(ModTool modTool) {
-        TextDocument? doc = ModToolTextDocumentDataKey.GetContext(modTool.UserContext);
-        if (doc == null) {
-            modTool.UserContext.Set(ModToolTextDocumentDataKey, doc = new TextDocument(modTool.SourceCode));
-        }
-
-        return doc;
+        return ((LuaScriptDocument) modTool.Document).Document;
     }
 
     private void PART_TabControlOnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
@@ -179,32 +145,15 @@ public partial class ModToolManagerView : UserControl {
     }
 
     private void OnSelectedModToolChanged(object? o, ValueChangedEventArgs<ModTool?> e) {
-        if (this.isFlushingEditorTextToModTool)
-            throw new InvalidOperationException("Currently flushing text editor to mod tool source");
-
         this.activeModTool = e.NewValue;
-        this.debounceFlushText.Reset(); // cancel flush callback
         this.myCompilationFailureMarkerService.Clear();
         if (e.OldValue != null) {
-            ModToolViewState.GetInstance(e.OldValue).FlushEditorToModTool -= this.OnRequestFlushEditorToModTool;
-            e.OldValue.SourceCodeChanged -= this.OnModToolSourceCodeChanged;
             e.OldValue.CompilationFailure -= this.OnModToolCompilationFailed;
-
-            // in case document wasn't flushed to mod tool, do it now
-            FlushToModTool(e.OldValue, GetModToolTextDocument(e.OldValue));
         }
 
         if (e.NewValue != null) {
-            ModToolViewState.GetInstance(e.NewValue).FlushEditorToModTool += this.OnRequestFlushEditorToModTool;
-            e.NewValue.SourceCodeChanged += this.OnModToolSourceCodeChanged;
             e.NewValue.CompilationFailure += this.OnModToolCompilationFailed;
-
-            TextDocument document = GetModToolTextDocument(e.NewValue);
-            document.Text = e.NewValue.SourceCode; // source code may have changed, so update document
-
-            this.isUpdatingCodeEditorText = true;
-            this.PART_CodeEditor.Document = document;
-            this.isUpdatingCodeEditorText = false;
+            this.PART_CodeEditor.Document = GetModToolTextDocument(e.NewValue);
         }
         else {
             this.PART_CodeEditor.Document = new TextDocument();
@@ -217,48 +166,6 @@ public partial class ModToolManagerView : UserControl {
 
         this.PART_ConsoleTextList.ItemsSource = e.NewValue?.ConsoleLines;
         DataManager.GetContextData(this.PART_ModToolPanel).Set(ModTool.DataKey, e.NewValue);
-    }
-
-    private void OnRequestFlushEditorToModTool(object? o, EventArgs e) {
-        ModToolViewState sender = (ModToolViewState) o!;
-        TextDocument document = GetModToolTextDocument(sender.ModTool);
-        if (document != this.PART_CodeEditor.Document) {
-            FlushToModTool(sender.ModTool, document);
-        }
-        else {
-            // When current document equals the mod tool's document, ensure we aren't already doing stuff.
-            // Ideally we never will be unless someone is using dispatcher frames (i.e. Dispatcher.Invoke())
-            Debug.Assert(this.activeModTool == sender.ModTool, "Expected currentModTool to equal sender's mod tool when the documents are equal");
-            if (this.isUpdatingCodeEditorText)
-                throw new InvalidOperationException("Already updating text editor from mod tool source");
-            if (this.isFlushingEditorTextToModTool)
-                throw new InvalidOperationException("Already flushing text editor to mod tool source");
-
-            this.isFlushingEditorTextToModTool = true;
-            FlushToModTool(sender.ModTool, document);
-            this.isFlushingEditorTextToModTool = false;
-        }
-    }
-
-    private static void FlushToModTool(ModTool modTool, TextDocument document) {
-        string newText = document.Text;
-        if (newText != modTool.SourceCode) {
-            modTool.SourceCode = newText;
-        }
-    }
-
-    private void OnModToolSourceCodeChanged(object? sender, ValueChangedEventArgs<string> e) {
-        ModTool modTool = (ModTool) sender!;
-        Debug.Assert(this.activeModTool == modTool);
-
-        if (!this.isFlushingEditorTextToModTool) {
-            this.isUpdatingCodeEditorText = true;
-            TextDocument document = GetModToolTextDocument(modTool);
-            Debug.Assert(this.PART_CodeEditor.Document == document);
-
-            document.Text = e.NewValue;
-            this.isUpdatingCodeEditorText = false;
-        }
     }
 
     private void OnModToolCompilationFailed(object? sender, CompilationFailureEventArgs e) {

@@ -72,7 +72,7 @@ public class OpenModToolScriptFileCommand : Command {
         
         ModTool tool = new ModTool();
         tool.SetFilePath(path);
-        tool.SourceCode = sourceCode;
+        tool.Document.Text = sourceCode;
         tool.HasUnsavedChanges = false;
         
         manager.AddModTool(tool);

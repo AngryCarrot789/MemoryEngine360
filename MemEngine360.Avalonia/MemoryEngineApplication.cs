@@ -279,6 +279,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.AddComponent<IScriptingViewService>(new DesktopScriptingViewServiceImpl());
         manager.AddComponent<IStructViewerService>(new DesktopStructViewerServiceImpl());
         manager.AddComponent<IModToolViewService>(new DesktopModToolViewServiceImpl());
+        manager.AddComponent<ILuaScriptDocumentService>(new LuaScriptDocumentServiceImpl());
 
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }
@@ -475,7 +476,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
                         Instance.Dispatcher.Post(() => {
                             ModTool script = new ModTool() {
-                                SourceCode = text,
+                                Document = { Text = text },
                                 HasUnsavedChanges = false
                             };
 

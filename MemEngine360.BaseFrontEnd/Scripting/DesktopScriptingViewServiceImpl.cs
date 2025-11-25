@@ -106,7 +106,7 @@ public class DesktopScriptingViewServiceImpl : IScriptingViewService {
 
                         ApplicationPFX.Instance.Dispatcher.Post(() => {
                             Script script = new Script() {
-                                SourceCode = text,
+                                Document = { Text = text },
                                 HasUnsavedChanges = false
                             };
 

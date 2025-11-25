@@ -42,7 +42,6 @@ public class SaveAllModToolsCommand : Command {
         List<(ModTool, string)> newToolPaths = new List<(ModTool, string)>(list.Count);
         for (int i = 0; i < list.Count; i++) {
             ModTool modTool = list[i];
-            ModToolViewState.GetInstance(modTool).RaiseFlushEditorToScript();
             if (!modTool.HasUnsavedChanges) {
                 continue;
             }
@@ -62,7 +61,7 @@ public class SaveAllModToolsCommand : Command {
 
         List<(Task Task, string Path, ModTool ModTool)> tasks = new List<(Task Task, string Path, ModTool ModTool)>(newToolPaths.Count);
         foreach ((ModTool tool, string path) pair in newToolPaths) {
-            tasks.Add((File.WriteAllTextAsync(pair.path, pair.tool.SourceCode, cts.Token), pair.path, pair.tool));
+            tasks.Add((File.WriteAllTextAsync(pair.path, pair.tool.Document.Text, cts.Token), pair.path, pair.tool));
         }
 
         Task saveAllTask = Task.WhenAll(tasks.Select(x => x.Task));

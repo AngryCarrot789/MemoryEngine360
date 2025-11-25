@@ -53,12 +53,12 @@ public class PluginPS3 : Plugin {
                 });
         }
 
-        MemoryEngineManager.Instance.ProvidePostConnectionActions += this.OnProvidePostConnectionActions;
+        MemoryEngineManager.Instance.ProvidePostConnectionActions += OnProvidePostConnectionActions;
     }
 
-    private void OnProvidePostConnectionActions(MemoryEngineManager manager, MemoryEngine engineui, IConsoleConnection connection, Notification notification) {
-        if (connection is ConsoleConnectionCCAPI) {
-            notification.Actions.Add(new CommandNotificationAction("Attach to Game Process", "commands.ps3ccapi.SetProcessToActiveGameCommand") {
+    private static void OnProvidePostConnectionActions(object? sender, ProvidePostConnectionActionsEventArgs e) {
+        if (e.Connection is ConsoleConnectionCCAPI) {
+            e.Notification.Actions.Add(new CommandNotificationAction("Attach to Game Process", "commands.ps3ccapi.SetProcessToActiveGameCommand") {
                 ToolTip = "Attach CCAPI to the current running game process. This is required to read/write game memory"
             });
         }

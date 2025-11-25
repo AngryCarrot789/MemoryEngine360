@@ -59,7 +59,6 @@ public class CloseScriptCommand : Command {
         }
 
         Debug.Assert(!script.IsCompiling);
-        ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
         if (script.HasUnsavedChanges) {
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Unsaved changes", "You still have saved changes. Do you want to save to a file?", MessageBoxButtons.YesNoCancel, MessageBoxResult.Yes);
             if (result == MessageBoxResult.Yes) {

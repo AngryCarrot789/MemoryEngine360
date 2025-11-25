@@ -27,26 +27,9 @@ public class ScriptViewState {
     /// </summary>
     public Script Script { get; }
     
-    // Workaround for the fact AvaloniaEdit has no "core" project libraries, so we cannot access
-    // TextDocument. Maybe we should just not use core projects at all since it makes things 1000% harder...
-    
-    // The current impl uses a DataKey<TextDocument> to store the document itself in the script, lazily created,
-    // and then simply writes the document text into the script source code
-    
-    /// <summary>
-    /// Requests the UI to flush the text editor document associated with this
-    /// script view state to our script's <see cref="Scripting.Script.SourceCode"/>
-    /// </summary>
-    public event EventHandler? FlushEditorToScript;
-
     private ScriptViewState(Script script) {
         this.Script = script;
     }
-
-    /// <summary>
-    /// Raises the <see cref="FlushEditorToScript"/> event
-    /// </summary>
-    public void RaiseFlushEditorToScript() => this.FlushEditorToScript?.Invoke(this, EventArgs.Empty);
     
     public static ScriptViewState GetInstance(Script manager) {
         return ((IComponentManager) manager).GetOrCreateComponent((t) => new ScriptViewState((Script) t));

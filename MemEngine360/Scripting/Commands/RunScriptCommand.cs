@@ -49,7 +49,6 @@ public class RunScriptCommand : Command {
             return;
         }
         
-        ScriptViewState.GetInstance(script).RaiseFlushEditorToScript();
         await script.StartCommand();
     }
 

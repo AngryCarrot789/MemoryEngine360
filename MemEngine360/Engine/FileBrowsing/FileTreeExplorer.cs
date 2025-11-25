@@ -35,8 +35,6 @@ public class FileTreeExplorer : IComponentManager {
     public static FileTreeExplorer DummyInstance_UITest { get; } = new FileTreeExplorer(new MemoryEngine());
 #endif
 
-    private readonly ComponentStorage myComponentStorage;
-
     /// <summary>
     /// Gets the folder that stores the file hierarchy
     /// </summary>
@@ -47,13 +45,12 @@ public class FileTreeExplorer : IComponentManager {
     /// </summary>
     public MemoryEngine MemoryEngine { get; }
 
-    ComponentStorage IComponentManager.ComponentStorage => this.myComponentStorage;
+    ComponentStorage IComponentManager.ComponentStorage => field ??= new ComponentStorage(this);
 
     private readonly AsyncRelayCommand refreshRootCommand;
 
     public FileTreeExplorer(MemoryEngine memoryEngine) {
         this.MemoryEngine = memoryEngine ?? throw new ArgumentNullException(nameof(memoryEngine));
-        this.myComponentStorage = new ComponentStorage(this);
         this.RootEntry = FileTreeNodeDirectory.InternalCreateRoot(this);
 
         this.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;

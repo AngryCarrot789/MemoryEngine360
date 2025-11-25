@@ -39,7 +39,6 @@ public class TaskSequenceManager : IComponentManager, IUserLocalContext {
     public static readonly DataKey<TaskSequenceManager> DataKey = DataKeys.Create<TaskSequenceManager>(nameof(TaskSequenceManager));
 
     private readonly ObservableList<TaskSequence> activeSequences;
-    private readonly ComponentStorage myComponentStorage;
 
     /// <summary>
     /// The list of task sequences
@@ -59,13 +58,12 @@ public class TaskSequenceManager : IComponentManager, IUserLocalContext {
     
     public IMutableContextData UserContext { get; } = new ContextData();
 
-    ComponentStorage IComponentManager.ComponentStorage => this.myComponentStorage;
+    ComponentStorage IComponentManager.ComponentStorage => field ??= new ComponentStorage(this);
 
     public TaskSequenceManager(MemoryEngine engine) {
         Console.WriteLine();
         
         this.MemoryEngine = engine ?? throw new ArgumentNullException(nameof(engine));
-        this.myComponentStorage = new ComponentStorage(this);
         this.Sequences = new ObservableList<TaskSequence>();
         this.Sequences.ValidateAdd += (list, index, items) => {
             foreach (TaskSequence item in items) {
