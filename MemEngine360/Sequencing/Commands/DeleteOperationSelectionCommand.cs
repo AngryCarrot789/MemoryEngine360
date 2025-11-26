@@ -56,7 +56,7 @@ public class DeleteOperationSelectionCommand : Command {
 
         List<BaseSequenceOperation> items = state.SelectedOperations!.SelectedItems.ToList();
         Debug.Assert(items.All(x => x.TaskSequence == task));
-        state.SelectedOperations!.Clear();
+        state.SelectedOperations!.DeselectAll();
         
         foreach (BaseSequenceOperation item in items) {
             bool removed = task.Operations.Remove(item);

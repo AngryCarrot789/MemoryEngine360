@@ -30,6 +30,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Styling;
 using MemEngine360.BaseFrontEnd;
+using MemEngine360.BaseFrontEnd.Connections;
 using MemEngine360.BaseFrontEnd.Debugging;
 using MemEngine360.BaseFrontEnd.EventViewing;
 using MemEngine360.BaseFrontEnd.FileBrowsing;

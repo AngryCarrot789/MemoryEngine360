@@ -24,6 +24,7 @@ using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.UserInputs;
 
@@ -42,9 +43,9 @@ public class AddSavedAddressCommand : Command {
         uint initialAddress = 0;
         AddressTableGroupEntry? targetParent = null;
         MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(engine);
-        IReadOnlyList<ScanResultViewModel> selection = vs.SelectedScanResults.SelectedItems;
+        ListSelectionModel<ScanResultViewModel> selection = vs.SelectedScanResults;
         if (selection.Count > 0)
-            initialAddress = selection[selection.Count - 1].Address;
+            initialAddress = selection.Last.Address;
 
         if (vs.AddressTableSelectionManager.HasOneSelectedItem) {
             BaseAddressTableEntry entry = vs.AddressTableSelectionManager.SelectedItems.First();

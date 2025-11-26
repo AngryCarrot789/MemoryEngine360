@@ -61,8 +61,7 @@ public class DuplicateConditionsCommand : Command {
             offset++;
         }
 
-        selection.Clear();
-        selection.SelectItems(clones.Select(x => x.Cond));
+        selection.SetSelection(clones.Select(x => x.Cond));
         return Task.CompletedTask;
     }
 }

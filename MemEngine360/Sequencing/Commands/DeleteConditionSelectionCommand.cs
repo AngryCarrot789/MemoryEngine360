@@ -22,7 +22,6 @@ using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Services.Messaging;
-using PFXToolKitUI.Utils.Ranges;
 
 namespace MemEngine360.Sequencing.Commands;
 
@@ -43,7 +42,7 @@ public class DeleteConditionSelectionCommand : Command {
         //       and look at its Owner property
         // And for which is better, who knows.
         // Maybe option 1 for shortcuts, option 2 for context menu commands?
-        
+
         if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
             return;
         }
@@ -76,10 +75,8 @@ public class DeleteConditionSelectionCommand : Command {
             return; // ConditionHost somehow changed
         }
 
-        IReadOnlyList<IntegerRange<int>> selection = selectionModel.ToIntegerRangeUnion().Ranges;
-        selectionModel.Clear();
-        for (int i = selection.Count - 1; i >= 0; i--) {
-            selectionModel.SourceList.RemoveRange(selection[i].Start, selection[i].Length);
-        }
+        List<BaseSequenceCondition> selection = selectionModel.SelectedItems.ToList();
+        selectionModel.DeselectAll();
+        selectionModel.SourceList.RemoveRange(selection);
     }
 }

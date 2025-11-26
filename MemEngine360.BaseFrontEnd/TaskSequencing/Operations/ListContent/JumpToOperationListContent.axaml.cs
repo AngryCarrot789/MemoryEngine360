@@ -37,7 +37,7 @@ public partial class JumpToOperationListContent : BaseOperationListContent {
                 }
                 else {
                     string? name = b.Model.CurrentTarget.LabelName;
-                    return string.IsNullOrWhiteSpace(name) ? "<unnammed label>" : name;
+                    return string.IsNullOrWhiteSpace(name) ? "<unnamed label>" : name;
                 }
             },
             parseAndUpdate: async (b, text) => {

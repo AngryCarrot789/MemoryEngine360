@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using MemEngine360.Engine;
@@ -25,7 +24,7 @@ using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Utils;
 
-namespace MemEngine360.Avalonia;
+namespace MemEngine360.BaseFrontEnd;
 
 public class ScanningOrderListBox : ModelBasedListBox<ScanningOrderModel> {
     private UnknownDataTypeOptions? options;

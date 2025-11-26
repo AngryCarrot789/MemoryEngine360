@@ -57,6 +57,7 @@ public class ThreadEntryListBoxItem : ModelBasedListBoxItem<ThreadEntry> {
         this.tbThreadId = new TextBlock();
         this.tbFooter = new TextBlock();
 
+        this.BorderThickness = default;
         this.Content = new StackPanel() {
             Children = {
                 new StackPanel() {

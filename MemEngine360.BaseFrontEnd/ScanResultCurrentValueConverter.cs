@@ -17,15 +17,13 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Data.Converters;
 using MemEngine360.Engine;
 using MemEngine360.ValueAbstraction;
 
-namespace MemEngine360.Avalonia;
+namespace MemEngine360.BaseFrontEnd;
 
 public class ScanResultCurrentValueConverter : IMultiValueConverter {
     public static ScanResultCurrentValueConverter Instance { get; } = new ScanResultCurrentValueConverter();

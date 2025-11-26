@@ -17,11 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System;
 using System.Diagnostics;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
@@ -60,7 +57,7 @@ using PFXToolKitUI.Utils.Commands;
 using PFXToolKitUI.Utils.Events;
 using PFXToolKitUI.Utils.Reactive;
 
-namespace MemEngine360.Avalonia;
+namespace MemEngine360.BaseFrontEnd;
 
 public partial class EngineView : UserControl {
     private readonly IBinder<ScanningProcessor> isScanningBinder =

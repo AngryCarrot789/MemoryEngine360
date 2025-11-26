@@ -75,7 +75,7 @@ public class AddSelectedScanResultsToSavedAddressListCommandUsage : EngineButton
             MemoryEngineViewState.GetInstance(newEngine).SelectedScanResults.SelectionChanged += this.OnSelectionChanged;
     }
 
-    private void OnSelectionChanged(object? sender, ListSelectionModelChangedEventArgs e) {
+    private void OnSelectionChanged(object? sender, ListSelectionModelChangedEventArgs<ScanResultViewModel> e) {
         this.UpdateCanExecuteLater();
     }
 }

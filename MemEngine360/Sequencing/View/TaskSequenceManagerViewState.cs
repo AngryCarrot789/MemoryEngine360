@@ -87,8 +87,8 @@ public sealed class TaskSequenceManagerViewState {
         this.SelectedSequences.SelectionChanged += this.OnSelectedSequencesCollectionChanged;
     }
 
-    private void OnSelectedSequencesCollectionChanged(object? sender, ListSelectionModelChangedEventArgs e) {
-        this.ConditionHost = this.PrimarySelectedSequence = this.SelectedSequences.Count == 1 ? this.SelectedSequences[0] : null;
+    private void OnSelectedSequencesCollectionChanged(object? sender, ListSelectionModelChangedEventArgs<TaskSequence> e) {
+        this.ConditionHost = this.PrimarySelectedSequence = this.SelectedSequences.Count == 1 ? this.SelectedSequences.First : null;
     }
 
     public static TaskSequenceManagerViewState GetInstance(TaskSequenceManager manager) {

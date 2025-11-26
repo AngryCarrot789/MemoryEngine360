@@ -58,8 +58,8 @@ public class TaskSequenceViewState {
         this.SelectedOperations.SelectionChanged += this.OnSelectedOperationsCollectionChanged;
     }
 
-    private void OnSelectedOperationsCollectionChanged(object? sender, ListSelectionModelChangedEventArgs e) {
-        this.PrimarySelectedOperation = this.SelectedOperations.Count == 1 ? this.SelectedOperations[0] : null;
+    private void OnSelectedOperationsCollectionChanged(object? sender, ListSelectionModelChangedEventArgs<BaseSequenceOperation> e) {
+        this.PrimarySelectedOperation = this.SelectedOperations.Count == 1 ? this.SelectedOperations.First : null;
         
         // Null means the TaskSequence was deleted/not yet added, so
         // we don't have to panic here about not updating ConditionHost

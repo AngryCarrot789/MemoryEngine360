@@ -204,7 +204,7 @@ public partial class TaskSequencerView : UserControl {
     private void AddOperationAndSelect(Func<BaseSequenceOperation> factory) {
         TaskSequenceManagerViewState state = this.State;
         if (state.PrimarySelectedSequence != null && !state.PrimarySelectedSequence.IsRunning) {
-            state.SelectedOperations!.Clear();
+            state.SelectedOperations!.DeselectAll();
 
             BaseSequenceOperation operation = factory();
             state.PrimarySelectedSequence.Operations.Add(operation);

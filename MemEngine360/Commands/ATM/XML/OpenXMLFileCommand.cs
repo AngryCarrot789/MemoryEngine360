@@ -58,9 +58,7 @@ public class OpenXMLFileCommand : Command {
             rootGroup = (XmlAddressEntryGroup?) XmlGroupSerializer.Deserialize(stream);
         }
         catch (Exception ex) {
-            AppLogger.Instance.WriteLine("Error deserializing XML document");
-            AppLogger.Instance.WriteLine(ex.GetToString());
-            await IMessageDialogService.Instance.ShowMessage("XML Error", "Error deserializing address table. See logs for more info", ExceptionUtils.GetFullMessageChain(ex));
+            await IMessageDialogService.Instance.ShowExceptionMessage("XML Error", "Error deserializing address table: " + ExceptionUtils.GetFullMessageChain(ex), ex);
             return;
         }
 

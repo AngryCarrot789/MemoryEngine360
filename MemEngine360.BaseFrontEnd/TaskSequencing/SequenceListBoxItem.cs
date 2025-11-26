@@ -88,7 +88,7 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
             base.OnPointerPressed(e);
             if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed) {
                 ListSelectionModel<TaskSequence> selection = view.State.SelectedSequences;
-                if (selection.Count == 1 && selection.IsItemSelected(this.Model!) == true) {
+                if (selection.Count == 1 && selection.IsSelected(this.Model!) == true) {
                     Debug.Assert(this.IsSelected);
                     view.State.ConditionHost = this.Model!;
                 }

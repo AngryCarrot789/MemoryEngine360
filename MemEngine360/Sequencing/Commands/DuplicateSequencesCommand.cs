@@ -38,7 +38,7 @@ public class DuplicateSequencesCommand : Command {
 
         // Create list of clones, ordered by their index in the sequence list
         List<(TaskSequence Seq, int Idx)> clones =
-            state.SelectedSequences.SelectedEntries.
+            state.SelectedSequences.GetSelectedEntries().
                   Select(x => (Seq: x.Value.CreateClone(), Idx: x.Key)).
                   OrderBy(x => x.Idx).ToList();
 
@@ -58,7 +58,6 @@ public class DuplicateSequencesCommand : Command {
 
         // virtualization of task sequence list box items not implemented yet, and there's no reason
         // to do it since I doubt anyone will use enough to where it makes a difference
-        state.SelectedSequences.Clear();
-        state.SelectedSequences.SelectItems(clones.Select(x => x.Seq));
+        state.SelectedSequences.SetSelection(clones.Select(x => x.Seq));
     }
 }

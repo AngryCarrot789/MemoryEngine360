@@ -35,7 +35,7 @@ public class NewSequenceCommand : Command {
         }
 
         TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        state.SelectedSequences.Clear();
+        state.SelectedSequences.DeselectAll();
         
         ObservableList<TaskSequence> sequences = manager.Sequences;
         TaskSequence sequence = new TaskSequence() {

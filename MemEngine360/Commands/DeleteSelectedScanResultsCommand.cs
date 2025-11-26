@@ -45,7 +45,7 @@ public class DeleteSelectedScanResultsCommand : Command {
         }
         else {
             List<ScanResultViewModel> list = selection.SelectedItems.ToList();
-            selection.Clear();
+            selection.DeselectAll();
             items.RemoveRange(list);
         }
 

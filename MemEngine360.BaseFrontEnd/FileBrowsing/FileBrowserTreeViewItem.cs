@@ -154,7 +154,7 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem {
 
         Binders.AttachModels(this.EntryObject!, this.fileNameBinder, this.fileSizeBinder, this.dateCreatedBinder, this.dateModifiedBinder);
         DataManager.GetContextData(this).Set(BaseFileTreeNode.DataKey, this.EntryObject!);
-        AdvancedContextMenu.SetContextRegistry(this, AddressTableContextRegistry.Registry);
+        AdvancedContextMenu.SetContextRegistry(this, FileBrowserTreeContextRegistry.Registry);
     }
 
     public void OnRemoving() {
@@ -235,10 +235,10 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem {
     }
 }
 
-public static class AddressTableContextRegistry {
+public static class FileBrowserTreeContextRegistry {
     public static readonly ContextRegistry Registry = new ContextRegistry("File");
 
-    static AddressTableContextRegistry() {
+    static FileBrowserTreeContextRegistry() {
         // FixedContextGroup modEdit = Registry.GetFixedGroup("modify.edit");
         FixedWeightedMenuEntryGroup modGeneric = Registry.GetFixedGroup("modify.general");
         modGeneric.AddCommand("commands.memengine.CreateDirectoryInDirectoryCommand", "Create directory...");

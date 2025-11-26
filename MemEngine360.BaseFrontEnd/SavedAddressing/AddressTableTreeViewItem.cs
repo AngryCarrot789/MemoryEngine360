@@ -26,12 +26,14 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.AdvancedMenuService;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Interactivity;
+using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
@@ -649,9 +651,28 @@ internal enum DropLocation {
 }
 
 public static class AddressTableContextRegistry {
-    public static readonly ContextRegistry Registry = new ContextRegistry("Saved Address Entry");
+    public static readonly ContextRegistry Registry = new ContextRegistry("Saved Addresses");
 
     static AddressTableContextRegistry() {
+        Registry.Opened += static (_, context) => {
+            if (MemoryEngine.EngineDataKey.TryGetContext(context, out MemoryEngine? engine)) {
+                MemoryEngineViewState state = MemoryEngineViewState.GetInstance(engine);
+                TreeSelectionModel<BaseAddressTableEntry> atsm = state.AddressTableSelectionManager;
+                
+                if (atsm.HasOneSelectedItem) {
+                    string? first = atsm.SelectedItems.First().Description;
+                    Registry.ObjectName = string.IsNullOrWhiteSpace(first) ? "(unnamed)" : first;
+                    return;
+                }
+                else if (atsm.Count > 1) {
+                    Registry.ObjectName = $"{atsm.Count} {(atsm.Count == 1 ? "entry" : "entries")}";
+                    return;
+                }
+            }
+
+            Registry.ObjectName = null;
+        };
+
         FixedWeightedMenuEntryGroup modEdit = Registry.GetFixedGroup("modify.edit");
         FixedWeightedMenuEntryGroup modGeneric = Registry.GetFixedGroup("modify.general");
         modEdit.AddHeader("Modify");

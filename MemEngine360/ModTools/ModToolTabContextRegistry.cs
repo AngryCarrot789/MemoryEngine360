@@ -41,10 +41,10 @@ public static class ModToolTabContextRegistry {
         general.AddCommand("commands.modtools.CloseModToolCommand", "Close", icon: StandardIcons.CancelActivityIcon);
         general.AddSeparator();
         general.AddEntry(new CommandMenuEntry("commands.modtools.RestartModToolCommand", "Restart").
-            AddContextValueChangeHandlerWithEvent(
+            AddContextUpdateHandlerWithEvent(
                 ModTool.DataKey,
                 nameof(ModTool.IsRunningChanged),
-                static (entry, tool) => entry.DisplayName = tool == null || !tool.IsRunning ? "Run Tool" : "Restart"));
+                static (entry, e) => entry.DisplayName = e.Value == null || !e.Value.IsRunning ? "Run Tool" : "Restart"));
         general.AddEntry(new CommandMenuEntry("commands.modtools.SaveModToolCommand", "Save", icon: SimpleIcons.SaveFileIcon));
         general.AddCommand("commands.modtools.SaveModToolAsCommand", "Save As...");
         general.AddCommand("commands.modtools.SaveAllModToolsCommand", "Save All");
