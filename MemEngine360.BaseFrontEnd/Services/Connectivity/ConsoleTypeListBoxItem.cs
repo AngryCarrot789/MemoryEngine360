@@ -31,7 +31,8 @@ namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 
 public class ConsoleTypeListBoxItem : ModelBasedListBoxItem<ConnectionTypeEntry> {
     private readonly ManualBinder<RegisteredConnectionType> iconBinder = new ManualBinder<RegisteredConnectionType>(b => {
-        ((IconControl) b.Control).IsVisible = (((IconControl) b.Control).Icon = b.Model.Icon) != null;
+        ((IconControl) b.Control).Icon = b.Model.Icon;
+        ((IconControl) b.Control).IsVisible = b.Model.Icon != null;
     }, (b) => {
         ((IconControl) b.Control).Icon = null;
     });

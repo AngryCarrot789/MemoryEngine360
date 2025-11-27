@@ -55,7 +55,6 @@ using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Commands;
 using PFXToolKitUI.Utils.Events;
-using PFXToolKitUI.Utils.Reactive;
 
 namespace MemEngine360.BaseFrontEnd;
 
@@ -132,7 +131,7 @@ public partial class EngineView : UserControl {
     private readonly IBinder<UnknownDataTypeOptions> canScanDoubleBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForDoubleChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForDouble, (b) => b.Model.CanSearchForDouble = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<UnknownDataTypeOptions> canScanStringBinder = new AvaloniaPropertyToEventPropertyBinder<UnknownDataTypeOptions>(ToggleButton.IsCheckedProperty, nameof(UnknownDataTypeOptions.CanSearchForStringChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.CanSearchForString, (b) => b.Model.CanSearchForString = ((ToggleButton) b.Control).IsChecked == true);
 
-    private readonly IBinder<ScanningProcessor> updatedEnabledControlsBinder = new MultiEventUpdateBinder<ScanningProcessor>(
+    private readonly IBinder<ScanningProcessor> updatedEnabledControlsBinder = new EventUpdateBinder<ScanningProcessor>(
         [
             nameof(ScanningProcessor.ScanForAnyDataTypeChanged),
             nameof(ScanningProcessor.HasFirstScanChanged),
@@ -171,7 +170,7 @@ public partial class EngineView : UserControl {
     private readonly TreeViewSelectionModelBinder<BaseAddressTableEntry> addressTableSelectionBinder;
 
     private readonly ColourBrushHandler titleBarToMenuBackgroundBrushHandler;
-    
+
     public EngineView() {
         this.InitializeComponent();
 
@@ -212,18 +211,18 @@ public partial class EngineView : UserControl {
                 }
             };
 
-            using IDisposable _ = Observable.ForEvent(info, static s => {
+            using IDisposable _ = SingleUserInputInfo.TextObservable.Subscribe(info, static s => {
                 if (s.TextErrors != null) {
-                    s.Footer = "Cannot show examples: invalid alignment";
+                    s.Footer = "Cannot show examples: invalid value";
                 }
                 else {
                     int align = (int) NumberUtils.ParseHexOrRegular<uint>(s.Text);
                     StringBuilder sb = new StringBuilder().Append(0);
-                    for (int i = 1, j = align; i < 5; i++, j += align)
+                    for (int i = 0, j = align; i < 4; i++, j += align)
                         sb.Append(", ").Append(j);
                     s.Footer = "We will scan " + sb.Append(", etc.");
                 }
-            }, static (s, e) => s.TextChanged += e, static (s, e) => s.TextChanged -= e, initialCallback: true);
+            });
             
             if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, this.myOwnerWindow_onLoaded) == true) {
                 p.Alignment = NumberUtils.ParseHexOrRegular<uint>(info.Text);

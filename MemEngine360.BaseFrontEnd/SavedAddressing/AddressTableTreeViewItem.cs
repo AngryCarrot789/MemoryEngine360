@@ -65,7 +65,7 @@ public sealed class AddressTableTreeViewItem : TreeViewItem {
     });
 
     private readonly IBinder<AddressTableEntry> dataTypeTextBinder = new EventUpdateBinder<AddressTableEntry>(nameof(AddressTableEntry.DataTypeChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.DataType.ToString()));
-    private readonly IBinder<AddressTableEntry> valueTextBinder = new MultiEventUpdateBinder<AddressTableEntry>([nameof(AddressTableEntry.ValueChanged), nameof(AddressTableEntry.NumericDisplayTypeChanged), nameof(AddressTableEntry.DataTypeChanged)], b => b.Control.SetValue(TextBlock.TextProperty, b.Model.Value != null ? DataValueUtils.GetStringFromDataValue(b.Model, b.Model.Value, putStringInQuotes: true) : ""));
+    private readonly IBinder<AddressTableEntry> valueTextBinder = new EventUpdateBinder<AddressTableEntry>([nameof(AddressTableEntry.ValueChanged), nameof(AddressTableEntry.NumericDisplayTypeChanged), nameof(AddressTableEntry.DataTypeChanged)], b => b.Control.SetValue(TextBlock.TextProperty, b.Model.Value != null ? DataValueUtils.GetStringFromDataValue(b.Model, b.Model.Value, putStringInQuotes: true) : ""));
     private ObservableItemProcessorIndexing<BaseAddressTableEntry>? compositeListener;
     private Border? PART_DragDropMoveBorder;
 

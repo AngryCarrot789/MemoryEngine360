@@ -41,7 +41,7 @@ namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public partial class TaskSequencerView : UserControl {
     private readonly IBinder<TaskSequence> useDedicatedConnectionBinder = 
-        new MultiEventUpdateBinder<TaskSequence>(
+        new EventUpdateBinder<TaskSequence>(
             [
                 nameof(TaskSequence.UseEngineConnectionChanged),
                 nameof(TaskSequence.IsRunningChanged),
@@ -52,7 +52,7 @@ public partial class TaskSequencerView : UserControl {
             });
 
     private readonly IBinder<TaskSequence> currentConnectionTypeBinder =
-        new MultiEventUpdateBinder<TaskSequence>(
+        new EventUpdateBinder<TaskSequence>(
             [
                 nameof(TaskSequence.UseEngineConnectionChanged),
                 nameof(TaskSequence.DedicatedConnectionChanged)

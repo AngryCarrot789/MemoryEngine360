@@ -37,7 +37,7 @@ public class ScriptTabItem : TabItem {
         set => this.SetValue(ScriptProperty, value);
     }
 
-    private readonly IBinder<Script> nameBinder = new MultiEventUpdateBinder<Script>([nameof(Script.FilePathChanged), nameof(Script.HasUnsavedChangesChanged)], b => ((ScriptTabItem) b.Control).Header = (b.Model.Name ?? "(unnamed script)") + (b.Model.HasUnsavedChanges ? "*" : ""));
+    private readonly IBinder<Script> nameBinder = new EventUpdateBinder<Script>([nameof(Script.FilePathChanged), nameof(Script.HasUnsavedChangesChanged)], b => ((ScriptTabItem) b.Control).Header = (b.Model.Name ?? "(unnamed script)") + (b.Model.HasUnsavedChanges ? "*" : ""));
     private readonly IBinder<Script> toolTipBinder = new EventUpdateBinder<Script>(nameof(Script.FilePathChanged), b => ToolTip.SetTip((ScriptTabItem) b.Control, b.Model.FilePath ?? AvaloniaProperty.UnsetValue));
 
     private Button? PART_CloseTabButton;

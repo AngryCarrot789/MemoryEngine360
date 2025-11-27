@@ -65,7 +65,7 @@ public class CreateDirectoryInDirectoryCommand : BaseFileExplorerCommand {
                     return false;
                 }
 
-                SingleUserInputInfo info = new SingleUserInputInfo("") {
+                SingleUserInputInfo info = new SingleUserInputInfo("New Directory") {
                     Caption = "Create Directory",
                     Label = "Directory Name",
                     MinimumDialogWidthHint = 500,
@@ -75,12 +75,7 @@ public class CreateDirectoryInDirectoryCommand : BaseFileExplorerCommand {
                     }
                 };
 
-                info.TextChanged += (_, _) => {
-                    info.Footer = "Full Path: " + fsInfo.JoinPaths(parentDirPath, info.Text);
-                };
-
-                info.Text = "New Directory";
-
+                using IDisposable _ = SingleUserInputInfo.TextObservable.Subscribe(info, _ => info.Footer = "Full Path: " + fsInfo.JoinPaths(parentDirPath, info.Text));
                 if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
                     return false;
                 }
