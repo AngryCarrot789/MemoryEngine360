@@ -24,6 +24,7 @@ using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Themes;
+using SkiaSharp;
 
 namespace MemEngine360.BaseFrontEnd.EventViewing;
 
@@ -66,7 +67,7 @@ public class ConsoleEventViewerServiceImpl : IConsoleEventViewerService {
                     Content = new ConsoleEventViewerViewEx() {
                         MemoryEngine = engine
                     },
-                    BorderBrush = BrushManager.Instance.GetDynamicThemeBrush("PanelBorderBrush"),
+                    BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
                     TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone7.Background.Static"),
                 });
 

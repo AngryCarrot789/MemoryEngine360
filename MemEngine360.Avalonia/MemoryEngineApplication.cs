@@ -420,7 +420,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     // rely on default icon for the DesktopWindowManager
                     // Icon = new WindowIcon(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)),
                     TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.MainView.TitleBarBackground"),
-                    BorderBrush = BrushManager.Instance.GetDynamicThemeBrush("PanelBorderBrush"),
+                    BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
                     MainWindow = true
                 });
 
