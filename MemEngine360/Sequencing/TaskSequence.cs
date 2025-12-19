@@ -22,9 +22,9 @@ using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.Operations;
-using MemEngine360.Sequencing.View;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
+using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Utils;
@@ -36,10 +36,8 @@ namespace MemEngine360.Sequencing;
 /// <summary>
 /// A sequence that contains a list of operations
 /// </summary>
-public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
+public sealed class TaskSequence : IConditionsHost, IComponentManager, IUserLocalContext {
     public static readonly DataKey<TaskSequence> DataKey = DataKeys.Create<TaskSequence>(nameof(TaskSequence));
-
-    internal TaskSequenceViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using IComponentManager
 
     internal TaskSequenceManager? myManager;
     internal CancellationTokenSource? ctsTryingToStart;
@@ -53,6 +51,8 @@ public sealed class TaskSequence : IConditionsHost, IUserLocalContext {
     private TaskCompletionSource? myTcs;
     private SequenceExecutionContext? myContext;
 
+    ComponentStorage IComponentManager.ComponentStorage => field ??= new ComponentStorage(this);
+    
     /// <summary>
     /// Gets whether this sequence is currently running. This only changes on the main thread
     /// </summary>

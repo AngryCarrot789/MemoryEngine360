@@ -82,6 +82,7 @@ public sealed class MemoryEngineViewState {
 
     public void RaiseRequestFocusOnSavedAddress(BaseAddressTableEntry entry) {
         ArgumentNullException.ThrowIfNull(entry);
+        this.AddressTableSelectionManager.Select(entry);
         this.RequestFocusOnSavedAddress?.Invoke(this, entry);
     }
 

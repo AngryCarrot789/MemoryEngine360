@@ -177,7 +177,7 @@ public partial class PointerScannerView : UserControl {
                 using CancellationTokenSource cancellation = new CancellationTokenSource();
                 Task task = this.PointerScanner!.GenerateBasePointerMap(progressTracker, cancellation.Token);
 
-                await ActivityManager.Instance.RunTask(() => task, progressTracker);
+                await ActivityManager.Instance.RunTask(() => task, progressTracker, cancellation);
             }
         });
 

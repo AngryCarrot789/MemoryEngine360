@@ -60,6 +60,6 @@ public partial class App : Application {
             Directory.SetCurrentDirectory(dir);
         }
 
-        ApplicationPFX.InitializeApplication(this.progress, envArgs);
+        _ = ApplicationPFX.InitializeApplicationAsync(this.progress, envArgs);
     }
 }

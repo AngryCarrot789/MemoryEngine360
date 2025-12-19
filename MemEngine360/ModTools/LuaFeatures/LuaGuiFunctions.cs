@@ -702,7 +702,6 @@ public class LuaGuiFunctions {
         Timer timer = new Timer(static o => {
             Tuple<LuaGuiFunctions, LuaFunction> tuple = (Tuple<LuaGuiFunctions, LuaFunction>) o!;
             tuple.Item1.OnTimerCallback(tuple.Item2);
-            ;
         }, new Tuple<LuaGuiFunctions, LuaFunction>(this, function), span, span);
 
         List<Timer> list = this.machine.UserTimers;

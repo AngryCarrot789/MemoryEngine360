@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Utils.Events;
 
@@ -60,7 +61,7 @@ public class TaskSequenceViewState {
 
     private void OnSelectedOperationsCollectionChanged(object? sender, ListSelectionModelChangedEventArgs<BaseSequenceOperation> e) {
         this.PrimarySelectedOperation = this.SelectedOperations.Count == 1 ? this.SelectedOperations.First : null;
-        
+
         // Null means the TaskSequence was deleted/not yet added, so
         // we don't have to panic here about not updating ConditionHost
         TaskSequenceManager? manager = this.Sequence.Manager;
@@ -69,5 +70,7 @@ public class TaskSequenceViewState {
         }
     }
 
-    public static TaskSequenceViewState GetInstance(TaskSequence sequence) => sequence.internalViewState ??= new TaskSequenceViewState(sequence);
+    public static TaskSequenceViewState GetInstance(TaskSequence sequence) {
+        return ((IComponentManager) sequence).GetOrCreateComponent(static t => new TaskSequenceViewState((TaskSequence) t));
+    }
 }
