@@ -109,8 +109,7 @@ public class RunSequenceCommand : Command, IDisabledHintProvider {
             sequence.ctsTryingToStart.Dispose();
             sequence.ctsTryingToStart = null;
             
-            runTask = sequence.Run(connection!, token, !useEngineConnection);
-            if (runTask.IsCompleted) {
+            if ((runTask = sequence.Run(connection!, token, !useEngineConnection)).IsCompleted) {
                 await runTask; // will most likely throw
                 return;
             }

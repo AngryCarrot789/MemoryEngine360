@@ -125,7 +125,7 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
             newCond.CompareTypeChanged += this.OnCompareTypeChanged;
             newCond.ParseIntAsHexChanged += this.OnParseIntAsHexChanged;
             if (newCond.CompareTo != null) {
-                PropertyHelper.SetAndRaiseINE(ref this.dataType, newCond.CompareTo.DataType, this, static t => t.DataTypeChanged?.Invoke(t, EventArgs.Empty));
+                PropertyHelper.SetAndRaiseINE(ref this.dataType, newCond.CompareTo.DataType, this, this.DataTypeChanged);
             }
             else {
                 this.DataType = DataType.Int32;
@@ -141,7 +141,7 @@ public partial class CompareMemoryConditionListContent : BaseConditionListConten
     private void OnCompareToChanged(object? o, EventArgs eventArgs) {
         CompareMemoryCondition sender = (CompareMemoryCondition) o!;
         if (sender.CompareTo != null) {
-            PropertyHelper.SetAndRaiseINE(ref this.dataType, sender.CompareTo.DataType, this, static t => t.DataTypeChanged?.Invoke(t, EventArgs.Empty));
+            PropertyHelper.SetAndRaiseINE(ref this.dataType, sender.CompareTo.DataType, this, this.DataTypeChanged);
         }
         else {
             this.DataType = DataType.Int32;

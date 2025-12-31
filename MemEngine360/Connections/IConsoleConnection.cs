@@ -51,7 +51,7 @@ public interface IConsoleConnection {
     /// <summary>
     /// An event fired when this connection becomes closed
     /// </summary>
-    event EventHandler Closed;
+    event EventHandler? Closed;
 
     /// <summary>
     /// Gets the recommended number of bytes to be read in one call. For some connections this might not

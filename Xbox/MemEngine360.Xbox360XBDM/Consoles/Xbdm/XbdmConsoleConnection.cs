@@ -625,8 +625,9 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        using MemoryStream memoryStream = new MemoryStream(1024);
-        byte[] tmpBuffer = new byte[1024];
+        const int BufferSize = 1024;
+        using MemoryStream memoryStream = new MemoryStream(BufferSize);
+        using var _ = ArrayPools.Rent(BufferSize, out byte[] array);
 
         int statusFlag;
         do {
@@ -635,12 +636,14 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
             int header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(this.sharedTwoByteArray, 0, 2));
             int chunkSize = header & 0x7FFF;
             statusFlag = header & 0x8000;
-            if (chunkSize <= 0)
+            if (chunkSize <= 0) {
                 break;
-            for (int count = chunkSize; count > 0; count -= tmpBuffer.Length) {
-                int cbRead = Math.Min(count, tmpBuffer.Length);
-                await this.ReadFromBufferOrStreamAsync(tmpBuffer, 0, cbRead, cancellation);
-                memoryStream.Write(tmpBuffer, 0, cbRead);
+            }
+            
+            for (int count = chunkSize; count > 0; count -= BufferSize) {
+                int read = Math.Min(count, BufferSize);
+                await this.ReadFromBufferOrStreamAsync(array, 0, read, cancellation);
+                memoryStream.Write(array, 0, read);
             }
         } while (statusFlag == 0);
 

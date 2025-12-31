@@ -54,7 +54,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
         this.ctx = context ?? throw new ArgumentNullException(nameof(context));
         this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
         this.myBusyTokenRef = busyTokenRef ?? throw new ArgumentNullException(nameof(busyTokenRef));
-        
+
         // RunOperation does not call TryObtainBusyToken on first run, so it won't add two handlers. 
         this.ctx.Processor.MemoryEngine.BusyLock.UserQuickReleaseRequested += this.BusyLockOnUserQuickReleaseRequested;
         this.iceCubes = connection.GetFeatureOrDefault<IFeatureIceCubes>();
@@ -176,7 +176,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
                     progress.CompletionState.OnProgress(DataTypedScanningContext.ChunkSize);
 
                     uint baseAddress = region.BaseAddress + this.rgBaseOffset;
-                    
+
                     ulong remaining = Math.Min(this.ctx.scanLength - this.rgBaseOffset, this.rgScanEnd - (region.BaseAddress + this.rgBaseOffset));
                     int cbRead = (int) Math.Min(DataTypedScanningContext.ChunkSize, remaining) + (int) overlap;
                     try {

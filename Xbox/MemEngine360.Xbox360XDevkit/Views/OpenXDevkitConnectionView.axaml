@@ -16,8 +16,7 @@
         <TextBlock Text="IP/Hostname Address" Padding="0,5"/>
         <TextBox x:Name="PART_IpAddressTextBox" Padding="5,5" 
                  VerticalContentAlignment="Center"
-                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                 Text="ERROR"/>
+                 ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
         <CheckBox x:Name="PART_IsLittleEndian" Content="Use Little Endian" Margin="0,5,0,0">
             <toolTips:ToolTipEx.Tip>
                 <TextBlock>

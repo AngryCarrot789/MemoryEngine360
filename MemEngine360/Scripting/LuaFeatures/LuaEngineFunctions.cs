@@ -298,7 +298,7 @@ public sealed class LuaEngineFunctions {
             
             bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
             const int count = sizeof(float) * 16;
-            using (RentHelper.RentArray(count, out byte[] array)) {
+            using (ArrayPools.Rent(count, out byte[] array)) {
                 await conn.ReadBytes(address, array, 0, count);
 
                 Span<byte> span = array.AsSpan(count);
@@ -336,7 +336,7 @@ public sealed class LuaEngineFunctions {
 
             bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
             const int count = sizeof(float) * 16;
-            using (RentHelper.RentArray(count, out byte[] array)) {
+            using (ArrayPools.Rent(count, out byte[] array)) {
                 Span<byte> span = array.AsSpan(count);
                 WriteFloatToSpan(span, 0 * sizeof(float), m.M11, reverse);
                 WriteFloatToSpan(span, 1 * sizeof(float), m.M12, reverse);
@@ -369,7 +369,7 @@ public sealed class LuaEngineFunctions {
 
             bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
             const int count = sizeof(float) * 3;
-            using (RentHelper.RentArray(count, out byte[] array)) {
+            using (ArrayPools.Rent(count, out byte[] array)) {
                 await conn.ReadBytes(address, array, 0, count);
 
                 Span<byte> span = array.AsSpan(count);
@@ -394,7 +394,7 @@ public sealed class LuaEngineFunctions {
 
             bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
             const int count = sizeof(float) * 3;
-            using (RentHelper.RentArray(count, out byte[] array)) {
+            using (ArrayPools.Rent(count, out byte[] array)) {
                 Span<byte> span = array.AsSpan(count);
                 WriteFloatToSpan(span, 0 * sizeof(float), v.X, reverse);
                 WriteFloatToSpan(span, 1 * sizeof(float), v.Y, reverse);
@@ -414,7 +414,7 @@ public sealed class LuaEngineFunctions {
 
             bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
             const int count = sizeof(float) * 4;
-            using (RentHelper.RentArray(count, out byte[] array)) {
+            using (ArrayPools.Rent(count, out byte[] array)) {
                 await conn.ReadBytes(address, array, 0, count);
 
                 Span<byte> span = array.AsSpan(count);
@@ -440,7 +440,7 @@ public sealed class LuaEngineFunctions {
 
             bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
             const int count = sizeof(float) * 4;
-            using (RentHelper.RentArray(count, out byte[] array)) {
+            using (ArrayPools.Rent(count, out byte[] array)) {
                 Span<byte> span = array.AsSpan(count);
                 WriteFloatToSpan(span, 0 * sizeof(float), v.X, reverse);
                 WriteFloatToSpan(span, 1 * sizeof(float), v.Y, reverse);

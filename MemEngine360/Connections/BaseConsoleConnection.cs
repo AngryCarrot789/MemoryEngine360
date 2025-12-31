@@ -207,7 +207,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         using BusyToken x = this.CreateBusyToken();
 
         int sizeOfT = Unsafe.SizeOf<T>();
-        using (RentHelper.RentArray(sizeOfT, out byte[] buffer)) {
+        using (ArrayPools.Rent(sizeOfT, out byte[] buffer)) {
             await this.ReadBytesCoreWithNetworkThrowHelper(address, buffer, 0, sizeOfT).ConfigureAwait(false);
 
             if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
@@ -224,7 +224,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
 
         int offset = 0;
         int sizeOfT = Unsafe.SizeOf<T>();
-        using (RentHelper.RentArray(sizeOfT, out byte[] buffer)) {
+        using (ArrayPools.Rent(sizeOfT, out byte[] buffer)) {
             foreach (int cbField in fieldSizes) {
                 Debug.Assert(cbField >= 0, "Field was negative");
 
@@ -259,7 +259,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             return "";
         }
 
-        using (RentHelper.RentArray(count, out byte[] buffer)) {
+        using (ArrayPools.Rent(count, out byte[] buffer)) {
             await this.ReadBytesCoreWithNetworkThrowHelper(address, buffer, 0, count).ConfigureAwait(false);
             if (removeNull) {
                 int j = 0, k = 0;
@@ -280,7 +280,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
 
     public async Task<string> ReadString(uint address, int charCount, Encoding encoding) {
         int byteCount = encoding.GetMaxByteCount(charCount);
-        using (RentHelper.RentArray(byteCount, out byte[] buffer)) {
+        using (ArrayPools.Rent(byteCount, out byte[] buffer)) {
             await this.ReadBytes(address, buffer, 0, byteCount).ConfigureAwait(false);
 
             Decoder decoder = encoding.GetDecoder();
@@ -303,7 +303,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         StringBuilder sb = new StringBuilder(32);
         
         // Read in chunks of 32 chars
-        using (RentHelper.RentArray(32, out byte[] buffer)) {
+        using (ArrayPools.Rent(32, out byte[] buffer)) {
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
                 
@@ -376,7 +376,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
 
     public Task WriteValue<T>(uint address, T value) where T : unmanaged {
         int sizeOfT = Unsafe.SizeOf<T>();
-        using (RentHelper.RentArray(sizeOfT, out byte[] buffer)) {
+        using (ArrayPools.Rent(sizeOfT, out byte[] buffer)) {
             Unsafe.As<byte, T>(ref MemoryMarshal.GetArrayDataReference(buffer)) = value;
             if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
                 Array.Reverse(buffer, 0, sizeOfT);
@@ -390,7 +390,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         this.EnsureNotClosed();
 
         int sizeOfT = Unsafe.SizeOf<T>(), offset = 0;
-        using (RentHelper.RentArray(sizeOfT, out byte[] dstBuffer)) {
+        using (ArrayPools.Rent(sizeOfT, out byte[] dstBuffer)) {
             Span<byte> srcData = MemoryMarshal.CreateSpan(ref Unsafe.As<T, byte>(ref value), sizeOfT);
             bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
             using (this.CreateBusyToken()) {

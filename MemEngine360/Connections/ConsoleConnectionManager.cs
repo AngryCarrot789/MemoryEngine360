@@ -41,7 +41,7 @@ public abstract class ConsoleConnectionManager {
     public void Register(string id, RegisteredConnectionType type) {
         ArgumentException.ThrowIfNullOrEmpty(id);
         ArgumentNullException.ThrowIfNull(type);
-
+        
         if (this.consoleTypeToId.TryGetValue(type, out string? existingId))
             throw new InvalidOperationException($"Same console type instance registered again. Registered id = '{existingId}', new id = '{id}'");
         if (!this.idToConsoleType.TryAdd(id, type))
