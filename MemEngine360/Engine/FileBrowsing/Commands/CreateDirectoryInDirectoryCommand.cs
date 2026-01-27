@@ -75,7 +75,7 @@ public class CreateDirectoryInDirectoryCommand : BaseFileExplorerCommand {
                     }
                 };
 
-                using IDisposable _ = SingleUserInputInfo.TextObservable.Subscribe(info, _ => info.Footer = "Full Path: " + fsInfo.JoinPaths(parentDirPath, info.Text));
+                using IDisposable _ = SingleUserInputInfo.TextObservable.Subscribe(info, null, (_, _) => info.Footer = "Full Path: " + fsInfo.JoinPaths(parentDirPath, info.Text));
                 if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
                     return false;
                 }

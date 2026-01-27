@@ -18,10 +18,17 @@
 // 
 
 using PFXToolKitUI.Interactivity.Selections;
+using PFXToolKitUI.Interactivity.Windowing;
 
 namespace MemEngine360.Sequencing.View;
 
-public class SequenceOperationViewState {
+/// <summary>
+/// The view-state for a <see cref="BaseSequenceOperation"/>
+/// </summary>
+public sealed class SequenceOperationViewState {
+    /// <summary>
+    /// Gets the operation
+    /// </summary>
     public BaseSequenceOperation Operation { get; }
     
     /// <summary>
@@ -29,10 +36,15 @@ public class SequenceOperationViewState {
     /// </summary>
     public ListSelectionModel<BaseSequenceCondition> SelectedConditions { get; }
     
-    public SequenceOperationViewState(BaseSequenceOperation operation) {
+    public TopLevelIdentifier TopLevelIdentifier { get; }
+    
+    private SequenceOperationViewState(BaseSequenceOperation operation, TopLevelIdentifier topLevelIdentifier) {
         this.Operation = operation;
+        this.TopLevelIdentifier = topLevelIdentifier;
         this.SelectedConditions = new ListSelectionModel<BaseSequenceCondition>(operation.Conditions);
     }
     
-    public static SequenceOperationViewState GetInstance(BaseSequenceOperation operation) => operation.internalViewState ??= new SequenceOperationViewState(operation);
+    public static SequenceOperationViewState GetInstance(BaseSequenceOperation sequence, TopLevelIdentifier topLevelIdentifier) {
+        return TopLevelDataMap.GetInstance(sequence).GetOrCreate<SequenceOperationViewState>(topLevelIdentifier, sequence, static (s, i) => new SequenceOperationViewState((BaseSequenceOperation) s!, i));
+    }
 }

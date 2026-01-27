@@ -24,20 +24,18 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class StopSelectedSequencesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager))
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager))
             return Executability.Invalid;
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        return state.SelectedSequences.SelectedItems.Any(x => x.IsRunning) ? Executability.Valid : Executability.ValidButCannotExecute;
+        return manager.SelectedSequences.SelectedItems.Any(x => x.IsRunning) ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        List<TaskSequence> sequences = state.SelectedSequences.SelectedItems.ToList();
+        List<TaskSequence> sequences = manager.SelectedSequences.SelectedItems.ToList();
         foreach (TaskSequence seq in sequences) {
             seq.RequestCancellation();
         }

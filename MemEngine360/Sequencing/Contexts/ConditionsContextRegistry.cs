@@ -40,7 +40,7 @@ public static class ConditionsContextRegistry {
         actions.AddCommand("commands.sequencer.EditConditionOutputModeCommand", "Edit output mode");
         actions.AddHeader("General");
         actions.AddCommand("commands.sequencer.DuplicateConditionsCommand", "Duplicate");
-        actions.AddCommand("commands.sequencer.ToggleConditionEnabledCommand", "Toggle Enabled").AddContextChangedHandler(TaskSequenceManager.DataKey, (entry, e) => {
+        actions.AddCommand("commands.sequencer.ToggleConditionEnabledCommand", "Toggle Enabled").AddContextChangedHandler(TaskSequenceManagerViewState.DataKey, (entry, e) => {
             if (CurrentConditionDataKey.TryGetContext(entry.UserContext, out CurrentConditionInfo current)) {
                 current.Condition.IsEnabledChanged -= current.IsEnabledHandler;
                 entry.UserContext.Remove(CurrentConditionDataKey);
@@ -48,16 +48,14 @@ public static class ConditionsContextRegistry {
                 entry.IsCheckedFunction = null;
             }
 
-            if (e.NewValue != null) {
-                ListSelectionModel<BaseSequenceCondition>? conditions = TaskSequenceManagerViewState.GetInstance(e.NewValue).SelectedConditionsFromHost;
-                if (conditions != null && conditions.Count == 1) {
-                    BaseSequenceCondition newCond = conditions.First;
-                    CurrentConditionInfo info = new CurrentConditionInfo(newCond, (s, e) => entry.RaiseIsCheckedChanged());
-                    entry.UserContext.Set(CurrentConditionDataKey, info);
-                    entry.DisplayName = "Is Enabled";
-                    entry.IsCheckedFunction = static e => CurrentConditionDataKey.GetContext(e.UserContext).Condition.IsEnabled;
-                    newCond.IsEnabledChanged += info.IsEnabledHandler;
-                }
+            ListSelectionModel<BaseSequenceCondition>? conditions = e.NewValue?.SelectedConditionsFromHost;
+            if (conditions != null && conditions.Count == 1) {
+                BaseSequenceCondition newCond = conditions.First;
+                CurrentConditionInfo info = new CurrentConditionInfo(newCond, (s, e) => entry.RaiseIsCheckedChanged());
+                entry.UserContext.Set(CurrentConditionDataKey, info);
+                entry.DisplayName = "Is Enabled";
+                entry.IsCheckedFunction = static e => CurrentConditionDataKey.GetContext(e.UserContext).Condition.IsEnabled;
+                newCond.IsEnabledChanged += info.IsEnabledHandler;
             }
         });
 

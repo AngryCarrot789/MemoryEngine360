@@ -26,20 +26,19 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DeleteOperationSelectionCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return Executability.Invalid;
         }
 
-        return TaskSequenceManagerViewState.GetInstance(manager).PrimarySelectedSequence == null ? Executability.ValidButCannotExecute : Executability.Valid;
+        return manager.PrimarySelectedSequence == null ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        TaskSequence? task = state.PrimarySelectedSequence;
+        TaskSequence? task = manager.PrimarySelectedSequence;
         if (task == null) {
             return;
         }
@@ -54,9 +53,9 @@ public class DeleteOperationSelectionCommand : Command {
             await task.WaitForCompletion();
         }
 
-        List<BaseSequenceOperation> items = state.SelectedOperations!.SelectedItems.ToList();
+        List<BaseSequenceOperation> items = manager.SelectedOperations!.SelectedItems.ToList();
         Debug.Assert(items.All(x => x.TaskSequence == task));
-        state.SelectedOperations!.DeselectAll();
+        manager.SelectedOperations!.DeselectAll();
         
         foreach (BaseSequenceOperation item in items) {
             bool removed = task.Operations.Remove(item);

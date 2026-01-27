@@ -28,29 +28,28 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DeleteSequenceSelectionCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
+        return TaskSequenceManagerViewState.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        if (state.SelectedSequences.Count < 1) {
+        if (manager.SelectedSequences.Count < 1) {
             return;
         }
 
-        List<TaskSequence> selection = state.SelectedSequences.SelectedItems.ToList();
+        List<TaskSequence> selection = manager.SelectedSequences.SelectedItems.ToList();
         if (await TryStopSequences(
                 selection.Where(x => x.IsRunning),
                 "Sequence(s) still running",
                 selection.Count == 1
                     ? "This sequence is running. Do you want to stop it and then delete?"
                     : "Some of these sequences are still running. Do you want to stop them and then delete?")) {
-            state.SelectedSequences.DeselectAll();
+            manager.SelectedSequences.DeselectAll();
 
-            ObservableList<TaskSequence> sequenceList = state.TaskSequenceManager.Sequences;
+            ObservableList<TaskSequence> sequenceList = manager.TaskSequenceManager.Sequences;
             List<(int Index, TaskSequence Sequence)> remove = CollectionUtils.CreateIndexMap(sequenceList, selection);
             for (int i = remove.Count - 1; i >= 0; i--) {
                 sequenceList.RemoveAt(remove[i].Item1);

@@ -20,6 +20,7 @@
 using MemEngine360.Connections;
 using MemEngine360.Engine;
 using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -33,26 +34,26 @@ public class OpenConsoleConnectionInSequencerCommand() : Command(allowMultipleEx
     private static readonly DataKey<IOpenConnectionView> ExistingOCVDataKey = DataKeys.Create<IOpenConnectionView>(nameof(OpenConsoleConnectionInSequencerCommand) + "_" + nameof(ExistingOCVDataKey));
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager))
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager))
             return Executability.Invalid;
-        if (ExistingOCVDataKey.TryGetContext(manager.UserContext, out IOpenConnectionView? view))
+        if (ExistingOCVDataKey.TryGetContext(manager.TaskSequenceManager.UserContext, out IOpenConnectionView? view))
             return Executability.ValidButCannotExecute;
         return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager))
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager))
             return;
         if (!ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel))
             return;
 
-        if (ExistingOCVDataKey.TryGetContext(manager.UserContext, out IOpenConnectionView? view)) {
+        if (ExistingOCVDataKey.TryGetContext(manager.TaskSequenceManager.UserContext, out IOpenConnectionView? view)) {
             if (view.DialogOperation is IDesktopDialogOperation<ConnectionResult> op)
                 op.Activate();
             return;
         }
 
-        MemoryEngine engine = manager.MemoryEngine;
+        MemoryEngine engine = manager.TaskSequenceManager.MemoryEngine;
         ulong frame = engine.GetNextConnectionChangeFrame();
         if (engine.Connection != null && !engine.Connection.IsClosed) {
             MessageBoxResult result = await MessageBoxes.AlreadyConnectedToConsole.ShowMessage();
@@ -67,12 +68,12 @@ public class OpenConsoleConnectionInSequencerCommand() : Command(allowMultipleEx
 
         IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(OpenConnectionInfo.CreateDefault());
         if (dialog != null) {
-            manager.UserContext.Set(ExistingOCVDataKey, dialog);
+            manager.TaskSequenceManager.UserContext.Set(ExistingOCVDataKey, dialog);
 
             IBusyToken? token = null;
             try {
                 ConnectionResult result = await dialog.DialogOperation.WaitForResultAsync();
-                token = await OpenConsoleConnectionDialogCommand.SetEngineConnectionAndHandleProblemsAsync(manager.MemoryEngine, result.Connection, frame);
+                token = await OpenConsoleConnectionDialogCommand.SetEngineConnectionAndHandleProblemsAsync(manager.TaskSequenceManager.MemoryEngine, result.Connection, frame);
 
                 // When returned token is null, close the connection since we can't
                 // do anything else with the connection since the user cancelled the operation
@@ -85,7 +86,7 @@ public class OpenConsoleConnectionInSequencerCommand() : Command(allowMultipleEx
             }
             finally {
                 token?.Dispose();
-                manager.UserContext.Remove(ExistingOCVDataKey);
+                manager.TaskSequenceManager.UserContext.Remove(ExistingOCVDataKey);
             }
         }
     }

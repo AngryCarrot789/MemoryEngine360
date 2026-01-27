@@ -17,22 +17,24 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Sequencing.Commands;
 
 public class ClearSequencesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
+        return TaskSequenceManagerViewState.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? state)) {
             return;
         }
 
-        if (await DeleteSequenceSelectionCommand.TryStopActiveSequences(manager)) {
-            manager.Sequences.Clear();
+        if (await DeleteSequenceSelectionCommand.TryStopActiveSequences(state.TaskSequenceManager)) {
+            state.SelectedSequences.DeselectAll();
+            state.TaskSequenceManager.Sequences.Clear();
         }
     }
 }

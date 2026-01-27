@@ -18,6 +18,7 @@
 // 
 
 using System.Xml;
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.FilePicking;
@@ -27,11 +28,11 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Sequencing.Commands;
 public class OpenTaskSequencesFromFileCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
+        return TaskSequenceManagerViewState.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return;
         }
 
@@ -60,6 +61,6 @@ public class OpenTaskSequencesFromFileCommand : Command {
             return;
         }
         
-        manager.Sequences.AddRange(listResult.Value);
+        manager.TaskSequenceManager.Sequences.AddRange(listResult.Value);
     }
 }

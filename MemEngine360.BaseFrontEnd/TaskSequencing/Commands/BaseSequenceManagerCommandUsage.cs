@@ -19,6 +19,7 @@
 
 using MemEngine360.Engine;
 using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Avalonia.CommandUsages;
 using PFXToolKitUI.Interactivity.Contexts;
 
@@ -41,8 +42,8 @@ public abstract class BaseSequenceManagerCommandUsage : SimpleButtonCommandUsage
         base.OnContextChanged();
         TaskSequenceManager? oldManager = this.TaskSequencerManager;
         TaskSequenceManager? newManager = null;
-        if (this.GetContextData() is IContextData data && TaskSequenceManager.DataKey.TryGetContext(data, out TaskSequenceManager? manager)) {
-            newManager = manager;
+        if (this.GetContextData() is IContextData data && TaskSequenceManagerViewState.DataKey.TryGetContext(data, out TaskSequenceManagerViewState? manager)) {
+            newManager = manager.TaskSequenceManager;
         }
 
         if (oldManager != newManager) {

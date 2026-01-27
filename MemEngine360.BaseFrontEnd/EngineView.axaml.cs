@@ -211,7 +211,7 @@ public partial class EngineView : UserControl {
                 }
             };
 
-            using IDisposable _ = SingleUserInputInfo.TextObservable.Subscribe(info, static s => {
+            using IDisposable _ = SingleUserInputInfo.TextObservable.Subscribe(info, null, static (s, _) => {
                 if (s.TextErrors != null) {
                     s.Footer = "Cannot show examples: invalid value";
                 }
@@ -237,7 +237,7 @@ public partial class EngineView : UserControl {
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF16, StringType.UTF16);
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF32, StringType.UTF32);
 
-        this.selectedTabIndexBinder = new AvaloniaPropertyToMultiEventPropertyBinder<ScanningProcessor>(SelectingItemsControl.SelectedIndexProperty, [nameof(ScanningProcessor.DataTypeChanged), nameof(ScanningProcessor.ScanForAnyDataTypeChanged)], (b) => {
+        this.selectedTabIndexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(SelectingItemsControl.SelectedIndexProperty, [nameof(ScanningProcessor.DataTypeChanged), nameof(ScanningProcessor.ScanForAnyDataTypeChanged)], (b) => {
             if (b.Model.ScanForAnyDataType) {
                 ((TabControl) b.Control).SelectedIndex = 3;
             }

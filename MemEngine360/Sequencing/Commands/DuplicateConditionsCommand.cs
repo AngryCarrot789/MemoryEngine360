@@ -27,29 +27,27 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DuplicateConditionsCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return Executability.Invalid;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        return state.PrimarySelectedSequence == null || state.PrimarySelectedSequence.IsRunning
+        return manager.PrimarySelectedSequence == null || manager.PrimarySelectedSequence.IsRunning
             ? Executability.ValidButCannotExecute
             : Executability.Valid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return Task.CompletedTask;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        IConditionsHost? host = state.ConditionHost;
+        IConditionsHost? host = manager.ConditionHost;
         if (host?.TaskSequence == null || host.TaskSequence.IsRunning) {
             return Task.CompletedTask;
         }
 
-        ListSelectionModel<BaseSequenceCondition> selection = state.SelectedConditionsFromHost!;
-        Debug.Assert(selection != null, "Selection could not be null since " + nameof(state.ConditionHost) + " is non-null");
+        ListSelectionModel<BaseSequenceCondition> selection = manager.SelectedConditionsFromHost!;
+        Debug.Assert(selection != null, "Selection could not be null since " + nameof(manager.ConditionHost) + " is non-null");
         if (selection.Count < 1) {
             return Task.CompletedTask;
         }

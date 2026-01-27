@@ -45,22 +45,22 @@ public class OperationListPresenter {
     }
 
     private void UpdateOperationListGroupBoxHeader() {
-        int count = this.window.State.SelectedSequences.Count;
+        int count = this.window.ViewState.SelectedSequences.Count;
         this.window.PART_OperationGroupBoxHeaderTextBlock.Text = count == 0 ? "(No sequence selected)" : "(Too many sequences selected)";
     }
 
     private void OnWindowOpened(object? sender, EventArgs e) {
-        this.window.State.SelectedSequences.SelectionChanged += this.Event_SelectedSequencesCollectionChanged;
-        this.SetPrimarySelectedSequence(this.window.State.PrimarySelectedSequence);
+        this.window.ViewState.SelectedSequences.SelectionChanged += this.Event_SelectedSequencesCollectionChanged;
+        this.SetPrimarySelectedSequence(this.window.ViewState.PrimarySelectedSequence);
     }
 
     private void OnWindowClosed(object? sender, EventArgs e) {
-        this.window.State.SelectedSequences.SelectionChanged -= this.Event_SelectedSequencesCollectionChanged;
+        this.window.ViewState.SelectedSequences.SelectionChanged -= this.Event_SelectedSequencesCollectionChanged;
         this.SetPrimarySelectedSequence(null);
     }
     
     private void Event_SelectedSequencesCollectionChanged(object? sender, ListSelectionModelChangedEventArgs<TaskSequence> e) {
-        this.SetPrimarySelectedSequence(this.window.State.PrimarySelectedSequence);
+        this.SetPrimarySelectedSequence(this.window.ViewState.PrimarySelectedSequence);
     }
 
     private void SetPrimarySelectedSequence(TaskSequence? newPrimarySequence) {
@@ -88,7 +88,7 @@ public class OperationListPresenter {
             this.operationSelectionHandler!.Dispose();
             this.operationSelectionHandler = null;
 
-            TaskSequenceViewState oldState = TaskSequenceViewState.GetInstance(oldSeq);
+            TaskSequenceViewState oldState = TaskSequenceViewState.GetInstance(oldSeq, this.window.ViewState.TopLevelIdentifier);
             oldState.PrimarySelectedOperationChanged -= this.Event_PrimaryOperationChanged;
             if (oldState.PrimarySelectedOperation != null) {
                 this.OnPrimaryOperationChanged(oldState.PrimarySelectedOperation, null);
@@ -98,7 +98,7 @@ public class OperationListPresenter {
         Debug.Assert(this.operationSelectionHandler == null);
         this.window.PART_OperationListBox.TaskSequence = newSeq;
         if (newSeq != null) {
-            TaskSequenceViewState newSeqState = TaskSequenceViewState.GetInstance(newSeq);
+            TaskSequenceViewState newSeqState = TaskSequenceViewState.GetInstance(newSeq, this.window.ViewState.TopLevelIdentifier);
             newSeqState.PrimarySelectedOperationChanged += this.Event_PrimaryOperationChanged;
 
             this.operationSelectionHandler = new SelectionModelBinder<BaseSequenceOperation>(this.window.PART_OperationListBox.Selection, newSeqState.SelectedOperations);
@@ -120,8 +120,8 @@ public class OperationListPresenter {
 
     private void UpdateOperationEditorPanelHeader() {
         TextBlock tbHeader = this.window.PART_OperationEditorPanelTextBlock;
-        TaskSequence? primarySequence = this.window.State.PrimarySelectedSequence;
-        TaskSequenceViewState? sequenceState = primarySequence != null ? TaskSequenceViewState.GetInstance(primarySequence) : null;
+        TaskSequence? primarySequence = this.window.ViewState.PrimarySelectedSequence;
+        TaskSequenceViewState? sequenceState = primarySequence != null ? TaskSequenceViewState.GetInstance(primarySequence, this.window.ViewState.TopLevelIdentifier) : null;
         BaseSequenceOperation? primaryOperation = sequenceState?.PrimarySelectedOperation;
 
         if (primaryOperation != null) {
@@ -131,10 +131,10 @@ public class OperationListPresenter {
         else {
             tbHeader.Opacity = 0.7;
             if (primarySequence == null) {
-                tbHeader.Text = this.window.State.SelectedSequences.Count > 0 ? "(Too many sequences selected)" : "(No sequence selected)";
+                tbHeader.Text = this.window.ViewState.SelectedSequences.Count > 0 ? "(Too many sequences selected)" : "(No sequence selected)";
             }
             else {
-                tbHeader.Text = this.window.State.SelectedOperations!.Count == 0 ? "(No operation selected)" : "(Too many operations selected)";
+                tbHeader.Text = this.window.ViewState.SelectedOperations!.Count == 0 ? "(No operation selected)" : "(Too many operations selected)";
             }
         }
     }

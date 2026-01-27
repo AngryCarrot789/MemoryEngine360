@@ -25,19 +25,17 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class RenameSequenceCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager))
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager))
             return Executability.Invalid;
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        return state.PrimarySelectedSequence != null ? Executability.Valid : Executability.ValidButCannotExecute;
+        return manager.PrimarySelectedSequence != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager))
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager))
             return;
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        TaskSequence? sequence = state.PrimarySelectedSequence;
+        TaskSequence? sequence = manager.PrimarySelectedSequence;
         if (sequence != null) {
             SingleUserInputInfo info = new SingleUserInputInfo("Rename sequence", null, "New Name", sequence.DisplayName) { MinimumDialogWidthHint = 350 };
             if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) == true) {

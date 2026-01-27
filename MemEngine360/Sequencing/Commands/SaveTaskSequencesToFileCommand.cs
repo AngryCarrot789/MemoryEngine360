@@ -29,18 +29,16 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class SaveTaskSequencesToFileCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
+        return TaskSequenceManagerViewState.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return;
         }
-        
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
 
-        List<TaskSequence> itemsToSave = state.SelectedSequences.SelectedItems.Select(x => x.CreateClone()).ToList();
-        if (state.SelectedSequences.Count < 1) {
+        List<TaskSequence> itemsToSave = manager.SelectedSequences.SelectedItems.Select(x => x.CreateClone()).ToList();
+        if (manager.SelectedSequences.Count < 1) {
             return;
         }
         

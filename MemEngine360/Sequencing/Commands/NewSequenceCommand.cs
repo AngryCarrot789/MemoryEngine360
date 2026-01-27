@@ -26,23 +26,22 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class NewSequenceCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
+        return TaskSequenceManagerViewState.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        state.SelectedSequences.DeselectAll();
+        manager.SelectedSequences.DeselectAll();
         
-        ObservableList<TaskSequence> sequences = manager.Sequences;
+        ObservableList<TaskSequence> sequences = manager.TaskSequenceManager.Sequences;
         TaskSequence sequence = new TaskSequence() {
             DisplayName = TextIncrement.GetIncrementableString(x => sequences.All(y => y.DisplayName != x), "New Sequence", out string? output, true) ? output : "New Sequence"
         };
 
         sequences.Add(sequence);
-        state.SelectedSequences.SelectItem(sequence);
+        manager.SelectedSequences.SelectItem(sequence);
     }
 }

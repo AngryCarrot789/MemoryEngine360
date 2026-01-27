@@ -25,16 +25,15 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class ToggleConditionEnabledCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
+        return TaskSequenceManagerViewState.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        ListSelectionModel<BaseSequenceCondition>? list = state.SelectedConditionsFromHost;
+        ListSelectionModel<BaseSequenceCondition>? list = manager.SelectedConditionsFromHost;
         if (list == null || list.Count < 1) {
             return;
         }

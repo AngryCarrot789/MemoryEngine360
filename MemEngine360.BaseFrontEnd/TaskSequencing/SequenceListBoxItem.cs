@@ -87,10 +87,10 @@ public class SequenceListBoxItem : ModelBasedListBoxItem<TaskSequence> {
 
             base.OnPointerPressed(e);
             if (pointer.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed) {
-                ListSelectionModel<TaskSequence> selection = view.State.SelectedSequences;
+                ListSelectionModel<TaskSequence> selection = view.ViewState.SelectedSequences;
                 if (selection.Count == 1 && selection.IsSelected(this.Model!) == true) {
                     Debug.Assert(this.IsSelected);
-                    view.State.ConditionHost = this.Model!;
+                    view.ViewState.ConditionHost = this.Model!;
                 }
             }
         }

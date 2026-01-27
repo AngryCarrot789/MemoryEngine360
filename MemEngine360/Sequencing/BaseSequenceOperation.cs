@@ -20,6 +20,7 @@
 using MemEngine360.Sequencing.Conditions;
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Activities;
+using PFXToolKitUI.Composition;
 using PFXToolKitUI.DataTransfer;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Utils.Collections.Observable;
@@ -30,12 +31,12 @@ namespace MemEngine360.Sequencing;
 /// <summary>
 /// The base class for a sequencer operation
 /// </summary>
-public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost {
+public abstract class BaseSequenceOperation : ITransferableData, IComponentManager, IConditionsHost {
     public static readonly DataKey<BaseSequenceOperation> DataKey = DataKeys.Create<BaseSequenceOperation>(nameof(BaseSequenceOperation));
 
-    internal SequenceOperationViewState? internalViewState; // UI stuff, but not publicly exposed so this should be okay. saves using IComponentManager
-
     public TransferableData TransferableData { get; }
+    
+    public ComponentStorage ComponentStorage => field ??= new ComponentStorage(this);
 
     /// <summary>
     /// Gets the sequence that owns this operation
@@ -115,7 +116,7 @@ public abstract class BaseSequenceOperation : ITransferableData, IConditionsHost
             BaseSequenceCondition.InternalSetOwner(oldItem, null);
             BaseSequenceCondition.InternalSetOwner(newItem, this);
         };
-        
+
         return;
 
         static void CheckAddCondition(BaseSequenceOperation self, BaseSequenceCondition item) {

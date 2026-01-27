@@ -25,16 +25,15 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class ToggleOperationEnabledCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
+        return TaskSequenceManagerViewState.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return Task.CompletedTask;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        ListSelectionModel<BaseSequenceOperation>? selection = state.SelectedOperations;
+        ListSelectionModel<BaseSequenceOperation>? selection = manager.SelectedOperations;
         if (selection == null || selection.Count < 1) {
             return Task.CompletedTask;
         }

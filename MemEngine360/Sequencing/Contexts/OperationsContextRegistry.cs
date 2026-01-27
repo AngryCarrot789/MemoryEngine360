@@ -39,7 +39,7 @@ public static class OperationsContextRegistry {
         actions.AddCommand("commands.sequencer.DuplicateOperationsCommand", "Duplicate");
 
         CommandMenuEntry entry1 = actions.AddCommand("commands.sequencer.ToggleOperationEnabledCommand", "Toggle Enabled");
-        entry1.AddContextChangedHandler(TaskSequenceManager.DataKey, (entry, e) => {
+        entry1.AddContextChangedHandler(TaskSequenceManagerViewState.DataKey, (entry, e) => {
             if (CurrentOperationDataKey.TryGetContext(entry.UserContext, out CurrentOperationInfo currentOperation)) {
                 currentOperation.Operation.IsEnabledChanged -= currentOperation.IsEnabledHandler;
 
@@ -48,16 +48,14 @@ public static class OperationsContextRegistry {
                 entry.IsCheckedFunction = null;
             }
 
-            if (e.NewValue != null) {
-                ListSelectionModel<BaseSequenceOperation>? operations = TaskSequenceManagerViewState.GetInstance(e.NewValue).SelectedOperations;
-                if (operations != null && operations.Count == 1) {
-                    BaseSequenceOperation newOp = operations.First;
-                    CurrentOperationInfo info = new CurrentOperationInfo(newOp, (s, _) => entry.RaiseIsCheckedChanged());
-                    entry.UserContext.Set(CurrentOperationDataKey, info);
-                    entry.DisplayName = "Is Enabled";
-                    entry.IsCheckedFunction = static e => CurrentOperationDataKey.GetContext(e.UserContext).Operation.IsEnabled;
-                    newOp.IsEnabledChanged += info.IsEnabledHandler;
-                }
+            ListSelectionModel<BaseSequenceOperation>? operations = e.NewValue?.SelectedOperations;
+            if (operations != null && operations.Count == 1) {
+                BaseSequenceOperation newOp = operations.First;
+                CurrentOperationInfo info = new CurrentOperationInfo(newOp, (s, _) => entry.RaiseIsCheckedChanged());
+                entry.UserContext.Set(CurrentOperationDataKey, info);
+                entry.DisplayName = "Is Enabled";
+                entry.IsCheckedFunction = static e => CurrentOperationDataKey.GetContext(e.UserContext).Operation.IsEnabled;
+                newOp.IsEnabledChanged += info.IsEnabledHandler;
             }
         });
 

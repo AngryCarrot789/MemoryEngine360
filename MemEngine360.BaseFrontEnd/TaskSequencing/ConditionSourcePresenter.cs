@@ -36,7 +36,7 @@ public class ConditionSourcePresenter {
     public ConditionSourcePresenter(TaskSequencerView window) {
         this.window = window;
         this.window.WindowClosed += this.WindowOnClosed;
-        this.window.State.ConditionHostChanged += this.OnConditionHostChanged;
+        this.window.ViewState.ConditionHostChanged += this.OnConditionHostChanged;
     }
 
     private void OnConditionHostChanged(object? o, ValueChangedEventArgs<IConditionsHost?> e) {
@@ -59,13 +59,13 @@ public class ConditionSourcePresenter {
         this.ClearOperationSource();
         this.ClearTaskSequenceSource();
         this.window.PART_ConditionsListBox.ConditionsHost = sequence;
-        this.window.State.ConditionHost = sequence;
+        this.window.ViewState.ConditionHost = sequence;
 
         this.sourceSequence = sequence;
         if (sequence != null) {
             sequence.DisplayNameChanged += this.OnSequenceDisplayNameChanged;
             this.UpdateTextForSequence(sequence);
-            this.conditionSelectionHandler = new SelectionModelBinder<BaseSequenceCondition>(this.window.PART_ConditionsListBox.Selection, TaskSequenceViewState.GetInstance(sequence).SelectedConditions);
+            this.conditionSelectionHandler = new SelectionModelBinder<BaseSequenceCondition>(this.window.PART_ConditionsListBox.Selection, TaskSequenceViewState.GetInstance(sequence, this.window.ViewState.TopLevelIdentifier).SelectedConditions);
         }
         else {
             Debug.Assert(this.sourceOperation == null);
@@ -80,12 +80,12 @@ public class ConditionSourcePresenter {
         this.ClearOperationSource();
         this.ClearTaskSequenceSource();
         this.window.PART_ConditionsListBox.ConditionsHost = operation;
-        this.window.State.ConditionHost = operation;
+        this.window.ViewState.ConditionHost = operation;
 
         this.sourceOperation = operation;
         if (operation != null) {
             this.UpdateTextForOperation(this.sourceOperation);
-            this.conditionSelectionHandler = new SelectionModelBinder<BaseSequenceCondition>(this.window.PART_ConditionsListBox.Selection, SequenceOperationViewState.GetInstance(operation).SelectedConditions);
+            this.conditionSelectionHandler = new SelectionModelBinder<BaseSequenceCondition>(this.window.PART_ConditionsListBox.Selection, SequenceOperationViewState.GetInstance(operation, this.window.ViewState.TopLevelIdentifier).SelectedConditions);
         }
         else {
             Debug.Assert(this.sourceSequence == null);
@@ -123,7 +123,7 @@ public class ConditionSourcePresenter {
         this.ClearOperationSource();
         this.ClearTaskSequenceSource();
         this.window.PART_ConditionsListBox.ConditionsHost = null;
-        this.window.State.ConditionHost = null;
+        this.window.ViewState.ConditionHost = null;
         this.sourceSequence = null;
         this.UpdateTextForNothing(false);
     }
@@ -131,21 +131,21 @@ public class ConditionSourcePresenter {
     private void OnSequenceDisplayNameChanged(object? o, EventArgs e) => this.UpdateTextForSequence((TaskSequence) o!);
 
     private void UpdateTextForSequence(TaskSequence? sequence) {
-        int selectCount = this.window.State.SelectedSequences.Count;
+        int selectCount = this.window.ViewState.SelectedSequences.Count;
         this.window.PART_ConditionSourceName.Text = sequence?.DisplayName ?? (selectCount < 1 ? "(No sequence selected)" : "(Too many sequences selected)");
     }
 
     private void UpdateTextForOperation(BaseSequenceOperation? sequence) {
-        int selectCount = this.window.State.SelectedSequences.Count;
+        int selectCount = this.window.ViewState.SelectedSequences.Count;
         this.window.PART_ConditionSourceName.Text = sequence?.DisplayName ?? (selectCount < 1 ? "(No sequence selected)" : "(Too many sequences selected)");
     }
 
     private void UpdateTextForNothing(bool isCausedByOperationChange) {
-        ListSelectionModel<BaseSequenceOperation>? primarySeqOperationSelection = this.window.State.SelectedOperations;
+        ListSelectionModel<BaseSequenceOperation>? primarySeqOperationSelection = this.window.ViewState.SelectedOperations;
         if (isCausedByOperationChange && primarySeqOperationSelection?.Count > 1) {
             this.window.PART_ConditionSourceName.Text = "(Too many operations selected)";
         }
-        else if (!isCausedByOperationChange && this.window.State.SelectedSequences.Count > 1) {
+        else if (!isCausedByOperationChange && this.window.ViewState.SelectedSequences.Count > 1) {
             this.window.PART_ConditionSourceName.Text = "(Too many sequences selected)";
         }
         else {

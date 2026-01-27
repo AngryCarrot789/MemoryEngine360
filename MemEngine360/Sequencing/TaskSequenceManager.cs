@@ -36,8 +36,6 @@ namespace MemEngine360.Sequencing;
 /// Manager of task sequences
 /// </summary>
 public class TaskSequenceManager : IComponentManager, IUserLocalContext {
-    public static readonly DataKey<TaskSequenceManager> DataKey = DataKeys.Create<TaskSequenceManager>(nameof(TaskSequenceManager));
-
     private readonly ObservableList<TaskSequence> activeSequences;
 
     /// <summary>

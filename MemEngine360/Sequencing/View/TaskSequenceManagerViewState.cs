@@ -18,8 +18,9 @@
 // 
 
 using MemEngine360.Sequencing.Conditions;
-using PFXToolKitUI.Composition;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Selections;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Sequencing.View;
@@ -28,6 +29,8 @@ namespace MemEngine360.Sequencing.View;
 /// Represents the persistent state of the task sequencer view
 /// </summary>
 public sealed class TaskSequenceManagerViewState {
+    public static readonly DataKey<TaskSequenceManagerViewState> DataKey = DataKeys.Create<TaskSequenceManagerViewState>(nameof(TaskSequenceManagerViewState));
+
     private IConditionsHost? conditionHost;
 
     /// <summary>
@@ -43,7 +46,7 @@ public sealed class TaskSequenceManagerViewState {
     /// <summary>
     /// Gets the selected operations from <see cref="PrimarySelectedSequence"/>. This is a convenience property
     /// </summary>
-    public ListSelectionModel<BaseSequenceOperation>? SelectedOperations => this.PrimarySelectedSequence != null ? TaskSequenceViewState.GetInstance(this.PrimarySelectedSequence).SelectedOperations : null;
+    public ListSelectionModel<BaseSequenceOperation>? SelectedOperations => this.PrimarySelectedSequence != null ? TaskSequenceViewState.GetInstance(this.PrimarySelectedSequence, this.TopLevelIdentifier).SelectedOperations : null;
 
     /// <summary>
     /// Gets the selected conditions based on the <see cref="ConditionHost"/>. This is a convenience property
@@ -51,8 +54,8 @@ public sealed class TaskSequenceManagerViewState {
     public ListSelectionModel<BaseSequenceCondition>? SelectedConditionsFromHost {
         get {
             switch (this.conditionHost) {
-                case TaskSequence sequence:    return TaskSequenceViewState.GetInstance(sequence).SelectedConditions;
-                case BaseSequenceOperation op: return SequenceOperationViewState.GetInstance(op).SelectedConditions;
+                case TaskSequence sequence:    return TaskSequenceViewState.GetInstance(sequence, this.TopLevelIdentifier).SelectedConditions;
+                case BaseSequenceOperation op: return SequenceOperationViewState.GetInstance(op, this.TopLevelIdentifier).SelectedConditions;
                 default:                       return null;
             }
         }
@@ -74,6 +77,8 @@ public sealed class TaskSequenceManagerViewState {
         set => PropertyHelper.SetAndRaiseINE(ref this.conditionHost, value, this, this.ConditionHostChanged);
     }
 
+    public TopLevelIdentifier TopLevelIdentifier { get; }
+    
     /// <summary>
     /// Fired when the <see cref="PrimarySelectedSequence"/> changes
     /// </summary>
@@ -81,8 +86,12 @@ public sealed class TaskSequenceManagerViewState {
 
     public event EventHandler<ValueChangedEventArgs<IConditionsHost?>>? ConditionHostChanged;
 
-    private TaskSequenceManagerViewState(TaskSequenceManager taskSequenceManager) {
+    // The `taskSequenceManager` identifies the model, however, models can be used in multiple UIs
+    // The `identifier` identifies the exact window effectively.
+    
+    public TaskSequenceManagerViewState(TaskSequenceManager taskSequenceManager, TopLevelIdentifier topLevelIdentifier) {
         this.TaskSequenceManager = taskSequenceManager;
+        this.TopLevelIdentifier = topLevelIdentifier;
         this.SelectedSequences = new ListSelectionModel<TaskSequence>(this.TaskSequenceManager.Sequences);
         this.SelectedSequences.SelectionChanged += this.OnSelectedSequencesCollectionChanged;
     }
@@ -91,7 +100,7 @@ public sealed class TaskSequenceManagerViewState {
         this.ConditionHost = this.PrimarySelectedSequence = this.SelectedSequences.Count == 1 ? this.SelectedSequences.First : null;
     }
 
-    public static TaskSequenceManagerViewState GetInstance(TaskSequenceManager manager) {
-        return ((IComponentManager) manager).GetOrCreateComponent((t) => new TaskSequenceManagerViewState((TaskSequenceManager) t));
+    public static TaskSequenceManagerViewState GetInstance(TaskSequenceManager manager, TopLevelIdentifier topLevelIdentifier) {
+        return TopLevelDataMap.GetInstance(manager).GetOrCreate<TaskSequenceManagerViewState>(topLevelIdentifier, manager, static (s, i) => new TaskSequenceManagerViewState((TaskSequenceManager) s!, i));
     }
 }

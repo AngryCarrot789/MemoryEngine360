@@ -27,11 +27,11 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DeleteConditionSelectionCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return Executability.Invalid;
         }
 
-        return TaskSequenceManagerViewState.GetInstance(manager).PrimarySelectedSequence == null ? Executability.ValidButCannotExecute : Executability.Valid;
+        return manager.PrimarySelectedSequence == null ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -43,17 +43,16 @@ public class DeleteConditionSelectionCommand : Command {
         // And for which is better, who knows.
         // Maybe option 1 for shortcuts, option 2 for context menu commands?
 
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return;
         }
 
-        TaskSequenceManagerViewState viewState = TaskSequenceManagerViewState.GetInstance(manager);
-        if (viewState.ConditionHost == null) {
+        if (manager.ConditionHost == null) {
             Debug.Assert(!BaseSequenceCondition.DataKey.IsPresent(e.ContextData));
             return;
         }
 
-        TaskSequence? rootSequence = viewState.ConditionHost.TaskSequence;
+        TaskSequence? rootSequence = manager.ConditionHost.TaskSequence;
         if (rootSequence == null) {
             return;
         }
@@ -70,7 +69,7 @@ public class DeleteConditionSelectionCommand : Command {
             Debug.Assert(!rootSequence.IsRunning);
         }
 
-        ListSelectionModel<BaseSequenceCondition>? selectionModel = viewState.SelectedConditionsFromHost;
+        ListSelectionModel<BaseSequenceCondition>? selectionModel = manager.SelectedConditionsFromHost;
         if (selectionModel == null) {
             return; // ConditionHost somehow changed
         }

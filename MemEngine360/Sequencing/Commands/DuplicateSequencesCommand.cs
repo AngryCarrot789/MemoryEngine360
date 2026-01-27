@@ -26,15 +26,13 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DuplicateSequencesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return TaskSequenceManager.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
+        return TaskSequenceManagerViewState.DataKey.IsPresent(e.ContextData) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? state)) {
             return;
         }
-
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
 
         // Create list of clones, ordered by their index in the sequence list
         List<(TaskSequence Seq, int Idx)> clones =

@@ -69,10 +69,10 @@ public class OperationListBoxItem : ModelBasedListBoxItem<BaseSequenceOperation>
                     // The condition source may currently be a task sequence. But since this operation was clicked
                     // and is already selected, a selection change won't be processed and the source won't get updated.
                     // So, we do it manually here
-                    ListSelectionModel<BaseSequenceOperation>? selection = view.State.SelectedOperations;
+                    ListSelectionModel<BaseSequenceOperation>? selection = view.ViewState.SelectedOperations;
                     if (selection != null && selection.Count == 1 && selection.IsSelected(this.Model!) == true) {
                         Debug.Assert(this.IsSelected);
-                        view.State.ConditionHost = this.Model!;
+                        view.ViewState.ConditionHost = this.Model!;
                     }
                 }
             }

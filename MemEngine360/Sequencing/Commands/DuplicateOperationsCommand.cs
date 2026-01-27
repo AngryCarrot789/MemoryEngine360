@@ -27,29 +27,27 @@ namespace MemEngine360.Sequencing.Commands;
 
 public class DuplicateOperationsCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return Executability.Invalid;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        return state.PrimarySelectedSequence == null || state.PrimarySelectedSequence.IsRunning
+        return manager.PrimarySelectedSequence == null || manager.PrimarySelectedSequence.IsRunning
             ? Executability.ValidButCannotExecute
             : Executability.Valid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!TaskSequenceManager.DataKey.TryGetContext(e.ContextData, out TaskSequenceManager? manager)) {
+        if (!TaskSequenceManagerViewState.DataKey.TryGetContext(e.ContextData, out TaskSequenceManagerViewState? manager)) {
             return Task.CompletedTask;
         }
 
-        TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(manager);
-        TaskSequence? sequence = state.PrimarySelectedSequence;
+        TaskSequence? sequence = manager.PrimarySelectedSequence;
         if (sequence == null || sequence.IsRunning) {
             return Task.CompletedTask;
         }
 
         // Create list of clones, ordered by their index in the sequence list
-        ListSelectionModel<BaseSequenceOperation> selection = TaskSequenceViewState.GetInstance(sequence).SelectedOperations;
+        ListSelectionModel<BaseSequenceOperation> selection = TaskSequenceViewState.GetInstance(sequence, manager.TopLevelIdentifier).SelectedOperations;
         List<(BaseSequenceOperation Op, int Idx)> clones = selection.SelectedItems.Select(x => (Op: CreateNormalClone(x), Idx: x.TaskSequence!.Operations.IndexOf(x))).OrderBy(x => x.Idx).ToList();
         int offset = 1; // +1 to add after the existing item
         foreach ((BaseSequenceOperation Op, int Idx) item in clones) {

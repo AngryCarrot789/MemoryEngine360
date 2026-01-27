@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using MemEngine360.Sequencing;
+using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Interactivity.Windowing;
@@ -42,7 +43,7 @@ public class TaskSequencerServiceImpl : ITaskSequencerService {
             IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
                 Title = "Task Sequencer",
                 FocusPath = "SequencerWindow",
-                Content = new TaskSequencerView(sequencer),
+                Content = new TaskSequencerView(new TaskSequenceManagerViewState(sequencer, TopLevelIdentifier.Single(TaskSequencerView.TopLevelId))),
                 TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.Sequencer.TitleBarBackground"),
                 BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
                 MinWidth = 640, MinHeight = 400,

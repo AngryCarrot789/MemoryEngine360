@@ -55,7 +55,7 @@ public static class TaskSequenceContextRegistry {
             };
 
             // NotifyCollectionChangedEventHandler handler = (o, args) => entry.RaiseCanExecuteChanged();
-            // entry.AddContextChangedHandler(TaskSequenceManager.DataKey, (sender, e) => {
+            // entry.AddContextChangedHandler(TaskSequenceManagerViewState.DataKey, (sender, e) => {
             //     if (e.OldValue != null)
             //         e.OldValue.ActiveSequences.CollectionChanged -= handler;
             //     if (e.NewValue != null)
@@ -69,15 +69,14 @@ public static class TaskSequenceContextRegistry {
 
     static TaskSequenceContextRegistry() {
         Registry.Opened += static (_, context) => {
-            if (TaskSequenceManager.DataKey.TryGetContext(context, out TaskSequenceManager? manager)) {
-                TaskSequenceManagerViewState vs = TaskSequenceManagerViewState.GetInstance(manager);
-                if (vs.SelectedSequences.Count > 0) {
-                    if (vs.SelectedSequences.Count == 1) {
-                        string first = vs.SelectedSequences.First.DisplayName;
+            if (TaskSequenceManagerViewState.DataKey.TryGetContext(context, out TaskSequenceManagerViewState? manager)) {
+                if (manager.SelectedSequences.Count > 0) {
+                    if (manager.SelectedSequences.Count == 1) {
+                        string first = manager.SelectedSequences.First.DisplayName;
                         Registry.ObjectName = string.IsNullOrWhiteSpace(first) ? "(unnamed sequence)" : first;
                     }
                     else {
-                        Registry.ObjectName = $"{vs.SelectedSequences.Count} sequence{Lang.S(vs.SelectedSequences.Count)}";
+                        Registry.ObjectName = $"{manager.SelectedSequences.Count} sequence{Lang.S(manager.SelectedSequences.Count)}";
                     }
 
                     return;
@@ -90,9 +89,8 @@ public static class TaskSequenceContextRegistry {
         FixedWeightedMenuEntryGroup edit = Registry.GetFixedGroup("general");
         edit.AddHeader("Edit");
         edit.AddDynamicSubGroup((group, ctx, items) => {
-            if (TaskSequenceManager.DataKey.TryGetContext(ctx, out TaskSequenceManager? ui)) {
-                TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
-                if (state.PrimarySelectedSequence != null)
+            if (TaskSequenceManagerViewState.DataKey.TryGetContext(ctx, out TaskSequenceManagerViewState? ui)) {
+                if (ui.PrimarySelectedSequence != null)
                     items.Add(new CommandMenuEntry("commands.sequencer.RenameSequenceCommand", "Rename", icon: StandardIcons.ABCTextIcon));
             }
         });
@@ -103,10 +101,9 @@ public static class TaskSequenceContextRegistry {
         actions.AddHeader("General");
         actions.AddEntry(CmdRunSequenceCommand!);
         actions.AddDynamicSubGroup((group, ctx, items) => {
-            if (TaskSequenceManager.DataKey.TryGetContext(ctx, out TaskSequenceManager? ui)) {
-                TaskSequenceManagerViewState state = TaskSequenceManagerViewState.GetInstance(ui);
+            if (TaskSequenceManagerViewState.DataKey.TryGetContext(ctx, out TaskSequenceManagerViewState? ui)) {
                 items.Add(CmdStopSpecificSequenceCommand);
-                if (state.SelectedSequences.Count > 1) {
+                if (ui.SelectedSequences.Count > 1) {
                     items.Add(new SeparatorEntry());
                     items.Add(StopSelectedSequencesCommand);
                 }
@@ -121,9 +118,9 @@ public static class TaskSequenceContextRegistry {
         // also sometimes buggy with no hope of being truly fixed because i'm not smart enough to figure it out.
         // Check out the method AdvancedMenuService.RemoveItemNodesWithDynamicSupport for nightmare fuel
         destruction.AddCommand("commands.sequencer.DeleteSequenceSelectionCommand", "Delete Sequence(s)").
-                    AddContextUpdateHandler(TaskSequenceManager.DataKey, (sender, e) => {
+                    AddContextUpdateHandler(TaskSequenceManagerViewState.DataKey, (sender, e) => {
                         sender.DisplayName =
-                            e.Value != null && TaskSequenceManagerViewState.GetInstance(e.Value).SelectedSequences.Count == 1
+                            e.Value != null && e.Value.SelectedSequences.Count == 1
                                 ? "Delete Sequence"
                                 : "Delete Sequences";
                     });

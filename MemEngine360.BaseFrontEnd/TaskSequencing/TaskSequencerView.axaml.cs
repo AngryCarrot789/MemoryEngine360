@@ -34,12 +34,15 @@ using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Utils.Commands;
 using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public partial class TaskSequencerView : UserControl {
+    public const string TopLevelId = "toplevel.TaskSequencerManager";
+    
     private readonly IBinder<TaskSequence> useDedicatedConnectionBinder = 
         new EventUpdateBinder<TaskSequence>(
             [
@@ -68,7 +71,7 @@ public partial class TaskSequencerView : UserControl {
             });
 
     private readonly IBinder<TaskSequence> busyLockPriorityBinder =
-        new AvaloniaPropertyToMultiEventPropertyBinder<TaskSequence>(
+        new AvaloniaPropertyToEventPropertyBinder<TaskSequence>(
             CheckBox.IsCheckedProperty,
             [
                 nameof(TaskSequence.HasEngineConnectionPriorityChanged),
@@ -83,11 +86,11 @@ public partial class TaskSequencerView : UserControl {
                     b.Model.HasEngineConnectionPriority = ((CheckBox) b.Control).IsChecked == true;
             });
 
-    public TaskSequenceManagerViewState State { get; }
+    public TaskSequenceManagerViewState ViewState { get; }
 
     public IDesktopWindow? Window { get; private set; }
 
-    public TaskSequenceManager TaskSequenceManager { get; }
+    public TaskSequenceManager TaskSequenceManager => this.ViewState.TaskSequenceManager;
 
     private readonly ConditionSourcePresenter conditionSourcePresenter;
     private readonly OperationListPresenter operationListPresenter;
@@ -95,15 +98,14 @@ public partial class TaskSequencerView : UserControl {
 
     public event EventHandler? WindowOpened, WindowClosed;
 
-    public TaskSequencerView() : this(new TaskSequenceManager(new MemoryEngine())) {
+    public TaskSequencerView() : this(new TaskSequenceManagerViewState(new TaskSequenceManager(new MemoryEngine()), TopLevelIdentifier.Single(TopLevelId))) {
     }
 
-    public TaskSequencerView(TaskSequenceManager manager) {
+    public TaskSequencerView(TaskSequenceManagerViewState viewState) {
         this.InitializeComponent();
-        this.TaskSequenceManager = manager;
-        this.State = TaskSequenceManagerViewState.GetInstance(manager);
+        this.ViewState = viewState;
         this.PART_UseDedicatedConnection.Command = new RelayCommand(this.OnToggleUseDedicatedConnection, () => {
-            TaskSequence? seqUI = this.State.PrimarySelectedSequence;
+            TaskSequence? seqUI = this.ViewState.PrimarySelectedSequence;
             return seqUI != null && !seqUI.IsRunning;
         });
 
@@ -116,7 +118,7 @@ public partial class TaskSequencerView : UserControl {
     }
 
     private void OnToggleUseDedicatedConnection() {
-        TaskSequence? sequence = this.State.PrimarySelectedSequence;
+        TaskSequence? sequence = this.ViewState.PrimarySelectedSequence;
         if (sequence == null || sequence.IsRunning) {
             return;
         }
@@ -136,7 +138,7 @@ public partial class TaskSequencerView : UserControl {
     }
 
     private void OnEngineConnectionChanged(object? o, ConnectionChangedEventArgs connectionChangedEventArgs) {
-        TaskSequence? seq = this.State.PrimarySelectedSequence;
+        TaskSequence? seq = this.ViewState.PrimarySelectedSequence;
         if (seq != null && seq.UseEngineConnection) {
             this.currentConnectionTypeBinder.UpdateControl();
         }
@@ -180,7 +182,7 @@ public partial class TaskSequencerView : UserControl {
     }
     
     private void PART_ClearOperationsClick(object? sender, RoutedEventArgs e) {
-        TaskSequence? sequence = this.State.PrimarySelectedSequence;
+        TaskSequence? sequence = this.ViewState.PrimarySelectedSequence;
         if (sequence != null && !sequence.IsRunning) {
             sequence.Operations.Clear();
         }
@@ -202,7 +204,7 @@ public partial class TaskSequencerView : UserControl {
     private void Button_InsertStopSequence(object? sender, RoutedEventArgs e) => this.AddOperationAndSelect(() => new StopSequenceOperation());
 
     private void AddOperationAndSelect(Func<BaseSequenceOperation> factory) {
-        TaskSequenceManagerViewState state = this.State;
+        TaskSequenceManagerViewState state = this.ViewState;
         if (state.PrimarySelectedSequence != null && !state.PrimarySelectedSequence.IsRunning) {
             state.SelectedOperations!.DeselectAll();
 
@@ -223,20 +225,20 @@ public partial class TaskSequencerView : UserControl {
 
     internal void OnWindowOpened(IDesktopWindow sender) {
         this.Window = sender;
-        DataManager.GetContextData(this).Set(TaskSequenceManager.DataKey, this.TaskSequenceManager);
+        DataManager.GetContextData(this).Set(TaskSequenceManagerViewState.DataKey, this.ViewState);
 
         this.PART_SequenceListBox.TaskSequencerManager = this.TaskSequenceManager;
-        this.taskSequenceSelectionHandler = new SelectionModelBinder<TaskSequence>(this.PART_SequenceListBox.Selection, this.State.SelectedSequences);
+        this.taskSequenceSelectionHandler = new SelectionModelBinder<TaskSequence>(this.PART_SequenceListBox.Selection, this.ViewState.SelectedSequences);
 
         this.TaskSequenceManager.MemoryEngine.ConnectionChanged += this.OnEngineConnectionChanged;
-        this.State.PrimarySelectedSequenceChanged += this.OnPrimarySelectedSequenceChanged;
+        this.ViewState.PrimarySelectedSequenceChanged += this.OnPrimarySelectedSequenceChanged;
 
-        if (this.State.PrimarySelectedSequence != null) {
-            this.OnPrimarySequenceChanged(null, this.State.PrimarySelectedSequence);
+        if (this.ViewState.PrimarySelectedSequence != null) {
+            this.OnPrimarySequenceChanged(null, this.ViewState.PrimarySelectedSequence);
         }
 
-        if (this.State.SelectedSequences.Count < 1 && this.TaskSequenceManager.Sequences.Count > 0) {
-            this.State.SelectedSequences.SelectItem(this.TaskSequenceManager.Sequences[0]);
+        if (this.ViewState.SelectedSequences.Count < 1 && this.TaskSequenceManager.Sequences.Count > 0) {
+            this.ViewState.SelectedSequences.SelectItem(this.TaskSequenceManager.Sequences[0]);
         }
 
         this.WindowOpened?.Invoke(this, EventArgs.Empty);
@@ -245,13 +247,13 @@ public partial class TaskSequencerView : UserControl {
     internal void OnWindowClosed() {
         this.WindowClosed?.Invoke(this, EventArgs.Empty);
 
-        DataManager.GetContextData(this).Remove(TaskSequenceManager.DataKey);
+        DataManager.GetContextData(this).Remove(TaskSequenceManagerViewState.DataKey);
         this.taskSequenceSelectionHandler!.Dispose();
         this.PART_SequenceListBox.TaskSequencerManager = null;
 
-        this.State.PrimarySelectedSequenceChanged -= this.OnPrimarySelectedSequenceChanged;
-        if (this.State.PrimarySelectedSequence != null) {
-            this.OnPrimarySequenceChanged(this.State.PrimarySelectedSequence, null);
+        this.ViewState.PrimarySelectedSequenceChanged -= this.OnPrimarySelectedSequenceChanged;
+        if (this.ViewState.PrimarySelectedSequence != null) {
+            this.OnPrimarySequenceChanged(this.ViewState.PrimarySelectedSequence, null);
         }
 
         this.TaskSequenceManager.MemoryEngine.ConnectionChanged -= this.OnEngineConnectionChanged;
