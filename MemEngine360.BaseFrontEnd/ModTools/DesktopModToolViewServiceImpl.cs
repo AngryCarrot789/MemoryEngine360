@@ -32,7 +32,6 @@ namespace MemEngine360.BaseFrontEnd.ModTools;
 public class DesktopModToolViewServiceImpl : IModToolViewService {
     public static readonly DataKey<IDesktopWindow> ToolGuiDataKey = DataKeys.Create<IDesktopWindow>(nameof(DesktopModToolViewServiceImpl) + "_" + nameof(ToolGuiDataKey));
 
-
     public async Task ShowOrFocusWindow(ModToolManager modToolManager) {
         if (ITopLevel.TryGetFromContext(modToolManager.UserContext, out ITopLevel? sequencerTopLevel)) {
             IDesktopWindow window = (IDesktopWindow) sequencerTopLevel;

@@ -17,21 +17,24 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Composition;
+using AvaloniaEdit.Document;
+using MemEngine360.Scripting;
 
-namespace MemEngine360.Scripting;
+namespace MemEngine360.BaseFrontEnd.Scripting;
 
-public class ScriptViewState {
-    /// <summary>
-    /// Gets the task sequence manager for this state
-    /// </summary>
-    public Script Script { get; }
-    
-    private ScriptViewState(Script script) {
-        this.Script = script;
+public class AvaloniaEditLuaScriptDocumentImpl : ILuaScriptDocument {
+    public TextDocument Document { get; } = new TextDocument();
+
+    public string Text {
+        get => this.Document.Text;
+        set => this.Document.Text = value;
     }
-    
-    public static ScriptViewState GetInstance(Script manager) {
-        return ((IComponentManager) manager).GetOrCreateComponent((t) => new ScriptViewState((Script) t));
+
+    public event EventHandler? TextChanged;
+
+    public AvaloniaEditLuaScriptDocumentImpl() {
+        this.Document.TextChanged += this.DocumentOnTextChanged;
     }
+
+    private void DocumentOnTextChanged(object? sender, EventArgs e) => this.TextChanged?.Invoke(this, EventArgs.Empty);
 }

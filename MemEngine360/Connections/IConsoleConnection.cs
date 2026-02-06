@@ -54,9 +54,9 @@ public interface IConsoleConnection {
     event EventHandler? Closed;
 
     /// <summary>
-    /// Gets the recommended number of bytes to be read in one call. For some connections this might not
-    /// matter whereas others may need to run an internal loop to read in tiny chunks from a network,
-    /// therefore, this property will return the value of that tiny chunk size. 
+    /// Gets the recommended maximum number of bytes to be read in one call. For some connections, this might not
+    /// matter, whereas others may enter a loop to read in tiny chunks from a network until the total buffer is read.
+    /// Therefore, this property will return the value of that tiny chunk size.
     /// </summary>
     /// <param name="readTotal">The amount of data intended to be read</param>
     /// <returns>The recommended amount of bytes to read in a single call to, for example, <see cref="ReadBytes(uint,byte[],int,int)"/></returns>

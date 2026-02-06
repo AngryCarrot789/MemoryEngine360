@@ -33,7 +33,7 @@ using SkiaSharp;
 namespace MemEngine360.BaseFrontEnd.Scripting;
 
 public class DesktopScriptingViewServiceImpl : IScriptingViewService {
-    private static bool hasShownBefore = false;
+    private static bool hasShownBefore;
 
     public async Task ShowOrFocusWindow(ScriptingManager scriptingManager) {
         if (ITopLevel.TryGetFromContext(scriptingManager.UserContext, out ITopLevel? sequencerTopLevel)) {
@@ -49,7 +49,7 @@ public class DesktopScriptingViewServiceImpl : IScriptingViewService {
                 Title = "Scripting",
                 FocusPath = "ScriptingWindow",
                 Content = new ScriptingView() {
-                    ScriptingManager = scriptingManager,
+                    ScriptingManager = ScriptingManagerViewState.GetInstance(scriptingManager, TopLevelIdentifier.Single(IScriptingViewService.TopLevelId)),
                 },
                 TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.Sequencer.TitleBarBackground"),
                 BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
@@ -69,8 +69,8 @@ public class DesktopScriptingViewServiceImpl : IScriptingViewService {
             };
             
             window.Closing += (s, args) => {
-                ScriptingManager tsm = ((ScriptingView) ((IDesktopWindow) s!).Content!).ScriptingManager!;
-                tsm.UserContext.Remove(ITopLevel.TopLevelDataKey);
+                ScriptingManagerViewState tsm = ((ScriptingView) ((IDesktopWindow) s!).Content!).ScriptingManager!;
+                tsm.ScriptingManager.UserContext.Remove(ITopLevel.TopLevelDataKey);
             };
 
             window.Closed += (s, args) => ((ScriptingView) ((IDesktopWindow) s!).Content!).OnWindowClosed();

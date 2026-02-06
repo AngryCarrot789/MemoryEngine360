@@ -39,6 +39,7 @@ using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Logging;
+using PFXToolKitUI.Shortcuts;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Events;
 
@@ -121,9 +122,9 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     public PointerScanner PointerScanner { get; }
 
     public ConsoleDebugger ConsoleDebugger { get; }
-    
+
     public ScriptingManager ScriptingManager { get; }
-    
+
     public ModToolManager ModToolManager { get; }
 
     public IMutableContextData UserContext { get; } = new ContextData();
@@ -202,7 +203,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         this.PointerScanner = new PointerScanner(this);
         this.ConsoleDebugger = new ConsoleDebugger(this);
         this.ScriptingManager = new ScriptingManager(this);
-        
+
         MenuEntryGroup modToolMenu = new MenuEntryGroup("Mod Tools") {
             UniqueID = "memoryengine.tools.modtools",
             Items = {
@@ -210,7 +211,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
                 new SeparatorEntry()
             }
         };
-        
+
         this.ModToolManager = new ModToolManager(this, modToolMenu);
 
         this.ToolsMenu = new MenuEntryGroup("_Tools") {
@@ -239,12 +240,19 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
             ProvideDisabledHint = (ctx, registry) => {
                 if (!EngineDataKey.TryGetContext(ctx, out MemoryEngine? engine))
                     return null;
-                if (engine.Connection == null)
-                    return new SimpleDisabledHintInfo("Not connected", "Connect to a console to use remote commands");
+
+                if (engine.Connection == null) {
+                    IReadOnlyCollection<ShortcutEntry> scList = ShortcutManager.Instance.GetShortcutsByCommandId("commands.memengine.OpenConsoleConnectionDialogCommand");
+                    string shortcuts = scList.Select(x => x.Shortcut.ToString()!).JoinString(", ", " or ");
+                    if (!string.IsNullOrEmpty(shortcuts))
+                        shortcuts = ". Use the shortcut(s) to connect: " + shortcuts;
+                    return new SimpleDisabledHintInfo("Not connected", "Connect to a console to use remote commands" + shortcuts);
+                }
+
                 return null;
             }
         };
-        
+
         this.ConnectionChanged += this.OnConnectionChanged;
 
         Task.Run(async () => {
@@ -368,7 +376,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
 
         if (oldConnection != null)
             oldConnection.Closed -= this.OnConnectionClosed;
-        
+
         // Even if Closed is called right as we add the handler, unless Closed is maliciously implemented,
         // it cannot be invoked in this call frame. But it could be invoked on a background thread just before
         // we obtain the lock, but it would have to go through the dispatcher to call SetConnection
@@ -383,7 +391,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
 
             this.ConnectionChanged?.Invoke(this, new ConnectionChangedEventArgs(frame, oldConnection, newConnection, cause));
         }
-        
+
         // Try to disconnect in the future, just in case the connection was immediately closed.
         // It's generally safer to do it this way than to not actually set the connection in SetConnection
         ApplicationPFX.Instance.Dispatcher.Post(static en => ((MemoryEngine) en!).CheckConnection(), this, DispatchPriority.Background);
@@ -571,6 +579,36 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         return true;
     }
 
+    /// <summary>
+    /// Returns the maximum number of bytes a data value can take up.
+    /// </summary>
+    /// <param name="dataType"></param>
+    /// <param name="stringType"></param>
+    /// <param name="stringOrArrayLength"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    public static int GetMaximumDataValueSize(DataType dataType, StringType stringType, int stringOrArrayLength, bool isLittleEndian) {
+        switch (dataType) {
+            case DataType.Byte:      return 1;
+            case DataType.Int16:     return 2;
+            case DataType.Int32:     return 4;
+            case DataType.Int64:     return 8;
+            case DataType.Float:     return 4;
+            case DataType.Double:    return 8;
+            case DataType.String:    return stringType.ToEncoding(isLittleEndian).GetMaxByteCount(stringOrArrayLength);
+            case DataType.ByteArray: return stringOrArrayLength;
+            default:                 throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
+        }
+    }
+
+    public static int GetMaximumDataValueSize(AddressTableEntry entry, bool isLittleEndian) {
+        return GetMaximumDataValueSize(entry.DataType, entry.StringType, entry.DataType == DataType.String ? entry.StringLength : entry.ArrayLength, isLittleEndian);
+    }
+    
+    public static int GetMaximumDataValueSize(ScanResultViewModel result, bool isLittleEndian) {
+        return GetMaximumDataValueSize(result.DataType, result.StringType, result.DataType == DataType.String ? result.CurrentStringLength : result.CurrentArrayLength, isLittleEndian);
+    }
+    
     /// <summary>
     /// Reads a data value from the console
     /// </summary>

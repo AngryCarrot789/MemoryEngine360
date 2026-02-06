@@ -111,7 +111,7 @@ public partial class ModToolManagerView : UserControl {
     }
 
     private static TextDocument GetModToolTextDocument(ModTool modTool) {
-        return ((LuaScriptDocument) modTool.Document).Document;
+        return ((AvaloniaEditLuaScriptDocumentImpl) modTool.Document).Document;
     }
 
     private void PART_TabControlOnSelectionChanged(object? sender, SelectionChangedEventArgs e) {

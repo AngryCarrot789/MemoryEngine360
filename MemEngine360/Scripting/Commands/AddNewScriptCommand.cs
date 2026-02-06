@@ -25,7 +25,7 @@ namespace MemEngine360.Scripting.Commands;
 
 public class AddNewScriptCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager)) {
+        if (!ScriptingManagerViewState.DataKey.TryGetContext(e.ContextData, out ScriptingManagerViewState? manager)) {
             return Executability.Invalid;
         }
 
@@ -33,16 +33,14 @@ public class AddNewScriptCommand : Command {
     }
     
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager)) {
+        if (!ScriptingManagerViewState.DataKey.TryGetContext(e.ContextData, out ScriptingManagerViewState? manager)) {
             return;
         }
 
-        ObservableList<Script> scripts = manager.Scripts;
+        ObservableList<Script> scripts = manager.ScriptingManager.Scripts;
         Script script = new Script();
         script.SetCustomNameWithoutPath(TextIncrement.GetIncrementableString(x => scripts.All(y => y.Name != x), "New Script", out string? output, true) ? output : "New Script");
-        
-        ScriptingManagerViewState state = ScriptingManagerViewState.GetInstance(manager);
         scripts.Add(script);
-        state.SelectedScript = script;
+        manager.SelectedScript = script;
     }
 }

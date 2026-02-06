@@ -34,6 +34,7 @@ using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Events;
+using PFXToolKitUI.Utils.Ranges;
 using PFXToolKitUI.Utils.RDA;
 
 namespace MemEngine360.Engine;
@@ -706,6 +707,20 @@ public class ScanningProcessor {
         await this.RefreshSavedAddressesAsync(token, bypassLimits, invalidateCaches);
     }
 
+    private sealed class AddressTableRefreshEntry(AddressTableEntry entry, IntegerRange<uint> memorySpan) {
+        public readonly AddressTableEntry Entry = entry;
+        public readonly IntegerRange<uint> MemorySpan = memorySpan; // maximum length
+        public readonly DataType DataType = entry.DataType;
+        public IDataValue NewValue = null!; // cheeky
+    }
+
+    private sealed class ScanResultRefreshEntry(ScanResultViewModel entry, IntegerRange<uint> memorySpan) {
+        public readonly ScanResultViewModel Entry = entry;
+        public readonly IntegerRange<uint> MemorySpan = memorySpan; // maximum length
+        public readonly DataType DataType = entry.DataType;
+        public IDataValue NewValue = null!; // cheeky
+    }
+
     /// <summary>
     /// Refreshes the saved address list
     /// </summary>
@@ -769,30 +784,48 @@ public class ScanningProcessor {
 
             Task readOperationTask = Task.Run(async () => {
                 token.ThrowIfCancellationRequested();
+                List<AddressTableRefreshEntry> ateList = new List<AddressTableRefreshEntry>();
+                List<ScanResultRefreshEntry> resultList = new List<ScanResultRefreshEntry>();
+                bool isLittleEndian = connection.IsLittleEndian;
 
                 if (savedList != null) {
-                    int count = 0;
-                    IDataValue?[] values = new IDataValue?[savedList.Count];
-                    for (int i = 0; i < values.Length; i++) {
-                        if (token.IsCancellationRequested) {
-                            break;
+                    foreach (AddressTableEntry entry in savedList) {
+                        token.ThrowIfCancellationRequested();
+                        if (entry.IsAutoRefreshEnabled) { // may change between dispatcher callbacks
+                            uint? addr = await entry.MemoryAddress.TryResolveAddress(connection, invalidateCaches);
+                            if (addr.HasValue)
+                                ateList.Add(new AddressTableRefreshEntry(entry, IntegerRange.FromStartAndLength(addr.Value, (uint) MemoryEngine.GetMaximumDataValueSize(entry, isLittleEndian))));
                         }
+                    }
+                }
 
-                        AddressTableEntry item = savedList[i];
-                        if (item.IsAutoRefreshEnabled) { // may change between dispatcher callbacks
-                            uint? addr = await item.MemoryAddress.TryResolveAddress(connection, invalidateCaches);
-                            values[i] = addr.HasValue ? await MemoryEngine.ReadDataValue(connection, addr.Value, item.DataType, item.StringType, item.StringLength, item.ArrayLength) : null;
+                if (list != null) {
+                    foreach (ScanResultViewModel result in list) {
+                        token.ThrowIfCancellationRequested();
+                        resultList.Add(new ScanResultRefreshEntry(result, IntegerRange.FromStartAndLength(result.Address, (uint) MemoryEngine.GetMaximumDataValueSize(result, isLittleEndian))));
+                    }
+                }
+
+                IntegerSet<uint> fragmentSet = new IntegerSet<uint>();
+                foreach (AddressTableRefreshEntry entry in ateList)
+                    fragmentSet.Add(entry.MemorySpan);
+                foreach (ScanResultRefreshEntry entry in resultList)
+                    fragmentSet.Add(entry.MemorySpan);
+
+                FragmentedMemoryBuffer memoryBuffer = await FragmentedReadHelper.CreateMemoryView(connection, fragmentSet, cancellationToken: token);
+                if (savedList != null) {
+                    foreach (AddressTableRefreshEntry re in ateList) {
+                        token.ThrowIfCancellationRequested();
+                        if (re.Entry.IsAutoRefreshEnabled && re.Entry.DataType == re.DataType) { // may change between dispatcher callbacks
+                            re.NewValue = FragmentedReadHelper.ReadDataValueFromBuffer(memoryBuffer, re.MemorySpan, re.DataType, re.Entry.StringType, re.Entry.StringLength, re.Entry.ArrayLength, connection.IsLittleEndian);
                         }
-
-                        count++;
                     }
 
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         // Only <=100 values to update, so not too UI intensive
-                        for (int i = 0; i < count; i++) {
-                            AddressTableEntry address = savedList[i];
-                            if (address.IsAutoRefreshEnabled) // may change between dispatcher callbacks
-                                address.Value = values[i];
+                        foreach (AddressTableRefreshEntry re in ateList) {
+                            if (re.Entry.IsAutoRefreshEnabled && re.Entry.DataType == re.DataType) // may change between dispatcher callbacks
+                                re.Entry.Value = re.NewValue;
                         }
                     }, token: CancellationToken.None);
                 }
@@ -800,25 +833,70 @@ public class ScanningProcessor {
                 // safety net -- we still need to implement logic to notify view models when they're visible in the
                 // UI, although this does kind of break the MVVM pattern but oh well
                 if (list != null) {
-                    int count = 0;
-                    IDataValue[] values = new IDataValue[list.Count];
-                    for (int i = 0; i < values.Length; i++) {
-                        if (token.IsCancellationRequested) {
-                            break;
-                        }
-
-                        ScanResultViewModel item = list[i];
-                        values[i] = await MemoryEngine.ReadDataValue(connection, item.Address, item.DataType, item.StringType, item.CurrentStringLength, item.CurrentArrayLength);
-                        count++;
+                    foreach (ScanResultRefreshEntry re in resultList) {
+                        token.ThrowIfCancellationRequested();
+                        if (re.Entry.DataType == re.DataType)
+                            re.NewValue = FragmentedReadHelper.ReadDataValueFromBuffer(memoryBuffer, re.MemorySpan, re.DataType, re.Entry.StringType, re.Entry.CurrentStringLength, re.Entry.CurrentArrayLength, connection.IsLittleEndian);
                     }
 
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         // Only <=100 values to update, so not too UI intensive
-                        for (int i = 0; i < count; i++) {
-                            list[i].CurrentValue = values[i];
+                        foreach (ScanResultRefreshEntry re in resultList) {
+                            if (re.Entry.DataType == re.DataType) // may change between dispatcher callbacks
+                                re.Entry.CurrentValue = re.NewValue;
                         }
                     }, token: CancellationToken.None);
                 }
+
+                // if (savedList != null) {
+                //     int count = 0;
+                //     IDataValue?[] values = new IDataValue?[savedList.Count];
+                //     for (int i = 0; i < values.Length; i++) {
+                //         if (token.IsCancellationRequested) {
+                //             break;
+                //         }
+                //
+                //         AddressTableEntry item = savedList[i];
+                //         if (item.IsAutoRefreshEnabled) { // may change between dispatcher callbacks
+                //             uint? addr = await item.MemoryAddress.TryResolveAddress(connection, invalidateCaches);
+                //             values[i] = addr.HasValue ? await MemoryEngine.ReadDataValue(connection, addr.Value, item.DataType, item.StringType, item.StringLength, item.ArrayLength) : null;
+                //         }
+                //
+                //         count++;
+                //     }
+                //
+                //     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                //         // Only <=100 values to update, so not too UI intensive
+                //         for (int i = 0; i < count; i++) {
+                //             AddressTableEntry address = savedList[i];
+                //             if (address.IsAutoRefreshEnabled) // may change between dispatcher callbacks
+                //                 address.Value = values[i];
+                //         }
+                //     }, token: CancellationToken.None);
+                // }
+                //
+                // // safety net -- we still need to implement logic to notify view models when they're visible in the
+                // // UI, although this does kind of break the MVVM pattern but oh well
+                // if (list != null) {
+                //     int count = 0;
+                //     IDataValue[] values = new IDataValue[list.Count];
+                //     for (int i = 0; i < values.Length; i++) {
+                //         if (token.IsCancellationRequested) {
+                //             break;
+                //         }
+                //
+                //         ScanResultViewModel item = list[i];
+                //         values[i] = await MemoryEngine.ReadDataValue(connection, item.Address, item.DataType, item.StringType, item.CurrentStringLength, item.CurrentArrayLength);
+                //         count++;
+                //     }
+                //
+                //     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
+                //         // Only <=100 values to update, so not too UI intensive
+                //         for (int i = 0; i < count; i++) {
+                //             list[i].CurrentValue = values[i];
+                //         }
+                //     }, token: CancellationToken.None);
+                // }
             }, CancellationToken.None);
 
             await Task.WhenAny(readOperationTask, Task.Delay(500, token));

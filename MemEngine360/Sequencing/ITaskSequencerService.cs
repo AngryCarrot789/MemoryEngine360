@@ -20,5 +20,7 @@
 namespace MemEngine360.Sequencing;
 
 public interface ITaskSequencerService {
+    const string TopLevelId = "toplevels.TaskSequenceManager";
+    
     Task OpenOrFocusWindow(TaskSequenceManager sequencer);
 }

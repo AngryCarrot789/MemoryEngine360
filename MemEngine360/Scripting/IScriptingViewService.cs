@@ -20,5 +20,7 @@
 namespace MemEngine360.Scripting;
 
 public interface IScriptingViewService {
+    const string TopLevelId = "toplevels.ScriptingManager";
+    
     Task ShowOrFocusWindow(ScriptingManager scriptingManager);
 }

@@ -19,7 +19,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using PFXToolKitUI.DataTransfer;
+using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Utils.Events;
@@ -29,7 +29,7 @@ namespace MemEngine360.Engine.SavedAddressing;
 /// <summary>
 /// The base class for an object in the entry hierarchy for a address table manager
 /// </summary>
-public abstract class BaseAddressTableEntry : ITransferableData {
+public abstract class BaseAddressTableEntry : IComponentManager {
     public static readonly DataKey<BaseAddressTableEntry> DataKey = DataKeys.Create<BaseAddressTableEntry>("BaseLayerTreeObject");
 
     /// <summary>
@@ -42,8 +42,6 @@ public abstract class BaseAddressTableEntry : ITransferableData {
     /// </summary>
     public AddressTableGroupEntry? Parent { get; private set; }
 
-    public TransferableData TransferableData { get; }
-
     public string? Description {
         get => field;
         set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.DescriptionChanged);
@@ -54,17 +52,15 @@ public abstract class BaseAddressTableEntry : ITransferableData {
     /// </summary>
     public bool IsTopLevelEntry => this.Parent != null && this.Parent.Parent == null;
 
+    public ComponentStorage ComponentStorage { get; }
+
     public event EventHandler? DescriptionChanged;
 
     protected BaseAddressTableEntry() {
-        this.TransferableData = new TransferableData(this);
+        this.ComponentStorage = new ComponentStorage(this);
     }
 
     static BaseAddressTableEntry() {
-    }
-
-    public int GetIndexInParent() {
-        return this.Parent?.IndexOf(this) ?? -1;
     }
 
     /// <summary>

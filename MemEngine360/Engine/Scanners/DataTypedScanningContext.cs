@@ -32,6 +32,7 @@ using MemEngine360.ValueAbstraction;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Ranges;
 
 namespace MemEngine360.Engine.Scanners;
 
@@ -41,7 +42,7 @@ namespace MemEngine360.Engine.Scanners;
 public sealed class DataTypedScanningContext : ScanningContext {
     public const string FirstValueVariableName = "first";
     public const string PreviousValueVariableName = "prev";
-    
+
     internal const int ChunkSize = 0x10000; // 65536
     internal readonly double floatEpsilon = BasicApplicationConfiguration.Instance.FloatingPointEpsilon;
     internal readonly string inputA, inputB;
@@ -301,8 +302,9 @@ public sealed class DataTypedScanningContext : ScanningContext {
     /// <param name="address">The address that is relative to the 0th element in the buffer</param>
     /// <param name="buffer">The buffer containing data to scan</param>
     internal override void ProcessMemoryBlockForFirstScan(uint address, ReadOnlySpan<byte> buffer) {
-        // by default, align is set to cbDataType except for string where it's 1. So in most cases, only check bounds for strings
-        // There's also another issue with values between chunks, which we don't process because I can't get it to work...
+        // by default, align is equal to cbDataType except for string and byte array where it's 1.
+        // So in most cases, no need to do bounds check, which might scratch off a handful
+        // of milliseconds in a one-second scan... yeah...
 
         bool checkBounds = this.alignment < this.cbDataType, isString;
         ReadOnlySpan<byte> memory;
@@ -530,13 +532,24 @@ public sealed class DataTypedScanningContext : ScanningContext {
         if (this.dataType.IsNumeric()) {
             using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
                 byte[] buffer = new byte[this.cbDataType];
+
+                IntegerSet<uint> set = new IntegerSet<uint>();
+                task.Progress.Text = "Computing fragment buffer...";
+                foreach (ScanResultViewModel result in srcList) {
+                    task.ThrowIfCancellationRequested();
+                    set.Add(IntegerRange.FromStartAndLength(result.Address, (uint) buffer.Length));
+                }
+
+                FragmentedMemoryBuffer memoryBuffer = await FragmentedReadHelper.CreateMemoryView(connection, set, cancellationToken: task.CancellationToken);
+
                 for (int i = 0; i < srcList.Count; i++) {
                     task.ThrowIfCancellationRequested();
                     task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
                     task.Progress.CompletionState.OnProgress(1.0);
 
                     ScanResultViewModel res = srcList[i];
-                    await connection.ReadBytes(res.Address, buffer, 0, buffer.Length);
+                    int read = memoryBuffer.Read(res.Address, buffer);
+                    Debug.Assert(read == buffer.Length);
 
                     IDataValue? match;
                     if (this.evaluator != null) {
@@ -625,6 +638,25 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
         else if (this.dataType == DataType.ByteArray) {
             using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
+                IntegerSet<uint> set = new IntegerSet<uint>();
+                task.Progress.Text = "Computing fragment buffer...";
+                foreach (ScanResultViewModel result in srcList) {
+                    task.ThrowIfCancellationRequested();
+
+                    int length;
+                    if (this.nextScanUsesFirstValue)
+                        length = ((DataValueByteArray) result.FirstValue).Value.Length;
+                    else if (this.nextScanUsesPreviousValue)
+                        length = ((DataValueByteArray) result.PreviousValue).Value.Length;
+                    else
+                        length = this.memoryPattern.Length;
+
+                    set.Add(IntegerRange.FromStartAndLength(result.Address, (uint) length));
+                }
+
+                FragmentedMemoryBuffer memoryBuffer = await FragmentedReadHelper.CreateMemoryView(connection, set, cancellationToken: task.CancellationToken);
+
+                int maxBufferSize = connection.GetRecommendedReadChunkSize(0x1000);
                 for (int i = 0; i < srcList.Count; i++) {
                     task.ThrowIfCancellationRequested();
                     task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
@@ -641,10 +673,18 @@ public sealed class DataTypedScanningContext : ScanningContext {
                         Debug.Assert(search.IsValid);
                     }
 
-                    byte[] bytes = await connection.ReadBytes(res.Address, search.Length);
-                    if (search.Matches(bytes)) {
-                        res.CurrentValue = res.PreviousValue = new DataValueByteArray(bytes);
-                        this.ResultFound?.Invoke(this, res);
+                    // Use maxBufferSize to assist reusing a larger buffer. It's very very unlikely someone
+                    // will use a pattern that's longer than 4096 bytes. But if they do, then we
+                    // just allocate a larger buffer (search.Length)
+                    using (ArrayPools.Rent(Math.Max(maxBufferSize, search.Length), out byte[] buffer)) {
+                        Span<byte> span = buffer.AsSpan(0, search.Length);
+                        int read = memoryBuffer.Read(res.Address, span);
+                        Debug.Assert(read == span.Length);
+
+                        if (search.Matches(span)) {
+                            res.CurrentValue = res.PreviousValue = new DataValueByteArray(span.ToArray());
+                            this.ResultFound?.Invoke(this, res);
+                        }
                     }
                 }
             }

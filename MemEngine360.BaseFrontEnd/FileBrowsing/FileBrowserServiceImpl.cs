@@ -33,13 +33,14 @@ public class FileBrowserServiceImpl : IFileBrowserService {
 
     public Task ShowFileBrowser(FileTreeExplorer explorer) {
         if (OpenedWindowKey.TryGetContext(explorer.MemoryEngine.UserContext, out IDesktopWindow? debuggerWindow)) {
-            Debug.Assert(debuggerWindow.OpenState.IsOpenOrTryingToClose());
-            
-            debuggerWindow.Activate();
+            if (debuggerWindow.OpenState.IsOpenOrTryingToClose()) {
+                debuggerWindow.Activate();
+            }
+
             return Task.CompletedTask;
         }
         
-        if (!WindowContextUtils.TryGetWindowManagerWithUsefulWindow(out IWindowManager? manager, out _)) {
+        if (!IWindowManager.TryGetInstance(out IWindowManager? manager)) {
             return Task.CompletedTask;
         }
 

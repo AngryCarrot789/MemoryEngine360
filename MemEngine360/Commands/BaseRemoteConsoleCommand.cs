@@ -54,7 +54,7 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
         ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection;
         IConsoleConnection? connection = engine.Connection;
         if (connection == null || connection.IsClosed) {
-            IEnumerable<ShortcutEntry> scList = ShortcutManager.Instance.GetShortcutsByCommandId("commands.memengine.OpenConsoleConnectionDialogCommand") ?? ReadOnlyCollection<ShortcutEntry>.Empty;
+            IReadOnlyCollection<ShortcutEntry> scList = ShortcutManager.Instance.GetShortcutsByCommandId("commands.memengine.OpenConsoleConnectionDialogCommand");
             string shortcuts = string.Join(Environment.NewLine, scList.Select(x => x.Shortcut.ToString()));
             if (!string.IsNullOrEmpty(shortcuts))
                 shortcuts = Environment.NewLine + " Use the shortcut(s) to connect: " + Environment.NewLine + shortcuts;

@@ -17,13 +17,16 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using PFXToolKitUI.Composition;
+using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Scripting;
 
 public class ScriptingManagerViewState {
+    public static readonly DataKey<ScriptingManagerViewState> DataKey = DataKeys.Create<ScriptingManagerViewState>(nameof(ScriptingManager));
+    
     /// <summary>
     /// Gets the task sequence manager for this state
     /// </summary>
@@ -36,11 +39,14 @@ public class ScriptingManagerViewState {
         get => field;
         set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.SelectedScriptChanged);
     }
+    
+    public TopLevelIdentifier TopLevelIdentifier { get; }
 
     public event EventHandler<ValueChangedEventArgs<Script?>>? SelectedScriptChanged;
 
-    private ScriptingManagerViewState(ScriptingManager ScriptingManager) {
+    private ScriptingManagerViewState(ScriptingManager ScriptingManager, TopLevelIdentifier topLevelIdentifier) {
         this.ScriptingManager = ScriptingManager;
+        this.TopLevelIdentifier = topLevelIdentifier;
         this.ScriptingManager.Scripts.ValidateRemove += this.SourceListValidateRemove;
         this.ScriptingManager.Scripts.ValidateReplace += this.SourceListValidateReplaced;
         if (this.ScriptingManager.Scripts.Count > 0) {
@@ -74,7 +80,7 @@ public class ScriptingManagerViewState {
         }
     }
 
-    public static ScriptingManagerViewState GetInstance(ScriptingManager manager) {
-        return ((IComponentManager) manager).GetOrCreateComponent((t) => new ScriptingManagerViewState((ScriptingManager) t));
+    public static ScriptingManagerViewState GetInstance(ScriptingManager manager, TopLevelIdentifier topLevelIdentifier) {
+        return TopLevelDataMap.GetInstance(manager).GetOrCreate<ScriptingManagerViewState>(topLevelIdentifier, manager, (t, s) => new ScriptingManagerViewState((ScriptingManager) t!, s));
     }
 }

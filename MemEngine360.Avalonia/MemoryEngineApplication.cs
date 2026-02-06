@@ -280,7 +280,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.AddComponent<IScriptingViewService>(new DesktopScriptingViewServiceImpl());
         manager.AddComponent<IStructViewerService>(new DesktopStructViewerServiceImpl());
         manager.AddComponent<IModToolViewService>(new DesktopModToolViewServiceImpl());
-        manager.AddComponent<ILuaScriptDocumentService>(new LuaScriptDocumentServiceImpl());
+        manager.AddComponent<ILuaScriptDocumentService>(new AvaloniaEditLuaScriptDocumentServiceImpl());
 
         ThemeManager.Instance.ActiveThemeChanged += OnActiveThemeChanged;
     }

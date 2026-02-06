@@ -41,8 +41,6 @@ using PFXToolKitUI.Utils.Events;
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 
 public partial class TaskSequencerView : UserControl {
-    public const string TopLevelId = "toplevel.TaskSequencerManager";
-    
     private readonly IBinder<TaskSequence> useDedicatedConnectionBinder = 
         new EventUpdateBinder<TaskSequence>(
             [
@@ -98,7 +96,7 @@ public partial class TaskSequencerView : UserControl {
 
     public event EventHandler? WindowOpened, WindowClosed;
 
-    public TaskSequencerView() : this(new TaskSequenceManagerViewState(new TaskSequenceManager(new MemoryEngine()), TopLevelIdentifier.Single(TopLevelId))) {
+    public TaskSequencerView() : this(new TaskSequenceManagerViewState(new TaskSequenceManager(new MemoryEngine()), TopLevelIdentifier.Single(ITaskSequencerService.TopLevelId))) {
     }
 
     public TaskSequencerView(TaskSequenceManagerViewState viewState) {

@@ -43,7 +43,7 @@ public class TaskSequencerServiceImpl : ITaskSequencerService {
             IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
                 Title = "Task Sequencer",
                 FocusPath = "SequencerWindow",
-                Content = new TaskSequencerView(new TaskSequenceManagerViewState(sequencer, TopLevelIdentifier.Single(TaskSequencerView.TopLevelId))),
+                Content = new TaskSequencerView(new TaskSequenceManagerViewState(sequencer, TopLevelIdentifier.Single(ITaskSequencerService.TopLevelId))),
                 TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.Sequencer.TitleBarBackground"),
                 BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
                 MinWidth = 640, MinHeight = 400,

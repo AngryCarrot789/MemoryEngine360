@@ -45,9 +45,9 @@ namespace MemEngine360.BaseFrontEnd.Scripting;
 
 public partial class ScriptingView : UserControl {
     public static readonly DataKey<TextDocument> ScriptTextDocumentDataKey = DataKeys.Create<TextDocument>(nameof(ScriptTextDocumentDataKey));
-    public static readonly StyledProperty<ScriptingManager?> ScriptingManagerProperty = AvaloniaProperty.Register<ScriptingView, ScriptingManager?>(nameof(ScriptingManager));
+    public static readonly StyledProperty<ScriptingManagerViewState?> ScriptingManagerProperty = AvaloniaProperty.Register<ScriptingView, ScriptingManagerViewState?>(nameof(ScriptingManager));
 
-    public ScriptingManager? ScriptingManager {
+    public ScriptingManagerViewState? ScriptingManager {
         get => this.GetValue(ScriptingManagerProperty);
         set => this.SetValue(ScriptingManagerProperty, value);
     }
@@ -87,7 +87,7 @@ public partial class ScriptingView : UserControl {
     }
 
     static ScriptingView() {
-        ScriptingManagerProperty.Changed.AddClassHandler<ScriptingView, ScriptingManager?>((s, e) => s.OnScriptingManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+        ScriptingManagerProperty.Changed.AddClassHandler<ScriptingView, ScriptingManagerViewState?>((s, e) => s.OnScriptingManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     protected override void OnLoaded(RoutedEventArgs e) {
@@ -111,37 +111,36 @@ public partial class ScriptingView : UserControl {
     }
 
     private static TextDocument GetScriptTextDocument(Script script) {
-        return ((LuaScriptDocument) script.Document).Document;
+        return ((AvaloniaEditLuaScriptDocumentImpl) script.Document).Document;
     }
 
     private void PART_TabControlOnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
-        if (this.ScriptingManager != null) {
+        ScriptingManagerViewState? sm = this.ScriptingManager;
+        if (sm != null) {
             int idx = this.PART_TabControl.SelectedIndex;
-            ScriptingManagerViewState.GetInstance(this.ScriptingManager).SelectedScript = idx == -1 ? null : this.ScriptingManager.Scripts[idx];
+            sm.SelectedScript = idx == -1 ? null : sm.ScriptingManager.Scripts[idx];
         }
     }
 
-    private void OnScriptingManagerChanged(ScriptingManager? oldValue, ScriptingManager? newValue) {
+    private void OnScriptingManagerChanged(ScriptingManagerViewState? oldValue, ScriptingManagerViewState? newValue) {
         if (oldValue != null) {
-            ScriptingManagerViewState vs = ScriptingManagerViewState.GetInstance(oldValue);
-            if (vs.SelectedScript != null) {
-                this.OnSelectedScriptChanged(vs, new ValueChangedEventArgs<Script?>(vs.SelectedScript, null));
+            if (oldValue.SelectedScript != null) {
+                this.OnSelectedScriptChanged(oldValue, new ValueChangedEventArgs<Script?>(oldValue.SelectedScript, null));
             }
 
-            vs.SelectedScriptChanged -= this.OnSelectedScriptChanged;
+            oldValue.SelectedScriptChanged -= this.OnSelectedScriptChanged;
             this.PART_TabControl.ScriptingManager = null;
         }
 
         if (newValue != null) {
-            ScriptingManagerViewState vs = ScriptingManagerViewState.GetInstance(newValue);
-            this.PART_TabControl.ScriptingManager = newValue;
-            vs.SelectedScriptChanged += this.OnSelectedScriptChanged;
-            if (vs.SelectedScript != null) {
-                this.OnSelectedScriptChanged(vs, new ValueChangedEventArgs<Script?>(null, vs.SelectedScript));
+            this.PART_TabControl.ScriptingManager = newValue.ScriptingManager;
+            newValue.SelectedScriptChanged += this.OnSelectedScriptChanged;
+            if (newValue.SelectedScript != null) {
+                this.OnSelectedScriptChanged(newValue, new ValueChangedEventArgs<Script?>(null, newValue.SelectedScript));
             }
         }
 
-        DataManager.GetContextData(this).Set(ScriptingManager.DataKey, newValue);
+        DataManager.GetContextData(this).Set(ScriptingManagerViewState.DataKey, newValue);
     }
 
     private void OnSelectedScriptChanged(object? o, ValueChangedEventArgs<Script?> e) {
@@ -193,13 +192,13 @@ public partial class ScriptingView : UserControl {
 
     // returns: cancel close
     public async Task<bool> OnClosingAsync(IDesktopWindow sender) {
-        ScriptingManager? mm = this.ScriptingManager;
-        if (mm == null) {
+        ScriptingManagerViewState? sm = this.ScriptingManager;
+        if (sm == null) {
             return false;
         }
 
-        mm.Scripts.ForEach(x => x.RequestCancelCompilation());
-        if (mm.Scripts.Any(x => x.HasUnsavedChanges)) {
+        sm.ScriptingManager.Scripts.ForEach(x => x.RequestCancelCompilation());
+        if (sm.ScriptingManager.Scripts.Any(x => x.HasUnsavedChanges)) {
             using var _ = CommandManager.LocalContextManager.PushContext(new ContextData().Set(ITopLevel.TopLevelDataKey, sender));
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Unsaved changes", "Do you want to save changes?", MessageBoxButtons.YesNoCancel, MessageBoxResult.Yes);
             if (result != MessageBoxResult.Yes && result != MessageBoxResult.No) {
@@ -207,7 +206,7 @@ public partial class ScriptingView : UserControl {
             }
 
             if (result == MessageBoxResult.Yes) {
-                bool savedAll = await SaveAllScriptsCommand.SaveAllAsync(mm.Scripts.ToList());
+                bool savedAll = await SaveAllScriptsCommand.SaveAllAsync(sm.ScriptingManager.Scripts.ToList());
                 return !savedAll;
             }
         }

@@ -25,7 +25,7 @@ namespace MemEngine360.Scripting.Commands;
 
 public class RenameScriptCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager)) {
+        if (!ScriptingManagerViewState.DataKey.TryGetContext(e.ContextData, out ScriptingManagerViewState? manager)) {
             return Executability.Invalid;
         }
 
@@ -33,17 +33,16 @@ public class RenameScriptCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager)) {
+        if (!ScriptingManagerViewState.DataKey.TryGetContext(e.ContextData, out ScriptingManagerViewState? manager)) {
             return;
         }
 
-        ScriptingManagerViewState state = ScriptingManagerViewState.GetInstance(manager);
-        Script? script = state.SelectedScript;
-        if (script == null) {
+        Script? activeScript = manager.SelectedScript;
+        if (activeScript == null) {
             return;
         }
 
-        SingleUserInputInfo info = new SingleUserInputInfo("Rename script", script.FilePath != null ? "New file name" : "New name", script.Name) {
+        SingleUserInputInfo info = new SingleUserInputInfo("Rename script", activeScript.FilePath != null ? "New file name" : "New name", activeScript.Name) {
             Validate = args => {
                 if (string.IsNullOrWhiteSpace(args.Input))
                     args.Errors.Add("File name cannot be an empty string or just whitespaces");
@@ -51,27 +50,27 @@ public class RenameScriptCommand : Command {
             MinimumDialogWidthHint = 350
         };
 
-        if (script.FilePath != null) {
+        if (activeScript.FilePath != null) {
             info.Footer = "This will also rename the file";
         }
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true || script.Name == info.Text) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true || activeScript.Name == info.Text) {
             return;
         }
 
-        if (script.FilePath != null) {
-            string? dir = Path.GetDirectoryName(script.FilePath);
+        if (activeScript.FilePath != null) {
+            string? dir = Path.GetDirectoryName(activeScript.FilePath);
             string newPath = !string.IsNullOrWhiteSpace(dir) ? Path.Join(dir, info.Text) : info.Text;
             try {
-                File.Move(script.FilePath, newPath);
-                script.SetFilePath(newPath);
+                File.Move(activeScript.FilePath, newPath);
+                activeScript.SetFilePath(newPath);
             }
             catch (Exception ex) {
                 await IMessageDialogService.Instance.ShowMessage("File Error", $"Error moving file to {newPath}{Environment.NewLine}{Environment.NewLine}: {ex.Message}", defaultButton: MessageBoxResult.OK);
             }
         }
         else {
-            script.SetCustomNameWithoutPath(info.Text);
+            activeScript.SetCustomNameWithoutPath(info.Text);
         }
     }
 }

@@ -28,8 +28,6 @@ using PFXToolKitUI.Utils.Collections.Observable;
 namespace MemEngine360.Scripting;
 
 public class ScriptingManager : IComponentManager, IUserLocalContext {
-    public static readonly DataKey<ScriptingManager> DataKey = DataKeys.Create<ScriptingManager>(nameof(ScriptingManager));
-
     ComponentStorage IComponentManager.ComponentStorage => field ??= new ComponentStorage(this);
 
     public IMutableContextData UserContext { get; } = new ContextData();

@@ -28,13 +28,13 @@ namespace MemEngine360.Scripting.Commands;
 
 public class OpenScriptFileCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out _))
+        if (!ScriptingManagerViewState.DataKey.TryGetContext(e.ContextData, out _))
             return Executability.Invalid;
         return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager))
+        if (!ScriptingManagerViewState.DataKey.TryGetContext(e.ContextData, out ScriptingManagerViewState? manager))
             return;
 
         string? path = await IFilePickDialogService.Instance.OpenFile("Open lua file", [Filters.Lua, Filters.All]);
@@ -75,7 +75,7 @@ public class OpenScriptFileCommand : Command {
         script.Document.Text = sourceCode;
         script.HasUnsavedChanges = false;
         
-        manager.Scripts.Add(script);
-        ScriptingManagerViewState.GetInstance(manager).SelectedScript = script;
+        manager.ScriptingManager.Scripts.Add(script);
+        manager.SelectedScript = script;
     }
 }

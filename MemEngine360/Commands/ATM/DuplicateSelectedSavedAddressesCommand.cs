@@ -49,6 +49,6 @@ public class DuplicateSelectedSavedAddressesCommand : BaseSavedAddressSelectionC
     }
 
     public static Dictionary<AddressTableGroupEntry, List<(BaseAddressTableEntry, int)>> GetEffectiveOrderedDuplication(List<BaseAddressTableEntry> source) {
-        return HierarchicalDuplicationUtils.GetEffectiveOrderedDuplication(source, x => x.Parent!, e => e.GetIndexInParent());
+        return HierarchicalDuplicationUtils.GetEffectiveOrderedDuplication(source, x => x.Parent!, e => e.Parent!.IndexOf(e));
     }
 }

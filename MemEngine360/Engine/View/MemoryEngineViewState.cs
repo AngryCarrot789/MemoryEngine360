@@ -86,6 +86,9 @@ public sealed class MemoryEngineViewState {
         this.RequestFocusOnSavedAddress?.Invoke(this, entry);
     }
 
+    /// <summary>
+    /// Gets the singleton view state associated with the memory engine model. Only one view per model is supported
+    /// </summary>
     public static MemoryEngineViewState GetInstance(MemoryEngine engine) {
         return ((IComponentManager) engine).GetOrCreateComponent((t) => new MemoryEngineViewState((MemoryEngine) t));
     }

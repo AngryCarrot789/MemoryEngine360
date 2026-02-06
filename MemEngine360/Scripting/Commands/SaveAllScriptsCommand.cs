@@ -28,7 +28,7 @@ namespace MemEngine360.Scripting.Commands;
 
 public class SaveAllScriptsCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager)) {
+        if (!ScriptingManagerViewState.DataKey.TryGetContext(e.ContextData, out ScriptingManagerViewState? manager)) {
             return Executability.Invalid;
         }
 
@@ -130,10 +130,10 @@ public class SaveAllScriptsCommand : Command {
     }
     
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!ScriptingManager.DataKey.TryGetContext(e.ContextData, out ScriptingManager? manager)) {
+        if (!ScriptingManagerViewState.DataKey.TryGetContext(e.ContextData, out ScriptingManagerViewState? manager)) {
             return;
         }
         
-        await SaveAllAsync(manager.Scripts);
+        await SaveAllAsync(manager.ScriptingManager.Scripts);
     }
 }

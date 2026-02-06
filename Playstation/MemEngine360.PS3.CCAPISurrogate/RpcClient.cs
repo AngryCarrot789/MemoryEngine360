@@ -323,6 +323,7 @@ public sealed class RpcClient {
         }
         catch (Exception e) {
             Console.Error.WriteLine("Failed to load CCAPI.dll");
+            Console.Error.WriteLine(e.ToString());
             tcp.Dispose();
             return;
         }
