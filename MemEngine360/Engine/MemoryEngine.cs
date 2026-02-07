@@ -137,10 +137,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <summary>
     /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working
     /// </summary>
-    public bool IsShuttingDown {
-        get => field;
-        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsShuttingDownChanged);
-    }
+    public bool IsShuttingDown { get; private set; }
 
     /// <summary>
     /// Gets the tools menu for memory engine
@@ -181,10 +178,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// </summary>
     public event EventHandler<ConnectionChangedEventArgs>? ConnectionChanged;
 
-    /// <summary>
-    /// An event fired when <see cref="IsShuttingDown"/> changes. Ideally this should only be fired once per instance of <see cref="MemoryEngine"/>
-    /// </summary>
-    public event EventHandler? IsShuttingDownChanged;
+    public event AsyncEventHandler? ShutdownRequested;
 
     /// <summary>
     /// Fired when the <see cref="IsConnectionBusy"/> state changes. It is crucial that no 'busy' operations are performed
@@ -284,6 +278,13 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
                 }
             }
         });
+    }
+
+    public async Task RaiseShutdownRequested() {
+        if (!this.IsShuttingDown) {
+            this.IsShuttingDown = true;
+            await this.ShutdownRequested.InvokeAsync(this, EventArgs.Empty);
+        }
     }
 
     private void OnConnectionChanged(object? o, ConnectionChangedEventArgs args) {

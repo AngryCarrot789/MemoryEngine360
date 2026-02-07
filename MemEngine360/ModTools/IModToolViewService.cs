@@ -21,6 +21,7 @@ namespace MemEngine360.ModTools;
 
 public interface IModToolViewService {
     Task ShowOrFocusWindow(ModToolManager modToolManager);
+    Task CloseWindow(ModToolManager modToolManager);
 
     Task ShowOrFocusGui(ModTool tool);
     Task CloseGui(ModTool tool);

@@ -61,8 +61,9 @@ public class DesktopScriptingViewServiceImpl : IScriptingViewService {
             
             window.TryCloseAsync += static async (s, args) => {
                 await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-                    bool cancel = await ((ScriptingView) ((IDesktopWindow) s!).Content!).OnClosingAsync((IDesktopWindow) s!);
-                    if (cancel) {
+                    ScriptingView view = (ScriptingView) ((IDesktopWindow) s!).Content!;
+                    ScriptingView.CloseRequest result = await view.OnClosingAsync((IDesktopWindow) s!, !view.ScriptingManager!.ScriptingManager.MemoryEngine.IsShuttingDown);
+                    if (result == ScriptingView.CloseRequest.Cancel) {
                         args.SetCancelled();
                     }
                 });
@@ -117,5 +118,16 @@ public class DesktopScriptingViewServiceImpl : IScriptingViewService {
                 }, true);
             }
         }
+    }
+    
+    public Task CloseWindow(ScriptingManager manager) {
+        if (ITopLevel.TryGetFromContext(manager.UserContext, out ITopLevel? sequencerTopLevel)) {
+            IDesktopWindow window = (IDesktopWindow) sequencerTopLevel;
+            if (window.OpenState == OpenState.Open) {
+                return window.RequestCloseAsync();
+            }
+        }
+
+        return Task.CompletedTask;
     }
 }

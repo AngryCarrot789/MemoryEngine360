@@ -56,4 +56,15 @@ public class DesktopStructViewerServiceImpl : IStructViewerService {
             _ = window.ShowAsync();
         }
     }
+    
+    public Task CloseWindow(StructViewerManager manager) {
+        if (ITopLevel.TryGetFromContext(manager.UserContext, out ITopLevel? sequencerTopLevel)) {
+            IDesktopWindow window = (IDesktopWindow) sequencerTopLevel;
+            if (window.OpenState == OpenState.Open) {
+                return window.RequestCloseAsync();
+            }
+        }
+
+        return Task.CompletedTask;
+    }
 }

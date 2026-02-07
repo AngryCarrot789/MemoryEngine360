@@ -33,11 +33,6 @@ public sealed class TaskSequenceViewState {
     public TaskSequence Sequence { get; }
 
     /// <summary>
-    /// Gets the view state of the task sequence manager this view state is associated with
-    /// </summary>
-    public TaskSequenceManagerViewState? TaskSequenceManager { get; internal set; }
-
-    /// <summary>
     /// Gets the list of selected operations
     /// </summary>
     public ListSelectionModel<BaseSequenceOperation> SelectedOperations { get; }
@@ -55,11 +50,14 @@ public sealed class TaskSequenceViewState {
         private set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.PrimarySelectedOperationChanged);
     }
 
+    /// <summary>
+    /// Gets the top level identifier that identifies which top level this view state is associated with
+    /// </summary>
     public TopLevelIdentifier TopLevelIdentifier { get; }
     
     public event EventHandler<ValueChangedEventArgs<BaseSequenceOperation?>>? PrimarySelectedOperationChanged;
 
-    internal TaskSequenceViewState(TaskSequence sequence, TopLevelIdentifier topLevelIdentifier) {
+    private TaskSequenceViewState(TaskSequence sequence, TopLevelIdentifier topLevelIdentifier) {
         this.Sequence = sequence;
         this.TopLevelIdentifier = topLevelIdentifier;
         this.SelectedOperations = new ListSelectionModel<BaseSequenceOperation>(sequence.Operations);

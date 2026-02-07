@@ -190,28 +190,37 @@ public partial class ScriptingView : UserControl {
         this.Window = sender;
     }
 
-    // returns: cancel close
-    public async Task<bool> OnClosingAsync(IDesktopWindow sender) {
+    public enum CloseRequest { Cancel, Close }
+
+    public async Task<CloseRequest> OnClosingAsync(IDesktopWindow sender, bool canCancel) {
         ScriptingManagerViewState? sm = this.ScriptingManager;
         if (sm == null) {
-            return false;
+            return CloseRequest.Close;
         }
 
         sm.ScriptingManager.Scripts.ForEach(x => x.RequestCancelCompilation());
         if (sm.ScriptingManager.Scripts.Any(x => x.HasUnsavedChanges)) {
             using var _ = CommandManager.LocalContextManager.PushContext(new ContextData().Set(ITopLevel.TopLevelDataKey, sender));
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Unsaved changes", "Do you want to save changes?", MessageBoxButtons.YesNoCancel, MessageBoxResult.Yes);
-            if (result != MessageBoxResult.Yes && result != MessageBoxResult.No) {
-                return true; // cancel close
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(
+                "Unsaved changes",
+                "Do you want to save changes?",
+                canCancel ? MessageBoxButtons.YesNoCancel : MessageBoxButtons.YesNo,
+                MessageBoxResult.Yes);
+
+            if (canCancel && result != MessageBoxResult.Yes && result != MessageBoxResult.No) {
+                return CloseRequest.Cancel; // cancel close
             }
 
             if (result == MessageBoxResult.Yes) {
                 bool savedAll = await SaveAllScriptsCommand.SaveAllAsync(sm.ScriptingManager.Scripts.ToList());
-                return !savedAll;
+                if (savedAll)
+                    return CloseRequest.Close;
+                
+                return canCancel ? CloseRequest.Cancel : CloseRequest.Close;
             }
         }
 
-        return false;
+        return CloseRequest.Close;
     }
 
     public void OnWindowClosed() {

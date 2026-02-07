@@ -31,8 +31,6 @@ namespace MemEngine360.Sequencing.View;
 public sealed class TaskSequenceManagerViewState {
     public static readonly DataKey<TaskSequenceManagerViewState> DataKey = DataKeys.Create<TaskSequenceManagerViewState>(nameof(TaskSequenceManagerViewState));
 
-    private IConditionsHost? conditionHost;
-
     /// <summary>
     /// Gets the task sequence manager for this state
     /// </summary>
@@ -53,7 +51,7 @@ public sealed class TaskSequenceManagerViewState {
     /// </summary>
     public ListSelectionModel<BaseSequenceCondition>? SelectedConditionsFromHost {
         get {
-            switch (this.conditionHost) {
+            switch (this.ConditionHost) {
                 case TaskSequence sequence:    return TaskSequenceViewState.GetInstance(sequence, this.TopLevelIdentifier).SelectedConditions;
                 case BaseSequenceOperation op: return SequenceOperationViewState.GetInstance(op, this.TopLevelIdentifier).SelectedConditions;
                 default:                       return null;
@@ -73,10 +71,13 @@ public sealed class TaskSequenceManagerViewState {
     /// Gets or sets the object that presents the conditions in the UI
     /// </summary>
     public IConditionsHost? ConditionHost {
-        get => this.conditionHost;
-        set => PropertyHelper.SetAndRaiseINE(ref this.conditionHost, value, this, this.ConditionHostChanged);
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ConditionHostChanged);
     }
 
+    /// <summary>
+    /// Gets the top level identifier that identifies which top level this view state is associated with
+    /// </summary>
     public TopLevelIdentifier TopLevelIdentifier { get; }
     
     /// <summary>
@@ -89,7 +90,7 @@ public sealed class TaskSequenceManagerViewState {
     // The `taskSequenceManager` identifies the model, however, models can be used in multiple UIs
     // The `identifier` identifies the exact window effectively.
     
-    public TaskSequenceManagerViewState(TaskSequenceManager taskSequenceManager, TopLevelIdentifier topLevelIdentifier) {
+    private TaskSequenceManagerViewState(TaskSequenceManager taskSequenceManager, TopLevelIdentifier topLevelIdentifier) {
         this.TaskSequenceManager = taskSequenceManager;
         this.TopLevelIdentifier = topLevelIdentifier;
         this.SelectedSequences = new ListSelectionModel<TaskSequence>(this.TaskSequenceManager.Sequences);

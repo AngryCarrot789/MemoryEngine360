@@ -58,8 +58,9 @@ public class DesktopModToolViewServiceImpl : IModToolViewService {
 
             window.TryCloseAsync += static async (s, args) => {
                 await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-                    bool cancel = await ((ModToolManagerView) ((IDesktopWindow) s!).Content!).OnClosingAsync((IDesktopWindow) s!);
-                    if (cancel) {
+                    ModToolManagerView view = (ModToolManagerView) ((IDesktopWindow) s!).Content!;
+                    ModToolManagerView.CloseRequest result = await view.OnClosingAsync((IDesktopWindow) s!, !view.ModToolManager!.MemoryEngine.IsShuttingDown);
+                    if (result == ModToolManagerView.CloseRequest.Cancel) {
                         args.SetCancelled();
                     }
                 });
@@ -75,6 +76,17 @@ public class DesktopModToolViewServiceImpl : IModToolViewService {
             modToolManager.UserContext.Set(ITopLevel.TopLevelDataKey, window);
             await window.ShowAsync();
         }
+    }
+
+    public Task CloseWindow(ModToolManager modToolManager) {
+        if (ITopLevel.TryGetFromContext(modToolManager.UserContext, out ITopLevel? sequencerTopLevel)) {
+            IDesktopWindow window = (IDesktopWindow) sequencerTopLevel;
+            if (window.OpenState == OpenState.Open) {
+                return window.RequestCloseAsync();
+            }
+        }
+
+        return Task.CompletedTask;
     }
 
     public async Task ShowOrFocusGui(ModTool tool) {

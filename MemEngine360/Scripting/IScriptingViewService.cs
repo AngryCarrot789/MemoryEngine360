@@ -23,4 +23,5 @@ public interface IScriptingViewService {
     const string TopLevelId = "toplevels.ScriptingManager";
     
     Task ShowOrFocusWindow(ScriptingManager scriptingManager);
+    Task CloseWindow(ScriptingManager manager);
 }

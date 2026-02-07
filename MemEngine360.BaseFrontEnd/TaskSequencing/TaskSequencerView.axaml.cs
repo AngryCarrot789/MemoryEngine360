@@ -96,7 +96,7 @@ public partial class TaskSequencerView : UserControl {
 
     public event EventHandler? WindowOpened, WindowClosed;
 
-    public TaskSequencerView() : this(new TaskSequenceManagerViewState(new TaskSequenceManager(new MemoryEngine()), TopLevelIdentifier.Single(ITaskSequencerService.TopLevelId))) {
+    public TaskSequencerView() : this(TaskSequenceManagerViewState.GetInstance(new TaskSequenceManager(new MemoryEngine()), TopLevelIdentifier.Single(ITaskSequencerService.TopLevelId))) {
     }
 
     public TaskSequencerView(TaskSequenceManagerViewState viewState) {

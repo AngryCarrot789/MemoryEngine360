@@ -73,7 +73,6 @@ public partial class ModToolManagerView : UserControl {
     public ModToolManagerView() {
         this.InitializeComponent();
         this.PART_TabControl.SelectionChanged += this.PART_TabControlOnSelectionChanged;
-        this.PART_CodeEditor.TextChanged += this.PART_CodeEditorOnTextChanged;
         this.PART_CodeEditor.Options.ConvertTabsToSpaces = true;
         this.PART_CodeEditor.Options.CutCopyWholeLine = true;
 
@@ -149,11 +148,13 @@ public partial class ModToolManagerView : UserControl {
         this.myCompilationFailureMarkerService.Clear();
         if (e.OldValue != null) {
             e.OldValue.CompilationFailure -= this.OnModToolCompilationFailed;
+            this.PART_CodeEditor.TextChanged -= this.PART_CodeEditorOnTextChanged;
         }
 
         if (e.NewValue != null) {
             e.NewValue.CompilationFailure += this.OnModToolCompilationFailed;
             this.PART_CodeEditor.Document = GetModToolTextDocument(e.NewValue);
+            this.PART_CodeEditor.TextChanged += this.PART_CodeEditorOnTextChanged;
         }
         else {
             this.PART_CodeEditor.Document = new TextDocument();
@@ -188,29 +189,38 @@ public partial class ModToolManagerView : UserControl {
     public void OnWindowOpened(IDesktopWindow sender) {
         this.Window = sender;
     }
+
+    public enum CloseRequest { Cancel, Close }
     
-    // returns: cancel close
-    public async Task<bool> OnClosingAsync(IDesktopWindow sender) {
+    public async Task<CloseRequest> OnClosingAsync(IDesktopWindow sender, bool canCancel) {
         ModToolManager? mm = this.ModToolManager;
         if (mm == null) {
-            return false;
+            return CloseRequest.Close;
         }
 
         mm.ModTools.ForEach(x => x.RequestCancelCompilation());
         if (mm.ModTools.Any(x => x.HasUnsavedChanges)) {
             using var _ = CommandManager.LocalContextManager.PushContext(new ContextData().Set(ITopLevel.TopLevelDataKey, sender));
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage("Unsaved changes", "Do you want to save changes?", MessageBoxButtons.YesNoCancel, MessageBoxResult.Yes);
-            if (result != MessageBoxResult.Yes && result != MessageBoxResult.No) {
-                return true; // cancel close
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(
+                "Unsaved changes", 
+                "Do you want to save changes?", 
+                canCancel ? MessageBoxButtons.YesNoCancel : MessageBoxButtons.YesNo, 
+                MessageBoxResult.Yes);
+            
+            if (canCancel && result != MessageBoxResult.Yes && result != MessageBoxResult.No) {
+                return CloseRequest.Cancel; // cancel close
             }
 
             if (result == MessageBoxResult.Yes) {
                 bool savedAll = await SaveAllModToolsCommand.SaveAllAsync(mm.ModTools.ToList());
-                return !savedAll;
+                if (savedAll)
+                    return CloseRequest.Close;
+                
+                return canCancel ? CloseRequest.Cancel : CloseRequest.Close;
             }
         }
 
-        return false;
+        return CloseRequest.Close;
     }
 
     public void OnWindowClosed() {

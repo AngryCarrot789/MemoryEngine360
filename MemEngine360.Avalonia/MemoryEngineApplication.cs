@@ -534,6 +534,13 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             EngineView view = (EngineView) ((OverlayContentHostRoot) window.Content!).Content!;
             MemoryEngine engine = view.MemoryEngine;
 
+            foreach (Script script in engine.ScriptingManager.Scripts)
+                script.RequestStop(false);
+            foreach (ModTool tool in engine.ModToolManager.ModTools)
+                tool.RequestStop(false);
+            foreach (TaskSequence taskSequence in engine.TaskSequenceManager.ActiveSequences.ToList())
+                taskSequence.RequestCancellation();
+            
             {
                 List<string> pathsToSave = new List<string>();
                 foreach (Script script in engine.ScriptingManager.Scripts) {
@@ -556,7 +563,14 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 BasicApplicationConfiguration.Instance.LoadedModToolPaths = pathsToSave.ToArray();
             }
 
-            engine.IsShuttingDown = true;
+            await engine.RaiseShutdownRequested();
+            foreach (IDesktopWindow child in window.OwnedWindows) {
+                await child.RequestCloseAsync();
+            }
+
+            await GetComponent<IScriptingViewService>().CloseWindow(engine.ScriptingManager);
+            await GetComponent<IModToolViewService>().CloseWindow(engine.ModToolManager);
+
             ulong frame = engine.GetNextConnectionChangeFrame();
             await engine.BroadcastConnectionAboutToChange(window, frame);
 

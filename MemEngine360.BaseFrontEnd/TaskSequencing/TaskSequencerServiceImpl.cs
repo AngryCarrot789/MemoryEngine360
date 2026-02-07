@@ -43,7 +43,9 @@ public class TaskSequencerServiceImpl : ITaskSequencerService {
             IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
                 Title = "Task Sequencer",
                 FocusPath = "SequencerWindow",
-                Content = new TaskSequencerView(new TaskSequenceManagerViewState(sequencer, TopLevelIdentifier.Single(ITaskSequencerService.TopLevelId))),
+                // We reuse existing view states by keeping an InstanceNumber of 0 for the TLI, since we only ever
+                // want 1 instance of the sequencer window (despite that we can close and reopen it, which is more like hide/showing)
+                Content = new TaskSequencerView(TaskSequenceManagerViewState.GetInstance(sequencer, TopLevelIdentifier.Single(ITaskSequencerService.TopLevelId))),
                 TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.Sequencer.TitleBarBackground"),
                 BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
                 MinWidth = 640, MinHeight = 400,
