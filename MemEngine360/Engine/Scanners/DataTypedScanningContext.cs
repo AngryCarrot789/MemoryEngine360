@@ -540,7 +540,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                     set.Add(IntegerRange.FromStartAndLength(result.Address, (uint) buffer.Length));
                 }
 
-                FragmentedMemoryBuffer memoryBuffer = await FragmentedReadHelper.CreateMemoryView(connection, set, cancellationToken: task.CancellationToken);
+                FragmentedMemoryBuffer memoryBuffer = await MemoryEngine.CreateMemoryView(connection, set, cancellationToken: task.CancellationToken);
 
                 for (int i = 0; i < srcList.Count; i++) {
                     task.ThrowIfCancellationRequested();
@@ -654,7 +654,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                     set.Add(IntegerRange.FromStartAndLength(result.Address, (uint) length));
                 }
 
-                FragmentedMemoryBuffer memoryBuffer = await FragmentedReadHelper.CreateMemoryView(connection, set, cancellationToken: task.CancellationToken);
+                FragmentedMemoryBuffer memoryBuffer = await MemoryEngine.CreateMemoryView(connection, set, cancellationToken: task.CancellationToken);
 
                 int maxBufferSize = connection.GetRecommendedReadChunkSize(0x1000);
                 for (int i = 0; i < srcList.Count; i++) {

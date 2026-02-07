@@ -812,12 +812,12 @@ public class ScanningProcessor {
                 foreach (ScanResultRefreshEntry entry in resultList)
                     fragmentSet.Add(entry.MemorySpan);
 
-                FragmentedMemoryBuffer memoryBuffer = await FragmentedReadHelper.CreateMemoryView(connection, fragmentSet, cancellationToken: token);
+                FragmentedMemoryBuffer memoryBuffer = await MemoryEngine.CreateMemoryView(connection, fragmentSet, cancellationToken: token);
                 if (savedList != null) {
                     foreach (AddressTableRefreshEntry re in ateList) {
                         token.ThrowIfCancellationRequested();
                         if (re.Entry.IsAutoRefreshEnabled && re.Entry.DataType == re.DataType) { // may change between dispatcher callbacks
-                            re.NewValue = FragmentedReadHelper.ReadDataValueFromBuffer(memoryBuffer, re.MemorySpan, re.DataType, re.Entry.StringType, re.Entry.StringLength, re.Entry.ArrayLength, connection.IsLittleEndian);
+                            re.NewValue = MemoryEngine.ReadDataValueFromFragmentBuffer(memoryBuffer, re.MemorySpan, re.DataType, re.Entry.StringType, re.Entry.StringLength, re.Entry.ArrayLength, connection.IsLittleEndian);
                         }
                     }
 
@@ -836,7 +836,7 @@ public class ScanningProcessor {
                     foreach (ScanResultRefreshEntry re in resultList) {
                         token.ThrowIfCancellationRequested();
                         if (re.Entry.DataType == re.DataType)
-                            re.NewValue = FragmentedReadHelper.ReadDataValueFromBuffer(memoryBuffer, re.MemorySpan, re.DataType, re.Entry.StringType, re.Entry.CurrentStringLength, re.Entry.CurrentArrayLength, connection.IsLittleEndian);
+                            re.NewValue = MemoryEngine.ReadDataValueFromFragmentBuffer(memoryBuffer, re.MemorySpan, re.DataType, re.Entry.StringType, re.Entry.CurrentStringLength, re.Entry.CurrentArrayLength, connection.IsLittleEndian);
                     }
 
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {

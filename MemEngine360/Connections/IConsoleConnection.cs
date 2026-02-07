@@ -157,7 +157,7 @@ public interface IConsoleConnection {
     /// </summary>
     /// <param name="address">The address to read from</param>
     /// <param name="count">The number of chars to read</param>
-    /// <param name="removeNull">Removes null characters</param>
+    /// <param name="removeNull">Removes null characters, otherwise, replaces them with '?' characters.</param>
     /// <exception cref="ArgumentOutOfRangeException">Count is negative</exception>
     /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
@@ -172,7 +172,7 @@ public interface IConsoleConnection {
     /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
     /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
     Task<string> ReadString(uint address, int charCount, Encoding encoding);
-    
+
     /// <summary>
     /// Reads a c-style (null-terminated) ascii string from the connection
     /// </summary>

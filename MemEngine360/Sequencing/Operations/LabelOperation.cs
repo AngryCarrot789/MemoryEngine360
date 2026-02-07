@@ -39,6 +39,9 @@ public class LabelOperation : BaseSequenceOperation, IPlaceholderOperation {
 
     public event EventHandler? LabelNameChanged;
 
+    public LabelOperation() {
+    }
+    
     protected override Task RunOperation(SequenceExecutionContext ctx, CancellationToken token) {
         return Task.CompletedTask;
     }

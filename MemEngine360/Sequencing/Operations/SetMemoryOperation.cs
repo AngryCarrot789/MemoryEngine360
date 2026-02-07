@@ -35,11 +35,6 @@ namespace MemEngine360.Sequencing.Operations;
 /// An operation that sets a value on the console
 /// </summary>
 public class SetMemoryOperation : BaseSequenceOperation {
-    private IMemoryAddress address = StaticAddress.Zero;
-    private DataValueProvider? dataValueProvider;
-    private uint iterateCount = 1;
-    private SetMemoryWriteMode writeMode;
-
     // Used to save the values when the user switches provider type in the UI.
     // Yeah I know UI stuff in models yucky etc etc, may fix later
     public ConstantDataProvider? InitialConstantDataProvider;
@@ -49,29 +44,22 @@ public class SetMemoryOperation : BaseSequenceOperation {
     /// Gets or sets the address we write at
     /// </summary>
     public IMemoryAddress Address {
-        get => this.address;
+        get => field;
         set {
             ArgumentNullException.ThrowIfNull(value);
-            PropertyHelper.SetAndRaiseINE(ref this.address, value, this, this.AddressChanged);
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.AddressChanged);
         }
-    }
+    } = StaticAddress.Zero;
 
     /// <summary>
     /// Gets or sets the value we write to the console
     /// </summary>
     public DataValueProvider? DataValueProvider {
-        get => this.dataValueProvider;
+        get => field;
         set {
-            if (this.InitialConstantDataProvider == null && value is ConstantDataProvider)
-                this.InitialConstantDataProvider = (ConstantDataProvider?) value;
-            else if (this.InitialRandomNumberDataProvider == null && value is RandomNumberDataProvider)
-                this.InitialRandomNumberDataProvider = (RandomNumberDataProvider?) value;
-
-            DataValueProvider? oldProvider = this.dataValueProvider;
-            if (!Equals(oldProvider, value)) {
-                this.dataValueProvider = value;
-                this.DataValueProviderChanged?.Invoke(this, new ValueChangedEventArgs<DataValueProvider?>(oldProvider, value));
-            }
+            this.InitialConstantDataProvider ??= value as ConstantDataProvider;
+            this.InitialRandomNumberDataProvider ??= value as RandomNumberDataProvider;
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.DataValueProviderChanged);
         }
     }
 
@@ -79,13 +67,13 @@ public class SetMemoryOperation : BaseSequenceOperation {
     /// Gets or sets the number of times to write the value. Default is 1, meaning write once. Setting this to 0 basically disables this operation
     /// </summary>
     public uint IterateCount {
-        get => this.iterateCount;
-        set => PropertyHelper.SetAndRaiseINE(ref this.iterateCount, value, this, this.IterateCountChanged);
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IterateCountChanged);
+    } = 1U;
 
     public SetMemoryWriteMode WriteMode {
-        get => this.writeMode;
-        set => PropertyHelper.SetAndRaiseINE(ref this.writeMode, value, this, this.WriteModeChanged);
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.WriteModeChanged);
     }
 
     public override string DisplayName => "Set Memory";
@@ -99,11 +87,11 @@ public class SetMemoryOperation : BaseSequenceOperation {
     }
 
     protected override async Task RunOperation(SequenceExecutionContext ctx, CancellationToken token) {
-        if (this.iterateCount < 1) {
+        if (this.IterateCount < 1) {
             return; // no point in doing anything when we won't write anything
         }
 
-        DataValueProvider? provider = this.dataValueProvider;
+        DataValueProvider? provider = this.DataValueProvider;
         IDataValue? value;
         if (provider == null) {
             return;
@@ -125,16 +113,16 @@ public class SetMemoryOperation : BaseSequenceOperation {
 
         try {
             ctx.Progress.Text = "Resolving address";
-            uint resolvedAddress = await this.address.TryResolveAddress(ctx.Connection) ?? 0;
+            uint resolvedAddress = await this.Address.TryResolveAddress(ctx.Connection) ?? 0;
             if (resolvedAddress == 0) {
                 return;
             }
 
-            if (this.writeMode != SetMemoryWriteMode.Set && value is DataValueNumeric numVal) {
+            if (this.WriteMode != SetMemoryWriteMode.Set && value is DataValueNumeric numVal) {
                 DataValueNumeric consoleVal = (DataValueNumeric) await MemoryEngine.ReadDataValue(ctx.Connection, resolvedAddress, numVal);
                 if (numVal.DataType.IsFloatingPoint()) {
                     double dval;
-                    switch (this.writeMode) {
+                    switch (this.WriteMode) {
                         case SetMemoryWriteMode.Add:      dval = consoleVal.ToDouble() + numVal.ToDouble(); break;
                         case SetMemoryWriteMode.Multiply: dval = consoleVal.ToDouble() * numVal.ToDouble(); break;
                         case SetMemoryWriteMode.Divide:
@@ -155,7 +143,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
                 }
                 else {
                     long lval;
-                    switch (this.writeMode) {
+                    switch (this.WriteMode) {
                         case SetMemoryWriteMode.Add:      lval = consoleVal.ToLong() + numVal.ToLong(); break;
                         case SetMemoryWriteMode.Multiply: lval = consoleVal.ToLong() * numVal.ToLong(); break;
                         case SetMemoryWriteMode.Divide:
@@ -180,7 +168,7 @@ public class SetMemoryOperation : BaseSequenceOperation {
             }
 
             ctx.Progress.Text = "Setting memory";
-            byte[]? buffer = GetDataBuffer(ctx.Connection.IsLittleEndian, value, provider.AppendNullCharToString, this.iterateCount);
+            byte[]? buffer = GetDataBuffer(ctx.Connection.IsLittleEndian, value, provider.AppendNullCharToString, this.IterateCount);
             if (buffer != null) {
                 // Note for test connection, when a sequence repeats forever and has no delay, only sets memory,
                 // this method is extremely laggy when a debugger is attached, probably because of the

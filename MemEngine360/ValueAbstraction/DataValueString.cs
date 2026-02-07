@@ -49,18 +49,18 @@ public sealed class DataValueString : IDataValue {
     /// Creates a byte array and encodes our string value into it.
     /// </summary>
     /// <param name="littleEndian">Whether to encode using little endianness</param>
-    /// <param name="useNullChar">Whether to include a null character at the end of the string</param>
-    /// <param name="length">The amount of encoded string characters, plus 1 if <see cref="useNullChar"/> is true</param>
+    /// <param name="appendNullChar">Whether to include a null character at the end of the buffer</param>
+    /// <param name="length">The amount of encoded string characters, plus 1 if <see cref="appendNullChar"/> is true</param>
     /// <returns>The array containing the encoded string, and optional null char. May be larger than required</returns>
-    public byte[] GetBytes(bool littleEndian, bool useNullChar, out int length) {
+    public byte[] GetBytes(bool littleEndian, bool appendNullChar, out int length) {
         Encoding encoding = this.StringType.ToEncoding(littleEndian);
         int byteCount = encoding.GetByteCount(this.Value);
-        int nullCharCount = useNullChar ? 1 : 0;
+        int nullCharCount = appendNullChar ? 1 : 0;
 
         byte[] array = new byte[byteCount + nullCharCount];
         int count = encoding.GetBytes(this.Value, array.AsSpan());
-        Debug.Assert(useNullChar ? count < array.Length : count <= array.Length);
-        if (useNullChar) {
+        Debug.Assert(appendNullChar ? count < array.Length : count <= array.Length);
+        if (appendNullChar) {
             array[count /* index after last char encoded */] = 0;
         }
 

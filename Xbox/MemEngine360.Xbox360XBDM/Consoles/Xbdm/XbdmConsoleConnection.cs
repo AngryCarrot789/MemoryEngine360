@@ -355,7 +355,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
             for (int i = 0; i < threads.Count; i++) {
                 XboxThread tdInfo = threads[i];
                 if (tdInfo.nameAddress != 0 && tdInfo.nameLength != 0 && tdInfo.nameLength < int.MaxValue) {
-                    tdInfo.readableName = await this.InternalReadStringASCII(tdInfo.nameAddress, (int) tdInfo.nameLength);
+                    tdInfo.readableName = await this.ReadAsciiCore(tdInfo.nameAddress, (int) tdInfo.nameLength);
                     threads[i] = tdInfo;
                 }
             }

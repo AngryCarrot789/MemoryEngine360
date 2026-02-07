@@ -18,6 +18,10 @@
 // 
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine.Debugging;
@@ -42,6 +46,7 @@ using PFXToolKitUI.Logging;
 using PFXToolKitUI.Shortcuts;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Events;
+using PFXToolKitUI.Utils.Ranges;
 
 namespace MemEngine360.Engine;
 
@@ -604,11 +609,11 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     public static int GetMaximumDataValueSize(AddressTableEntry entry, bool isLittleEndian) {
         return GetMaximumDataValueSize(entry.DataType, entry.StringType, entry.DataType == DataType.String ? entry.StringLength : entry.ArrayLength, isLittleEndian);
     }
-    
+
     public static int GetMaximumDataValueSize(ScanResultViewModel result, bool isLittleEndian) {
         return GetMaximumDataValueSize(result.DataType, result.StringType, result.DataType == DataType.String ? result.CurrentStringLength : result.CurrentArrayLength, isLittleEndian);
     }
-    
+
     /// <summary>
     /// Reads a data value from the console
     /// </summary>
@@ -616,11 +621,11 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <param name="address">The address to read at</param>
     /// <param name="dataType">The type of value we want to read</param>
     /// <param name="stringType"></param>
-    /// <param name="strlen">The length of the string. Only used when the data type is <see cref="DataType.String"/></param>
-    /// <param name="arrlen">The amount of array elements. Only used when the data type is <see cref="DataType.ByteArray"/> (or any array type, if we support that in the future)</param>
+    /// <param name="strLen">The length of the string. Only used when the data type is <see cref="DataType.String"/></param>
+    /// <param name="arrLen">The amount of array elements. Only used when the data type is <see cref="DataType.ByteArray"/> (or any array type, if we support that in the future)</param>
     /// <returns>The data value</returns>
     /// <exception cref="ArgumentOutOfRangeException">Invalid data type</exception>
-    public static async Task<IDataValue> ReadDataValue(IConsoleConnection connection, uint address, DataType dataType, StringType stringType, int strlen, int arrlen) {
+    public static async Task<IDataValue> ReadDataValue(IConsoleConnection connection, uint address, DataType dataType, StringType stringType, int strLen, int arrLen) {
         switch (dataType) {
             case DataType.Byte:      return new DataValueByte(await connection.ReadByte(address).ConfigureAwait(false));
             case DataType.Int16:     return new DataValueInt16(await connection.ReadValue<short>(address).ConfigureAwait(false));
@@ -628,8 +633,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
             case DataType.Int64:     return new DataValueInt64(await connection.ReadValue<long>(address).ConfigureAwait(false));
             case DataType.Float:     return new DataValueFloat(await connection.ReadValue<float>(address).ConfigureAwait(false));
             case DataType.Double:    return new DataValueDouble(await connection.ReadValue<double>(address).ConfigureAwait(false));
-            case DataType.String:    return new DataValueString(await connection.ReadString(address, strlen, stringType.ToEncoding(connection.IsLittleEndian)).ConfigureAwait(false), stringType);
-            case DataType.ByteArray: return new DataValueByteArray(await connection.ReadBytes(address, arrlen).ConfigureAwait(false));
+            case DataType.String:    return new DataValueString(await connection.ReadString(address, strLen, stringType.ToEncoding(connection.IsLittleEndian)).ConfigureAwait(false), stringType);
+            case DataType.ByteArray: return new DataValueByteArray(await connection.ReadBytes(address, arrLen).ConfigureAwait(false));
             default:                 throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
         }
     }
@@ -665,8 +670,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// </summary>
     /// <param name="connection">The connection</param>
     /// <param name="address">The address to write the value at</param>
-    /// <param name="dt"></param>
     /// <param name="value"></param>
+    /// <param name="appendNullCharForString"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public static async Task WriteDataValue(IConsoleConnection connection, uint address, IDataValue value, bool appendNullCharForString = true) {
         switch (value.DataType) {
@@ -683,6 +688,117 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
             }
             case DataType.ByteArray: await connection.WriteBytes(address, ((DataValueByteArray) value).Value).ConfigureAwait(false); break;
             default:                 throw new InvalidOperationException("Data value's data type is invalid: " + value.DataType);
+        }
+    }
+
+    public static IDataValue ReadDataValueFromFragmentBuffer(FragmentedMemoryBuffer buffer, IntegerRange<uint> range, DataType dataType, StringType stringType, int stringLength, int arrayLength, bool isDataLittleEndian) {
+        using (ArrayPools.RentSpan((int) range.Length, out Span<byte> data)) {
+            int readCount = buffer.Read(range.Start, data);
+            Debug.Assert(readCount == range.Length, "Not enough bytes in fragment buffer. This should not be possible");
+
+            return ReadDataValueFromSpan(data, dataType, stringType, stringLength, arrayLength, isDataLittleEndian);
+        }
+    }
+
+    public static IDataValue ReadDataValueFromSpan(Span<byte> buffer, DataType dataType, StringType stringType, int stringLength, int arrayLength, bool isDataLittleEndian) {
+        switch (dataType) {
+            case DataType.Byte: {
+                Debug.Assert(buffer.Length >= sizeof(byte));
+                return new DataValueByte(buffer[0]);
+            }
+            case DataType.Int16: {
+                Debug.Assert(buffer.Length >= sizeof(short));
+                return new DataValueInt16(ReadValueFromBytes<short>(buffer, isDataLittleEndian));
+            }
+            case DataType.Int32: {
+                Debug.Assert(buffer.Length >= sizeof(int));
+                return new DataValueInt32(ReadValueFromBytes<int>(buffer, isDataLittleEndian));
+            }
+            case DataType.Int64: {
+                Debug.Assert(buffer.Length >= sizeof(long));
+                return new DataValueInt64(ReadValueFromBytes<long>(buffer, isDataLittleEndian));
+            }
+            case DataType.Float: {
+                Debug.Assert(buffer.Length >= sizeof(float));
+                return new DataValueFloat(ReadValueFromBytes<float>(buffer, isDataLittleEndian));
+            }
+            case DataType.Double: {
+                Debug.Assert(buffer.Length >= sizeof(double));
+                return new DataValueDouble(ReadValueFromBytes<double>(buffer, isDataLittleEndian));
+            }
+            case DataType.String: {
+                return new DataValueString(DecodeStringFromBytes(buffer, stringLength, stringType.ToEncoding(isDataLittleEndian)) ?? "", stringType);
+            }
+            case DataType.ByteArray: {
+                return new DataValueByteArray(buffer.Slice(0, arrayLength).ToArray());
+            }
+            default: throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
+        }
+    }
+
+    public static T ReadValueFromBytes<T>(ReadOnlySpan<byte> bytes, bool isBufferLittleEndian) where T : unmanaged {
+        T value = MemoryMarshal.Read<T>(bytes);
+        if (BitConverter.IsLittleEndian != isBufferLittleEndian) {
+            MemoryMarshal.AsBytes(new Span<T>(ref value)).Reverse();
+        }
+
+        return value;
+    }
+
+    public static bool TryDecodeStringFromBytes(Span<byte> bytes, int charCount, Encoding encoding, [NotNullWhen(true)] out string? text) {
+        return (text = DecodeStringFromBytes(bytes, charCount, encoding)) != null;
+    }
+
+    public static string? DecodeStringFromBytes(Span<byte> bytes, int charCount, Encoding encoding) {
+        Decoder decoder = encoding.GetDecoder();
+        using (ArrayPools.RentSpan(charCount, out Span<char> charSpan)) {
+            try {
+                decoder.Convert(bytes, charSpan, true, out _, out int charsUsed, out _);
+                return new string(charSpan.Slice(0, charsUsed));
+            }
+            catch {
+                return null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Creates a fragmented memory buffer containing the bytes of the console's memory at each of the fragments in the <see cref="ranges"/> set
+    /// </summary>
+    /// <param name="connection">The connection to read from</param>
+    /// <param name="ranges">The ranges to read</param>
+    /// <param name="maximumBufferSize">
+    /// The maximum allowed size of the temporary buffer used. May allocate a smaller
+    /// buffer based on how <see cref="IConsoleConnection.GetRecommendedReadChunkSize"/> behaves.
+    /// This also affects how early the cancellation signal can be checked
+    /// </param>
+    /// <param name="cancellationToken">Signals to stop the read process.</param>
+    /// <returns>The buffer</returns>
+    public static async Task<FragmentedMemoryBuffer> CreateMemoryView(IConsoleConnection connection, IntegerSet<uint> ranges, int maximumBufferSize = 65536, CancellationToken cancellationToken = default) {
+        FragmentedMemoryBuffer memoryBuffer = new FragmentedMemoryBuffer();
+        await ReadMemoryView(memoryBuffer, connection, ranges, maximumBufferSize, cancellationToken).ConfigureAwait(false);
+        return memoryBuffer;
+    }
+
+    /// <summary>
+    /// Main implementation of <see cref="CreateMemoryView"/>
+    /// </summary>
+    public static async Task ReadMemoryView(FragmentedMemoryBuffer memoryBuffer, IConsoleConnection connection, IntegerSet<uint> ranges, int maximumBufferSize = 65536, CancellationToken cancellationToken = default) {
+        int maximumBuffer = connection.GetRecommendedReadChunkSize(maximumBufferSize);
+        using (ArrayPools.Rent(maximumBuffer, out byte[] buffer)) {
+            foreach (IntegerRange<uint> range in ranges) {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // Just in case the range's length exceeds int.MaxValue, and also to maximize
+                // memory efficiency using the largest but still small buffer that the connection
+                // can handle, we read in chunks of maximumBuffer
+                for (int i = 0; i < range.Length; i += maximumBuffer) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int length = Math.Min(maximumBuffer, (int) (range.Length - (uint) i));
+                    await connection.ReadBytes(range.Start, buffer, 0, length);
+                    memoryBuffer.Write(range.Start, buffer.AsSpan(0, length));
+                }
+            }
         }
     }
 }

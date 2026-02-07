@@ -25,6 +25,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Connections.Features;
+using MemEngine360.Engine;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
@@ -145,7 +146,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         // The final pointer, which points to hopefully an effective value (e.g. float or literally anything)
         return (uint) address;
     }
-    
+
     public async Task ReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
         ArrayUtils.ThrowIfOutOfBounds(dstBuffer, offset, count);
 
@@ -209,7 +210,6 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         int sizeOfT = Unsafe.SizeOf<T>();
         using (ArrayPools.Rent(sizeOfT, out byte[] buffer)) {
             await this.ReadBytesCoreWithNetworkThrowHelper(address, buffer, 0, sizeOfT).ConfigureAwait(false);
-
             if (BitConverter.IsLittleEndian != this.IsLittleEndian) {
                 Array.Reverse(buffer, 0, sizeOfT);
             }
@@ -250,10 +250,10 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        return await this.InternalReadStringASCII(address, count, removeNull);
+        return await this.ReadAsciiCore(address, count, removeNull);
     }
 
-    protected internal async Task<string> InternalReadStringASCII(uint address, int count, bool removeNull = true) {
+    protected internal async Task<string> ReadAsciiCore(uint address, int count, bool removeNull = true) {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (count == 0) {
             return "";
@@ -283,36 +283,27 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         using (ArrayPools.Rent(byteCount, out byte[] buffer)) {
             await this.ReadBytes(address, buffer, 0, byteCount).ConfigureAwait(false);
 
-            Decoder decoder = encoding.GetDecoder();
-            char[] charBuffer = new char[charCount];
-
-            try {
-                decoder.Convert(buffer, 0, byteCount, charBuffer, 0, charCount, true, out _, out int charsUsed, out _);
-                return new string(charBuffer, 0, charsUsed);
-            }
-            catch {
-                return "";
-            }
+            return MemoryEngine.DecodeStringFromBytes(buffer.AsSpan(0, byteCount), charCount, encoding) ?? "";
         }
     }
 
     public async Task<string> ReadCString(uint address, CancellationToken cancellationToken = default) {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
-        
+
         StringBuilder sb = new StringBuilder(32);
-        
+
         // Read in chunks of 32 chars
         using (ArrayPools.Rent(32, out byte[] buffer)) {
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
-                
-                await this.ReadBytes(address, buffer, 0, 32).ConfigureAwait(false);
+
+                await this.ReadBytesCoreWithNetworkThrowHelper(address, buffer, 0, 32).ConfigureAwait(false);
                 for (int i = 0; i < 32; i++) {
                     byte b = buffer[i];
                     if (b == 0)
                         return sb.ToString();
-                    
+
                     sb.Append((char) b);
                 }
             }
@@ -388,28 +379,27 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
 
     public async Task WriteStruct<T>(uint address, T value, params int[] fieldSizes) where T : unmanaged {
         this.EnsureNotClosed();
+        using BusyToken x = this.CreateBusyToken();
 
         int sizeOfT = Unsafe.SizeOf<T>(), offset = 0;
         using (ArrayPools.Rent(sizeOfT, out byte[] dstBuffer)) {
             Span<byte> srcData = MemoryMarshal.CreateSpan(ref Unsafe.As<T, byte>(ref value), sizeOfT);
             bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
-            using (this.CreateBusyToken()) {
-                Span<byte> dstSpan = dstBuffer.AsSpan(0, sizeOfT);
-                foreach (int cbField in fieldSizes) {
-                    Debug.Assert(cbField >= 0, "Field was negative");
-                    if ((cbField + offset) > sizeOfT) {
-                        throw new ArgumentException("Summation of field sizes exceeds the size of the value");
-                    }
-
-                    Span<byte> dstFieldSpan = dstSpan.Slice(offset, cbField);
-                    srcData.Slice(offset, cbField).CopyTo(dstFieldSpan);
-                    if (reverse) {
-                        dstFieldSpan.Reverse();
-                    }
-
-                    offset += cbField;
-                    Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.WriteStruct));
+            Span<byte> dstSpan = dstBuffer.AsSpan(0, sizeOfT);
+            foreach (int cbField in fieldSizes) {
+                Debug.Assert(cbField >= 0, "Field was negative");
+                if ((cbField + offset) > sizeOfT) {
+                    throw new ArgumentException("Summation of field sizes exceeds the size of the value");
                 }
+
+                Span<byte> dstFieldSpan = dstSpan.Slice(offset, cbField);
+                srcData.Slice(offset, cbField).CopyTo(dstFieldSpan);
+                if (reverse) {
+                    dstFieldSpan.Reverse();
+                }
+
+                offset += cbField;
+                Debug.Assert(offset >= 0, "Integer overflow during " + nameof(this.WriteStruct));
             }
 
             await this.WriteBytes(address, dstBuffer, 0, offset).ConfigureAwait(false);
@@ -421,7 +411,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public Task WriteString(uint address, string value, Encoding encoding) {
         return this.WriteBytes(address, encoding.GetBytes(value));
     }
-    
+
     public Task WriteVector2(uint address, Vector2 vec2) {
         return this.WriteStruct(address, vec2, sizeof(float), sizeof(float));
     }
