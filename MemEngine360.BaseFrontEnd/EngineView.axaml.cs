@@ -732,11 +732,11 @@ public partial class EngineView : UserControl {
             Message = $"{(didChangeStart ? "Start Address" : "Scan Length")} causes scan to exceed 32 bit address space by 0x{overflowAmount:X8}." +
                       Environment.NewLine +
                       Environment.NewLine +
-                      $"Do you want to auto-adjust the {(didChangeStart ? "scan length" : "start address")} to fit?",
-            Buttons = MessageBoxButtons.YesNo, DefaultButton = MessageBoxResult.Yes,
+                      $"Auto-adjust the {(didChangeStart ? "scan length" : "start address")} to fit?",
+            Buttons = MessageBoxButtons.OKCancel, DefaultButton = MessageBoxResult.OK,
         };
 
-        if (await IMessageDialogService.Instance.ShowMessage(info) == MessageBoxResult.Yes) {
+        if (await IMessageDialogService.Instance.ShowMessage(info) == MessageBoxResult.OK) {
             if (didChangeStart) {
                 processor.SetScanRange(start, uint.MaxValue - start);
             }

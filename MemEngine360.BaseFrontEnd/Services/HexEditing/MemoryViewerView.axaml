@@ -71,7 +71,7 @@
                     <TextBox FontFamily="{StaticResource FontOxanium}" x:Name="PART_AddressTextBox" Grid.Column="2"
                              Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                             tt:ToolTipEx.Tip="The start address in hex. E.g. 80000000">
+                             tt:ToolTipEx.Tip="Navigate to an address, E.g. 80000000. Alternatively, use CTRL+G">
                         <TextBox.InnerLeftContent>
                             <TextBlock Text="0x" Opacity="0.7"/>
                         </TextBox.InnerLeftContent>
@@ -106,7 +106,8 @@
                     <TextBox Grid.Column="2" FontFamily="{StaticResource FontOxanium}" x:Name="PART_AutoRefresh_From"
                              Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                             Watermark="Start Address">
+                             Watermark="Start Address"
+                             tt:ToolTipEx.Tip="Auto-Refresh Start Address">
                         <TextBox.InnerLeftContent>
                             <TextBlock Text="0x" Opacity="0.7"/>
                         </TextBox.InnerLeftContent>
@@ -114,7 +115,8 @@
                     <TextBox Grid.Column="4" FontFamily="{StaticResource FontOxanium}" x:Name="PART_AutoRefresh_Count"
                              Padding="4,1" VerticalContentAlignment="Center" VerticalAlignment="Stretch"
                              ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                             Watermark="Count">
+                             Watermark="Length"
+                             tt:ToolTipEx.Tip="Auto-Refresh Length">
                         <TextBox.InnerLeftContent>
                             <TextBlock Text="0x" Opacity="0.7"/>
                         </TextBox.InnerLeftContent>

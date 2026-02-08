@@ -68,6 +68,9 @@ public class ConsoleHexBinarySource : IBinarySource {
         using IBusyToken? t = await busyLocker.BeginBusyOperation(500);
         IConsoleConnection? connection;
         if (t == null || (connection = this.pair.Connection) == null || connection.IsClosed) {
+            if (this.requestedRanges.Ranges.Count > 0)
+                this.rldaRead.InvokeAsync();
+            
             return;
         }
 
@@ -81,26 +84,36 @@ public class ConsoleHexBinarySource : IBinarySource {
             return;
         }
 
-        IntegerSet<ulong> union = new IntegerSet<ulong>();
-        foreach (IntegerRange<ulong> range in requests) {
-            byte[] buffer;
-            try {
-                buffer = await connection.ReadBytes((uint) range.Start, (int) range.Length);
-            }
-            catch (Exception) {
-                continue;
-            }
+        // Maximum temporary buffer size of 8192. On a 1080p monitor with the window maximized,
+        // and bytes/row set as 64 (default is 32), the maximum number of visible bytes is 4032.
+        // This buffer is big enough for most scenarios 
+        int maximumBuffer = connection.GetRecommendedReadChunkSize(8192);
+        IntegerSet<ulong> receivedRanges = new IntegerSet<ulong>();
+        
+        using (ArrayPools.Rent(maximumBuffer, out byte[] buffer)) {
+            foreach (IntegerRange<ulong> range in requests) {
+                for (ulong i = 0; i < range.Length; i += (uint) maximumBuffer) {
+                    int length = Math.Min(maximumBuffer, (int) (range.Length - i));
+                    
+                    try {
+                        await connection.ReadBytes((uint) range.Start, buffer, 0, length);
+                    }
+                    catch (Exception) {
+                        continue;
+                    }
 
-            union.Add(range);
-            using (this.memoryLock.EnterScope()) {
-                this.cachedMemory.Write(range.Start, buffer);
-                this.availableRanges.Add(IntegerRange.FromStartAndLength(range.Start, (ulong) buffer.Length));
-                this.validRanges.Add(IntegerRange.FromStartAndEnd(range.Start, range.Start + (ulong) buffer.Length));
+                    receivedRanges.Add(range);
+                    using (this.memoryLock.EnterScope()) {
+                        this.cachedMemory.Write(range.Start, buffer.AsSpan(0, length));
+                        this.availableRanges.Add(IntegerRange.FromStartAndLength(range.Start, (ulong) length));
+                        this.validRanges.Add(IntegerRange.FromStartAndEnd(range.Start, range.Start + (ulong) length));
+                    }
+                }
             }
         }
-
+        
         await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-            foreach (IntegerRange<ulong> range in union) {
+            foreach (IntegerRange<ulong> range in receivedRanges) {
                 this.DataReceived?.Invoke(this, new DataReceivedEventArgs(range.Start, range.Length));
             }
         });
@@ -123,11 +136,11 @@ public class ConsoleHexBinarySource : IBinarySource {
 
     public int ReadAvailableData(ulong offset, Span<byte> buffer, BitRangeUnion? affectedRanges) {
         using (this.memoryLock.EnterScope()) {
-            List<(ulong, ulong)>? affectedRanges2 = affectedRanges != null ? new List<(ulong, ulong)>() : null; 
+            List<IntegerRange<ulong>>? affectedRanges2 = affectedRanges != null ? new List<IntegerRange<ulong>>() : null; 
             int cbRead = this.cachedMemory.Read(offset, buffer, affectedRanges2);
             if (affectedRanges2 != null) {
-                foreach ((ulong Start, ulong Count) range in affectedRanges2) {
-                    affectedRanges!.Add(BitRange.FromLength(range.Start, range.Count));
+                foreach (IntegerRange<ulong> range in affectedRanges2) {
+                    affectedRanges!.Add(BitRange.FromLength(range.Start, range.Length));
                 }
             }
 

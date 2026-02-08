@@ -77,7 +77,9 @@ public class ChangedRegionLayer : Layer {
     private Animation? animation;
 
     // We use a debouncer to partially delay the animation for a short period that is barely noticeable to the user.
-    // This also massively reduces GC activity
+    // This also massively reduces GC activity for often-changing memory,
+    // because we won't have to allocate (as many) animations until about 300MS later,
+    // and during that time, the data might have changes, which postpones the animation
     private readonly TimerDispatcherDebouncer animDelayDebouncer;
 
     public ChangedRegionLayer(HexEditorChangeManager manager) {
@@ -106,7 +108,7 @@ public class ChangedRegionLayer : Layer {
         }
 
         this.animDelayDebouncer.Reset();
-        this.animDelayDebouncer.InvokeOrPostpone();
+        this.animDelayDebouncer.TryInvokeOrPostpone();
     }
 
     private void OnDebounceAnimation() {
@@ -160,7 +162,7 @@ public class ChangedRegionLayer : Layer {
 
         foreach (Column c in this.HexView.Columns) {
             if (c is CellBasedColumn { IsVisible: true } column)
-                this.DrawSelection(context, column, range);
+                this.Draw(context, column, range);
         }
     }
 
@@ -170,7 +172,7 @@ public class ChangedRegionLayer : Layer {
         return new BitRange(this.theRange.Start.Max(this.HexView.VisibleRange.Start), this.theRange.End.Min(this.HexView.VisibleRange.End));
     }
 
-    private void DrawSelection(DrawingContext context, CellBasedColumn column, BitRange range) {
+    private void Draw(DrawingContext context, CellBasedColumn column, BitRange range) {
         Geometry? geometry = CellGeometryBuilder.CreateBoundingGeometry(column, range);
         if (geometry != null) {
             IPen? pen = this.theCaret.PrimaryColumnIndex == column.Index ? this.PrimarySelectionBorder : this.SecondarySelectionBorder;

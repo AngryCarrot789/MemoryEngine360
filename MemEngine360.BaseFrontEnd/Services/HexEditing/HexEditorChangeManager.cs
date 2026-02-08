@@ -30,17 +30,17 @@ public class HexEditorChangeManager {
     private readonly Stack<ChangedRegionLayer> layerCache;
     private readonly List<ChangedRegionLayer> myLayers;
     private const int MaxCache = 128;
-    
+
     // Duration of the animation
     internal const double AnimDurationMillis = 1400;
 
     // Amount of time to wait before starting the animation
     internal const double AnimDebounceDelay = 300;
-    
-    // Amount of time an animation has to have run for, for its bounds to be resized.
-    // 300 millis is how long it has left in its life, and at that point, is barely visible on screen,
-    // and therefore it's more performant to reuse it and restart the animation, that to potentially
-    // have to create a new layer object.
+
+    // Amount of time an animation has to have run for, for its range/bounds to be resized.
+    // 300 millis is how long it has left in its life, and at that point, is barely visible
+    // on screen. Therefore, it's more performant to reuse it and restart the animation,
+    // rather than to potentially have to create a new layer object.
     internal const double AnimDurationLivedToMerge = AnimDurationMillis - 300;
 
     public AsyncHexEditor Editor { get; }
@@ -69,7 +69,7 @@ public class HexEditorChangeManager {
     public static BitRangeUnion GetChangedRanges(ulong baseAddress, Span<byte> oldData, Span<byte> newData) {
         int count = oldData.Length;
         Debug.Assert(count == newData.Length);
-        
+
         int start = -1;
         BitRangeUnion union = new BitRangeUnion();
         for (int i = 0; i < count; i++) {
@@ -104,23 +104,16 @@ public class HexEditorChangeManager {
             return;
         }
 
-        byte[] oldBytes = ArrayPool<byte>.Shared.Rent(newData.Length);
-
-        try {
+        using (ArrayPools.RentSpan(newData.Length, out Span<byte> oldBytes)) {
             BitRangeUnion availableOldBytes = new BitRangeUnion();
-            this.BinarySource.ReadAvailableData(baseAddress, oldBytes.AsSpan(0, newData.Length), availableOldBytes);
+            this.BinarySource.ReadAvailableData(baseAddress, oldBytes, availableOldBytes);
 
-            BitRangeUnion newRanges = GetChangedRanges(baseAddress, oldBytes.AsSpan(0, newData.Length), newData);
-            foreach (BitRange newRange in newRanges) {
-                if (availableOldBytes.Contains(newRange.Start)) {
-                    this.TryMergeOrCreateLayer(newRange);
-                }
+            BitRangeUnion newRanges = GetChangedRanges(baseAddress, oldBytes, newData);
+            foreach (BitRange newRange in newRanges.Where(newRange => availableOldBytes.Contains(newRange.Start))) {
+                this.TryMergeOrCreateLayer(newRange);
             }
 
             this.CleanupInvalidatedRanges();
-        }
-        finally {
-            ArrayPool<byte>.Shared.Return(oldBytes);
         }
     }
 

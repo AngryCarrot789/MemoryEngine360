@@ -124,7 +124,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
     }
 
     public override int GetRecommendedReadChunkSize(int readTotal) {
-        return readTotal < 128 ? 128 : 0x400 /* 1024 */;
+        return readTotal < 128 ? 128 : Math.Min(readTotal, 0xC000 /* 48K, 3/4th of the receive buffer */);
     }
 
     /// <summary>
