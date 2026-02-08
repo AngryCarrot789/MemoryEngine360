@@ -112,7 +112,7 @@ public class DesktopScriptingViewServiceImpl : IScriptingViewService {
                             };
 
                             script.SetFilePath(path);
-                            scriptingManager.Scripts.Add(script);
+                            scriptingManager.AddScript(script);
                         }, DispatchPriority.Background);
                     }
                 }, true);

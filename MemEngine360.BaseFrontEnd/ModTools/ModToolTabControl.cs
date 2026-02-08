@@ -20,7 +20,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using MemEngine360.ModTools;
-using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.ModTools;
 
@@ -34,8 +34,6 @@ public class ModToolTabControl : TabControl {
 
     protected override Type StyleKeyOverride => typeof(TabControl);
 
-    private ObservableItemProcessorIndexing<ModTool>? processor;
-    
     public ModToolTabControl() {
     }
 
@@ -45,29 +43,33 @@ public class ModToolTabControl : TabControl {
 
     private void OnModToolManagerChanged(ModToolManager? oldValue, ModToolManager? newValue) {
         if (oldValue != null) {
-            this.processor!.RemoveExistingItems();
-            this.processor!.Dispose();
-            this.processor = null;
+            oldValue.ToolAdded -= this.OnToolAdded;
+            oldValue.ToolRemoved -= this.OnToolRemoved;
+            oldValue.ToolMoved -= this.OnToolMoved;
+            ItemEventUtils.InvokeItems(oldValue.ModTools, null, this.OnToolRemoved, isAdding: false);
         }
-        
+
         if (newValue != null) {
-            this.processor = ObservableItemProcessor.MakeIndexable(newValue.ModTools, this.OnModToolAdded, this.OnModToolRemoved, this.OnModToolMoved);
-            this.processor.AddExistingItems();
+            newValue.ToolAdded += this.OnToolAdded;
+            newValue.ToolRemoved += this.OnToolRemoved;
+            newValue.ToolMoved += this.OnToolMoved;
+            ItemEventUtils.InvokeItems(newValue.ModTools, null, this.OnToolAdded, isAdding: true);
         }
     }
 
-    private void OnModToolAdded(object sender, int index, ModTool item) {
-        this.Items.Insert(index, new ModToolTabItem() {ModTool = item});
+    private void OnToolAdded(object? sender, ItemIndexEventArgs<ModTool> e) {
+        this.Items.Insert(e.Index, new ModToolTabItem() { ModTool = e.Item });
     }
-    
-    private void OnModToolRemoved(object sender, int index, ModTool item) {
-        ((ModToolTabItem) this.Items[index]!).ModTool = null;
-        this.Items.RemoveAt(index);
+
+    private void OnToolRemoved(object? sender, ItemIndexEventArgs<ModTool> e) {
+        ((ModToolTabItem) this.Items[e.Index]!).ModTool = null;
+        this.Items.RemoveAt(e.Index);
     }
-    
-    private void OnModToolMoved(object sender, int oldindex, int newindex, ModTool item) {
-        object? theTabItem = this.Items[oldindex];
-        this.Items.RemoveAt(oldindex);
-        this.Items.Insert(newindex, theTabItem);
+
+    private void OnToolMoved(object? sender, ItemMovedEventArgs<ModTool> e) {
+        object? oldItem = this.Items[e.OldIndex];
+        _ = this.Items[e.NewIndex];
+        this.Items.RemoveAt(e.OldIndex);
+        this.Items.Insert(e.NewIndex, oldItem);
     }
 }

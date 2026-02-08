@@ -19,7 +19,6 @@
 
 using MemEngine360.Connections;
 using MemEngine360.Engine;
-using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;

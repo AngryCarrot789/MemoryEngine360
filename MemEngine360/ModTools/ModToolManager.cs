@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using MemEngine360.Engine;
 using PFXToolKitUI;
@@ -24,14 +25,15 @@ using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
-using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.ModTools;
 
 public class ModToolManager : IComponentManager, IUserLocalContext {
     public static readonly DataKey<ModToolManager> DataKey = DataKeys.Create<ModToolManager>(nameof(ModToolManager));
 
-    private readonly ObservableList<ModTool> myModTools;
+    private readonly List<ModTool> myModTools;
     private readonly MenuEntryGroup modToolMenu;
     private readonly Dictionary<ModTool, BaseMenuEntry> toolToMenuEntry;
 
@@ -42,14 +44,17 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
     /// <summary>
     /// Gets the list of scripts
     /// </summary>
-    public ReadOnlyObservableList<ModTool> ModTools { get; }
+    public ReadOnlyCollection<ModTool> ModTools { get; }
 
     public MemoryEngine MemoryEngine { get; }
 
+    public event EventHandler<ItemIndexEventArgs<ModTool>>? ToolAdded, ToolRemoved; 
+    public event EventHandler<ItemMovedEventArgs<ModTool>>? ToolMoved; 
+
     public ModToolManager(MemoryEngine memoryEngine, MenuEntryGroup modToolMenu) {
         this.MemoryEngine = memoryEngine;
-        this.myModTools = new ObservableList<ModTool>();
-        this.ModTools = new ReadOnlyObservableList<ModTool>(this.myModTools);
+        this.myModTools = new List<ModTool>();
+        this.ModTools = this.myModTools.AsReadOnly();
         this.toolToMenuEntry = new Dictionary<ModTool, BaseMenuEntry>();
         this.modToolMenu = modToolMenu;
     }
@@ -60,11 +65,15 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
             throw new InvalidOperationException($"Mod tool already exists in another {nameof(ModToolManager)}");
 
         modTool.myManager = this;
-        this.myModTools.Add(modTool);
+
+        int index = this.myModTools.Count;
+        this.myModTools.Insert(index, modTool);
 
         ExecuteModToolMenuEntry menuEntry = ExecuteModToolMenuEntry.GetOrCreate(modTool);
         this.toolToMenuEntry[modTool] = menuEntry;
         this.modToolMenu.Items.Add(menuEntry);
+        
+        this.ToolAdded?.Invoke(this, new ItemIndexEventArgs<ModTool>(modTool, index));
     }
 
     public void RemoveModTool(ModTool modTool) {
@@ -75,15 +84,27 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
             throw new InvalidOperationException("Mod tool is running. It must be stopped first.");
         if (modTool.IsCompiling)
             throw new InvalidOperationException("Mod tool is compiling. It must be cancelled first.");
+        
+        int index = this.myModTools.IndexOf(modTool);
+        if (index == -1) {
+            Debug.Fail("Impossible");
+            return;
+        }
 
-        bool removed = this.myModTools.Remove(modTool);
-        Debug.Assert(removed);
+        this.myModTools.RemoveAt(index);
 
         modTool.myManager = null;
-        removed = this.toolToMenuEntry.Remove(modTool, out BaseMenuEntry? entry);
+        bool removed = this.toolToMenuEntry.Remove(modTool, out BaseMenuEntry? entry);
         Debug.Assert(removed);
         
         this.modToolMenu.Items.Remove(entry!);
+        this.ToolRemoved?.Invoke(this, new ItemIndexEventArgs<ModTool>(modTool, index));
+    }
+
+    public void MoveModTool(int oldIndex, int newIndex) {
+        ModTool item = this.myModTools[oldIndex];
+        this.myModTools.MoveItem(oldIndex, newIndex);
+        this.ToolMoved?.Invoke(this, new ItemMovedEventArgs<ModTool>(item, oldIndex, newIndex));
     }
 
     private sealed class ExecuteModToolMenuEntry : CustomMenuEntry {

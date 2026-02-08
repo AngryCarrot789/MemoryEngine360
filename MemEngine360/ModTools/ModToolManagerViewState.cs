@@ -17,13 +17,13 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Collections.ObjectModel;
 using PFXToolKitUI.Composition;
-using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.ModTools;
 
-public class ModToolManagerViewState {
+public class ModToolManagerViewState : IDisposable {
     /// <summary>
     /// Gets the task sequence manager for this state
     /// </summary>
@@ -41,40 +41,27 @@ public class ModToolManagerViewState {
 
     private ModToolManagerViewState(ModToolManager modToolManager) {
         this.ModToolManager = modToolManager;
-        this.ModToolManager.ModTools.ValidateRemove += this.SourceListValidateRemove;
-        this.ModToolManager.ModTools.ValidateReplace += this.SourceListValidateReplaced;
+        this.ModToolManager.ToolRemoved += this.ModToolManagerOnToolRemoved;
         if (this.ModToolManager.ModTools.Count > 0) {
             this.SelectedModTool = this.ModToolManager.ModTools[0];
         }
     }
 
-    private void SourceListValidateRemove(IObservableList<ModTool> observableList, int index, int count) {
-        if (observableList.Count - count == 0) {
+    private void ModToolManagerOnToolRemoved(object? sender, ItemIndexEventArgs<ModTool> e) {
+        ReadOnlyCollection<ModTool> list = this.ModToolManager.ModTools;
+        if (list.Count < 1) {
             this.SelectedModTool = null;
-            return;
         }
-
-        for (int i = 0; i < count; i++) {
-            if (observableList[index + i] == this.SelectedModTool) {
-                this.SelectedModTool = index > 0
-                    ? observableList[index - 1]
-                    : observableList[index + count];
-                return;
-            }
-        }
-    }
-
-    private void SourceListValidateReplaced(IObservableList<ModTool> observableList, int index, ModTool oldItem, ModTool newItem) {
-        if (this.SelectedModTool == oldItem) {
-            this.SelectedModTool = index > 0
-                ? observableList[index - 1]
-                : observableList.Count != 1
-                    ? observableList[index + 1]
-                    : null;
+        else if (list[e.Index] == this.SelectedModTool) {
+            this.SelectedModTool = e.Index > 0 ? list[e.Index - 1] : list[e.Index];
         }
     }
 
     public static ModToolManagerViewState GetInstance(ModToolManager manager) {
         return ((IComponentManager) manager).GetOrCreateComponent((t) => new ModToolManagerViewState((ModToolManager) t));
+    }
+
+    public void Dispose() {
+        this.ModToolManager.ToolRemoved -= this.ModToolManagerOnToolRemoved;
     }
 }

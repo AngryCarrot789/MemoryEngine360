@@ -80,6 +80,8 @@ public class ShowModulesCommand : BaseMemoryEngineCommand {
                 FocusPath = "ModuleViewerWindow"
             });
 
+            control.InternalWindow = window;
+
             window.Closed += static (s, args) => {
                 ((ModuleViewerView) ((IDesktopWindow) s!).Content!).XboxModuleManager = null;
                 ((ModuleViewerView) ((IDesktopWindow) s!).Content!).MemoryEngine = null;

@@ -18,7 +18,6 @@
 // 
 
 using MemEngine360.Sequencing.Conditions;
-using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.DataTransfer;

@@ -26,7 +26,9 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.XboxBase;
 using MemEngine360.XboxBase.Modules;
+using PFXToolKitUI.Activities;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils.Commands;
@@ -60,11 +62,12 @@ public partial class ModuleViewerView : UserControl {
 
     private ConsoleModule? selectedModule;
     private readonly AsyncRelayCommand dumpModuleMemoryCommand;
+    internal IDesktopWindow InternalWindow;
 
     public ModuleViewerView() {
         this.InitializeComponent();
         this.PART_ModuleListBox.SelectionChanged += this.OnSelectionChanged;
-        this.PART_CopyStuffToScanner.Click += PART_CopyStuffToScannerOnClick;
+        this.PART_CopyStuffToScanner.Click += this.PART_CopyStuffToScannerOnClick;
         this.shortNameBinder.AttachControl(this.PART_TB_ShortName);
         this.fullNameBinder.AttachControl(this.PART_TB_FullName);
         this.peModuleNameBinder.AttachControl(this.PART_TB_PEModuleName);
@@ -106,7 +109,15 @@ public partial class ModuleViewerView : UserControl {
             uint length = this.selectedModule.ModuleSize;
 
             DumpMemoryCommand.DumpMemoryTask task = new DumpMemoryCommand.DumpMemoryTask(engine, filePath, start, length, freezeResult == MessageBoxResult.Yes, token);
-            await task.Run();
+            ActivityTask activity = task.Run();
+            if (this.InternalWindow != null && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
+                await service.WaitForActivity(new WaitForActivityOptions(this.InternalWindow, activity, CancellationToken.None) {
+                   CanMinimizeIntoBackgroundActivity = true,
+                   CancelActivityOnCloseRequest = true
+                });
+            }
+
+            await activity; // in case user specified to run activity as a background activity or no foreground service available
             if (task.FileException != null || task.ConnectionException != null) {
                 StringBuilder sb = new StringBuilder();
                 if (task.ConnectionException != null) {

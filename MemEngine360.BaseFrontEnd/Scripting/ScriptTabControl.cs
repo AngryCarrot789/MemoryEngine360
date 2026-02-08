@@ -21,6 +21,7 @@ using Avalonia;
 using Avalonia.Controls;
 using MemEngine360.Scripting;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.Scripting;
 
@@ -45,29 +46,32 @@ public class ScriptTabControl : TabControl {
 
     private void OnScriptingManagerChanged(ScriptingManager? oldValue, ScriptingManager? newValue) {
         if (oldValue != null) {
-            this.processor!.RemoveExistingItems();
-            this.processor!.Dispose();
-            this.processor = null;
+            oldValue.ScriptAdded -= this.OnScriptAdded;
+            oldValue.ScriptRemoved -= this.OnScriptRemoved;
+            oldValue.ScriptMoved -= this.OnScriptMoved;
+            ItemEventUtils.InvokeItems(oldValue.Scripts, null, this.OnScriptRemoved, isAdding: false);
         }
-        
+
         if (newValue != null) {
-            this.processor = ObservableItemProcessor.MakeIndexable(newValue.Scripts, this.OnScriptAdded, this.OnScriptRemoved, this.OnScriptMoved);
-            this.processor.AddExistingItems();
+            newValue.ScriptAdded += this.OnScriptAdded;
+            newValue.ScriptRemoved += this.OnScriptRemoved;
+            newValue.ScriptMoved += this.OnScriptMoved;
+            ItemEventUtils.InvokeItems(newValue.Scripts, null, this.OnScriptAdded, isAdding: true);
         }
     }
 
-    private void OnScriptAdded(object sender, int index, Script item) {
-        this.Items.Insert(index, new ScriptTabItem() {Script = item});
+    private void OnScriptAdded(object? sender, ItemIndexEventArgs<Script> e) {
+        this.Items.Insert(e.Index, new ScriptTabItem() {Script = e.Item});
     }
     
-    private void OnScriptRemoved(object sender, int index, Script item) {
-        ((ScriptTabItem) this.Items[index]!).Script = null;
-        this.Items.RemoveAt(index);
+    private void OnScriptRemoved(object? sender, ItemIndexEventArgs<Script> e) {
+        ((ScriptTabItem) this.Items[e.Index]!).Script = null;
+        this.Items.RemoveAt(e.Index);
     }
     
-    private void OnScriptMoved(object sender, int oldindex, int newindex, Script item) {
-        object? theTabItem = this.Items[oldindex];
-        this.Items.RemoveAt(oldindex);
-        this.Items.Insert(newindex, theTabItem);
+    private void OnScriptMoved(object? sender, ItemMovedEventArgs<Script> e) {
+        object? theTabItem = this.Items[e.OldIndex];
+        this.Items.RemoveAt(e.OldIndex);
+        this.Items.Insert(e.NewIndex, theTabItem);
     }
 }

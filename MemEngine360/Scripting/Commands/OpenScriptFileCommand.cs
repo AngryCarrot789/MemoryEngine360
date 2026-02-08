@@ -75,7 +75,7 @@ public class OpenScriptFileCommand : Command {
         script.Document.Text = sourceCode;
         script.HasUnsavedChanges = false;
         
-        manager.ScriptingManager.Scripts.Add(script);
+        manager.ScriptingManager.AddScript(script);
         manager.SelectedScript = script;
     }
 }

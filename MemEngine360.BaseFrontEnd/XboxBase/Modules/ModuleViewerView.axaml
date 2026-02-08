@@ -176,7 +176,7 @@
                                 <DataGrid.Columns>
                                     <DataGridTextColumn x:DataType="{x:Type models:ConsoleModuleSection}" Width="40"
                                                         Header="Index" CanUserResize="False" IsReadOnly="True"
-                                                        Binding="{Binding Index, Mode=OneWay}"/>
+                                                        Binding="{Binding OldIndex, Mode=OneWay}"/>
 
                                     <c:DataGridTextColumnEx x:DataType="{x:Type models:ConsoleModuleSection}" Width="125"
                                                             Header="Name" CanUserResize="True" IsReadOnly="True"

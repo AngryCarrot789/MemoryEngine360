@@ -81,8 +81,6 @@ public class CloseScriptCommand : Command {
             return;
         }
 
-        if (script.Manager != null) {
-            script.Manager.Scripts.Remove(script);
-        }
+        script.Manager?.RemoveScript(script);
     }
 }

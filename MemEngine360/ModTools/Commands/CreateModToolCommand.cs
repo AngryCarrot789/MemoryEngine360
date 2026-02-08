@@ -17,9 +17,9 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Collections.ObjectModel;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Utils;
-using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.ModTools.Commands;
 
@@ -37,7 +37,7 @@ public class CreateModToolCommand : Command {
             return;
         }
 
-        ReadOnlyObservableList<ModTool> tools = manager.ModTools;
+        ReadOnlyCollection<ModTool> tools = manager.ModTools;
         ModTool tool = new ModTool();
         tool.SetCustomNameWithoutPath(TextIncrement.GetIncrementableString(x => tools.All(y => y.Name != x), "New tool", out string? output, true) ? output : "New tool");
         

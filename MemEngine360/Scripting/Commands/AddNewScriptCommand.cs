@@ -17,9 +17,9 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Collections.ObjectModel;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Utils;
-using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Scripting.Commands;
 
@@ -37,10 +37,10 @@ public class AddNewScriptCommand : Command {
             return;
         }
 
-        ObservableList<Script> scripts = manager.ScriptingManager.Scripts;
+        ReadOnlyCollection<Script> scripts = manager.ScriptingManager.Scripts;
         Script script = new Script();
         script.SetCustomNameWithoutPath(TextIncrement.GetIncrementableString(x => scripts.All(y => y.Name != x), "New Script", out string? output, true) ? output : "New Script");
-        scripts.Add(script);
+        manager.ScriptingManager.AddScript(script);
         manager.SelectedScript = script;
     }
 }

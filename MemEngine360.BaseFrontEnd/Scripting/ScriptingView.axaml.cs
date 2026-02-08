@@ -72,7 +72,6 @@ public partial class ScriptingView : UserControl {
     public ScriptingView() {
         this.InitializeComponent();
         this.PART_TabControl.SelectionChanged += this.PART_TabControlOnSelectionChanged;
-        this.PART_CodeEditor.TextChanged += this.PART_CodeEditorOnTextChanged;
         this.PART_CodeEditor.Options.ConvertTabsToSpaces = true;
         this.PART_CodeEditor.Options.CutCopyWholeLine = true;
 
@@ -148,12 +147,13 @@ public partial class ScriptingView : UserControl {
         this.myCompilationFailureMarkerService.Clear();
         if (e.OldValue != null) {
             e.OldValue.CompilationFailure -= this.OnScriptCompilationFailed;
+            this.PART_CodeEditor.TextChanged -= this.PART_CodeEditorOnTextChanged;
         }
 
         if (e.NewValue != null) {
             e.NewValue.CompilationFailure += this.OnScriptCompilationFailed;
-
             this.PART_CodeEditor.Document = GetScriptTextDocument(e.NewValue);
+            this.PART_CodeEditor.TextChanged += this.PART_CodeEditorOnTextChanged;
         }
         else {
             this.PART_CodeEditor.Document = new TextDocument();

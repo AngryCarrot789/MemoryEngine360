@@ -17,9 +17,9 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Collections.ObjectModel;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
-using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Scripting;
@@ -47,36 +47,19 @@ public class ScriptingManagerViewState {
     private ScriptingManagerViewState(ScriptingManager ScriptingManager, TopLevelIdentifier topLevelIdentifier) {
         this.ScriptingManager = ScriptingManager;
         this.TopLevelIdentifier = topLevelIdentifier;
-        this.ScriptingManager.Scripts.ValidateRemove += this.SourceListValidateRemove;
-        this.ScriptingManager.Scripts.ValidateReplace += this.SourceListValidateReplaced;
+        this.ScriptingManager.ScriptRemoved += this.ScriptingManagerOnScriptRemoved;
         if (this.ScriptingManager.Scripts.Count > 0) {
             this.SelectedScript = this.ScriptingManager.Scripts[0];
         }
     }
 
-    private void SourceListValidateRemove(IObservableList<Script> observableList, int index, int count) {
-        if (observableList.Count - count == 0) {
+    private void ScriptingManagerOnScriptRemoved(object? sender, ItemIndexEventArgs<Script> e) {
+        ReadOnlyCollection<Script> list = this.ScriptingManager.Scripts;
+        if (list.Count < 1) {
             this.SelectedScript = null;
-            return;
         }
-
-        for (int i = 0; i < count; i++) {
-            if (observableList[index + i] == this.SelectedScript) {
-                this.SelectedScript = index > 0
-                    ? observableList[index - 1]
-                    : observableList[index + count];
-                return;
-            }
-        }
-    }
-
-    private void SourceListValidateReplaced(IObservableList<Script> observableList, int index, Script oldItem, Script newItem) {
-        if (this.SelectedScript == oldItem) {
-            this.SelectedScript = index > 0
-                ? observableList[index - 1]
-                : observableList.Count != 1
-                    ? observableList[index + 1]
-                    : null;
+        else if (list[e.Index] == this.SelectedScript) {
+            this.SelectedScript = e.Index > 0 ? list[e.Index - 1] : list[e.Index];
         }
     }
 
