@@ -30,7 +30,11 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// <summary>
     /// Gets a list of drives
     /// </summary>
-    Task<List<DriveEntry>> GetDriveList();
+    /// <param name="needSizeInfo">True to assign <see cref="DriveEntry.FreeBytes"/> and <see cref="DriveEntry.TotalSize"/></param>
+    /// <returns>The list of drives</returns>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading</exception>
+    Task<List<DriveEntry>> GetDriveList(bool needSizeInfo = true);
 
     /// <summary>
     /// Gets a list of all file system entries within a directory, such as within a root obtained
@@ -38,12 +42,18 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// </summary>
     /// <param name="fullPath">Directory path</param>
     /// <returns>The entries</returns>
+    /// <exception cref="IOException">An IO exception occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading</exception>
+    /// <exception cref="FileSystemNoSuchDirectoryException">Directory does not exist or the path is null or empty</exception>
+    /// <exception cref="FileSystemAccessDeniedException">Access denied to the path</exception>
     Task<List<FileSystemEntry>> GetFileSystemEntries(string fullPath);
 
     /// <summary>
     /// Deletes a file system entry on the console. Returns false if attempting to delete a non-empty folder
     /// </summary>
     /// <param name="path">The path</param>
+    /// <exception cref="IOException">An IO exception occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading</exception>
     Task<bool> DeleteFileSystemEntry(string path);
     
     /// <summary>
@@ -51,6 +61,8 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// </summary>
     /// <param name="path">The path</param>
     /// <returns>True if the path was deleted successfully</returns>
+    /// <exception cref="IOException">An IO exception occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading</exception>
     async Task<bool> DeleteFileSystemEntryRecursive(string path) {
         // Try to delete the raw entry, hopefully it's a file.
         if (await this.DeleteFileSystemEntry(path)) {
@@ -79,18 +91,51 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// Launches an executable file, e.g. an XEX
     /// </summary>
     /// <param name="path"></param>
+    /// <exception cref="IOException">An IO exception occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading</exception>
     Task LaunchFile(string path);
     
     /// <summary>
     /// Moves a file from one location to another location.
     /// </summary>
+    /// <exception cref="IOException">An IO exception occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading</exception>
     Task MoveFile(string oldPath, string newPath);
     
     /// <summary>
     /// Creates a directory with the given path. All subdirectories will be created
     /// </summary>
+    /// <exception cref="IOException">An IO exception occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading</exception>
     Task CreateDirectory(string path);
 
+    /// <summary>
+    /// Downloads a file from the console and invokes the callback with the receives bytes
+    /// </summary>
+    /// <param name="filePath">The file path</param>
+    /// <param name="receiveCallback">The callback that is invoked with the received bytes.</param>
+    /// <param name="state">The state passed to the callback</param>
+    /// <returns>A task to await the download</returns>
+    Task DownloadFile(string filePath, ReceiveBinaryHandler receiveCallback, object? state);
+
+    /// <summary>
+    /// Uploads binary data to the console and writes it to the given file path
+    /// </summary>
+    /// <param name="filePath">The destination file</param>
+    /// <param name="totalLength"></param>
+    /// <param name="uploadCallback"></param>
+    /// <param name="state"></param>
+    /// <returns>A task to await the upload</returns>
+    Task UploadToFile(string filePath, int totalLength, UploadBinaryHandler uploadCallback, object? state);
+
+    /// <summary>
+    /// Uploads binary data to the console and writes it to the given file path
+    /// </summary>
+    /// <param name="filePath">The destination file</param>
+    /// <param name="memory">The memory</param>
+    /// <returns>A task to await the upload</returns>
+    Task UploadToFile(string filePath, Memory<byte> memory);
+    
     /// <summary>
     /// Gets the directory path from a path
     /// </summary>
@@ -123,6 +168,9 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// <returns></returns>
     char GetPathSeparatorChar();
 }
+
+public delegate void ReceiveBinaryHandler(object? state, ReadOnlySpan<byte> srcBuffer);
+public delegate int UploadBinaryHandler(object? state, int offset, Span<byte> dstBuffer);
 
 public struct FileSystemEntry {
     /// <summary>The name of this entry, i.e. file or folder name</summary>

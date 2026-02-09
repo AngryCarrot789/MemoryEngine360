@@ -64,7 +64,7 @@ public class DeleteFilesCommand : BaseFileExplorerCommand {
 
                 MessageBoxInfo info = new MessageBoxInfo {
                     Caption = $"Delete {paths.Count} item{Lang.S(paths.Count)}",
-                    Message = "Delete these items and all of their contents?" + Environment.NewLine + string.Join(Environment.NewLine, paths),
+                    Message = "Delete the selection?" + Environment.NewLine + string.Join(Environment.NewLine, paths),
                     YesOkText = "Delete",
                     Buttons = MessageBoxButtons.OKCancel
                 };

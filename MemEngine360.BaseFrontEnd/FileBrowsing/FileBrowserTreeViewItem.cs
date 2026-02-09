@@ -244,6 +244,9 @@ public static class FileBrowserTreeContextRegistry {
         modGeneric.AddCommand("commands.memengine.CreateDirectoryInDirectoryCommand", "Create directory...");
         modGeneric.AddCommand("commands.memengine.RenameFileCommand", "Rename...", "Rename this item");
         modGeneric.AddSeparator();
+        modGeneric.AddCommand("commands.memengine.DownloadFileCommand", "Download...", "Downloads the file to your system");
+        modGeneric.AddCommand("commands.memengine.UploadFileCommand", "Upload files...", "Uploads one or more files to the console");
+        modGeneric.AddSeparator();
         modGeneric.AddCommand("commands.memengine.LaunchFileCommand", "Launch File", "Launches the file");
         modGeneric.AddCommand("commands.memengine.MoveFileCommand", "Move...", "Open a dialog to specify a new path");
         modGeneric.AddSeparator();

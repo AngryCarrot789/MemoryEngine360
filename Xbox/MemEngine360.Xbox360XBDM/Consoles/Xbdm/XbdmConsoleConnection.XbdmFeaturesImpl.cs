@@ -23,10 +23,12 @@ using System.Net;
 using System.Text;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
+using MemEngine360.Engine;
 using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.Events;
 using MemEngine360.XboxBase;
 using MemEngine360.XboxBase.Modules;
+using PFXToolKitUI.Utils;
 using ConsoleColor = MemEngine360.Connections.Features.ConsoleColor;
 
 namespace MemEngine360.Xbox360XBDM.Consoles.Xbdm;
@@ -64,7 +66,7 @@ public partial class XbdmConsoleConnection {
             return state == XboxExecutionState.Stop;
         }
 
-        public async Task<List<DriveEntry>> GetDriveList() {
+        public async Task<List<DriveEntry>> GetDriveList(bool needSizeInfo = true) {
             List<DriveEntry> drives = new List<DriveEntry>();
             List<string> list = await this.connection.SendCommandAndReceiveLines("drivelist").ConfigureAwait(false);
             foreach (string drive in list) {
@@ -73,20 +75,22 @@ public partial class XbdmConsoleConnection {
                 }
 
                 DriveEntry entry = new DriveEntry { Name = driveName + ':' };
-                List<string> freeSpaceResponse = await this.connection.SendCommandAndReceiveLines($"drivefreespace name=\"{entry.Name}\\\"");
-                if (freeSpaceResponse.Count == 1) {
-                    if (ParamUtils.GetDwParam(freeSpaceResponse[0], "totalbyteslo", true, out uint lo) &&
-                        ParamUtils.GetDwParam(freeSpaceResponse[0], "totalbyteshi", true, out uint hi)) {
-                        entry.TotalSize = ((ulong) hi << 32) | lo;
-                    }
+                drives.Add(entry);
 
-                    if (ParamUtils.GetDwParam(freeSpaceResponse[0], "totalfreebyteslo", true, out lo) &&
-                        ParamUtils.GetDwParam(freeSpaceResponse[0], "totalfreebyteshi", true, out hi)) {
-                        entry.FreeBytes = ((ulong) hi << 32) | lo;
+                if (needSizeInfo) {
+                    List<string> freeSpaceResponse = await this.connection.SendCommandAndReceiveLines($"drivefreespace name=\"{entry.Name}\\\"");
+                    if (freeSpaceResponse.Count == 1) {
+                        if (ParamUtils.GetDwParam(freeSpaceResponse[0], "totalbyteslo", true, out uint lo) &&
+                            ParamUtils.GetDwParam(freeSpaceResponse[0], "totalbyteshi", true, out uint hi)) {
+                            entry.TotalSize = ((ulong) hi << 32) | lo;
+                        }
+
+                        if (ParamUtils.GetDwParam(freeSpaceResponse[0], "totalfreebyteslo", true, out lo) &&
+                            ParamUtils.GetDwParam(freeSpaceResponse[0], "totalfreebyteshi", true, out hi)) {
+                            entry.FreeBytes = ((ulong) hi << 32) | lo;
+                        }
                     }
                 }
-
-                drives.Add(entry);
             }
 
             return drives;
@@ -163,6 +167,74 @@ public partial class XbdmConsoleConnection {
 
         public async Task CreateDirectory(string path) {
             await this.connection.SendCommand($"mkdir name=\"{path}\"").ConfigureAwait(false);
+        }
+
+        public async Task DownloadFile(string filePath, ReceiveBinaryHandler receiveCallback, object? state) {
+            XbdmResponse response = await this.connection.SendCommand($"getfile name=\"{filePath}\"").ConfigureAwait(false);
+            if (response.ResponseType == XbdmResponseType.AccessDenied) {
+                throw new FileSystemAccessDeniedException($"Access denied to path or not a file: {filePath}");
+            }
+
+            VerifyResponse("getfile", response.ResponseType, XbdmResponseType.BinaryResponse);
+            int length;
+            using (ArrayPools.Rent(sizeof(int), out byte[] array)) {
+                await this.connection.ReadFromBufferOrStreamAsync(array, 0, sizeof(int), CancellationToken.None);
+                length = MemoryEngine.ReadValueFromBytes<int>(array.AsSpan(0, sizeof(int)), isBufferLittleEndian: true /* this value is always LE...??? */);
+            }
+
+            using ErrorList errorList = new ErrorList("One or more exceptions during receive callback");
+            int chunkSize = Math.Min(65536, length); // use the smallest reasonable buffer size
+            using (ArrayPools.Rent(chunkSize, out byte[] array)) {
+                while (length > 0) {
+                    int read = Math.Min(length, chunkSize);
+                    await this.connection.ReadFromBufferOrStreamAsync(array, 0, read, CancellationToken.None);
+                    try {
+                        receiveCallback(state, array.AsSpan(0, read));
+                    }
+                    catch (Exception e) {
+                        errorList.Add(e);
+                    }
+
+                    length -= read;
+                }
+            }
+        }
+
+        public async Task UploadToFile(string filePath, int totalLength, UploadBinaryHandler uploadCallback, object? state) {
+            await this.SendCommand_SendFile(filePath, totalLength);
+            int total = 0;
+            const int MaxSize = 0x10000;
+            using (ArrayPools.Rent(MaxSize, out byte[] array)) {
+                while (total < totalLength) {
+                    int read = uploadCallback(state, total, array.AsSpan(0, MaxSize));
+                    await this.connection.InternalWriteBytesWithThrowHelper(array.AsMemory(0, read));
+                    total += read;
+                }
+            }
+
+            XbdmResponse result = await this.connection.InternalReadResponse();
+            if (result.ResponseType != XbdmResponseType.SingleResponse) {
+                throw new IOException("Xbox did not respond with OK after uploading file");
+            }
+        }
+
+        public async Task UploadToFile(string filePath, Memory<byte> memory) {
+            await this.SendCommand_SendFile(filePath, memory.Length);
+            await this.connection.InternalWriteBytesWithThrowHelper(memory);
+            XbdmResponse result = await this.connection.InternalReadResponse();
+            if (result.ResponseType != XbdmResponseType.SingleResponse) {
+                throw new IOException("Xbox did not respond with OK after uploading file");
+            }
+        }
+
+        private async Task SendCommand_SendFile(string filePath, int totalLength) {
+            XbdmResponse response = await this.connection.SendCommand($"sendfile name=\"{filePath}\" length=0x{totalLength:X8}").ConfigureAwait(false);
+            if (response.ResponseType == XbdmResponseType.FileCannotBeCreated)
+                throw new FileSystemAccessDeniedException($"Cannot create file. Does a directory with the same name exist? Path: {filePath}");
+            if (response.ResponseType == XbdmResponseType.AccessDenied)
+                throw new FileSystemAccessDeniedException($"Cannot upload to a directory: {filePath}");
+            if (response.ResponseType != XbdmResponseType.ReadyForBinary)
+                throw new IOException("Could not upload file. Console responded with: " + response.RawMessage);
         }
 
         public string GetDirectoryPath(string path) {
@@ -256,10 +328,8 @@ public partial class XbdmConsoleConnection {
                     strType = "write";
                     break;
                 case XboxBreakpointType.OnReadOrWrite: strType = "read"; break;
-                case XboxBreakpointType.OnExecute:
-                    strType = "execute";
-                    break;
-                default: throw new ArgumentOutOfRangeException(nameof(type), type, null);
+                case XboxBreakpointType.OnExecute:     strType = "execute"; break;
+                default:                               throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
 
             await this.connection.SendCommand($"debugger connect override name=\"MemoryEngine360\" user=\"{Environment.MachineName}\"");

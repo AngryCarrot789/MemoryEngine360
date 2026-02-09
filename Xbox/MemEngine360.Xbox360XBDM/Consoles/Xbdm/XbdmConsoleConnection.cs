@@ -246,6 +246,8 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
     /// <param name="command">The command to send</param>
     /// <returns></returns>
     /// <exception cref="Exception">No such command or response was not a multi-line response</exception>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading</exception>
     public async Task<List<string>> SendCommandAndReceiveLines(string command) {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
@@ -263,6 +265,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         return await this.InternalReadMultiLineResponse();
     }
 
+    // Throws: IOException, TimeoutException
     private async Task<List<string>> InternalReadMultiLineResponse() {
         List<string> list = new List<string>();
 
@@ -503,7 +506,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         }
 
         this.FillGetMemCommandBuffer(address, (uint) count);
-        await this.InternalWriteBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
+        await this.InternalWriteBytesWithThrowHelper(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
         XbdmResponse response = await this.InternalReadResponse().ConfigureAwait(false);
         VerifyResponse("getmem", response.ResponseType, XbdmResponseType.MultiResponse);
 
@@ -558,7 +561,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
 
     private async Task OldReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
         this.FillGetMemCommandBuffer(address, (uint) count);
-        await this.InternalWriteBytes(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
+        await this.InternalWriteBytesWithThrowHelper(this.sharedGetMemCommandBuffer).ConfigureAwait(false);
         XbdmResponse response = await this.InternalReadResponse().ConfigureAwait(false);
         VerifyResponse("getmem", response.ResponseType, XbdmResponseType.MultiResponse);
         int cbRead = 0;
@@ -595,12 +598,12 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
 
         XbdmResponse response = await this.InternalSendCommand($"getmemex addr=0x{address:X8} length=0x{count:X8}").ConfigureAwait(false);
         VerifyResponse("getmemex", response.ResponseType, XbdmResponseType.BinaryResponse);
-
+        
         int statusFlag = 0, cbReadTotal = 0;
         do {
             if (statusFlag != 0) { // Most likely reading invalid/protected memory
                 dstBuffer.AsSpan(offset + cbReadTotal, count).Clear();
-                return;
+                break;
             }
 
             await this.ReadFromBufferOrStreamAsync(this.sharedTwoByteArray, 0, 2);
@@ -625,13 +628,19 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        const int BufferSize = 1024;
-        using MemoryStream memoryStream = new MemoryStream(BufferSize);
+        using MemoryStream memoryStream = new MemoryStream(4096);
+        await this.InternalReceiveBinary(static (ms, span) => ((MemoryStream) ms!).Write(span), memoryStream);
+        
+        return memoryStream.ToArray();
+    }
+
+    internal async Task InternalReceiveBinary(Action<object?, Span<byte>> receiveCallback, object? state) {
+        const int BufferSize = 4096;
         using var _ = ArrayPools.Rent(BufferSize, out byte[] array);
 
         int statusFlag;
         do {
-            await this.ReadFromBufferOrStreamAsync(this.sharedTwoByteArray, 0, 2, cancellation);
+            await this.ReadFromBufferOrStreamAsync(this.sharedTwoByteArray, 0, 2, CancellationToken.None);
 
             int header = MemoryMarshal.Read<ushort>(new ReadOnlySpan<byte>(this.sharedTwoByteArray, 0, 2));
             int chunkSize = header & 0x7FFF;
@@ -642,12 +651,10 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
             
             for (int count = chunkSize; count > 0; count -= BufferSize) {
                 int read = Math.Min(count, BufferSize);
-                await this.ReadFromBufferOrStreamAsync(array, 0, read, cancellation);
-                memoryStream.Write(array, 0, read);
+                await this.ReadFromBufferOrStreamAsync(array, 0, read, CancellationToken.None);
+                receiveCallback(state, array.AsSpan(0, read));
             }
         } while (statusFlag == 0);
-
-        return memoryStream.ToArray();
     }
 
     protected override async Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
@@ -655,7 +662,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         while (count > 0) {
             int cbToWrite = Math.Min(count, 64 /* Fixed Chunk Size */);
             this.FillSetMemCommandBuffer(address + (uint) cbReadTotal, srcBuffer, offset + cbReadTotal, cbToWrite);
-            await this.InternalWriteBytes(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, 30 + (cbToWrite << 1))).ConfigureAwait(false);
+            await this.InternalWriteBytesWithThrowHelper(new ReadOnlyMemory<byte>(this.sharedSetMemCommandBuffer, 0, 30 + (cbToWrite << 1))).ConfigureAwait(false);
             XbdmResponse response = await this.InternalReadResponse().ConfigureAwait(false);
             if (response.ResponseType != XbdmResponseType.SingleResponse && response.ResponseType != XbdmResponseType.MemoryNotMapped) {
                 VerifyResponse("setmem", response.ResponseType, XbdmResponseType.SingleResponse);
@@ -681,10 +688,10 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         if (!command.EndsWith("\r\n", StringComparison.Ordinal))
             command += "\r\n";
 
-        return this.InternalWriteBytes(Encoding.ASCII.GetBytes(command));
+        return this.InternalWriteBytesWithThrowHelper(Encoding.ASCII.GetBytes(command));
     }
 
-    private async ValueTask InternalWriteBytes(ReadOnlyMemory<byte> buffer) {
+    private async ValueTask InternalWriteBytesWithThrowHelper(ReadOnlyMemory<byte> buffer) {
         try {
             await this.client.GetStream().WriteAsync(buffer).ConfigureAwait(false);
         }
@@ -694,6 +701,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         }
     }
 
+    // Throws: IOException, TimeoutException
     private async Task<XbdmResponse> InternalSendCommand(string command) {
         await this.InternalWriteCommand(command).ConfigureAwait(false);
         return await this.InternalReadResponse().ConfigureAwait(false);
@@ -1052,7 +1060,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
             throw InvalidResponseException.ForCommand(commandName, actual, expected);
         }
     }
-
+    
     public IDisposable SubscribeToEvents(EventHandler<ConsoleSystemEventArgs> handler) {
         ArgumentNullException.ThrowIfNull(handler);
         if (this.isEventConnection)
