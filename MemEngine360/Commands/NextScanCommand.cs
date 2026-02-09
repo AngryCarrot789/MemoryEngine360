@@ -20,6 +20,7 @@
 using MemEngine360.Engine;
 using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
+using PFXToolKitUI.Utils.Collections.Observable;
 
 namespace MemEngine360.Commands;
 
@@ -34,12 +35,15 @@ public class NextScanCommand : BaseMemoryEngineCommand {
             
             // Save original selection state
             List<ScanResultViewModel> selection = state.SelectedScanResults.SelectedItems.ToList();
+            state.SelectedScanResults.DeselectAll();
             
             await engine.ScanningProcessor.ScanFirstOrNext();
             
             // Try to restore any items that still exist, since their references will
             // be maintained unless for some reason the ScanningContext is kerfuckled
-            state.SelectedScanResults.SelectItems(selection);
+
+            ObservableList<ScanResultViewModel> srcList = state.Engine.ScanningProcessor.ScanResults;
+            state.SelectedScanResults.SelectItems(selection.Where(x => srcList.Contains(x)));
         }
     }
 }
