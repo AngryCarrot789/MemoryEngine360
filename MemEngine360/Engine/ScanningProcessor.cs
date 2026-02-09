@@ -814,7 +814,7 @@ public class ScanningProcessor {
                 foreach (ScanResultRefreshEntry entry in resultList)
                     fragmentSet.Add(entry.MemorySpan);
 
-                FragmentedMemoryBuffer memoryBuffer = await MemoryEngine.CreateMemoryView(connection, fragmentSet, cancellationToken: token);
+                FragmentedMemoryBuffer memoryBuffer = await MemoryEngine.CreateMemoryView(connection, fragmentSet, default, cancellationToken: token);
                 if (savedList != null) {
                     foreach (AddressTableRefreshEntry re in ateList) {
                         token.ThrowIfCancellationRequested();

@@ -774,45 +774,56 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// </param>
     /// <param name="cancellationToken">Signals to stop the read process.</param>
     /// <returns>The buffer</returns>
-    public static async Task<FragmentedMemoryBuffer> CreateMemoryView(IConsoleConnection connection, IntegerSet<uint> ranges, int maximumBufferSize = 65536, CancellationToken cancellationToken = default) {
+    public static async Task<FragmentedMemoryBuffer> CreateMemoryView(IConsoleConnection connection, IntegerSet<uint> ranges, ReadFragmentExtraArgs args, int maximumBufferSize = 65536, CancellationToken cancellationToken = default) {
         FragmentedMemoryBuffer memoryBuffer = new FragmentedMemoryBuffer();
-        await ReadMemoryView(memoryBuffer, connection, ranges, maximumBufferSize, cancellationToken).ConfigureAwait(false);
+        await ReadMemoryView(memoryBuffer, connection, ranges, args, maximumBufferSize, cancellationToken).ConfigureAwait(false);
         return memoryBuffer;
     }
 
     /// <summary>
     /// Main implementation of <see cref="CreateMemoryView"/>
     /// </summary>
-    public static async Task ReadMemoryView(FragmentedMemoryBuffer memoryBuffer, IConsoleConnection connection, IntegerSet<uint> ranges, int maximumBufferSize = 65536, CancellationToken cancellationToken = default) {
+    public static async Task ReadMemoryView(FragmentedMemoryBuffer dstBuffer, IConsoleConnection connection, IntegerSet<uint> ranges, ReadFragmentExtraArgs args, int maximumBufferSize = 65536, CancellationToken cancellationToken = default) {
         int maximumBuffer = connection.GetRecommendedReadChunkSize(maximumBufferSize);
         using (ArrayPools.Rent(maximumBuffer, out byte[] buffer)) {
-            PopCompletionStateRangeToken? popToken = null;
-            if (ActivityManager.Instance.TryGetCurrentTask(out ActivityTask? task)) {
-                popToken = task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / ranges.GrandTotal);
-            }
+            using IntegerSet<uint>.Enumerator enumerator = ranges.GetEnumerator();
+            for (int index = 0; enumerator.MoveNext(); index++) {
+                IntegerRange<uint> range = enumerator.Current;
+                cancellationToken.ThrowIfCancellationRequested();
 
-            using (popToken) {
-                foreach (IntegerRange<uint> range in ranges) {
+                // Just in case the range's length exceeds int.MaxValue, and also to maximize
+                // memory efficiency using the largest but still small buffer that the connection
+                // can handle, we read in chunks of maximumBuffer
+                for (uint i = 0; i < range.Length; i += (uint) maximumBuffer) {
                     cancellationToken.ThrowIfCancellationRequested();
+                    int length = Math.Min(maximumBuffer, (int) (range.Length - i));
+                    await connection.ReadBytes(range.Start, buffer, 0, length);
 
-                    // Just in case the range's length exceeds int.MaxValue, and also to maximize
-                    // memory efficiency using the largest but still small buffer that the connection
-                    // can handle, we read in chunks of maximumBuffer
-                    for (int i = 0; i < range.Length; i += maximumBuffer) {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        int length = Math.Min(maximumBuffer, (int) (range.Length - (uint) i));
-                        await connection.ReadBytes(range.Start, buffer, 0, length);
+                    bool lockTaken = false;
+                    try {
+                        if (args.Lock != null)
+                            Monitor.Enter(args.Lock, ref lockTaken);
 
-                        lock (memoryBuffer) {
-                            memoryBuffer.Write(range.Start, buffer.AsSpan(0, length));
-                        }
-
-                        task?.Progress.CompletionState.OnProgress(length);
+                        dstBuffer.Write(range.Start, buffer.AsSpan(0, length));
                     }
+                    finally {
+                        if (lockTaken)
+                            Monitor.Exit(args.Lock!);
+                    }
+
+                    args.DataDownload?.Invoke(args.DataDownloadState, index, IntegerRange.FromStartAndLength(range.Start + i, (uint) length));
                 }
             }
         }
     }
+}
+
+public readonly struct ReadFragmentExtraArgs {
+    public object? Lock { get; init; }
+
+    public object? DataDownloadState { get; init; }
+
+    public Action<object?, int, IntegerRange<uint>>? DataDownload { get; init; }
 }
 
 public enum NumericDisplayType {
