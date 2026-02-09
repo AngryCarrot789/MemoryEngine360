@@ -563,6 +563,7 @@ public class ScanningProcessor {
                                         result = false;
                                     }
                                     catch (Exception e) {
+                                        Debugger.Break();
                                         await IMessageDialogService.Instance.ShowExceptionMessage("Unexpected Error", "Error performing next scan.", e);
                                         result = false;
                                     }
@@ -603,6 +604,7 @@ public class ScanningProcessor {
                                 result = false;
                             }
                             catch (Exception e) {
+                                Debugger.Break();
                                 await IMessageDialogService.Instance.ShowExceptionMessage("Unexpected Error", "Error performing first scan.", e);
                                 result = false;
                             }

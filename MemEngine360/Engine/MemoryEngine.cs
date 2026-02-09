@@ -786,17 +786,29 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     public static async Task ReadMemoryView(FragmentedMemoryBuffer memoryBuffer, IConsoleConnection connection, IntegerSet<uint> ranges, int maximumBufferSize = 65536, CancellationToken cancellationToken = default) {
         int maximumBuffer = connection.GetRecommendedReadChunkSize(maximumBufferSize);
         using (ArrayPools.Rent(maximumBuffer, out byte[] buffer)) {
-            foreach (IntegerRange<uint> range in ranges) {
-                cancellationToken.ThrowIfCancellationRequested();
+            PopCompletionStateRangeToken? popToken = null;
+            if (ActivityManager.Instance.TryGetCurrentTask(out ActivityTask? task)) {
+                popToken = task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / ranges.GrandTotal);
+            }
 
-                // Just in case the range's length exceeds int.MaxValue, and also to maximize
-                // memory efficiency using the largest but still small buffer that the connection
-                // can handle, we read in chunks of maximumBuffer
-                for (int i = 0; i < range.Length; i += maximumBuffer) {
+            using (popToken) {
+                foreach (IntegerRange<uint> range in ranges) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    int length = Math.Min(maximumBuffer, (int) (range.Length - (uint) i));
-                    await connection.ReadBytes(range.Start, buffer, 0, length);
-                    memoryBuffer.Write(range.Start, buffer.AsSpan(0, length));
+
+                    // Just in case the range's length exceeds int.MaxValue, and also to maximize
+                    // memory efficiency using the largest but still small buffer that the connection
+                    // can handle, we read in chunks of maximumBuffer
+                    for (int i = 0; i < range.Length; i += maximumBuffer) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        int length = Math.Min(maximumBuffer, (int) (range.Length - (uint) i));
+                        await connection.ReadBytes(range.Start, buffer, 0, length);
+
+                        lock (memoryBuffer) {
+                            memoryBuffer.Write(range.Start, buffer.AsSpan(0, length));
+                        }
+
+                        task?.Progress.CompletionState.OnProgress(length);
+                    }
                 }
             }
         }

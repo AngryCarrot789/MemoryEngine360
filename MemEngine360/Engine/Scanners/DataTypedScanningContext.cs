@@ -530,167 +530,228 @@ public sealed class DataTypedScanningContext : ScanningContext {
     internal override async Task PerformNextScan(IConsoleConnection connection, List<ScanResultViewModel> srcList, Reference<IBusyToken?> busyTokenRef) {
         ActivityTask task = ActivityTask.Current;
         if (this.dataType.IsNumeric()) {
-            using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
-                byte[] buffer = new byte[this.cbDataType];
+            await this.PerformNextScanForNumeric(connection, srcList, task);
+        }
+        else if (this.dataType == DataType.String) {
+            await this.PerformNextScanForString(connection, srcList, task);
+        }
+        else if (this.dataType == DataType.ByteArray) {
+            await this.PerformNextScanForByteArray(connection, srcList, task);
+        }
+        else {
+            Debug.Fail("Missing data type");
+        }
+    }
 
-                IntegerSet<uint> set = new IntegerSet<uint>();
-                task.Progress.Text = "Computing fragment buffer...";
-                foreach (ScanResultViewModel result in srcList) {
-                    task.ThrowIfCancellationRequested();
-                    set.Add(IntegerRange.FromStartAndLength(result.Address, (uint) buffer.Length));
-                }
+    private async Task PerformNextScanForNumeric(IConsoleConnection connection, List<ScanResultViewModel> srcList, ActivityTask task) {
+        byte[] buffer = new byte[this.cbDataType];
 
-                FragmentedMemoryBuffer memoryBuffer = await MemoryEngine.CreateMemoryView(connection, set, cancellationToken: task.CancellationToken);
+        task.Progress.CompletionState.SetProgress(0.0);
+        IntegerSet<uint> set = new IntegerSet<uint>();
+        task.Progress.Text = "Computing fragment buffer...";
+        foreach (ScanResultViewModel result in srcList) {
+            task.ThrowIfCancellationRequested();
+            set.Add(IntegerRange.FromStartAndLength(result.Address, (uint) buffer.Length));
+        }
 
-                for (int i = 0; i < srcList.Count; i++) {
-                    task.ThrowIfCancellationRequested();
-                    task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
-                    task.Progress.CompletionState.OnProgress(1.0);
+        task.Progress.Text = $"Reading {set.Ranges.Count} fragments ({ValueScannerUtils.ByteFormatter.ToString(set.GrandTotal, false)})...";
+        FragmentedMemoryBuffer memoryBuffer = new FragmentedMemoryBuffer();
+        Task readTask = MemoryEngine.ReadMemoryView(memoryBuffer, connection, set, 65536, task.CancellationToken);
 
-                    ScanResultViewModel res = srcList[i];
-                    int read = memoryBuffer.Read(res.Address, buffer);
-                    Debug.Assert(read == buffer.Length);
+        int hasReadCompleted = 0;
+        _ = Task.Run(async () => {
+            try {
+                await readTask;
+            }
+            catch {
+                // ignored
+            }
+            finally {
+                hasReadCompleted = 1;
+            }
+        });
 
-                    IDataValue? match;
-                    if (this.evaluator != null) {
-                        match = this.RunEvaluator(buffer, res);
+        PopCompletionStateRangeToken? range = null;
+        try {
+            LinkedList<ScanResultViewModel> results = new LinkedList<ScanResultViewModel>(srcList);
+            while (results.First != null) {
+                LinkedListNode<ScanResultViewModel>? node = results.First;
+                while (node != null) {
+                    if (Interlocked.CompareExchange(ref hasReadCompleted, 2, 1) == 1) {
+                        task.Progress.Text = "Processing values";
+                        task.Progress.CompletionState.SetProgress(0.0);
+                        range = task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count);
+                        if (srcList.Count != results.Count)
+                            task.Progress.CompletionState.OnProgress(srcList.Count - results.Count);
                     }
-                    else {
-                        ulong searchA, searchB = 0;
-                        if (this.nextScanUsesFirstValue) {
-                            searchA = GetNumericDataValueAsULong(res.FirstValue);
-                        }
-                        else if (this.nextScanUsesPreviousValue) {
-                            searchA = GetNumericDataValueAsULong(res.PreviousValue);
+                    
+                    ScanResultViewModel result = node.Value;
+
+                    task.ThrowIfCancellationRequested();
+                    if (hasReadCompleted == 2)
+                        task.Progress.CompletionState.OnProgress(1.0);
+
+                    int read;
+                    lock (memoryBuffer) {
+                        read = memoryBuffer.Read(result.Address, buffer);
+                    }
+
+                    if (read >= buffer.Length) {
+                        IDataValue? match;
+                        if (this.evaluator != null) {
+                            match = this.RunEvaluator(buffer, result);
                         }
                         else {
-                            searchA = this.numericInputA;
-                            searchB = this.numericInputB;
+                            ulong searchA, searchB = 0;
+                            if (this.nextScanUsesFirstValue) {
+                                searchA = GetNumericDataValueAsULong(result.FirstValue);
+                            }
+                            else if (this.nextScanUsesPreviousValue) {
+                                searchA = GetNumericDataValueAsULong(result.PreviousValue);
+                            }
+                            else {
+                                searchA = this.numericInputA;
+                                searchB = this.numericInputB;
+                            }
+
+                            switch (this.dataType) {
+                                case DataType.Byte:   match = this.CompareInt<byte>(buffer, searchA, searchB); break;
+                                case DataType.Int16:  match = this.CompareInt<short>(buffer, searchA, searchB); break;
+                                case DataType.Int32:  match = this.CompareInt<int>(buffer, searchA, searchB); break;
+                                case DataType.Int64:  match = this.CompareInt<long>(buffer, searchA, searchB); break;
+                                case DataType.Float:  match = this.CompareFloat<float>(buffer, searchA, searchB); break;
+                                case DataType.Double: match = this.CompareFloat<double>(buffer, searchA, searchB); break;
+                                default:              throw new ArgumentOutOfRangeException();
+                            }
                         }
 
-                        switch (this.dataType) {
-                            case DataType.Byte:   match = this.CompareInt<byte>(buffer, searchA, searchB); break;
-                            case DataType.Int16:  match = this.CompareInt<short>(buffer, searchA, searchB); break;
-                            case DataType.Int32:  match = this.CompareInt<int>(buffer, searchA, searchB); break;
-                            case DataType.Int64:  match = this.CompareInt<long>(buffer, searchA, searchB); break;
-                            case DataType.Float:  match = this.CompareFloat<float>(buffer, searchA, searchB); break;
-                            case DataType.Double: match = this.CompareFloat<double>(buffer, searchA, searchB); break;
-                            default:              throw new ArgumentOutOfRangeException();
+                        if (match != null) {
+                            result.CurrentValue = result.PreviousValue = match;
+                            this.ResultFound?.Invoke(this, result);
                         }
+
+                        LinkedListNode<ScanResultViewModel>? nextNode = node.Next;
+                        results.Remove(node);
+                        node = nextNode;
                     }
+                    else {
+                        node = node.Next;
+                    }
+                }
 
-                    if (match != null) {
-                        res.CurrentValue = res.PreviousValue = match;
+                // Wait some time for the download to get some more data
+                if (!readTask.IsCompleted) {
+                    await Task.WhenAny(readTask, Task.Delay(100));
+                }
+            }
+        }
+        finally {
+            range?.Dispose();
+        }
+    }
+
+    private async Task PerformNextScanForString(IConsoleConnection connection, List<ScanResultViewModel> srcList, ActivityTask task) {
+        using PopCompletionStateRangeToken _ = task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count);
+
+        Encoding encoding = this.stringType.ToEncoding(this.isConnectionLittleEndian);
+        bool useInputValue = !this.nextScanUsesFirstValue && !this.nextScanUsesPreviousValue;
+        int cbInputValue = useInputValue ? encoding.GetMaxByteCount(this.inputA.Length) : 0;
+        byte[]? inputByteBuffer = useInputValue ? new byte[cbInputValue] : null;
+        char[]? inputCharBuffer = useInputValue ? new char[encoding.GetMaxCharCount(cbInputValue)] : null;
+        for (int i = 0; i < srcList.Count; i++) {
+            task.ThrowIfCancellationRequested();
+            task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
+            task.Progress.CompletionState.OnProgress(1.0);
+
+            ScanResultViewModel res = srcList[i];
+            string search;
+            int cbSearchTerm;
+            byte[] dstByteBuffer;
+            char[] dstCharBuffer;
+            if (useInputValue) {
+                search = this.inputA;
+                cbSearchTerm = cbInputValue;
+                dstByteBuffer = inputByteBuffer!;
+                dstCharBuffer = inputCharBuffer!;
+            }
+            else {
+                if (this.nextScanUsesFirstValue) {
+                    search = ((DataValueString) res.FirstValue).Value;
+                }
+                else {
+                    Debug.Assert(this.nextScanUsesPreviousValue);
+                    search = ((DataValueString) res.PreviousValue).Value;
+                }
+
+                cbSearchTerm = encoding.GetMaxByteCount(search.Length);
+                dstByteBuffer = new byte[cbSearchTerm];
+                dstCharBuffer = new char[encoding.GetMaxCharCount(cbSearchTerm)];
+            }
+
+            // int cchBuffer = this.StringType.ToEncoding().GetChars(memory, this.charBuffer.AsSpan());
+
+            await connection.ReadBytes(res.Address, dstByteBuffer, 0, cbSearchTerm);
+            if (encoding.TryGetChars(dstByteBuffer, dstCharBuffer, out int cchRead)) {
+                if (new ReadOnlySpan<char>(dstCharBuffer, 0, cchRead).Equals(search.AsSpan(), this.stringComparison)) {
+                    string text = new string(dstCharBuffer, 0, cchRead);
+                    res.CurrentValue = res.PreviousValue = new DataValueString(text, this.stringType);
+                    this.ResultFound?.Invoke(this, res);
+                }
+            }
+        }
+    }
+
+    private async Task PerformNextScanForByteArray(IConsoleConnection connection, List<ScanResultViewModel> srcList, ActivityTask task) {
+        using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
+            IntegerSet<uint> set = new IntegerSet<uint>();
+            task.Progress.Text = "Computing fragment buffer...";
+            foreach (ScanResultViewModel result in srcList) {
+                task.ThrowIfCancellationRequested();
+
+                int length;
+                if (this.nextScanUsesFirstValue)
+                    length = ((DataValueByteArray) result.FirstValue).Value.Length;
+                else if (this.nextScanUsesPreviousValue)
+                    length = ((DataValueByteArray) result.PreviousValue).Value.Length;
+                else
+                    length = this.memoryPattern.Length;
+
+                set.Add(IntegerRange.FromStartAndLength(result.Address, (uint) length));
+            }
+
+            FragmentedMemoryBuffer memoryBuffer = await MemoryEngine.CreateMemoryView(connection, set, cancellationToken: task.CancellationToken);
+
+            int maxBufferSize = connection.GetRecommendedReadChunkSize(0x1000);
+            for (int i = 0; i < srcList.Count; i++) {
+                task.ThrowIfCancellationRequested();
+                task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
+                task.Progress.CompletionState.OnProgress(1.0);
+
+                ScanResultViewModel res = srcList[i];
+                MemoryPattern search;
+                if (this.nextScanUsesFirstValue)
+                    search = MemoryPattern.Create(((DataValueByteArray) res.FirstValue).Value);
+                else if (this.nextScanUsesPreviousValue)
+                    search = MemoryPattern.Create(((DataValueByteArray) res.PreviousValue).Value);
+                else {
+                    search = this.memoryPattern;
+                    Debug.Assert(search.IsValid);
+                }
+
+                // Use maxBufferSize to assist reusing a larger buffer. It's very very unlikely someone
+                // will use a pattern that's longer than 4096 bytes. But if they do, then we
+                // just allocate a larger buffer (search.Length)
+                using (ArrayPools.Rent(Math.Max(maxBufferSize, search.Length), out byte[] buffer)) {
+                    Span<byte> span = buffer.AsSpan(0, search.Length);
+                    int read = memoryBuffer.Read(res.Address, span);
+                    Debug.Assert(read == span.Length);
+
+                    if (search.Matches(span)) {
+                        res.CurrentValue = res.PreviousValue = new DataValueByteArray(span.ToArray());
                         this.ResultFound?.Invoke(this, res);
                     }
                 }
             }
-        }
-        else if (this.dataType == DataType.String) {
-            using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
-                Encoding encoding = this.stringType.ToEncoding(this.isConnectionLittleEndian);
-                bool useInputValue = !this.nextScanUsesFirstValue && !this.nextScanUsesPreviousValue;
-                int cbInputValue = useInputValue ? encoding.GetMaxByteCount(this.inputA.Length) : 0;
-                byte[]? inputByteBuffer = useInputValue ? new byte[cbInputValue] : null;
-                char[]? inputCharBuffer = useInputValue ? new char[encoding.GetMaxCharCount(cbInputValue)] : null;
-                for (int i = 0; i < srcList.Count; i++) {
-                    task.ThrowIfCancellationRequested();
-                    task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
-                    task.Progress.CompletionState.OnProgress(1.0);
-
-                    ScanResultViewModel res = srcList[i];
-                    string search;
-                    int cbSearchTerm;
-                    byte[] dstByteBuffer;
-                    char[] dstCharBuffer;
-                    if (useInputValue) {
-                        search = this.inputA;
-                        cbSearchTerm = cbInputValue;
-                        dstByteBuffer = inputByteBuffer!;
-                        dstCharBuffer = inputCharBuffer!;
-                    }
-                    else {
-                        if (this.nextScanUsesFirstValue) {
-                            search = ((DataValueString) res.FirstValue).Value;
-                        }
-                        else {
-                            Debug.Assert(this.nextScanUsesPreviousValue);
-                            search = ((DataValueString) res.PreviousValue).Value;
-                        }
-
-                        cbSearchTerm = encoding.GetMaxByteCount(search.Length);
-                        dstByteBuffer = new byte[cbSearchTerm];
-                        dstCharBuffer = new char[encoding.GetMaxCharCount(cbSearchTerm)];
-                    }
-
-                    // int cchBuffer = this.StringType.ToEncoding().GetChars(memory, this.charBuffer.AsSpan());
-
-                    await connection.ReadBytes(res.Address, dstByteBuffer, 0, cbSearchTerm);
-                    if (encoding.TryGetChars(dstByteBuffer, dstCharBuffer, out int cchRead)) {
-                        if (new ReadOnlySpan<char>(dstCharBuffer, 0, cchRead).Equals(search.AsSpan(), this.stringComparison)) {
-                            string text = new string(dstCharBuffer, 0, cchRead);
-                            res.CurrentValue = res.PreviousValue = new DataValueString(text, this.stringType);
-                            this.ResultFound?.Invoke(this, res);
-                        }
-                    }
-                }
-            }
-        }
-        else if (this.dataType == DataType.ByteArray) {
-            using (task.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / srcList.Count)) {
-                IntegerSet<uint> set = new IntegerSet<uint>();
-                task.Progress.Text = "Computing fragment buffer...";
-                foreach (ScanResultViewModel result in srcList) {
-                    task.ThrowIfCancellationRequested();
-
-                    int length;
-                    if (this.nextScanUsesFirstValue)
-                        length = ((DataValueByteArray) result.FirstValue).Value.Length;
-                    else if (this.nextScanUsesPreviousValue)
-                        length = ((DataValueByteArray) result.PreviousValue).Value.Length;
-                    else
-                        length = this.memoryPattern.Length;
-
-                    set.Add(IntegerRange.FromStartAndLength(result.Address, (uint) length));
-                }
-
-                FragmentedMemoryBuffer memoryBuffer = await MemoryEngine.CreateMemoryView(connection, set, cancellationToken: task.CancellationToken);
-
-                int maxBufferSize = connection.GetRecommendedReadChunkSize(0x1000);
-                for (int i = 0; i < srcList.Count; i++) {
-                    task.ThrowIfCancellationRequested();
-                    task.Progress.Text = $"Reading values {i + 1}/{srcList.Count}";
-                    task.Progress.CompletionState.OnProgress(1.0);
-
-                    ScanResultViewModel res = srcList[i];
-                    MemoryPattern search;
-                    if (this.nextScanUsesFirstValue)
-                        search = MemoryPattern.Create(((DataValueByteArray) res.FirstValue).Value);
-                    else if (this.nextScanUsesPreviousValue)
-                        search = MemoryPattern.Create(((DataValueByteArray) res.PreviousValue).Value);
-                    else {
-                        search = this.memoryPattern;
-                        Debug.Assert(search.IsValid);
-                    }
-
-                    // Use maxBufferSize to assist reusing a larger buffer. It's very very unlikely someone
-                    // will use a pattern that's longer than 4096 bytes. But if they do, then we
-                    // just allocate a larger buffer (search.Length)
-                    using (ArrayPools.Rent(Math.Max(maxBufferSize, search.Length), out byte[] buffer)) {
-                        Span<byte> span = buffer.AsSpan(0, search.Length);
-                        int read = memoryBuffer.Read(res.Address, span);
-                        Debug.Assert(read == span.Length);
-
-                        if (search.Matches(span)) {
-                            res.CurrentValue = res.PreviousValue = new DataValueByteArray(span.ToArray());
-                            this.ResultFound?.Invoke(this, res);
-                        }
-                    }
-                }
-            }
-        }
-        else {
-            Debug.Fail("Missing data type");
         }
     }
 
