@@ -39,6 +39,7 @@ using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
 using PFXToolKitUI.Avalonia.Interactivity.SelectingEx2;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
+using PFXToolKitUI.Avalonia.Interactivity.Windowing.Features;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Composition;
@@ -302,6 +303,14 @@ public partial class EngineView : UserControl {
         NotificationManager notificationManager = new NotificationManager();
         ((IComponentManager) this.MemoryEngine).ComponentStorage.AddComponent(notificationManager);
         this.PART_NotificationListBox.NotificationManager = notificationManager;
+        
+        notificationManager.IsAlertActiveChanged += this.NotificationManagerOnIsAlertActiveChanged;
+    }
+
+    private void NotificationManagerOnIsAlertActiveChanged(object? sender, EventArgs e) {
+        if (this.myOwnerWindow_onLoaded != null && this.myOwnerWindow_onLoaded.TryGetFeature(out IWindowFeatureUserAlert? alert)) {
+            alert.IsAlertEnabled = this.PART_NotificationListBox.NotificationManager!.IsAlertActive;
+        }
     }
 
     private void SetupMainMenu() {

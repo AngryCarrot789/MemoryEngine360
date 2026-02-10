@@ -25,6 +25,9 @@ using PFXToolKitUI.Interactivity.Contexts;
 
 namespace MemEngine360.Commands;
 
+/// <summary>
+/// Base class for a command that runs in the context of the memory engine/scanner window
+/// </summary>
 public abstract class BaseMemoryEngineCommand : Command, IDisabledHintProvider {
     protected sealed override Executability CanExecuteCore(CommandEventArgs e) {
         if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {

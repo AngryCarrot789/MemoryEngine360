@@ -458,7 +458,7 @@
                                                     <Run Text="Over-read: how many extra bytes before and after each fragment (scan result) to read during Next Scan. A value of 32 could speed up Next Scan by an order of magnitude, but results in reading (potentially) significant amounts of unused data."/>
                                                     <LineBreak/>
                                                     <LineBreak/>
-                                                    <Run Text="Next Scan uses a union of memory ranges to try and merge many sequential reads into a single read. By adding 'padding', it increase the chance of collapsing multiple reads into a single read, which can make the Next Scan faster, since each read request has an overhead of multiple milliseconds."/>
+                                                    <Run Text="Next Scan uses a union of memory ranges to try and merge many sequential reads into a single read. By adding 'padding', it increase the chance of collapsing multiple reads into a single read, which can make the Next Scan faster, since each read request has a slight overhead."/>
                                                     <LineBreak/>
                                                     <LineBreak/>
                                                     <Run Text="For example, if this value is 5, and we're reading an Int32, we may read 14 bytes in total: 5 before and 5 after the integer's memory location. 'May read' because another scan result might intersect this one fully or partially."/>
