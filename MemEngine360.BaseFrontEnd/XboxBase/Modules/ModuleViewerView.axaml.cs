@@ -28,6 +28,7 @@ using MemEngine360.XboxBase;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Services.FilePicking;
 using PFXToolKitUI.Services.Messaging;
@@ -220,6 +221,9 @@ public partial class ModuleViewerView : UserControl {
             oldValue.ConnectionChanged -= this.OnEngineConnectionChanged;
         if (newValue != null)
             newValue.ConnectionChanged += this.OnEngineConnectionChanged;
+        
+        // Allow commands to also access the memory engine, i.e. set scanner start+length as a module section
+        DataManager.GetContextData(this).Set(MemoryEngine.EngineDataKey, newValue);
     }
 
     private void OnEngineConnectionChanged(object? o, ConnectionChangedEventArgs args) {

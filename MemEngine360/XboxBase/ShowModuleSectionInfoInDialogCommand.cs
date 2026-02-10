@@ -17,6 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using MemEngine360.Engine;
 using MemEngine360.Engine.Scanners;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.CommandSystem;
@@ -28,11 +29,25 @@ public class ShowModuleSectionInfoInDialogCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         if (ConsoleModuleSection.DataKey.TryGetContext(e.ContextData, out ConsoleModuleSection? section)) {
             string sizeKb = ValueScannerUtils.ByteFormatter.ToString(section.Size, false);
-            
-            await IMessageDialogService.Instance.ShowMessage("Section Info", $"Name: {section.Name ?? "(unavailable)"}{Environment.NewLine}" +
-                                                                             $"Base Address: {section.BaseAddress:X8}{Environment.NewLine}" +
-                                                                             $"Section Size: {section.Size:X8} ({sizeKb}){Environment.NewLine}" +
-                                                                             $"Flags: {(uint) section.Flags} ({section.Flags.ToString()})");
+
+            string text = $"Name: {section.Name ?? "(unavailable)"}{Environment.NewLine}" +
+                          $"Base Address: {section.BaseAddress:X8}{Environment.NewLine}" +
+                          $"Section Size: {section.Size:X8} ({sizeKb}){Environment.NewLine}" +
+                          $"Flags: {(uint) section.Flags} ({section.Flags.ToString()})";
+
+            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(new MessageBoxInfo("Section Info", text) {
+                // Cheesing it by using cancel as the OK button ;)
+                Buttons = MessageBoxButtons.OKCancel,
+                DefaultButton = MessageBoxResult.Cancel,
+                YesOkText = "Copy to Scanner",
+                CancelText = "OK"
+            });
+
+            if (result == MessageBoxResult.OK && MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+                if (section.BaseAddress + section.Size >= section.BaseAddress) {
+                    engine.ScanningProcessor.SetScanRange(section.BaseAddress, section.Size);
+                }
+            }
         }
     }
 }
