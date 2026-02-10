@@ -351,10 +351,11 @@
                                     </DockPanel>
                                 </c2:GroupBox.Header>
                                 <StackPanel>
-                                    <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,22,3,20,3,20" Margin="3">
+                                    <Grid x:Name="PART_Grid_ScanOptions" ColumnDefinitions="50,5,*" RowDefinitions="24,3,24,3,22,3,20,3,20,3,22" Margin="3">
                                         <TextBlock Grid.Column="0" Grid.Row="0" Text="Start" VerticalAlignment="Center" Padding="4,0"/>
                                         <TextBlock Grid.Column="0" Grid.Row="2" Text="Length" VerticalAlignment="Center" Padding="4,0"/>
                                         <TextBlock Grid.Column="0" Grid.Row="4" Text="Align" VerticalAlignment="Center" Padding="4,0"/>
+                                        <TextBlock Grid.Column="0" Grid.Row="10" Text="O. Read" VerticalAlignment="Center" Padding="4,0"/>
 
                                         <TextBox Grid.Column="2" Grid.Row="0" FontFamily="Consolas"
                                                  Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Background}"
@@ -443,6 +444,27 @@
                                                 </TextBlock>
                                             </tt:ToolTipEx.Tip>
                                         </CheckBox>
+                                        <TextBox Grid.Column="2" Grid.Row="10" FontFamily="Consolas"
+                                                 Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Background}"
+                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Border}"
+                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Foreground}"
+                                                 x:Name="PART_NextScanOverRead" Padding="4,1"
+                                                 VerticalAlignment="Stretch" VerticalContentAlignment="Center"
+                                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+                                            <tt:ToolTipEx.Tip>
+                                                <TextBlock TextWrapping="Wrap">
+                                                    <Run Text="Over-read: how many extra bytes before and after each fragment (scan result) to read during Next Scan. A value of 32 could speed up Next Scan by an order of magnitude, but results in reading (potentially) significant amounts of unused data."/>
+                                                    <LineBreak/>
+                                                    <LineBreak/>
+                                                    <Run Text="Next Scan uses a union of memory ranges to try and merge many sequential reads into a single read. By adding 'padding', it increase the chance of collapsing multiple reads into a single read, which can make the Next Scan faster, since each read request has an overhead of multiple milliseconds."/>
+                                                    <LineBreak/>
+                                                    <LineBreak/>
+                                                    <Run Text="For example, if this value is 5, and we're reading an Int32, we may read 14 bytes in total: 5 before and 5 after the integer's memory location. 'May read' because another scan result might intersect this one fully or partially."/>
+                                                </TextBlock>
+                                            </tt:ToolTipEx.Tip>
+                                        </TextBox>
                                         <!-- <CheckBox Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="10" -->
                                         <!--           x:Name="PART_ForcedEndianness" -->
                                         <!--           Content="[ENDIANNESS]" -->

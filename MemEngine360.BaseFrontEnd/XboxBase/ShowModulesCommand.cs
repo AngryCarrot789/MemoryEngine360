@@ -83,9 +83,12 @@ public class ShowModulesCommand : BaseMemoryEngineCommand {
             control.InternalWindow = window;
 
             window.Closed += static (s, args) => {
-                ((ModuleViewerView) ((IDesktopWindow) s!).Content!).XboxModuleManager = null;
-                ((ModuleViewerView) ((IDesktopWindow) s!).Content!).MemoryEngine = null;
+                ModuleViewerView mv = (ModuleViewerView) ((IDesktopWindow) s!).Content!;
+                mv.XboxModuleManager = null;
+                mv.MemoryEngine = null;
+                mv.InternalWindow = null;
             };
+            
             await window.ShowAsync();
         }
         else {

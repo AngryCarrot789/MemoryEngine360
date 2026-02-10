@@ -122,9 +122,9 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// Uploads binary data to the console and writes it to the given file path
     /// </summary>
     /// <param name="filePath">The destination file</param>
-    /// <param name="totalLength"></param>
-    /// <param name="uploadCallback"></param>
-    /// <param name="state"></param>
+    /// <param name="totalLength">The total size of the destination file</param>
+    /// <param name="uploadCallback">The callback called to request bytes to be written to the console file</param>
+    /// <param name="state">The state object passed to the upload callback</param>
     /// <returns>A task to await the upload</returns>
     Task UploadToFile(string filePath, int totalLength, UploadBinaryHandler uploadCallback, object? state);
 
@@ -155,7 +155,6 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
     /// Reverse of <see cref="JoinPaths"/>
     /// </summary>
     string[] SplitPath(string filePath);
-    
 
     /// <summary>
     /// Checks whether the path is valid, as in, does not contain invalid characters or is not too long, etc
@@ -170,6 +169,7 @@ public interface IFeatureFileSystemInfo : IConsoleFeature {
 }
 
 public delegate void ReceiveBinaryHandler(object? state, ReadOnlySpan<byte> srcBuffer);
+
 public delegate int UploadBinaryHandler(object? state, int offset, Span<byte> dstBuffer);
 
 public struct FileSystemEntry {

@@ -52,7 +52,7 @@ public interface IFeatureXboxDebugging : IConsoleFeature, IFeatureXboxThreads, I
     /// </summary>
     Task<FunctionCallEntry?[]> FindFunctions(uint[] iar);
 
-    Task<ConsoleModule?> GetModuleForAddress(uint address, bool bNeedSections);
+    Task<ConsoleModule?> GetModuleForAddress(uint address, bool needSections);
 }
 
 public readonly struct Vector128(ulong lowPart, ulong highPart) : IEquatable<Vector128> {

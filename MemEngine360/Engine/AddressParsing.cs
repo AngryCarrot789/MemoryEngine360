@@ -51,28 +51,36 @@ public static class AddressParsing {
     /// <param name="error">The error string. Non-null when this function fails</param>
     /// <param name="formatProvider">The format provider passed to the integer parse functions</param>
     /// <returns>True if parsed</returns>
-    public static bool TryParse(string? input, bool is32bit, out ulong value, [NotNullWhen(false)] out string? error, bool canParseAsExpression = false, IFormatProvider? formatProvider = null) {
+    public static bool TryParse(string? input, bool is32bit, out ulong value, [NotNullWhen(false)] out string? error, bool canParseAsExpression = false, bool hexByDefault = true, IFormatProvider? formatProvider = null) {
         if (!string.IsNullOrWhiteSpace(input)) {
-            int endOfPrefix = TrimHexPrefix(input);
-            ReadOnlySpan<char> inputSpan = endOfPrefix == -1 ? input.AsSpan() : input.AsSpan(endOfPrefix);
+            NumberStyles ns;
+            int endOfPrefix;
+            ReadOnlySpan<char> inputSpan;
+            if ((endOfPrefix = TrimHexPrefix(input)) != -1 || hexByDefault) {
+                inputSpan = endOfPrefix == -1 ? input.AsSpan() : input.AsSpan(endOfPrefix);
+                ns = NumberStyles.HexNumber;
+            }
+            else {
+                inputSpan = input.AsSpan();
+                ns = NumberStyles.Integer;
+            }
+            
             if (is32bit) {
-                if (uint.TryParse(inputSpan, NumberStyles.HexNumber, formatProvider, out uint u32value)) {
+                if (uint.TryParse(inputSpan, ns, formatProvider, out uint u32value)) {
                     error = null;
                     value = u32value;
                     return true;
                 }
-                else if (ulong.TryParse(inputSpan, NumberStyles.HexNumber, formatProvider, out _)) {
-                    error = "Address is too large. The maximum is 0xFFFFFFFF";
+                else if (ulong.TryParse(inputSpan, ns, formatProvider, out _)) {
+                    error = "Value is too large. The maximum is 0xFFFFFFFF";
                     value = 0;
                     return false;
                 }
             }
-            else {
-                if (ulong.TryParse(inputSpan, NumberStyles.HexNumber, formatProvider, out ulong u64value)) {
-                    error = null;
-                    value = u64value;
-                    return true;
-                }
+            else if (ulong.TryParse(inputSpan, ns, formatProvider, out ulong u64value)) {
+                error = null;
+                value = u64value;
+                return true;
             }
 
             if (canParseAsExpression) {
@@ -95,7 +103,7 @@ public static class AddressParsing {
                 }
             }
 
-            error = $"Invalid {(is32bit ? "32-bit" : "64-bit")} address";
+            error = $"Invalid {(is32bit ? "32-bit" : "64-bit")} value";
         }
         else {
             error = "Input is empty";
@@ -113,8 +121,8 @@ public static class AddressParsing {
     /// <param name="error">The error string. Non-null when this function fails</param>
     /// <param name="formatProvider">The format provider passed to the integer parse functions</param>
     /// <returns>True if parsed</returns>
-    public static bool TryParse32(string? input, out uint value, [NotNullWhen(false)] out string? error, bool canParseAsExpression = false, IFormatProvider? formatProvider = null) {
-        if (!TryParse(input, true, out ulong u64value, out error, canParseAsExpression, formatProvider)) {
+    public static bool TryParse32(string? input, out uint value, [NotNullWhen(false)] out string? error, bool canParseAsExpression = false, bool hexByDefault = true, IFormatProvider? formatProvider = null) {
+        if (!TryParse(input, true, out ulong u64value, out error, canParseAsExpression, hexByDefault, formatProvider)) {
             value = 0;
             return false;
         }
@@ -124,15 +132,15 @@ public static class AddressParsing {
         return true;
     }
 
-    public static uint Parse32(string input, bool canParseAsExpression = false, IFormatProvider? formatProvider = null) {
-        if (!TryParse32(input, out uint value, out _, canParseAsExpression, formatProvider))
-            throw new ArgumentException("Invalid 32-bit address");
+    public static uint Parse32(string input, bool canParseAsExpression = false, bool hexByDefault = true, IFormatProvider? formatProvider = null) {
+        if (!TryParse32(input, out uint value, out _, canParseAsExpression, hexByDefault, formatProvider))
+            throw new ArgumentException("Invalid 32-bit value");
         return value;
     }
     
-    public static ulong Parse64(string input, bool canParseAsExpression = false, IFormatProvider? formatProvider = null) {
-        if (!TryParse(input, false, out ulong value, out _, canParseAsExpression, formatProvider))
-            throw new ArgumentException("Invalid 64-bit address");
+    public static ulong Parse64(string input, bool canParseAsExpression = false, bool hexByDefault = true, IFormatProvider? formatProvider = null) {
+        if (!TryParse(input, false, out ulong value, out _, canParseAsExpression, hexByDefault, formatProvider))
+            throw new ArgumentException("Invalid 64-bit value");
         return value;
     }
 }

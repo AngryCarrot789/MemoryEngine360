@@ -382,7 +382,7 @@ public partial class XbdmConsoleConnection {
             return Task.CompletedTask;
         }
 
-        public async Task<ConsoleModule?> GetModuleForAddress(uint address, bool bNeedSections) {
+        public async Task<ConsoleModule?> GetModuleForAddress(uint address, bool needSections) {
             List<string> modules = await this.connection.SendCommandAndReceiveLines("modules");
             using BusyToken x = this.connection.CreateBusyToken();
 
@@ -425,7 +425,7 @@ public partial class XbdmConsoleConnection {
                     }
                 }
 
-                if (bNeedSections) {
+                if (needSections) {
                     XbdmResponse response = await this.connection.InternalSendCommand($"modsections name=\"{name}\"").ConfigureAwait(false);
                     if (response.ResponseType != XbdmResponseType.FileNotFound) {
                         List<string> sections = await this.connection.InternalReadMultiLineResponse();

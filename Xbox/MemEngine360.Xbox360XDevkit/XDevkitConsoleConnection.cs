@@ -407,7 +407,7 @@ public class XDevkitConsoleConnection : BaseConsoleConnection, IConsoleConnectio
             return new FunctionCallEntry?[iar.Length];
         }
 
-        public async Task<ConsoleModule?> GetModuleForAddress(uint address, bool bNeedSections) {
+        public async Task<ConsoleModule?> GetModuleForAddress(uint address, bool needSections) {
             return null;
         }
     }

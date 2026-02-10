@@ -31,6 +31,7 @@ using MemEngine360.Engine.Debugging;
 using MemEngine360.Engine.Modes;
 using MemEngine360.ValueAbstraction;
 using MemEngine360.XboxBase;
+using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Scripting.LuaFeatures;
@@ -295,7 +296,7 @@ public sealed class LuaEngineFunctions {
 
             IConsoleConnection conn = this.functions.GetConnection(in context);
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
-            
+
             bool reverse = BitConverter.IsLittleEndian != conn.IsLittleEndian;
             const int count = sizeof(float) * 16;
             using (ArrayPools.Rent(count, out byte[] array)) {
@@ -360,7 +361,7 @@ public sealed class LuaEngineFunctions {
 
             return 0;
         }
-        
+
         public async ValueTask<int> ReadVector3(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             uint address = LuaUtils.GetUIntFromValue(in context, 0);
 
@@ -384,7 +385,7 @@ public sealed class LuaEngineFunctions {
 
             return 1;
         }
-        
+
         public async ValueTask<int> WriteVector3(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             uint address = LuaUtils.GetUIntFromValue(in context, 0);
             Vector3 v = Vector3Library.ReadVector3Argument(in context, 1);
@@ -405,7 +406,7 @@ public sealed class LuaEngineFunctions {
 
             return 0;
         }
-        
+
         public async ValueTask<int> ReadVector4(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             uint address = LuaUtils.GetUIntFromValue(in context, 0);
 
@@ -430,7 +431,7 @@ public sealed class LuaEngineFunctions {
 
             return 1;
         }
-        
+
         public async ValueTask<int> WriteVector4(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
             uint address = LuaUtils.GetUIntFromValue(in context, 0);
             Vector4 v = Vector4Library.ReadVector4Argument(in context, 1);
@@ -526,7 +527,7 @@ public sealed class LuaEngineFunctions {
             IFeatureFileSystemInfo fsInfo = this.functions.GetConsoleFeature<IFeatureFileSystemInfo>(in context, "Remote file system not supported by connection");
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
-            List<DriveEntry> result = await fsInfo.GetDriveList();
+            List<DriveEntry> result = await fsInfo.GetDriveList(needSizeInfo: false);
 
             string ch = fsInfo.GetPathSeparatorChar().ToString();
             LuaTable table = new LuaTable(result.Count, 0);
@@ -1032,9 +1033,7 @@ public sealed class LuaEngineFunctions {
             AssignFunction(debugTable, new NetworkHandlingLuaFunction("incr_suspend", this.SuspendThread));
             AssignFunction(debugTable, new NetworkHandlingLuaFunction("decr_suspend", this.ResumeThread));
             AssignFunction(debugTable, new NetworkHandlingLuaFunction("find_functions", this.FindFunctions));
-            /*
-
-             */
+            AssignFunction(debugTable, new NetworkHandlingLuaFunction("get_module_for_addr", this.GetModuleForAddress));
         }
 
         private async ValueTask<int> AddBreakpoint(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
@@ -1122,6 +1121,29 @@ public sealed class LuaEngineFunctions {
                     subTable["unwind_info"] = entry.unwindInfoAddressOrData;
                     tableSpan[i] = subTable;
                 }
+            }
+
+            return 1;
+        }
+
+        private async ValueTask<int> GetModuleForAddress(LuaFunctionExecutionContext context, Memory<LuaValue> buffer, CancellationToken ct) {
+            IFeatureXboxDebugging debug = this.functions.GetConsoleFeature<IFeatureXboxDebugging>(in context, "Debugging not supported by connection");
+
+            uint address = LuaUtils.GetUIntFromValue(in context, 0);
+            using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
+
+            ConsoleModule? module = await debug.GetModuleForAddress(address, needSections: false /* we don't need memory section info */);
+            if (module != null) {
+                buffer.Span[0] = new LuaTable(0, 5) {
+                    ["name"] = module.Name ?? "",
+                    ["base"] = module.BaseAddress,
+                    ["size"] = module.ModuleSize,
+                    ["original_size"] = module.OriginalModuleSize,
+                    ["entry_point"] = module.EntryPoint
+                };
+            }
+            else {
+                buffer.Span[0] = LuaValue.Nil;
             }
 
             return 1;

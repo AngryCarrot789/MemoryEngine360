@@ -109,6 +109,17 @@ public class ScanningProcessor {
             PropertyHelper.SetAndRaiseINE(ref field, value, this, this.AlignmentChanged);
         }
     }
+    
+    /// <summary>
+    /// Gets or sets how many extra bytes should be read before and after each memory fragment for each scan result
+    /// </summary>
+    public uint NextScanOverRead {
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, static (t) => {
+            t.NextScanOverReadChanged?.Invoke(t, EventArgs.Empty);
+            BasicApplicationConfiguration.Instance.NextScanOverRead = t.NextScanOverRead;
+        });
+    }
 
     /// <summary>
     /// Gets or sets if we should use the debug freeze/unfreeze commands while scanning.
@@ -338,6 +349,7 @@ public class ScanningProcessor {
     public event EventHandler? AlignmentChanged;
     public event EventHandler? ScanMemoryPagesChanged;
     public event EventHandler? IsRefreshingAddressesChanged;
+    public event EventHandler? NextScanOverReadChanged;
 
     /// <summary>
     /// An event fired when <see cref="SetScanRange"/> is invoked. This provides the old values for <see cref="StartAddress"/> and <see cref="ScanLength"/>
@@ -362,6 +374,7 @@ public class ScanningProcessor {
         }
 
         this.Alignment = this.dataType.GetAlignmentFromDataType();
+        this.NextScanOverRead = cfg.NextScanOverRead;
         this.PauseConsoleDuringScan = cfg.PauseConsoleDuringScan;
         this.ScanMemoryPages = cfg.ScanMemoryPages;
         this.IsIntInputHexadecimal = cfg.DTInt_UseHexValue;

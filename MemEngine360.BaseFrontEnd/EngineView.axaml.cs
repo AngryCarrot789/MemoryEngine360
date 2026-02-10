@@ -106,6 +106,16 @@ public partial class EngineView : UserControl {
         }
     });
 
+    private readonly IBinder<ScanningProcessor> nextScanOverReadBinder = new TextBoxToEventPropertyBinder<ScanningProcessor>(nameof(ScanningProcessor.NextScanOverReadChanged), (b) => $"{b.Model.NextScanOverRead}", async (b, x) => {
+        if (!AddressParsing.TryParse32(x, out uint value, out string? error, canParseAsExpression: true, hexByDefault: false)) {
+            await IMessageDialogService.Instance.ShowMessage("Invalid value", error, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
+            return false;
+        }
+
+        b.Model.NextScanOverRead = value;
+        return true;
+    });
+
     private readonly IBinder<ScanningProcessor> alignmentBinder = new EventUpdateBinder<ScanningProcessor>(nameof(ScanningProcessor.AlignmentChanged), (b) => ((EngineView) b.Control).PART_ScanOption_Alignment.Content = b.Model.Alignment.ToString());
     private readonly IBinder<ScanningProcessor> pauseXboxBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.PauseConsoleDuringScanChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.PauseConsoleDuringScan, (b) => b.Model.PauseConsoleDuringScan = ((ToggleButton) b.Control).IsChecked == true);
     private readonly IBinder<ScanningProcessor> scanMemoryPagesBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(ToggleButton.IsCheckedProperty, nameof(ScanningProcessor.ScanMemoryPagesChanged), (b) => ((ToggleButton) b.Control).IsChecked = b.Model.ScanMemoryPages, (b) => b.Model.ScanMemoryPages = ((ToggleButton) b.Control).IsChecked == true);
@@ -223,7 +233,7 @@ public partial class EngineView : UserControl {
                     s.Footer = "We will scan " + sb.Append(", etc.");
                 }
             });
-            
+
             if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, this.myOwnerWindow_onLoaded) == true) {
                 p.Alignment = NumberUtils.ParseHexOrRegular<uint>(info.Text);
             }
@@ -364,6 +374,7 @@ public partial class EngineView : UserControl {
         this.isScanningBinder.Attach(this, processor);
         this.scanAddressBinder.Attach(this.PART_ScanOption_StartAddress, processor);
         this.scanLengthBinder.Attach(this.PART_ScanOption_Length, processor);
+        this.nextScanOverReadBinder.Attach(this.PART_NextScanOverRead, processor);
         this.alignmentBinder.Attach(this, processor);
         this.pauseXboxBinder.Attach(this.PART_ScanOption_PauseConsole, processor);
         // this.forceLEBinder.Attach(this.PART_ForcedEndianness, this.MemoryEngine);
@@ -466,6 +477,7 @@ public partial class EngineView : UserControl {
         this.isScanningBinder.Detach();
         this.scanAddressBinder.Detach();
         this.scanLengthBinder.Detach();
+        this.nextScanOverReadBinder.Detach();
         this.alignmentBinder.Detach();
         this.pauseXboxBinder.Detach();
         // this.forceLEBinder.Detach();

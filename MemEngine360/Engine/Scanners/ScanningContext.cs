@@ -29,10 +29,11 @@ public abstract class ScanningContext {
     public readonly ScanningProcessor Processor;
     internal readonly uint startAddress, scanLength, scanEndAddress;
     internal readonly uint alignment;
+    internal readonly uint nextScanOverRead;
     internal readonly bool pauseConsoleDuringScan;
     internal readonly bool scanMemoryPages;
     internal bool isConnectionLittleEndian;
-    
+
     public Exception? ConnectionException { get; set; }
 
     /// <summary>
@@ -56,6 +57,7 @@ public abstract class ScanningContext {
         this.scanLength = processor.ScanLength;
         this.scanEndAddress = this.startAddress + this.scanLength;
         this.alignment = processor.Alignment;
+        this.nextScanOverRead = processor.NextScanOverRead;
         this.pauseConsoleDuringScan = processor.PauseConsoleDuringScan;
         this.scanMemoryPages = processor.ScanMemoryPages;
     }

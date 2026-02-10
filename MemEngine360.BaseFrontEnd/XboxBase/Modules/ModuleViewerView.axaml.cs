@@ -63,7 +63,7 @@ public partial class ModuleViewerView : UserControl {
 
     private ConsoleModule? selectedModule;
     private readonly AsyncRelayCommand dumpModuleMemoryCommand;
-    internal IDesktopWindow InternalWindow;
+    internal IDesktopWindow? InternalWindow;
 
     public ModuleViewerView() {
         this.InitializeComponent();

@@ -543,21 +543,18 @@ public sealed class DataTypedScanningContext : ScanningContext {
         }
     }
 
-    private const int FragmentOverReadAmount = 512;
-
     private async Task PerformNextScanForNumeric(IConsoleConnection connection, List<ScanResultViewModel> srcList, ActivityTask task) {
         byte[] buffer = new byte[this.cbDataType];
-        
+
         task.Progress.CompletionState.SetProgress(0.0);
         IntegerSet<uint> set = new IntegerSet<uint>();
         task.Progress.Text = "Computing fragment buffer...";
         foreach (ScanResultViewModel result in srcList) {
             task.ThrowIfCancellationRequested();
-            set.Add(IntegerRange.FromStartAndLength(result.Address, (uint) buffer.Length));
+            set.Add(IntegerRange.FromStartAndLength(result.Address, (uint) buffer.Length).ExpandClamped(this.nextScanOverRead));
         }
-        
+
         FragmentedMemoryBuffer memoryBuffer = new FragmentedMemoryBuffer();
-        
         PopCompletionStateRangeToken thingy = ActivityTask.Current.Progress.CompletionState.PushCompletionRange(0.0, 1.0 / set.GrandTotal);
         
         uint totalBytesRead = 0;
@@ -571,7 +568,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 t.Progress.CompletionState.OnProgress(r.Length);
             }
         }, cancellationToken: task.CancellationToken);
-        
+
         int hasReadCompleted = 0;
         _ = Task.Run(async () => {
             try {
@@ -585,7 +582,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 Interlocked.Exchange(ref hasReadCompleted, 1);
             }
         });
-        
+
         PopCompletionStateRangeToken? range = null;
         try {
             LinkedList<ScanResultViewModel> results = new LinkedList<ScanResultViewModel>(srcList);
@@ -599,61 +596,61 @@ public sealed class DataTypedScanningContext : ScanningContext {
                         if (srcList.Count != results.Count)
                             task.Progress.CompletionState.OnProgress(srcList.Count - results.Count);
                     }
-        
+
                     ScanResultViewModel result = node.Value;
-        
+
                     task.ThrowIfCancellationRequested();
-                    if (hasReadCompleted == 2)
-                        task.Progress.CompletionState.OnProgress(1.0);
-        
+
                     int read;
                     lock (memoryBuffer) {
                         read = memoryBuffer.Read(result.Address, buffer);
                     }
-        
-                    if (read >= buffer.Length) {
-                        IDataValue? match;
-                        if (this.evaluator != null) {
-                            match = this.RunEvaluator(buffer, result);
-                        }
-                        else {
-                            ulong searchA, searchB = 0;
-                            if (this.nextScanUsesFirstValue) {
-                                searchA = GetNumericDataValueAsULong(result.FirstValue);
-                            }
-                            else if (this.nextScanUsesPreviousValue) {
-                                searchA = GetNumericDataValueAsULong(result.PreviousValue);
-                            }
-                            else {
-                                searchA = this.numericInputA;
-                                searchB = this.numericInputB;
-                            }
-        
-                            switch (this.dataType) {
-                                case DataType.Byte:   match = this.CompareInt<byte>(buffer, searchA, searchB); break;
-                                case DataType.Int16:  match = this.CompareInt<short>(buffer, searchA, searchB); break;
-                                case DataType.Int32:  match = this.CompareInt<int>(buffer, searchA, searchB); break;
-                                case DataType.Int64:  match = this.CompareInt<long>(buffer, searchA, searchB); break;
-                                case DataType.Float:  match = this.CompareFloat<float>(buffer, searchA, searchB); break;
-                                case DataType.Double: match = this.CompareFloat<double>(buffer, searchA, searchB); break;
-                                default:              throw new ArgumentOutOfRangeException();
-                            }
-                        }
-        
-                        if (match != null) {
-                            result.CurrentValue = result.PreviousValue = match;
-                            this.ResultFound?.Invoke(this, result);
-                        }
-        
-                        LinkedListNode<ScanResultViewModel>? nextNode = node.Next;
-                        results.Remove(node);
-                        node = nextNode;
+
+                    if (read < buffer.Length) {
+                        break; // Restart the loop after waiting 100 milliseconds
+                    }
+
+                    IDataValue? match;
+                    if (this.evaluator != null) {
+                        match = this.RunEvaluator(buffer, result);
                     }
                     else {
-                        break;
+                        ulong searchA, searchB = 0;
+                        if (this.nextScanUsesFirstValue) {
+                            searchA = GetNumericDataValueAsULong(result.FirstValue);
+                        }
+                        else if (this.nextScanUsesPreviousValue) {
+                            searchA = GetNumericDataValueAsULong(result.PreviousValue);
+                        }
+                        else {
+                            searchA = this.numericInputA;
+                            searchB = this.numericInputB;
+                        }
+
+                        switch (this.dataType) {
+                            case DataType.Byte:   match = this.CompareInt<byte>(buffer, searchA, searchB); break;
+                            case DataType.Int16:  match = this.CompareInt<short>(buffer, searchA, searchB); break;
+                            case DataType.Int32:  match = this.CompareInt<int>(buffer, searchA, searchB); break;
+                            case DataType.Int64:  match = this.CompareInt<long>(buffer, searchA, searchB); break;
+                            case DataType.Float:  match = this.CompareFloat<float>(buffer, searchA, searchB); break;
+                            case DataType.Double: match = this.CompareFloat<double>(buffer, searchA, searchB); break;
+                            default:              throw new ArgumentOutOfRangeException();
+                        }
                     }
+
+                    if (match != null) {
+                        result.CurrentValue = result.PreviousValue = match;
+                        this.ResultFound?.Invoke(this, result);
+                    }
+
+                    LinkedListNode<ScanResultViewModel>? nextNode = node.Next;
+                    results.Remove(node);
+                    node = nextNode;
+
+                    if (hasReadCompleted == 2)
+                        task.Progress.CompletionState.OnProgress(1.0);
                 }
-        
+
                 // Wait some time for the download to get some more data
                 if (!readTask.IsCompleted) {
                     await Task.WhenAny(readTask, Task.Delay(100));
@@ -777,7 +774,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 else
                     length = this.memoryPattern.Length;
 
-                set.Add(IntegerRange.FromStartAndLength(result.Address, (uint) length));
+                set.Add(IntegerRange.FromStartAndLength(result.Address, (uint) length).ExpandClamped(this.nextScanOverRead));
             }
 
             FragmentedMemoryBuffer memoryBuffer = new FragmentedMemoryBuffer();
@@ -825,8 +822,6 @@ public sealed class DataTypedScanningContext : ScanningContext {
                         }
 
                         task.ThrowIfCancellationRequested();
-                        if (hasReadCompleted == 2)
-                            task.Progress.CompletionState.OnProgress(1.0);
 
                         ScanResultViewModel result = node.Value;
                         MemoryPattern search;
@@ -845,19 +840,21 @@ public sealed class DataTypedScanningContext : ScanningContext {
                         using (ArrayPools.Rent(Math.Max(maxBufferSize, search.Length), out byte[] buffer)) {
                             Span<byte> span = buffer.AsSpan(0, search.Length);
                             int read = memoryBuffer.Read(result.Address, span);
-                            if (read >= span.Length) {
-                                if (search.Matches(span)) {
-                                    result.CurrentValue = result.PreviousValue = new DataValueByteArray(span.ToArray());
-                                    this.ResultFound?.Invoke(this, result);
-                                }
+                            if (read < span.Length) {
+                                break; // Restart the loop after waiting 100 milliseconds
+                            }
 
-                                LinkedListNode<ScanResultViewModel>? nextNode = node.Next;
-                                results.Remove(node);
-                                node = nextNode;
+                            if (search.Matches(span)) {
+                                result.CurrentValue = result.PreviousValue = new DataValueByteArray(span.ToArray());
+                                this.ResultFound?.Invoke(this, result);
                             }
-                            else {
-                                break;
-                            }
+
+                            LinkedListNode<ScanResultViewModel>? nextNode = node.Next;
+                            results.Remove(node);
+                            node = nextNode;
+
+                            if (hasReadCompleted == 2)
+                                task.Progress.CompletionState.OnProgress(1.0);
                         }
                     }
 

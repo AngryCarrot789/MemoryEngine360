@@ -59,6 +59,12 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
             "ScanLength",
             defaultValue: 0x1000000,
             owner => owner.scanLength, (x, y) => x.scanLength = y, false);
+    
+    public static readonly PersistentProperty<uint> NextScanOverReadProperty =
+        PersistentProperty.RegisterParsable<uint, BasicApplicationConfiguration>(
+            "NextScanOverRead",
+            defaultValue: 0x0,
+            owner => owner.nextScanOverRead, (x, y) => x.nextScanOverRead = y, false);
 
     public static readonly PersistentProperty<bool> PauseConsoleDuringScanProperty =
         PersistentProperty.RegisterBool<BasicApplicationConfiguration>(
@@ -158,6 +164,7 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     private string lastConnectionTypeUsed = LastConnectionTypeUsedProperty.DefaultValue;
     private uint startAddr = StartAddressProperty.DefaultValue;
     private uint scanLength = ScanLengthProperty.DefaultValue;
+    private uint nextScanOverRead = NextScanOverReadProperty.DefaultValue;
     private bool pauseConsoleDuringScan = PauseConsoleDuringScanProperty.DefaultValue;
     private bool scanMemoryPages = ScanMemoryPagesProperty.DefaultValue;
     private bool dtInt_UseHexValueProperty = DTInt_UseHexValueProperty.DefaultValue;
@@ -214,6 +221,11 @@ public class BasicApplicationConfiguration : PersistentConfiguration {
     public uint ScanLength {
         get => ScanLengthProperty.GetValue(this);
         set => ScanLengthProperty.SetValue(this, value);
+    }
+    
+    public uint NextScanOverRead {
+        get => NextScanOverReadProperty.GetValue(this);
+        set => NextScanOverReadProperty.SetValue(this, value);
     }
 
     public bool PauseConsoleDuringScan {
