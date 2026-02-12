@@ -64,6 +64,17 @@ public class DownloadFileCommand : BaseFileExplorerCommand {
                         return false;
                     }
                 }
+                
+                /*
+                List<BaseFileTreeNode> allSelectedItems = state.TreeSelection.SelectedItems.ToList();
+                Dictionary<FileTreeNodeDirectory, List<(BaseFileTreeNode, int)>> trueSelection =
+                    HierarchicalDuplicationUtils.GetEffectiveOrderedDuplication(allSelectedItems, x => x.ParentDirectory, x => x.ParentDirectory!.IndexOf(x));
+
+                foreach (KeyValuePair<FileTreeNodeDirectory, List<(BaseFileTreeNode, int)>> entry in trueSelection) {
+                    entry.Key.HasLoadedContents = false;
+                    await state.Explorer.ReloadContentsSimple(entry.Key, fsInfo);
+                }
+                 */
 
                 return true;
             },

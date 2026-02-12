@@ -43,12 +43,12 @@ public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider
 
     private bool isUpdatingProviderDataValue;
 
-    public TextBox PART_Value { get; }
+    public TextBox ValueTextBox { get; }
 
     public string ParsingText {
         get => field;
         set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ParsingTextChanged);
-    }
+    } = "";
 
     /// <summary>
     /// Gets or sets the encoding used to encode/decode strings/bytes
@@ -66,8 +66,8 @@ public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider
     public event EventHandler? ParsingTextChanged;
     public event EventHandler? StringTypeChanged;
 
-    public ConstantDataValueHandler(TextBox partValue) {
-        this.PART_Value = partValue;
+    public ConstantDataValueHandler(TextBox valueTextBox) {
+        this.ValueTextBox = valueTextBox;
     }
     
     public void UpdateTextFromProviderValue() {
@@ -85,7 +85,7 @@ public class ConstantDataValueHandler : DataProviderHandler<ConstantDataProvider
         this.StringType = this.Provider.StringType;
         this.DataType = this.Provider.DataValue?.DataType ?? DataType.Int32;
         this.UpdateTextFromProviderValue();
-        this.valueBinder.Attach(this.PART_Value, this);
+        this.valueBinder.Attach(this.ValueTextBox, this);
         this.Provider.DataValueChanged += this.OnProviderDataValueChanged;
         this.Provider.DataTypeChanged += this.OnProviderDataTypeChanged;
         this.Provider.ParseIntAsHexChanged += this.OnProviderParseIntAsHexChanged;

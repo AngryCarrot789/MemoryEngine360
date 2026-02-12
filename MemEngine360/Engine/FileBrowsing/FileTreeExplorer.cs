@@ -189,9 +189,9 @@ public class FileTreeExplorer : IComponentManager {
             return; 
         }
 
-        List<FileSystemEntry> result;
+        List<FileSystemEntry> results;
         try {
-            result = await fsInfo.GetFileSystemEntries(directory.FullPath);
+            results = await fsInfo.GetFileSystemEntries(directory.FullPath);
         }
         catch (FileSystemAccessDeniedException e) {
             await IMessageDialogService.Instance.ShowMessage("File System Error", "Access denied", e.Message);
@@ -209,8 +209,12 @@ public class FileTreeExplorer : IComponentManager {
             return;
         }
 
+        LoadDirectory(directory, results);
+    }
+    
+    private static void LoadDirectory(FileTreeNodeDirectory directory, List<FileSystemEntry> results) {
         directory.Items.Clear();
-        foreach (FileSystemEntry entry in result.OrderByDescending(x => x.IsDirectory).ThenBy(x => x.Name)) {
+        foreach (FileSystemEntry entry in results.OrderByDescending(x => x.IsDirectory).ThenBy(x => x.Name)) {
             directory.Items.Add(entry.IsDirectory
                 ? new FileTreeNodeDirectory() {
                     FileName = entry.Name, CreationTimeUtc = entry.CreatedTime, ModifiedTimeUtc = entry.ModifiedTime, Size = entry.Size,

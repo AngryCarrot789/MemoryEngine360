@@ -302,7 +302,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <exception cref="Exception"></exception>
     public async Task BroadcastConnectionAboutToChange(ITopLevel topLevel, ulong frame) {
         Delegate[]? list = this.ConnectionAboutToChange?.GetInvocationList();
-        if (list == null || list.Length <= 0) {
+        if (list == null || list.Length < 1) {
             return;
         }
 
@@ -326,6 +326,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
                     // ignored
                 }
                 catch (Exception e) {
+                    Debugger.Break();
                     AppLogger.Instance.WriteLine("Exception invoking connection changing handler: " + e.GetToString());
                 }
 
@@ -336,23 +337,17 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         Task whenAllHandlersDoneTask = Task.WhenAll(tasks);
         using (CancellationTokenSource cts = new CancellationTokenSource()) {
             // Grace period for all activities to become cancelled
-            try {
-                await Task.WhenAny(Task.Delay(250, cts.Token), whenAllHandlersDoneTask);
-                await cts.CancelAsync();
-            }
-            catch (OperationCanceledException) {
-                // ignored
-            }
+            await Task.WhenAny(Task.Delay(250, cts.Token), whenAllHandlersDoneTask);
+            await cts.CancelAsync(); // cancel delay's os timer
         }
 
-        if (!whenAllHandlersDoneTask.IsCompleted) {
-            if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
-                await service.WaitForSubActivities(topLevel, progressions, CancellationToken.None);
-            }
-            else {
-                await whenAllHandlersDoneTask;
-            }
+        // ... should dialog to notify user
+        
+        if (!whenAllHandlersDoneTask.IsCompleted && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
+            await service.WaitForSubActivities(topLevel, progressions, CancellationToken.None);
         }
+
+        await whenAllHandlersDoneTask;
     }
 
     /// <summary>
