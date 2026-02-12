@@ -401,135 +401,146 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             }
 
             await progress.ProgressAndWaitForRender("Startup completed. Loading engine window...", 1.0);
-            if (IWindowManager.TryGetInstance(out IWindowManager? manager)) {
-                IDesktopService.TryGetInstance(out IDesktopService? desktop);
-                if (desktop != null)
-                    desktop.ApplicationLifetime.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-
-                (progress as SplashScreenWindow)?.Close();
-
-                if (desktop != null)
-                    desktop.ApplicationLifetime.ShutdownMode = ShutdownMode.OnMainWindowClose;
-
-                IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
-                    Title = "Memory Engine 360 v1.2.1",
-                    FocusPath = "EngineWindow",
-                    Content = new OverlayContentHostRoot() {
-                        Content = new EngineView()
-                    },
-                    MinWidth = 600, MinHeight = 520,
-                    Width = 680, Height = 630,
-                    // rely on default icon for the DesktopWindowManager
-                    // Icon = new WindowIcon(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)),
-                    TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.MainView.TitleBarBackground"),
-                    BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
-                    MainWindow = true
-                });
-
-                MemoryEngine engine = ((EngineView) ((OverlayContentHostRoot) window.Content!).Content!).MemoryEngine;
-
-                // Instance.ComponentStorage.AddComponent<IOverlayWindowManager>(new OverlayWindowManagerImpl((OverlayContentHostRoot) window.Content!));
-
-                window.Opened += static (s, e) => {
-                    EngineView view = (EngineView) ((OverlayContentHostRoot) ((IDesktopWindow) s!).Content!).Content!;
-                    view.MemoryEngine.UserContext.Set(ITopLevel.TopLevelDataKey, (IDesktopWindow) s!);
-                    MemoryEngineViewState.GetInstance(view.MemoryEngine).IsActivityListVisible = false;
-                    DataManager.GetContextData(((IDesktopWindow) s!).Control).Set(MemoryEngine.EngineDataKey, view.MemoryEngine);
-
-                    ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.MemoryEngine);
-                };
-
-                window.ClosingAsync += static (s, e) => {
-                    return Instance.Dispatcher.InvokeAsync(() => {
-                        return CommandManager.Instance.RunActionAsync(_ => OnEngineWindowAboutToClose((IDesktopWindow) s!), ((IDesktopWindow) s!).LocalContextData);
-                    }).Unwrap();
-                };
-
-                window.Closed += static (s, e) => {
-                    EngineView view = (EngineView) ((OverlayContentHostRoot) ((IDesktopWindow) s!).Content!).Content!;
-                    view.MemoryEngine.UserContext.Remove(ITopLevel.TopLevelDataKey);
-                    ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
-                    DataManager.GetContextData(((IDesktopWindow) s!).Control).Remove(MemoryEngine.EngineDataKey);
-                };
-
-                await window.ShowAsync();
-
-                _ = ActivityManager.Instance.RunTask(async () => {
-                    ActivityTask activity = ActivityTask.Current;
-                    activity.Progress.SetCaptionAndText("Reload last mod tools");
-                    foreach (string path in BasicApplicationConfiguration.Instance.LoadedModToolPaths) {
-                        activity.CancellationToken.ThrowIfCancellationRequested();
-                        try {
-                            if (string.IsNullOrWhiteSpace(path) || !path.EndsWith(".lua") || !File.Exists(path)) {
-                                continue;
-                            }
-                        }
-                        catch {
-                            continue; // Not sure if File.Exists() throws for invalid paths
-                        }
-
-                        string text;
-                        try {
-                            text = await File.ReadAllTextAsync(path, activity.CancellationToken);
-                        }
-                        catch (Exception e) {
-                            AppLogger.Instance.WriteLine("Failed to reload mod tool file from config: " + e.GetToString());
-                            continue; // ignored
-                        }
-
-                        Instance.Dispatcher.Post(() => {
-                            ModTool script = new ModTool() {
-                                Document = { Text = text },
-                                HasUnsavedChanges = false
-                            };
-
-                            script.SetFilePath(path);
-                            engine.ModToolManager.AddModTool(script);
-                        }, DispatchPriority.Background);
-                    }
-                }, true);
-
-                // using CancellationTokenSource taskCts1 = new CancellationTokenSource();
-                // using CancellationTokenSource taskCts2 = new CancellationTokenSource();
-                // using CancellationTokenSource taskCts3 = new CancellationTokenSource();
-                //
-                // ActivityTask task1 = await ActivityManager.Instance.RunTask(() => RunTask("Task 1", "My cool task 1"), taskCts1).GetRunningAwaitable();
-                // ActivityTask task2 = await ActivityManager.Instance.RunTask(() => RunTask("Task 2", "My cool task 2"), taskCts2).GetRunningAwaitable();
-                // ActivityTask task3 = await ActivityManager.Instance.RunTask(() => RunTask("Task 3", "My cool task 3"), taskCts3).GetRunningAwaitable();
-                // ActivityTask task4 = await ActivityManager.Instance.RunTask(() => RunTask("Task 4", "My cool task 4")).GetRunningAwaitable();
-                // ActivityTask task5 = await ActivityManager.Instance.RunTask(() => RunTask("Task 5", "My cool task 5")).GetRunningAwaitable();
-                //
-                // await Task.Delay(2000);
-                //
-                // if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? foreground)) {
-                //     using CancellationTokenSource cts3 = new CancellationTokenSource(2000);
-                //     await foreground.WaitForActivity(window, task3, cts3.Token);
-                //  
-                //     using CancellationTokenSource cts1 = new CancellationTokenSource(2000);
-                //     await foreground.WaitForActivity(window, task1, cts1.Token);
-                //     
-                //     using CancellationTokenSource cts5 = new CancellationTokenSource(2000);
-                //     await foreground.WaitForActivity(window, task5, cts5.Token);
-                // }
-                //
-                // // if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? foreground)) {
-                // //     using CancellationTokenSource cts = new CancellationTokenSource(3000);
-                // //     await foreground.WaitForSubActivities(window, new[] { task1, task3, task5 }.Select(SubActivity.FromActivity), cts.Token);
-                // // }
-                //
-                // return;
-                //
-                // static Task RunTask(string caption, string desc) {
-                //     ActivityTask task = ActivityTask.Current;
-                //     task.Progress.Caption = caption;
-                //     task.Progress.Text = desc;
-                //     task.Progress.IsIndeterminate = true;
-                //     return Task.Delay(12000, task.CancellationToken);
-                // }
-            }
-            else {
+            if (!IWindowManager.TryGetInstance(out IWindowManager? manager)) {
                 Instance.Dispatcher.Shutdown();
+                return;
             }
+
+            IDesktopService.TryGetInstance(out IDesktopService? desktop);
+            desktop?.ApplicationLifetime.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+            (progress as SplashScreenWindow)?.Close();
+
+            desktop?.ApplicationLifetime.ShutdownMode = ShutdownMode.OnMainWindowClose;
+
+            EngineView engineView;
+            IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
+                Title = "Memory Engine 360 v1.2.1",
+                FocusPath = "EngineWindow",
+                Content = new OverlayContentHostRoot() {
+                    Content = engineView = new EngineView()
+                },
+                MinWidth = 600, MinHeight = 520,
+                Width = 680, Height = 630,
+                // rely on default icon for the DesktopWindowManager
+                // Icon = new WindowIcon(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)),
+                TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.MainView.TitleBarBackground"),
+                BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
+                MainWindow = true
+            });
+
+            MemoryEngine engine = ((EngineView) ((OverlayContentHostRoot) window.Content!).Content!).MemoryEngine;
+
+            // Instance.ComponentStorage.AddComponent<IOverlayWindowManager>(new OverlayWindowManagerImpl((OverlayContentHostRoot) window.Content!));
+
+            window.Opened += static (s, e) => {
+                EngineView view = (EngineView) ((OverlayContentHostRoot) ((IDesktopWindow) s!).Content!).Content!;
+                view.MemoryEngine.UserContext.Set(ITopLevel.TopLevelDataKey, (IDesktopWindow) s!);
+                MemoryEngineViewState.GetInstance(view.MemoryEngine).IsActivityListVisible = false;
+                DataManager.GetContextData(((IDesktopWindow) s!).Control).Set(MemoryEngine.EngineDataKey, view.MemoryEngine);
+
+                ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.MemoryEngine);
+            };
+
+            window.ClosingAsync += static (s, e) => {
+                return Instance.Dispatcher.InvokeAsync(() => {
+                    return CommandManager.Instance.RunActionAsync(_ => OnEngineWindowAboutToClose((IDesktopWindow) s!), ((IDesktopWindow) s!).LocalContextData);
+                }).Unwrap();
+            };
+
+            window.Closed += static (s, e) => {
+                EngineView view = (EngineView) ((OverlayContentHostRoot) ((IDesktopWindow) s!).Content!).Content!;
+                view.MemoryEngine.UserContext.Remove(ITopLevel.TopLevelDataKey);
+                ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
+                DataManager.GetContextData(((IDesktopWindow) s!).Control).Remove(MemoryEngine.EngineDataKey);
+            };
+
+            await window.ShowAsync();
+            
+            // new TextNotification() {
+            //     Caption = "Hello world",
+            //     Text = "Main text here!",
+            //     Icon = MessageBoxIcons.InfoIcon,
+            //     CanAutoHide = false,
+            //     Actions = {
+            //         new LambdaNotificationAction("Quit", _ => Task.CompletedTask),
+            //         new LambdaNotificationAction("Do cool stuff", _ => Task.CompletedTask),
+            //     }
+            // }.Show(NotificationManager.GetInstance(engineView.MemoryEngine));
+            
+            _ = ActivityManager.Instance.RunTask(async () => {
+                ActivityTask activity = ActivityTask.Current;
+                activity.Progress.SetCaptionAndText("Reload last mod tools");
+                foreach (string path in BasicApplicationConfiguration.Instance.LoadedModToolPaths) {
+                    activity.CancellationToken.ThrowIfCancellationRequested();
+                    
+                    try {
+                        if (string.IsNullOrWhiteSpace(path) || !path.EndsWith(".lua") || !File.Exists(path)) {
+                            continue;
+                        }
+                    }
+                    catch {
+                        continue; // Not sure if File.Exists() throws for invalid paths
+                    }
+
+                    string text;
+                    try {
+                        text = await File.ReadAllTextAsync(path, activity.CancellationToken);
+                    }
+                    catch (Exception e) {
+                        AppLogger.Instance.WriteLine("Failed to reload mod tool file from config: " + e.GetToString());
+                        continue; // ignored
+                    }
+
+                    Instance.Dispatcher.Post(() => {
+                        ModTool script = new ModTool() {
+                            Document = { Text = text },
+                            HasUnsavedChanges = false
+                        };
+
+                        script.SetFilePath(path);
+                        engine.ModToolManager.AddModTool(script);
+                    }, DispatchPriority.Background);
+                }
+            }, true);
+
+            // using CancellationTokenSource taskCts1 = new CancellationTokenSource();
+            // using CancellationTokenSource taskCts2 = new CancellationTokenSource();
+            // using CancellationTokenSource taskCts3 = new CancellationTokenSource();
+            //
+            // ActivityTask task1 = await ActivityManager.Instance.RunTask(() => RunTask("Task 1", "My cool task 1"), taskCts1).GetRunningAwaitable();
+            // ActivityTask task2 = await ActivityManager.Instance.RunTask(() => RunTask("Task 2", "My cool task 2"), taskCts2).GetRunningAwaitable();
+            // ActivityTask task3 = await ActivityManager.Instance.RunTask(() => RunTask("Task 3", "My cool task 3"), taskCts3).GetRunningAwaitable();
+            // ActivityTask task4 = await ActivityManager.Instance.RunTask(() => RunTask("Task 4", "My cool task 4")).GetRunningAwaitable();
+            // ActivityTask task5 = await ActivityManager.Instance.RunTask(() => RunTask("Task 5", "My cool task 5")).GetRunningAwaitable();
+            //
+            // await Task.Delay(2000);
+            //
+            // if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? foreground)) {
+            //     using CancellationTokenSource cts3 = new CancellationTokenSource(2000);
+            //     await foreground.WaitForActivity(window, task3, cts3.Token);
+            //  
+            //     using CancellationTokenSource cts1 = new CancellationTokenSource(2000);
+            //     await foreground.WaitForActivity(window, task1, cts1.Token);
+            //     
+            //     using CancellationTokenSource cts5 = new CancellationTokenSource(2000);
+            //     await foreground.WaitForActivity(window, task5, cts5.Token);
+            // }
+            //
+            // // if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? foreground)) {
+            // //     using CancellationTokenSource cts = new CancellationTokenSource(3000);
+            // //     await foreground.WaitForSubActivities(window, new[] { task1, task3, task5 }.Select(SubActivity.FromActivity), cts.Token);
+            // // }
+            //
+            // return;
+            //
+            // static Task RunTask(string caption, string desc) {
+            //     ActivityTask task = ActivityTask.Current;
+            //     task.Progress.Caption = caption;
+            //     task.Progress.Text = desc;
+            //     task.Progress.IsIndeterminate = true;
+            //     return Task.Delay(12000, task.CancellationToken);
+            // }
         }
 
         private static async Task OnEngineWindowAboutToClose(IDesktopWindow window) {
@@ -542,7 +553,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 tool.RequestStop(false);
             foreach (TaskSequence taskSequence in engine.TaskSequenceManager.ActiveSequences.ToList())
                 taskSequence.RequestCancellation();
-            
+
             {
                 List<string> pathsToSave = new List<string>();
                 foreach (Script script in engine.ScriptingManager.Scripts) {

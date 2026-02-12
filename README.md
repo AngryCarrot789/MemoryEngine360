@@ -3,16 +3,17 @@ This is a remake of Cheat Engine, but for consoles. This project was inspired by
 
 ![](MemoryEngine360_2025-06-30_00.22.07.png)
 
-### Additional Features (via Tools menu)
+### Additional Features
 - Task Sequencer (e.g. memory freezing, randomization, etc.)
 - Debugger (WIP) (thread and register exploring)
 - Pointer Scanner
 - Memory Viewer (hex editor)
 - Lua Scripting with JRPC support
 - Lua Mod Tools for making lua GUIs
+- ... and more
 
 > Please take care when changing ('poking') values on your console. 
-> You may break things, maybe even permanently if you change the wrong things.
+> You may break things, maybe even permanently if you change the wrong things at the wrong time.
 
 # Download and build
 - Clone repo: `git clone --recursive https://github.com/AngryCarrot789/MemEngine360`
@@ -31,8 +32,10 @@ are most welcome! Even just general tips and advice on how the UI can be improve
 The API section of the wiki contains a lot of docs on the code base of MemoryEngine360. https://github.com/AngryCarrot789/MemoryEngine360/wiki/API
 
 # Licence
-The project is licenced under GPLv3. See COPYING.GPLv3 for more information. All files should contain the licence header
+The project is licenced under GPLv3. See COPYING.GPLv3 for more information. All files should contain the licence header.
 
-This project references a project called PFXToolKitUI licenced under LGPL, and AvaloniaHex is licenced under MIT.
+This project references a project called PFXToolKitUI licenced under LGPL.
+
+AvaloniaHex and ILMath are licenced under MIT.
 
 The files `IFeatureXboxJRPC2.cs` and `Jrpc2FeaturesImpl.cs` contain code adapted from XboxChef/JRPC, licenced under GPL-3.0
