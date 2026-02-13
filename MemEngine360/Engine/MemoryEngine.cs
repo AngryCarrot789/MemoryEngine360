@@ -61,7 +61,6 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// </summary>
     public static readonly DataKey<bool> IsDisconnectFromNotification = DataKeys.Create<bool>("IsDisconnectFromNotification");
 
-    private IConsoleConnection? connection;
     private ulong currentConnectionAboutToChangeFrame;
 
     /// <summary>
@@ -98,7 +97,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// creates an activity to show the user you're waiting for the busy operations to complete
     /// </para>
     /// </summary>
-    public IConsoleConnection? Connection => this.connection;
+    public IConsoleConnection? Connection { get; private set; }
 
     /// <summary>
     /// Gets the <see cref="Connections.UserConnectionInfo"/> that was used to connect to a console. It is set
@@ -258,7 +257,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
             BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
 
             while (!this.IsShuttingDown) {
-                IConsoleConnection? conn = this.connection;
+                IConsoleConnection? conn = this.Connection;
                 if (conn != null && conn.IsClosed) {
                     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
                         // rarely not the case (depending on how quickly the callback runs on the main thread)
@@ -370,7 +369,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
 
         // we don't necessarily need to access connection under lock since if
         // we have a valid busy token then nothing can modify it
-        IConsoleConnection? oldConnection = this.connection;
+        IConsoleConnection? oldConnection = this.Connection;
         if (ReferenceEquals(oldConnection, newConnection))
             throw new ArgumentException("Cannot set the connection to the same value");
 
@@ -385,7 +384,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
 
         // ConnectionChanged is invoked under the lock to enforce busy operation rules
         lock (this.BusyLock.CriticalLock) {
-            this.connection = newConnection;
+            this.Connection = newConnection;
             if (newConnection != null)
                 this.LastUserConnectionInfo = userConnectionInfo;
 
@@ -470,13 +469,13 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <param name="cancellationToken">Additional cancellation source for the activity</param>
     /// <returns>True if the callback action was run, otherwise False meaning we couldn't get the token or the connection was null/closed</returns>
     public async Task<bool> BeginBusyOperationUsingActivityAsync(Func<IBusyToken, IConsoleConnection, Task> action, string caption = "New Operation", string message = BusyLock.WaitingMessage, CancellationToken cancellationToken = default) {
-        if (this.connection == null) {
+        if (this.Connection == null) {
             return false;
         }
 
         using IBusyToken? token = await this.BeginBusyOperationUsingActivityAsync(caption, message, cancellationToken);
         IConsoleConnection c;
-        if (token != null && (c = this.connection) != null && !c.IsClosed) {
+        if (token != null && (c = this.Connection) != null && !c.IsClosed) {
             await action(token, c);
             return true;
         }
@@ -491,13 +490,13 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// <param name="function">The callback to run with the token and open connection</param>
     /// <param name="busyCancellation">A cancellation token used to stop trying to acquire the busy token</param>
     public async Task<bool> BeginBusyOperationFromActivityAsync(Func<IBusyToken, IConsoleConnection, Task> function, CancellationToken busyCancellation = default) {
-        if (this.connection == null) {
+        if (this.Connection == null) {
             return false;
         }
 
         using IBusyToken? token = await this.BusyLock.BeginBusyOperationFromActivity(busyCancellation);
         IConsoleConnection c;
-        if (token != null && (c = this.connection) != null && !c.IsClosed) {
+        if (token != null && (c = this.Connection) != null && !c.IsClosed) {
             await function(token, c);
             return true;
         }
@@ -517,13 +516,13 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// it could not be called (i.e. not connected or could not begin busy operation)
     /// #</returns>
     public async Task<Optional<T>> BeginBusyOperationFromActivityAsync<T>(Func<IBusyToken, IConsoleConnection, Task<T>> function, CancellationToken busyCancellation = default) {
-        if (this.connection == null) {
+        if (this.Connection == null) {
             return default;
         }
 
         using IBusyToken? token = await this.BusyLock.BeginBusyOperationFromActivity(busyCancellation);
         IConsoleConnection c;
-        if (token != null && (c = this.connection) != null && !c.IsClosed) {
+        if (token != null && (c = this.Connection) != null && !c.IsClosed) {
             return await function(token, c);
         }
 
@@ -535,7 +534,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         // disconnected internally, therefore, we don't need over the top synchronization,
         // because any code that actually tries to read/write will be async and can handle
         // the timeout exceptions
-        IConsoleConnection? c = this.connection;
+        IConsoleConnection? c = this.Connection;
         if (c != null && c.IsClosed) {
             if (ApplicationPFX.Instance.Dispatcher.CheckAccess()) {
                 using IBusyToken? t = this.TryBeginBusyOperation();
@@ -554,7 +553,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     }
 
     private void OnConnectionClosed(object? sender, EventArgs e) {
-        if (sender == this.connection) {
+        if (sender == this.Connection) {
             this.CheckConnection();
         }
     }
@@ -569,7 +568,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     }
 
     private bool TryDisconnectForLostConnection(IBusyToken token, ConnectionChangeCause cause) {
-        IConsoleConnection? conn = this.connection;
+        IConsoleConnection? conn = this.Connection;
         if (conn == null)
             return true;
         if (!conn.IsClosed)

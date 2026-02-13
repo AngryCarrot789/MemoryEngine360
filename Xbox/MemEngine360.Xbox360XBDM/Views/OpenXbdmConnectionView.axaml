@@ -29,7 +29,7 @@
             </toolTips:ToolTipEx.Tip>
         </CheckBox>
         <Separator Margin="0,5"/>
-        <TextBlock Text="Discovered consoles (coming soon)" Padding="0,5"/>
+        <TextBlock Text="Discovered consoles" Padding="0,5"/>
         <views:DiscoveredConsoleListBox x:Name="PART_DiscoveredConsoles"/>
     </StackPanel>
 </UserControl>

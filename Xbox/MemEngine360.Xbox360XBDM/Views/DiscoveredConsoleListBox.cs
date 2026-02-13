@@ -19,6 +19,7 @@
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
@@ -53,28 +54,34 @@ public class DiscoveredConsoleListBoxItem : ModelBasedListBoxItem<DiscoveredCons
     private readonly TextBlock tbName, tbIpAddress;
 
     protected override Type StyleKeyOverride => typeof(ListBoxItem);
-    
+
     public DiscoveredConsoleListBoxItem() {
         this.HorizontalAlignment = HorizontalAlignment.Stretch;
         this.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-        this.tbName = new TextBlock() {
-            HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(4,2)
+        this.Content = new StackPanel() {
+            Orientation = Orientation.Horizontal, Spacing = 5.0,
+            Children = {
+                (this.tbIpAddress = new TextBlock() { MinWidth = 100.0 }),
+                (this.tbName = new TextBlock())
+            }
         };
-        this.tbIpAddress = new TextBlock() {
-            HorizontalAlignment = HorizontalAlignment.Right, Padding = new Thickness(4,2)
-        };
-
-        this.Content = new Grid() { Children = { this.tbName, this.tbIpAddress } };
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) {
         base.OnPropertyChanged(change);
         if (change.Property == IsSelectedProperty && this.IsSelected) {
-            ConnectToXboxInfo? info = ((DiscoveredConsoleListBox?) this.ListBox)?.myConnectionView?.ConnectionInfo;
-            if (info != null) {
-                info.IpAddress = this.tbIpAddress.Text;
-            }
+            this.UpdateViewIpAddressTextBox();
         }
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e) {
+        base.OnPointerPressed(e);
+        this.UpdateViewIpAddressTextBox();
+    }
+
+    private void UpdateViewIpAddressTextBox() {
+        ConnectToXboxInfo? info = ((DiscoveredConsoleListBox?) this.ListBox)?.myConnectionView?.ConnectionInfo;
+        info?.IpAddress = this.tbIpAddress.Text;
     }
 
     protected override void OnAddingToList() {
