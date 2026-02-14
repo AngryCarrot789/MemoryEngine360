@@ -44,13 +44,13 @@ public partial class PointerScannerView : UserControl {
 
     private readonly IBinder<PointerScanner> binder_AddressableBase =
         new TextBoxToEventPropertyBinder<PointerScanner>(
-            nameof(PointerScanner.AddressableBaseChanged),
+            nameof(PointerScanner.AddressableRangeChanged),
             b => b.Model.AddressableBase.ToString("X8"),
             (b, t) => ParseAddressHelper(b, t, "Invalid Base Address", (m, v) => m.AddressableBase = v));
 
     private readonly IBinder<PointerScanner> binder_AddressableLength =
         new TextBoxToEventPropertyBinder<PointerScanner>(
-            nameof(PointerScanner.AddressableLengthChanged),
+            nameof(PointerScanner.AddressableRangeChanged),
             b => b.Model.AddressableLength.ToString("X8"),
             (b, t) => ParseAddressHelper(b, t, "Invalid Length", (m, v) => m.AddressableLength = v));
 
@@ -161,9 +161,11 @@ public partial class PointerScannerView : UserControl {
                     return;
                 }
 
+                using CancellationTokenSource cancellation = new CancellationTokenSource();
+                
                 uint baseAddress = AddressParsing.Parse32(info.Text, canParseAsExpression: true);
                 scanner.DisposeMemoryDump();
-                Task loadDumpTask = scanner.LoadMemoryDump(file, baseAddress, resultIsLE == MessageBoxResult.Yes);
+                Task loadDumpTask = scanner.LoadMemoryDump(file, baseAddress, resultIsLE == MessageBoxResult.Yes, cancellation.Token);
                 IActivityProgress progressTracker = new DispatcherActivityProgress();
 
                 await ActivityManager.Instance.RunTask(async () => {
@@ -172,9 +174,8 @@ public partial class PointerScannerView : UserControl {
                     prog.Caption = "Load Memory Dump";
                     prog.Text = "Loading memory...";
                     await loadDumpTask;
-                }, progressTracker);
+                }, progressTracker, cancellation);
 
-                using CancellationTokenSource cancellation = new CancellationTokenSource();
                 Task task = this.PointerScanner!.GenerateBasePointerMap(progressTracker, cancellation.Token);
 
                 await ActivityManager.Instance.RunTask(() => task, progressTracker, cancellation);
