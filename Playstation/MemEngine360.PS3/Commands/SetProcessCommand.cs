@@ -43,6 +43,15 @@ public class SetProcessCommand : BaseMemoryEngineCommand {
             return;
         if (!(engine.Connection is ConsoleConnectionCCAPI api))
             return;
+        
+        using IBusyToken? token = await engine.BusyLock.BeginBusyOperationUsingActivity(new BusyTokenRequestUsingActivity() {
+            Progress = { Caption = "Get Processes", Text = BusyLock.WaitingMessage },
+            QuickReleaseIntention = true
+        });
+        
+        if (token == null) {
+            return;
+        }
 
         SingleUserInputInfo info = new SingleUserInputInfo("Attach to process", "Process ID", "") {
             Validate = args => {

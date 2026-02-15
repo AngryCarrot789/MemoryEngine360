@@ -68,9 +68,10 @@ public class ConsoleControlAPI {
     private Thread? threadCCAPI;
 
     private readonly Lock threadActionInfoLock = new Lock();
-    private bool hasThreadActionInfo; // guarded by lock
-    private ThreadedActionInfo threadActionInfo; // guarded by lock
-    
+    private int threadActionCount; // guarded by lock
+    private readonly ThreadedActionInfo[] threadActions; // guarded by lock
+    private const int MaxThreadActions = 32;
+
     private readonly ManualResetEvent threadMre;
     private bool keepThreadRunning;
 
@@ -93,6 +94,7 @@ public class ConsoleControlAPI {
         this.stream = client.GetStream();
         this.threadMre = new ManualResetEvent(false);
         this.keepThreadRunning = true;
+        this.threadActions = new ThreadedActionInfo[MaxThreadActions];
         this.threadCCAPI = new Thread(this.ThreadMainConsoleControl) {
             Name = "CCAPI Interop", IsBackground = true
         };
@@ -149,7 +151,7 @@ public class ConsoleControlAPI {
             }
 
             client.Dispose();
-            throw;
+            throw new Exception("Could not connect to surrogate process", e);
         }
 
         ConsoleControlAPI api = new ConsoleControlAPI(process, client);
@@ -166,7 +168,8 @@ public class ConsoleControlAPI {
 
             api.keepThreadRunning = false;
             client.Dispose();
-            throw;
+            api.Dispose();
+            throw new Exception("Self-test failed", e);
         }
 
         if (api.FailureException != null)
@@ -447,31 +450,45 @@ public class ConsoleControlAPI {
     }
 
     #endregion
-    
+
     #region Threading
 
     private void ThreadMainConsoleControl() {
+        ThreadedActionInfo[] tempArray = new ThreadedActionInfo[MaxThreadActions];
         while (this.keepThreadRunning) {
             this.threadMre.WaitOne();
-            
-            ThreadedActionInfo info;
+
+            // Do not invoke actions in the locked section, in case someone calls Post, which will cause them
+            // to be blocked forever. This is especially bad if the UI thread is blocked waiting.
+
+            int count;
             lock (this.threadActionInfoLock) {
-                if (!this.hasThreadActionInfo) {
+                if ((count = this.threadActionCount) < 1) {
                     continue;
                 }
 
-                this.hasThreadActionInfo = false;
-                info = this.threadActionInfo;
-                this.threadActionInfo = default;
-                Debug.Assert(info.action != null, "Invalid thread action info");
+                this.threadActionCount = 0;
+                Span<ThreadedActionInfo> src = this.threadActions.AsSpan(0, count);
+                src.CopyTo(tempArray.AsSpan(0, count));
+                src.Clear();
             }
 
-            try {
-                info.action(this, info.param1, info.param2, info.cancellation);
+            List<Exception>? exceptions = null;
+            for (int i = 0; i < count; i++) {
+                ThreadedActionInfo info = tempArray[i];
+                Debug.Assert(info.action != null, "Invalid thread action info");
+
+                try {
+                    info.action(this, info.param1, info.param2, info.cancellation);
+                }
+                catch (Exception e) {
+                    // Typically IO or Timeout exception
+                    (exceptions ??= new List<Exception>()).Add(e);
+                }
             }
-            catch (Exception e) {
-                // Typically IO or Timeout exception
-                this.FailureException = e;
+
+            if (exceptions != null) {
+                this.FailureException = exceptions.Count == 1 ? exceptions[0] : new AggregateException("Multiple errors while invoking actions", exceptions);
                 this.NativeFailure?.Invoke(this, EventArgs.Empty);
                 return;
             }
@@ -503,7 +520,7 @@ public class ConsoleControlAPI {
                 throw; // stop thread, causing API to get disposed
             }
         }, action, theTcs, cancellation);
-        
+
         return theTcs.Task;
     }
 
@@ -531,18 +548,17 @@ public class ConsoleControlAPI {
                 throw; // stop thread, causing API to get disposed
             }
         }, func, theTcs, cancellation);
-        
+
         return theTcs.Task;
     }
-    
+
     private void PostAction(ThreadedAction action, object? param1, object? param2, CancellationToken cancellation) {
         lock (this.threadActionInfoLock) {
-            if (this.hasThreadActionInfo) {
-                throw new InvalidOperationException("Another action already queued");
+            if (this.threadActionCount >= MaxThreadActions) {
+                throw new InvalidOperationException("Maximum number of actions already queued");
             }
 
-            this.hasThreadActionInfo = true;
-            this.threadActionInfo = new ThreadedActionInfo(action, param1, param2, cancellation);
+            this.threadActions[this.threadActionCount++] = new ThreadedActionInfo(action, param1, param2, cancellation);
         }
 
         this.threadMre.Set();

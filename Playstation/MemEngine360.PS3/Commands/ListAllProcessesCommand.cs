@@ -42,6 +42,15 @@ public class ListAllProcessesCommand : BaseMemoryEngineCommand {
             return;
         if (!(engine.Connection is ConsoleConnectionCCAPI api))
             return;
+        
+        using IBusyToken? token = await engine.BusyLock.BeginBusyOperationUsingActivity(new BusyTokenRequestUsingActivity() {
+            Progress = { Caption = "Get Processes", Text = BusyLock.WaitingMessage },
+            QuickReleaseIntention = true
+        });
+        
+        if (token == null) {
+            return;
+        }
 
         try {
             List<(uint pid, string? name)> list = await api.GetAllProcesses();
