@@ -29,19 +29,43 @@
             <TabItem Header="Setup">
                 <StackPanel Margin="3" Spacing="3">
                     <TextBlock Text="Addressable Base"/>
-                    <TextBox x:Name="PART_AddressableBase" Padding="4,2" tt:ToolTipEx.Tip="The minimum boundry of the addressable pointer range"/>
+                    <TextBox x:Name="PART_AddressableBase" Padding="4,2" tt:ToolTipEx.Tip="The minimum boundary of the addressable pointer range">
+                        <TextBox.InnerLeftContent>
+                            <TextBlock Text="0x" Opacity="0.7"/>
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
                     <TextBlock Text="Addressable Length"/>
-                    <TextBox x:Name="PART_AddressableLength" Padding="4,2" tt:ToolTipEx.Tip="The amount of bytes, relative to addressable base, that contains the region that can be pointed to"/>
+                    <TextBox x:Name="PART_AddressableLength" Padding="4,2" tt:ToolTipEx.Tip="The amount of bytes, relative to addressable base, that contains the region that can be pointed to">
+                        <TextBox.InnerLeftContent>
+                            <TextBlock Text="0x" Opacity="0.7"/>
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
                     <TextBlock Text="Max Depth"/>
                     <TextBox x:Name="PART_MaxDepth" Padding="4,2" tt:ToolTipEx.Tip="The maximum number of pointer hops"/>
                     <TextBlock Text="Minimum Offset (from base pointer)"/>
-                    <TextBox x:Name="PART_MinimumOffset" Padding="4,2" tt:ToolTipEx.Tip="The minimum (positive) distance from a pointer the offset (that locates a pointer) has to be from the current base pointer"/>
+                    <TextBox x:Name="PART_MinimumOffset" Padding="4,2" tt:ToolTipEx.Tip="The minimum (positive) distance from a pointer the offset (that locates a pointer) has to be from the current base pointer">
+                        <TextBox.InnerLeftContent>
+                            <TextBlock Text="0x" Opacity="0.7"/>
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
                     <TextBlock Text="Maximum Offset (current depth &lt; 2)"/>
-                    <TextBox x:Name="PART_PrimaryMaximumOffset" Padding="4,2" tt:ToolTipEx.Tip="The maximum (positive) distance from a pointer the offset (that locates a pointer) can be, when the current scanning depth is less than 2"/>
+                    <TextBox x:Name="PART_PrimaryMaximumOffset" Padding="4,2" tt:ToolTipEx.Tip="The maximum (positive) distance from a pointer the offset (that locates a pointer) can be">
+                        <TextBox.InnerLeftContent>
+                            <TextBlock Text="0x" Opacity="0.7"/>
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
                     <TextBlock Text="Maximum Offset (current depth &gt;= 2)"/>
-                    <TextBox x:Name="PART_SecondaryMaximumOffset" Padding="4,2" tt:ToolTipEx.Tip="The maximum (positive) distance from a pointer the offset (that locates a pointer) can be, when the current scanning depth is greater or equal to 2"/>
+                    <TextBox x:Name="PART_SecondaryMaximumOffset" Padding="4,2" tt:ToolTipEx.Tip="The maximum (positive) distance from a pointer the offset (that locates a pointer) can be, when the current scanning depth is greater or equal to 2">
+                        <TextBox.InnerLeftContent>
+                            <TextBlock Text="0x" Opacity="0.7"/>
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
                     <TextBlock Text="Search Address"/>
-                    <TextBox x:Name="PART_SearchAddress" Padding="4,2" tt:ToolTipEx.Tip="The address that we search for"/>
+                    <TextBox x:Name="PART_SearchAddress" Padding="4,2" tt:ToolTipEx.Tip="The address that we search for">
+                        <TextBox.InnerLeftContent>
+                            <TextBlock Text="0x" Opacity="0.7"/>
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
                     <TextBlock Text="Alignment (pointer size)"/>
                     <TextBox x:Name="PART_Alignment" Padding="4,2" tt:ToolTipEx.Tip="The pointer size"/>
                 </StackPanel>

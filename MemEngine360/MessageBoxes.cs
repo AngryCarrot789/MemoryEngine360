@@ -31,4 +31,6 @@ public static class MessageBoxes {
     
     public static readonly MessageBoxTemplate NoConnection = new MessageBoxTemplate(StandardEngineMessages.Caption_NoConnection, StandardEngineMessages.Message_NoConnection);
     public static readonly MessageBoxTemplate ClosedConnection = new MessageBoxTemplate(StandardEngineMessages.Caption_ConnectionClosed, StandardEngineMessages.Message_ConnectionClosed);
+    
+    public static readonly MessageBoxTemplate PointerScannerRequiresRegeneration = new MessageBoxTemplate("PointerMap invalidated", "Cached pointer-map invalidated. Regenerate? (this may take some time)", icon: MessageBoxIcons.InfoIcon);
 }

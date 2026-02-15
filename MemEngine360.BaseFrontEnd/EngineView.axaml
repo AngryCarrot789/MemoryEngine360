@@ -663,8 +663,8 @@
             </Grid>
             <StackPanel HorizontalAlignment="Right"
                         VerticalAlignment="Bottom"
-                        Margin="0,0,5,5"
-                        Width="300"
+                        Margin="0"
+                        Width="310"
                         Spacing="5">
                 <Border>
                     <notifications:NotificationListBox x:Name="PART_NotificationListBox"/>
@@ -674,7 +674,8 @@
                         BorderThickness="1"
                         Background="{DynamicResource ABrush.Tone6.Background.Static}"
                         Focusable="True"
-                        IsVisible="False">
+                        IsVisible="False" 
+                        Margin="5">
                     <Border.Styles>
                         <Style Selector="Border">
                             <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone7.Border.Static}"/>

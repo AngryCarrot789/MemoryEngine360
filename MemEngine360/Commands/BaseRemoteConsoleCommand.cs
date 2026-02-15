@@ -247,7 +247,7 @@ public class GetTitleIDCommand : BaseJRPC2Command {
 
     protected override async Task ExecuteRemoteCommandInActivity(MemoryEngine engine, IConsoleConnection connection, IFeatureXboxJRPC2 jrpc, CommandEventArgs e) {
         uint titleID = await jrpc.GetCurrentTitleId();
-        await IMessageDialogService.Instance.ShowMessage("Title ID", titleID.ToString("X8"));
+        await IMessageDialogService.Instance.ShowMessage("Title ID", $"0x{titleID:X8}");
     }
 }
 

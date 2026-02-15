@@ -109,7 +109,7 @@ public class ScanningProcessor {
             PropertyHelper.SetAndRaiseINE(ref field, value, this, this.AlignmentChanged);
         }
     }
-    
+
     /// <summary>
     /// Gets or sets how many extra bytes should be read before and after each memory fragment for each scan result
     /// </summary>
@@ -631,19 +631,20 @@ public class ScanningProcessor {
                     }
 
                     Task updateListTask = Task.CompletedTask;
-                    if (result && !this.MemoryEngine.IsShuttingDown && !thisTask.IsCancellationRequested) {
+                    if (result && !this.MemoryEngine.IsShuttingDown && !thisTask.IsCancellationRequested && !this.resultBuffer.IsEmpty) {
                         progress.Text = "Updating result list...";
                         int count = this.resultBuffer.Count;
                         const int chunkSize = 500;
-                        int range = count / chunkSize;
-                        using PopCompletionStateRangeToken x = progress.CompletionState.PushCompletionRange(0.0, 1.0 / range);
                         updateListTask = await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
+                            using PopCompletionStateRangeToken x = progress.CompletionState.PushCompletionRange(0.0, 1.0 / ((double) count / chunkSize));
+                            List<ScanResultViewModel> list = new List<ScanResultViewModel>(Math.Min(chunkSize, count));
                             while (!this.resultBuffer.IsEmpty) {
-                                List<ScanResultViewModel> list = new List<ScanResultViewModel>();
-                                for (int i = 0; i < chunkSize && this.resultBuffer.TryDequeue(out ScanResultViewModel? scanResult); i++)
+                                for (int i = 0; i < chunkSize && this.resultBuffer.TryDequeue(out ScanResultViewModel? scanResult); i++) {
                                     list.Add(scanResult);
+                                }
 
                                 this.ScanResults.AddRange(list);
+                                list.Clear();
 
                                 progress.CompletionState.OnProgress(1.0);
                                 try {

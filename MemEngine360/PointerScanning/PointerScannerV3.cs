@@ -17,13 +17,9 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Buffers.Binary;
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
 using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
 using PFXToolKitUI;
@@ -32,11 +28,10 @@ using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Events;
-using PFXToolKitUI.Utils.Ranges;
 
 namespace MemEngine360.PointerScanning;
 
-public class PointerScanner {
+public class PointerScannerV3 {
     private readonly struct AddressableRange(uint @base, uint length) {
         public readonly uint @base = @base;
         public readonly uint length = length;
@@ -51,8 +46,7 @@ public class PointerScanner {
     private AddressableRange addressableRange;
     private byte maxDepth = 6;
     private uint minimumOffset = 4; // using 4 might help with avoiding linked lists 
-    private uint primaryMaximumOffset = 0x4000; // most structs/classes won't exceed 16KB 
-    private uint secondaryMaximumOffset = 0x4000;
+    private uint maximumOffset = 0x4000;
     private uint searchAddress;
     private uint alignment = 4;
 
@@ -91,7 +85,7 @@ public class PointerScanner {
     }
 
     /// <summary>
-    /// Same as <see cref="PrimaryMaximumOffset"/> but for depths of >= 2
+    /// Same as <see cref="MaximumOffset"/> but for depths of >= 2
     /// </summary>
     public uint MinimumOffset {
         get => this.minimumOffset;
@@ -103,23 +97,15 @@ public class PointerScanner {
     /// <para>
     /// For example, say the actual pointer chain of a value you're interested in is <c><![CDATA[ 0x8262AA00 + 0xFC -> +0x24 ]]></c>,
     /// and the maximum offset is FF, this value can be discovered by the pointer scan. But If the pointer chain is
-    /// say <c><![CDATA[ 0x8262AA00 +0xFc -> +0xEF2 ]]></c>, then it cannot be discovered, because 0xEF2 exceeds <see cref="PrimaryMaximumOffset"/>
+    /// say <c><![CDATA[ 0x8262AA00 +0xFc -> +0xEF2 ]]></c>, then it cannot be discovered, because 0xEF2 exceeds <see cref="MaximumOffset"/>
     /// </para>
     /// <para>
     /// Therefore, ideally this value should be pretty big but not so big that the scanning takes the rest of the universe's lifetime to complete
     /// </para>
     /// </summary>
-    public uint PrimaryMaximumOffset {
-        get => this.primaryMaximumOffset;
-        set => PropertyHelper.SetAndRaiseINE(ref this.primaryMaximumOffset, value, this, this.PrimaryMaximumOffsetChanged);
-    }
-
-    /// <summary>
-    /// Same as <see cref="PrimaryMaximumOffset"/> but for depths of >= 2
-    /// </summary>
-    public uint SecondaryMaximumOffset {
-        get => this.secondaryMaximumOffset;
-        set => PropertyHelper.SetAndRaiseINE(ref this.secondaryMaximumOffset, value, this, this.SecondaryMaximumOffsetChanged);
+    public uint MaximumOffset {
+        get => this.maximumOffset;
+        set => PropertyHelper.SetAndRaiseINE(ref this.maximumOffset, value, this, this.MaximumOffsetChanged);
     }
 
     /// <summary>
@@ -148,33 +134,53 @@ public class PointerScanner {
         private set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsScanRunningChanged);
     }
 
-    public IReadOnlyDictionary<uint, uint> PointerMap => this.basePointers_D;
+    public IReadOnlyDictionary<uint, uint> PointerMap => this.alignedVirtualAddressToValue;
+
+    public ObservableList<DynamicAddress> PointerChain { get; } = new ObservableList<DynamicAddress>();
+
+    public MemoryEngine MemoryEngine { get; }
 
     public event EventHandler? AddressableRangeChanged;
     public event EventHandler? MaxDepthChanged;
     public event EventHandler? MinimumOffsetChanged;
-    public event EventHandler? PrimaryMaximumOffsetChanged;
-    public event EventHandler? SecondaryMaximumOffsetChanged;
+    public event EventHandler? MaximumOffsetChanged;
     public event EventHandler? SearchAddressChanged;
     public event EventHandler? AlignmentChanged;
     public event EventHandler? HasPointerMapChanged;
     public event EventHandler? IsScanRunningChanged;
 
     private byte[]? memoryDump;
-    private readonly Dictionary<uint, uint> basePointers_D; // (base+offset) -> addr
 
-    private readonly ConcurrentDictionary<uint, byte> nonPointers; // a set of pointers that do not resolve to the 
+    // aligned offsets are aligned to the `loadedAlignment` field.
+    //     Say align is 4, offsets 0x4 and 0x8 for an int32 are right next to eachother.
+    // unaligned offsets are packed closed together.
+    //     Say align is 4, offsets 1 and 2 for an int32 and right next to eachother.
+    //     You get the aligned offset by doing `unaligned * loadedAlign`, but there may be some
+    //     issues for align values that aren't 4, 8, 16, etc.
+    
+    // Offset (relative to virtualBaseAddress) to value
+    private uint[]? unalignedOffsetToValue;
+
+    // Virtual address (virtualBaseAddress + aligned_offset) to value
+    private readonly SortedList<uint, uint> alignedVirtualAddressToValue = new SortedList<uint, uint>(200000);
+
+    // A set of unaligned offsets (relative to virtualBaseAddress) that have a value.
+    private readonly List<uint> unalignedValidOffsets = new List<uint>(50000);
+
+    // Maps an unaligned offset (relative to virtualBaseAddress) to a list of unaligned
+    // offsets that, when added to the key, are an index into `unalignedOffsetToValue`.
+    // This dictionary will be similar sized to alignedVirtualAddressToValue,
+    // and each list will contain a maximum of `maximumOffset / loadedAlign` offsets,
+    // but i've only seen up to 1023 maximum so there may be a bug somewhere.
+    private readonly Dictionary<uint, List<uint>> unalignedOffsetToNearbyValidOffsets = new Dictionary<uint, List<uint>>(50000);
 
     // private readonly ConcurrentDictionary<uint, object> visitedPointers; // a set of pointers that have already been resolved 
     private bool isMemoryLittleEndian;
     private uint virtualBaseAddress; // The base address the user specified when loading the file
     private CancellationTokenSource? scanCts;
+    private uint loadedAlignment;
 
-    public ObservableList<DynamicAddress> PointerChain { get; } = new ObservableList<DynamicAddress>();
-
-    public MemoryEngine MemoryEngine { get; }
-
-    private readonly struct PointerPrivate {
+    private readonly struct PointerPrivate : IEquatable<PointerPrivate> {
         public readonly uint addr; // The base address
         public readonly uint offset; // The offset from the address
         public readonly uint value; // The dereferenced u32 value at addr+offset
@@ -188,17 +194,22 @@ public class PointerScanner {
         public override string ToString() {
             return $"[{this.addr:X8} + {this.offset:X}] -> {this.value:X8}";
         }
+
+        public bool Equals(PointerPrivate other) {
+            return this.addr == other.addr && this.offset == other.offset && this.value == other.value;
+        }
+
+        public override bool Equals(object? obj) {
+            return obj is PointerPrivate other && this.Equals(other);
+        }
+
+        public override int GetHashCode() {
+            return HashCode.Combine(this.addr, this.offset, this.value);
+        }
     }
 
-    public PointerScanner(MemoryEngine memoryEngine) {
+    public PointerScannerV3(MemoryEngine memoryEngine) {
         this.MemoryEngine = memoryEngine;
-
-        int procCount = Environment.ProcessorCount * 2;
-
-        this.basePointers_D = new Dictionary<uint, uint>(200000);
-        this.nonPointers = new ConcurrentDictionary<uint, byte>(procCount, 1000000);
-
-        // this.visitedPointers = new ConcurrentDictionary<uint, object>(Environment.ProcessorCount, 100000);
     }
 
     public async Task Run() {
@@ -217,7 +228,7 @@ public class PointerScanner {
         this.IsScanRunning = true;
         await ActivityManager.Instance.RunTask(async () => {
             TaskCompletionSource tcs = new TaskCompletionSource();
-            ThreadedScanningContext threadContext = new ThreadedScanningContext(ActivityTask.Current, tcs);
+            ThreadedScanningContext threadContext = new ThreadedScanningContext(ActivityTask.Current, tcs, this.virtualBaseAddress, this.memoryDump!.Length);
             Thread thread = new Thread(this.ThreadedPointerScanMain) {
                 Name = "Pointer Scan Thread",
                 IsBackground = true,
@@ -233,7 +244,7 @@ public class PointerScanner {
             }
 
             IDispatcherTimer timer = ApplicationPFX.Instance.Dispatcher.CreateTimer(DispatchPriority.Default);
-            timer.Interval = TimeSpan.FromSeconds(0.25);
+            timer.Interval = TimeSpan.FromSeconds(0.2);
             timer.Tick += (sender, args) => {
                 threadContext.ActivityTask.Progress.Text = $"Scanned {threadContext.TotalValidAddresses} valid addresses";
             };
@@ -256,6 +267,7 @@ public class PointerScanner {
                 await IMessageDialogService.Instance.ShowExceptionMessage("Pointer Scan Error", "Error while scanning", exception);
             }
         }, new DispatcherActivityProgress(DispatchPriority.Background), cts);
+
         this.IsScanRunning = false;
         this.scanCts = cts;
     }
@@ -269,25 +281,58 @@ public class PointerScanner {
         }
     }
 
-    private sealed class ThreadedScanningContext(ActivityTask activityTask, TaskCompletionSource completion) {
-        public readonly ActivityTask ActivityTask = activityTask;
-        public readonly TaskCompletionSource completion = completion;
+    private sealed class ThreadedScanningContext {
+        public readonly ActivityTask ActivityTask;
+        public readonly TaskCompletionSource completion;
+
+        private readonly ConcurrentDictionary<uint, byte> nonPointers;
+
         private ulong totalValidAddresses;
-        
+
         public ulong TotalValidAddresses => this.totalValidAddresses;
 
+        public ThreadedScanningContext(ActivityTask activityTask, TaskCompletionSource completion, uint memoryDumpVirtualOffset, int memoryDumpSize) {
+            this.ActivityTask = activityTask;
+            this.completion = completion;
+            this.nonPointers = new ConcurrentDictionary<uint, byte>(Environment.ProcessorCount * 2, 1000000);
+        }
+
         public void IncrementTotalAddresses() => Interlocked.Increment(ref this.totalValidAddresses);
+
+        public bool IsNonPointer(uint address) {
+            // using (this.npmLock.EnterScope()) {
+            //     if (address >= this.memoryDumpVirtualOffset && address < this.memoryDumpVirtualEndIndex) {
+            //         bool isNonPointer = this.nonPointerMap[address - this.memoryDumpVirtualOffset];
+            //         return isNonPointer;
+            //     }
+            //     return false;
+            // }
+
+            return this.nonPointers.ContainsKey(address);
+        }
+
+        public void AssignNonPointer(uint address) {
+            // using (this.npmLock.EnterScope()) {
+            //     if (address >= this.memoryDumpVirtualOffset && address < this.memoryDumpVirtualEndIndex) {
+            //         this.nonPointerMap[address - this.memoryDumpVirtualOffset] = true;
+            //     }
+            // }
+
+            this.nonPointers.TryAdd(address, 0 /* dummy empty entry */);
+        }
     }
 
     private ref struct ScanningContext {
-        public readonly ThreadedScanningContext thread;
         private readonly Span<PointerPrivate> chain;
-        private int chainTail;
-        public int currentDepth;
+        public readonly ThreadedScanningContext thread;
+        public uint virtualBaseAddr, maxDepth, alignment;
+        public uint searchAddress;
 
-        public PointerPrivate TopPointer => this.chain[this.chainTail - 1];
+        public int CurrentDepth { get; private set; }
 
-        public Span<PointerPrivate> CurrentChain => this.chain.Slice(0, this.chainTail);
+        public PointerPrivate TopPointer => this.chain[this.CurrentDepth - 1];
+
+        public Span<PointerPrivate> CurrentChain => this.chain.Slice(0, this.CurrentDepth);
 
         public ScanningContext(ThreadedScanningContext thread, Span<PointerPrivate> chain) {
             Debug.Assert(chain.Length == byte.MaxValue + 1);
@@ -296,31 +341,38 @@ public class PointerScanner {
         }
 
         public void PushFrame(PointerPrivate newBase) {
-            this.chain[this.chainTail++] = newBase;
-            this.currentDepth++;
+            this.chain[this.CurrentDepth++] = newBase;
         }
 
         public void PopFrame() {
-            this.chainTail--;
+            this.CurrentDepth--;
         }
 
         public void BeginScan(PointerPrivate newBase) {
             this.chain.Clear();
-            this.currentDepth = 0;
             this.PushFrame(newBase);
+        }
+
+        public void PushVisited(uint dstAddress) {
+        }
+
+        public void PopVisited(uint dstAddress) {
+        }
+
+        public bool HasVisited(uint dstAddress) {
+            foreach (PointerPrivate p in this.CurrentChain) {
+                if (p.value == dstAddress) {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 
-    /*
-     *  Threaded pointer scanner
-     *    The current implementation does not fully work, and gets random results each scan (release mode) or every
-     *    restart of the app (debug mode, for some reason).
-     *
-     *  See PointerScannerBackup2 that has a working (at least AFAIK) but are of course very slow scanning algorithm.
-     */
     private void ThreadedPointerScanMain(object? _param) {
         ThreadedScanningContext threadContext = (ThreadedScanningContext) _param!;
-        if (this.basePointers_D.Count < 1) {
+        if (this.alignedVirtualAddressToValue.Count < 1) {
             threadContext.completion.TrySetResult();
             return;
         }
@@ -328,9 +380,7 @@ public class PointerScanner {
         ActivityTask activity = threadContext.ActivityTask;
         activity.Progress.Caption = "Pointer scan";
         activity.Progress.Text = "Running full pointer scan...";
-
-        this.nonPointers.Clear();
-        using PopCompletionStateRangeToken range = activity.Progress.CompletionState.PushCompletionRange(0, 1.0 / this.basePointers_D.Count);
+        using PopCompletionStateRangeToken range = activity.Progress.CompletionState.PushCompletionRange(0, 1.0 / this.alignedVirtualAddressToValue.Count);
 
         ParallelOptions options = new ParallelOptions {
             MaxDegreeOfParallelism = (int) (Environment.ProcessorCount / 4.0 * 3.0),
@@ -338,7 +388,7 @@ public class PointerScanner {
         };
 
         try {
-            Parallel.ForEach(this.basePointers_D.ToList(), options, RunScanInTask);
+            Parallel.ForEach(this.alignedVirtualAddressToValue.ToList(), options, RunScanInTask);
         }
         catch (AggregateException e) when (e.InnerExceptions.All(x => x is OperationCanceledException)) {
             threadContext.completion.TrySetCanceled(((OperationCanceledException) e.InnerExceptions.First()).CancellationToken);
@@ -358,18 +408,18 @@ public class PointerScanner {
 
         void RunScanInTask(KeyValuePair<uint, uint> entry) {
             try {
-                if (activity.IsCancellationRequested) {
-                    return;
-                }
-
                 Span<PointerPrivate> chain = stackalloc PointerPrivate[byte.MaxValue + 1];
-                ScanningContext ctx = new ScanningContext(threadContext, chain);
+                ScanningContext ctx = new ScanningContext(threadContext, chain) {
+                    virtualBaseAddr = this.virtualBaseAddress, maxDepth = this.maxDepth, alignment = this.loadedAlignment,
+                    searchAddress = this.searchAddress
+                };
+
                 ctx.BeginScan(new PointerPrivate(this.virtualBaseAddress, entry.Key - this.virtualBaseAddress, entry.Value));
                 if (entry.Value == this.searchAddress) {
                     this.AddPointerResult(ctx.CurrentChain);
                 }
                 else if (this.maxDepth > 0) {
-                    this.FindNearbyPointers(ref ctx, this.primaryMaximumOffset);
+                    this.ScanRecursive(ref ctx);
                 }
 
                 activity.Progress.CompletionState.OnProgress(1);
@@ -378,51 +428,83 @@ public class PointerScanner {
                 // ignored
             }
             catch (Exception e) {
+                activity.TryCancel();
                 Debugger.Break();
             }
         }
     }
 
-    private void FindNearbyPointers(ref ScanningContext ctx, uint maxOffset) {
+    private void ScanRecursive(ref ScanningContext ctx) {
         ctx.thread.ActivityTask.ThrowIfCancellationRequested();
 
-        for (uint offset = this.minimumOffset; offset <= maxOffset; offset += this.alignment) {
-            uint address = ctx.TopPointer.value + offset;
-            if (address == this.searchAddress) {
+        uint unalignedAddressOffset = (ctx.TopPointer.value - ctx.virtualBaseAddr) / ctx.alignment;
+        if (!this.unalignedOffsetToNearbyValidOffsets.TryGetValue(unalignedAddressOffset, out List<uint>? unalignedOffsets)) {
+            // No offsets available to scan for the current pointer
+            return;
+        }
+
+        for (int i = 0; i < unalignedOffsets.Count; i++) {
+            uint alignedOffset = unalignedOffsets[i] * ctx.alignment;
+            uint virtualAddress = ctx.TopPointer.value + alignedOffset;
+            if (virtualAddress == ctx.searchAddress) {
                 ctx.thread.IncrementTotalAddresses();
-                this.AddPointerResult(ctx.CurrentChain, offset);
+                this.AddPointerResult(ctx.CurrentChain, alignedOffset);
             }
-            else if (!this.nonPointers.ContainsKey(address)) {
-                if (!this.basePointers_D.TryGetValue(address, out uint dstAddress /* the address pointed to by srcAddress */)) {
-                    this.nonPointers.TryAdd(address, 0 /* dummy empty entry */);
-                }
-                else if (dstAddress == this.searchAddress) {
+            else {
+                uint dstVirtualAddress = this.unalignedOffsetToValue![unalignedAddressOffset + unalignedOffsets[i]];
+                if (dstVirtualAddress == ctx.searchAddress) {
                     ctx.thread.IncrementTotalAddresses();
-                    this.AddPointerResult(ctx.CurrentChain, offset);
+                    this.AddPointerResult(ctx.CurrentChain, alignedOffset);
                 }
-                else if (ctx.currentDepth < this.maxDepth && !this.nonPointers.ContainsKey(dstAddress)) {
+                else if (ctx.CurrentDepth < ctx.maxDepth && !ctx.HasVisited(dstVirtualAddress)) {
+                    ctx.PushVisited(dstVirtualAddress);
                     ctx.thread.IncrementTotalAddresses();
-                    ctx.PushFrame(new PointerPrivate(ctx.TopPointer.value, offset, dstAddress));
-                    this.FindNearbyPointers(ref ctx, ctx.currentDepth == 1 ? this.secondaryMaximumOffset : this.primaryMaximumOffset);
+                    ctx.PushFrame(new PointerPrivate(ctx.TopPointer.value, alignedOffset, dstVirtualAddress));
+                    this.ScanRecursive(ref ctx);
                     ctx.PopFrame();
+                    ctx.PopVisited(dstVirtualAddress);
                 }
             }
         }
+
+        // for (uint offset = ctx.minimumOffset; offset <= maxAddressOffset; offset += ctx.alignment) {
+        //     uint address = ctx.TopPointer.value + offset;
+        //     if (address == ctx.searchAddress) {
+        //         ctx.thread.IncrementTotalAddresses();
+        //         this.AddPointerResult(ctx.CurrentChain, offset);
+        //     }
+        //     else if (!this.TryDereferenceVirtual(address, out uint dstAddress /* the address pointed to by srcAddress */)) {
+        //         // ctx.thread.AssignNonPointer(address);
+        //         continue;
+        //     }
+        //     else if (dstAddress == ctx.searchAddress) {
+        //         ctx.thread.IncrementTotalAddresses();
+        //         this.AddPointerResult(ctx.CurrentChain, offset);
+        //     }
+        //     else if (ctx.CurrentDepth < ctx.maxDepth && ctx.visitedAddresses.Add(dstAddress)) {
+        //         ctx.thread.IncrementTotalAddresses();
+        //         ctx.PushFrame(new PointerPrivate(ctx.TopPointer.value, offset, dstAddress));
+        //         this.ScanRecursive(ref ctx, ctx.CurrentDepth == 1 ? this.secondaryMaximumOffset : this.primaryMaximumOffset);
+        //         ctx.PopFrame();
+        //
+        //         ctx.visitedAddresses.Remove(dstAddress);
+        //     }
+        // }
     }
 
     private void AddPointerResult(Span<PointerPrivate> chain) {
-        IEnumerable<int> offsets = chain.Length < 2 
+        IEnumerable<int> offsets = chain.Length < 2
             ? ReadOnlyCollection<int>.Empty // only 1 pointer so no offets 
             : chain.Slice(1).ToArray().Select(x => (int) x.offset);
-        
+
         this.AddPointerResult(new DynamicAddress(chain[0].addr + chain[0].offset, offsets));
     }
 
     private void AddPointerResult(Span<PointerPrivate> chain, uint offset) {
-        IEnumerable<int> offsets = chain.Length < 2 
+        IEnumerable<int> offsets = chain.Length < 2
             ? ReadOnlyCollection<int>.Empty // only 1 pointer so no offets 
             : chain.Slice(1).ToArray().Select(x => (int) x.offset);
-        
+
         this.AddPointerResult(new DynamicAddress(chain[0].addr + chain[0].offset, offsets.Append((int) offset)));
     }
 
@@ -432,7 +514,7 @@ public class PointerScanner {
 
     private bool TryReadU32(uint address, out uint value) {
         // Check address is actually addressable
-        if (address >= this.addressableRange.@base && (address + sizeof(uint)) <= this.addressableRange.end) {
+        if (address >= this.addressableRange.@base && address <= this.addressableRange.end - sizeof(uint)) {
             if (address >= this.virtualBaseAddress) {
                 uint bufferOffset = address - this.virtualBaseAddress; // within the memory dump file
                 if (bufferOffset <= (this.memoryDump!.Length - sizeof(uint))) {
@@ -440,6 +522,29 @@ public class PointerScanner {
                     return true;
                 }
             }
+        }
+
+        value = 0;
+        return false;
+    }
+
+    private bool TryDereferenceVirtual(uint virtualAddress, out uint value) {
+        if (virtualAddress >= this.virtualBaseAddress) {
+            return this.TryDereferenceAligned(virtualAddress - this.virtualBaseAddress, out value);
+        }
+
+        value = 0;
+        return false;
+    }
+
+    private bool TryDereferenceAligned(uint offset, out uint value) {
+        return this.TryDereferenceUnaligned(offset / this.loadedAlignment, out value);
+    }
+
+    private bool TryDereferenceUnaligned(uint offset, out uint value) {
+        uint[]? array = this.unalignedOffsetToValue;
+        if (offset < array!.Length) {
+            return (value = array[offset]) != 0;
         }
 
         value = 0;
@@ -468,36 +573,87 @@ public class PointerScanner {
 
         if (this.HasPointerMap) {
             this.HasPointerMap = false;
-            this.basePointers_D.Clear();
+            this.ClearPointerMap();
         }
 
-        progress.Caption = "Pointer map";
-        progress.Text = "Generating base-level pointer map...";
+        using var _ = progress.SaveState(default, "Pointer map", false);
+
+        this.loadedAlignment = this.alignment;
+        int align = (int) this.loadedAlignment;
 
         try {
             await Task.Run(() => {
+                progress.Text = "Generating base-level pointer map...";
+
                 // First resolve every single possible pointer in the address space
                 Span<byte> dumpSpan = this.memoryDump.AsSpan();
+                this.unalignedOffsetToValue = new uint[dumpSpan.Length / align];
 
                 using (progress.CompletionState.PushCompletionRange(0, 1.0 / dumpSpan.Length)) {
-                    int align = (int) this.alignment;
                     bool bIsLittleEndian = this.isMemoryLittleEndian;
-                    for (int i = 0; i < dumpSpan.Length; i += align) {
+                    for (int i = 0, j = 0; i < dumpSpan.Length; i += align, j++) {
                         cancellation.ThrowIfCancellationRequested();
 
+                        uint virtualAddress = this.virtualBaseAddress + (uint) i;
                         uint u32value = MemoryEngine.ReadValueFromBytes<uint>(dumpSpan.Slice(i, sizeof(uint)), bIsLittleEndian);
                         if (u32value != 0 && this.addressableRange.Contains(u32value)) {
-                            this.basePointers_D[this.virtualBaseAddress + (uint) i] = u32value;
+                            this.alignedVirtualAddressToValue[virtualAddress] = u32value;
+                            this.unalignedValidOffsets.Add((uint) j);
+                            this.unalignedOffsetToValue[j] = u32value;
                         }
 
-                        progress.CompletionState.OnProgress(this.alignment);
+                        progress.CompletionState.OnProgress(align);
+                    }
+                }
+            }, cancellation);
+
+            await Task.Run(() => {
+                using (progress.CompletionState.PushCompletionRange(0, 1.0 / this.unalignedValidOffsets.Count)) {
+                    progress.Text = "Pre-computing valid offsets";
+                    uint[] unalignedValueArray = this.unalignedOffsetToValue! ?? throw new Exception("Error");
+
+                    foreach (uint unalignedValidOffset in this.unalignedValidOffsets) {
+                        cancellation.ThrowIfCancellationRequested();
+                        if (!this.unalignedOffsetToNearbyValidOffsets.TryGetValue(unalignedValidOffset, out List<uint>? unalignedOffsets)) {
+                            this.unalignedOffsetToNearbyValidOffsets[unalignedValidOffset] = unalignedOffsets = new List<uint>(0);
+                        }
+
+                        ParallelOptions options = new ParallelOptions {
+                            MaxDegreeOfParallelism = (int) (Environment.ProcessorCount / 8.0 * 7.0),
+                            CancellationToken = cancellation
+                        };
+
+                        try {
+                            Parallel.For(this.minimumOffset / align, this.maximumOffset / align, options, (i, state) => {
+                                if (!state.ShouldExitCurrentIteration) {
+                                    long offset = unalignedValidOffset + i;
+                                    if (offset >= 0 && offset < unalignedValueArray.Length) {
+                                        uint value = unalignedValueArray[offset];
+                                        if (value != 0) {
+                                            lock (unalignedOffsets) {
+                                                unalignedOffsets.Add((uint) (ulong) i);
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        catch (Exception e) {
+                            return;
+                        }
+
+                        if (unalignedOffsets.Count < 1) {
+                            this.unalignedOffsetToNearbyValidOffsets.Remove(unalignedValidOffset);
+                        }
+
+                        progress.CompletionState.OnProgress(1);
                     }
                 }
             }, cancellation);
         }
         catch (Exception e) {
             Debug.Assert(e is OperationCanceledException);
-            this.basePointers_D.Clear();
+            this.ClearPointerMap();
             return;
         }
 
@@ -509,8 +665,14 @@ public class PointerScanner {
     }
 
     public void Clear() {
-        this.basePointers_D.Clear();
-        this.nonPointers.Clear();
+        this.ClearPointerMap();
         this.PointerChain.Clear();
+    }
+
+    private void ClearPointerMap() {
+        this.alignedVirtualAddressToValue.Clear();
+        this.unalignedOffsetToNearbyValidOffsets.Clear();
+        this.unalignedValidOffsets.Clear();
+        this.unalignedOffsetToValue = null;
     }
 }
