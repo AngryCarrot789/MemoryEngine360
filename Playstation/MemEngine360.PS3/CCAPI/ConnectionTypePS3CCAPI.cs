@@ -20,7 +20,6 @@
 using System.Runtime.Versioning;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
-using MemEngine360.PS3.CC;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.AdvancedMenuService;
@@ -31,7 +30,7 @@ using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 
-namespace MemEngine360.PS3;
+namespace MemEngine360.PS3.CCAPI;
 
 [SupportedOSPlatform("windows")]
 public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
@@ -52,13 +51,13 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
     }
 
     public override IEnumerable<IMenuEntry> GetRemoteContextOptions() {
-        yield return new CommandMenuEntry("commands.ps3ccapi.SetProcessToActiveGameCommand", "Attach to Game", "Find active game PID and attach CCAPI to it");
-        yield return new CommandMenuEntry("commands.ps3ccapi.SetProcessCommand", "Attach to process...");
-        yield return new CommandMenuEntry("commands.ps3ccapi.ListAllProcessesCommand", "List all processes");
+        yield return new CommandMenuEntry("commands.ps3.SetProcessToActiveGameCommand", "Attach to Game", "Find active game PID and attach CCAPI to it");
+        yield return new CommandMenuEntry("commands.ps3.SetProcessCommand", "Attach to process...");
+        yield return new CommandMenuEntry("commands.ps3.ListAllProcessesCommand", "List all processes");
     }
 
     protected override string GetStatusBarTextCore(IConsoleConnection connection) {
-        ConsoleConnectionCCAPI conn = (ConsoleConnectionCCAPI) connection;
+        IPs3ConsoleConnection conn = (IPs3ConsoleConnection) connection;
         string text = base.GetStatusBarTextCore(connection);
         text += $" - Attached PID 0x{conn.AttachedProcess:X8}";
         return text;

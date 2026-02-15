@@ -17,21 +17,18 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Runtime.Versioning;
 using MemEngine360.Commands;
 using MemEngine360.Engine;
-using MemEngine360.PS3.CC;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 
 namespace MemEngine360.PS3.Commands;
 
-[SupportedOSPlatform("windows")]
 public class ListAllProcessesCommand : BaseMemoryEngineCommand {
     protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
         if (engine.Connection == null || engine.Connection.IsClosed)
             return Executability.ValidButCannotExecute;
-        if (!(engine.Connection is ConsoleConnectionCCAPI api))
+        if (!(engine.Connection is IPs3ConsoleConnection api))
             return Executability.Invalid;
 
         return Executability.Valid;
@@ -40,7 +37,7 @@ public class ListAllProcessesCommand : BaseMemoryEngineCommand {
     protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
         if (engine.Connection == null || engine.Connection.IsClosed)
             return;
-        if (!(engine.Connection is ConsoleConnectionCCAPI api))
+        if (!(engine.Connection is IPs3ConsoleConnection api))
             return;
         
         using IBusyToken? token = await engine.BusyLock.BeginBusyOperationUsingActivity(new BusyTokenRequestUsingActivity() {
@@ -53,7 +50,7 @@ public class ListAllProcessesCommand : BaseMemoryEngineCommand {
         }
 
         try {
-            List<(uint pid, string? name)> list = await api.GetAllProcesses();
+            List<(uint pid, string? name)> list = await api.GetAllProcessesWithName();
             if (list.Count < 1) {
                 await IMessageDialogService.Instance.ShowMessage("No processes", "No processes running");
             }

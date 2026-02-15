@@ -49,4 +49,8 @@
     <ItemGroup>
       <None Remove="libs\**" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="MAPI\Impl\" />
+    </ItemGroup>
 </Project>

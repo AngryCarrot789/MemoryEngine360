@@ -4,7 +4,7 @@ using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
 using PFXToolKitUI.Avalonia.Bindings;
 
-namespace MemEngine360.PS3;
+namespace MemEngine360.PS3.CCAPI;
 
 [SupportedOSPlatform("windows")]
 public partial class OpenCCAPIConnectionView : UserControl, IConsoleConnectivityControl {

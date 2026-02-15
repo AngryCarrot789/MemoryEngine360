@@ -17,12 +17,14 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Diagnostics;
 using System.Runtime.Versioning;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
-using MemEngine360.PS3.CC;
+using MemEngine360.PS3.CCAPI;
 using MemEngine360.PS3.Commands;
+using MemEngine360.PS3.MAPI;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Notifications;
@@ -35,30 +37,34 @@ public class PluginPS3 : Plugin {
     protected override void OnInitialize() {
         base.OnInitialize();
 
-        CommandManager.Instance.Register("commands.ps3ccapi.SetProcessToActiveGameCommand", new SetProcessToActiveGameCommand());
-        CommandManager.Instance.Register("commands.ps3ccapi.SetProcessCommand", new SetProcessCommand());
-        CommandManager.Instance.Register("commands.ps3ccapi.ListAllProcessesCommand", new ListAllProcessesCommand());
+        CommandManager.Instance.Register("commands.ps3.SetProcessToActiveGameCommand", new SetProcessToActiveGameCommand());
+        CommandManager.Instance.Register("commands.ps3.SetProcessCommand", new SetProcessCommand());
+        CommandManager.Instance.Register("commands.ps3.ListAllProcessesCommand", new ListAllProcessesCommand());
     }
 
     protected override async Task OnApplicationFullyLoaded() {
+        ConsoleConnectionManager manager = ApplicationPFX.GetComponent<ConsoleConnectionManager>();
         if (OperatingSystem.IsWindows()) {
-            ConsoleConnectionManager manager = ApplicationPFX.GetComponent<ConsoleConnectionManager>();
             manager.Register(ConnectionTypePS3CCAPI.TheID, ConnectionTypePS3CCAPI.Instance);
-            OpenConnectionView.Registry.RegisterType<ConnectToCCAPIInfo>(
-                () => {
-                    // The callback is only registered in the OS.IsWindows() block, so this is safe
+            OpenConnectionView.Registry.RegisterType<ConnectToCCAPIInfo>(() => {
+                // The callback is only registered in the OS.IsWindows() block, so this is safe
 #pragma warning disable CA1416
-                    return new OpenCCAPIConnectionView();
+                return new OpenCCAPIConnectionView();
 #pragma warning restore CA1416
-                });
+            });
+        }
+
+        if (Debugger.IsAttached) {
+            manager.Register(ConnectionTypePS3MAPI.TheID, ConnectionTypePS3MAPI.Instance);
+            OpenConnectionView.Registry.RegisterType<ConnectToMAPIInfo>(() => new OpenMAPIConnectionView());
         }
 
         MemoryEngineManager.Instance.ProvidePostConnectionActions += OnProvidePostConnectionActions;
     }
 
     private static void OnProvidePostConnectionActions(object? sender, ProvidePostConnectionActionsEventArgs e) {
-        if (e.Connection is ConsoleConnectionCCAPI) {
-            e.Notification.Actions.Add(new CommandNotificationAction("Attach to Game Process", "commands.ps3ccapi.SetProcessToActiveGameCommand") {
+        if (e.Connection is IPs3ConsoleConnection) {
+            e.Notification.Actions.Add(new CommandNotificationAction("Attach to Game Process", "commands.ps3.SetProcessToActiveGameCommand") {
                 ToolTip = "Attach CCAPI to the current running game process. This is required to read/write game memory"
             });
         }

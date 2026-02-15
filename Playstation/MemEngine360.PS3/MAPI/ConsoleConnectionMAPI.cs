@@ -1,5 +1,5 @@
 ﻿// 
-// Copyright (c) 2024-2025 REghZy
+// Copyright (c) 2026-2026 REghZy
 // 
 // This file is part of MemoryEngine360.
 // 
@@ -18,27 +18,18 @@
 // 
 
 using System.Net;
-using System.Runtime.Versioning;
 using MemEngine360.Connections;
-using PFXToolKitUI.Logging;
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Events;
 
-namespace MemEngine360.PS3.CC;
+namespace MemEngine360.PS3.MAPI;
 
-[SupportedOSPlatform("windows")]
-public class ConsoleConnectionCCAPI : BaseConsoleConnection, INetworkConsoleConnection {
-    private readonly ConsoleControlAPI api;
-
-    public override RegisteredConnectionType ConnectionType => ConnectionTypePS3CCAPI.Instance;
+public class ConsoleConnectionMAPI : BaseConsoleConnection, IPs3ConsoleConnection {
+    public override RegisteredConnectionType ConnectionType => ConnectionTypePS3MAPI.Instance;
     
     public override bool IsLittleEndian => false;
 
     public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
 
-    /// <summary>
-    /// Gets or sets the process we use to read and write memory 
-    /// </summary>
     public uint AttachedProcess {
         get => field;
         set => PropertyHelper.SetAndRaiseINE(ref field, value, this, static t => {
@@ -50,58 +41,55 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection, INetworkConsoleConn
     public EndPoint? EndPoint => !this.IsClosed ? this.api.EndPoint : null;
 
     public event EventHandler? AttachedProcessChanged;
-    
-    public ConsoleConnectionCCAPI(ConsoleControlAPI api) {
+
+    private readonly Ps3ManagerApiV2 api;
+
+    public ConsoleConnectionMAPI(Ps3ManagerApiV2 api) {
         this.api = api;
-        this.api.NativeFailure += this.ApiOnNativeFailure;
     }
 
     protected override void CloseOverride() {
-        Task.Run(() => {
-            try {
-                this.api.DisconnectFromConsole(true);
-            }
-            catch (Exception e) {
-                // ignored
-            }
-            
-            try {
-                this.api.Dispose();
-            }
-            catch (Exception e) {
-                // ignored
-            }
-        });
-    }
-
-    private void ApiOnNativeFailure(object? sender, EventArgs e) {        
-        AppLogger.Instance.WriteLine("CCAPI console connection error");
-        AppLogger.Instance.WriteLine(this.api.FailureException!.GetToString());
-        
-        this.Close();
+        this.api.Disconnect();
     }
 
     public override Task<bool?> IsMemoryInvalidOrProtected(uint address, int count) {
         return Task.FromResult<bool?>(false);
     }
 
-    protected override Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
-        return this.api.ReadMemory(this.AttachedProcess, address, dstBuffer, offset, count);
+    protected override async Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
+        await this.api.Memory_Get(this.AttachedProcess, address, dstBuffer, offset, count);
     }
 
     protected override Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
-        return this.api.WriteMemory(this.AttachedProcess, address, srcBuffer, offset, count);
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Finds the active game PID
     /// </summary>
     /// <returns>The PID, or zero, if no game is running</returns>
-    public Task<(uint, string?)> FindGameProcessId() {
-        return this.api.FindGameProcessId();
+    public async Task<uint> FindGameProcessId() {
+        List<(uint, string?)> result = await this.GetAllProcessesWithName();
+        foreach ((uint pid, string? name) proc in result) {
+            if (proc.name != null && !proc.name.Contains("dev_flash")) {
+                return proc.pid;
+            }
+        }
+
+        return 0;
     }
     
-    public Task<List<(uint, string?)>> GetAllProcesses() {
-        return this.api.GetAllProcesses();
+    public async Task<List<(uint, string?)>> GetAllProcessesWithName() {
+        uint[] pids = await this.api.GetPidList();
+        List<(uint, string?)> pidNameList = new List<(uint, string?)>();
+        foreach (uint pid in pids) {
+            pidNameList.Add((pid, await this.api.Process_GetName(pid)));
+        }
+
+        return pidNameList;
+    }
+    
+    public async Task<uint[]> GetAllProcesses() {
+        return await this.api.GetPidList();
     }
 }

@@ -28,7 +28,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using PFXToolKitUI.Utils;
 
-namespace MemEngine360.PS3.CC;
+namespace MemEngine360.PS3.CCAPI;
 
 [SupportedOSPlatform("windows")]
 public class ConsoleControlAPI {

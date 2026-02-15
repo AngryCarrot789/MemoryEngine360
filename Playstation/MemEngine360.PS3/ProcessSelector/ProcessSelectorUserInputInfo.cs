@@ -18,7 +18,6 @@
 // 
 
 using System.Runtime.Versioning;
-using MemEngine360.PS3.CC;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
@@ -41,16 +40,15 @@ public sealed class ProcessSelectorUserInputInfo : UserInputInfo {
         });
     }
 
-    public ConsoleConnectionCCAPI? Connection {
+    public IPs3ConsoleConnection? Connection {
         get => field;
         set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.ConnectionChanged);
     }
 
-    public event EventHandler? ConnectionChanged;
-
     public ObservableList<Ps3Process> Processes { get; } = new ObservableList<Ps3Process>();
 
     public event EventHandler? SelectedProcessChanged;
+    public event EventHandler? ConnectionChanged;
 
     public ProcessSelectorUserInputInfo() {
         this.Processes.ItemsRemoved += (list, index, items) => {

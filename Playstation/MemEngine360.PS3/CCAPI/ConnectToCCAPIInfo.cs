@@ -21,7 +21,6 @@ using System.Diagnostics;
 using System.Runtime.Versioning;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
-using MemEngine360.PS3.CC;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Windowing;
@@ -30,7 +29,7 @@ using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Events;
 
-namespace MemEngine360.PS3;
+namespace MemEngine360.PS3.CCAPI;
 
 [SupportedOSPlatform("windows")]
 public class ConnectToCCAPIInfo : UserConnectionInfo {

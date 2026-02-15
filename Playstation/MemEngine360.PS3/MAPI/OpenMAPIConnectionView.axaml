@@ -1,0 +1,34 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MemEngine360.PS3.MAPI.OpenMAPIConnectionView">
+    <StackPanel Margin="10">
+        <TextBlock Padding="0,0,0,2"
+                   Text="Ensure you have MAPI running on your PS3, or CFW Cobra version 7.03 or later and it's enabled in webMAN-MOD settings"
+                   FontSize="16"
+                   Foreground="{DynamicResource ABrush.ColourfulGlyph.Static}"
+                   FontWeight="Medium"
+                   TextWrapping="Wrap"/>
+        <Separator/>
+
+        <TextBlock Text="IP/Hostname Address" Padding="0,5"/>
+        <TextBox x:Name="PART_IpAddressTextBox" Padding="5,5"
+                 VerticalContentAlignment="Center"
+                 ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
+        
+        <TextBlock Text="Port" Padding="0,5"/>
+        <TextBox x:Name="PART_PortTextBox" Padding="5,5"
+                 VerticalContentAlignment="Center"
+                 ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
+        
+        <Separator Margin="0,5"/>
+        <TextBlock Padding="0,0,0,2"
+                   Text="Note, to scan for game memory, you will have to click 'Attach to Game' in the Remote Controls menu or in the notification, once connected."
+                   Foreground="OrangeRed"
+                   TextWrapping="Wrap"
+                   FontWeight="Medium"/>
+        <Separator/>
+    </StackPanel>
+</UserControl>
