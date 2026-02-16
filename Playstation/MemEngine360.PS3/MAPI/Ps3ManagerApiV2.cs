@@ -60,23 +60,23 @@ public partial class Ps3ManagerApiV2 {
 
         MapiResponse response = await this.SendCommandAndGetResponse("PASV");
         if (response.Code != ResponseCode.EnteringPassiveMode) {
-            throw new Exception("PS3ManagerAPI error. Could not enter passive mode");
+            throw new IOException("PS3ManagerAPI error. Could not enter passive mode");
         }
 
         int idxA = response.Message.IndexOf('('), idxB = idxA == -1 ? -1 : response.Message.IndexOf(')', idxA);
         if (idxA == -1 || idxB == -1) {
             this.Disconnect();
-            throw new Exception("Malformed PASV response: " + response.Message);
+            throw new IOException("Malformed PASV response: " + response.Message);
         }
 
         string[] strArray = response.Message.Substring(idxA + 1, idxB - idxA - 1).Split(',');
         if (strArray.Length < 6) {
             this.Disconnect();
-            throw new Exception("Malformed PASV response: " + response.Message);
+            throw new IOException("Malformed PASV response: " + response.Message);
         }
 
         if (!int.TryParse(strArray[4], out int a) || !int.TryParse(strArray[5], out int b)) {
-            throw new Exception("Malformed PASV response: " + response.Message);
+            throw new IOException("Malformed PASV response: " + response.Message);
         }
 
         int port = (a << 8) + b;
@@ -92,7 +92,7 @@ public partial class Ps3ManagerApiV2 {
             throw new TimeoutException("Timeout trying to open data socket");
         }
         catch (Exception ex) {
-            throw new Exception("Error trying to open data socket", ex);
+            throw new IOException("Error trying to open data socket", ex);
         }
     }
 
@@ -114,7 +114,7 @@ public partial class Ps3ManagerApiV2 {
             case ResponseCode.CommandOK:
             case ResponseCode.RequestSuccessful:
                 return Convert.ToUInt32(response.Message);
-            default: throw new Exception("PS3ManagerAPI error");
+            default: throw new IOException("PS3ManagerAPI error");
         }
     }
 
@@ -126,7 +126,7 @@ public partial class Ps3ManagerApiV2 {
             case ResponseCode.CommandOK:
             case ResponseCode.RequestSuccessful:
                 return Convert.ToUInt32(response.Message);
-            default: throw new Exception("PS3ManagerAPI error");
+            default: throw new IOException("PS3ManagerAPI error");
         }
     }
 
@@ -138,7 +138,7 @@ public partial class Ps3ManagerApiV2 {
             case ResponseCode.CommandOK:
             case ResponseCode.RequestSuccessful:
                 return Convert.ToUInt32(response.Message);
-            default: throw new Exception("PS3ManagerAPI error");
+            default: throw new IOException("PS3ManagerAPI error");
         }
     }
 
@@ -150,7 +150,7 @@ public partial class Ps3ManagerApiV2 {
             case ResponseCode.CommandOK:
             case ResponseCode.RequestSuccessful:
                 return Convert.ToUInt32(response.Message);
-            default: throw new Exception("PS3ManagerAPI error");
+            default: throw new IOException("PS3ManagerAPI error");
         }
     }
 
@@ -162,7 +162,7 @@ public partial class Ps3ManagerApiV2 {
             case ResponseCode.CommandOK:
             case ResponseCode.RequestSuccessful:
                 return Convert.ToUInt32(response.Message);
-            default: throw new Exception("PS3ManagerAPI error");
+            default: throw new IOException("PS3ManagerAPI error");
         }
     }
 
@@ -199,27 +199,24 @@ public partial class Ps3ManagerApiV2 {
 
     public async ValueTask Memory_Get(uint pId, ulong address, byte[] buffer, int offset, int count) {
         if (!this.IsConnected)
-            throw new Exception("PS3MAPI not connected!");
+            throw new IOException("PS3MAPI not connected!");
 
         await this.SetBinaryMode(true);
-        
+
         this.CloseDataSocket();
-        if (this.data_sock == null) {
-            await this.OpenDataSocket();
-        }
+        await this.OpenDataSocket();
 
-        MapiResponse memGetResponse = await this.SendCommandAndGetResponse($"MEMORY GET {pId} {address:X16} {count}");
+        MapiResponse memGetResponse = await this.SendCommandAndGetResponse($"MEMORY GET {pId} {address:X16} {count}").ConfigureAwait(false);
         if (memGetResponse.Code == ResponseCode.DataConnectionAlreadyOpen || memGetResponse.Code != ResponseCode.MemoryStatusOK) {
-            throw new Exception(memGetResponse.Message);
+            throw new IOException(memGetResponse.Message);
         }
 
-        const int ReceiveBuffer = 512;
         for (int remaining = count; remaining > 0;) {
             try {
-                Memory<byte> memory = buffer.AsMemory(offset + (remaining - count), Math.Min(remaining, ReceiveBuffer));
+                Memory<byte> memory = buffer.AsMemory(offset + (remaining - count), remaining);
                 int recv = await this.data_sock!.ReceiveAsync(memory, SocketFlags.None);
                 if (recv < 0) {
-                    await this.WaitForSocketData();
+                    await Task.Delay(1).ConfigureAwait(false);
                 }
 
                 remaining -= recv;
@@ -230,10 +227,10 @@ public partial class Ps3ManagerApiV2 {
             }
             catch (Exception ex) {
                 this.CloseDataSocket();
-                throw new Exception("Error receiving bytes", ex);
+                throw new IOException("Error receiving bytes", ex);
             }
         }
-        
+
         this.CloseDataSocket();
         MapiResponse closeResponse = await this.ReadResponse();
         switch (closeResponse.Code) {
@@ -241,7 +238,7 @@ public partial class Ps3ManagerApiV2 {
             case ResponseCode.MemoryActionCompleted:
                 await this.SetBinaryMode(false);
                 break;
-            default: throw new Exception(closeResponse.Message);
+            default: throw new IOException(closeResponse.Message);
         }
     }
 
@@ -281,7 +278,7 @@ public partial class Ps3ManagerApiV2 {
                                 case ResponseCode.MemoryActionCompleted:
                                     await this.SetBinaryMode(false);
                                     continue;
-                                default: throw new Exception(response1.Message);
+                                default: throw new IOException(response1.Message);
                             }
                         }
                     }
@@ -289,12 +286,12 @@ public partial class Ps3ManagerApiV2 {
                         this.CloseDataSocket();
                         await this.ReadResponse();
                         await this.SetBinaryMode(false);
-                        throw new Exception("Error", ex);
+                        throw new IOException("Error", ex);
                     }
                 }
 
                 break;
-            default: throw new Exception(response.Message);
+            default: throw new IOException(response.Message);
         }
     }
 
@@ -316,7 +313,7 @@ public partial class Ps3ManagerApiV2 {
 
                 return pids.Slice(0, j).ToArray();
             }
-            default: throw new Exception(response.Message);
+            default: throw new IOException(response.Message);
         }
     }
 
@@ -326,7 +323,7 @@ public partial class Ps3ManagerApiV2 {
             case ResponseCode.CommandOK:
             case ResponseCode.RequestSuccessful:
                 return response.Message;
-            default: throw new Exception(response.Message);
+            default: throw new IOException(response.Message);
         }
     }
 
@@ -336,7 +333,7 @@ public partial class Ps3ManagerApiV2 {
             case ResponseCode.CommandOK:
             case ResponseCode.RequestSuccessful:
                 break;
-            default: throw new Exception("PS3ManagerAPI error");
+            default: throw new IOException("PS3ManagerAPI error");
         }
     }
 
