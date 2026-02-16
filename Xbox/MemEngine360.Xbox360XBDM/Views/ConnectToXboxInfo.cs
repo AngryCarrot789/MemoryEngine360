@@ -82,86 +82,100 @@ public class ConnectToXboxInfo : UserConnectionInfo {
         Debug.Assert(this.lastRefreshConsolesTask == null);
 
         this.refreshCts = new CancellationTokenSource(3000);
-        this.lastRefreshConsolesTask = ActivityManager.Instance.RunTask(async () => {
-            ActivityTask activity = ActivityTask.Current;
+        this.lastRefreshConsolesTask = ActivityManager.Instance.RunTask(this.DiscoverLocalConsolesInActivity, this.refreshCts);
+    }
 
-            IEnumerable<UnicastIPAddressInformation> unicastIps =
-                NetworkInterface.GetAllNetworkInterfaces().
-                                 Where(nic => nic.OperationalStatus == OperationalStatus.Up && nic.Supports(NetworkInterfaceComponent.IPv4)).
-                                 SelectMany(x => x.GetIPProperties().UnicastAddresses).
-                                 Where(ip => ip.Address.AddressFamily != AddressFamily.InterNetworkV6 && !IPAddress.IsLoopback(ip.Address));
+    private async Task DiscoverLocalConsolesInActivity() {
+        ActivityTask activity = ActivityTask.Current;
+        activity.Progress.SetCaptionAndText("Discover Consoles", "Discovering local xbox consoles", true);
 
-            byte[] sendBuffer = BitConverter.GetBytes((short) 3);
-            List<Task> tasks = new List<Task>();
-            
-            foreach (UnicastIPAddressInformation ip in unicastIps) {
-                tasks.Add(Task.Run(DiscoverConsoleOnNetworkInterface, activity.CancellationToken));
-                continue;
+        IEnumerable<UnicastIPAddressInformation> unicastIps = NetworkInterface.GetAllNetworkInterfaces().
+                                                                               Where(nic => nic.OperationalStatus == OperationalStatus.Up && nic.Supports(NetworkInterfaceComponent.IPv4)).
+                                                                               SelectMany(x => x.GetIPProperties().UnicastAddresses).
+                                                                               Where(ip => ip.Address.AddressFamily != AddressFamily.InterNetworkV6 && !IPAddress.IsLoopback(ip.Address));
 
-                async Task DiscoverConsoleOnNetworkInterface() {
-                    using CancellationTokenSource timeoutCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(1500));
-                    using CancellationTokenSource actualCts = CancellationTokenSource.CreateLinkedTokenSource(activity.CancellationToken, timeoutCts.Token);
-                    actualCts.Token.ThrowIfCancellationRequested();
+        byte[] sendBuffer = BitConverter.GetBytes((short) 3);
+        List<Task> tasks = new List<Task>();
 
-                    byte[] dgBuf = new byte[1024];
-                    // broadcast wildcard discovery packet
-                    using Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                    socket.EnableBroadcast = true;
-                    socket.Bind(new IPEndPoint(ip.Address, 0));
-                    await socket.SendToAsync(sendBuffer, new IPEndPoint(IPAddress.Broadcast, 730), actualCts.Token);
+        foreach (UnicastIPAddressInformation ip in unicastIps) {
+            tasks.Add(Task.Run(DiscoverConsoleOnNetworkInterface, activity.CancellationToken));
+            continue;
 
-                    while (true) {
-                        actualCts.Token.ThrowIfCancellationRequested();
+            async Task DiscoverConsoleOnNetworkInterface() {
+                using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(activity.CancellationToken);
+                cts.CancelAfter(1500);
 
-                        SocketReceiveFromResult result;
-                        try {
-                            result = await socket.ReceiveFromAsync(dgBuf, SocketFlags.None, new IPEndPoint(IPAddress.Any, 0), actualCts.Token);
-                        }
-                        catch (OperationCanceledException e) {
-                            if (e.CancellationToken == timeoutCts.Token || timeoutCts.IsCancellationRequested) {
-                                // Timeout, nothing responded in enough time
-                                break;
-                            }
-                            else {
-                                await ApplicationPFX.Instance.Dispatcher.InvokeAsync(void () => this.DiscoveredConsoles.Clear(), token: CancellationToken.None);
-                                return;
-                            }
-                        }
-                        catch {
-                            return;
-                        }
+                byte[] dgBuf = new byte[1024];
+                // broadcast wildcard discovery packet
+                using Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                socket.EnableBroadcast = true;
+                socket.Bind(new IPEndPoint(ip.Address, 0));
+                await socket.SendToAsync(sendBuffer, new IPEndPoint(IPAddress.Broadcast, 730), cts.Token);
 
-                        if (result.ReceivedBytes >= 2 && dgBuf[0] == 2 && dgBuf[1] + 2 == result.ReceivedBytes) {
-                            socket.Close();
+                while (true) {
+                    cts.Token.ThrowIfCancellationRequested();
 
-                            string xboxName = await GetConsoleName((IPEndPoint) result.RemoteEndPoint, actualCts.Token) ?? "";
+                    SocketReceiveFromResult result;
+                    try {
+                        result = await socket.ReceiveFromAsync(dgBuf, SocketFlags.None, new IPEndPoint(IPAddress.Any, 0), cts.Token);
+                    }
+                    catch {
+                        return;
+                    }
 
-                            // string xboxName = Encoding.ASCII.GetString(dgBuf, 2, dgBuf[1]);
-                            DiscoveredConsole console = new DiscoveredConsole((IPEndPoint) result.RemoteEndPoint, xboxName);
-                            await ApplicationPFX.Instance.Dispatcher.InvokeAsync(void () => this.DiscoveredConsoles.Add(console), token: CancellationToken.None);
-                            return;
-                        }
+                    if (result.ReceivedBytes >= 2 && dgBuf[0] == 2 && dgBuf[1] + 2 == result.ReceivedBytes) {
+                        socket.Close(); // close early, otherwise it seems to sometimes mess up the TcpClient, or maybe it was from broken code that works now...
+
+                        string xboxName = await GetConsoleName((IPEndPoint) result.RemoteEndPoint, cts.Token) ?? "";
+                        
+                        DiscoveredConsole console = new DiscoveredConsole((IPEndPoint) result.RemoteEndPoint, xboxName);
+                        await ApplicationPFX.Instance.Dispatcher.InvokeAsync(void () => this.DiscoveredConsoles.Add(console), token: CancellationToken.None);
+                        return;
                     }
                 }
             }
+        }
 
+        try {
             await Task.WhenAll(tasks).WaitAsync(activity.CancellationToken);
             this.hasCompletedDiscovery = true;
-        }, this.refreshCts);
+        }
+        catch (OperationCanceledException) {
+            // ignored
+        }
+        
+        await ApplicationPFX.Instance.Dispatcher.InvokeAsync(void () => {
+            this.lastRefreshConsolesTask = null;
+            this.refreshCts?.Dispose();
+            this.refreshCts = null;
+            if (!this.hasCompletedDiscovery) {
+                this.DiscoveredConsoles.Clear();
+            }
+            
+        }, DispatchPriority.Send, token: CancellationToken.None);
     }
 
     public static async Task<string?> GetConsoleName(IPEndPoint endPoint, CancellationToken cancellation) {
         using TcpClient tcp = new TcpClient();
         await tcp.ConnectAsync(endPoint.Address.ToString(), 730, cancellation);
         using StreamReader sr = new StreamReader(tcp.GetStream(), leaveOpen: true);
-        
+
         string responseText = await sr.ReadLineAsync(cancellation) ?? "";
         if (responseText != "201- connected") {
             return null;
         }
-        
+
         await tcp.GetStream().WriteAsync("dbgname\r\n"u8.ToArray(), cancellation).ConfigureAwait(false);
         responseText = await sr.ReadLineAsync(cancellation) ?? "";
+
+        try {
+            // Gracefully disconnect
+            await tcp.Client.SendAsync("bye\r\n"u8.ToArray(), cancellation);
+        }
+        catch (Exception) {
+            // ignored -- no useful way nor need to do anything with errors
+        }
+
         if (XbdmResponse.TryParseFromLine(responseText, out XbdmResponse response)) {
             return response.Message;
         }

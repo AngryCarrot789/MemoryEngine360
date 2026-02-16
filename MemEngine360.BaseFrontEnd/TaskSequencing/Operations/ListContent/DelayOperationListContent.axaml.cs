@@ -33,7 +33,7 @@ public partial class DelayOperationListContent : BaseOperationListContent {
             return false;
         }
         
-        if (TimeSpanUtils.IsOutOfRangeForDelay(value, out errorMessage)) {
+        if (DelayOperation.IsDelayInvalid(value, out errorMessage)) {
             await IMessageDialogService.Instance.ShowMessage("Delay out of range", errorMessage, defaultButton: MessageBoxResult.OK, icon: MessageBoxIcons.ErrorIcon);
             return false;
         }

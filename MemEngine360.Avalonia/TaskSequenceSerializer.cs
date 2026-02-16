@@ -64,6 +64,9 @@ public static class TaskSequenceSerializer {
             DelayOperation op = (DelayOperation) _op;
             if (!TimeSpanUtils.TryParseTime(element.GetAttribute("Delay"), out TimeSpan delay, out string? errorMessage))
                 throw new Exception($"Invalid delay value '{element.GetAttribute("Delay")}'. " + errorMessage);
+            if (DelayOperation.IsDelayInvalid(delay, out string? message))
+                throw new Exception($"Invalid delay value '{element.GetAttribute("Delay")}'. " + message);
+            
             op.Delay = delay;
         });
 

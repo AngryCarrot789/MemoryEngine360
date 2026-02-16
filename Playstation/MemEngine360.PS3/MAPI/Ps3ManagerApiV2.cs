@@ -37,7 +37,7 @@ public partial class Ps3ManagerApiV2 {
 
 
     private readonly byte[] bucketReadBuffer = new byte[512];
-    private string textBucket = "";
+    private string socketTextBucket = "";
 
     public bool IsConnected => this.main_sock != null;
 
@@ -166,13 +166,6 @@ public partial class Ps3ManagerApiV2 {
         }
     }
 
-    public void SendCommandNonBlocking(string command) {
-        this.ValidateConnected();
-        Debug.Assert(this.main_sock != null);
-
-        this.main_sock.Send(this.GetCommandBytes(command).Span, SocketFlags.None);
-    }
-
     public async ValueTask<MapiResponse> SendCommandAndGetResponse(string command) {
         this.ValidateConnected();
         Debug.Assert(this.main_sock != null);
@@ -182,21 +175,35 @@ public partial class Ps3ManagerApiV2 {
     }
 
     public async ValueTask<MapiResponse> ReadResponse() {
-        string lineFromBucket;
         while (true) {
-            lineFromBucket = await this.GetLineFromBucket();
-            if (!GetResponseRegex1().IsMatch(lineFromBucket)) {
-                this.textBucket += $"{GetResponseRegex2().Replace(lineFromBucket, "")}\n";
+            string line = await this.ReadNextLineFromSocket();
+            if (GetResponseRegex1().IsMatch(line)) {
+                return ProcessResponse(line);
             }
-            else
-                break;
+            else {
+                this.socketTextBucket += $"{GetResponseRegex2().Replace(line, "")}\n";
+            }
         }
 
-        string response = lineFromBucket.Substring(4).Replace("\r", "").Replace("\n", "");
-        ResponseCode responseCode = (ResponseCode) int.Parse(lineFromBucket.Substring(0, 3));
-        return new MapiResponse(response, responseCode);
-    }
+        static MapiResponse ProcessResponse(string responseInput) {
+            if (!int.TryParse(responseInput.AsSpan(0, 3), out int code)) {
+                throw new IOException($"Invalid response from PS3ManagerAPI: {responseInput}");
+            }
 
+            int i = 4, j = 0;
+            char[] chars = new char[responseInput.Length - 4];
+            while (i < responseInput.Length) {
+                char ch = responseInput[i++];
+                if (ch != '\r' && ch != '\n') {
+                    chars[j++] = ch;
+                }
+            }
+
+            string responseText = chars.AsSpan().Trim().ToString();
+            return new MapiResponse(responseText, (ResponseCode) code);
+        }
+    }
+    
     public async ValueTask Memory_Get(uint pId, ulong address, byte[] buffer, int offset, int count) {
         if (!this.IsConnected)
             throw new IOException("PS3MAPI not connected!");
@@ -337,31 +344,31 @@ public partial class Ps3ManagerApiV2 {
         }
     }
 
-    private async ValueTask<string> GetLineFromBucket() {
+    private async ValueTask<string> ReadNextLineFromSocket() {
+        this.ValidateConnected();
+        Debug.Assert(this.main_sock != null);
+
         int length;
-        for (length = this.textBucket.IndexOf('\n'); length < 0; length = this.textBucket.IndexOf('\n')) {
-            if (await this.FillBucket() < 1) {
+        for (length = this.socketTextBucket.IndexOf('\n'); length < 0; length = this.socketTextBucket.IndexOf('\n')) {
+            if (await ReceiveTextFromSocket() < 1) {
                 await this.WaitForSocketData();
             }
         }
 
-        string lineFromBucket = this.textBucket.Substring(0, length);
-        this.textBucket = this.textBucket.Substring(length + 1);
+        string lineFromBucket = this.socketTextBucket.Substring(0, length);
+        this.socketTextBucket = this.socketTextBucket.Substring(length + 1);
         return lineFromBucket;
-    }
 
-    private async ValueTask<int> FillBucket() {
-        this.ValidateConnected();
-        Debug.Assert(this.main_sock != null);
+        async ValueTask<int> ReceiveTextFromSocket() {
+            int total = 0;
+            while (this.main_sock.Available > 0) {
+                int count = await this.main_sock.ReceiveAsync(this.bucketReadBuffer, SocketFlags.None).ConfigureAwait(false);
+                this.socketTextBucket += Encoding.ASCII.GetString(this.bucketReadBuffer, 0, count);
+                total += count;
+            }
 
-        int total = 0;
-        while (this.main_sock.Available > 0) {
-            int count = await this.main_sock.ReceiveAsync(this.bucketReadBuffer, SocketFlags.None).ConfigureAwait(false);
-            this.textBucket += Encoding.ASCII.GetString(this.bucketReadBuffer, 0, count);
-            total += count;
+            return total;
         }
-
-        return total;
     }
 
     private async ValueTask WaitForSocketData() {
@@ -392,12 +399,21 @@ public partial class Ps3ManagerApiV2 {
     }
 
     public void Disconnect() {
-        if (this.main_sock != null) {
-            if (this.main_sock.Connected) {
-                this.SendCommandNonBlocking("DISCONNECT");
-            }
-
-            this.main_sock.Dispose();
+        if (this.main_sock != null && this.main_sock.Connected) {
+            // Send DISCONNECT and Dispose asynchronously in case the send buffer is full,
+            // which would cause Send() to block, which is a huge no-no
+            Socket socket = this.main_sock!;
+            Task.Run(() => {
+                try {
+                    socket.Send(this.GetCommandBytes("DISCONNECT").Span, SocketFlags.None);
+                }
+                catch {
+                    // ignored
+                }
+                finally {
+                    socket.Dispose();
+                }
+            });
         }
 
         this.main_sock = null;
