@@ -32,8 +32,6 @@ public partial class Ps3ManagerApiV2 {
     private Socket? main_sock;
     private IPAddress ip_address;
     private IPEndPoint? main_ipEndPoint;
-
-    private Socket? listening_sock;
     private Socket? data_sock;
     private IPEndPoint? data_ipEndPoint;
 
@@ -71,7 +69,7 @@ public partial class Ps3ManagerApiV2 {
             throw new Exception("Malformed PASV response: " + response.Message);
         }
 
-        string[] strArray = response.Message.Substring(idxA, idxB - idxA).Split(',');
+        string[] strArray = response.Message.Substring(idxA + 1, idxB - idxA - 1).Split(',');
         if (strArray.Length < 6) {
             this.Disconnect();
             throw new Exception("Malformed PASV response: " + response.Message);
@@ -204,12 +202,14 @@ public partial class Ps3ManagerApiV2 {
             throw new Exception("PS3MAPI not connected!");
 
         await this.SetBinaryMode(true);
+        
+        this.CloseDataSocket();
         if (this.data_sock == null) {
             await this.OpenDataSocket();
         }
 
-        MapiResponse memGetResponse = await this.SendCommandAndGetResponse($"MEMORY GET {pId} {address:X16} {buffer.Length}");
-        if (memGetResponse.Code != ResponseCode.DataConnectionAlreadyOpen || memGetResponse.Code != ResponseCode.MemoryStatusOK) {
+        MapiResponse memGetResponse = await this.SendCommandAndGetResponse($"MEMORY GET {pId} {address:X16} {count}");
+        if (memGetResponse.Code == ResponseCode.DataConnectionAlreadyOpen || memGetResponse.Code != ResponseCode.MemoryStatusOK) {
             throw new Exception(memGetResponse.Message);
         }
 
@@ -232,16 +232,16 @@ public partial class Ps3ManagerApiV2 {
                 this.CloseDataSocket();
                 throw new Exception("Error receiving bytes", ex);
             }
-
-            this.CloseDataSocket();
-            MapiResponse closeResponse = await this.ReadResponse();
-            switch (closeResponse.Code) {
-                case ResponseCode.RequestSuccessful:
-                case ResponseCode.MemoryActionCompleted:
-                    await this.SetBinaryMode(false);
-                    continue;
-                default: throw new Exception(closeResponse.Message);
-            }
+        }
+        
+        this.CloseDataSocket();
+        MapiResponse closeResponse = await this.ReadResponse();
+        switch (closeResponse.Code) {
+            case ResponseCode.RequestSuccessful:
+            case ResponseCode.MemoryActionCompleted:
+                await this.SetBinaryMode(false);
+                break;
+            default: throw new Exception(closeResponse.Message);
         }
     }
 
