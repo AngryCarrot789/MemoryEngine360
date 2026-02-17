@@ -44,7 +44,7 @@ public class DeleteFilesCommand : BaseFileExplorerCommand {
         List<FileTreeNodeDirectory>? refreshParents = null;
 
         ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(explorer.MemoryEngine, x => x.BusyLock, x => x.Connection)) {
-            ActivityCaption = "Launch File",
+            ActivityCaption = "Delete file(s)",
             Setup = async (action, connection, hasConnectionChanged) => {
                 if (!connection.TryGetFeature(out fsInfo)) {
                     await IMessageDialogService.Instance.ShowMessage("Unsupported", "This connection does not support File I/O");

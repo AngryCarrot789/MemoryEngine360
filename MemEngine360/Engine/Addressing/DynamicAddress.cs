@@ -20,6 +20,7 @@
 using System.Collections.Immutable;
 using System.Text;
 using MemEngine360.Connections;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Addressing;
 
@@ -132,7 +133,7 @@ public sealed class DynamicAddress : IMemoryAddress, IEquatable<DynamicAddress> 
         StringBuilder sb = new StringBuilder();
         sb.Append(this.BaseAddress.ToString("X8"));
         foreach (int offset in this.Offsets) {
-            sb.Append("->").Append(offset.ToString("X"));
+            sb.Append("->").Append(NumberUtils.FormatHex(offset));
         }
 
         if (this.StaticOffsetCount > 0)

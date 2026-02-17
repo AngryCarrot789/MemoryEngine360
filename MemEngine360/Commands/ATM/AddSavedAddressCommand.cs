@@ -60,9 +60,9 @@ public class AddSavedAddressCommand : Command {
         targetParent ??= engine.AddressTableManager.RootEntry;
         DoubleUserInputInfo addrDescInfo = new DoubleUserInputInfo() {
             Caption = "New saved address",
-            LabelA = "Memory address (hex)",
+            LabelA = "Memory address (hex)", PrefixA = "0x",
             LabelB = "Description (optional)",
-            TextA = initialAddress.ToString("X"),
+            TextA = initialAddress.ToString("X8"),
             ValidateA = (args) => {
                 if (!MemoryAddressUtils.TryParse(args.Input, out _, out string? errMsg))
                     args.Errors.Add(errMsg!);

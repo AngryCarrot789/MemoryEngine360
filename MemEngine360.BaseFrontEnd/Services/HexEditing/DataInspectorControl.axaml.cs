@@ -27,6 +27,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Avalonia.Utils;
+using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Commands;
 
 namespace MemEngine360.BaseFrontEnd.Services.HexEditing;
@@ -163,11 +164,7 @@ public partial class DataInspectorControl : UserControl {
         bool displayAsHex = this.DisplayIntegersAsHex;
         this.PART_Binary8.Text = val08.ToString("B8");
         if (!this.PART_Int8.IsKeyboardFocusWithin) {
-            this.PART_Int8.Text = displayAsHex
-                ? (sbyte) val08 < 0
-                    ? "-" + (-(sbyte) val08).ToString("X2")
-                    : ((sbyte) val08).ToString("X2")
-                : ((sbyte) val08).ToString();
+            this.PART_Int8.Text = displayAsHex ? NumberUtils.FormatHex(val08, 2) : ((sbyte) val08).ToString();
         }
 
         if (!this.PART_UInt8.IsKeyboardFocusWithin) {
@@ -175,11 +172,7 @@ public partial class DataInspectorControl : UserControl {
         }
 
         if (!this.PART_Int16.IsKeyboardFocusWithin) {
-            this.PART_Int16.Text = displayAsHex
-                ? (short) val16 < 0
-                    ? "-" + (-(short) val16).ToString("X4")
-                    : ((short) val16).ToString("X4")
-                : ((short) val16).ToString();
+            this.PART_Int16.Text = displayAsHex ? NumberUtils.FormatHex(val16, 4) : ((short) val16).ToString();
         }
 
         if (!this.PART_UInt16.IsKeyboardFocusWithin) {
@@ -187,11 +180,7 @@ public partial class DataInspectorControl : UserControl {
         }
 
         if (!this.PART_Int32.IsKeyboardFocusWithin) {
-            this.PART_Int32.Text = displayAsHex
-                ? (int) val32 < 0
-                    ? "-" + (-(int) val32).ToString("X8")
-                    : ((int) val32).ToString("X8")
-                : ((int) val32).ToString();
+            this.PART_Int32.Text = displayAsHex ? NumberUtils.FormatHex((int) val32, 8) : ((int) val32).ToString();
         }
 
         if (!this.PART_UInt32.IsKeyboardFocusWithin) {

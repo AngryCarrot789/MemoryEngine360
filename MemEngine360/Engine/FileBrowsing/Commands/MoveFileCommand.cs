@@ -73,26 +73,23 @@ public class MoveFileCommand : BaseFileExplorerCommand {
                     return false;
                 }
 
-                if (newPath == null) {
-                    SingleUserInputInfo info = new SingleUserInputInfo(oldPath) {
-                        Caption = "Move",
-                        Message = "Move this " + (item is FileTreeNodeDirectory ? "directory" : "file"),
-                        Label = "New Path",
-                        MinimumDialogWidthHint = 500,
-                        Validate = (args) => {
-                            if (!fsInfo.IsPathValid(args.Input))
-                                args.Errors.Add("Invalid path");
-                        },
-                        Footer = "Tip: you can use this to rename something too"
-                    };
-                    
-                    if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
-                        return false;
-                    }
-                    
-                    newPath = info.Text;
+                SingleUserInputInfo info = new SingleUserInputInfo(oldPath) {
+                    Caption = "Move",
+                    Message = "Move this " + (item is FileTreeNodeDirectory ? "directory" : "file"),
+                    Label = "New Path",
+                    MinimumDialogWidthHint = 500,
+                    Validate = (args) => {
+                        if (!fsInfo.IsPathValid(args.Input))
+                            args.Errors.Add("Invalid path");
+                    },
+                    Footer = "Tip: you can use this to rename something too"
+                };
+
+                if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
+                    return false;
                 }
 
+                newPath = info.Text;
                 return true;
             },
             Execute = async (action, connection) => {

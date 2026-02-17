@@ -48,7 +48,7 @@ public class ConnectionAction {
     /// even if <see cref="RunAsync"/> is called from within an activity.
     /// </summary>
     public bool UseNewActivity { get; init; }
-    
+
     /// <summary>
     /// Gets or sets if we should show the activity as a foreground process.
     /// Only used when <see cref="UseActivityToGetLock"/> is true. Default value is true.
@@ -81,8 +81,9 @@ public class ConnectionAction {
     /// <summary>
     /// Gets or sets the error message to show if the connection changes between acquiring the busy
     /// token. This is only used when <see cref="CanRetryOnConnectionChanged"/> is true.
+    /// Default value is null, because we use another default message based on if the connection changed or was disconnected
     /// </summary>
-    public string ConnectionChangedErrorMessage { get; init; } = "Connection has changed. Please try again.";
+    public string? ConnectionChangedErrorMessage { get; init; } = null;
 
     /// <summary>
     /// Gets or sets if <see cref="Setup"/> should be invoked again if the connection changes between
@@ -142,99 +143,118 @@ public class ConnectionAction {
         }
 
         Debug.Assert(connection != null);
-        bool hasRunAgain = false;
         bool hasInitialBusyToken = this.CurrentBusyToken != null;
+
         try {
-            do {
-                if (!await this.RunSetupAsync(connection, hasRunAgain)) {
-                    this.Error = ErrorState.SetupFailed;
-                    return false;
-                }
+            return await this.InternalRunAsync(connection);
+        }
+        finally {
+            if (!hasInitialBusyToken) {
+                // If we acquired the token, then dispose it
+                this.CurrentBusyToken?.Dispose();
+                this.CurrentBusyToken = null;
+            }
+        }
+    }
 
-                if (this.CurrentBusyToken == null) {
-                    BusyLock busyLock = this.connectionLockPair.BusyLock;
-                    if (this.UseActivityToGetLock) {
-                        ITopLevel? topLevel;
-                        if (this.UseForegroundActivity && (topLevel = TopLevelContextUtils.GetTopLevelFromContext()) != null) {
-                            if (!this.UseNewActivity && ActivityManager.Instance.TryGetCurrentTask(out ActivityTask? currentActivity)) {
-                                // We're currently inside another activity, so try show the foreground from within
-                                using (currentActivity.Progress.SaveState(Optional<string?>.Empty, this.ActivityCaption)) {
-                                    this.CurrentBusyToken = await busyLock.BeginBusyOperationFromActivity(new BusyTokenRequestFromActivity() {
-                                        BusyCancellation = CancellationToken.None,
-                                        ForegroundInfo = new InForegroundInfo(topLevel, this.ForegroundDialogShowDelay)
-                                    });
-                                }
-                            }
-                            else {
-                                this.CurrentBusyToken = await busyLock.BeginBusyOperationUsingActivity(new BusyTokenRequestUsingActivity() {
-                                    Progress = {
-                                        Caption = this.ActivityCaption,
-                                        Text = BusyLock.WaitingMessage,
-                                    },
-                                    ForegroundInfo = new InForegroundInfo(topLevel, this.ForegroundDialogShowDelay)
-                                });
-                            }
-                        }
-                        else {
-                            if (!this.UseNewActivity && ActivityManager.Instance.TryGetCurrentTask(out ActivityTask? currentActivity)) {
-                                // We're currently inside another activity, so try show the foreground from within
-                                using (currentActivity.Progress.SaveState(Optional<string?>.Empty, this.ActivityCaption)) {
-                                    this.CurrentBusyToken = await busyLock.BeginBusyOperationFromActivity(new BusyTokenRequestFromActivity());
-                                }
-                            }
-                            else {
-                                this.CurrentBusyToken = await busyLock.BeginBusyOperationUsingActivity(new BusyTokenRequestUsingActivity() {
-                                    Progress = {
-                                        Caption = this.ActivityCaption,
-                                        Text = BusyLock.WaitingMessage
-                                    }
-                                });
-                            }
-                        }
-                    }
-                    else {
-                        this.CurrentBusyToken = await busyLock.BeginBusyOperation(this.NonActivityBusyLockTimeout, this.NonActivityCancellationToken);
-                    }
+    private async Task<bool> InternalRunAsync(IConsoleConnection connection) {
+        bool hasRunAgain = false;
 
-                    if (this.CurrentBusyToken == null) {
-                        this.Error = ErrorState.BusyTokenAcquisitionCancelled;
-                        return false;
-                    }
-                }
+        do {
+            if (!await this.RunSetupAsync(connection, hasRunAgain)) {
+                this.Error = ErrorState.SetupFailed;
+                return false;
+            }
 
-                // Check if connection has changed
-                IConsoleConnection? newConnection = this.connectionLockPair.Connection;
-                if (!ReferenceEquals(newConnection, connection)) {
-                    // Connection has changed. Can we re-run Setup?
-                    if (!this.CanRetryOnConnectionChanged) {
-                        this.Error = ErrorState.ConnectionChangedAfterSetup;
-                        await IMessageDialogService.Instance.ShowMessage("Disconnected", this.ConnectionChangedErrorMessage);
-                        return false;
-                    }
+            await this.TryAcquireBusyToken();
+            if (this.CurrentBusyToken == null) {
+                this.Error = ErrorState.BusyTokenAcquisitionCancelled;
+                return false;
+            }
 
-                    connection = newConnection;
-                }
-
+            // Check if connection has changed
+            IConsoleConnection? newConnection = this.connectionLockPair.Connection;
+            if (ReferenceEquals(newConnection, connection)) {
                 if (!await this.CheckIsConnected(connection, true)) {
                     return false;
                 }
 
-                Debug.Assert(connection != null);
-                if (ReferenceEquals(newConnection, connection)) {
-                    break;
+                break; // break loop and go to RunExecuteAsync
+            }
+
+            // Connection has changed. Can we re-run Setup?
+            if (!this.CanRetryOnConnectionChanged) {
+                this.Error = ErrorState.ConnectionChangedAfterSetup;
+                MessageBoxInfo info = new MessageBoxInfo(newConnection == null ? MessageBoxes.ConnectionDisconnectedSinceSetup : MessageBoxes.ConnectionChancedSinceSetup);
+                if (this.ConnectionChangedErrorMessage != null) {
+                    info.Message = this.ConnectionChangedErrorMessage;
                 }
 
-                hasRunAgain = true;
-            } while (true);
-
-            await this.RunExecuteAsync(connection);
-            return true;
-        }
-        finally {
-            if (!hasInitialBusyToken) {
-                this.CurrentBusyToken?.Dispose();
-                this.CurrentBusyToken = null;
+                await IMessageDialogService.Instance.ShowMessage(info);
+                return false;
             }
+
+            // Is newConnection valid?
+            if (!await this.CheckIsConnected(newConnection, true)) {
+                return false;
+            }
+
+            Debug.Assert(newConnection != null);
+            connection = newConnection;
+            hasRunAgain = true;
+        } while (true);
+
+        await this.RunExecuteAsync(connection);
+        return true;
+    }
+
+    private async Task TryAcquireBusyToken() {
+        if (this.CurrentBusyToken != null) {
+            return;
+        }
+
+        BusyLock busyLock = this.connectionLockPair.BusyLock;
+        if (this.UseActivityToGetLock) {
+            ITopLevel? topLevel;
+            if (this.UseForegroundActivity && (topLevel = TopLevelContextUtils.GetTopLevelFromContext()) != null) {
+                if (!this.UseNewActivity && ActivityManager.Instance.TryGetCurrentTask(out ActivityTask? currentActivity)) {
+                    // We're currently inside another activity, so try show the foreground from within
+                    using (currentActivity.Progress.SaveState(Optional<string?>.Empty, this.ActivityCaption)) {
+                        this.CurrentBusyToken = await busyLock.BeginBusyOperationFromActivity(new BusyTokenRequestFromActivity() {
+                            BusyCancellation = CancellationToken.None,
+                            ForegroundInfo = new InForegroundInfo(topLevel, this.ForegroundDialogShowDelay)
+                        });
+                    }
+                }
+                else {
+                    this.CurrentBusyToken = await busyLock.BeginBusyOperationUsingActivity(new BusyTokenRequestUsingActivity() {
+                        Progress = {
+                            Caption = this.ActivityCaption,
+                            Text = BusyLock.WaitingMessage,
+                        },
+                        ForegroundInfo = new InForegroundInfo(topLevel, this.ForegroundDialogShowDelay)
+                    });
+                }
+            }
+            else {
+                if (!this.UseNewActivity && ActivityManager.Instance.TryGetCurrentTask(out ActivityTask? currentActivity)) {
+                    // We're currently inside another activity, so try show the foreground from within
+                    using (currentActivity.Progress.SaveState(Optional<string?>.Empty, this.ActivityCaption)) {
+                        this.CurrentBusyToken = await busyLock.BeginBusyOperationFromActivity(new BusyTokenRequestFromActivity());
+                    }
+                }
+                else {
+                    this.CurrentBusyToken = await busyLock.BeginBusyOperationUsingActivity(new BusyTokenRequestUsingActivity() {
+                        Progress = {
+                            Caption = this.ActivityCaption,
+                            Text = BusyLock.WaitingMessage
+                        }
+                    });
+                }
+            }
+        }
+        else {
+            this.CurrentBusyToken = await busyLock.BeginBusyOperation(this.NonActivityBusyLockTimeout, this.NonActivityCancellationToken);
         }
     }
 

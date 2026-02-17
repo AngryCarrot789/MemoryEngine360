@@ -214,20 +214,22 @@ public partial class EngineView : UserControl {
                 Message = "Alignment is the offset added to each memory address",
                 Label = "Alignment (prefix with '0x' to parse as hex)",
                 Validate = (e) => {
-                    if (!NumberUtils.TryParseHexOrRegular<uint>(e.Input, out uint number)) {
-                        e.Errors.Add("-".StartsWith(e.Input) ? "Alignment cannot be negative" : "Invalid unsigned integer");
+                    if (!AddressParsing.TryParse32(e.Input, out uint number, out string? error, canParseAsExpression: true, hexByDefault: false)) {
+                        e.Errors.Add(error);
                     }
-                    else if (number == 0)
+                    else if (number == 0) {
                         e.Errors.Add("Alignment cannot be zero!");
-                }
+                    }
+                },
+                DebounceErrorsDelay = 300
             };
 
-            using IDisposable _ = SingleUserInputInfo.TextObservable.Subscribe(info, null, static (s, _) => {
+            using IDisposable _ = SingleUserInputInfo.DebounceElapsedObservable.Subscribe(info, null, static (s, _) => {
                 if (s.TextErrors != null) {
                     s.Footer = "Cannot show examples: invalid value";
                 }
                 else {
-                    int align = (int) NumberUtils.ParseHexOrRegular<uint>(s.Text);
+                    int align = (int) AddressParsing.Parse32(s.Text, canParseAsExpression: true, hexByDefault: false);
                     StringBuilder sb = new StringBuilder().Append(0);
                     for (int i = 0, j = align; i < 4; i++, j += align)
                         sb.Append(", ").Append(j);
@@ -236,7 +238,7 @@ public partial class EngineView : UserControl {
             });
 
             if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, this.myOwnerWindow_onLoaded) == true) {
-                p.Alignment = NumberUtils.ParseHexOrRegular<uint>(info.Text);
+                p.Alignment = AddressParsing.Parse32(info.Text, canParseAsExpression: true, hexByDefault: false);
             }
         });
 
@@ -303,7 +305,7 @@ public partial class EngineView : UserControl {
         NotificationManager notificationManager = new NotificationManager();
         ((IComponentManager) this.MemoryEngine).ComponentStorage.AddComponent(notificationManager);
         this.PART_NotificationListBox.NotificationManager = notificationManager;
-        
+
         notificationManager.IsAlertActiveChanged += this.NotificationManagerOnIsAlertActiveChanged;
     }
 

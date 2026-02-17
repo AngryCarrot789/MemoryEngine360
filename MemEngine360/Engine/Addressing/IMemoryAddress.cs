@@ -48,7 +48,7 @@ public interface IMemoryAddress {
 }
 
 public static class MemoryAddressUtils {
-    private static (IMemoryAddress?, string?) TryParseInternal(string? input) {
+    private static (IMemoryAddress? Address, string? Error) TryParseInternal(string? input) {
         if (string.IsNullOrWhiteSpace(input))
             return (null, "Input string is empty");
 
@@ -84,7 +84,7 @@ public static class MemoryAddressUtils {
             return (null, "Invalid offset: " + remainingOffset.ToString());
 
         int staticOffsetCount = 0;
-        if (idxStaticDepth != -1) {            
+        if (idxStaticDepth != -1) {
             int idxEnd = span.IndexOf(']');
             if (idxEnd == -1 || idxEnd < idxStaticDepth)
                 return (null, "Invalid static depth value");
@@ -96,7 +96,7 @@ public static class MemoryAddressUtils {
 
             staticOffsetCount = (int) maxStaticDepth;
         }
-        
+
         offsets.Add(offset);
         return (new DynamicAddress(baseAddress, offsets, staticOffsetCount), null);
     }
@@ -161,15 +161,23 @@ public static class MemoryAddressUtils {
     }
 
     public static bool TryParseHexInt32(ReadOnlySpan<char> input, out int result) {
-        while (input.Length > 0) {
-            if (input.StartsWith("-0x", StringComparison.OrdinalIgnoreCase))
-                input = input.Slice(3);
-            else if (input.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                input = input.Slice(2);
-            else
-                break;
+        if ((input = input.Trim()).Length < 1) {
+            result = 0;
+            return false;
         }
 
-        return int.TryParse(input, NumberStyles.HexNumber, null, out result);
+        int valueOffset = input[0] == '-' ? 1 : 0;
+        bool isNegative = valueOffset != 0;
+        if (input.Slice(valueOffset).StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
+            valueOffset += 2;
+        }
+
+        if (int.TryParse(input.Slice(valueOffset), NumberStyles.HexNumber, null, out result)) {
+            if (isNegative)
+                result = -result;
+            return true;
+        }
+
+        return false;
     }
 }

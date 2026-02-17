@@ -43,12 +43,12 @@ public class EditSavedAddressAddressCommand : BaseSavedAddressSelectionCommand {
             Caption = "Edit address",
             Message = "Change the address of this saved address table entry",
             DefaultButton = UserInputInfo.ButtonType.Confirm,
-            Label = "Address (hex)",
+            Label = "Address (hex)", Prefix = "0x",
             Validate = (a) => {
                 if (!MemoryAddressUtils.TryParse(a.Input, out _, out string? err))
                     a.Errors.Add(err!);
             },
-            Footer = "Pointer format is Base->Offset 1->Offset N"
+            Footer = "Pointer format is Base->Offset 1->Offset N. All offsets are hexadecimal."
         };
 
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(input) == true) {

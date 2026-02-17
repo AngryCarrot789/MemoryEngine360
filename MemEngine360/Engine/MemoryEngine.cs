@@ -851,10 +851,10 @@ public static class NumericDisplayTypeExtensions {
     public static string AsString(this NumericDisplayType dt, DataType type, object value) {
         bool hex = dt == NumericDisplayType.Hexadecimal, unsigned = dt == NumericDisplayType.Unsigned;
         switch (type) {
-            case DataType.Byte:      return hex ? ((byte) value).ToString("X2") : value.ToString()!;
-            case DataType.Int16:     return hex ? ((short) value).ToString("X4") : (unsigned ? ((ushort) (short) value).ToString() : value.ToString()!);
-            case DataType.Int32:     return hex ? ((int) value).ToString("X8") : (unsigned ? ((uint) (int) value).ToString() : value.ToString()!);
-            case DataType.Int64:     return hex ? ((long) value).ToString("X16") : (unsigned ? ((ulong) (long) value).ToString() : value.ToString()!);
+            case DataType.Byte:      return hex ? NumberUtils.FormatHex((byte) value, 2) : value.ToString()!;
+            case DataType.Int16:     return hex ? NumberUtils.FormatHex((short) value, 4) : (unsigned ? ((ushort) (short) value).ToString() : value.ToString()!);
+            case DataType.Int32:     return hex ? NumberUtils.FormatHex((int) value, 8) : (unsigned ? ((uint) (int) value).ToString() : value.ToString()!);
+            case DataType.Int64:     return hex ? NumberUtils.FormatHex((long) value, 16) : (unsigned ? ((ulong) (long) value).ToString() : value.ToString()!);
             case DataType.Float:     return hex ? BitConverter.SingleToUInt32Bits((float) value).ToString("X4") : ((float) value).ToString("F8");
             case DataType.Double:    return hex ? BitConverter.DoubleToUInt64Bits((double) value).ToString("X8") : ((double) value).ToString("F16");
             case DataType.String:    return value.ToString()!;

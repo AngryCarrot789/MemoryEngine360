@@ -65,7 +65,8 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             Message = "Select a memory region to read and dump to a file. There will be 2 more dialog prompts after this",
             Footer = "You can pause or cancel the operation at any time",
             ConfirmText = "Next", DefaultButton = UserInputInfo.ButtonType.Confirm,
-            LabelA = "Start address (hex)", LabelB = "Length (hex)",
+            LabelA = "Start address (hex)", PrefixA = "0x",
+            LabelB = "Length (hex)", PrefixB = "0x",
             ValidateA = validateMemAddr, ValidateB = validateMemAddr,
             DebounceErrorsDelayA = 300, DebounceErrorsDelayB = 300, // add a delay between parsing, to reduce typing lag due to expression parsing
             TextA = p.StartAddress.ToString("X8"),

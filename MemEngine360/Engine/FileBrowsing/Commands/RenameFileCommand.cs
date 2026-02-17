@@ -83,10 +83,6 @@ public class RenameFileCommand : BaseFileExplorerCommand {
                     MinimumDialogWidthHint = 350
                 };
 
-                if (hasConnectionChanged) {
-                    info.Footer = "Dialog shown again because the connection changed.";
-                }
-
                 if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
                     return false;
                 }

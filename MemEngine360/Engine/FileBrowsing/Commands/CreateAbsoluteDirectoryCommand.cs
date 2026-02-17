@@ -34,12 +34,12 @@ public class CreateAbsoluteDirectoryCommand : BaseFileExplorerCommand {
 
     protected override async Task ExecuteCommandAsync(FileTreeExplorer explorer, CommandEventArgs e) {
         FileTreeExplorerViewState state = FileTreeExplorerViewState.GetInstance(explorer);
-        
+
         IFeatureFileSystemInfo? fsInfo = null;
         string? newPath = null;
-        
+
         ConnectionAction action = new ConnectionAction(IConnectionLockPair.Lambda(explorer.MemoryEngine, x => x.BusyLock, x => x.Connection)) {
-            ActivityCaption = "Launch File",
+            ActivityCaption = "Create directory",
             CanRetryOnConnectionChanged = true,
             Setup = async (action, connection, hasConnectionChanged) => {
                 if (!connection.TryGetFeature(out fsInfo)) {
@@ -47,24 +47,27 @@ public class CreateAbsoluteDirectoryCommand : BaseFileExplorerCommand {
                     return false;
                 }
 
-                if (newPath == null) {
-                    SingleUserInputInfo info = new SingleUserInputInfo("Hdd1:\\New Directory") {
-                        Caption = "Create Directory",
-                        Label = "Directory Path",
-                        MinimumDialogWidthHint = 500,
-                        Validate = (args) => {
-                            if (!fsInfo.IsPathValid(args.Input))
-                                args.Errors.Add("Invalid path");
-                        }
-                    };
-                    
-                    if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
-                        return false;
-                    }
-                    
-                    newPath = info.Text;
+                if (hasConnectionChanged) {
+                    await IMessageDialogService.Instance.ShowMessage(new MessageBoxInfo(MessageBoxes.ConnectionChancedSinceSetup) {
+                        Message = "Active connection changed. Please re-enter a directory"
+                    });
                 }
 
+                SingleUserInputInfo info = new SingleUserInputInfo("Hdd1:\\New Directory") {
+                    Caption = "Create Directory",
+                    Label = "Directory Path",
+                    MinimumDialogWidthHint = 500,
+                    Validate = (args) => {
+                        if (!fsInfo.IsPathValid(args.Input))
+                            args.Errors.Add("Invalid path");
+                    }
+                };
+
+                if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
+                    return false;
+                }
+
+                newPath = info.Text;
                 return true;
             },
             Execute = async (action, connection) => {
