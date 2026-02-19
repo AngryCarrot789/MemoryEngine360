@@ -29,148 +29,279 @@ namespace MemEngine360.PS3.MAPI;
 public partial class Ps3ManagerApiV2 {
     public const int PS3M_API_PC_LIB_VERSION = 288;
 
-    private Socket? main_sock;
-    private IPAddress ip_address;
-    private IPEndPoint? main_ipEndPoint;
-    private Socket? data_sock;
-    private IPEndPoint? data_ipEndPoint;
+    private Socket? mainSocket;
+    private IPAddress mainSocketIpAddress;
+    private IPEndPoint? mainSocketEndPoint;
+    private Socket? dataSocket;
+    private IPEndPoint? dataSocketEndPoint;
 
 
     private readonly byte[] bucketReadBuffer = new byte[512];
     private string socketTextBucket = "";
 
-    public bool IsConnected => this.main_sock != null;
+    public bool IsConnected => this.mainSocket != null;
 
-    public EndPoint? EndPoint => this.main_ipEndPoint;
+    public EndPoint? EndPoint => this.mainSocketEndPoint;
 
     public Ps3ManagerApiV2() {
     }
 
     public void SetMainSocket(Socket socket, IPEndPoint endPoint) {
-        this.main_sock = socket;
-        this.main_sock.ReceiveTimeout = 5000;
-        this.ip_address = endPoint.Address;
-        this.main_ipEndPoint = endPoint;
+        this.mainSocket = socket;
+        this.mainSocket.ReceiveTimeout = 5000;
+        this.mainSocket.Blocking = false;
+        this.mainSocketIpAddress = endPoint.Address;
+        this.mainSocketEndPoint = endPoint;
     }
 
-    public async ValueTask OpenDataSocket() {
-        if (this.data_sock != null) {
-            throw new InvalidOperationException("Data socket already open");
-        }
-
-        MapiResponse response = await this.SendCommandAndGetResponse("PASV");
-        if (response.Code != ResponseCode.EnteringPassiveMode) {
-            throw new IOException("PS3ManagerAPI error. Could not enter passive mode");
-        }
-
-        int idxA = response.Message.IndexOf('('), idxB = idxA == -1 ? -1 : response.Message.IndexOf(')', idxA);
-        if (idxA == -1 || idxB == -1) {
-            this.Disconnect();
-            throw new IOException("Malformed PASV response: " + response.Message);
-        }
-
-        string[] strArray = response.Message.Substring(idxA + 1, idxB - idxA - 1).Split(',');
-        if (strArray.Length < 6) {
-            this.Disconnect();
-            throw new IOException("Malformed PASV response: " + response.Message);
-        }
-
-        if (!int.TryParse(strArray[4], out int a) || !int.TryParse(strArray[5], out int b)) {
-            throw new IOException("Malformed PASV response: " + response.Message);
-        }
-
-        int port = (a << 8) + b;
-        using CancellationTokenSource cts = new CancellationTokenSource(5000);
-
-        try {
-            this.CloseDataSocket();
-            this.data_sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            this.data_ipEndPoint = new IPEndPoint(this.ip_address, port);
-            await this.data_sock.ConnectAsync(this.data_ipEndPoint, cts.Token);
-        }
-        catch (OperationCanceledException) {
-            throw new TimeoutException("Timeout trying to open data socket");
-        }
-        catch (Exception ex) {
-            throw new IOException("Error trying to open data socket", ex);
-        }
-    }
-
-    public void CloseDataSocket() {
-        if (this.data_sock != null) {
-            if (this.data_sock.Connected)
-                this.data_sock.Close();
-            this.data_sock = null;
-        }
-
-        this.data_ipEndPoint = null;
-    }
-
-    public async ValueTask<uint> Server_Get_Version() {
+    public async ValueTask<uint> GetServerVersion() {
         this.ValidateConnected();
 
         MapiResponse response = await this.SendCommandAndGetResponse("SERVER GETVERSION");
         switch (response.Code) {
             case ResponseCode.CommandOK:
-            case ResponseCode.RequestSuccessful:
-                return Convert.ToUInt32(response.Message);
+            case ResponseCode.RequestSuccessful: {
+                if (uint.TryParse(response.Message, out uint value))
+                    return value;
+
+                throw new IOException("Invalid response from PS3");
+            }
             default: throw new IOException("PS3ManagerAPI error");
         }
     }
 
-    public async ValueTask<uint> Server_GetMinVersion() {
+    public async ValueTask<uint> GetServerMinimumVersion() {
         this.ValidateConnected();
 
         MapiResponse response = await this.SendCommandAndGetResponse("SERVER GETMINVERSION");
         switch (response.Code) {
             case ResponseCode.CommandOK:
-            case ResponseCode.RequestSuccessful:
-                return Convert.ToUInt32(response.Message);
+            case ResponseCode.RequestSuccessful: {
+                if (uint.TryParse(response.Message, out uint value))
+                    return value;
+
+                throw new IOException("Invalid response from PS3");
+            }
             default: throw new IOException("PS3ManagerAPI error");
         }
     }
 
-    public async ValueTask<uint> Core_Get_Version() {
+    public async ValueTask<uint> GetCoreVersion() {
         this.ValidateConnected();
 
         MapiResponse response = await this.SendCommandAndGetResponse("CORE GETVERSION");
         switch (response.Code) {
             case ResponseCode.CommandOK:
-            case ResponseCode.RequestSuccessful:
-                return Convert.ToUInt32(response.Message);
+            case ResponseCode.RequestSuccessful: {
+                if (uint.TryParse(response.Message, out uint value))
+                    return value;
+
+                throw new IOException("Invalid response from PS3");
+            }
             default: throw new IOException("PS3ManagerAPI error");
         }
     }
 
-    public async ValueTask<uint> Core_GetMinVersion() {
+    public async ValueTask<uint> GetCoreMinimumVersion() {
         this.ValidateConnected();
 
         MapiResponse response = await this.SendCommandAndGetResponse("CORE GETMINVERSION");
         switch (response.Code) {
             case ResponseCode.CommandOK:
-            case ResponseCode.RequestSuccessful:
-                return Convert.ToUInt32(response.Message);
+            case ResponseCode.RequestSuccessful: {
+                if (uint.TryParse(response.Message, out uint value))
+                    return value;
+
+                throw new IOException("Invalid response from PS3");
+            }
             default: throw new IOException("PS3ManagerAPI error");
         }
     }
 
-    public async ValueTask<uint> PS3_GetFwVersion() {
+    public async ValueTask<uint> GetPs3FwVersion() {
         this.ValidateConnected();
 
         MapiResponse response = await this.SendCommandAndGetResponse("PS3 GETFWVERSION");
         switch (response.Code) {
             case ResponseCode.CommandOK:
-            case ResponseCode.RequestSuccessful:
-                return Convert.ToUInt32(response.Message);
+            case ResponseCode.RequestSuccessful: {
+                if (uint.TryParse(response.Message, out uint value))
+                    return value;
+
+                throw new IOException("Invalid response from PS3");
+            }
             default: throw new IOException("PS3ManagerAPI error");
         }
     }
 
+    public async ValueTask ReadMemory(uint pId, ulong address, byte[] buffer, int offset, int count) {
+        if (!this.IsConnected)
+            throw new IOException("PS3MAPI not connected!");
+
+        await this.SetBinaryMode(true);
+
+        this.CloseDataSocket();
+        await this.OpenDataSocket();
+
+        MapiResponse memGetResponse = await this.SendCommandAndGetResponse($"MEMORY GET {pId} {address:X16} {count}").ConfigureAwait(false);
+        if (memGetResponse.Code == ResponseCode.DataConnectionAlreadyOpen || memGetResponse.Code != ResponseCode.MemoryStatusOK) {
+            throw new IOException(memGetResponse.Message);
+        }
+
+        using CancellationTokenSource cts = new CancellationTokenSource(5000);
+
+        for (int remaining = count; remaining > 0;) {
+            try {
+                Memory<byte> memory = buffer.AsMemory(offset + (remaining - count), remaining);
+                int recv = await this.dataSocket!.ReceiveAsync(memory, SocketFlags.None, cts.Token).ConfigureAwait(false);
+                if (recv > 0) {
+                    remaining -= recv;
+                    cts.CancelAfter(5000);
+                }
+                else {
+                    await Task.Delay(1, cts.Token).ConfigureAwait(false);
+                }
+            }
+            catch (Exception e) when (e is TimeoutException || e is OperationCanceledException) {
+                this.Disconnect();
+                throw new TimeoutException("Timeout reading data from PS3");
+            }
+            catch (Exception ex) {
+                this.Disconnect();
+                throw new IOException("Error receiving bytes", ex);
+            }
+        }
+
+        this.CloseDataSocket();
+        MapiResponse closeResponse = await this.ReadResponse();
+        switch (closeResponse.Code) {
+            case ResponseCode.RequestSuccessful:
+            case ResponseCode.MemoryActionCompleted:
+                await this.SetBinaryMode(false);
+                break;
+            default: throw new IOException(closeResponse.Message);
+        }
+    }
+
+    public async ValueTask WriteMemory(uint pId, ulong address, byte[] buffer, int offset, int count) {
+        await this.SetBinaryMode(true);
+
+        this.CloseDataSocket();
+        await this.OpenDataSocket();
+
+        MapiResponse memSetResponse = await this.SendCommandAndGetResponse($"MEMORY SET {pId} {address:X16}");
+        if (memSetResponse.Code == ResponseCode.DataConnectionAlreadyOpen || memSetResponse.Code != ResponseCode.MemoryStatusOK) {
+            throw new IOException(memSetResponse.Message);
+        }
+
+        using CancellationTokenSource cts = new CancellationTokenSource(5000);
+
+        for (int remaining = count; remaining > 0;) {
+            try {
+                Memory<byte> memory = buffer.AsMemory(offset + (remaining - count), remaining);
+                int sent = await this.dataSocket!.SendAsync(memory, SocketFlags.None, cts.Token).ConfigureAwait(false);
+                if (sent > 0) {
+                    remaining -= sent;
+                    cts.CancelAfter(5000);
+                }
+                else {
+                    await Task.Delay(1, cts.Token).ConfigureAwait(false);
+                }
+            }
+            catch (Exception e) when (e is TimeoutException || e is OperationCanceledException) {
+                this.Disconnect();
+                throw new TimeoutException("Timeout reading data from PS3");
+            }
+            catch (Exception ex) {
+                this.Disconnect();
+                throw new IOException("Error receiving bytes", ex);
+            }
+
+            this.CloseDataSocket();
+            MapiResponse response1 = await this.ReadResponse();
+            switch (response1.Code) {
+                case ResponseCode.RequestSuccessful:
+                case ResponseCode.MemoryActionCompleted:
+                    await this.SetBinaryMode(false);
+                    continue;
+                default: throw new IOException(response1.Message);
+            }
+        }
+    }
+
+    public async ValueTask<uint[]> GetProcessList() {
+        MapiResponse response = await this.SendCommandAndGetResponse("PROCESS GETALLPID");
+        switch (response.Code) {
+            case ResponseCode.CommandOK:
+            case ResponseCode.RequestSuccessful: {
+                int j = 0;
+                string[] lines = response.Message.Split('|');
+                Span<uint> pids = stackalloc uint[lines.Length];
+                foreach (string line in lines) {
+                    if (string.IsNullOrWhiteSpace(line) || line == "0") {
+                        continue;
+                    }
+                    
+                    if (uint.TryParse(line.AsSpan().Trim(), out uint pid)) {
+                        pids[j++] = pid;
+                    }
+                }
+
+                return pids.Slice(0, j).ToArray();
+            }
+            default: throw new IOException(response.Message);
+        }
+    }
+
+    public async ValueTask<string> GetProcessName(uint pid) {
+        MapiResponse response = await this.SendCommandAndGetResponse($"PROCESS GETNAME {pid}");
+        switch (response.Code) {
+            case ResponseCode.CommandOK:
+            case ResponseCode.RequestSuccessful:
+                return response.Message;
+            default: throw new IOException(response.Message);
+        }
+    }
+
+    public async ValueTask SetBinaryMode(bool mode) {
+        MapiResponse response = await this.SendCommandAndGetResponse($"TYPE {(mode ? "I" : "A")}");
+        switch (response.Code) {
+            case ResponseCode.CommandOK:
+            case ResponseCode.RequestSuccessful:
+                break;
+            default: throw new IOException("PS3ManagerAPI error");
+        }
+    }
+
+    public void Disconnect() {
+        this.CloseDataSocket();
+
+        if (this.mainSocket != null && this.mainSocket.Connected) {
+            // Send DISCONNECT and Dispose asynchronously in case the send buffer is full,
+            // which would cause Send() to block, which is a huge no-no
+            Socket socket = this.mainSocket!;
+            Task.Run(() => {
+                try {
+                    socket.Send(this.GetCommandBytes("DISCONNECT").Span, SocketFlags.None);
+                }
+                catch {
+                    // ignored
+                }
+                finally {
+                    socket.Dispose();
+                }
+            });
+        }
+
+        this.mainSocket = null;
+        this.mainSocketEndPoint = null;
+    }
+
     public async ValueTask<MapiResponse> SendCommandAndGetResponse(string command) {
         this.ValidateConnected();
-        Debug.Assert(this.main_sock != null);
+        Debug.Assert(this.mainSocket != null);
 
-        await this.main_sock.SendAsync(this.GetCommandBytes(command), SocketFlags.None);
+        await this.mainSocket.SendAsync(this.GetCommandBytes(command), SocketFlags.None);
         return await this.ReadResponse();
     }
 
@@ -203,150 +334,10 @@ public partial class Ps3ManagerApiV2 {
             return new MapiResponse(responseText, (ResponseCode) code);
         }
     }
-    
-    public async ValueTask Memory_Get(uint pId, ulong address, byte[] buffer, int offset, int count) {
-        if (!this.IsConnected)
-            throw new IOException("PS3MAPI not connected!");
-
-        await this.SetBinaryMode(true);
-
-        this.CloseDataSocket();
-        await this.OpenDataSocket();
-
-        MapiResponse memGetResponse = await this.SendCommandAndGetResponse($"MEMORY GET {pId} {address:X16} {count}").ConfigureAwait(false);
-        if (memGetResponse.Code == ResponseCode.DataConnectionAlreadyOpen || memGetResponse.Code != ResponseCode.MemoryStatusOK) {
-            throw new IOException(memGetResponse.Message);
-        }
-
-        for (int remaining = count; remaining > 0;) {
-            try {
-                Memory<byte> memory = buffer.AsMemory(offset + (remaining - count), remaining);
-                int recv = await this.data_sock!.ReceiveAsync(memory, SocketFlags.None);
-                if (recv < 0) {
-                    await Task.Delay(1).ConfigureAwait(false);
-                }
-
-                remaining -= recv;
-            }
-            catch (TimeoutException) {
-                this.CloseDataSocket();
-                throw;
-            }
-            catch (Exception ex) {
-                this.CloseDataSocket();
-                throw new IOException("Error receiving bytes", ex);
-            }
-        }
-
-        this.CloseDataSocket();
-        MapiResponse closeResponse = await this.ReadResponse();
-        switch (closeResponse.Code) {
-            case ResponseCode.RequestSuccessful:
-            case ResponseCode.MemoryActionCompleted:
-                await this.SetBinaryMode(false);
-                break;
-            default: throw new IOException(closeResponse.Message);
-        }
-    }
-
-    public async ValueTask Memory_Set(uint Pid, ulong Address, byte[] Bytes) {
-        await this.SetBinaryMode(true);
-        int length = Bytes.Length;
-        long num = 0;
-        long srcOffset = 0;
-        bool flag = false;
-        if (this.data_sock == null) {
-            await this.OpenDataSocket();
-        }
-
-        MapiResponse response = await this.SendCommandAndGetResponse($"MEMORY SET {Pid} {Address:X16}");
-        switch (response.Code) {
-            case ResponseCode.DataConnectionAlreadyOpen:
-            case ResponseCode.MemoryStatusOK:
-                while (!flag) {
-                    try {
-                        byte[] numArray = new byte[length - (int) num];
-                        Buffer.BlockCopy(Bytes, (int) srcOffset, numArray, 0, length - (int) num);
-                        srcOffset = this.data_sock!.Send(numArray, Bytes.Length - (int) num, SocketFlags.None);
-                        flag = false;
-                        if (srcOffset > 0L) {
-                            num += srcOffset;
-                            if ((int) (num * 100L / length) >= 100)
-                                flag = true;
-                        }
-                        else
-                            flag = true;
-
-                        if (flag) {
-                            this.CloseDataSocket();
-                            MapiResponse response1 = await this.ReadResponse();
-                            switch (response1.Code) {
-                                case ResponseCode.RequestSuccessful:
-                                case ResponseCode.MemoryActionCompleted:
-                                    await this.SetBinaryMode(false);
-                                    continue;
-                                default: throw new IOException(response1.Message);
-                            }
-                        }
-                    }
-                    catch (Exception ex) {
-                        this.CloseDataSocket();
-                        await this.ReadResponse();
-                        await this.SetBinaryMode(false);
-                        throw new IOException("Error", ex);
-                    }
-                }
-
-                break;
-            default: throw new IOException(response.Message);
-        }
-    }
-
-    public async ValueTask<uint[]> GetPidList() {
-        MapiResponse response = await this.SendCommandAndGetResponse("PROCESS GETALLPID");
-        switch (response.Code) {
-            case ResponseCode.CommandOK:
-            case ResponseCode.RequestSuccessful: {
-                int j = 0;
-                Span<uint> pids = stackalloc uint[256 /*0x10*/];
-                string[] lines = response.Message.Split('|');
-                for (int i = 0; i < lines.Length && i < 256; i++) {
-                    string pidText = lines[i];
-                    if (!string.IsNullOrEmpty(pidText) && pidText != " " && pidText != "0") {
-                        pids[j] = Convert.ToUInt32(pidText, 10);
-                        ++j;
-                    }
-                }
-
-                return pids.Slice(0, j).ToArray();
-            }
-            default: throw new IOException(response.Message);
-        }
-    }
-
-    public async ValueTask<string> Process_GetName(uint pid) {
-        MapiResponse response = await this.SendCommandAndGetResponse("PROCESS GETNAME " + $"{pid}");
-        switch (response.Code) {
-            case ResponseCode.CommandOK:
-            case ResponseCode.RequestSuccessful:
-                return response.Message;
-            default: throw new IOException(response.Message);
-        }
-    }
-
-    public async ValueTask SetBinaryMode(bool bMode) {
-        MapiResponse response = await this.SendCommandAndGetResponse("TYPE" + (bMode ? " I" : " A"));
-        switch (response.Code) {
-            case ResponseCode.CommandOK:
-            case ResponseCode.RequestSuccessful:
-                break;
-            default: throw new IOException("PS3ManagerAPI error");
-        }
-    }
 
     private async ValueTask<string> ReadNextLineFromSocket() {
         this.ValidateConnected();
-        Debug.Assert(this.main_sock != null);
+        Debug.Assert(this.mainSocket != null);
 
         int length;
         for (length = this.socketTextBucket.IndexOf('\n'); length < 0; length = this.socketTextBucket.IndexOf('\n')) {
@@ -361,8 +352,8 @@ public partial class Ps3ManagerApiV2 {
 
         async ValueTask<int> ReceiveTextFromSocket() {
             int total = 0;
-            while (this.main_sock.Available > 0) {
-                int count = await this.main_sock.ReceiveAsync(this.bucketReadBuffer, SocketFlags.None).ConfigureAwait(false);
+            while (this.mainSocket.Available > 0) {
+                int count = await this.mainSocket.ReceiveAsync(this.bucketReadBuffer, SocketFlags.None).ConfigureAwait(false);
                 this.socketTextBucket += Encoding.ASCII.GetString(this.bucketReadBuffer, 0, count);
                 total += count;
             }
@@ -373,9 +364,9 @@ public partial class Ps3ManagerApiV2 {
 
     private async ValueTask WaitForSocketData() {
         this.ValidateConnected();
-        Debug.Assert(this.main_sock != null);
+        Debug.Assert(this.mainSocket != null);
 
-        if (this.main_sock.Available > 0) {
+        if (this.mainSocket.Available > 0) {
             return;
         }
 
@@ -384,7 +375,7 @@ public partial class Ps3ManagerApiV2 {
         long timeStart = Time.GetSystemTicks();
         long timeout = TimeSpan.FromSeconds(5.0).Ticks;
 
-        while (this.main_sock!.Available < 1) {
+        while (this.mainSocket!.Available < 1) {
             await Task.Delay(50).ConfigureAwait(false);
             if ((Time.GetSystemTicks() - timeStart) > timeout) {
                 throw new TimeoutException("Timeout waiting for data from console");
@@ -393,31 +384,9 @@ public partial class Ps3ManagerApiV2 {
     }
 
     private void ValidateConnected() {
-        if (this.main_sock == null) {
+        if (this.mainSocket == null) {
             throw new InvalidOperationException("Not connected");
         }
-    }
-
-    public void Disconnect() {
-        if (this.main_sock != null && this.main_sock.Connected) {
-            // Send DISCONNECT and Dispose asynchronously in case the send buffer is full,
-            // which would cause Send() to block, which is a huge no-no
-            Socket socket = this.main_sock!;
-            Task.Run(() => {
-                try {
-                    socket.Send(this.GetCommandBytes("DISCONNECT").Span, SocketFlags.None);
-                }
-                catch {
-                    // ignored
-                }
-                finally {
-                    socket.Dispose();
-                }
-            });
-        }
-
-        this.main_sock = null;
-        this.main_ipEndPoint = null;
     }
 
     private ReadOnlyMemory<byte> GetCommandBytes(string command) {
@@ -428,6 +397,59 @@ public partial class Ps3ManagerApiV2 {
         // TODO: optimize
         byte[] bytes = Encoding.ASCII.GetBytes(command);
         return bytes;
+    }
+
+    private async ValueTask OpenDataSocket() {
+        if (this.dataSocket != null) {
+            throw new InvalidOperationException("Data socket already open");
+        }
+
+        MapiResponse response = await this.SendCommandAndGetResponse("PASV");
+        if (response.Code != ResponseCode.EnteringPassiveMode) {
+            throw new IOException("PS3ManagerAPI error. Could not enter passive mode");
+        }
+
+        int idxA = response.Message.IndexOf('('), idxB = idxA == -1 ? -1 : response.Message.IndexOf(')', idxA);
+        if (idxA == -1 || idxB == -1) {
+            this.Disconnect();
+            throw new IOException("Malformed PASV response: " + response.Message);
+        }
+
+        string[] strArray = response.Message.Substring(idxA + 1, idxB - idxA - 1).Split(',');
+        if (strArray.Length < 6) {
+            this.Disconnect();
+            throw new IOException("Malformed PASV response: " + response.Message);
+        }
+
+        if (!int.TryParse(strArray[4], out int a) || !int.TryParse(strArray[5], out int b)) {
+            throw new IOException("Malformed PASV response: " + response.Message);
+        }
+
+        int port = (a << 8) + b;
+        using CancellationTokenSource cts = new CancellationTokenSource(5000);
+
+        try {
+            this.CloseDataSocket();
+            this.dataSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            this.dataSocketEndPoint = new IPEndPoint(this.mainSocketIpAddress, port);
+            await this.dataSocket.ConnectAsync(this.dataSocketEndPoint, cts.Token);
+        }
+        catch (OperationCanceledException) {
+            throw new TimeoutException("Timeout trying to open data socket");
+        }
+        catch (Exception ex) {
+            throw new IOException("Error trying to open data socket", ex);
+        }
+    }
+
+    private void CloseDataSocket() {
+        if (this.dataSocket != null) {
+            if (this.dataSocket.Connected)
+                this.dataSocket.Close();
+            this.dataSocket = null;
+        }
+
+        this.dataSocketEndPoint = null;
     }
 
     [GeneratedRegex("^[0-9]+ ")]

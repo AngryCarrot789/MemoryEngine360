@@ -70,8 +70,8 @@ public abstract class RegisteredConnectionType {
     public virtual Icon? Icon => null;
     
     /// <summary>
-    /// Gets an enumeration of icons to indicate usually the supported platforms, but you
-    /// could also use a crossed out icon to represent a specific unsupported platform
+    /// Gets an enumeration of icons placed in the connection type entry, either to indicate
+    /// the supported platforms, or (using crossed out icons) the specific unsupported platforms
     /// </summary>
     public virtual IEnumerable<PlatformIconInfo> PlatformIcons => Enumerable.Empty<PlatformIconInfo>();
     

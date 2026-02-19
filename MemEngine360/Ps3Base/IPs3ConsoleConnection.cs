@@ -19,22 +19,41 @@
 
 using MemEngine360.Connections;
 
-namespace MemEngine360.PS3;
+namespace MemEngine360.Ps3Base;
 
+/// <summary>
+/// Represents a connection to a PS3
+/// </summary>
 public interface IPs3ConsoleConnection : INetworkConsoleConnection {
     /// <summary>
     /// Gets or sets the process we use to read and write memory 
     /// </summary>
-    uint AttachedProcess { get; set; }
+    Ps3Process AttachedProcess { get; set; }
     
     /// <summary>
     /// Raised when <see cref="AttachedProcess"/> changes
     /// </summary>
     event EventHandler? AttachedProcessChanged;
     
-    Task<uint> FindGameProcessId();
+    /// <summary>
+    /// Tries to get the name of a process by its pid
+    /// </summary>
+    /// <returns>The name, or null if the process didn't exist or has no name</returns>
+    Task<string?> GetProcessName(uint processId);
     
-    Task<List<(uint, string?)>> GetAllProcessesWithName();
+    /// <summary>
+    /// Tries to find the most applicable process id for a game
+    /// </summary>
+    /// <returns>The game pid, or 0, if a game couldn't be found</returns>
+    Task<Ps3Process> FindGameProcessId();
     
+    /// <summary>
+    /// Returns an array of processes with their process name
+    /// </summary>
+    Task<Ps3Process[]> GetAllProcessesWithName();
+    
+    /// <summary>
+    /// Returns an array of process ids
+    /// </summary>
     Task<uint[]> GetAllProcesses();
 }

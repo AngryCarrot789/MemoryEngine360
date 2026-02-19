@@ -18,6 +18,7 @@
 // 
 
 using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.Diagnostics;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
@@ -29,6 +30,7 @@ using MemEngine360.Engine.Scanners;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
+using PFXToolKitUI.Composition;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
@@ -863,56 +865,6 @@ public class ScanningProcessor {
                         }
                     }, token: CancellationToken.None);
                 }
-
-                // if (savedList != null) {
-                //     int count = 0;
-                //     IDataValue?[] values = new IDataValue?[savedList.Count];
-                //     for (int i = 0; i < values.Length; i++) {
-                //         if (token.IsCancellationRequested) {
-                //             break;
-                //         }
-                //
-                //         AddressTableEntry item = savedList[i];
-                //         if (item.IsAutoRefreshEnabled) { // may change between dispatcher callbacks
-                //             uint? addr = await item.MemoryAddress.TryResolveAddress(connection, invalidateCaches);
-                //             values[i] = addr.HasValue ? await MemoryEngine.ReadDataValue(connection, addr.Value, item.DataType, item.StringType, item.StringLength, item.ArrayLength) : null;
-                //         }
-                //
-                //         count++;
-                //     }
-                //
-                //     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                //         // Only <=100 values to update, so not too UI intensive
-                //         for (int i = 0; i < count; i++) {
-                //             AddressTableEntry address = savedList[i];
-                //             if (address.IsAutoRefreshEnabled) // may change between dispatcher callbacks
-                //                 address.Value = values[i];
-                //         }
-                //     }, token: CancellationToken.None);
-                // }
-                //
-                // // safety net -- we still need to implement logic to notify view models when they're visible in the
-                // // UI, although this does kind of break the MVVM pattern but oh well
-                // if (list != null) {
-                //     int count = 0;
-                //     IDataValue[] values = new IDataValue[list.Count];
-                //     for (int i = 0; i < values.Length; i++) {
-                //         if (token.IsCancellationRequested) {
-                //             break;
-                //         }
-                //
-                //         ScanResultViewModel item = list[i];
-                //         values[i] = await MemoryEngine.ReadDataValue(connection, item.Address, item.DataType, item.StringType, item.CurrentStringLength, item.CurrentArrayLength);
-                //         count++;
-                //     }
-                //
-                //     await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                //         // Only <=100 values to update, so not too UI intensive
-                //         for (int i = 0; i < count; i++) {
-                //             list[i].CurrentValue = values[i];
-                //         }
-                //     }, token: CancellationToken.None);
-                // }
             }, CancellationToken.None);
 
             await Task.WhenAny(readOperationTask, Task.Delay(500, token));

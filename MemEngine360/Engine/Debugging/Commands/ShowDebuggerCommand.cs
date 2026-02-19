@@ -62,7 +62,7 @@ public class ShowDebuggerCommand : Command {
                     IOpenConnectionView? dialog = await ApplicationPFX.GetComponent<ConsoleConnectionManager>().ShowOpenConnectionView(info);
                     if (dialog != null) {
                         debugger.UserContext.Set(OpenDebuggerConnectionCommand.ExistingOCVDataKey, dialog);
-                        CommandUsageSignal signal = CommandUsageSignal.GetOrCreate(debugger.UserContext, OpenDebuggerConnectionCommand.CommandUsageSignalDataKey);
+                        CommandUsageSignal signal = CommandUsageSignal.GetOrCreate(debugger, OpenDebuggerConnectionCommand.CommandUsageSignalDataKey);
                         signal.RaiseCanExecuteChanged();
                         
                         try {

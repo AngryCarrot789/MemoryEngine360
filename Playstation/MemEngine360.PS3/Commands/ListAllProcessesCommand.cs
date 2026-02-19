@@ -19,6 +19,7 @@
 
 using MemEngine360.Commands;
 using MemEngine360.Engine;
+using MemEngine360.Ps3Base;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 
@@ -50,15 +51,15 @@ public class ListAllProcessesCommand : BaseMemoryEngineCommand {
         }
 
         try {
-            List<(uint pid, string? name)> list = await api.GetAllProcessesWithName();
-            if (list.Count < 1) {
+            Ps3Process[] processes = await api.GetAllProcessesWithName();
+            if (processes.Length < 1) {
                 await IMessageDialogService.Instance.ShowMessage("No processes", "No processes running");
             }
             
             await IMessageDialogService.Instance.ShowMessage(
                 "Processes", 
-                $"Found {list.Count} processes", 
-                string.Join(Environment.NewLine, list.Select(x => $"Attached to 0x{x.pid:X8}{(x.name != null ? $" (named '{x.name}')" : "")}")));
+                $"Found {processes.Length} process{(processes.Length == 1 ? "" : "es")}", 
+                string.Join(Environment.NewLine, processes.Select(x => $"Attached to 0x{x.ProcessId:X8}{(x.ProcessName != null ? $" (named '{x.ProcessName}')" : "")}")));
         }
         catch (Exception ex) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Error while getting process list: " + ex.Message);

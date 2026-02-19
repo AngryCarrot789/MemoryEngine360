@@ -19,6 +19,7 @@
 
 using MemEngine360.Commands;
 using MemEngine360.Engine;
+using MemEngine360.Ps3Base;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils;
@@ -40,12 +41,12 @@ public class SetProcessCommand : BaseMemoryEngineCommand {
             return;
         if (!(engine.Connection is IPs3ConsoleConnection api))
             return;
-        
+
         using IBusyToken? token = await engine.BusyLock.BeginBusyOperationUsingActivity(new BusyTokenRequestUsingActivity() {
             Progress = { Caption = "Get Processes", Text = BusyLock.WaitingMessage },
             QuickReleaseIntention = true
         });
-        
+
         if (token == null) {
             return;
         }
@@ -62,7 +63,17 @@ public class SetProcessCommand : BaseMemoryEngineCommand {
         if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info) != true) {
             return;
         }
-        
-        api.AttachedProcess = NumberUtils.ParseHexOrRegular<uint>(info.Text);
+
+        uint pid = NumberUtils.ParseHexOrRegular<uint>(info.Text);
+        string? processName;
+
+        try {
+            processName = await api.GetProcessName(pid);
+        }
+        catch (Exception ex) when (ex is TimeoutException || ex is IOException) {
+            processName = null; // connection will close automatically soon anyway :/
+        }
+
+        api.AttachedProcess = new Ps3Process(pid, processName);
     }
 }

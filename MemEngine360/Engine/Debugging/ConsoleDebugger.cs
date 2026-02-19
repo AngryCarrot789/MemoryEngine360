@@ -23,6 +23,7 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine.Events;
 using MemEngine360.Engine.Events.XbdmEvents;
 using PFXToolKitUI;
+using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
@@ -36,7 +37,7 @@ namespace MemEngine360.Engine.Debugging;
 /// <summary>
 /// The memory engine debugger
 /// </summary>
-public class ConsoleDebugger : IUserLocalContext {
+public class ConsoleDebugger : IComponentManager, IUserLocalContext {
     public static readonly DataKey<ConsoleDebugger> DataKey = DataKeys.Create<ConsoleDebugger>(nameof(ConsoleDebugger));
 
     private readonly BusyLock busyLocker;
@@ -130,7 +131,9 @@ public class ConsoleDebugger : IUserLocalContext {
     /// Gets the engine this debugger is associated with
     /// </summary>
     public MemoryEngine Engine { get; }
-    
+
+    public ComponentStorage ComponentStorage { get; }
+
     public IMutableContextData UserContext { get; } = new ContextData();
 
     public event EventHandler<ValueChangedEventArgs<IConsoleConnection?>>? ConnectionChanged;
@@ -147,6 +150,7 @@ public class ConsoleDebugger : IUserLocalContext {
     private IDisposable? eventSubscription;
 
     public ConsoleDebugger(MemoryEngine engine) {
+        this.ComponentStorage = new ComponentStorage(this);
         this.busyLocker = new BusyLock();
         this.Engine = engine;
         this.ThreadEntries = new ObservableList<ThreadEntry>();
@@ -264,7 +268,7 @@ public class ConsoleDebugger : IUserLocalContext {
     public async Task<ThreadEntry?> UpdateThread(IBusyToken token, uint threadId, bool createIfDoesntExist = true) {
         this.busyLocker.ValidateToken(token);
 
-        int idx = this.ThreadEntries.FindIndex(x => x.ThreadId == threadId);
+        int idx = this.ThreadEntries.FindIndex(threadId, static (x, y) => x.ThreadId == y);
         if (idx == -1 && !createIfDoesntExist) {
             return null;
         }

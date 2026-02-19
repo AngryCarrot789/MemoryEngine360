@@ -20,6 +20,8 @@
 using System.Net;
 using System.Net.Sockets;
 using MemEngine360.Connections;
+using MemEngine360.Ps3Base;
+using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Icons;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Services.Messaging;
@@ -32,15 +34,30 @@ public class ConnectionTypePS3MAPI : RegisteredConnectionType {
 
     public override string DisplayName => "PS3 (MAPI)";
 
-    public override string FooterText => "Experimental";
+    public override string FooterText => "Functional";
 
-    public override string LongDescription => "A connection to a PS3 using the Manager API. Reading and Writing do NOT work yet.";
+    public override string LongDescription => "A connection to a PS3 using the Manager API. Basic memory read/write works.";
 
     public override Icon Icon => SimpleIcons.PS3MAPIIcon;
 
     private ConnectionTypePS3MAPI() {
     }
 
+    public override IEnumerable<IMenuEntry> GetRemoteContextOptions() {
+        yield return new CommandMenuEntry("commands.ps3.SetProcessToActiveGameCommand", "Attach to Game", "Find active game PID and attach CCAPI to it");
+        yield return new CommandMenuEntry("commands.ps3.SetProcessCommand", "Attach to process...");
+        yield return new CommandMenuEntry("commands.ps3.ListAllProcessesCommand", "List all processes");
+    }
+    
+    protected override string GetStatusBarTextCore(IConsoleConnection connection) {
+        IPs3ConsoleConnection conn = (IPs3ConsoleConnection) connection;
+        string text = base.GetStatusBarTextCore(connection);
+        
+        Ps3Process p = conn.AttachedProcess;
+        text += $" - Attached PID 0x{p.ProcessId:X8}{(p.ProcessName != null ? $" ({p.ProcessName})" : "")}";
+        return text;
+    }
+    
     public override UserConnectionInfo CreateConnectionInfo() => new ConnectToMAPIInfo();
 
     public override async Task<IConsoleConnection?> OpenConnection(UserConnectionInfo? _info, IContextData additionalContext, CancellationTokenSource cancellation) {

@@ -25,6 +25,7 @@ using MemEngine360.Engine;
 using MemEngine360.PS3.CCAPI;
 using MemEngine360.PS3.Commands;
 using MemEngine360.PS3.MAPI;
+using MemEngine360.Ps3Base;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Notifications;
@@ -54,10 +55,8 @@ public class PluginPS3 : Plugin {
             });
         }
 
-        if (Debugger.IsAttached) {
-            manager.Register(ConnectionTypePS3MAPI.TheID, ConnectionTypePS3MAPI.Instance);
-            OpenConnectionView.Registry.RegisterType<ConnectToMAPIInfo>(() => new OpenMAPIConnectionView());
-        }
+        manager.Register(ConnectionTypePS3MAPI.TheID, ConnectionTypePS3MAPI.Instance);
+        OpenConnectionView.Registry.RegisterType<ConnectToMAPIInfo>(() => new OpenMAPIConnectionView());
 
         MemoryEngineManager.Instance.ProvidePostConnectionActions += OnProvidePostConnectionActions;
     }

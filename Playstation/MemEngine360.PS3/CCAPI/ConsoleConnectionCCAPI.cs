@@ -20,6 +20,7 @@
 using System.Net;
 using System.Runtime.Versioning;
 using MemEngine360.Connections;
+using MemEngine360.Ps3Base;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Events;
@@ -31,23 +32,23 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection, IPs3ConsoleConnecti
     private readonly ConsoleControlAPI api;
 
     public override RegisteredConnectionType ConnectionType => ConnectionTypePS3CCAPI.Instance;
-    
+
     public override bool IsLittleEndian => false;
 
     public override AddressRange AddressableRange => new AddressRange(0, uint.MaxValue);
 
-    public uint AttachedProcess {
+    public Ps3Process AttachedProcess {
         get => field;
         set => PropertyHelper.SetAndRaiseINE(ref field, value, this, static t => {
             t.AttachedProcessChanged?.Invoke(t, EventArgs.Empty);
             t.ConnectionType.RaiseConnectionStatusBarTextInvalidated(t);
         });
-    } = 0xFFFFFFFF;
+    } = Ps3Process.Default;
 
     public EndPoint? EndPoint => !this.IsClosed ? this.api.EndPoint : null;
 
     public event EventHandler? AttachedProcessChanged;
-    
+
     public ConsoleConnectionCCAPI(ConsoleControlAPI api) {
         this.api = api;
         this.api.NativeFailure += this.ApiOnNativeFailure;
@@ -61,7 +62,7 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection, IPs3ConsoleConnecti
             catch (Exception e) {
                 // ignored
             }
-            
+
             try {
                 this.api.Dispose();
             }
@@ -71,10 +72,10 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection, IPs3ConsoleConnecti
         });
     }
 
-    private void ApiOnNativeFailure(object? sender, EventArgs e) {        
+    private void ApiOnNativeFailure(object? sender, EventArgs e) {
         AppLogger.Instance.WriteLine("CCAPI console connection error");
         AppLogger.Instance.WriteLine(this.api.FailureException!.GetToString());
-        
+
         this.Close();
     }
 
@@ -83,26 +84,50 @@ public class ConsoleConnectionCCAPI : BaseConsoleConnection, IPs3ConsoleConnecti
     }
 
     protected override Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
-        return this.api.ReadMemory(this.AttachedProcess, address, dstBuffer, offset, count);
+        return this.api.ReadMemory(this.AttachedProcess.ProcessId, address, dstBuffer, offset, count);
     }
 
     protected override Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count) {
-        return this.api.WriteMemory(this.AttachedProcess, address, srcBuffer, offset, count);
+        return this.api.WriteMemory(this.AttachedProcess.ProcessId, address, srcBuffer, offset, count);
+    }
+
+    public async Task<string?> GetProcessName(uint processId) {
+        try {
+            // TODO: implement a command for getting process name
+            foreach (Ps3Process process in await this.api.GetAllProcesses()) {
+                if (process.ProcessId == processId && process.ProcessName != null) {
+                    // there shouldn't be duplicate process ids but who knows what MAPI might send us
+                    return process.ProcessName;
+                }
+            }
+
+            return null;
+        }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            this.Close();
+            throw;
+        }
     }
 
     /// <summary>
     /// Finds the active game PID
     /// </summary>
     /// <returns>The PID, or zero, if no game is running</returns>
-    public async Task<uint> FindGameProcessId() {
-        return (await this.api.FindGameProcessId()).Item1;
+    public async Task<Ps3Process> FindGameProcessId() {
+        try {
+            return await this.api.FindGameProcessId();
+        }
+        catch (Exception e) when (e is TimeoutException || e is IOException) {
+            this.Close();
+            throw;
+        }
     }
-    
-    public Task<List<(uint, string?)>> GetAllProcessesWithName() {
-        return this.api.GetAllProcesses();
+
+    public async Task<Ps3Process[]> GetAllProcessesWithName() {
+        return (await this.api.GetAllProcesses()).ToArray();
     }
 
     public async Task<uint[]> GetAllProcesses() {
-        return (await this.api.GetAllProcesses()).Select(x => x.Item1).ToArray();
+        return (await this.api.GetAllProcesses()).Select(x => x.ProcessId).ToArray();
     }
 }

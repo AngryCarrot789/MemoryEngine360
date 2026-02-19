@@ -26,6 +26,7 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
+using MemEngine360.Ps3Base;
 using PFXToolKitUI.Utils;
 
 namespace MemEngine360.PS3.CCAPI;
@@ -254,22 +255,22 @@ public class ConsoleControlAPI {
     /// Finds the active game PID
     /// </summary>
     /// <returns>The PID, or zero, if no game is running</returns>
-    public async Task<(uint, string?)> FindGameProcessId() {
-        List<(uint, string?)> result = await this.GetAllProcesses();
-        foreach ((uint pid, string? name) proc in result) {
-            if (proc.name != null && !proc.name.Contains("dev_flash")) {
-                return proc;
+    public async Task<Ps3Process> FindGameProcessId() {
+        List<Ps3Process> result = await this.GetAllProcesses();
+        foreach (Ps3Process p in result) {
+            if (p.ProcessName != null && !p.ProcessName.Contains("dev_flash")) {
+                return p;
             }
         }
 
         return default;
     }
 
-    public Task<List<(uint, string?)>> GetAllProcesses() {
+    public Task<List<Ps3Process>> GetAllProcesses() {
         return this.RunThreadActionLater(static api => {
             api.WritePacket(8, Span<byte>.Empty);
 
-            List<(uint, string?)> list = new List<(uint, string?)>();
+            List<Ps3Process> list = new List<Ps3Process>();
             int length = api.ReadFromNetwork<ushort>();
 
             Span<byte> buffer8 = stackalloc byte[8];
@@ -288,7 +289,7 @@ public class ConsoleControlAPI {
                     processName = null;
                 }
 
-                list.Add((pid, processName));
+                list.Add(new Ps3Process(pid, processName));
             }
 
             return list;

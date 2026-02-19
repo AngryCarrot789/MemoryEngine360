@@ -25,12 +25,6 @@ using PFXToolKitUI.Utils.Events;
 namespace MemEngine360.Engine.SavedAddressing;
 
 public class AddressTableEntry : BaseAddressTableEntry {
-    private IDataValue? value;
-    private DataType dataType = DataType.Byte;
-    private StringType stringType = StringType.ASCII;
-    private int stringLength = 0;
-    private NumericDisplayType numericDisplayType;
-
     /// <summary>
     /// Gets or sets if this saved address is active, as in, being refreshed every so often. False disables auto-refresh
     /// </summary>
@@ -54,13 +48,13 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// Gets or sets the current presented value
     /// </summary>
     public IDataValue? Value {
-        get => this.value;
+        get => field;
         set {
-            if (!Equals(this.value, value)) {
+            if (!Equals(field, value)) {
                 if (value != null && value.DataType != this.DataType)
                     throw new ArgumentException($"New value's data type does not match our data type: {value.DataType} != {this.DataType}");
 
-                this.value = value;
+                field = value;
                 this.CurrentValueDisplayType = this.NumericDisplayType;
                 this.ValueChanged?.Invoke(this, EventArgs.Empty);
             }
@@ -71,30 +65,30 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// Gets or sets the type of data this address points to
     /// </summary>
     public DataType DataType {
-        get => this.dataType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.dataType, value, this, this.DataTypeChanged);
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.DataTypeChanged);
+    } = DataType.Byte;
 
     /// <summary>
     /// Gets or sets how to interpolate bytes at the address as a string
     /// </summary>
     public StringType StringType {
-        get => this.stringType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.stringType, value, this, this.StringTypeChanged);
-    }
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.StringTypeChanged);
+    } = StringType.ASCII;
 
     /// <summary>
     /// Gets or sets the number of characters in the string
     /// </summary>
     public int StringLength {
-        get => this.stringLength;
+        get => field;
         set {
             if (value < 0)
                 throw new ArgumentOutOfRangeException(nameof(value), value, nameof(value) + " cannot be negative");
 
-            PropertyHelper.SetAndRaiseINE(ref this.stringLength, value, this, this.StringLengthChanged);
+            PropertyHelper.SetAndRaiseINE(ref field, value, this, this.StringLengthChanged);
         }
-    }
+    } = 0;
 
     public int ArrayLength {
         get => field;
@@ -110,8 +104,8 @@ public class AddressTableEntry : BaseAddressTableEntry {
     /// Gets or sets how to present the value as a string
     /// </summary>
     public NumericDisplayType NumericDisplayType {
-        get => this.numericDisplayType;
-        set => PropertyHelper.SetAndRaiseINE(ref this.numericDisplayType, value, this, this.NumericDisplayTypeChanged);
+        get => field;
+        set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.NumericDisplayTypeChanged);
     }
 
     /// <summary>
@@ -139,15 +133,15 @@ public class AddressTableEntry : BaseAddressTableEntry {
 
     public AddressTableEntry(ScanResultViewModel result) {
         this.MemoryAddress = new StaticAddress(result.Address);
-        this.dataType = result.DataType;
-        this.value = result.CurrentValue;
-        this.numericDisplayType = result.NumericDisplayType;
-        if (this.dataType == DataType.String) {
-            this.stringType = result.ScanningProcessor.StringScanOption;
-            this.stringLength = ((DataValueString) this.value).Value.Length;
+        this.DataType = result.DataType;
+        this.Value = result.CurrentValue;
+        this.NumericDisplayType = result.NumericDisplayType;
+        if (this.DataType == DataType.String) {
+            this.StringType = result.ScanningProcessor.StringScanOption;
+            this.StringLength = ((DataValueString) this.Value).Value.Length;
         }
-        else if (this.dataType == DataType.ByteArray) {
-            this.ArrayLength = ((DataValueByteArray) this.value).Value.Length;
+        else if (this.DataType == DataType.ByteArray) {
+            this.ArrayLength = ((DataValueByteArray) this.Value).Value.Length;
         }
     }
 

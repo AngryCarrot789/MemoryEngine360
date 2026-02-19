@@ -255,7 +255,8 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         Task.Run(async () => {
             long timeSinceRefreshedAddresses = DateTime.Now.Ticks;
             BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
-
+            Func<Task> refreshAsync = this.ScanningProcessor.RefreshSavedAddressesAsync;
+            
             while (!this.IsShuttingDown) {
                 IConsoleConnection? conn = this.Connection;
                 if (conn != null && conn.IsClosed) {
@@ -270,7 +271,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
                 await Task.Delay(250);
                 if (cfg.IsAutoRefreshResultsEnabled && !this.IsShuttingDown) {
                     if ((DateTime.Now.Ticks - timeSinceRefreshedAddresses) >= (cfg.RefreshRateMillis * TimeSpan.TicksPerMillisecond)) {
-                        await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => this.ScanningProcessor.RefreshSavedAddressesAsync());
+                        await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(refreshAsync);
                         timeSinceRefreshedAddresses = DateTime.Now.Ticks;
                     }
                 }
@@ -341,7 +342,6 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         }
 
         // ... should dialog to notify user
-        
         if (!whenAllHandlersDoneTask.IsCompleted && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
             await service.WaitForSubActivities(topLevel, progressions, CancellationToken.None);
         }

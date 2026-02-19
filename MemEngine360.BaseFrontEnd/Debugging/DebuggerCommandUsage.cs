@@ -129,17 +129,13 @@ public class OpenDebuggerConnectionCommandUsage : DebuggerConnectionDependentCom
     protected override void OnDebuggerChanged(ConsoleDebugger? oldDebugger, ConsoleDebugger? newDebugger) {
         base.OnDebuggerChanged(oldDebugger, newDebugger);
         if (this.mySignal != null) {
-            this.mySignal.CanExecuteChanged -= this.SignalOnCanExecuteChanged;
+            this.RemoveCommandSignalHandler(this.mySignal);
             this.mySignal = null;
         }
         
         if (newDebugger != null) {
-            this.mySignal = CommandUsageSignal.GetOrCreate(newDebugger.UserContext, OpenDebuggerConnectionCommand.CommandUsageSignalDataKey);
-            this.mySignal.CanExecuteChanged += this.SignalOnCanExecuteChanged;
+            this.mySignal = CommandUsageSignal.GetOrCreate(newDebugger, OpenDebuggerConnectionCommand.CommandUsageSignalDataKey);
+            this.AddCommandSignalHandler(this.mySignal);
         }
-    }
-
-    private void SignalOnCanExecuteChanged(object? o, EventArgs eventArgs) {
-        this.UpdateCanExecuteLater();
     }
 }

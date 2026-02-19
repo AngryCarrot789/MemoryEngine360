@@ -372,7 +372,7 @@ public class Script : IComponentManager, IUserLocalContext {
 
     // Invoked when the lua thread is about to exit.
     internal static void InternalOnLuaMachineStopped(Script script) {
-        ApplicationPFX.Instance.Dispatcher.Post(t => ((Script) t!).OnLuaScriptCompleted(), script, DispatchPriority.Send);
+        ApplicationPFX.Instance.Dispatcher.Post(static t => ((Script) t!).OnLuaScriptCompleted(), script, DispatchPriority.Send);
     }
 
     /// <summary>

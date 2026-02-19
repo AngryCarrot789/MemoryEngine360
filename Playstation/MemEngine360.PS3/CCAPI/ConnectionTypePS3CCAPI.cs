@@ -20,6 +20,7 @@
 using System.Runtime.Versioning;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
+using MemEngine360.Ps3Base;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.AdvancedMenuService;
@@ -39,7 +40,7 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
 
     public override string DisplayName => "PS3 (CCAPI)";
 
-    public override string FooterText => "Semi-stable";
+    public override string FooterText => "Functional";
 
     public override string LongDescription => "A connection to a PS3 using CCAPI. Basic memory read/write works.";
 
@@ -59,7 +60,9 @@ public class ConnectionTypePS3CCAPI : RegisteredConnectionType {
     protected override string GetStatusBarTextCore(IConsoleConnection connection) {
         IPs3ConsoleConnection conn = (IPs3ConsoleConnection) connection;
         string text = base.GetStatusBarTextCore(connection);
-        text += $" - Attached PID 0x{conn.AttachedProcess:X8}";
+
+        Ps3Process p = conn.AttachedProcess;
+        text += $" - Attached PID 0x{p.ProcessId:X8}{(p.ProcessName != null ? $" ({p.ProcessName})" : "")}";
         return text;
     }
 

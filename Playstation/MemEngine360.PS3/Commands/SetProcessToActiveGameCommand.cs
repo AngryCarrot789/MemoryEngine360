@@ -19,6 +19,7 @@
 
 using MemEngine360.Commands;
 using MemEngine360.Engine;
+using MemEngine360.Ps3Base;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
 
@@ -49,21 +50,21 @@ public class SetProcessToActiveGameCommand : BaseMemoryEngineCommand {
             return;
         }
 
-        uint newPid;
+        Ps3Process newProcess;
         try {
-            uint pid = await api.FindGameProcessId();
-            if (pid == 0) {
+            Ps3Process pid = await api.FindGameProcessId();
+            if (pid.ProcessId == 0) {
                 await IMessageDialogService.Instance.ShowMessage("No game", "No game is running");
                 return;
             }
 
-            newPid = pid;
+            newProcess = pid;
         }
         catch (Exception ex) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Error while trying to attach to process: " + ex.Message);
             return;
         }
-        
-        api.AttachedProcess = newPid;
+
+        api.AttachedProcess = newProcess;
     }
 }
