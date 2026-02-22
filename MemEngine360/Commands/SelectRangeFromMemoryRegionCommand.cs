@@ -20,6 +20,7 @@
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
@@ -39,7 +40,7 @@ public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
         return Executability.ValidButCannotExecute;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         Result<List<MemoryRegion>> result;
         using (IBusyToken? token = await engine.BeginBusyOperationUsingActivityAsync("Reading memory regions")) {
             if (token == null) {

@@ -222,24 +222,21 @@ public sealed class BusyLock {
             : this.InternalTryTakeBusyTokenLoop(ctsBusyOperation.Token);
 
         // Wait a short amount of time before starting an activity, to prevent it flashing on-screen
-        await Task.WhenAny(busyOperation, Task.Delay(25, ctsBusyOperation.Token));
-        if (busyOperation.IsCompleted) {
+        if (await busyOperation.TryWaitAsync(25, ctsBusyOperation.Token)) {
             return await busyOperation;
         }
 
         ActivityTask<IBusyToken?> activity = ActivityManager.Instance.RunTask(() => busyOperation, request.Progress, ctsBusyOperation);
-        if (foregroundInfo.HasValue) {
-            if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
-                WaitForActivityResult result = await service.DelayedWaitForActivity(new WaitForActivityOptions(foregroundInfo.Value.TopLevel, activity) {
-                    CanMinimizeIntoBackgroundActivity = true
-                }, foregroundInfo.Value.ShowDelay);
+        if (foregroundInfo.HasValue && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
+            WaitForActivityResult result = await service.DelayedWaitForActivity(new WaitForActivityOptions(foregroundInfo.Value.TopLevel, activity) {
+                CanMinimizeIntoBackgroundActivity = true
+            }, foregroundInfo.Value.ShowDelay);
 
-                // If transitioning into a background activity, don't force-cancel the token acquisition process.
-                // If the parent window was closed before the dialog opened, we don't need
-                // to worry since the activity is directly cancellable and will show in the activity list.
-                if (!result.TransitionToBackground && !busyOperation.IsCompleted) {
-                    await ctsBusyOperation.CancelAsync();
-                }
+            // If transitioning into a background activity, don't force-cancel the token acquisition process.
+            // If the parent window was closed before the dialog opened, we don't need
+            // to worry since the activity is directly cancellable and will show in the activity list.
+            if (!result.TransitionToBackground && !busyOperation.IsCompleted) {
+                await ctsBusyOperation.CancelAsync();
             }
         }
 
@@ -288,9 +285,9 @@ public sealed class BusyLock {
         }
 
         using (request.CurrentTask.Progress.SaveState(WaitingMessage, newIsIndeterminate: true)) {
-            if (!foregroundInfo.HasValue) {
-                // Not showing in a foreground, so simply wait for the token
-                // or until either activity or request token cancelled
+            if (!foregroundInfo.HasValue || !IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
+                // Not showing in a foreground or service unavailable, so simply wait for
+                // the token or until either activity or request token cancelled.
                 return request.QuickReleaseIntention
                     ? await this.InternalQuickReleaseLoop(ctsBusyOperation.Token)
                     : await this.InternalTryTakeBusyTokenLoop(ctsBusyOperation.Token);
@@ -300,52 +297,49 @@ public sealed class BusyLock {
                 ? this.InternalQuickReleaseLoop(ctsBusyOperation.Token)
                 : this.InternalTryTakeBusyTokenLoop(ctsBusyOperation.Token);
 
-            if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
-                if (foregroundInfo.Value.ShowDelay > 0) {
-                    // Wait for either the activity to complete, or for the show delay to elapse
-                    await Task.WhenAny(busyOperation, Task.Delay(foregroundInfo.Value.ShowDelay, ctsBusyOperation.Token));
-                }
+            if (foregroundInfo.Value.ShowDelay > 0) {
+                // Wait for either the activity to complete, or for the show delay to elapse
+                await busyOperation.TryWaitAsync(foregroundInfo.Value.ShowDelay, ctsBusyOperation.Token);
+            }
 
-                // Operation completed in the showing delay, so return it now
-                if (busyOperation.IsCompleted) {
-                    return await busyOperation;
-                }
+            // Operation completed in the showing delay, so return it now
+            if (busyOperation.IsCompleted) {
+                return await busyOperation;
+            }
 
-                WaitForActivityResult result;
+            WaitForActivityResult result;
 
-                // We must pass a token, that becomes cancelled at least when the activity is cancelled, as the DialogCancellation
-                // parameter, so that the dialog closes ASAP, and the caller can process any additional cancellation logic.
-                // If we don't pass such a token, then nothing tells the dialog to close, and it will
-                // deadlock the activity by waiting for it to complete from within the activity itself
-                using (CancellationTokenSource ctsDialog = TaskUtils.CreateCompletionSource(busyOperation, ctsBusyOperation.Token)) {
-                    result = await service.WaitForActivity(new WaitForActivityOptions(foregroundInfo.Value.TopLevel, request.CurrentTask, ctsDialog.Token) {
-                        CancelActivityOnCloseRequest = false, // when the user tries to close it, just close the dialog
-                        WaitForActivityOnCloseRequest = false, // do not wait for the activity to complete!!!
+            // We must pass a token, that becomes cancelled at least when the activity is cancelled, as the DialogCancellation
+            // parameter, so that the dialog closes ASAP, and the caller can process any additional cancellation logic.
+            // If we don't pass such a token, then nothing tells the dialog to close, and it will
+            // deadlock the activity by waiting for it to complete from within the activity itself
+            using (CancellationTokenSource ctsDialog = TaskUtils.CreateCompletionSource(busyOperation, ctsBusyOperation.Token)) {
+                result = await service.WaitForActivity(new WaitForActivityOptions(foregroundInfo.Value.TopLevel, request.CurrentTask, ctsDialog.Token) {
+                    CancelActivityOnCloseRequest = false, // when the user tries to close it, just close the dialog
+                    WaitForActivityOnCloseRequest = false, // do not wait for the activity to complete!!!
 
-                        // It can only be minimized when the activity can be cancelled via the activity list in the main UI,
-                        // because we can't guarantee the caller has its own way of cancelling the activity
-                        CanMinimizeIntoBackgroundActivity = request.CurrentTask.IsDirectlyCancellable
-                    });
-                }
+                    // It can only be minimized when the activity can be cancelled via the activity list in the main UI,
+                    // because we can't guarantee the caller has its own way of cancelling the activity
+                    CanMinimizeIntoBackgroundActivity = request.CurrentTask.IsDirectlyCancellable
+                });
+            }
 
-                if (busyOperation.IsCompleted || result.TransitionToBackground) {
-                    // Operation has completed, or we're transitioning into a background activity, so just wait here
-                    return await busyOperation;
-                }
-                else if (result.ParentClosedEarly) {
-                    // Parent window was closed before the dialog could open. If the activity
-                    // cannot be cancelled directly (i.e. from the activity status bar),
-                    // we need to cancel it, otherwise it might be permanently stuck waiting
-                    if (!request.CurrentTask.IsDirectlyCancellable) {
-                        await ctsBusyOperation.CancelAsync();
-                    }
-                }
-                else /* if (!busyOperation.IsCompleted) */ {
-                    // User might have closed the dialog, or the busyCancellation or activity became cancelled,
-                    // and 'operationTask' might not have processed the cancellation yet.
-                    // So, mark 'cts' as cancelled just to be safe in all cases
+            if (busyOperation.IsCompleted || result.TransitionToBackground) {
+                // Operation has completed, or we're transitioning into a background activity, so just wait here
+            }
+            else if (result.ParentClosedEarly) {
+                // Parent window was closed before the dialog could open. If the activity
+                // cannot be cancelled directly (i.e. from the activity status bar),
+                // we need to cancel it, otherwise it might be permanently stuck waiting
+                if (!request.CurrentTask.IsDirectlyCancellable) {
                     await ctsBusyOperation.CancelAsync();
                 }
+            }
+            else /* if (!busyOperation.IsCompleted) */ {
+                // User might have closed the dialog, or the busyCancellation or activity became cancelled,
+                // and 'operationTask' might not have processed the cancellation yet.
+                // So, mark 'cts' as cancelled just to be safe in all cases
+                await ctsBusyOperation.CancelAsync();
             }
 
             return await busyOperation;
@@ -393,7 +387,7 @@ public sealed class BusyLock {
         if (cancellationToken.IsCancellationRequested) {
             return null;
         }
-        
+
         IBusyToken? token = this.TryBeginBusyOperation();
         if (token != null) {
             return token; // heh, nice. No headaches!
@@ -447,7 +441,7 @@ public sealed class BusyLock {
             // We must always mark it as completed, because if a handler to UserQuickReleaseRequested added
             // a continuation to the task (which is likely), then it might get stuck forever waiting for
             // a task that would never complete.
-            
+
             // We also never mark it as cancelled because there's no reason to differentiate between
             // success and cancelled from a UserQuickReleaseRequested handler's POV, and it saves an OCE allocation
             myTcs.TrySetResult();
@@ -736,7 +730,7 @@ public readonly struct InForegroundInfo(ITopLevel topLevel, int showDelay = Busy
     public ITopLevel TopLevel { get; } = topLevel;
 
     /// <summary>
-    /// Gets the show delay, which is how long to wait before showing the dialog (since it may not take long to take the busy token)
+    /// Gets the show delay, in milliseconds. This is how long to wait before showing the dialog if obtaining the busy token is taking too long.
     /// </summary>
     public int ShowDelay { get; } = showDelay;
 

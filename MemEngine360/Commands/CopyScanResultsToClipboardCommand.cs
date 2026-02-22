@@ -24,16 +24,17 @@ using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands;
 
 public class CopyScanResultsToClipboardCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         if (!ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? _)) {
-            if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+            if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
                 return Executability.Invalid;
             }
-            else if (MemoryEngineViewState.GetInstance(engine).SelectedScanResults.Count < 1) {
+            else if (engineVs.SelectedScanResults.Count < 1) {
                 return Executability.ValidButCannotExecute;
             }
         }
@@ -42,9 +43,11 @@ public class CopyScanResultsToClipboardCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+        MemoryEngine? engine = null;
         List<ScanResultViewModel> scanResults = new List<ScanResultViewModel>();
-        if (MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
-            scanResults.AddRange(MemoryEngineViewState.GetInstance(engine).SelectedScanResults.SelectedItems);
+        if (MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+            scanResults.AddRange(engineVs.SelectedScanResults.SelectedItems);
+            engine = engineVs.Engine;
         }
 
         if (ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? theResult)) {
@@ -77,7 +80,9 @@ public class CopyScanResultsToClipboardCommand : Command {
                     ActivityTask.Current.Progress.SetCaptionAndText("Clipboard", "Copying to clipboard");
                     CancellationToken token = ActivityTask.Current.CancellationToken;
                     Task mainTask = clipboard.SetTextAsync(info.Message);
-                    if (await Task.WhenAny(mainTask, Task.Delay(900, token)) != mainTask && !token.IsCancellationRequested) {
+                    _ = mainTask.ContinueWith(t => t.Exception?.GetType(), CancellationToken.None);
+
+                    if (!await mainTask.TryWaitAsync(900, token) && !token.IsCancellationRequested) {
                         await IMessageDialogService.Instance.ShowMessage("Error", "Clipboard busy. Please try again later");
                     }
                 });

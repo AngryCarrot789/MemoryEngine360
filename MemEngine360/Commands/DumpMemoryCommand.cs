@@ -25,6 +25,7 @@ using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing.Commands;
 using MemEngine360.Engine.Scanners;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Activities.Pausable;
 using PFXToolKitUI.AdvancedMenuService;
@@ -47,7 +48,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
         return null;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         using IBusyToken? token = await engine.BeginBusyOperationUsingActivityAsync("Dump memory");
         if (token == null) {
             return;

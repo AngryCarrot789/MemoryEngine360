@@ -21,6 +21,7 @@ using MemEngine360.BaseFrontEnd.XboxBase.Modules;
 using MemEngine360.Commands;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.AdvancedMenuService;
@@ -45,7 +46,7 @@ public class ShowModulesCommand : BaseMemoryEngineCommand {
         return null;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         if (!IWindowManager.TryGetInstance(out IWindowManager? manager)) {
             return;
         }
@@ -67,7 +68,7 @@ public class ShowModulesCommand : BaseMemoryEngineCommand {
         }
         else if (result.Value) {
             ModuleViewerView control = new ModuleViewerView() {
-                XboxModuleManager = viewer, MemoryEngine = engine
+                XboxModuleManager = viewer, MemoryEngine = engineVs
             };
 
             IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {

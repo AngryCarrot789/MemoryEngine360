@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Connections;
+using MemEngine360.Engine.View;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -28,20 +29,20 @@ namespace MemEngine360.Engine.Debugging.Commands;
 
 public class ShowDebuggerCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine))
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
             return Executability.Invalid;
-        if (OpenDebuggerConnectionCommand.ExistingOCVDataKey.TryGetContext(engine.UserContext, out IOpenConnectionView? view))
+        if (OpenDebuggerConnectionCommand.ExistingOCVDataKey.TryGetContext(engineVs.Engine.UserContext, out IOpenConnectionView? view))
             return Executability.ValidButCannotExecute;
         
         return base.CanExecuteCore(e);
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return;
         }
 
-        ConsoleDebugger debugger = engine.ConsoleDebugger;
+        ConsoleDebugger debugger = engineVs.Engine.ConsoleDebugger;
         IDebuggerViewService service = ApplicationPFX.GetComponent<IDebuggerViewService>();
         ITopLevel? topLevel = await service.OpenOrFocusWindow(debugger);
         if (topLevel == null) {

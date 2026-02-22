@@ -435,9 +435,9 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
             window.Opened += static (s, e) => {
                 EngineView view = (EngineView) ((OverlayContentHostRoot) ((IDesktopWindow) s!).Content!).Content!;
-                view.MemoryEngine.UserContext.Set(ITopLevel.TopLevelDataKey, (IDesktopWindow) s!);
-                MemoryEngineViewState.GetInstance(view.MemoryEngine).IsActivityListVisible = false;
-                DataManager.GetContextData(((IDesktopWindow) s!).Control).Set(MemoryEngine.EngineDataKey, view.MemoryEngine);
+                view.MemoryEngine.UserContext.Set(ITopLevel.TopLevelDataKey, (IDesktopWindow) s);
+                view.ViewState.IsActivityListVisible = false;
+                DataManager.GetContextData(((IDesktopWindow) s!).Control).Set(MemoryEngineViewState.DataKey, view.ViewState);
 
                 ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.MemoryEngine);
             };
@@ -452,11 +452,11 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 EngineView view = (EngineView) ((OverlayContentHostRoot) ((IDesktopWindow) s!).Content!).Content!;
                 view.MemoryEngine.UserContext.Remove(ITopLevel.TopLevelDataKey);
                 ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
-                DataManager.GetContextData(((IDesktopWindow) s!).Control).Remove(MemoryEngine.EngineDataKey);
+                DataManager.GetContextData(((IDesktopWindow) s!).Control).Remove(MemoryEngineViewState.DataKey);
             };
 
             await window.ShowAsync();
-            
+
             // new TextNotification() {
             //     Caption = "Hello world",
             //     Text = "Main text here!",
@@ -467,13 +467,13 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             //         new LambdaNotificationAction("Do cool stuff", _ => Task.CompletedTask),
             //     }
             // }.Show(NotificationManager.GetInstance(engineView.MemoryEngine));
-            
+
             _ = ActivityManager.Instance.RunTask(async () => {
                 ActivityTask activity = ActivityTask.Current;
                 activity.Progress.SetCaptionAndText("Reload last mod tools");
                 foreach (string path in BasicApplicationConfiguration.Instance.LoadedModToolPaths) {
                     activity.CancellationToken.ThrowIfCancellationRequested();
-                    
+
                     try {
                         if (string.IsNullOrWhiteSpace(path) || !path.EndsWith(".lua") || !File.Exists(path)) {
                             continue;
@@ -601,17 +601,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 Debug.Assert(!engine.ScanningProcessor.IsScanning);
             }
 
-            using (CancellationTokenSource cts = new CancellationTokenSource()) {
-                // Grace period for all activities to become cancelled
-                try {
-                    await Task.WhenAny(Task.Delay(1000, cts.Token), Task.Run(() => Task.WhenAll(tasks.Select(x => x.Task)), cts.Token));
-                    await cts.CancelAsync();
-                }
-                catch (OperationCanceledException) {
-                    // ignored
-                }
-            }
-
+            await Task.WhenAll(tasks.Select(x => x.Task)).TryWaitAsync(1000, CancellationToken.None);
+            
             IBusyToken? token = await engine.BeginBusyOperationAsync(500);
             while (token == null) {
                 MessageBoxInfo info = new MessageBoxInfo() {

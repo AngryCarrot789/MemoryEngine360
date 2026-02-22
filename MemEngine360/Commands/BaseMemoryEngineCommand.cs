@@ -19,6 +19,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -30,28 +31,28 @@ namespace MemEngine360.Commands;
 /// </summary>
 public abstract class BaseMemoryEngineCommand : Command, IDisabledHintProvider {
     protected sealed override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return Executability.Invalid;
         }
 
-        return this.CanExecuteCore(engine, e);
+        return this.CanExecuteCore(engineVs.Engine, e);
     }
 
     protected sealed override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine))
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
             return Task.CompletedTask;
 
-        return this.ExecuteCommandAsync(engine, e);
+        return this.ExecuteCommandAsync(engineVs, engineVs.Engine, e);
     }
 
     /// <returns></returns>
     protected abstract Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e);
 
-    protected abstract Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e);
+    protected abstract Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e);
 
     public virtual DisabledHintInfo? ProvideDisabledHint(IContextData context, ContextRegistry? sourceContextMenu) {
-        if (MemoryEngine.EngineDataKey.TryGetContext(context, out MemoryEngine? engine)) {
-            return this.ProvideDisabledHintOverride(engine, context, sourceContextMenu);
+        if (MemoryEngineViewState.DataKey.TryGetContext(context, out MemoryEngineViewState? engineVs)) {
+            return this.ProvideDisabledHintOverride(engineVs.Engine, context, sourceContextMenu);
         }
 
         return null;

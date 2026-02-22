@@ -17,8 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.FilePicking;
@@ -29,7 +29,7 @@ namespace MemEngine360.Commands.ATM.XML;
 
 public class SaveSavedAddressesToFileCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return Executability.Invalid;
         }
 
@@ -37,7 +37,7 @@ public class SaveSavedAddressesToFileCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return;
         }
 
@@ -56,7 +56,7 @@ public class SaveSavedAddressesToFileCommand : Command {
                 stream.Capacity = 4096;
 
                 XmlAddressEntryGroup rootGroup = new XmlAddressEntryGroup();
-                AddToGroup(engine.AddressTableManager.RootEntry, rootGroup);
+                AddToGroup(engineVs.Engine.AddressTableManager.RootEntry, rootGroup);
                 OpenXMLFileCommand.XmlGroupSerializer.Serialize(stream, rootGroup);
 
                 await File.WriteAllBytesAsync(path, stream.ToArray());

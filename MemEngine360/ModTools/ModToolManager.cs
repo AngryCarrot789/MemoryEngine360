@@ -20,8 +20,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using MemEngine360.Engine;
-using PFXToolKitUI;
-using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -34,8 +32,6 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
     public static readonly DataKey<ModToolManager> DataKey = DataKeys.Create<ModToolManager>(nameof(ModToolManager));
 
     private readonly List<ModTool> myModTools;
-    private readonly MenuEntryGroup modToolMenu;
-    private readonly Dictionary<ModTool, BaseMenuEntry> toolToMenuEntry;
 
     ComponentStorage IComponentManager.ComponentStorage => field ??= new ComponentStorage(this);
 
@@ -51,12 +47,10 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
     public event EventHandler<ItemIndexEventArgs<ModTool>>? ToolAdded, ToolRemoved; 
     public event EventHandler<ItemMovedEventArgs<ModTool>>? ToolMoved; 
 
-    public ModToolManager(MemoryEngine memoryEngine, MenuEntryGroup modToolMenu) {
+    public ModToolManager(MemoryEngine memoryEngine) {
         this.MemoryEngine = memoryEngine;
         this.myModTools = new List<ModTool>();
         this.ModTools = this.myModTools.AsReadOnly();
-        this.toolToMenuEntry = new Dictionary<ModTool, BaseMenuEntry>();
-        this.modToolMenu = modToolMenu;
     }
 
     public void AddModTool(ModTool modTool) {
@@ -68,10 +62,6 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
 
         int index = this.myModTools.Count;
         this.myModTools.Insert(index, modTool);
-
-        ExecuteModToolMenuEntry menuEntry = ExecuteModToolMenuEntry.GetOrCreate(modTool);
-        this.toolToMenuEntry[modTool] = menuEntry;
-        this.modToolMenu.Items.Add(menuEntry);
         
         this.ToolAdded?.Invoke(this, new ItemIndexEventArgs<ModTool>(modTool, index));
     }
@@ -94,10 +84,6 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
         this.myModTools.RemoveAt(index);
 
         modTool.myManager = null;
-        bool removed = this.toolToMenuEntry.Remove(modTool, out BaseMenuEntry? entry);
-        Debug.Assert(removed);
-        
-        this.modToolMenu.Items.Remove(entry!);
         this.ToolRemoved?.Invoke(this, new ItemIndexEventArgs<ModTool>(modTool, index));
     }
 
@@ -105,39 +91,5 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
         ModTool item = this.myModTools[oldIndex];
         this.myModTools.MoveItem(oldIndex, newIndex);
         this.ToolMoved?.Invoke(this, new ItemMovedEventArgs<ModTool>(item, oldIndex, newIndex));
-    }
-
-    private sealed class ExecuteModToolMenuEntry : CustomMenuEntry {
-        private readonly ModTool modTool;
-
-        private ExecuteModToolMenuEntry(ModTool modTool) : base(modTool.Name ?? "", "Show this tool's window") {
-            this.modTool = modTool;
-            this.modTool.FilePathChanged += this.OnFilePathChanged;
-        }
-
-        public static ExecuteModToolMenuEntry GetOrCreate(ModTool tool) {
-            return ((IComponentManager) tool).GetOrCreateComponent(static t => new ExecuteModToolMenuEntry((ModTool) t));
-        }
-
-        private void OnFilePathChanged(object? o, EventArgs e) {
-            this.DisplayName = ((ModTool) o!).Name ?? "";
-        }
-
-        public override bool CanExecute(IContextData context) {
-            return !this.modTool.IsRunning && !this.modTool.IsCompiling;
-        }
-
-        public override async Task OnExecute(IContextData context) {
-            if (this.modTool.IsRunning || this.modTool.IsCompiling) {
-                return;
-            }
-
-            if (!await this.modTool.StartCommand()) {
-                return;
-            }
-
-            IModToolViewService service = ApplicationPFX.GetComponent<IModToolViewService>();
-            await service.ShowOrFocusGui(this.modTool);
-        }
     }
 }

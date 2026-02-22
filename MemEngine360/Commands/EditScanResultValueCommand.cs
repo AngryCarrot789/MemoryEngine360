@@ -36,11 +36,11 @@ public class EditScanResultValueCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         ScanningProcessor processor;
         if (!ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? result)) {
-            if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+            if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
                 return Executability.Invalid;
             }
 
-            processor = engine.ScanningProcessor;
+            processor = engineVs.Engine.ScanningProcessor;
         }
         else {
             processor = result.ScanningProcessor;
@@ -54,9 +54,11 @@ public class EditScanResultValueCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
+        MemoryEngine? engine = null;
         List<ScanResultViewModel> scanResults = new List<ScanResultViewModel>();
-        if (MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
-            scanResults.AddRange(MemoryEngineViewState.GetInstance(engine).SelectedScanResults.SelectedItems);
+        if (MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+            scanResults.AddRange(engineVs.SelectedScanResults.SelectedItems);
+            engine = engineVs.Engine;
         }
 
         if (ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? theResult)) {
@@ -145,7 +147,7 @@ public class EditScanResultValueCommand : Command {
                 else {
                     tmpErrors.Clear();
                     IDataValue cv = scanResult.CurrentValue;
-                    if (cv.DataType == dataType && DataValueUtils.TryParseNumericExpressionAsDataValue(new ValidationArgs(input.Text, tmpErrors, false), dataType, ndt, out var value, out _, cv)) {
+                    if (cv.DataType == dataType && DataValueUtils.TryParseNumericExpressionAsDataValue(new ValidationArgs(input.Text, tmpErrors, false), dataType, ndt, out IDataValue? value, out _, cv)) {
                         await MemoryEngine.WriteDataValue(engine.Connection, scanResult.Address, value);
                         setValue = value;
                     }

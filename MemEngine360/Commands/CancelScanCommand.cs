@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
 
@@ -28,7 +29,7 @@ public class CancelScanCommand : BaseMemoryEngineCommand {
         return engine.ScanningProcessor.IsScanning ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         ActivityTask? activity = engine.ScanningProcessor.ScanningActivity;
         if (activity != null && activity.TryCancel()) {
             await activity;

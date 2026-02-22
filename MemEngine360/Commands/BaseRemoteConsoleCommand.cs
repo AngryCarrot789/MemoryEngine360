@@ -20,6 +20,7 @@
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
@@ -44,7 +45,7 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
         return Task.FromResult(true);
     }
 
-    protected sealed override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected sealed override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         using IBusyToken? token = await engine.BeginBusyOperationUsingActivityAsync(this.ActivityText);
         if (token == null) {
             return;

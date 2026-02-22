@@ -19,6 +19,7 @@
 
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
@@ -37,7 +38,7 @@ public class ShowMemoryViewCommand : BaseMemoryEngineCommand {
         return null;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         if (ApplicationPFX.TryGetComponent(out IMemoryViewerViewService? service)) {
             MemoryViewer info = new MemoryViewer(engine) {
                 Offset = engine.ScanningProcessor.StartAddress

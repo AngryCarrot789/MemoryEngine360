@@ -71,8 +71,7 @@ public class SaveModToolCommand : Command {
         try {
             using CancellationTokenSource cts = new CancellationTokenSource();
             Task writeTask = File.WriteAllTextAsync(filePath, script.Document.Text, cts.Token);
-            await Task.WhenAny(writeTask, Task.Delay(500, cts.Token));
-            if (!writeTask.IsCompleted) {
+            if (!await writeTask.TryWaitAsync(500, cts.Token) && !cts.Token.IsCancellationRequested) {
                 ActivityTask activity = ActivityManager.Instance.RunTask(() => {
                     ActivityTask.Current.Progress.SetCaptionAndText("Save ModTool", "Saving file...", newIsIndeterminate: true);
                     return writeTask;
@@ -89,9 +88,15 @@ public class SaveModToolCommand : Command {
             }
 
             await cts.CancelAsync();
-            await writeTask;
 
-            script.HasUnsavedChanges = false;
+            try {
+                await writeTask;
+                script.HasUnsavedChanges = false;
+            }
+            catch (OperationCanceledException) {
+                // ignored
+            }
+
             return true;
         }
         catch (Exception ex) {

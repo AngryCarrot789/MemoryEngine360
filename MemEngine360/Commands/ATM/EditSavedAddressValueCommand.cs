@@ -22,6 +22,7 @@ using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
@@ -50,8 +51,8 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
         return null;
     }
 
-    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
-        IConsoleConnection? connection = engine.Connection;
+    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
+        IConsoleConnection? connection = engineVs.Engine.Connection;
         if (connection == null) {
             await MessageBoxes.NoConnection.ShowMessage();
             return;
@@ -99,7 +100,7 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             return;
         }
 
-        if ((connection = engine.Connection) == null || connection.IsClosed) {
+        if ((connection = engineVs.Engine.Connection) == null || connection.IsClosed) {
             await IMessageDialogService.Instance.ShowMessage("Error", "Console was disconnected while trying to edit values. Nothing was modified. Please reconnect.");
             return;
         }
@@ -120,18 +121,18 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
             IActivityProgress progress = ActivityTask.Current.Progress;
             progress.Caption = "Edit Saved Result value";
 
-            using IBusyToken? token = await engine.BusyLock.BeginBusyOperationFromActivity(new BusyTokenRequestFromActivity() {
+            using IBusyToken? token = await engineVs.Engine.BusyLock.BeginBusyOperationFromActivity(new BusyTokenRequestFromActivity() {
                 QuickReleaseIntention = true,
                 ForegroundInfo = parentTopLevel != null ? new InForegroundInfo(parentTopLevel) : null
             });
 
             List<string> tmpErrors = new List<string>();
-            if (token != null && engine.Connection != null) {
+            if (token != null && engineVs.Engine.Connection != null) {
                 ActivityTask.Current.Progress.SetCaptionAndText("Edit value", "Editing values");
                 int success = 0;
                 foreach (AddressTableEntry scanResult in savedList) {
                     ActivityTask.Current.ThrowIfCancellationRequested();
-                    uint? address = await scanResult.MemoryAddress.TryResolveAddress(engine.Connection);
+                    uint? address = await scanResult.MemoryAddress.TryResolveAddress(engineVs.Engine.Connection);
                     if (!address.HasValue)
                         continue; // pointer could not be resolved
 
@@ -139,13 +140,13 @@ public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
 
                     IDataValue? setValue = null;
                     if (directValue != null) {
-                        await MemoryEngine.WriteDataValue(engine.Connection, address.Value, directValue);
+                        await MemoryEngine.WriteDataValue(engineVs.Engine.Connection, address.Value, directValue);
                         setValue = directValue;
                     }
                     else if (scanResult.Value != null && scanResult.DataType == dataType) {
                         tmpErrors.Clear();
                         if (DataValueUtils.TryParseNumericExpressionAsDataValue(new ValidationArgs(input.Text, tmpErrors, false), dataType, lastResult.NumericDisplayType, out IDataValue? value, out _, scanResult.Value)) {
-                            await MemoryEngine.WriteDataValue(engine.Connection, address.Value, value);
+                            await MemoryEngine.WriteDataValue(engineVs.Engine.Connection, address.Value, value);
                             setValue = value;
                         }
                     }

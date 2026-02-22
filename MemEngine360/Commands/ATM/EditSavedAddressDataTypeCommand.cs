@@ -20,6 +20,7 @@
 using MemEngine360.Engine;
 using MemEngine360.Engine.Modes;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils.Events;
@@ -35,7 +36,7 @@ public class EditSavedAddressDataTypeCommand : BaseSavedAddressSelectionCommand 
         return entries[0] is AddressTableEntry ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
-    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
         if (!(entries[0] is AddressTableEntry saved)) {
             return;
         }

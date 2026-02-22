@@ -45,18 +45,15 @@ public class OpenModToolScriptFileCommand : Command {
         try {
             using CancellationTokenSource ctsActivity = new CancellationTokenSource();
             Task<string> readTextTask = File.ReadAllTextAsync(path, ctsActivity.Token);
-            if (!readTextTask.IsCompleted) {
-                await Task.WhenAny(readTextTask, Task.Delay(500, ctsActivity.Token));
-                if (!readTextTask.IsCompleted) {
-                    ActivityTask activity = ActivityManager.Instance.RunTask(async () => {
-                        ActivityTask.Current.Progress.SetCaptionAndText("Read file", "Reading file...", true);
-                        await readTextTask;
-                    }, ctsActivity);
+            if (!await readTextTask.TryWaitAsync(500, ctsActivity.Token) && !ctsActivity.Token.IsCancellationRequested) {
+                ActivityTask activity = ActivityManager.Instance.RunTask(async () => {
+                    ActivityTask.Current.Progress.SetCaptionAndText("Read file", "Reading file...", true);
+                    await readTextTask;
+                }, ctsActivity);
 
-                    ITopLevel? topLevel;
-                    if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service) && (topLevel = TopLevelContextUtils.GetTopLevelFromContext()) != null) {
-                        await service.WaitForActivity(topLevel, activity, CancellationToken.None);
-                    }
+                ITopLevel? topLevel;
+                if (IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service) && (topLevel = TopLevelContextUtils.GetTopLevelFromContext()) != null) {
+                    await service.WaitForActivity(topLevel, activity, CancellationToken.None);
                 }
             }
 
@@ -69,12 +66,12 @@ public class OpenModToolScriptFileCommand : Command {
             await IMessageDialogService.Instance.ShowExceptionMessage("File Error", $"Failed to read file '{path}': " + ex.Message, ex);
             return;
         }
-        
+
         ModTool tool = new ModTool();
         tool.SetFilePath(path);
         tool.Document.Text = sourceCode;
         tool.HasUnsavedChanges = false;
-        
+
         manager.AddModTool(tool);
         ModToolManagerViewState.GetInstance(manager).SelectedModTool = tool;
     }

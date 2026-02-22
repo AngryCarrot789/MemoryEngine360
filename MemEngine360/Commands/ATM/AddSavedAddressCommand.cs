@@ -26,30 +26,28 @@ using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Interactivity.Windowing;
-using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Commands.ATM;
 
 public class AddSavedAddressCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return e.ContextData.ContainsKey(MemoryEngine.EngineDataKey) ? Executability.Valid : Executability.Invalid;
+        return e.ContextData.ContainsKey(MemoryEngineViewState.DataKey) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return;
         }
 
         uint initialAddress = 0;
         AddressTableGroupEntry? targetParent = null;
-        MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(engine);
-        ListSelectionModel<ScanResultViewModel> selection = vs.SelectedScanResults;
+        ListSelectionModel<ScanResultViewModel> selection = engineVs.SelectedScanResults;
         if (selection.Count > 0)
             initialAddress = selection.Last.Address;
 
-        if (vs.AddressTableSelectionManager.HasOneSelectedItem) {
-            BaseAddressTableEntry entry = vs.AddressTableSelectionManager.SelectedItems.First();
+        if (engineVs.AddressTableSelectionManager.HasOneSelectedItem) {
+            BaseAddressTableEntry entry = engineVs.AddressTableSelectionManager.SelectedItems.First();
             if (entry is AddressTableGroupEntry) {
                 targetParent = (AddressTableGroupEntry) entry;
             }
@@ -58,7 +56,7 @@ public class AddSavedAddressCommand : Command {
             }
         }
 
-        targetParent ??= engine.AddressTableManager.RootEntry;
+        targetParent ??= engineVs.Engine.AddressTableManager.RootEntry;
         DoubleUserInputInfo addrDescInfo = new DoubleUserInputInfo() {
             Caption = "New saved address",
             LabelA = "Memory address (hex)", PrefixA = "0x",
@@ -104,7 +102,7 @@ public class AddSavedAddressCommand : Command {
                 result.ArrayLength = dataTypeInfo.ArrayLength;
                 result.DataType = dataTypeInfo.DataType;
                 targetParent.Items.Add(result);
-                engine.ScanningProcessor.RefreshSavedAddressesLater();
+                engineVs.Engine.ScanningProcessor.RefreshSavedAddressesLater();
             }
         }
     }

@@ -652,9 +652,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 }
 
                 // Wait some time for the download to get some more data
-                if (!readTask.IsCompleted) {
-                    await Task.WhenAny(readTask, Task.Delay(100));
-                }
+                await readTask.TryWaitAsync(100);
             }
         }
         finally {
@@ -859,9 +857,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                     }
 
                     // Wait some time for the download to get some more data
-                    if (!readTask.IsCompleted) {
-                        await Task.WhenAny(readTask, Task.Delay(100));
-                    }
+                    await readTask.TryWaitAsync(100);
                 }
             }
             finally {

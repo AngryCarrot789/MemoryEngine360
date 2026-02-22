@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
@@ -26,11 +25,10 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Commands.ATM;
 
 public class DuplicateSelectedSavedAddressesCommand : BaseSavedAddressSelectionCommand {
-    protected override Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
         // Create list of clones, ordered by their index in the sequence list
         List<BaseAddressTableEntry> selection = entries.ToList();
-        MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(engine);
-        
+
         List<BaseAddressTableEntry> clonedItems = new List<BaseAddressTableEntry>();
         Dictionary<AddressTableGroupEntry, List<(BaseAddressTableEntry, int)>> duplication = GetEffectiveOrderedDuplication(selection);
         foreach (KeyValuePair<AddressTableGroupEntry, List<(BaseAddressTableEntry, int)>> entry in duplication) {
@@ -44,7 +42,7 @@ public class DuplicateSelectedSavedAddressesCommand : BaseSavedAddressSelectionC
             }
         }
 
-        vs.AddressTableSelectionManager.SetSelection(clonedItems);
+        engineVs.AddressTableSelectionManager.SetSelection(clonedItems);
         return Task.CompletedTask;
     }
 

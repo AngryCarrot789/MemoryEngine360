@@ -24,7 +24,7 @@ using PFXToolKitUI.Utils.Events;
 namespace MemEngine360.Sequencing.View;
 
 /// <summary>
-/// Represents the persistent view state of a task sequence
+/// Represents the persistent view state of a task sequence within the task sequencer window
 /// </summary>
 public sealed class TaskSequenceViewState {
     /// <summary>

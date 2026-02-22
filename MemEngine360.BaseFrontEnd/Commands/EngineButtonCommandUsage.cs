@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.Avalonia.CommandUsages;
 using PFXToolKitUI.Interactivity.Contexts;
 
@@ -27,25 +28,25 @@ namespace MemEngine360.BaseFrontEnd.Commands;
 /// Base class for a button command usage that needs to hook into mem engine events
 /// </summary>
 public abstract class EngineButtonCommandUsage : SimpleButtonCommandUsage {
-    public MemoryEngine? Engine { get; private set; }
+    public MemoryEngineViewState? EngineViewState { get; private set; }
 
     protected EngineButtonCommandUsage(string commandId) : base(commandId) {
     }
 
     protected override void OnContextChanged() {
         base.OnContextChanged();
-        MemoryEngine? oldEngine = this.Engine;
-        MemoryEngine? newEngine = null;
+        MemoryEngineViewState? oldEngine = this.EngineViewState;
+        MemoryEngineViewState? newEngine = null;
         if (this.GetContextData() is IContextData data) {
-            MemoryEngine.EngineDataKey.TryGetContext(data, out newEngine);
+            MemoryEngineViewState.DataKey.TryGetContext(data, out newEngine);
         }
 
         if (oldEngine != newEngine) {
-            this.Engine = newEngine;
-            this.OnEngineChanged(oldEngine, newEngine);
+            this.EngineViewState = newEngine;
+            this.OnEngineChanged(oldEngine?.Engine, newEngine?.Engine, oldEngine, newEngine);
         }
     }
 
-    protected virtual void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine) {
+    protected virtual void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine, MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
     }
 }

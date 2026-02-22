@@ -636,7 +636,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
 
     internal async Task InternalReceiveBinary(Action<object?, Span<byte>> receiveCallback, object? state) {
         const int BufferSize = 4096;
-        using var _ = ArrayPools.Rent(BufferSize, out byte[] array);
+        using ArrayPools.Token<byte> _ = ArrayPools.Rent(BufferSize, out byte[] array);
 
         int statusFlag;
         do {

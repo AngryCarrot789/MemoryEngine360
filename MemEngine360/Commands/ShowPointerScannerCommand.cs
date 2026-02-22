@@ -17,7 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using MemEngine360.PointerScanning;
 using PFXToolKitUI.CommandSystem;
 
@@ -25,10 +25,10 @@ namespace MemEngine360.Commands;
 
 public class ShowPointerScannerCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return;
         }
 
-        await IPointerScanService.Instance.ShowPointerScan(engine);
+        await IPointerScanService.Instance.ShowPointerScan(engineVs.Engine);
     }
 }

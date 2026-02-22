@@ -29,21 +29,19 @@ public class NextScanCommand : BaseMemoryEngineCommand {
         return !engine.ScanningProcessor.CanPerformNextScan ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         if (engine.ScanningProcessor.CanPerformNextScan) {
-            MemoryEngineViewState state = MemoryEngineViewState.GetInstance(engine);
-            
             // Save original selection state
-            List<ScanResultViewModel> selection = state.SelectedScanResults.SelectedItems.ToList();
-            state.SelectedScanResults.DeselectAll();
+            List<ScanResultViewModel> selection = engineVs.SelectedScanResults.SelectedItems.ToList();
+            engineVs.SelectedScanResults.DeselectAll();
             
             await engine.ScanningProcessor.ScanFirstOrNext();
             
             // Try to restore any items that still exist, since their references will
             // be maintained unless for some reason the ScanningContext is kerfuckled
 
-            ObservableList<ScanResultViewModel> srcList = state.Engine.ScanningProcessor.ScanResults;
-            state.SelectedScanResults.SelectItems(selection.Where(x => srcList.Contains(x)));
+            ObservableList<ScanResultViewModel> srcList = engineVs.Engine.ScanningProcessor.ScanResults;
+            engineVs.SelectedScanResults.SelectItems(selection.Where(x => srcList.Contains(x)));
         }
     }
 }

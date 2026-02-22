@@ -102,6 +102,6 @@ public sealed class TaskSequenceManagerViewState {
     }
 
     public static TaskSequenceManagerViewState GetInstance(TaskSequenceManager manager, TopLevelIdentifier topLevelIdentifier) {
-        return TopLevelDataMap.GetInstance(manager).GetOrCreate<TaskSequenceManagerViewState>(topLevelIdentifier, manager, static (s, i) => new TaskSequenceManagerViewState((TaskSequenceManager) s!, i));
+        return TopLevelDataMap.GetInstance(manager).GetOrCreate(topLevelIdentifier, manager, static (s, i) => new TaskSequenceManagerViewState((TaskSequenceManager) s!, i));
     }
 }

@@ -60,6 +60,8 @@ using PFXToolKitUI.Utils.Events;
 namespace MemEngine360.BaseFrontEnd;
 
 public partial class EngineView : UserControl {
+    public const string TopLevelId = "toplevels.MemoryEngine";
+
     private readonly IBinder<ScanningProcessor> isScanningBinder =
         new EventUpdateBinder<ScanningProcessor>(
             nameof(ScanningProcessor.IsScanningChanged),
@@ -166,9 +168,11 @@ public partial class EngineView : UserControl {
 
     private readonly AsyncRelayCommand editAlignmentCommand;
 
-    public MemoryEngine MemoryEngine { get; }
+    public MemoryEngine MemoryEngine => this.ViewState.Engine;
 
-    public TopLevelMenuRegistry TopLevelMenuRegistry => MemoryEngineViewState.GetInstance(this.MemoryEngine).TopLevelMenuRegistry;
+    public MemoryEngineViewState ViewState { get; }
+
+    public TopLevelMenuRegistry TopLevelMenuRegistry => this.ViewState.TopLevelMenuRegistry;
 
     private readonly MenuEntryGroup themesSubList;
     private IDesktopWindow? myOwnerWindow_onLoaded;
@@ -182,19 +186,22 @@ public partial class EngineView : UserControl {
 
     private readonly ColourBrushHandler titleBarToMenuBackgroundBrushHandler;
 
-    public EngineView() {
+    public EngineView() : this(MemoryEngineViewState.GetInstance(new MemoryEngine(), TopLevelIdentifier.Single(TopLevelId))) {
+    }
+
+    public EngineView(MemoryEngineViewState viewState) {
         this.InitializeComponent();
 
         this.themesSubList = new MenuEntryGroup("Themes");
-        this.MemoryEngine = new MemoryEngine();
+        this.ViewState = viewState;
         this.SetupMainMenu();
 
         this.titleBarToMenuBackgroundBrushHandler = new ColourBrushHandler(BackgroundProperty);
 
-        this.scanResultSelectionBinder = new DataGridSelectionModelBinder<ScanResultViewModel>(this.PART_ScanListResults, MemoryEngineViewState.GetInstance(this.MemoryEngine).SelectedScanResults);
+        this.scanResultSelectionBinder = new DataGridSelectionModelBinder<ScanResultViewModel>(this.PART_ScanListResults, this.ViewState.SelectedScanResults);
         this.addressTableSelectionBinder = new TreeViewSelectionModelBinder<BaseAddressTableEntry>(
             this.PART_SavedAddressTree,
-            MemoryEngineViewState.GetInstance(this.MemoryEngine).AddressTableSelectionManager,
+            this.ViewState.AddressTableSelectionManager,
             tvi => ((AddressTableTreeViewItem) tvi).EntryObject!,
             model => this.PART_SavedAddressTree.ItemMap.GetControl(model));
 
@@ -298,7 +305,7 @@ public partial class EngineView : UserControl {
         this.PART_ActivityListPanel.AddHandler(KeyDownEvent, (sender, e) => {
             if (e.Key == Key.Escape) {
                 e.Handled = true;
-                MemoryEngineViewState.GetInstance(this.MemoryEngine).IsActivityListVisible = false;
+                this.ViewState.IsActivityListVisible = false;
             }
         }, RoutingStrategies.Tunnel);
 
@@ -329,11 +336,13 @@ public partial class EngineView : UserControl {
         fileEntry.Items.Add(new CommandMenuEntry("commands.mainWindow.OpenEditorSettings", "_Preferences"));
         menu.Items.Add(fileEntry);
 
+        MemoryEngineViewState viewState = this.ViewState;
+
         // ### Remote Commands ###
-        menu.Items.Add(this.MemoryEngine.RemoteControlsMenu);
+        menu.Items.Add(viewState.RemoteControlsMenu);
 
         // ### Tools ###
-        menu.Items.Add(this.MemoryEngine.ToolsMenu);
+        menu.Items.Add(viewState.ToolsMenu);
 
         // ### Themes ###
         menu.Items.Add(this.themesSubList);
@@ -376,7 +385,7 @@ public partial class EngineView : UserControl {
 
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
-        MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(this.MemoryEngine);
+        MemoryEngineViewState vs = this.ViewState;
         vs.RequestWindowFocus += this.OnRequestWindowFocus;
         vs.RequestFocusOnSavedAddress += this.OnRequestFocusOnSavedAddress;
         vs.IsActivityListVisibleChanged += this.OnIsActivityListVisibleChanged;
@@ -476,7 +485,7 @@ public partial class EngineView : UserControl {
 
     protected override void OnUnloaded(RoutedEventArgs e) {
         base.OnUnloaded(e);
-        MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(this.MemoryEngine);
+        MemoryEngineViewState vs = this.ViewState;
         vs.RequestWindowFocus -= this.OnRequestWindowFocus;
         vs.RequestFocusOnSavedAddress -= this.OnRequestFocusOnSavedAddress;
 
@@ -613,7 +622,7 @@ public partial class EngineView : UserControl {
 
     private void OnConnectionChanged(object? o, ConnectionChangedEventArgs args) {
         TextNotification notification = this.connectionNotification ??= new TextNotification() {
-            ContextData = new ContextData().Set(MemoryEngine.EngineDataKey, this.MemoryEngine).
+            ContextData = new ContextData().Set(MemoryEngineViewState.DataKey, this.ViewState).
                                             Set(ITopLevel.TopLevelDataKey, this.myOwnerWindow_onLoaded)
         };
 
@@ -637,10 +646,10 @@ public partial class EngineView : UserControl {
 
             notification.Actions.Add(this.connectionNotificationCommandDisconnect ??= new LambdaNotificationAction("Disconnect", static async (c) => {
                 ITopLevel topLevel = ITopLevel.TopLevelDataKey.GetContext(c.ContextData!)!;
-                MemoryEngine engine = MemoryEngine.EngineDataKey.GetContext(c.ContextData!)!;
-                if (engine.Connection != null) {
+                MemoryEngineViewState engine = MemoryEngineViewState.DataKey.GetContext(c.ContextData!)!;
+                if (engine.Engine.Connection != null) {
                     ((IMutableContextData) c.ContextData!).Set(MemoryEngine.IsDisconnectFromNotification, true);
-                    await OpenConsoleConnectionDialogCommand.DisconnectInActivity(topLevel, engine, 0);
+                    await OpenConsoleConnectionDialogCommand.DisconnectInActivity(topLevel, engine.Engine, 0);
                     ((IMutableContextData) c.ContextData!).Remove(MemoryEngine.IsDisconnectFromNotification);
                 }
 
@@ -674,26 +683,26 @@ public partial class EngineView : UserControl {
                     notification.CanAutoHide = false;
                     notification.Actions.Add(this.connectionNotificationCommandReconnect ??= new LambdaNotificationAction("Reconnect", static async (c) => {
                         // ContextData ensured non-null by LambdaNotificationCommand.requireContext
-                        MemoryEngine engine = MemoryEngine.EngineDataKey.GetContext(c.ContextData!)!;
-                        if (engine.Connection != null) {
+                        MemoryEngineViewState engineVs = MemoryEngineViewState.DataKey.GetContext(c.ContextData!)!;
+                        if (engineVs.Engine.Connection != null) {
                             c.Notification?.Hide();
                             return;
                         }
 
-                        if (engine.LastUserConnectionInfo != null) {
+                        if (engineVs.Engine.LastUserConnectionInfo != null) {
                             // oh...
-                            using IBusyToken? busyToken = await engine.BeginBusyOperationUsingActivityAsync("Reconnect to console");
+                            using IBusyToken? busyToken = await engineVs.Engine.BeginBusyOperationUsingActivityAsync("Reconnect to console");
                             if (busyToken == null) {
                                 return;
                             }
 
                             await CommandManager.Instance.RunActionAsync(async _ => {
-                                RegisteredConnectionType type = engine.LastUserConnectionInfo.ConnectionType;
+                                RegisteredConnectionType type = engineVs.Engine.LastUserConnectionInfo.ConnectionType;
 
                                 using CancellationTokenSource cts = new CancellationTokenSource();
                                 IConsoleConnection? connection;
                                 try {
-                                    connection = await type.OpenConnection(engine.LastUserConnectionInfo, EmptyContext.Instance, cts);
+                                    connection = await type.OpenConnection(engineVs.Engine.LastUserConnectionInfo, EmptyContext.Instance, cts);
                                 }
                                 catch (Exception e) {
                                     await IMessageDialogService.Instance.ShowMessage("Error", "An unhandled exception occurred while opening connection", e.GetToString());
@@ -702,7 +711,7 @@ public partial class EngineView : UserControl {
 
                                 if (connection != null) {
                                     c.Notification?.Hide();
-                                    engine.SetConnection(busyToken, 0, connection, ConnectionChangeCause.User, engine.LastUserConnectionInfo);
+                                    engineVs.Engine.SetConnection(busyToken, 0, connection, ConnectionChangeCause.User, engineVs.Engine.LastUserConnectionInfo);
                                 }
                             }, c.ContextData!);
                         }
@@ -737,12 +746,12 @@ public partial class EngineView : UserControl {
     }
 
     private void CloseActivityListButtonClicked(object? sender, RoutedEventArgs e) {
-        MemoryEngineViewState.GetInstance(this.MemoryEngine).IsActivityListVisible = false;
+        this.ViewState.IsActivityListVisible = false;
     }
 
     private void OnHeaderPointerClicked(object? sender, PointerPressedEventArgs e) {
         if (e.GetCurrentPoint(this).Properties.PointerUpdateKind == PointerUpdateKind.MiddleButtonPressed) {
-            MemoryEngineViewState.GetInstance(this.MemoryEngine).IsActivityListVisible = false;
+            this.ViewState.IsActivityListVisible = false;
         }
     }
 
@@ -774,27 +783,23 @@ public partial class EngineView : UserControl {
     }
 
     private class SendXboxNotificationCommandEntry : CustomMenuEntry {
-        private MemoryEngine? myEngine;
+        private MemoryEngineViewState? myEngine;
 
         public SendXboxNotificationCommandEntry(string displayName, string? description, Icon? icon = null) : base(displayName, description, icon) {
-            this.CapturedContextChanged += this.OnCapturedContextChanged;
         }
 
-        // Sort of pointless unless the user tries to connect to a console while it's booting
-        // and then they open the File menu, they'll see that this entry is greyed out until we
-        // connect, then once connected, it's either now invisible or clickable. This is just a point of concept really
-        private void OnCapturedContextChanged(object? o, ValueChangedEventArgs<IContextData?> e) {
-            if (e.NewValue != null) {
-                if (MemoryEngine.EngineDataKey.TryGetContext(e.NewValue, out MemoryEngine? engine) && !ReferenceEquals(this.myEngine, engine)) {
-                    if (this.myEngine != null)
-                        this.myEngine.ConnectionChanged -= this.OnContextEngineConnectionChanged;
-                    (this.myEngine = engine).ConnectionChanged += this.OnContextEngineConnectionChanged;
-                }
-            }
-            else if (this.myEngine != null) {
-                this.myEngine.ConnectionChanged -= this.OnContextEngineConnectionChanged;
-                this.myEngine = null;
-            }
+        protected override void OnCapturedContextChanged(IContextData? oldContext, IContextData? newContext) {
+            base.OnCapturedContextChanged(oldContext, newContext);
+            
+            // Sort of pointless unless the user tries to connect to a console while it's booting
+            // and then they open the File menu, they'll see that this entry is greyed out until we
+            // connect, then once connected, it's either now invisible or clickable. This is just a point of concept really
+            this.OnContextChangedHelper(MemoryEngineViewState.DataKey, ref this.myEngine, static (@this, e) => {
+                if (e.OldValue != null)
+                    e.OldValue.Engine.ConnectionChanged -= @this.OnContextEngineConnectionChanged;
+                if (e.NewValue != null)
+                    e.NewValue.Engine.ConnectionChanged += @this.OnContextEngineConnectionChanged;
+            });
         }
 
         private void OnContextEngineConnectionChanged(object? o, ConnectionChangedEventArgs args) {
@@ -802,22 +807,22 @@ public partial class EngineView : UserControl {
         }
 
         public override bool CanExecute(IContextData context) {
-            if (!MemoryEngine.EngineDataKey.TryGetContext(context, out MemoryEngine? engine)) {
+            if (!MemoryEngineViewState.DataKey.TryGetContext(context, out MemoryEngineViewState? engineVs)) {
                 return false;
             }
 
-            IConsoleConnection? connection = engine.Connection;
+            IConsoleConnection? connection = engineVs.Engine.Connection;
             return connection != null && connection.HasFeature<IFeatureXboxNotifications>();
         }
 
         public override async Task OnExecute(IContextData context) {
-            if (!MemoryEngine.EngineDataKey.TryGetContext(context, out MemoryEngine? engine)) {
+            if (!MemoryEngineViewState.DataKey.TryGetContext(context, out MemoryEngineViewState? engineVs)) {
                 return;
             }
 
             IConsoleConnection? connection;
-            using IBusyToken? token = await engine.BeginBusyOperationUsingActivityAsync();
-            if (token == null || (connection = engine.Connection) == null) {
+            using IBusyToken? token = await engineVs.Engine.BeginBusyOperationUsingActivityAsync();
+            if (token == null || (connection = engineVs.Engine.Connection) == null) {
                 return;
             }
 

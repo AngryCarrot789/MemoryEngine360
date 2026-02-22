@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Commands;
@@ -27,7 +28,7 @@ public class FirstScanCommand : BaseMemoryEngineCommand {
         return !engine.ScanningProcessor.CanPerformFirstScan ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
-    protected override Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         if (engine.ScanningProcessor.CanPerformFirstScan) {
             return engine.ScanningProcessor.ScanFirstOrNext();
         }

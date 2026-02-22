@@ -17,8 +17,8 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
 using MemEngine360.Engine.Scanners;
+using MemEngine360.Engine.View;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
@@ -43,9 +43,9 @@ public class ShowModuleSectionInfoInDialogCommand : Command {
                 CancelText = "OK"
             });
 
-            if (result == MessageBoxResult.OK && MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+            if (result == MessageBoxResult.OK && MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
                 if (section.BaseAddress + section.Size >= section.BaseAddress) {
-                    engine.ScanningProcessor.SetScanRange(section.BaseAddress, section.Size);
+                    engineVs.Engine.ScanningProcessor.SetScanRange(section.BaseAddress, section.Size);
                 }
             }
         }

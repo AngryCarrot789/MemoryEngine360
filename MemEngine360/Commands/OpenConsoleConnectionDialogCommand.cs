@@ -20,6 +20,7 @@
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.CommandSystem;
@@ -38,40 +39,40 @@ public class OpenConsoleConnectionDialogCommand : Command {
     public const string AlreadyOpenDialogName = "dialog.AlreadyConnectedToConsole";
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine))
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
             return Executability.Invalid;
-        if (ExistingOCVDataKey.TryGetContext(engine.UserContext, out IOpenConnectionView? view))
+        if (ExistingOCVDataKey.TryGetContext(engineVs.Engine.UserContext, out IOpenConnectionView? view))
             return Executability.ValidButCannotExecute;
 
         return Executability.Valid;
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine))
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
             return;
         if (!ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel))
             return;
 
-        if (ExistingOCVDataKey.TryGetContext(engine.UserContext, out IOpenConnectionView? view)) {
+        if (ExistingOCVDataKey.TryGetContext(engineVs.Engine.UserContext, out IOpenConnectionView? view)) {
             if (view.DialogOperation is IDesktopDialogOperation<ConnectionResult> op)
                 op.Activate();
             return;
         }
 
-        ulong frame = engine.GetNextConnectionChangeFrame();
+        ulong frame = engineVs.Engine.GetNextConnectionChangeFrame();
 
-        if (engine.Connection != null && !engine.Connection.IsClosed) {
+        if (engineVs.Engine.Connection != null && !engineVs.Engine.Connection.IsClosed) {
             MessageBoxResult result = await MessageBoxes.AlreadyConnectedToConsole.ShowMessage();
             if (result != MessageBoxResult.OK) {
                 return;
             }
 
-            if (!await DisconnectInActivity(topLevel, engine, frame)) {
+            if (!await DisconnectInActivity(topLevel, engineVs.Engine, frame)) {
                 return;
             }
         }
 
-        UserConnectionInfo? lastInfo = engine.LastUserConnectionInfo;
+        UserConnectionInfo? lastInfo = engineVs.Engine.LastUserConnectionInfo;
         string focusedTypeId = lastInfo != null
             ? lastInfo.ConnectionType.RegisteredId
             : BasicApplicationConfiguration.Instance.LastConnectionTypeUsed;
@@ -86,19 +87,19 @@ public class OpenConsoleConnectionDialogCommand : Command {
 
             IBusyToken? token = null;
             try {
-                engine.UserContext.Set(ExistingOCVDataKey, dialog);
+                engineVs.Engine.UserContext.Set(ExistingOCVDataKey, dialog);
                 ConnectionResult? result = await dialog.WaitForConnection();
                 if (result.HasValue) {
                     // When returned token is null, close the connection since we can't
                     // do anything else with the connection since the user cancelled the operation
-                    if ((token = await SetEngineConnectionAndHandleProblemsAsync(engine, result.Value.Connection, frame, result.Value.Info)) == null) {
+                    if ((token = await SetEngineConnectionAndHandleProblemsAsync(engineVs.Engine, result.Value.Connection, frame, result.Value.Info)) == null) {
                         result.Value.Connection.Close();
                     }
                 }
             }
             finally {
                 token?.Dispose();
-                engine.UserContext.Remove(ExistingOCVDataKey);
+                engineVs.Engine.UserContext.Remove(ExistingOCVDataKey);
             }
         }
     }

@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
 
@@ -25,12 +26,12 @@ namespace MemEngine360.Commands.ATM;
 
 public class ClearSavedAddressesCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return e.ContextData.ContainsKey(MemoryEngine.EngineDataKey) ? Executability.Valid : Executability.Invalid;
+        return e.ContextData.ContainsKey(MemoryEngineViewState.DataKey) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
-            engine.AddressTableManager.RootEntry.Clear();
+        if (MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+            engineVs.Engine.AddressTableManager.RootEntry.Clear();
         }
         
         return Task.CompletedTask;

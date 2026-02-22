@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Commands;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Engine.FileBrowsing.Commands;
@@ -27,7 +28,7 @@ public class ShowFileBrowserCommand : BaseMemoryEngineCommand {
         return Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         await IFileBrowserService.Instance.ShowFileBrowser(engine.FileTreeExplorer);
     }
 }

@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -39,7 +40,7 @@ public class RefreshSavedAddressesCommand : BaseMemoryEngineCommand {
         return null;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         using IBusyToken? token = await engine.BeginBusyOperationUsingActivityAsync("Refreshing values");
         if (token == null) {
             return;

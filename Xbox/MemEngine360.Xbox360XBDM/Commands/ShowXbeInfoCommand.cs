@@ -19,6 +19,7 @@
 
 using MemEngine360.Commands;
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
@@ -30,7 +31,7 @@ public class ShowXbeInfoCommand : BaseMemoryEngineCommand {
         return engine.Connection is XbdmConsoleConnection ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         await engine.BeginBusyOperationUsingActivityAsync(async (t, c) => {
             if (c is XbdmConsoleConnection xbox) {
                 string? path = await xbox.GetXbeInfo(null);

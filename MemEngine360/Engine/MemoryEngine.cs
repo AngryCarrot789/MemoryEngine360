@@ -34,15 +34,12 @@ using MemEngine360.Sequencing;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
-using PFXToolKitUI.AdvancedMenuService;
-using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.History;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Logging;
-using PFXToolKitUI.Shortcuts;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Events;
 using PFXToolKitUI.Utils.Ranges;
@@ -54,8 +51,6 @@ namespace MemEngine360.Engine;
 /// </summary>
 [DebuggerDisplay("IsBusy = {IsConnectionBusy}, Connection = {Connection}")]
 public class MemoryEngine : IComponentManager, IUserLocalContext {
-    public static readonly DataKey<MemoryEngine> EngineDataKey = DataKeys.Create<MemoryEngine>("MemoryEngine");
-
     /// <summary>
     /// A data key used by the connection change notification to tell whether a disconnection originated from the notification's "Disconnect" command
     /// </summary>
@@ -93,7 +88,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// </code>
     /// <para>
     /// Alternatively, you can use <see cref="BeginBusyOperationAsync"/> which waits until you get the
-    /// token and accepts a cancellation token, or use <see cref="BeginBusyOperationActivityAsync"/> which
+    /// token and accepts a cancellation token, or use <see cref="BeginBusyOperationUsingActivityAsync"/> which
     /// creates an activity to show the user you're waiting for the busy operations to complete
     /// </para>
     /// </summary>
@@ -136,16 +131,6 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     /// Gets or sets if the memory engine is in the process of shutting down. Prevents scanning working
     /// </summary>
     public bool IsShuttingDown { get; private set; }
-
-    /// <summary>
-    /// Gets the tools menu for memory engine
-    /// </summary>
-    public MenuEntryGroup ToolsMenu { get; }
-
-    /// <summary>
-    /// Gets the Remote Controls menu for memory engine
-    /// </summary>
-    public MenuEntryGroup RemoteControlsMenu { get; }
 
     /// <summary>
     /// An async event fired when a connection is most likely about to change. This can be used by custom activities
@@ -200,63 +185,13 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         this.PointerScanner = new PointerScanner(this);
         this.ConsoleDebugger = new ConsoleDebugger(this);
         this.ScriptingManager = new ScriptingManager(this);
-
-        MenuEntryGroup modToolMenu = new MenuEntryGroup("Mod Tools") {
-            UniqueID = "memoryengine.tools.modtools",
-            Items = {
-                new CommandMenuEntry("commands.modtools.ShowModToolsWindowCommand", "Mod Tools Manager"),
-                new SeparatorEntry()
-            }
-        };
-
-        this.ModToolManager = new ModToolManager(this, modToolMenu);
-
-        this.ToolsMenu = new MenuEntryGroup("_Tools") {
-            UniqueID = "memoryengine.tools",
-            Items = {
-                new CommandMenuEntry("commands.memengine.ShowMemoryViewCommand", "_Memory View", "Opens the memory viewer/hex editor"),
-                new CommandMenuEntry("commands.memengine.ShowTaskSequencerCommand", "_Task Sequencer", "Opens the task sequencer"),
-                new CommandMenuEntry("commands.memengine.ShowDebuggerCommand", "_Debugger"),
-                new CommandMenuEntry("commands.memengine.ShowPointerScannerCommand", "_Pointer Scanner"),
-                new CommandMenuEntry("commands.memengine.ShowConsoleEventViewerCommand", "_Event Viewer", "Shows the event viewer window for viewing console system events"),
-                new CommandMenuEntry("commands.scripting.ShowScriptingWindowCommand", "_Scripting"),
-                // new CommandMenuEntry("commands.structviewer.ShowStructViewerWindowCommand", "Struct Viewer"),
-                new SeparatorEntry(),
-                new CommandMenuEntry("commands.memengine.ShowModulesCommand", "Module E_xplorer", "Opens a window which presents the modules"),
-                new CommandMenuEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),
-                new CommandMenuEntry("commands.memengine.ShowFileBrowserCommand", "File Explorer"),
-                new SeparatorEntry(),
-                modToolMenu
-            }
-        };
-
-        // update all tools when connection changes, since most if not all tools rely on a connection
-        this.ToolsMenu.AddCanExecuteChangeUpdaterForEvent(EngineDataKey, nameof(this.ConnectionChanged));
-
-        this.RemoteControlsMenu = new MenuEntryGroup("_Remote Controls") {
-            ProvideDisabledHint = (ctx, registry) => {
-                if (!EngineDataKey.TryGetContext(ctx, out MemoryEngine? engine))
-                    return null;
-
-                if (engine.Connection == null) {
-                    IReadOnlyCollection<ShortcutEntry> scList = ShortcutManager.Instance.GetShortcutsByCommandId("commands.memengine.OpenConsoleConnectionDialogCommand");
-                    string shortcuts = scList.Select(x => x.Shortcut.ToString()!).JoinString(", ", " or ");
-                    if (!string.IsNullOrEmpty(shortcuts))
-                        shortcuts = ". Use the shortcut(s) to connect: " + shortcuts;
-                    return new SimpleDisabledHintInfo("Not connected", "Connect to a console to use remote commands" + shortcuts);
-                }
-
-                return null;
-            }
-        };
-
-        this.ConnectionChanged += this.OnConnectionChanged;
+        this.ModToolManager = new ModToolManager(this);
 
         Task.Run(async () => {
             long timeSinceRefreshedAddresses = DateTime.Now.Ticks;
             BasicApplicationConfiguration cfg = BasicApplicationConfiguration.Instance;
             Func<Task> refreshAsync = this.ScanningProcessor.RefreshSavedAddressesAsync;
-            
+
             while (!this.IsShuttingDown) {
                 IConsoleConnection? conn = this.Connection;
                 if (conn != null && conn.IsClosed) {
@@ -283,13 +218,6 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         if (!this.IsShuttingDown) {
             this.IsShuttingDown = true;
             await this.ShutdownRequested.InvokeAsync(this, EventArgs.Empty);
-        }
-    }
-
-    private void OnConnectionChanged(object? o, ConnectionChangedEventArgs args) {
-        this.RemoteControlsMenu.Items.Clear();
-        if (args.NewConnection != null) {
-            this.RemoteControlsMenu.Items.AddRange(args.NewConnection.ConnectionType.GetRemoteContextOptions());
         }
     }
 
@@ -334,19 +262,14 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
             });
         }
 
-        Task whenAllHandlersDoneTask = Task.WhenAll(tasks);
-        using (CancellationTokenSource cts = new CancellationTokenSource()) {
-            // Grace period for all activities to become cancelled
-            await Task.WhenAny(Task.Delay(250, cts.Token), whenAllHandlersDoneTask);
-            await cts.CancelAsync(); // cancel delay's os timer
-        }
-
+        Task allTasks = Task.WhenAll(tasks);
+        
         // ... should dialog to notify user
-        if (!whenAllHandlersDoneTask.IsCompleted && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
+        if (!await allTasks.TryWaitAsync(250) && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
             await service.WaitForSubActivities(topLevel, progressions, CancellationToken.None);
         }
 
-        await whenAllHandlersDoneTask;
+        await allTasks;
     }
 
     /// <summary>

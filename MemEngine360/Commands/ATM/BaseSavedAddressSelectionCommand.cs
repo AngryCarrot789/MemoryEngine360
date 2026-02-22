@@ -43,36 +43,36 @@ public abstract class BaseSavedAddressSelectionCommand : Command, IDisabledHintP
     public int MaximumSelection { get; protected init; } = int.MaxValue;
 
     protected sealed override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return Executability.Invalid;
         }
 
-        int count = GetSelectionCount(engine, e);
+        int count = GetSelectionCount(engineVs, e);
         if (count < this.MinimumSelection || count > this.MaximumSelection) {
             return Executability.ValidButCannotExecute;
         }
 
-        List<BaseAddressTableEntry> selection = GetSelection(engine, e);
+        List<BaseAddressTableEntry> selection = GetSelection(engineVs, e);
         Debug.Assert(selection.Count == count);
         
-        return this.CanExecuteOverride(selection, engine, e);
+        return this.CanExecuteOverride(selection, engineVs.Engine, e);
     }
     
     protected sealed override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return Task.CompletedTask;
         }
         
-        List<BaseAddressTableEntry> selection = GetSelection(engine, e);
+        List<BaseAddressTableEntry> selection = GetSelection(engineVs, e);
         if (selection.Count < this.MinimumSelection || selection.Count > this.MaximumSelection) {
             return Task.CompletedTask;
         }
 
-        return this.ExecuteCommandAsync(selection, engine, e);
+        return this.ExecuteCommandAsync(selection, engineVs, e);
     }
 
-    private static List<BaseAddressTableEntry> GetSelection(MemoryEngine engine, CommandEventArgs e) {
-        List<BaseAddressTableEntry> selection = MemoryEngineViewState.GetInstance(engine).AddressTableSelectionManager.SelectedItems.ToList();
+    private static List<BaseAddressTableEntry> GetSelection(MemoryEngineViewState engineVs, CommandEventArgs e) {
+        List<BaseAddressTableEntry> selection = engineVs.AddressTableSelectionManager.SelectedItems.ToList();
         
         // When selection is empty, we check if the command is running through a context menu,
         // since right-clicking an item might not select it, so we use only that item.
@@ -85,8 +85,8 @@ public abstract class BaseSavedAddressSelectionCommand : Command, IDisabledHintP
         return selection;
     }
     
-    private static int GetSelectionCount(MemoryEngine engine, CommandEventArgs e) {
-        int count = MemoryEngineViewState.GetInstance(engine).AddressTableSelectionManager.Count;
+    private static int GetSelectionCount(MemoryEngineViewState engineVs, CommandEventArgs e) {
+        int count = engineVs.AddressTableSelectionManager.Count;
         if (count < 1 && e.SourceContextMenu != null) {
             if (BaseAddressTableEntry.DataKey.TryGetContext(e.ContextData, out _)) {
                 count++;
@@ -107,13 +107,13 @@ public abstract class BaseSavedAddressSelectionCommand : Command, IDisabledHintP
     ///     A list of the selected items. This list does not affect and is not
     ///     affected by the <see cref="MemoryEngine.AddressTableSelectionManager"/>
     /// </param>
-    /// <param name="engine">The engine available via the command context</param>
+    /// <param name="engineVs"></param>
     /// <param name="e">The command args</param>
-    protected abstract Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e);
+    protected abstract Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e);
 
     public virtual DisabledHintInfo? ProvideDisabledHint(IContextData context, ContextRegistry? sourceContextMenu) {
-        if (MemoryEngine.EngineDataKey.TryGetContext(context, out MemoryEngine? engine)) {
-            return this.ProvideDisabledHintOverride(engine, context, sourceContextMenu);
+        if (MemoryEngineViewState.DataKey.TryGetContext(context, out MemoryEngineViewState? engineVs)) {
+            return this.ProvideDisabledHintOverride(engineVs.Engine, context, sourceContextMenu);
         }
 
         return null;

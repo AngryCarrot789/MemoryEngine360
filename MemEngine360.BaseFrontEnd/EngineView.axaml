@@ -30,13 +30,11 @@
                 BorderThickness="0,1,0,0"
                 Height="21">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Left" x:Name="PART_LatestActivity" Padding="2,0" VerticalAlignment="Center"
-                           tt:ToolTipEx.Tip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
-                <Separator DockPanel.Dock="Left" Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,2" VerticalAlignment="Stretch"/>
                 <TextBlock DockPanel.Dock="Right" x:Name="PART_ConnectedHostName" Padding="2,0" VerticalAlignment="Center"/>
                 <Separator DockPanel.Dock="Right" Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,2" VerticalAlignment="Stretch"/>
                 <aa:ActivityStatusBarControl x:Name="PART_ActivityStatusBar" DockPanel.Dock="Right"/>
-                <Border Background="Transparent"/>
+                <avc:MarqueeTextBlock x:Name="PART_LatestActivity" Padding="2,0" VerticalAlignment="Center"
+                                         tt:ToolTipEx.Tip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
             </DockPanel>
         </Border>
         <Grid>
@@ -58,7 +56,7 @@
                 <Border Grid.Column="3" Grid.Row="1">
                     <Grid RowDefinitions="Auto,5,Auto,5,*,Auto">
                         <Grid ColumnDefinitions="*,5,*,5,*,5,Auto" Grid.Row="0" Height="22">
-                            <Button Grid.Column="0" Content="First Scan" 
+                            <Button Grid.Column="0" Content="First Scan"
                                     cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:FirstScanCommandUsage}"
                                     ToolTip.ShowOnDisabled="true">
                                 <tt:ToolTipEx.Tip>
@@ -68,7 +66,7 @@
                                     </StackPanel>
                                 </tt:ToolTipEx.Tip>
                             </Button>
-                            <Button Grid.Column="2" Content="Next Scan" 
+                            <Button Grid.Column="2" Content="Next Scan"
                                     cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:NextScanCommandUsage}"
                                     ToolTip.ShowOnDisabled="true">
                                 <tt:ToolTipEx.Tip>
@@ -78,7 +76,7 @@
                                     </StackPanel>
                                 </tt:ToolTipEx.Tip>
                             </Button>
-                            <Button Grid.Column="4" Content="Reset" 
+                            <Button Grid.Column="4" Content="Reset"
                                     cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:ResetScanCommandUsage}"
                                     ToolTip.ShowOnDisabled="true">
                                 <tt:ToolTipEx.Tip>
@@ -157,13 +155,13 @@
                                               Margin="3,0,0,0"
                                               Content="Any"
                                               tt:ToolTipEx.Tip="Toggles the unknown data type scan. When enabled, we attempt to find integers, floats and strings that are effectively equal to the search query"/>
-                                
+
                                 <ToggleButton x:Name="PART_UseExpressions"
                                               Grid.Column="4" Grid.Row="2"
                                               Margin="3,0,0,0"
                                               Content="Expr."
                                               tt:ToolTipEx.Tip="Toggles whether to use an expression to match the value instead of Compare Mode."/>
-                                
+
                                 <TabControl Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="4"
                                             x:Name="PART_ScanSettingsTabControl"
                                             Background="{DynamicResource PanelBackground3}"
@@ -182,7 +180,7 @@
                                                     </TextBlock>
                                                 </tt:ToolTipEx.Tip>
                                             </CheckBox>
-                                            
+
                                             <CheckBox x:Name="PART_DTInt_IsUnsigned" Content="Unsigned">
                                                 <tt:ToolTipEx.Tip>
                                                     <TextBlock Padding="4">
@@ -311,11 +309,11 @@
                         </Grid>
                         <ScrollViewer Grid.Row="5" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                             <c2:GroupBox Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Background}"
-                                        BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Border}"
-                                        HeaderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Header}"
-                                        BorderThickness="1"
-                                        HorizontalHeaderAlignment="Stretch"
-                                        VerticalHeaderAlignment="Stretch">
+                                         BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Border}"
+                                         HeaderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Header}"
+                                         BorderThickness="1"
+                                         HorizontalHeaderAlignment="Stretch"
+                                         VerticalHeaderAlignment="Stretch">
                                 <c2:GroupBox.Header>
                                     <DockPanel HorizontalSpacing="4">
                                         <avc:IconButton DockPanel.Dock="Right"
@@ -485,12 +483,12 @@
                     </Grid>
                 </Border>
                 <c2:GroupBox Background="{DynamicResource ABrush.MemEngine.MainView.ScanResults.Background}"
-                            BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanResults.Border}"
-                            HeaderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanResults.Header}"
-                            HorizontalHeaderAlignment="Stretch"
-                            BorderThickness="1"
-                            Grid.Column="1" Grid.Row="1"
-                            av1:UIInputManager.FocusPath="EngineWindow/ScanResultList">
+                             BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanResults.Border}"
+                             HeaderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanResults.Header}"
+                             HorizontalHeaderAlignment="Stretch"
+                             BorderThickness="1"
+                             Grid.Column="1" Grid.Row="1"
+                             av1:UIInputManager.FocusPath="EngineWindow/ScanResultList">
                     <c2:GroupBox.Header>
                         <DockPanel>
                             <TextBlock Text="Scan Results" DockPanel.Dock="Left"/>
@@ -545,13 +543,13 @@
                     </DataGrid>
                 </c2:GroupBox>
                 <c2:GroupBox Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Background}"
-                            BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Border}"
-                            HeaderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Header}"
-                            BorderThickness="1"
-                            HorizontalHeaderAlignment="Stretch"
-                            Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="3"
-                            x:Name="PART_SavedAddressGroupBox"
-                            av1:UIInputManager.FocusPath="EngineWindow/SavedAddressList" MinHeight="100">
+                             BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Border}"
+                             HeaderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Header}"
+                             BorderThickness="1"
+                             HorizontalHeaderAlignment="Stretch"
+                             Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="3"
+                             x:Name="PART_SavedAddressGroupBox"
+                             av1:UIInputManager.FocusPath="EngineWindow/SavedAddressList" MinHeight="100">
                     <c2:GroupBox.Header>
                         <DockPanel>
                             <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
@@ -674,7 +672,7 @@
                         BorderThickness="1"
                         Background="{DynamicResource ABrush.Tone6.Background.Static}"
                         Focusable="True"
-                        IsVisible="False" 
+                        IsVisible="False"
                         Margin="5">
                     <Border.Styles>
                         <Style Selector="Border">

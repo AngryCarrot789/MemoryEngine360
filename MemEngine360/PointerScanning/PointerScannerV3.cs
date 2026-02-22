@@ -576,7 +576,7 @@ public class PointerScannerV3 {
             this.ClearPointerMap();
         }
 
-        using var _ = progress.SaveState(default, "Pointer map", false);
+        using IActivityProgress.State _ = progress.SaveState(default, "Pointer map", false);
 
         this.loadedAlignment = this.alignment;
         int align = (int) this.loadedAlignment;

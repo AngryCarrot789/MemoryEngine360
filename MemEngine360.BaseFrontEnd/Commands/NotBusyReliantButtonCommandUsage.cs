@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 
 namespace MemEngine360.BaseFrontEnd.Commands;
 
@@ -25,8 +26,8 @@ public abstract class NotBusyReliantButtonCommandUsage : EngineButtonCommandUsag
     protected NotBusyReliantButtonCommandUsage(string commandId) : base(commandId) {
     }
 
-    protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine) {
-        base.OnEngineChanged(oldEngine, newEngine);
+    protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine, MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
+        base.OnEngineChanged(oldEngine, newEngine, oldEngineVs, newEngineVs);
         if (oldEngine != null)
             oldEngine.IsBusyChanged -= this.OnIsBusyChanged;
         if (newEngine != null)

@@ -71,8 +71,7 @@ public class SaveScriptCommand : Command {
         try {
             using CancellationTokenSource cts = new CancellationTokenSource();
             Task writeTask = File.WriteAllTextAsync(filePath, script.Document.Text, cts.Token);
-            await Task.WhenAny(writeTask, Task.Delay(500, cts.Token));
-            if (!writeTask.IsCompleted) {
+            if (!await writeTask.TryWaitAsync(500, cts.Token)) {
                 ActivityTask activity = ActivityManager.Instance.RunTask(() => {
                     ActivityTask.Current.Progress.SetCaptionAndText("Save Script", "Saving file...", newIsIndeterminate: true);
                     return writeTask;

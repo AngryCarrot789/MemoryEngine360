@@ -18,9 +18,9 @@
 // 
 
 using System.Xml.Serialization;
-using MemEngine360.Engine;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.FilePicking;
@@ -33,7 +33,7 @@ public class OpenXMLFileCommand : Command {
     public static readonly XmlSerializer XmlGroupSerializer = new XmlSerializer(typeof(XmlAddressEntryGroup));
     
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return Executability.Invalid;
         }
 
@@ -41,11 +41,11 @@ public class OpenXMLFileCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return;
         }
         
-        AddressTableGroupEntry rootEntry = engine.AddressTableManager.RootEntry;
+        AddressTableGroupEntry rootEntry = engineVs.Engine.AddressTableManager.RootEntry;
         MessageBoxResult keepExistingResults = MessageBoxResult.Yes;
         string? path = await IFilePickDialogService.Instance.OpenFile("Open an XML containing saved addresses", Filters.XmlAndAll);
         if (path == null) {

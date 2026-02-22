@@ -65,7 +65,7 @@ public class RestartModToolCommand : Command {
             tool.RequestStop(false);
 
             // wait 2 seconds for the script to complete normally
-            await Task.WhenAny(tool.ScriptTask, Task.Delay(2000, ctsFinished.Token));
+            await tool.ScriptTask.TryWaitAsync(2000, ctsFinished.Token);
             if (tool.IsRunning) {
                 MessageBoxResult result2 = await IMessageDialogService.Instance.ShowMessage("Mod tool still running", $"The Mod tool is still running. Force kill the mod tool?{Environment.NewLine}{Environment.NewLine}Note, due to .NET restrictions, the lua thread cannot be 'killed' safely.", MessageBoxButtons.OKCancel, MessageBoxResult.OK, dialogCancellation: ctsFinished.Token);
                 if (result2 != MessageBoxResult.OK && tool.IsRunning)
@@ -76,7 +76,7 @@ public class RestartModToolCommand : Command {
                 tool.RequestStop(true);
 
                 // Wait 2 seconds for the script to complete normally
-                await Task.WhenAny(tool.ScriptTask, Task.Delay(2000, ctsFinished.Token));
+                await tool.ScriptTask.TryWaitAsync(2000, ctsFinished.Token);
                 if (tool.IsRunning) {
                     await IMessageDialogService.Instance.ShowMessage("Mod tool still running", $"Could not stop the mod tool! Please try again later.", MessageBoxButtons.OKCancel, MessageBoxResult.OK, dialogCancellation: ctsFinished.Token);
                     return false;

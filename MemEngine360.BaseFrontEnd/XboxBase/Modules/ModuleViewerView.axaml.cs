@@ -24,6 +24,7 @@ using Avalonia.Interactivity;
 using MemEngine360.Commands;
 using MemEngine360.Engine;
 using MemEngine360.Engine.HexEditing.Commands;
+using MemEngine360.Engine.View;
 using MemEngine360.XboxBase;
 using MemEngine360.XboxBase.Modules;
 using PFXToolKitUI.Activities;
@@ -38,7 +39,7 @@ namespace MemEngine360.BaseFrontEnd.XboxBase.Modules;
 
 public partial class ModuleViewerView : UserControl {
     public static readonly StyledProperty<ModuleViewer?> XboxModuleManagerProperty = AvaloniaProperty.Register<ModuleViewerView, ModuleViewer?>(nameof(XboxModuleManager));
-    public static readonly StyledProperty<MemoryEngine?> MemoryEngineProperty = AvaloniaProperty.Register<ModuleViewerView, MemoryEngine?>(nameof(MemoryEngine));
+    public static readonly StyledProperty<MemoryEngineViewState?> MemoryEngineProperty = AvaloniaProperty.Register<ModuleViewerView, MemoryEngineViewState?>(nameof(MemoryEngine));
     private readonly IBinder<ConsoleModule> shortNameBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.NameChanged), (b) => ((TextBox) b.Control).Text = b.Model.Name);
     private readonly IBinder<ConsoleModule> fullNameBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.FullNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.FullName);
     private readonly IBinder<ConsoleModule> peModuleNameBinder = new EventUpdateBinder<ConsoleModule>(nameof(ConsoleModule.PEModuleNameChanged), (b) => ((TextBox) b.Control).Text = b.Model.PEModuleName);
@@ -56,7 +57,7 @@ public partial class ModuleViewerView : UserControl {
     /// <summary>
     /// Gets or sets the engine reference. This is used to allow memory dumping within this GUI
     /// </summary>
-    public MemoryEngine? MemoryEngine {
+    public MemoryEngineViewState? MemoryEngine {
         get => this.GetValue(MemoryEngineProperty);
         set => this.SetValue(MemoryEngineProperty, value);
     }
@@ -82,12 +83,12 @@ public partial class ModuleViewerView : UserControl {
                 return;
             }
 
-            MemoryEngine? engine = this.MemoryEngine;
-            if (engine == null || engine.Connection == null) {
+            MemoryEngineViewState? engine = this.MemoryEngine;
+            if (engine == null || engine.Engine.Connection == null) {
                 return;
             }
 
-            using IBusyToken? token = await engine.BeginBusyOperationUsingActivityAsync("Dump memory");
+            using IBusyToken? token = await engine.Engine.BeginBusyOperationUsingActivityAsync("Dump memory");
             if (token == null) {
                 return;
             }
@@ -109,7 +110,7 @@ public partial class ModuleViewerView : UserControl {
             uint start = this.selectedModule.BaseAddress;
             uint length = this.selectedModule.ModuleSize;
 
-            DumpMemoryCommand.DumpMemoryTask task = new DumpMemoryCommand.DumpMemoryTask(engine, filePath, start, length, freezeResult == MessageBoxResult.Yes, token);
+            DumpMemoryCommand.DumpMemoryTask task = new DumpMemoryCommand.DumpMemoryTask(engine.Engine, filePath, start, length, freezeResult == MessageBoxResult.Yes, token);
             ActivityTask activity = task.Run();
             if (this.InternalWindow != null && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
                 await service.WaitForActivity(new WaitForActivityOptions(this.InternalWindow, activity, CancellationToken.None) {
@@ -133,7 +134,7 @@ public partial class ModuleViewerView : UserControl {
 
                 await IMessageDialogService.Instance.ShowMessage("Errors", "One or more errors occurred during memory dump", sb.ToString(), defaultButton: MessageBoxResult.OK);
             }
-        }, () => this.selectedModule != null && this.MemoryEngine?.Connection != null);
+        }, () => this.selectedModule != null && this.MemoryEngine?.Engine.Connection != null);
 
         if (Design.IsDesignMode) {
             this.XboxModuleManager = new ModuleViewer() {
@@ -173,20 +174,20 @@ public partial class ModuleViewerView : UserControl {
 
     private void PART_CopyStuffToScannerOnClick(object? sender, RoutedEventArgs e) {
         ConsoleModule? selection = this.selectedModule;
-        MemoryEngine? engine = this.MemoryEngine;
+        MemoryEngineViewState? engine = this.MemoryEngine;
         ModuleViewer? manager = this.XboxModuleManager;
-        if (selection != null && manager != null && engine != null && !engine.ScanningProcessor.IsScanning) {
+        if (selection != null && manager != null && engine != null && !engine.Engine.ScanningProcessor.IsScanning) {
             if ((selection.BaseAddress + selection.ModuleSize) < selection.BaseAddress) {
                 return;
             }
             
-            engine.ScanningProcessor.SetScanRange(selection.BaseAddress, selection.ModuleSize);
+            engine.Engine.ScanningProcessor.SetScanRange(selection.BaseAddress, selection.ModuleSize);
         }
     }
 
     static ModuleViewerView() {
         XboxModuleManagerProperty.Changed.AddClassHandler<ModuleViewerView, ModuleViewer?>((o, e) => o.OnManagerChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
-        MemoryEngineProperty.Changed.AddClassHandler<ModuleViewerView, MemoryEngine?>((s, e) => s.OnMemoryEngineChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+        MemoryEngineProperty.Changed.AddClassHandler<ModuleViewerView, MemoryEngineViewState?>((s, e) => s.OnMemoryEngineChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
     }
 
     private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
@@ -215,15 +216,15 @@ public partial class ModuleViewerView : UserControl {
         }
     }
 
-    private void OnMemoryEngineChanged(MemoryEngine? oldValue, MemoryEngine? newValue) {
+    private void OnMemoryEngineChanged(MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
         this.dumpModuleMemoryCommand.RaiseCanExecuteChanged();
-        if (oldValue != null)
-            oldValue.ConnectionChanged -= this.OnEngineConnectionChanged;
-        if (newValue != null)
-            newValue.ConnectionChanged += this.OnEngineConnectionChanged;
+        if (oldEngineVs != null)
+            oldEngineVs.Engine.ConnectionChanged -= this.OnEngineConnectionChanged;
+        if (newEngineVs != null)
+            newEngineVs.Engine.ConnectionChanged += this.OnEngineConnectionChanged;
         
         // Allow commands to also access the memory engine, i.e. set scanner start+length as a module section
-        DataManager.GetContextData(this).Set(MemoryEngine.EngineDataKey, newValue);
+        DataManager.GetContextData(this).Set(MemoryEngineViewState.DataKey, newEngineVs);
     }
 
     private void OnEngineConnectionChanged(object? o, ConnectionChangedEventArgs args) {

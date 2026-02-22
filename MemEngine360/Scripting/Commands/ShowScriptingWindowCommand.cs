@@ -17,7 +17,7 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI;
 using PFXToolKitUI.CommandSystem;
 
@@ -25,7 +25,7 @@ namespace MemEngine360.Scripting.Commands;
 
 public class ShowScriptingWindowCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return Executability.Invalid;
         }
 
@@ -33,10 +33,10 @@ public class ShowScriptingWindowCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return;
         }
 
-        await ApplicationPFX.GetComponent<IScriptingViewService>().ShowOrFocusWindow(engine.ScriptingManager);
+        await ApplicationPFX.GetComponent<IScriptingViewService>().ShowOrFocusWindow(engineVs.Engine.ScriptingManager);
     }
 }

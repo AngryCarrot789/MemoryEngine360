@@ -19,6 +19,7 @@
 
 using MemEngine360.Commands;
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using MemEngine360.Ps3Base;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.Messaging;
@@ -35,7 +36,7 @@ public class ListAllProcessesCommand : BaseMemoryEngineCommand {
         return Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         if (engine.Connection == null || engine.Connection.IsClosed)
             return;
         if (!(engine.Connection is IPs3ConsoleConnection api))

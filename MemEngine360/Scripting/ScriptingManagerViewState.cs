@@ -64,6 +64,6 @@ public class ScriptingManagerViewState {
     }
 
     public static ScriptingManagerViewState GetInstance(ScriptingManager manager, TopLevelIdentifier topLevelIdentifier) {
-        return TopLevelDataMap.GetInstance(manager).GetOrCreate<ScriptingManagerViewState>(topLevelIdentifier, manager, (t, s) => new ScriptingManagerViewState((ScriptingManager) t!, s));
+        return TopLevelDataMap.GetInstance(manager).GetOrCreate(topLevelIdentifier, manager, static (t, s) => new ScriptingManagerViewState((ScriptingManager) t!, s));
     }
 }

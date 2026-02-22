@@ -18,7 +18,6 @@
 // 
 
 using System.Collections.Concurrent;
-using System.ComponentModel;
 using System.Diagnostics;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
@@ -30,7 +29,6 @@ using MemEngine360.Engine.Scanners;
 using MemEngine360.ValueAbstraction;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
-using PFXToolKitUI.Composition;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
@@ -867,7 +865,7 @@ public class ScanningProcessor {
                 }
             }, CancellationToken.None);
 
-            await Task.WhenAny(readOperationTask, Task.Delay(500, token));
+            await readOperationTask.TryWaitAsync(500, token);
 
             if (!readOperationTask.IsCompleted) {
                 await ActivityManager.Instance.RunTask(async () => {

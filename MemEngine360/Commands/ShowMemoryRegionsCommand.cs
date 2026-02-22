@@ -20,6 +20,7 @@
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using MemEngine360.XboxInfo;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.AdvancedMenuService;
@@ -49,7 +50,7 @@ public class ShowMemoryRegionsCommand : BaseMemoryEngineCommand {
         return null;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         if (engine.Connection?.HasFeature<IFeatureMemoryRegions>() == true) {
             Result<Optional<List<MemoryRegion>?>> myResult = await ActivityManager.Instance.RunTask(async () => {
                 IActivityProgress p = ActivityTask.Current.Progress;

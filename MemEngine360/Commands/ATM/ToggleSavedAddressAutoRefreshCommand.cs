@@ -19,6 +19,7 @@
 
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Commands.ATM;
@@ -30,7 +31,7 @@ public class ToggleSavedAddressAutoRefreshCommand : BaseSavedAddressSelectionCom
             : Executability.ValidButCannotExecute;
     }
 
-    protected override Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
         entries = entries.Where(x => x is AddressTableEntry).ToList();
         if (entries.Count < 1) {
             return Task.CompletedTask;

@@ -40,7 +40,7 @@ public class GroupEntriesCommand : BaseSavedAddressSelectionCommand {
         return Executability.Valid;
     }
 
-    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
         List<BaseAddressTableEntry> modelList = entries.ToList();
 
         AddressTableGroupEntry? firstParent = modelList[0].Parent;
@@ -56,10 +56,8 @@ public class GroupEntriesCommand : BaseSavedAddressSelectionCommand {
 
             minIndex = Math.Min(minIndex, firstParent.IndexOf(modelList[i]));
         }
-        
-        MemoryEngineViewState vs = MemoryEngineViewState.GetInstance(engine);
-        
-        vs.AddressTableSelectionManager.Clear();
+
+        engineVs.AddressTableSelectionManager.Clear();
 
         Debug.Assert(minIndex != -1);
         firstParent.Items.RemoveRange(modelList);
@@ -69,7 +67,7 @@ public class GroupEntriesCommand : BaseSavedAddressSelectionCommand {
 
         firstParent.Items.Insert(minIndex, newEntry);
 
-        vs.AddressTableSelectionManager.SetSelection(newEntry);
-        vs.RaiseRequestFocusOnSavedAddress(newEntry);
+        engineVs.AddressTableSelectionManager.SetSelection(newEntry);
+        engineVs.RaiseRequestFocusOnSavedAddress(newEntry);
     }
 }

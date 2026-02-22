@@ -200,7 +200,7 @@ public partial class ModToolManagerView : UserControl {
 
         mm.ModTools.ForEach(x => x.RequestCancelCompilation());
         if (mm.ModTools.Any(x => x.HasUnsavedChanges)) {
-            using var _ = CommandManager.LocalContextManager.PushContext(new ContextData().Set(ITopLevel.TopLevelDataKey, sender));
+            using IDisposable _ = CommandManager.LocalContextManager.PushContext(new ContextData().Set(ITopLevel.TopLevelDataKey, sender));
             MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(
                 "Unsaved changes", 
                 "Do you want to save changes?", 

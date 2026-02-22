@@ -27,19 +27,19 @@ namespace MemEngine360.Commands;
 
 public class DeleteSelectedScanResultsCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine))
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
             return Executability.Invalid;
 
-        return MemoryEngineViewState.GetInstance(engine).SelectedScanResults.Count < 1 ? Executability.ValidButCannotExecute : Executability.Valid;
+        return engineVs.SelectedScanResults.Count < 1 ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngine.EngineDataKey.TryGetContext(e.ContextData, out MemoryEngine? engine)) {
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return Task.CompletedTask;
         }
 
-        ListSelectionModel<ScanResultViewModel> selection = MemoryEngineViewState.GetInstance(engine).SelectedScanResults;
-        ObservableList<ScanResultViewModel> items = engine.ScanningProcessor.ScanResults;
+        ListSelectionModel<ScanResultViewModel> selection = engineVs.SelectedScanResults;
+        ObservableList<ScanResultViewModel> items = engineVs.Engine.ScanningProcessor.ScanResults;
         if (selection.Count == items.Count) {
             items.Clear();
         }

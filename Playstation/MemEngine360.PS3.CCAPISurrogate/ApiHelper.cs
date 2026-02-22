@@ -272,7 +272,7 @@ public sealed class ApiHelper {
         byte[] b = new byte[s.Length / 2];
         int j = 0;
         for (int i = 0; i < s.Length; i += 2) {
-            var sb = s.Substring(i, 2);
+            string sb = s.Substring(i, 2);
             b[j++] = Convert.ToByte(sb, 16);
         }
 

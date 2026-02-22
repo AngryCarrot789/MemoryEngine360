@@ -17,15 +17,15 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Services.UserInputs;
 
 namespace MemEngine360.Commands.ATM;
 
 public class EditSavedAddressDescriptionCommand : BaseSavedAddressSelectionCommand {
-    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
         SingleUserInputInfo info = new SingleUserInputInfo(entries[0].Description) {
             Caption = "Change description",
             DefaultButton = UserInputInfo.ButtonType.Confirm,

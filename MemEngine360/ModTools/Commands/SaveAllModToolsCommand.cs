@@ -65,8 +65,7 @@ public class SaveAllModToolsCommand : Command {
         }
 
         Task saveAllTask = Task.WhenAll(tasks.Select(x => x.Task));
-        await Task.WhenAny(saveAllTask, Task.Delay(500, cts.Token));
-        if (!saveAllTask.IsCompleted) {
+        if (!await saveAllTask.TryWaitAsync(500, cts.Token)) {
             ActivityTask activity = ActivityManager.Instance.RunTask(async () => {
                 ActivityTask activity = ActivityTask.Current;
                 using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(activity.CancellationToken);

@@ -19,6 +19,7 @@
 
 using MemEngine360.Configs;
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Commands;
@@ -28,7 +29,7 @@ public class ResetScanOptionsCommand : BaseMemoryEngineCommand {
         return engine.ScanningProcessor.IsScanning ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
-    protected override Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         if (!engine.ScanningProcessor.IsScanning) {
             engine.ScanningProcessor.SetScanRange(BasicApplicationConfiguration.StartAddressProperty.DefaultValue, BasicApplicationConfiguration.ScanLengthProperty.DefaultValue);
             engine.ScanningProcessor.ScanMemoryPages = BasicApplicationConfiguration.ScanMemoryPagesProperty.DefaultValue;

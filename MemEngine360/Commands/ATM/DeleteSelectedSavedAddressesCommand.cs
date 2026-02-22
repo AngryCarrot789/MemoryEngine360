@@ -17,15 +17,14 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 
 namespace MemEngine360.Commands.ATM;
 
 public class DeleteSelectedSavedAddressesCommand : BaseSavedAddressSelectionCommand {
-    protected override Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
-        // MemoryEngineViewState.GetInstance(engine).AddressTableSelectionManager.Clear();
+    protected override Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
         foreach (BaseAddressTableEntry entry in entries) {
             entry.Parent?.Items.Remove(entry);
         }

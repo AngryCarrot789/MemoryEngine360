@@ -21,7 +21,7 @@ using System.Net.Sockets;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Connections.Features;
-using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using MemEngine360.Xbox360XBDM.Views;
 using PFXToolKitUI.Activities;
@@ -67,9 +67,9 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
 
         yield return new DynamicGroupPlaceholderMenuEntry(new DynamicWeightedMenuEntryGroup((group, ctx, items) => {
             IConsoleConnection? connection;
-            if (!MemoryEngine.EngineDataKey.TryGetContext(ctx, out MemoryEngine? engine))
+            if (!MemoryEngineViewState.DataKey.TryGetContext(ctx, out MemoryEngineViewState? engineVs))
                 return;
-            if ((connection = engine.Connection) == null || !connection.HasFeature<IFeatureXboxJRPC2>())
+            if ((connection = engineVs.Engine.Connection) == null || !connection.HasFeature<IFeatureXboxJRPC2>())
                 return;
 
             items.Add(new CaptionSeparatorEntry("JRPC2 Commands"));

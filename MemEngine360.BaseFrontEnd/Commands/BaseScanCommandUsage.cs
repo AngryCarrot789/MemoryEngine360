@@ -18,6 +18,7 @@
 // 
 
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 
 namespace MemEngine360.BaseFrontEnd.Commands;
 
@@ -26,8 +27,8 @@ public class BaseScanCommandUsage : EngineButtonCommandUsage {
         
     }
 
-    protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine) {
-        base.OnEngineChanged(oldEngine, newEngine);
+    protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine, MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
+        base.OnEngineChanged(oldEngine, newEngine, oldEngineVs, newEngineVs);
         if (oldEngine != null) {
             oldEngine.ScanningProcessor.IsScanningChanged -= this.OnIsScanningChanged;
             oldEngine.ScanningProcessor.HasFirstScanChanged -= this.OnHasFirstScanChanged;

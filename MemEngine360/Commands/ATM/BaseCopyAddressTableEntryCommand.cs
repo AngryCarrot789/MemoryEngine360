@@ -19,6 +19,7 @@
 
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Interactivity.Windowing;
@@ -43,13 +44,13 @@ public abstract class BaseCopyAddressTableEntryCommand : BaseSavedAddressSelecti
         return this.CanExecute(entries[0], engine, e);
     }
 
-    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
         if (!ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel))
             return;
         if (!IClipboardService.TryGet(topLevel, out IClipboardService? clipboard))
             return;
 
-        await this.Copy(entries[0], engine, clipboard);
+        await this.Copy(entries[0], engineVs.Engine, clipboard);
     }
 
     protected virtual Executability CanExecute(BaseAddressTableEntry entry, MemoryEngine engine, CommandEventArgs e) {

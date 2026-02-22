@@ -19,6 +19,7 @@
 
 using MemEngine360.Commands;
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI.Activities;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
@@ -43,7 +44,7 @@ public class SendCmdCommand : BaseMemoryEngineCommand {
         return engine.Connection is XbdmConsoleConnection ? Executability.Valid : Executability.Invalid;
     }
 
-    protected override async Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         if (engine.Connection == null || !(engine.Connection is XbdmConsoleConnection xbdm)) {
             return;
         }

@@ -17,21 +17,16 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Text;
-using Avalonia.Controls.ApplicationLifetimes;
 using MemEngine360.Configs;
 using MemEngine360.Connections;
 using MemEngine360.Xbox360XBDM.Consoles;
 using MemEngine360.Xbox360XBDM.Consoles.Xbdm;
 using PFXToolKitUI;
 using PFXToolKitUI.Activities;
-using PFXToolKitUI.Logging;
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Events;
 

@@ -19,6 +19,7 @@
 
 using MemEngine360.Connections.Features;
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 using PFXToolKitUI;
 using PFXToolKitUI.AdvancedMenuService;
 using PFXToolKitUI.CommandSystem;
@@ -33,7 +34,7 @@ public class ShowConsoleEventViewerCommand : BaseMemoryEngineCommand, IDisabledH
         return Executability.Valid;
     }
 
-    protected override Task ExecuteCommandAsync(MemoryEngine engine, CommandEventArgs e) {
+    protected override Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         if (engine.Connection?.HasFeature<IFeatureSystemEvents>() == true) {
             return ApplicationPFX.GetComponent<IConsoleEventViewerService>().ShowOrFocus(engine);
         }
