@@ -23,6 +23,7 @@ using MemEngine360.ModTools.Gui;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.ModTools.Controls;
 
@@ -82,44 +83,44 @@ public class ControlMTGridPanel : Grid {
         }
     }
 
-    private void OnColumnAdded(object sender, int index, MTGridPanel.ColumnDefinition item) {
-        this.ColumnDefinitions.Insert(index, new ColumnDefinition(item.Height.Value, (GridUnitType) item.Height.SizeType));
+    private void OnColumnAdded(ItemAddOrRemoveEventArgs<MTGridPanel.ColumnDefinition> e) {
+        this.ColumnDefinitions.Insert(e.Index, new ColumnDefinition(e.Item.Height.Value, (GridUnitType) e.Item.Height.SizeType));
     }
 
-    private void OnColumnRemoved(object sender, int index, MTGridPanel.ColumnDefinition item) {
-        this.ColumnDefinitions.RemoveAt(index);
+    private void OnColumnRemoved(ItemAddOrRemoveEventArgs<MTGridPanel.ColumnDefinition> e) {
+        this.ColumnDefinitions.RemoveAt(e.Index);
     }
 
-    private void OnColumnMoved(object sender, int oldindex, int newindex, MTGridPanel.ColumnDefinition item) {
-        this.ColumnDefinitions.Move(oldindex, newindex);
+    private void OnColumnMoved(ItemMoveEventArgs<MTGridPanel.ColumnDefinition> e) {
+        this.ColumnDefinitions.Move(e.OldIndex, e.NewIndex);
     }
 
-    private void OnRowAdded(object sender, int index, MTGridPanel.RowDefinition item) {
-        this.RowDefinitions.Insert(index, new RowDefinition(item.Height.Value, (GridUnitType) item.Height.SizeType));
+    private void OnRowAdded(ItemAddOrRemoveEventArgs<MTGridPanel.RowDefinition> e) {
+        this.RowDefinitions.Insert(e.Index, new RowDefinition(e.Item.Height.Value, (GridUnitType) e.Item.Height.SizeType));
     }
 
-    private void OnRowRemoved(object sender, int index, MTGridPanel.RowDefinition item) {
-        this.RowDefinitions.RemoveAt(index);
+    private void OnRowRemoved(ItemAddOrRemoveEventArgs<MTGridPanel.RowDefinition> e) {
+        this.RowDefinitions.RemoveAt(e.Index);
     }
 
-    private void OnRowMoved(object sender, int oldindex, int newindex, MTGridPanel.RowDefinition item) {
-        this.RowDefinitions.Move(oldindex, newindex);
+    private void OnRowMoved(ItemMoveEventArgs<MTGridPanel.RowDefinition> e) {
+        this.RowDefinitions.Move(e.OldIndex, e.NewIndex);
     }
 
-    private void OnItemAdded(object sender, int index, MTGridPanel.Entry entry) {
-        Control control = ModToolView.CreateControl(entry.Element);
-        SetColumn(control, entry.Slot.Column);
-        SetRow(control, entry.Slot.Row);
-        SetColumnSpan(control, entry.Span.Columns);
-        SetRowSpan(control, entry.Span.Rows);
-        this.Children.Insert(index, control);
+    private void OnItemAdded(ItemAddOrRemoveEventArgs<MTGridPanel.Entry> e) {
+        Control control = ModToolView.CreateControl(e.Item.Element);
+        SetColumn(control, e.Item.Slot.Column);
+        SetRow(control, e.Item.Slot.Row);
+        SetColumnSpan(control, e.Item.Span.Columns);
+        SetRowSpan(control, e.Item.Span.Rows);
+        this.Children.Insert(e.Index, control);
     }
 
-    private void OnItemRemoved(object sender, int index, MTGridPanel.Entry entry) {
-        this.Children.RemoveAt(index);
+    private void OnItemRemoved(ItemAddOrRemoveEventArgs<MTGridPanel.Entry> e) {
+        this.Children.RemoveAt(e.Index);
     }
 
-    private void OnItemMoved(object sender, int oldIndex, int newIndex, MTGridPanel.Entry entry) {
-        this.Children.Move(oldIndex, newIndex);
+    private void OnItemMoved(ItemMoveEventArgs<MTGridPanel.Entry> e) {
+        this.Children.Move(e.OldIndex, e.NewIndex);
     }
 }

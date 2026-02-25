@@ -37,7 +37,7 @@ namespace MemEngine360.Xbox360XBDM.Commands;
 public class SendCmdCommand : BaseMemoryEngineCommand {
     private string? lastCommand;
 
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         if (engine.Connection == null)
             return Executability.ValidButCannotExecute;
 

@@ -63,10 +63,10 @@ public class TaskSequenceManager : IComponentManager, IUserLocalContext {
         
         this.MemoryEngine = engine ?? throw new ArgumentNullException(nameof(engine));
         this.Sequences = new ObservableList<TaskSequence>();
-        this.Sequences.ValidateAdd += (list, index, items) => {
-            foreach (TaskSequence item in items) {
+        this.Sequences.ValidateAdd += (list, e) => {
+            foreach (TaskSequence item in e.Items) {
                 if (item == null)
-                    throw new ArgumentNullException(nameof(items), "List contains a null entry");
+                    throw new InvalidOperationException("Cannot add null item");
                 if (item.Manager == this)
                     throw new InvalidOperationException("Entry already exists in this entry. It must be removed first");
                 if (item.Manager != null)
@@ -75,33 +75,34 @@ public class TaskSequenceManager : IComponentManager, IUserLocalContext {
             }
         };
 
-        this.Sequences.ValidateRemove += (list, index, count) => {
-            for (int i = 0; i < count; i++)
-                list[index + i].CheckNotRunning("Cannot remove sequence while it's running");
+        this.Sequences.ValidateRemove += (list, e) => {
+            foreach (TaskSequence sequence in e.Items) {
+                sequence.CheckNotRunning("Cannot remove sequence while it's running");
+            }
         };
 
-        this.Sequences.ValidateMove += (list, oldIdx, newIdx, item) => item.CheckNotRunning("Cannot move sequence while it's running");
-        this.Sequences.ValidateReplace += (list, index, oldItem, newItem) => {
-            if (newItem == null)
-                throw new ArgumentNullException(nameof(newItem), "Cannot replace sequence with null");
+        this.Sequences.ValidateMove += (list, e) => e.Item.CheckNotRunning("Cannot move sequence while it's running");
+        this.Sequences.ValidateReplace += (list, e) => {
+            if (e.NewItem == null)
+                throw new InvalidOperationException("Cannot replace sequence with null");
 
-            oldItem.CheckNotRunning("Cannot replace item while it's running");
-            newItem.CheckNotRunning("Replacement item cannot be running");
+            e.OldItem.CheckNotRunning("Cannot replace item while it's running");
+            e.NewItem.CheckNotRunning("Replacement item cannot be running");
         };
 
-        this.Sequences.ItemsAdded += (list, index, items) => {
-            foreach (TaskSequence item in items)
+        this.Sequences.ItemsAdded += (list, e) => {
+            foreach (TaskSequence item in e.Items)
                 item.myManager = this;
         };
 
-        this.Sequences.ItemsRemoved += (list, index, items) => {
-            foreach (TaskSequence item in items)
+        this.Sequences.ItemsRemoved += (list, e) => {
+            foreach (TaskSequence item in e.Items)
                 item.myManager = null;
         };
 
-        this.Sequences.ItemReplaced += (list, index, oldItem, newItem) => {
-            oldItem.myManager = null;
-            newItem.myManager = this;
+        this.Sequences.ItemReplaced += (list, e) => {
+            e.OldItem.myManager = null;
+            e.NewItem.myManager = this;
         };
 
         this.activeSequences = new ObservableList<TaskSequence>();

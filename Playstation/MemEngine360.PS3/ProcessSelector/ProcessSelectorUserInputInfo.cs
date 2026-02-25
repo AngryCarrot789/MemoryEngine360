@@ -52,14 +52,14 @@ public sealed class ProcessSelectorUserInputInfo : UserInputInfo {
     public event EventHandler? ConnectionChanged;
 
     public ProcessSelectorUserInputInfo() {
-        this.Processes.ItemsRemoved += (list, index, items) => {
-            if (this.selectedProcess != null && items.Contains(this.selectedProcess)) {
+        this.Processes.ItemsRemoved += (list, e) => {
+            if (this.selectedProcess != null && e.Items.Contains(this.selectedProcess)) {
                 this.SelectedProcess = null;
             }
         };
 
-        this.Processes.ItemReplaced += (list, index, oldItem, newItem) => {
-            if (this.SelectedProcess == newItem) {
+        this.Processes.ItemReplaced += (list, e) => {
+            if (this.SelectedProcess == e.NewItem) {
                 this.SelectedProcess = null;
             }
         };

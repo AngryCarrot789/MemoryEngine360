@@ -1,7 +1,7 @@
 # ![](MemEngine360.Avalonia/icon-32.bmp) Memory Engine 360
 This is a remake of Cheat Engine, but for consoles. This project was inspired by https://github.com/XeClutch/Cheat-Engine-For-Xbox-360
 
-![](MemoryEngine360_2025-06-30_00.22.07.png)
+![](MemoryEngine360_2026-02-25_21.12.33.png)
 
 ### Additional Features
 - Task Sequencer (e.g. memory freezing, randomization, etc.)
@@ -21,7 +21,7 @@ This is a remake of Cheat Engine, but for consoles. This project was inspired by
 
 If you wish to publish as a single .exe with a few (native) DLLs alongside, run `publish.bat` in the folder `MemEngine360.Avalonia`. This is how I create releases for this project
 
-The current version is v1.2.1.
+The current version is v1.2.2.
 
 # How to use
 Visit the wiki at https://github.com/AngryCarrot789/MemoryEngine360/wiki to see the quick start guide, as well as docs for developers that wish to improve MemoryEngine360.

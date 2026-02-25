@@ -53,7 +53,7 @@ public class ScriptingManagerViewState {
         }
     }
 
-    private void ScriptingManagerOnScriptRemoved(object? sender, ItemIndexEventArgs<Script> e) {
+    private void ScriptingManagerOnScriptRemoved(object? sender, ItemAddOrRemoveEventArgs<Script> e) {
         ReadOnlyCollection<Script> list = this.ScriptingManager.Scripts;
         if (list.Count < 1) {
             this.SelectedScript = null;

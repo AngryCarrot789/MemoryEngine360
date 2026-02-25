@@ -40,8 +40,8 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
 
     public AddressTableGroupEntry() {
         this.Items = new ObservableList<BaseAddressTableEntry>();
-        this.Items.ValidateAdd += (list, index, items) => {
-            foreach (BaseAddressTableEntry item in items) {
+        this.Items.ValidateAdd += (list, e) => {
+            foreach (BaseAddressTableEntry item in e.Items) {
                 if (item == null)
                     throw new ArgumentNullException(nameof(item), "Cannot add a null entry");
                 if (item.Parent == this)
@@ -50,19 +50,19 @@ public sealed class AddressTableGroupEntry : BaseAddressTableEntry {
                     throw new InvalidOperationException("Entry already exists in another container. It must be removed first");
             }
         };
-        this.Items.ItemsAdded += (list, index, items) => items.ForEach(this, InternalOnAddedToEntry);
-        this.Items.ItemsRemoved += (list, index, removedItems) => removedItems.ForEach(InternalOnRemovedFromEntry);
-        this.Items.ValidateReplace += (list, index, oldItem, newItem) => {
-            if (newItem == null)
-                throw new ArgumentNullException(nameof(newItem), "Cannot replace item with null");
-            if (newItem.Parent == this)
+        this.Items.ItemsAdded += (list, e) => e.Items.ForEach(this, InternalOnAddedToEntry);
+        this.Items.ItemsRemoved += (list, e) => e.Items.ForEach(InternalOnRemovedFromEntry);
+        this.Items.ValidateReplace += (list, e) => {
+            if (e.NewItem == null)
+                throw new InvalidOperationException("Cannot replace item with null");
+            if (e.NewItem.Parent == this)
                 throw new InvalidOperationException("Replacement entry already exists in this entry. It must be removed first");
-            if (newItem.Parent != null)
+            if (e.NewItem.Parent != null)
                 throw new InvalidOperationException("Replacement entry already exists in another container. It must be removed first");
         };
-        this.Items.ItemReplaced += (list, index, oldItem, newItem) => {
-            InternalOnRemovedFromEntry(oldItem);
-            InternalOnAddedToEntry(newItem, this);
+        this.Items.ItemReplaced += (list, e) => {
+            InternalOnRemovedFromEntry(e.OldItem);
+            InternalOnAddedToEntry(e.NewItem, this);
         };
     }
 

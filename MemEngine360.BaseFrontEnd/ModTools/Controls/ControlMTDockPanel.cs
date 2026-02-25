@@ -23,6 +23,7 @@ using MemEngine360.ModTools.Gui;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.ModTools.Controls;
 
@@ -69,20 +70,20 @@ public class ControlMTDockPanel : DockPanel {
         }
     }
 
-    private void OnItemAdded(object sender, int index, (BaseMTElement, MTDockPanel.DockType?) item) {
-        Control control = ModToolView.CreateControl(item.Item1);
-        if (item.Item2.HasValue)
-            SetDock(control, (Dock) item.Item2.Value);
+    private void OnItemAdded(ItemAddOrRemoveEventArgs<(BaseMTElement, MTDockPanel.DockType?)> e) {
+        Control control = ModToolView.CreateControl(e.Item.Item1);
+        if (e.Item.Item2.HasValue)
+            SetDock(control, (Dock) e.Item.Item2.Value);
         else
             control.ClearValue(DockProperty);
-        this.Children.Insert(index, control);
+        this.Children.Insert(e.Index, control);
     }
 
-    private void OnItemRemoved(object sender, int index, (BaseMTElement, MTDockPanel.DockType?) item) {
-        this.Children.RemoveAt(index);
+    private void OnItemRemoved(ItemAddOrRemoveEventArgs<(BaseMTElement, MTDockPanel.DockType?)> e) {
+        this.Children.RemoveAt(e.Index);
     }
 
-    private void OnItemMoved(object sender, int oldIndex, int newIndex, (BaseMTElement, MTDockPanel.DockType?) item) {
-        this.Children.Move(oldIndex, newIndex);
+    private void OnItemMoved(ItemMoveEventArgs<(BaseMTElement, MTDockPanel.DockType?)> e) {
+        this.Children.Move(e.OldIndex, e.NewIndex);
     }
 }

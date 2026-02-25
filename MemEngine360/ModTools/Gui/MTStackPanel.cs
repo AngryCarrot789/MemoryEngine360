@@ -34,11 +34,11 @@ public sealed class MTStackPanel : BaseMTPanel {
     public event EventHandler? IsVerticalChanged;
 
     public MTStackPanel() {
-        this.Children.ItemsAdded += (list, index, items) => items.ForEach(this, (x, self) => self.OnElementAdded(x));
-        this.Children.ItemsRemoved += (list, index, items) => items.ForEach(this, (x, self) => self.OnElementRemoved(x));
-        this.Children.ItemReplaced += (list, index, oldItem, newItem) => {
-            this.OnElementRemoved(oldItem);
-            this.OnElementAdded(newItem);
+        this.Children.ItemsAdded += (list, e) => e.Items.ForEach(this, (x, self) => self.OnElementAdded(x));
+        this.Children.ItemsRemoved += (list, e) => e.Items.ForEach(this, (x, self) => self.OnElementRemoved(x));
+        this.Children.ItemReplaced += (list, e) => {
+            this.OnElementRemoved(e.OldItem);
+            this.OnElementAdded(e.NewItem);
         };
     }
     

@@ -60,16 +60,16 @@ public class ScriptTabControl : TabControl {
         }
     }
 
-    private void OnScriptAdded(object? sender, ItemIndexEventArgs<Script> e) {
+    private void OnScriptAdded(object? sender, ItemAddOrRemoveEventArgs<Script> e) {
         this.Items.Insert(e.Index, new ScriptTabItem() {Script = e.Item});
     }
     
-    private void OnScriptRemoved(object? sender, ItemIndexEventArgs<Script> e) {
+    private void OnScriptRemoved(object? sender, ItemAddOrRemoveEventArgs<Script> e) {
         ((ScriptTabItem) this.Items[e.Index]!).Script = null;
         this.Items.RemoveAt(e.Index);
     }
     
-    private void OnScriptMoved(object? sender, ItemMovedEventArgs<Script> e) {
+    private void OnScriptMoved(object? sender, ItemMoveEventArgs<Script> e) {
         object? theTabItem = this.Items[e.OldIndex];
         this.Items.RemoveAt(e.OldIndex);
         this.Items.Insert(e.NewIndex, theTabItem);

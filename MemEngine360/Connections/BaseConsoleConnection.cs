@@ -447,6 +447,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// <param name="dstBuffer">The array to write the bytes into</param>
     /// <param name="offset">The offset within <see cref="dstBuffer"/> to begin writing into. Should always be greather than or equal to 0</param>
     /// <param name="count">The amount of bytes to read. This value is always greater than 0</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not read all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while reading bytes</exception>
     protected abstract Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count);
 
     /// <summary>
@@ -456,6 +458,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     /// <param name="srcBuffer">The array to read the bytes from</param>
     /// <param name="offset">The offset within <see cref="srcBuffer"/> to begin reading from. Should always be greather than or equal to 0</param>
     /// <param name="count">The amount of bytes to write to the console. This value is always greater than 0</param>
+    /// <exception cref="IOException">An IO exception occurred, e.g. could not write all bytes or network error occurred</exception>
+    /// <exception cref="TimeoutException">Timed out while writing bytes</exception>
     protected abstract Task WriteBytesCore(uint address, byte[] srcBuffer, int offset, int count);
 
     /// <summary>

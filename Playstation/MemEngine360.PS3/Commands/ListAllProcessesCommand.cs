@@ -27,7 +27,7 @@ using PFXToolKitUI.Services.Messaging;
 namespace MemEngine360.PS3.Commands;
 
 public class ListAllProcessesCommand : BaseMemoryEngineCommand {
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         if (engine.Connection == null || engine.Connection.IsClosed)
             return Executability.ValidButCannotExecute;
         if (!(engine.Connection is IPs3ConsoleConnection api))

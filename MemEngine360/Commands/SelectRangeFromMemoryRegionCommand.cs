@@ -31,7 +31,7 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Commands;
 
 public class SelectRangeFromMemoryRegionCommand : BaseMemoryEngineCommand {
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         if (engine.Connection != null) {
             return engine.Connection.HasFeature<IFeatureMemoryRegions>() ? Executability.Valid : Executability.Invalid;
         }

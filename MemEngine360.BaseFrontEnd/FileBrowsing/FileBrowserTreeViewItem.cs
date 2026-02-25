@@ -32,6 +32,7 @@ using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Commands;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.FileBrowsing;
 
@@ -178,16 +179,16 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem {
         AdvancedContextMenu.SetContextRegistry(this, null);
     }
 
-    private void OnLayerAdded(object sender, int index, BaseFileTreeNode item) {
-        this.InsertNode(item, index);
+    private void OnLayerAdded(ItemAddOrRemoveEventArgs<BaseFileTreeNode> e) {
+        this.InsertNode(e.Item, e.Index);
     }
 
-    private void OnLayerRemoved(object sender, int index, BaseFileTreeNode item) {
-        this.RemoveNode(index);
+    private void OnLayerRemoved(ItemAddOrRemoveEventArgs<BaseFileTreeNode> e) {
+        this.RemoveNode(e.Index);
     }
 
-    private void OnLayerMoved(object sender, int oldIndex, int newIndex, BaseFileTreeNode item) {
-        this.MoveNode(oldIndex, newIndex);
+    private void OnLayerMoved(ItemMoveEventArgs<BaseFileTreeNode> e) {
+        this.MoveNode(e.OldIndex, e.NewIndex);
     }
 
     public FileBrowserTreeViewItem GetNodeAt(int index) => (FileBrowserTreeViewItem) this.Items[index]!;

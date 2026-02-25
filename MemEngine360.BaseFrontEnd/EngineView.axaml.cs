@@ -213,40 +213,7 @@ public partial class EngineView : UserControl {
             this.UpdateScanResultCounterText();
         };
 
-        this.editAlignmentCommand = new AsyncRelayCommand(async () => {
-            ScanningProcessor p = this.MemoryEngine.ScanningProcessor;
-            SingleUserInputInfo info = new SingleUserInputInfo(p.Alignment.ToString("X")) {
-                Caption = "Edit alignment",
-                Message = "Alignment is the offset added to each memory address",
-                Label = "Alignment (prefix with '0x' to parse as hex)",
-                Validate = (e) => {
-                    if (!AddressParsing.TryParse32(e.Input, out uint number, out string? error, canParseAsExpression: true, hexByDefault: false)) {
-                        e.Errors.Add(error);
-                    }
-                    else if (number == 0) {
-                        e.Errors.Add("Alignment cannot be zero!");
-                    }
-                },
-                DebounceErrorsDelay = 300
-            };
-
-            using IDisposable _ = SingleUserInputInfo.DebounceElapsedObservable.Subscribe(info, null, static (s, _) => {
-                if (s.TextErrors != null) {
-                    s.Footer = "Cannot show examples: invalid value";
-                }
-                else {
-                    int align = (int) AddressParsing.Parse32(s.Text, canParseAsExpression: true, hexByDefault: false);
-                    StringBuilder sb = new StringBuilder().Append(0);
-                    for (int i = 0, j = align; i < 4; i++, j += align)
-                        sb.Append(", ").Append(j);
-                    s.Footer = "We will scan " + sb.Append(", etc.");
-                }
-            });
-
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, this.myOwnerWindow_onLoaded) == true) {
-                p.Alignment = AddressParsing.Parse32(info.Text, canParseAsExpression: true, hexByDefault: false);
-            }
-        });
+        this.editAlignmentCommand = new AsyncRelayCommand(this.EditAlignmentAsync);
 
         this.stringIgnoreCaseBinder.AttachControl(this.PART_IgnoreCases);
         this.floatScanModeBinder.Assign(this.PART_DTFloat_Truncate, FloatScanOption.TruncateToQuery);
@@ -255,50 +222,11 @@ public partial class EngineView : UserControl {
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF8, StringType.UTF8);
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF16, StringType.UTF16);
         this.stringScanModeBinder.Assign(this.PART_DTString_UTF32, StringType.UTF32);
-
-        this.selectedTabIndexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(SelectingItemsControl.SelectedIndexProperty, [nameof(ScanningProcessor.DataTypeChanged), nameof(ScanningProcessor.ScanForAnyDataTypeChanged)], (b) => {
-            if (b.Model.ScanForAnyDataType) {
-                ((TabControl) b.Control).SelectedIndex = 3;
-            }
-            else {
-                switch (b.Model.DataType) {
-                    case DataType.Byte:
-                    case DataType.Int16:
-                    case DataType.Int32:
-                    case DataType.Int64:
-                        ((TabControl) b.Control).SelectedIndex = 0;
-                        break;
-                    case DataType.Float:
-                    case DataType.Double:
-                        ((TabControl) b.Control).SelectedIndex = 1;
-                        break;
-                    case DataType.String:    ((TabControl) b.Control).SelectedIndex = 2; break;
-                    case DataType.ByteArray: break;
-                    default:                 throw new ArgumentOutOfRangeException();
-                }
-            }
-
-            this.UpdateUIForScanTypeAndDataType();
-        }, (b) => {
-            if (!b.Model.HasDoneFirstScan) {
-                int idx = ((TabControl) b.Control).SelectedIndex;
-                if (idx == 3) {
-                    b.Model.ScanForAnyDataType = true;
-                    b.Model.Alignment = 1;
-                }
-                else {
-                    b.Model.ScanForAnyDataType = false;
-                    switch (idx) {
-                        case 0: b.Model.DataType = this.lastIntegerDataType; break;
-                        case 1: b.Model.DataType = this.lastFloatDataType; break;
-                        case 2: b.Model.DataType = DataType.String; break;
-                    }
-
-                    // update anyway just in case old DT equals new DT
-                    b.Model.Alignment = b.Model.DataType.GetAlignmentFromDataType();
-                }
-            }
-        });
+        
+        this.selectedTabIndexBinder = new AvaloniaPropertyToEventPropertyBinder<ScanningProcessor>(
+            SelectingItemsControl.SelectedIndexProperty,
+            [nameof(ScanningProcessor.DataTypeChanged), nameof(ScanningProcessor.ScanForAnyDataTypeChanged)],
+            this.UpdateTabControlSelectedIndex, this.UpdateModeForTabControlSelectedIndex);
 
         // Close activity list when user presses ESC
         this.PART_ActivityListPanel.AddHandler(KeyDownEvent, (sender, e) => {
@@ -313,6 +241,87 @@ public partial class EngineView : UserControl {
         this.PART_NotificationListBox.NotificationManager = notificationManager;
 
         notificationManager.IsAlertActiveChanged += this.NotificationManagerOnIsAlertActiveChanged;
+    }
+
+    private async Task EditAlignmentAsync() {
+        ScanningProcessor p = this.MemoryEngine.ScanningProcessor;
+        SingleUserInputInfo info = new SingleUserInputInfo(p.Alignment.ToString("X")) {
+            Caption = "Edit alignment",
+            Message = "Alignment is the offset added to each memory address",
+            Label = "Alignment (prefix with '0x' to parse as hex)",
+            Validate = (e) => {
+                if (!AddressParsing.TryParse32(e.Input, out uint number, out string? error, canParseAsExpression: true, hexByDefault: false)) {
+                    e.Errors.Add(error);
+                }
+                else if (number == 0) {
+                    e.Errors.Add("Alignment cannot be zero!");
+                }
+            },
+            DebounceErrorsDelay = 300
+        };
+
+        using IDisposable _ = SingleUserInputInfo.DebounceElapsedObservable.Subscribe(info, null, static (s, _) => {
+            if (s.TextErrors != null) {
+                s.Footer = "Cannot show examples: invalid value";
+            }
+            else {
+                int align = (int) AddressParsing.Parse32(s.Text, canParseAsExpression: true, hexByDefault: false);
+                StringBuilder sb = new StringBuilder().Append(0);
+                for (int i = 0, j = align; i < 4; i++, j += align)
+                    sb.Append(", ").Append(j);
+                s.Footer = "We will scan " + sb.Append(", etc.");
+            }
+        });
+
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, this.myOwnerWindow_onLoaded) == true) {
+            p.Alignment = AddressParsing.Parse32(info.Text, canParseAsExpression: true, hexByDefault: false);
+        }
+    }
+
+    private void UpdateTabControlSelectedIndex(IBinder<ScanningProcessor> b) {
+        if (b.Model.ScanForAnyDataType) {
+            ((TabControl) b.Control).SelectedIndex = 3;
+        }
+        else {
+            switch (b.Model.DataType) {
+                case DataType.Byte:
+                case DataType.Int16:
+                case DataType.Int32:
+                case DataType.Int64:
+                    ((TabControl) b.Control).SelectedIndex = 0;
+                    break;
+                case DataType.Float:
+                case DataType.Double:
+                    ((TabControl) b.Control).SelectedIndex = 1;
+                    break;
+                case DataType.String:    ((TabControl) b.Control).SelectedIndex = 2; break;
+                case DataType.ByteArray: break;
+                default:                 throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        this.UpdateUIForScanTypeAndDataType();
+    }
+    
+    private void UpdateModeForTabControlSelectedIndex(IBinder<ScanningProcessor> b) {
+        if (!b.Model.HasDoneFirstScan) {
+            int idx = ((TabControl) b.Control).SelectedIndex;
+            if (idx == 3) {
+                b.Model.ScanForAnyDataType = true;
+                b.Model.Alignment = 1;
+            }
+            else {
+                b.Model.ScanForAnyDataType = false;
+                switch (idx) {
+                    case 0: b.Model.DataType = this.lastIntegerDataType; break;
+                    case 1: b.Model.DataType = this.lastFloatDataType; break;
+                    case 2: b.Model.DataType = DataType.String; break;
+                }
+
+                // update anyway just in case old DT equals new DT
+                b.Model.Alignment = b.Model.DataType.GetAlignmentFromDataType();
+            }
+        }
     }
 
     private void NotificationManagerOnIsAlertActiveChanged(object? sender, EventArgs e) {
@@ -330,7 +339,9 @@ public partial class EngineView : UserControl {
         fileEntry.Items.Add(new CommandMenuEntry("commands.memengine.DumpMemoryCommand", "Memory _Dump...", icon: SimpleIcons.DownloadMemoryIcon));
         fileEntry.Items.Add(new SeparatorEntry());
         fileEntry.Items.Add(new CommandMenuEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command...", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
-        fileEntry.Items.Add(new SendXboxNotificationCommandEntry("Test Notification (XBDM)", null, null));
+        fileEntry.Items.Add(
+            new CommandMenuEntry("commands.memengine.remote.SendNotificationCommand", "Send Notification", icon: SimpleIcons.Xbox360Icon).
+                AddCanExecuteChangeUpdaterForEventsEx(MemoryEngineViewState.DataKey, x => x.Engine, nameof(Engine.MemoryEngine.ConnectionChanged)));
         fileEntry.Items.Add(new SeparatorEntry());
         fileEntry.Items.Add(new CommandMenuEntry("commands.mainWindow.OpenEditorSettings", "_Preferences"));
         menu.Items.Add(fileEntry);
@@ -384,10 +395,9 @@ public partial class EngineView : UserControl {
 
     protected override void OnLoaded(RoutedEventArgs e) {
         base.OnLoaded(e);
-        MemoryEngineViewState vs = this.ViewState;
-        vs.RequestWindowFocus += this.OnRequestWindowFocus;
-        vs.RequestFocusOnSavedAddress += this.OnRequestFocusOnSavedAddress;
-        vs.IsActivityListVisibleChanged += this.OnIsActivityListVisibleChanged;
+        this.ViewState.RequestWindowFocus += this.OnRequestWindowFocus;
+        this.ViewState.RequestFocusOnSavedAddress += this.OnRequestFocusOnSavedAddress;
+        this.ViewState.IsActivityListVisibleChanged += this.OnIsActivityListVisibleChanged;
 
         ScanningProcessor processor = this.MemoryEngine.ScanningProcessor;
         this.isScanningBinder.Attach(this, processor);
@@ -401,12 +411,12 @@ public partial class EngineView : UserControl {
         this.UpdateStatusBarConnectionText(this.MemoryEngine.Connection);
         this.MemoryEngine.ConnectionChanged += this.OnConnectionChanged;
 
-        this.themeListHandler = ObservableItemProcessor.MakeIndexable(ThemeManager.Instance.Themes, (sender, index, item) => {
-            this.themesSubList.Items.Insert(index, new SetThemeMenuEntry(item));
-        }, (s, idx, item) => {
-            this.themesSubList.Items.RemoveAt(idx);
-        }, (s, oldIndex, newIndex, item) => {
-            this.themesSubList.Items.Move(oldIndex, newIndex);
+        this.themeListHandler = ObservableItemProcessor.MakeIndexable(ThemeManager.Instance.Themes, (args) => {
+            this.themesSubList.Items.Insert(args.Index, new SetThemeMenuEntry(args.Item));
+        }, (args) => {
+            this.themesSubList.Items.RemoveAt(args.Index);
+        }, (args) => {
+            this.themesSubList.Items.Move(args.OldIndex, args.NewIndex);
         }).AddExistingItems();
 
         this.stringIgnoreCaseBinder.AttachModel(processor);
@@ -443,42 +453,6 @@ public partial class EngineView : UserControl {
             this.myOwnerWindow_onLoaded = window;
             this.titleBarToMenuBackgroundBrushHandler.SetTarget(this.PART_TopLevelMenu);
             this.titleBarToMenuBackgroundBrushHandler.Brush = this.myOwnerWindow_onLoaded.TitleBarBrush;
-        }
-    }
-
-    private void OnUseExpressionParsingChanged(object? o, EventArgs e) {
-        ScanningProcessor processor = this.MemoryEngine.ScanningProcessor;
-        this.UpdateUIForScanTypeAndDataType();
-        this.UpdateSingleInputField();
-
-        this.dataTypeBinder.SetIsEnabled(DataType.String, !processor.UseExpressionParsing);
-        this.dataTypeBinder.SetIsEnabled(DataType.ByteArray, !processor.UseExpressionParsing);
-    }
-
-    private void UpdateStatusBarConnectionText(IConsoleConnection? console) {
-        string text = console != null ? console.ConnectionType.GetStatusBarText(console) : "Disconnected";
-        this.PART_ConnectedHostName.SetValue(TextBlock.TextProperty, text);
-    }
-
-    private void OnIsActivityListVisibleChanged(object? o, EventArgs e) {
-        MemoryEngineViewState sender = (MemoryEngineViewState) o!;
-        if (this.PART_ActivityListPanel.IsVisible != sender.IsActivityListVisible) {
-            this.PART_ActivityListPanel.IsVisible = sender.IsActivityListVisible;
-            this.PART_ActivityList.ActivityManager = sender.IsActivityListVisible ? ActivityManager.Instance : null;
-            this.PART_ActivityListPanel.Focus();
-        }
-    }
-
-    private void OnRequestFocusOnSavedAddress(object? sender, BaseAddressTableEntry address) {
-        if (this.PART_SavedAddressTree.ItemMap.TryGetControl(address, out AddressTableTreeViewItem? item)) {
-            item.IsSelected = true;
-            item.Focus();
-        }
-    }
-
-    private void OnRequestWindowFocus(object? sender, EventArgs e) {
-        if (IWindowManager.TryGetWindow(this, out IDesktopWindow? window)) {
-            window.Activate();
         }
     }
 
@@ -540,6 +514,42 @@ public partial class EngineView : UserControl {
         processor.UseExpressionParsingChanged -= this.OnUseExpressionParsingChanged;
 
         this.PART_OrderListBox.SetScanningProcessor(null);
+    }
+    
+    private void OnUseExpressionParsingChanged(object? o, EventArgs e) {
+        ScanningProcessor processor = this.MemoryEngine.ScanningProcessor;
+        this.UpdateUIForScanTypeAndDataType();
+        this.UpdateSingleInputField();
+
+        this.dataTypeBinder.SetIsEnabled(DataType.String, !processor.UseExpressionParsing);
+        this.dataTypeBinder.SetIsEnabled(DataType.ByteArray, !processor.UseExpressionParsing);
+    }
+
+    private void UpdateStatusBarConnectionText(IConsoleConnection? console) {
+        string text = console != null ? console.ConnectionType.GetStatusBarText(console) : "Disconnected";
+        this.PART_ConnectedHostName.SetValue(TextBlock.TextProperty, text);
+    }
+
+    private void OnIsActivityListVisibleChanged(object? o, EventArgs e) {
+        MemoryEngineViewState sender = (MemoryEngineViewState) o!;
+        if (this.PART_ActivityListPanel.IsVisible != sender.IsActivityListVisible) {
+            this.PART_ActivityListPanel.IsVisible = sender.IsActivityListVisible;
+            this.PART_ActivityList.ActivityManager = sender.IsActivityListVisible ? ActivityManager.Instance : null;
+            this.PART_ActivityListPanel.Focus();
+        }
+    }
+
+    private void OnRequestFocusOnSavedAddress(object? sender, BaseAddressTableEntry address) {
+        if (this.PART_SavedAddressTree.ItemMap.TryGetControl(address, out AddressTableTreeViewItem? item)) {
+            item.IsSelected = true;
+            item.Focus();
+        }
+    }
+
+    private void OnRequestWindowFocus(object? sender, EventArgs e) {
+        if (IWindowManager.TryGetWindow(this, out IDesktopWindow? window)) {
+            window.Activate();
+        }
     }
 
     private void ScanningProcessorOnNumericScanTypeChanged(object? o, EventArgs e) {
@@ -780,77 +790,5 @@ public partial class EngineView : UserControl {
         }
 
         return false;
-    }
-
-    private class SendXboxNotificationCommandEntry : CustomMenuEntry {
-        private MemoryEngineViewState? myEngine;
-
-        public SendXboxNotificationCommandEntry(string displayName, string? description, Icon? icon = null) : base(displayName, description, icon) {
-        }
-
-        protected override void OnCapturedContextChanged(IContextData? oldContext, IContextData? newContext) {
-            base.OnCapturedContextChanged(oldContext, newContext);
-            
-            // Sort of pointless unless the user tries to connect to a console while it's booting
-            // and then they open the File menu, they'll see that this entry is greyed out until we
-            // connect, then once connected, it's either now invisible or clickable. This is just a point of concept really
-            this.SetAndRaiseINE(ref this.myEngine, MemoryEngineViewState.DataKey, static (@this, e) => {
-                if (e.OldValue != null)
-                    e.OldValue.Engine.ConnectionChanged -= @this.OnContextEngineConnectionChanged;
-                if (e.NewValue != null)
-                    e.NewValue.Engine.ConnectionChanged += @this.OnContextEngineConnectionChanged;
-            });
-        }
-
-        private void OnContextEngineConnectionChanged(object? o, ConnectionChangedEventArgs args) {
-            this.RaiseCanExecuteChanged();
-        }
-
-        public override bool CanExecute(IContextData context) {
-            if (!MemoryEngineViewState.DataKey.TryGetContext(context, out MemoryEngineViewState? engineVs)) {
-                return false;
-            }
-
-            IConsoleConnection? connection = engineVs.Engine.Connection;
-            return connection != null && connection.HasFeature<IFeatureXboxNotifications>();
-        }
-
-        public override async Task OnExecute(IContextData context) {
-            if (!MemoryEngineViewState.DataKey.TryGetContext(context, out MemoryEngineViewState? engineVs)) {
-                return;
-            }
-
-            IConsoleConnection? connection;
-            using IBusyToken? token = await engineVs.Engine.BeginBusyOperationUsingActivityAsync();
-            if (token == null || (connection = engineVs.Engine.Connection) == null) {
-                return;
-            }
-
-            if (!connection.TryGetFeature(out IFeatureXboxNotifications? notifications)) {
-                await IMessageDialogService.Instance.ShowMessage("Not supported", "This connection does not support showing notifications", defaultButton: MessageBoxResult.OK);
-                return;
-            }
-
-            DataParameterEnumInfo<XNotifyLogo> dpEnumInfo = DataParameterEnumInfo<XNotifyLogo>.All();
-            DoubleUserInputInfo info = new DoubleUserInputInfo("Thank you for using MemoryEngine360 <3", nameof(XNotifyLogo.FLASHING_HAPPY_FACE)) {
-                Caption = "Test Notification",
-                Message = "Shows a custom notification on your xbox!",
-                ValidateA = (b) => {
-                    if (string.IsNullOrWhiteSpace(b.Input))
-                        b.Errors.Add("Input cannot be empty or whitespaces only");
-                },
-                ValidateB = (b) => {
-                    if (!dpEnumInfo.TextToEnum.TryGetValue(b.Input, out XNotifyLogo val))
-                        b.Errors.Add("Unknown logo type");
-                },
-                LabelA = "Message",
-                LabelB = "Logo (search for XNotifyLogo)"
-            };
-
-            if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, ITopLevel.FromContext(context)) == true) {
-                XNotifyLogo logo = dpEnumInfo.TextToEnum[info.TextB];
-                await notifications.ShowNotification(logo, info.TextA);
-            }
-        }
     }
 }

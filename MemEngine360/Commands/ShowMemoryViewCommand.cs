@@ -28,7 +28,7 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.Commands;
 
 public class ShowMemoryViewCommand : BaseMemoryEngineCommand {
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         return engine.Connection == null ? Executability.ValidButCannotExecute : Executability.Valid;
     }
     

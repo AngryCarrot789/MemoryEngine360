@@ -25,7 +25,7 @@ using PFXToolKitUI.CommandSystem;
 namespace MemEngine360.Commands;
 
 public class CancelScanCommand : BaseMemoryEngineCommand {
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         return engine.ScanningProcessor.IsScanning ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 

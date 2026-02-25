@@ -38,7 +38,7 @@ using PFXToolKitUI.Services.UserInputs;
 namespace MemEngine360.Commands;
 
 public class DumpMemoryCommand : BaseMemoryEngineCommand {
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 

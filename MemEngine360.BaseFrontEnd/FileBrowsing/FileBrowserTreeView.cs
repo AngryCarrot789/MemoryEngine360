@@ -26,6 +26,7 @@ using MemEngine360.Engine.FileBrowsing;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.FileBrowsing;
 
@@ -139,11 +140,11 @@ public sealed class FileBrowserTreeView : TreeView {
         }
     }
 
-    private void OnATMLayerAdded(object sender, int index, BaseFileTreeNode item) => this.InsertNode(item, index);
+    private void OnATMLayerAdded(ItemAddOrRemoveEventArgs<BaseFileTreeNode> e) => this.InsertNode(e.Item, e.Index);
 
-    private void OnATMLayerRemoved(object sender, int index, BaseFileTreeNode item) => this.RemoveNode(index);
+    private void OnATMLayerRemoved(ItemAddOrRemoveEventArgs<BaseFileTreeNode> e) => this.RemoveNode(e.Index);
 
-    private void OnATMLayerIndexMoved(object sender, int oldIndex, int newIndex, BaseFileTreeNode item) => this.MoveNode(oldIndex, newIndex);
+    private void OnATMLayerIndexMoved(ItemMoveEventArgs<BaseFileTreeNode> e) => this.MoveNode(e.OldIndex, e.NewIndex);
 
     public FileBrowserTreeViewItem GetCachedItemOrNew() {
         return this.itemCache.Count > 0 ? this.itemCache.Pop() : new FileBrowserTreeViewItem();

@@ -26,7 +26,7 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.Commands;
 
 public class RefreshSavedAddressesCommand : BaseMemoryEngineCommand {
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         if (engine.Connection == null || engine.ScanningProcessor.IsRefreshingAddresses) {
             return Executability.ValidButCannotExecute;
         }

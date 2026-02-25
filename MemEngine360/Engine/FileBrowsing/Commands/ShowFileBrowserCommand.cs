@@ -24,7 +24,7 @@ using PFXToolKitUI.CommandSystem;
 namespace MemEngine360.Engine.FileBrowsing.Commands;
 
 public class ShowFileBrowserCommand : BaseMemoryEngineCommand {
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         return Executability.Valid;
     }
 

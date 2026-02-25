@@ -42,8 +42,8 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
 
     public MemoryEngine MemoryEngine { get; }
 
-    public event EventHandler<ItemIndexEventArgs<Script>>? ScriptAdded, ScriptRemoved;
-    public event EventHandler<ItemMovedEventArgs<Script>>? ScriptMoved;
+    public event EventHandler<ItemAddOrRemoveEventArgs<Script>>? ScriptAdded, ScriptRemoved;
+    public event EventHandler<ItemMoveEventArgs<Script>>? ScriptMoved;
 
     public ScriptingManager(MemoryEngine memoryEngine) {
         this.MemoryEngine = memoryEngine;
@@ -91,7 +91,7 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
         script.myManager = this;
 
         this.myScripts.Insert(index, script);
-        this.ScriptAdded?.Invoke(this, new ItemIndexEventArgs<Script>(script, index));
+        this.ScriptAdded?.Invoke(this, new ItemAddOrRemoveEventArgs<Script>(index, script));
     }
 
     public void RemoveScript(Script script) {
@@ -112,14 +112,14 @@ public class ScriptingManager : IComponentManager, IUserLocalContext {
         script.myManager = null;
 
         this.myScripts.RemoveAt(index);
-        this.ScriptRemoved?.Invoke(this, new ItemIndexEventArgs<Script>(script, index));
+        this.ScriptRemoved?.Invoke(this, new ItemAddOrRemoveEventArgs<Script>(index, script));
     }
 
     public void MoveScript(int oldIndex, int newIndex) {
         Script item = this.myScripts[oldIndex];
         this.myScripts.MoveItem(oldIndex, newIndex);
         if (oldIndex != newIndex) {
-            this.ScriptMoved?.Invoke(this, new ItemMovedEventArgs<Script>(item, oldIndex, newIndex));
+            this.ScriptMoved?.Invoke(this, new ItemMoveEventArgs<Script>(oldIndex, newIndex, item));
         }
     }
 }

@@ -24,7 +24,7 @@ using PFXToolKitUI.CommandSystem;
 namespace MemEngine360.Commands;
 
 public class FirstScanCommand : BaseMemoryEngineCommand {
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         return !engine.ScanningProcessor.CanPerformFirstScan ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 

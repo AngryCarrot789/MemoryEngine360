@@ -36,7 +36,7 @@ using SkiaSharp;
 namespace MemEngine360.BaseFrontEnd.XboxBase;
 
 public class ShowModulesCommand : BaseMemoryEngineCommand {
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         return engine.Connection != null ? Executability.Valid : Executability.ValidButCannotExecute;
     }
     

@@ -56,36 +56,36 @@ public sealed class ClassType {
     public ClassType(string name) {
         this.name = name;
         this.Fields = new ObservableList<FieldElement>();
-        this.Fields.ValidateAdd += (list, index, items) => {
-            foreach (FieldElement element in items) {
+        this.Fields.ValidateAdd += (list, e) => {
+            foreach (FieldElement element in e.Items) {
                 if (element.Owner != null) {
                     throw new InvalidOperationException("Cannot add a field element that already exists in another class");
                 }
             }
         };
 
-        this.Fields.ValidateReplace += (list, index, oldItem, newItem) => {
-            if (newItem.Owner != null) {
+        this.Fields.ValidateReplace += (list, e) => {
+            if (e.NewItem.Owner != null) {
                 throw new InvalidOperationException("Cannot add a field element that already exists in another class");
             }
         };
 
-        this.Fields.ItemsAdded += (list, index, items) => {
-            foreach (FieldElement element in items) {
+        this.Fields.ItemsAdded += (list, e) => {
+            foreach (FieldElement element in e.Items) {
                 Debug.Assert(element.Owner == null);
                 element.Owner = this;
             }
         };
 
-        this.Fields.ItemReplaced += (list, index, oldItem, newItem) => {
-            Debug.Assert(oldItem.Owner == this);
-            Debug.Assert(newItem.Owner == null);
-            oldItem.Owner = null;
-            newItem.Owner = this;
+        this.Fields.ItemReplaced += (list, e) => {
+            Debug.Assert(e.OldItem.Owner == this);
+            Debug.Assert(e.NewItem.Owner == null);
+            e.OldItem.Owner = null;
+            e.NewItem.Owner = this;
         };
 
-        this.Fields.ItemsRemoved += (list, index, items) => {
-            foreach (FieldElement element in items) {
+        this.Fields.ItemsRemoved += (list, e) => {
+            foreach (FieldElement element in e.Items) {
                 Debug.Assert(element.Owner == this);
                 element.Owner = null;
             }

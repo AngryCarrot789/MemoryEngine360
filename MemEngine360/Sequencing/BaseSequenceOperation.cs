@@ -87,33 +87,33 @@ public abstract class BaseSequenceOperation : ITransferableData, IComponentManag
         this.TransferableData = new TransferableData(this);
         this.RandomTriggerHelper = new RandomTriggerHelper();
         this.Conditions = new ObservableList<BaseSequenceCondition>();
-        this.Conditions.ValidateAdd += (list, index, items) => {
-            foreach (BaseSequenceCondition item in items) {
+        this.Conditions.ValidateAdd += (list, e) => {
+            foreach (BaseSequenceCondition item in e.Items) {
                 CheckAddCondition(this, item);
             }
         };
 
-        this.Conditions.ValidateRemove += (list, index, count) => this.TaskSequence?.CheckNotRunning(CheckNotRunningMessage);
-        this.Conditions.ValidateMove += (list, oldIdx, newIdx, item) => this.TaskSequence?.CheckNotRunning(CheckNotRunningMessage);
-        this.Conditions.ValidateReplace += (list, index, oldItem, newItem) => {
-            CheckAddCondition(this, newItem);
+        this.Conditions.ValidateRemove += (list, e) => this.TaskSequence?.CheckNotRunning(CheckNotRunningMessage);
+        this.Conditions.ValidateMove += (list, e) => this.TaskSequence?.CheckNotRunning(CheckNotRunningMessage);
+        this.Conditions.ValidateReplace += (list, e) => {
+            CheckAddCondition(this, e.NewItem);
         };
 
-        this.Conditions.ItemsAdded += (list, index, items) => {
-            foreach (BaseSequenceCondition condition in items) {
+        this.Conditions.ItemsAdded += (list, e) => {
+            foreach (BaseSequenceCondition condition in e.Items) {
                 BaseSequenceCondition.InternalSetOwner(condition, this);
             }
         };
 
-        this.Conditions.ItemsRemoved += (list, index, items) => {
-            foreach (BaseSequenceCondition condition in items) {
+        this.Conditions.ItemsRemoved += (list, e) => {
+            foreach (BaseSequenceCondition condition in e.Items) {
                 BaseSequenceCondition.InternalSetOwner(condition, null);
             }
         };
 
-        this.Conditions.ItemReplaced += (list, index, oldItem, newItem) => {
-            BaseSequenceCondition.InternalSetOwner(oldItem, null);
-            BaseSequenceCondition.InternalSetOwner(newItem, this);
+        this.Conditions.ItemReplaced += (list, e) => {
+            BaseSequenceCondition.InternalSetOwner(e.OldItem, null);
+            BaseSequenceCondition.InternalSetOwner(e.NewItem, this);
         };
 
         return;

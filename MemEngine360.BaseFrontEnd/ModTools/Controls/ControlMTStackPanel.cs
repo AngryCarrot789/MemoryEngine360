@@ -24,6 +24,7 @@ using MemEngine360.ModTools.Gui;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.ModTools.Controls;
 
@@ -70,15 +71,15 @@ public class ControlMTStackPanel : StackPanel {
         }
     }
 
-    private void OnItemAdded(object sender, int index, BaseMTElement item) {
-        this.Children.Insert(index, ModToolView.CreateControl(item));
+    private void OnItemAdded(ItemAddOrRemoveEventArgs<BaseMTElement> e) {
+        this.Children.Insert(e.Index, ModToolView.CreateControl(e.Item));
     }
 
-    private void OnItemRemoved(object sender, int index, BaseMTElement item) {
-        this.Children.RemoveAt(index);
+    private void OnItemRemoved(ItemAddOrRemoveEventArgs<BaseMTElement> e) {
+        this.Children.RemoveAt(e.Index);
     }
 
-    private void OnItemMoved(object sender, int oldIndex, int newIndex, BaseMTElement item) {
-        this.Children.Move(oldIndex, newIndex);
+    private void OnItemMoved(ItemMoveEventArgs<BaseMTElement> e) {
+        this.Children.Move(e.OldIndex, e.NewIndex);
     }
 }

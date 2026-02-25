@@ -34,11 +34,11 @@ public sealed class MTDockPanel : BaseMTPanel {
     public event EventHandler? FillLastChanged;
 
     public MTDockPanel() {
-        this.Children.ItemsAdded += (list, index, items) => items.ForEach(this, (x, self) => self.OnElementAdded(x.Item1));
-        this.Children.ItemsRemoved += (list, index, items) => items.ForEach(this, (x, self) => self.OnElementRemoved(x.Item1));
-        this.Children.ItemReplaced += (list, index, oldItem, newItem) => {
-            this.OnElementRemoved(oldItem.Item1);
-            this.OnElementAdded(newItem.Item1);
+        this.Children.ItemsAdded += (list, e) => e.Items.ForEach(this, (x, self) => self.OnElementAdded(x.Item1));
+        this.Children.ItemsRemoved += (list, e) => e.Items.ForEach(this, (x, self) => self.OnElementRemoved(x.Item1));
+        this.Children.ItemReplaced += (list, e) => {
+            this.OnElementRemoved(e.OldItem.Item1);
+            this.OnElementAdded(e.NewItem.Item1);
         };
     }
 

@@ -27,7 +27,7 @@ using PFXToolKitUI.Services.Messaging;
 namespace MemEngine360.Xbox360XBDM.Commands;
 
 public class ShowXbeInfoCommand : BaseMemoryEngineCommand {
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         return engine.Connection is XbdmConsoleConnection ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 

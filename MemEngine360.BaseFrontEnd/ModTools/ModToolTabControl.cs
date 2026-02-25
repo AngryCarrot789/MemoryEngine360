@@ -57,16 +57,16 @@ public class ModToolTabControl : TabControl {
         }
     }
 
-    private void OnToolAdded(object? sender, ItemIndexEventArgs<ModTool> e) {
+    private void OnToolAdded(object? sender, ItemAddOrRemoveEventArgs<ModTool> e) {
         this.Items.Insert(e.Index, new ModToolTabItem() { ModTool = e.Item });
     }
 
-    private void OnToolRemoved(object? sender, ItemIndexEventArgs<ModTool> e) {
+    private void OnToolRemoved(object? sender, ItemAddOrRemoveEventArgs<ModTool> e) {
         ((ModToolTabItem) this.Items[e.Index]!).ModTool = null;
         this.Items.RemoveAt(e.Index);
     }
 
-    private void OnToolMoved(object? sender, ItemMovedEventArgs<ModTool> e) {
+    private void OnToolMoved(object? sender, ItemMoveEventArgs<ModTool> e) {
         object? oldItem = this.Items[e.OldIndex];
         _ = this.Items[e.NewIndex];
         this.Items.RemoveAt(e.OldIndex);

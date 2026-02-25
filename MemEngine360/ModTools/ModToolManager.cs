@@ -44,8 +44,8 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
 
     public MemoryEngine MemoryEngine { get; }
 
-    public event EventHandler<ItemIndexEventArgs<ModTool>>? ToolAdded, ToolRemoved; 
-    public event EventHandler<ItemMovedEventArgs<ModTool>>? ToolMoved; 
+    public event EventHandler<ItemAddOrRemoveEventArgs<ModTool>>? ToolAdded, ToolRemoved; 
+    public event EventHandler<ItemMoveEventArgs<ModTool>>? ToolMoved; 
 
     public ModToolManager(MemoryEngine memoryEngine) {
         this.MemoryEngine = memoryEngine;
@@ -63,7 +63,7 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
         int index = this.myModTools.Count;
         this.myModTools.Insert(index, modTool);
         
-        this.ToolAdded?.Invoke(this, new ItemIndexEventArgs<ModTool>(modTool, index));
+        this.ToolAdded?.Invoke(this, new ItemAddOrRemoveEventArgs<ModTool>(index, modTool));
     }
 
     public void RemoveModTool(ModTool modTool) {
@@ -84,12 +84,12 @@ public class ModToolManager : IComponentManager, IUserLocalContext {
         this.myModTools.RemoveAt(index);
 
         modTool.myManager = null;
-        this.ToolRemoved?.Invoke(this, new ItemIndexEventArgs<ModTool>(modTool, index));
+        this.ToolRemoved?.Invoke(this, new ItemAddOrRemoveEventArgs<ModTool>(index, modTool));
     }
 
     public void MoveModTool(int oldIndex, int newIndex) {
         ModTool item = this.myModTools[oldIndex];
         this.myModTools.MoveItem(oldIndex, newIndex);
-        this.ToolMoved?.Invoke(this, new ItemMovedEventArgs<ModTool>(item, oldIndex, newIndex));
+        this.ToolMoved?.Invoke(this, new ItemMoveEventArgs<ModTool>(oldIndex, newIndex, item));
     }
 }

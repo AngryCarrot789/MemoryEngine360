@@ -25,7 +25,7 @@ using PFXToolKitUI.Utils.Collections.Observable;
 namespace MemEngine360.Commands;
 
 public class NextScanCommand : BaseMemoryEngineCommand {
-    protected override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         return !engine.ScanningProcessor.CanPerformNextScan ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 

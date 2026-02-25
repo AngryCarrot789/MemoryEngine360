@@ -65,13 +65,13 @@ public class ModToolManagerViewState {
         };
     }
 
-    private void ModToolManagerOnToolAdded(object? sender, ItemIndexEventArgs<ModTool> e) {
+    private void ModToolManagerOnToolAdded(object? sender, ItemAddOrRemoveEventArgs<ModTool> e) {
         ExecuteModToolMenuEntry menuEntry = ExecuteModToolMenuEntry.GetOrCreate(e.Item);
         this.toolToMenuEntry[e.Item] = menuEntry;
         this.ModToolMenu.Items.Add(menuEntry);
     }
 
-    private void ModToolManagerOnToolRemoved(object? sender, ItemIndexEventArgs<ModTool> e) {
+    private void ModToolManagerOnToolRemoved(object? sender, ItemAddOrRemoveEventArgs<ModTool> e) {
         bool removed = this.toolToMenuEntry.Remove(e.Item, out BaseMenuEntry? entry);
         Debug.Assert(removed);
         

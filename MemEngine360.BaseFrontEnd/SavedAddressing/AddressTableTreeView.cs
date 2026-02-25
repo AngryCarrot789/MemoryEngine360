@@ -26,6 +26,7 @@ using MemEngine360.Engine.SavedAddressing;
 using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.SavedAddressing;
 
@@ -143,11 +144,11 @@ public sealed class AddressTableTreeView : TreeView {
         }
     }
 
-    private void OnATMLayerAdded(object sender, int index, BaseAddressTableEntry item) => this.InsertNode(item, index);
+    private void OnATMLayerAdded(ItemAddOrRemoveEventArgs<BaseAddressTableEntry> e) => this.InsertNode(e.Item, e.Index);
 
-    private void OnATMLayerRemoved(object sender, int index, BaseAddressTableEntry item) => this.RemoveNode(index);
+    private void OnATMLayerRemoved(ItemAddOrRemoveEventArgs<BaseAddressTableEntry> e) => this.RemoveNode(e.Index);
 
-    private void OnATMLayerIndexMoved(object sender, int oldIndex, int newIndex, BaseAddressTableEntry item) => this.MoveNode(oldIndex, newIndex);
+    private void OnATMLayerIndexMoved(ItemMoveEventArgs<BaseAddressTableEntry> e) => this.MoveNode(e.OldIndex, e.NewIndex);
 
     public AddressTableTreeViewItem GetCachedItemOrNew() {
         return this.itemCache.Count > 0 ? this.itemCache.Pop() : new AddressTableTreeViewItem();

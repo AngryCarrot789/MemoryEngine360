@@ -35,7 +35,7 @@ public abstract class BaseMemoryEngineCommand : Command, IDisabledHintProvider {
             return Executability.Invalid;
         }
 
-        return this.CanExecuteCore(engineVs.Engine, e);
+        return this.CanExecuteCore(engineVs.Engine, engineVs, e);
     }
 
     protected sealed override Task ExecuteCommandAsync(CommandEventArgs e) {
@@ -46,7 +46,7 @@ public abstract class BaseMemoryEngineCommand : Command, IDisabledHintProvider {
     }
 
     /// <returns></returns>
-    protected abstract Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e);
+    protected abstract Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e);
 
     protected abstract Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e);
 

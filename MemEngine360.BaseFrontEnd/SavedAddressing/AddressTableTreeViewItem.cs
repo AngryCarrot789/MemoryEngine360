@@ -37,6 +37,7 @@ using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.SavedAddressing;
 
@@ -206,17 +207,11 @@ public sealed class AddressTableTreeViewItem : TreeViewItem {
         AdvancedContextMenu.SetContextRegistry(this, null);
     }
 
-    private void OnLayerAdded(object sender, int index, BaseAddressTableEntry item) {
-        this.InsertNode(item, index);
-    }
+    private void OnLayerAdded(ItemAddOrRemoveEventArgs<BaseAddressTableEntry> e) => this.InsertNode(e.Item, e.Index);
 
-    private void OnLayerRemoved(object sender, int index, BaseAddressTableEntry item) {
-        this.RemoveNode(index);
-    }
+    private void OnLayerRemoved(ItemAddOrRemoveEventArgs<BaseAddressTableEntry> e) => this.RemoveNode(e.Index);
 
-    private void OnLayerMoved(object sender, int oldindex, int newindex, BaseAddressTableEntry item) {
-        this.MoveNode(oldindex, newindex);
-    }
+    private void OnLayerMoved(ItemMoveEventArgs<BaseAddressTableEntry> e) => this.MoveNode(e.OldIndex, e.NewIndex);
 
     public AddressTableTreeViewItem GetNodeAt(int index) => (AddressTableTreeViewItem) this.Items[index]!;
 

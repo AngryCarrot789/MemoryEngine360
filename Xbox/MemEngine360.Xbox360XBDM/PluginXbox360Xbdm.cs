@@ -45,6 +45,7 @@ public class PluginXbox360Xbdm : Plugin {
         manager.Register("commands.memengine.remote.ShowXbeInfoCommand", new ShowXbeInfoCommand());
         manager.Register("commands.memengine.remote.EjectDiskTrayCommand", new EjectDiskTrayCommand());
         manager.Register("commands.memengine.remote.SendCmdCommand", new SendCmdCommand());
+        manager.Register("commands.memengine.remote.SendNotificationCommand", new SendNotificationCommand());
     }
 
     protected override Task OnApplicationFullyLoaded() {

@@ -34,11 +34,11 @@ public sealed class MTGridPanel : BaseMTPanel {
     public ObservableList<ColumnDefinition> Columns { get; } = new ObservableList<ColumnDefinition>();
     
     public MTGridPanel() {
-        this.Children.ItemsAdded += (list, index, items) => items.ForEach(this, (x, self) => self.OnElementAdded(x.Element));
-        this.Children.ItemsRemoved += (list, index, items) => items.ForEach(this, (x, self) => self.OnElementRemoved(x.Element));
-        this.Children.ItemReplaced += (list, index, oldItem, newItem) => {
-            this.OnElementRemoved(oldItem.Element);
-            this.OnElementAdded(newItem.Element);
+        this.Children.ItemsAdded += (list, e) => e.Items.ForEach(this, (x, self) => self.OnElementAdded(x.Element));
+        this.Children.ItemsRemoved += (list, e) => e.Items.ForEach(this, (x, self) => self.OnElementRemoved(x.Element));
+        this.Children.ItemReplaced += (list, e) => {
+            this.OnElementRemoved(e.OldItem.Element);
+            this.OnElementAdded(e.NewItem.Element);
         };
     }
 

@@ -79,7 +79,6 @@ using PFXToolKitUI.Activities;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Configurations.Pages;
 using PFXToolKitUI.Avalonia.Interactivity;
-using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop.Impl;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Overlays.Impl;
@@ -417,7 +416,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
             EngineView engineView;
             IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
-                Title = "Memory Engine 360 v1.2.1",
+                Title = "Memory Engine 360 v1.2.2",
                 FocusPath = "EngineWindow",
                 Content = new OverlayContentHostRoot() {
                     Content = engineView = new EngineView()
@@ -704,9 +703,11 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                         Content = new AboutView(),
                         TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone7.Background.Static"),
                         BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
-                        MinWidth = 500, MinHeight = 200,
+                        MinWidth = 500, MaxWidth = 700, 
+                        MinHeight = 200, MaxHeight = 300,
                         Width = 600, Height = 250,
-                        Parent = parentWindow
+                        Parent = parentWindow,
+                        CanMaximize = false
                     });
 
                     return window.ShowAsync();

@@ -32,7 +32,7 @@ namespace MemEngine360.Commands;
 public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
     protected abstract string ActivityText { get; }
 
-    protected sealed override Executability CanExecuteCore(MemoryEngine engine, CommandEventArgs e) {
+    protected sealed override Executability CanExecuteCore(MemoryEngine engine, MemoryEngineViewState engineVs, CommandEventArgs e) {
         IConsoleConnection? connection = engine.Connection;
         return connection != null ? this.CanExecuteCore(engine, connection, e) : Executability.ValidButCannotExecute;
     }

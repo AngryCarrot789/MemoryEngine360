@@ -37,8 +37,8 @@ public sealed class FileTreeNodeDirectory : BaseFileTreeNode {
 
     public FileTreeNodeDirectory() {
         this.Items = new ObservableList<BaseFileTreeNode>();
-        this.Items.ValidateAdd += (list, index, items) => {
-            foreach (BaseFileTreeNode item in items) {
+        this.Items.ValidateAdd += (list, e) => {
+            foreach (BaseFileTreeNode item in e.Items) {
                 if (item == null)
                     throw new InvalidOperationException("Attempt to add null entry");
                 if (item.ParentDirectory == this)
@@ -48,26 +48,26 @@ public sealed class FileTreeNodeDirectory : BaseFileTreeNode {
             }
         };
 
-        this.Items.ValidateReplace += (list, index, oldItem, newItem) => {
-            if (newItem == null)
-                throw new ArgumentNullException(nameof(newItem), "Cannot replace entry with null");
+        this.Items.ValidateReplace += (list, e) => {
+            if (e.NewItem == null)
+                throw new ArgumentException("New item cannot be null");
         };
 
-        this.Items.ItemsAdded += (list, index, items) => {
-            foreach (BaseFileTreeNode? node in items) {
+        this.Items.ItemsAdded += (list, e) => {
+            foreach (BaseFileTreeNode? node in e.Items) {
                 InternalOnAddedToEntry(node, this);
             }
         };
 
-        this.Items.ItemsRemoved += (list, index, removedItems) => {
-            foreach (BaseFileTreeNode? node in removedItems) {
+        this.Items.ItemsRemoved += (list, e) => {
+            foreach (BaseFileTreeNode? node in e.Items) {
                 InternalOnRemovedFromEntry(node, this);
             }
         };
 
-        this.Items.ItemReplaced += (list, index, oldItem, newItem) => {
-            InternalOnRemovedFromEntry(oldItem, this);
-            InternalOnAddedToEntry(newItem, this);
+        this.Items.ItemReplaced += (list, e) => {
+            InternalOnRemovedFromEntry(e.OldItem, this);
+            InternalOnAddedToEntry(e.NewItem, this);
         };
     }
 

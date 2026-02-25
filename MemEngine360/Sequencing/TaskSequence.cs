@@ -160,8 +160,8 @@ public sealed class TaskSequence : IConditionsHost, IComponentManager, IUserLoca
         this.Progress.Text = "Sequence not running";
         
         this.Operations = new ObservableList<BaseSequenceOperation>();
-        this.Operations.ValidateAdd += (list, index, items) => {
-            foreach (BaseSequenceOperation item in items) {
+        this.Operations.ValidateAdd += (list, e) => {
+            foreach (BaseSequenceOperation item in e.Items) {
                 if (item == null)
                     throw new ArgumentNullException(nameof(item), "Cannot add a null operation");
                 if (item.TaskSequence == this)
@@ -176,17 +176,17 @@ public sealed class TaskSequence : IConditionsHost, IComponentManager, IUserLoca
             }
         };
 
-        this.Operations.ValidateRemove += (list, index, count) => this.CheckNotRunning("Cannot modify sequence list while running");
-        this.Operations.ValidateMove += (list, oldIdx, newIdx, item) => this.CheckNotRunning("Cannot modify sequence list while running");
-        this.Operations.ValidateReplace += (list, index, oldItem, newItem) => {
-            if (newItem == null)
-                throw new ArgumentNullException(nameof(newItem), "Cannot replace operation with null");
+        this.Operations.ValidateRemove += (list, e) => this.CheckNotRunning("Cannot modify sequence list while running");
+        this.Operations.ValidateMove += (list, e) => this.CheckNotRunning("Cannot modify sequence list while running");
+        this.Operations.ValidateReplace += (list, e) => {
+            if (e.NewItem == null)
+                throw new InvalidOperationException("Cannot replace operation with null");
             this.CheckNotRunning("Cannot modify sequence list while running");
         };
 
-        this.Operations.ItemsAdded += (list, index, items) => {
-            bool updateLabels = items.Any(x => x is LabelOperation || x is JumpToLabelOperation);
-            foreach (BaseSequenceOperation operation in items) {
+        this.Operations.ItemsAdded += (list, e) => {
+            bool updateLabels = e.Items.Any(x => x is LabelOperation || x is JumpToLabelOperation);
+            foreach (BaseSequenceOperation operation in e.Items) {
                 BaseSequenceOperation.InternalSetSequence(operation, this);
             }
 
@@ -195,10 +195,10 @@ public sealed class TaskSequence : IConditionsHost, IComponentManager, IUserLoca
             }
         };
         
-        this.Operations.ItemsRemoved += (list, index, removedItems) => {
+        this.Operations.ItemsRemoved += (list, e) => {
             List<LabelOperation>? removedLabels = null;
 
-            foreach (BaseSequenceOperation operation in removedItems) {
+            foreach (BaseSequenceOperation operation in e.Items) {
                 BaseSequenceOperation.InternalSetSequence(operation, null);
                 if (operation is LabelOperation label) {
                     (removedLabels ??= new List<LabelOperation>()).Add(label);
@@ -214,9 +214,9 @@ public sealed class TaskSequence : IConditionsHost, IComponentManager, IUserLoca
             }
         };
 
-        this.Operations.ItemReplaced += (list, index, oldItem, newItem) => {
-            BaseSequenceOperation.InternalSetSequence(oldItem, null);
-            if (oldItem is LabelOperation label) {
+        this.Operations.ItemReplaced += (list, e) => {
+            BaseSequenceOperation.InternalSetSequence(e.OldItem, null);
+            if (e.OldItem is LabelOperation label) {
                 foreach (JumpToLabelOperation ope in this.Operations.OfType<JumpToLabelOperation>()) {
                     if (ope.TargetLabel != null && ope.CurrentTarget == label) {
                         // Replacing an item in a list seems more like a removal operation to me,
@@ -226,12 +226,12 @@ public sealed class TaskSequence : IConditionsHost, IComponentManager, IUserLoca
                 }
             }
 
-            BaseSequenceOperation.InternalSetSequence(newItem, this);
+            BaseSequenceOperation.InternalSetSequence(e.NewItem, this);
         };
 
         this.Conditions = new ObservableList<BaseSequenceCondition>();
-        this.Conditions.ValidateAdd += (list, i, items) => {
-            foreach (BaseSequenceCondition item in items) {
+        this.Conditions.ValidateAdd += (list, e) => {
+            foreach (BaseSequenceCondition item in e.Items) {
                 if (item == null)
                     throw new InvalidOperationException("Cannot add null condition");
                 if (item.TaskSequence == this)
@@ -242,29 +242,29 @@ public sealed class TaskSequence : IConditionsHost, IComponentManager, IUserLoca
             }
         };
 
-        this.Conditions.ValidateRemove += (list, index, count) => this.CheckNotRunning($"Cannot remove condition{Lang.S(count)} while running");
-        this.Conditions.ValidateMove += (list, oldIdx, newIdx, item) => this.CheckNotRunning("Cannot move conditions while running");
-        this.Conditions.ValidateReplace += (list, index, oldItem, newItem) => {
-            if (newItem == null)
+        this.Conditions.ValidateRemove += (list, e) => this.CheckNotRunning($"Cannot remove condition{Lang.S(e.Items.Count)} while running");
+        this.Conditions.ValidateMove += (list, e) => this.CheckNotRunning("Cannot move conditions while running");
+        this.Conditions.ValidateReplace += (list, e) => {
+            if (e.NewItem == null)
                 throw new InvalidOperationException("Cannot replace condition with null");
             this.CheckNotRunning("Cannot replace condition while running");
         };
 
-        this.Conditions.ItemsAdded += (list, index, items) => {
-            foreach (BaseSequenceCondition condition in items) {
+        this.Conditions.ItemsAdded += (list, e) => {
+            foreach (BaseSequenceCondition condition in e.Items) {
                 BaseSequenceCondition.InternalSetOwner(condition, this);
             }
         };
         
-        this.Conditions.ItemsRemoved += (list, index, items) => {
-            foreach (BaseSequenceCondition condition in items) {
+        this.Conditions.ItemsRemoved += (list, e) => {
+            foreach (BaseSequenceCondition condition in e.Items) {
                 BaseSequenceCondition.InternalSetOwner(condition, null);
             }
         };
         
-        this.Conditions.ItemReplaced += (list, index, oldItem, newItem) => {
-            BaseSequenceCondition.InternalSetOwner(oldItem, null);
-            BaseSequenceCondition.InternalSetOwner(newItem, this);
+        this.Conditions.ItemReplaced += (list, e) => {
+            BaseSequenceCondition.InternalSetOwner(e.OldItem, null);
+            BaseSequenceCondition.InternalSetOwner(e.NewItem, this);
         };
     }
 
