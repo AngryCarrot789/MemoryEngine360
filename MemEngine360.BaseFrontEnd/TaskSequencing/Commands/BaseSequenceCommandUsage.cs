@@ -21,13 +21,13 @@ using MemEngine360.Engine;
 using MemEngine360.Sequencing;
 using PFXToolKitUI.Avalonia.CommandUsages;
 using PFXToolKitUI.Interactivity.Contexts;
+using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Commands;
 
 public abstract class BaseSequenceCommandUsage : SimpleButtonCommandUsage {
-    public MemoryEngine? Engine { get; private set; }
-    
-    public TaskSequence? TaskSequence { get; private set; }
+    private TaskSequence? myTaskSequence;
+    private MemoryEngine? myEngineFromTask;
 
     protected BaseSequenceCommandUsage(string commandId) : base(commandId) {
     }
@@ -39,29 +39,11 @@ public abstract class BaseSequenceCommandUsage : SimpleButtonCommandUsage {
 
     protected override void OnContextChanged() {
         base.OnContextChanged();
-        TaskSequence? oldSeq = this.TaskSequence;
-        TaskSequence? newSeq = null;
-        if (this.GetContextData() is IContextData data) {
-            TaskSequence.DataKey.TryGetContext(data, out newSeq);
-        }
-
-        if (oldSeq != newSeq) {
-            MemoryEngine? oldEngine = this.Engine;
-            MemoryEngine? newEngine = newSeq?.Manager?.MemoryEngine;
-            
-            this.TaskSequence = newSeq;
-            this.OnTaskSequenceChanged(oldSeq, newSeq);
-            if (oldEngine != newEngine) {
-                this.Engine = newEngine;
-                this.OnEngineChanged(oldEngine, newEngine);
-            }
-            
-            this.UpdateCanExecuteLater();
-        }
+        this.GetContextData().SetAndRaiseINE(ref this.myTaskSequence, TaskSequence.DataKey, this, static (t, e) => t.OnTaskSequenceChanged(e.OldValue, e.NewValue));
     }
 
     protected virtual void OnTaskSequenceChanged(TaskSequence? oldSeq, TaskSequence? newSeq) {
-        
+        PropertyHelper.SetAndRaiseINE(ref this.myEngineFromTask, newSeq?.Manager?.MemoryEngine, this, static (t, o, n) => t.OnEngineChanged(o, n));
     }
 
     /// <summary>
@@ -70,6 +52,5 @@ public abstract class BaseSequenceCommandUsage : SimpleButtonCommandUsage {
     /// <param name="oldEngine">Previous engine ref</param>
     /// <param name="newEngine">New engine ref</param>
     protected virtual void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine) {
-        
     }
 }

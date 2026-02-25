@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
 using MemEngine360.ModTools;
 using PFXToolKitUI.Avalonia.CommandUsages;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -25,10 +24,8 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.BaseFrontEnd.ModTools.Commands;
 
 public abstract class BaseModToolCommandUsage : SimpleButtonCommandUsage {
-    public MemoryEngine? Engine { get; private set; }
-
-    public ModTool? ModTool { get; private set; }
-
+    private ModTool? modTool;
+    
     protected BaseModToolCommandUsage(string commandId) : base(commandId) {
     }
 
@@ -39,36 +36,10 @@ public abstract class BaseModToolCommandUsage : SimpleButtonCommandUsage {
 
     protected override void OnContextChanged() {
         base.OnContextChanged();
-        ModTool? oldTool = this.ModTool;
-        ModTool? newTool = null;
-        if (this.GetContextData() is IContextData data) {
-            ModTool.DataKey.TryGetContext(data, out newTool);
-        }
-
-        if (oldTool != newTool) {
-            MemoryEngine? oldEngine = this.Engine;
-            MemoryEngine? newEngine = newTool?.Manager?.MemoryEngine;
-
-            this.ModTool = newTool;
-            this.OnModToolChanged(oldTool, newTool);
-            if (oldEngine != newEngine) {
-                this.Engine = newEngine;
-                this.OnEngineChanged(oldEngine, newEngine);
-            }
-
-            this.UpdateCanExecuteLater();
-        }
+        this.GetContextData().SetAndRaiseINE(ref this.modTool, ModTool.DataKey, this, static (t, e) => t.OnModToolChanged(e.OldValue, e.NewValue));
     }
 
     protected virtual void OnModToolChanged(ModTool? oldTool, ModTool? newTool) {
-    }
-
-    /// <summary>
-    /// Always called after <see cref="OnModToolChanged"/>. Invoked when the effective engine changes
-    /// </summary>
-    /// <param name="oldEngine">Previous engine ref</param>
-    /// <param name="newEngine">New engine ref</param>
-    protected virtual void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine) {
     }
 }
 

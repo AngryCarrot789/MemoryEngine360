@@ -28,27 +28,17 @@ using PFXToolKitUI.Utils.Events;
 namespace MemEngine360.BaseFrontEnd.Debugging;
 
 public abstract class DebuggerCommandUsage : SimpleButtonCommandUsage {
-    public ConsoleDebugger? Debugger { get; private set; }
+    private ConsoleDebugger? myDebugger;
 
     protected DebuggerCommandUsage(string commandId) : base(commandId) {
     }
 
     protected override void OnContextChanged() {
         base.OnContextChanged();
-        ConsoleDebugger? oldDebugger = this.Debugger;
-        ConsoleDebugger? newDebugger = null;
-        if (this.GetContextData() is IContextData data) {
-            ConsoleDebugger.DataKey.TryGetContext(data, out newDebugger);
-        }
-
-        if (oldDebugger != newDebugger) {
-            this.Debugger = newDebugger;
-            this.OnDebuggerChanged(oldDebugger, newDebugger);
-        }
+        this.GetContextData().SetAndRaiseINE(ref this.myDebugger, ConsoleDebugger.DataKey, this, static (t, e) => t.OnDebuggerChanged(e.OldValue, e.NewValue));
     }
 
     protected virtual void OnDebuggerChanged(ConsoleDebugger? oldDebugger, ConsoleDebugger? newDebugger) {
-        this.UpdateCanExecuteLater();
     }
 }
 
@@ -58,7 +48,6 @@ public abstract class DebuggerConnectionDependentCommandUsage : DebuggerCommandU
 
     protected override void OnDebuggerChanged(ConsoleDebugger? oldDebugger, ConsoleDebugger? newDebugger) {
         base.OnDebuggerChanged(oldDebugger, newDebugger);
-
         if (oldDebugger != null) {
             oldDebugger.ConnectionChanged -= this.OnConnectionChanged;
         }
@@ -79,7 +68,6 @@ public abstract class DebuggerConsoleExecStateCommandUsage : DebuggerConnectionD
 
     protected override void OnDebuggerChanged(ConsoleDebugger? oldDebugger, ConsoleDebugger? newDebugger) {
         base.OnDebuggerChanged(oldDebugger, newDebugger);
-
         if (oldDebugger != null) {
             oldDebugger.IsConsoleRunningChanged -= this.OnIsRunningChanged;
         }
@@ -100,7 +88,6 @@ public abstract class DebugThreadCommandUsage : DebuggerCommandUsage {
 
     protected override void OnDebuggerChanged(ConsoleDebugger? oldDebugger, ConsoleDebugger? newDebugger) {
         base.OnDebuggerChanged(oldDebugger, newDebugger);
-
         if (oldDebugger != null)
             oldDebugger.ActiveThreadChanged -= this.OnActiveThreadChanged;
         if (newDebugger != null)

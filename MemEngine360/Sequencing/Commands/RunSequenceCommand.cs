@@ -113,7 +113,7 @@ public class RunSequenceCommand : Command, IDisabledHintProvider {
                 await runTask; // will most likely throw
                 return;
             }
-
+            
             disposeToken = false;
         }
         finally {
@@ -122,7 +122,6 @@ public class RunSequenceCommand : Command, IDisabledHintProvider {
             if (disposeToken)
                 token?.Dispose();
         }
-
 
         _ = runTask.ContinueWith(async t => {
             try {

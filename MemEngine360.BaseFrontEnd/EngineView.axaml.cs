@@ -55,7 +55,6 @@ using PFXToolKitUI.Themes;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Collections.Observable;
 using PFXToolKitUI.Utils.Commands;
-using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.BaseFrontEnd;
 
@@ -623,6 +622,7 @@ public partial class EngineView : UserControl {
     private void OnConnectionChanged(object? o, ConnectionChangedEventArgs args) {
         TextNotification notification = this.connectionNotification ??= new TextNotification() {
             ContextData = new ContextData().Set(MemoryEngineViewState.DataKey, this.ViewState).
+                                            Set(MemoryEngine.DataKey, this.ViewState.Engine).
                                             Set(ITopLevel.TopLevelDataKey, this.myOwnerWindow_onLoaded)
         };
 
@@ -794,7 +794,7 @@ public partial class EngineView : UserControl {
             // Sort of pointless unless the user tries to connect to a console while it's booting
             // and then they open the File menu, they'll see that this entry is greyed out until we
             // connect, then once connected, it's either now invisible or clickable. This is just a point of concept really
-            this.OnContextChangedHelper(MemoryEngineViewState.DataKey, ref this.myEngine, static (@this, e) => {
+            this.SetAndRaiseINE(ref this.myEngine, MemoryEngineViewState.DataKey, static (@this, e) => {
                 if (e.OldValue != null)
                     e.OldValue.Engine.ConnectionChanged -= @this.OnContextEngineConnectionChanged;
                 if (e.NewValue != null)

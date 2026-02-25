@@ -79,6 +79,7 @@ using PFXToolKitUI.Activities;
 using PFXToolKitUI.Avalonia;
 using PFXToolKitUI.Avalonia.Configurations.Pages;
 using PFXToolKitUI.Avalonia.Interactivity;
+using PFXToolKitUI.Avalonia.Interactivity.Contexts;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop.Impl;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Overlays.Impl;
@@ -90,6 +91,7 @@ using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Composition;
 using PFXToolKitUI.Configurations;
 using PFXToolKitUI.Icons;
+using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Logging;
 using PFXToolKitUI.Services;
@@ -437,22 +439,28 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 EngineView view = (EngineView) ((OverlayContentHostRoot) ((IDesktopWindow) s!).Content!).Content!;
                 view.MemoryEngine.UserContext.Set(ITopLevel.TopLevelDataKey, (IDesktopWindow) s);
                 view.ViewState.IsActivityListVisible = false;
-                DataManager.GetContextData(((IDesktopWindow) s!).Control).Set(MemoryEngineViewState.DataKey, view.ViewState);
+
+                using (IMutableContextData.BatchToken change = DataManager.GetContextData(((IDesktopWindow) s).Control).BeginChange()) {
+                    change.Context.Set(MemoryEngineViewState.DataKey, view.ViewState);
+                    change.Context.Set(MemoryEngine.DataKey, view.ViewState.Engine);
+                }
 
                 ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.MemoryEngine);
             };
 
             window.ClosingAsync += static (s, e) => {
-                return Instance.Dispatcher.InvokeAsync(() => {
-                    return CommandManager.Instance.RunActionAsync(_ => OnEngineWindowAboutToClose((IDesktopWindow) s!), ((IDesktopWindow) s!).LocalContextData);
-                }).Unwrap();
+                return CommandManager.Instance.RunActionAsync(_ => OnEngineWindowAboutToClose((IDesktopWindow) s!), ((IDesktopWindow) s!).LocalContextData);
             };
 
             window.Closed += static (s, e) => {
                 EngineView view = (EngineView) ((OverlayContentHostRoot) ((IDesktopWindow) s!).Content!).Content!;
                 view.MemoryEngine.UserContext.Remove(ITopLevel.TopLevelDataKey);
                 ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
-                DataManager.GetContextData(((IDesktopWindow) s!).Control).Remove(MemoryEngineViewState.DataKey);
+
+                using (IMutableContextData.BatchToken change = DataManager.GetContextData(((IDesktopWindow) s).Control).BeginChange()) {
+                    change.Context.Remove(MemoryEngineViewState.DataKey);
+                    change.Context.Remove(MemoryEngine.DataKey);
+                }
             };
 
             await window.ShowAsync();
@@ -602,7 +610,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             }
 
             await Task.WhenAll(tasks.Select(x => x.Task)).TryWaitAsync(1000, CancellationToken.None);
-            
+
             IBusyToken? token = await engine.BeginBusyOperationAsync(500);
             while (token == null) {
                 MessageBoxInfo info = new MessageBoxInfo() {

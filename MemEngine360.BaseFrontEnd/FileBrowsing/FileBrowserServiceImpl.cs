@@ -54,12 +54,13 @@ public class FileBrowserServiceImpl : IFileBrowserService {
             Width = 1024, Height = 768
         });
 
-        window.Closing += static (s, args) => {
+        window.ClosingAsync += static (s, args) => {
             FileTreeExplorerView content = (FileTreeExplorerView) ((IDesktopWindow) s!).Content!;
             FileTreeExplorer exp = content.FileTreeExplorer!;
             exp.MemoryEngine.UserContext.Remove(OpenedWindowKey);
 
             content.FileTreeExplorer = null;
+            return Task.CompletedTask;
         };
         
         explorer.MemoryEngine.UserContext.Set(OpenedWindowKey, window);

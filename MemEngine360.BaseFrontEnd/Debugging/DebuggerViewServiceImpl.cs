@@ -19,7 +19,6 @@
 
 using System.Diagnostics;
 using MemEngine360.Engine.Debugging;
-using PFXToolKitUI;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing;
 using PFXToolKitUI.Avalonia.Interactivity.Windowing.Desktop;
 using PFXToolKitUI.Avalonia.Utils;
@@ -32,11 +31,11 @@ namespace MemEngine360.BaseFrontEnd.Debugging;
 
 public class DebuggerViewServiceImpl : IDebuggerViewService {
     private static readonly DataKey<IDesktopWindow> OpenedWindowKey = DataKeys.Create<IDesktopWindow>(nameof(IDebuggerViewService) + "_OpenedDebuggerWindow");
-    
+
     public async Task<ITopLevel?> OpenOrFocusWindow(ConsoleDebugger debugger) {
         if (OpenedWindowKey.TryGetContext(debugger.Engine.UserContext, out IDesktopWindow? debuggerWindow)) {
             Debug.Assert(debuggerWindow.OpenState.IsOpenOrTryingToClose());
-            
+
             debuggerWindow.Activate();
             return debuggerWindow;
         }
@@ -61,17 +60,15 @@ public class DebuggerViewServiceImpl : IDebuggerViewService {
 
         window.Opened += (s, args) => ((DebuggerView) ((IDesktopWindow) s!).Content!).OnWindowOpened((IDesktopWindow) s!);
         window.ClosingAsync += (s, args) => {
-            return ApplicationPFX.Instance.Dispatcher.InvokeAsync(() => {
-                // prevent memory leak
-                DebuggerView view = (DebuggerView) ((IDesktopWindow) s!).Content!;
-                view.ConsoleDebugger!.Engine.UserContext.Remove(OpenedWindowKey);
-                
-                return view.OnClosingAsync(args.Reason);
-            }).Unwrap();
+            // prevent memory leak
+            DebuggerView view = (DebuggerView) ((IDesktopWindow) s!).Content!;
+            view.ConsoleDebugger!.Engine.UserContext.Remove(OpenedWindowKey);
+
+            return view.OnClosingAsync(args.Reason);
         };
-        
+
         window.Closed += (s, args) => ((DebuggerView) ((IDesktopWindow) s!).Content!).OnWindowClosed();
-        
+
         debugger.Engine.UserContext.Set(OpenedWindowKey, window);
         await window.ShowAsync();
 

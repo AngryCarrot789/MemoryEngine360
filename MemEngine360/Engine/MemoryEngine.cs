@@ -51,6 +51,8 @@ namespace MemEngine360.Engine;
 /// </summary>
 [DebuggerDisplay("IsBusy = {IsConnectionBusy}, Connection = {Connection}")]
 public class MemoryEngine : IComponentManager, IUserLocalContext {
+    public static readonly DataKey<MemoryEngine> DataKey = DataKeys.Create<MemoryEngine>("MemoryEngine");
+    
     /// <summary>
     /// A data key used by the connection change notification to tell whether a disconnection originated from the notification's "Disconnect" command
     /// </summary>

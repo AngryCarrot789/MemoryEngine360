@@ -30,12 +30,13 @@ public abstract class EngineConnectionReliantButtonCommandUsage : EngineButtonCo
     protected EngineConnectionReliantButtonCommandUsage(string commandId) : base(commandId) {
     }
 
-    protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine, MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
-        if (oldEngine != null)
-            oldEngine.ConnectionChanged -= this.OnConnectionChanged;
+    protected override void OnEngineChanged(MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
+        base.OnEngineChanged(oldEngineVs, newEngineVs);
+        if (oldEngineVs != null)
+            oldEngineVs.Engine.ConnectionChanged -= this.OnConnectionChanged;
         
-        if (newEngine != null)
-            newEngine.ConnectionChanged += this.OnConnectionChanged;
+        if (newEngineVs != null)
+            newEngineVs.Engine.ConnectionChanged += this.OnConnectionChanged;
     }
     
     protected virtual void OnConnectionChanged(object? o, ConnectionChangedEventArgs args) {
@@ -47,16 +48,16 @@ public class RefreshSavedAddressesCommandUsage : EngineConnectionReliantButtonCo
     public RefreshSavedAddressesCommandUsage() : base("commands.memengine.RefreshSavedAddressesCommand") {
     }
 
-    protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine, MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
-        base.OnEngineChanged(oldEngine, newEngine, oldEngineVs, newEngineVs);
-        if (oldEngine != null) {
-            oldEngine.ScanningProcessor.IsRefreshingAddressesChanged -= this.DoUpdate;
-            oldEngine.ScanningProcessor.IsScanningChanged -= this.DoUpdate;
+    protected override void OnEngineChanged(MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
+        base.OnEngineChanged(oldEngineVs, newEngineVs);
+        if (oldEngineVs != null) {
+            oldEngineVs.Engine.ScanningProcessor.IsRefreshingAddressesChanged -= this.DoUpdate;
+            oldEngineVs.Engine.ScanningProcessor.IsScanningChanged -= this.DoUpdate;
         }
 
-        if (newEngine != null) {
-            newEngine.ScanningProcessor.IsRefreshingAddressesChanged += this.DoUpdate;
-            newEngine.ScanningProcessor.IsScanningChanged += this.DoUpdate;
+        if (newEngineVs != null) {
+            newEngineVs.Engine.ScanningProcessor.IsRefreshingAddressesChanged += this.DoUpdate;
+            newEngineVs.Engine.ScanningProcessor.IsScanningChanged += this.DoUpdate;
         }
     }
 
@@ -67,8 +68,8 @@ public class AddSelectedScanResultsToSavedAddressListCommandUsage : EngineButton
     public AddSelectedScanResultsToSavedAddressListCommandUsage() : base("commands.memengine.AddSelectedScanResultsToSavedAddressListCommand") {
     }
 
-    protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine, MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
-        base.OnEngineChanged(oldEngine, newEngine, oldEngineVs, newEngineVs);
+    protected override void OnEngineChanged(MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
+        base.OnEngineChanged(oldEngineVs, newEngineVs);
         if (oldEngineVs != null)
             oldEngineVs.SelectedScanResults.SelectionChanged -= this.OnSelectionChanged;
         if (newEngineVs != null)
@@ -84,12 +85,12 @@ public class SelectRangeFromRegionCommandUsage() : EngineConnectionReliantButton
 public class ShowCommandUsage() : EngineConnectionReliantButtonCommandUsage("commands.memengine.ShowMemoryViewCommand");
 
 public class ResetScanOptionsCommandUsage() : EngineConnectionReliantButtonCommandUsage("commands.memengine.ResetScanOptionsCommand") {
-    protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine, MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
-        base.OnEngineChanged(oldEngine, newEngine, oldEngineVs, newEngineVs);
-        if (oldEngine != null)
-            oldEngine.ScanningProcessor.IsScanningChanged -= this.OnIsScanningChanged;
-        if (newEngine != null)
-            newEngine.ScanningProcessor.IsScanningChanged += this.OnIsScanningChanged;
+    protected override void OnEngineChanged(MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
+        base.OnEngineChanged(oldEngineVs, newEngineVs);
+        if (oldEngineVs != null)
+            oldEngineVs.Engine.ScanningProcessor.IsScanningChanged -= this.OnIsScanningChanged;
+        if (newEngineVs != null)
+            newEngineVs.Engine.ScanningProcessor.IsScanningChanged += this.OnIsScanningChanged;
     }
 
     private void OnIsScanningChanged(object? o, EventArgs e) {

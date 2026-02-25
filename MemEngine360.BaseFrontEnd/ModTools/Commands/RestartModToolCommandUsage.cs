@@ -24,6 +24,8 @@ using PFXToolKitUI.CommandSystem;
 namespace MemEngine360.BaseFrontEnd.ModTools.Commands;
 
 public class RestartModToolCommandUsage : BaseModToolCommandUsage {
+    private ModTool? myModTool;
+
     public RestartModToolCommandUsage() : base("commands.modtools.RestartModToolCommand") {
     }
 
@@ -33,6 +35,8 @@ public class RestartModToolCommandUsage : BaseModToolCommandUsage {
             oldTool.IsRunningChanged -= this.OnIsRunningChanged;
         if (newTool != null)
             newTool.IsRunningChanged += this.OnIsRunningChanged;
+
+        this.myModTool = newTool;
     }
 
     private void OnIsRunningChanged(object? o, EventArgs e) {
@@ -42,7 +46,7 @@ public class RestartModToolCommandUsage : BaseModToolCommandUsage {
     protected override void OnUpdateForCanExecuteState(Executability state) {
         base.OnUpdateForCanExecuteState(state);
         if (this.Button.Control is ContentControl cc) {
-            cc.Content = this.ModTool == null || !this.ModTool.IsRunning ? "Run Tool" : "Restart";
+            cc.Content = this.myModTool == null || !this.myModTool.IsRunning ? "Run Tool" : "Restart";
         }
     }
 }

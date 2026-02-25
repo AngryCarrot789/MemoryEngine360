@@ -27,20 +27,20 @@ public class BaseScanCommandUsage : EngineButtonCommandUsage {
         
     }
 
-    protected override void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine, MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
-        base.OnEngineChanged(oldEngine, newEngine, oldEngineVs, newEngineVs);
-        if (oldEngine != null) {
-            oldEngine.ScanningProcessor.IsScanningChanged -= this.OnIsScanningChanged;
-            oldEngine.ScanningProcessor.HasFirstScanChanged -= this.OnHasFirstScanChanged;
-            oldEngine.IsBusyChanged -= this.OnIsBusyChanged;
-            oldEngine.ConnectionChanged -= this.OnConnectionChanged;
+    protected override void OnEngineChanged(MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {
+        base.OnEngineChanged(oldEngineVs, newEngineVs);
+        if (oldEngineVs != null) {
+            oldEngineVs.Engine.ScanningProcessor.IsScanningChanged -= this.OnIsScanningChanged;
+            oldEngineVs.Engine.ScanningProcessor.HasFirstScanChanged -= this.OnHasFirstScanChanged;
+            oldEngineVs.Engine.IsBusyChanged -= this.OnIsBusyChanged;
+            oldEngineVs.Engine.ConnectionChanged -= this.OnConnectionChanged;
         }
 
-        if (newEngine != null) {
-            newEngine.ScanningProcessor.IsScanningChanged += this.OnIsScanningChanged;
-            newEngine.ScanningProcessor.HasFirstScanChanged += this.OnHasFirstScanChanged;
-            newEngine.IsBusyChanged += this.OnIsBusyChanged;
-            newEngine.ConnectionChanged += this.OnConnectionChanged;
+        if (newEngineVs != null) {
+            newEngineVs.Engine.ScanningProcessor.IsScanningChanged += this.OnIsScanningChanged;
+            newEngineVs.Engine.ScanningProcessor.HasFirstScanChanged += this.OnHasFirstScanChanged;
+            newEngineVs.Engine.IsBusyChanged += this.OnIsBusyChanged;
+            newEngineVs.Engine.ConnectionChanged += this.OnConnectionChanged;
         }
     }
 

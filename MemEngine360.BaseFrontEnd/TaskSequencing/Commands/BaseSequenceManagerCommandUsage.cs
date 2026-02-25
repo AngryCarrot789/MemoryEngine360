@@ -17,8 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
-using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.View;
 using PFXToolKitUI.Avalonia.CommandUsages;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -26,9 +24,7 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Commands;
 
 public abstract class BaseSequenceManagerCommandUsage : SimpleButtonCommandUsage {
-    public MemoryEngine? Engine { get; private set; }
-    
-    public TaskSequenceManager? TaskSequencerManager { get; private set; }
+    private TaskSequenceManagerViewState? myTaskSequencerManager;
 
     protected BaseSequenceManagerCommandUsage(string commandId) : base(commandId) {
     }
@@ -40,32 +36,9 @@ public abstract class BaseSequenceManagerCommandUsage : SimpleButtonCommandUsage
 
     protected override void OnContextChanged() {
         base.OnContextChanged();
-        TaskSequenceManager? oldManager = this.TaskSequencerManager;
-        TaskSequenceManager? newManager = null;
-        if (this.GetContextData() is IContextData data && TaskSequenceManagerViewState.DataKey.TryGetContext(data, out TaskSequenceManagerViewState? manager)) {
-            newManager = manager.TaskSequenceManager;
-        }
-
-        if (oldManager != newManager) {
-            MemoryEngine? oldEngine = this.Engine;
-            MemoryEngine? newEngine = newManager?.MemoryEngine;
-            
-            this.TaskSequencerManager = newManager;
-            this.OnTaskSequencerManagerChanged(oldManager, newManager);
-            if (oldEngine != newEngine) {
-                this.Engine = newEngine;
-                this.OnEngineChanged(oldEngine, newEngine);
-            }
-            
-            this.UpdateCanExecuteLater();
-        }
+        this.GetContextData().SetAndRaiseINE(ref this.myTaskSequencerManager, TaskSequenceManagerViewState.DataKey, this, static (t, e) => t.OnTaskSequencerManagerChanged(e.OldValue, e.NewValue));
     }
 
-    protected virtual void OnTaskSequencerManagerChanged(TaskSequenceManager? oldManager, TaskSequenceManager? newManager) {
-        
-    }
-
-    protected virtual void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine) {
-        
+    protected virtual void OnTaskSequencerManagerChanged(TaskSequenceManagerViewState? oldManager, TaskSequenceManagerViewState? newManager) {
     }
 }

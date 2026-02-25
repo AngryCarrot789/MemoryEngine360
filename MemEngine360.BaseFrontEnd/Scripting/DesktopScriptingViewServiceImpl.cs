@@ -58,20 +58,19 @@ public class DesktopScriptingViewServiceImpl : IScriptingViewService {
             });
 
             window.Opened += (s, args) => ((ScriptingView) ((IDesktopWindow) s!).Content!).OnWindowOpened((IDesktopWindow) s!);
-            
+
             window.TryCloseAsync += static async (s, args) => {
-                await await ApplicationPFX.Instance.Dispatcher.InvokeAsync(async () => {
-                    ScriptingView view = (ScriptingView) ((IDesktopWindow) s!).Content!;
-                    ScriptingView.CloseRequest result = await view.OnClosingAsync((IDesktopWindow) s!, !view.ScriptingManager!.ScriptingManager.MemoryEngine.IsShuttingDown);
-                    if (result == ScriptingView.CloseRequest.Cancel) {
-                        args.SetCancelled();
-                    }
-                });
+                ScriptingView view = (ScriptingView) ((IDesktopWindow) s!).Content!;
+                ScriptingView.CloseRequest result = await view.OnClosingAsync((IDesktopWindow) s!, !view.ScriptingManager!.ScriptingManager.MemoryEngine.IsShuttingDown);
+                if (result == ScriptingView.CloseRequest.Cancel) {
+                    args.SetCancelled();
+                }
             };
-            
-            window.Closing += (s, args) => {
+
+            window.ClosingAsync += (s, args) => {
                 ScriptingManagerViewState tsm = ((ScriptingView) ((IDesktopWindow) s!).Content!).ScriptingManager!;
                 tsm.ScriptingManager.UserContext.Remove(ITopLevel.TopLevelDataKey);
+                return Task.CompletedTask;
             };
 
             window.Closed += (s, args) => ((ScriptingView) ((IDesktopWindow) s!).Content!).OnWindowClosed();
@@ -119,7 +118,7 @@ public class DesktopScriptingViewServiceImpl : IScriptingViewService {
             }
         }
     }
-    
+
     public Task CloseWindow(ScriptingManager manager) {
         if (ITopLevel.TryGetFromContext(manager.UserContext, out ITopLevel? sequencerTopLevel)) {
             IDesktopWindow window = (IDesktopWindow) sequencerTopLevel;

@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
 using MemEngine360.Scripting;
 using PFXToolKitUI.Avalonia.CommandUsages;
 using PFXToolKitUI.Interactivity.Contexts;
@@ -25,9 +24,7 @@ using PFXToolKitUI.Interactivity.Contexts;
 namespace MemEngine360.BaseFrontEnd.Scripting.Commands;
 
 public abstract class BaseScriptCommandUsage : SimpleButtonCommandUsage {
-    public MemoryEngine? Engine { get; private set; }
-
-    public Script? Script { get; private set; }
+    private Script? script;
 
     protected BaseScriptCommandUsage(string commandId) : base(commandId) {
     }
@@ -39,36 +36,10 @@ public abstract class BaseScriptCommandUsage : SimpleButtonCommandUsage {
 
     protected override void OnContextChanged() {
         base.OnContextChanged();
-        Script? oldSeq = this.Script;
-        Script? newSeq = null;
-        if (this.GetContextData() is IContextData data) {
-            Script.DataKey.TryGetContext(data, out newSeq);
-        }
-
-        if (oldSeq != newSeq) {
-            MemoryEngine? oldEngine = this.Engine;
-            MemoryEngine? newEngine = newSeq?.Manager?.MemoryEngine;
-
-            this.Script = newSeq;
-            this.OnScriptChanged(oldSeq, newSeq);
-            if (oldEngine != newEngine) {
-                this.Engine = newEngine;
-                this.OnEngineChanged(oldEngine, newEngine);
-            }
-
-            this.UpdateCanExecuteLater();
-        }
+        this.GetContextData().SetAndRaiseINE(ref this.script, Script.DataKey, this, static (t, e) => t.OnScriptChanged(e.OldValue, e.NewValue));
     }
 
     protected virtual void OnScriptChanged(Script? oldScript, Script? newScript) {
-    }
-
-    /// <summary>
-    /// Always called after <see cref="OnScriptChanged"/>. Invoked when the effective engine changes
-    /// </summary>
-    /// <param name="oldEngine">Previous engine ref</param>
-    /// <param name="newEngine">New engine ref</param>
-    protected virtual void OnEngineChanged(MemoryEngine? oldEngine, MemoryEngine? newEngine) {
     }
 }
 
