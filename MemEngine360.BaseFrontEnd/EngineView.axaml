@@ -558,11 +558,11 @@
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
-                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenXMLFileCommand">
+                                                cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenSaveAddressFileCommand">
                                     <tt:ToolTipEx.Tip>
                                         <StackPanel Orientation="Horizontal" Spacing="5">
                                             <TextBlock Text="Open an XML file containing saved addresses" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.memengine.OpenXMLFileCommand"/>
+                                            <avc:ShortcutLabel CommandId="commands.memengine.OpenSaveAddressFileCommand"/>
                                         </StackPanel>
                                     </tt:ToolTipEx.Tip>
                                 </avc:IconButton>

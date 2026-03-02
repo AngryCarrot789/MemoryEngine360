@@ -61,7 +61,7 @@ public sealed class FileBrowserTreeViewItem : TreeViewItem {
     }
 
     private readonly IBinder<BaseFileTreeNode> fileNameBinder = new EventUpdateBinder<BaseFileTreeNode>(nameof(BaseFileTreeNode.FileNameChanged), b => b.Control.SetValue(HeaderProperty, b.Model.FileName));
-    private readonly IBinder<BaseFileTreeNode> fileSizeBinder = new EventUpdateBinder<BaseFileTreeNode>(nameof(BaseFileTreeNode.SizeChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.IsTopLevelEntry || !(b.Model is FileTreeNodeDirectory) ? ValueScannerUtils.ByteFormatter.ToString(b.Model.Size, false) : ""));
+    private readonly IBinder<BaseFileTreeNode> fileSizeBinder = new EventUpdateBinder<BaseFileTreeNode>(nameof(BaseFileTreeNode.SizeChanged), b => b.Control.SetValue(TextBlock.TextProperty, b.Model.IsTopLevelEntry || !(b.Model is FileTreeNodeDirectory) ? ValueScannerUtils.FormatBytes(b.Model.Size) : ""));
     private readonly IBinder<BaseFileTreeNode> dateCreatedBinder = new EventUpdateBinder<BaseFileTreeNode>(nameof(BaseFileTreeNode.CreationTimeUtcChanged), b => b.Control.SetValue(TextBlock.TextProperty, !b.Model.IsTopLevelEntry ? b.Model.CreationTimeUtc.ToString() : ""));
     private readonly IBinder<BaseFileTreeNode> dateModifiedBinder = new EventUpdateBinder<BaseFileTreeNode>(nameof(BaseFileTreeNode.ModifiedTimeUtcChanged), b => b.Control.SetValue(TextBlock.TextProperty, !b.Model.IsTopLevelEntry ? b.Model.ModifiedTimeUtc.ToString() : ""));
     private ObservableItemProcessorIndexing<BaseFileTreeNode>? compositeListener;

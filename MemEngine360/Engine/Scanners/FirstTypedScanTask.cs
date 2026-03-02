@@ -172,7 +172,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
 
                     // Beyond here we can't pause. Or if we could, we would
                     // need a 2nd flag and a rewrite of ProcessMemoryBlockForFirstScan
-                    progress.Text = $"Region {this.rgIdx + 1}/{this.myRegions.Count} ({ValueScannerUtils.ByteFormatter.ToString(this.rgBaseOffset, false)}/{ValueScannerUtils.ByteFormatter.ToString(region.Size, false)})";
+                    progress.Text = $"Region {this.rgIdx + 1}/{this.myRegions.Count} ({ValueScannerUtils.FormatBytes(this.rgBaseOffset)}/{ValueScannerUtils.FormatBytes(region.Size)})";
                     progress.CompletionState.OnProgress(DataTypedScanningContext.ChunkSize);
 
                     uint baseAddress = region.BaseAddress + this.rgBaseOffset;
@@ -210,7 +210,7 @@ public sealed class FirstTypedScanTask : AdvancedPausableTask {
             this.isProcessingCurrentRegion = true;
             while (this.rgBaseOffset < len) {
                 pauseOrCancelToken.ThrowIfCancellationRequested();
-                progress.Text = $"Chunk {this.chunkIdx + 1}/{totalChunks} ({ValueScannerUtils.ByteFormatter.ToString(this.rgBaseOffset, false)}/{ValueScannerUtils.ByteFormatter.ToString(len, false)})";
+                progress.Text = $"Chunk {this.chunkIdx + 1}/{totalChunks} ({ValueScannerUtils.FormatBytes(this.rgBaseOffset)}/{ValueScannerUtils.FormatBytes(len)})";
                 progress.CompletionState.OnProgress(DataTypedScanningContext.ChunkSize);
 
                 // if (overlap > 0) {

@@ -73,7 +73,7 @@ public class ConsoleTypeListBoxItem : ModelBasedListBoxItem<ConnectionTypeEntry>
     private StackPanel? PART_PlatformIcons;
 
     public ConsoleTypeListBoxItem() {
-        ToolTipEx.SetTipType(this, typeof(ConsoleTypeToolTip));
+        ToolTipEx.SetTipType<ConsoleTypeToolTip>(this);
         this.isEnabledBinder.AttachControl(this);
         this.AddBinderForModel(this.isEnabledBinder);
     }

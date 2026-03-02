@@ -27,27 +27,28 @@ namespace MemEngine360.XboxBase;
 
 public class ShowModuleSectionInfoInDialogCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (ConsoleModuleSection.DataKey.TryGetContext(e.ContextData, out ConsoleModuleSection? section)) {
-            string sizeKb = ValueScannerUtils.ByteFormatter.ToString(section.Size, false);
+        if (!ConsoleModuleSection.DataKey.TryGetContext(e.ContextData, out ConsoleModuleSection? section))
+            return;
+        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
+            return;
 
-            string text = $"Name: {section.Name ?? "(unavailable)"}{Environment.NewLine}" +
-                          $"Base Address: {section.BaseAddress:X8}{Environment.NewLine}" +
-                          $"Section Size: {section.Size:X8} ({sizeKb}){Environment.NewLine}" +
-                          $"Flags: {(uint) section.Flags} ({section.Flags.ToString()})";
+        string sizeKb = ValueScannerUtils.FormatBytes(section.Size);
 
-            MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(new MessageBoxInfo("Section Info", text) {
-                // Cheesing it by using cancel as the OK button ;)
-                Buttons = MessageBoxButtons.OKCancel,
-                DefaultButton = MessageBoxResult.Cancel,
-                YesOkText = "Copy to Scanner",
-                CancelText = "OK"
-            });
+        string text = $"Name: {section.Name ?? "(unavailable)"}{Environment.NewLine}" +
+                      $"Base Address: {section.BaseAddress:X8}{Environment.NewLine}" +
+                      $"Section Size: {section.Size:X8} ({sizeKb}){Environment.NewLine}" +
+                      $"Flags: {(uint) section.Flags} ({section.Flags.ToString()})";
 
-            if (result == MessageBoxResult.OK && MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
-                if (section.BaseAddress + section.Size >= section.BaseAddress) {
-                    engineVs.Engine.ScanningProcessor.SetScanRange(section.BaseAddress, section.Size);
-                }
-            }
+        MessageBoxResult result = await IMessageDialogService.Instance.ShowMessage(new MessageBoxInfo("Section Info", text) {
+            // Cheesing it by using cancel as the OK button ;)
+            Buttons = MessageBoxButtons.OKCancel,
+            DefaultButton = MessageBoxResult.Cancel,
+            YesOkText = "Copy to Scanner",
+            CancelText = "OK"
+        });
+
+        if (result == MessageBoxResult.OK && section.BaseAddress + section.Size >= section.BaseAddress) {
+            engineVs.Engine.ScanningProcessor.SetScanRange(section.BaseAddress, section.Size);
         }
     }
 }

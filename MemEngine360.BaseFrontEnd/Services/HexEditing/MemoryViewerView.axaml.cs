@@ -432,7 +432,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 completion.CompletionValueChanged += (s, _) => {
                     CompletionState state = (CompletionState) s!;
                     task.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
-                    task.Progress.Text = $"Reading {ValueScannerUtils.ByteFormatter.ToString(length * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(length, false)}";
+                    task.Progress.Text = $"Reading {ValueScannerUtils.FormatBytes(length * state.TotalCompletion)}/{ValueScannerUtils.FormatBytes(length)}";
                 };
 
                 // Update initial text
@@ -505,7 +505,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
                 completion.CompletionValueChanged += (s, _) => {
                     CompletionState state = (CompletionState) s!;
                     progress.CompletionState.TotalCompletion = state.TotalCompletion;
-                    progress.Text = $"Writing {ValueScannerUtils.ByteFormatter.ToString(selection.ByteLength * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(selection.ByteLength, false)}";
+                    progress.Text = $"Writing {ValueScannerUtils.FormatBytes(selection.ByteLength * state.TotalCompletion)}/{ValueScannerUtils.FormatBytes(selection.ByteLength)}";
                 };
 
                 // Update initial text

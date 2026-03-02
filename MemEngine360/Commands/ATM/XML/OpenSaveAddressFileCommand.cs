@@ -29,7 +29,7 @@ using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands.ATM.XML;
 
-public class OpenXMLFileCommand : Command {
+public class OpenSaveAddressFileCommand : Command {
     public static readonly XmlSerializer XmlGroupSerializer = new XmlSerializer(typeof(XmlAddressEntryGroup));
     
     protected override Executability CanExecuteCore(CommandEventArgs e) {

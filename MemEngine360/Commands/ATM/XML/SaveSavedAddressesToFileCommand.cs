@@ -57,7 +57,7 @@ public class SaveSavedAddressesToFileCommand : Command {
 
                 XmlAddressEntryGroup rootGroup = new XmlAddressEntryGroup();
                 AddToGroup(engineVs.Engine.AddressTableManager.RootEntry, rootGroup);
-                OpenXMLFileCommand.XmlGroupSerializer.Serialize(stream, rootGroup);
+                OpenSaveAddressFileCommand.XmlGroupSerializer.Serialize(stream, rootGroup);
 
                 await File.WriteAllBytesAsync(path, stream.ToArray());
             }

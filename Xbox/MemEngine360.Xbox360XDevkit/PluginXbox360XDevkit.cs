@@ -18,6 +18,7 @@
 // 
 
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
 using MemEngine360.Engine;

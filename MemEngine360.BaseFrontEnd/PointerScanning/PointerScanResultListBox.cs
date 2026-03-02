@@ -49,7 +49,7 @@ public class PointerScanResultListBoxItem : VirtualizingModelListBoxItem {
     private AsyncRelayCommand? showPointerChainCommand;
 
     public PointerScanResultListBoxItem() {
-        ToolTipEx.SetTipType(this, typeof(PointerScanResultToolTip));
+        ToolTipEx.SetTipType<PointerScanResultToolTip>(this);
         this.Height = 20;
     }
 
@@ -62,8 +62,9 @@ public class PointerScanResultListBoxItem : VirtualizingModelListBoxItem {
     }
 
     private async Task ShowPointerChainInDialog() {
-        if (this.Model == null)
+        if (this.Model == null) {
             return;
+        }
 
         IContextData data = DataManager.GetFullContextData(this);
         if (!PointerScannerView.PointerScannerDataKey.TryGetContext(data, out PointerScanner? scanner)) {

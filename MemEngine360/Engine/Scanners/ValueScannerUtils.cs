@@ -23,15 +23,23 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using MemEngine360.Engine.Modes;
 using PFXToolKitUI.Interactivity.Formatting;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Engine.Scanners;
 
 public static class ValueScannerUtils {
-    public static readonly AutoMemoryValueFormatter ByteFormatter = new AutoMemoryValueFormatter() {
-        SourceFormat = MemoryFormatType.Byte,
-        NonEditingRoundedPlaces = 1,
-        AllowedFormats = [MemoryFormatType.Byte, MemoryFormatType.KiloByte1000, MemoryFormatType.MegaByte1000, MemoryFormatType.GigaByte1000, MemoryFormatType.TeraByte1000]
+    private static readonly IReadOnlySet<MemoryFormatType> AllowedFormats = new HashSet<MemoryFormatType>() {
+        MemoryFormatType.Byte,
+        MemoryFormatType.KiloByte1000,
+        MemoryFormatType.MegaByte1000,
+        MemoryFormatType.GigaByte1000,
+        MemoryFormatType.TeraByte1000
     };
+
+    public static string FormatBytes(double bytes) {
+        double outputValue = AutoMemoryValueFormatter.GetConvertedValue(bytes, MemoryFormatType.Byte, AllowedFormats, out MemoryFormatType optimalFormat);
+        return $"{outputValue:F1} {MemoryValueFormatter.GetFormatLabel(optimalFormat, DoubleUtils.AreClose(outputValue, 1.0))}";
+    }
 
     public static double TruncateDouble(double value, int decimals) {
         double factor = Math.Pow(10, decimals);
@@ -61,22 +69,22 @@ public static class ValueScannerUtils {
             return CreateGeneric_double<T>(bytes, isDataLittleEndian);
         throw new NotSupportedException();
     }
-    
+
     public static int CreateInt32FromBytes(DataType type, ReadOnlySpan<byte> bytes, bool isDataLittleEndian) {
         switch (type) {
-            case DataType.Byte:      
+            case DataType.Byte:
                 Debug.Assert(bytes.Length == 1);
                 return bytes[0];
-            case DataType.Int16:     
+            case DataType.Int16:
                 Debug.Assert(bytes.Length == 2);
-                return isDataLittleEndian ? BinaryPrimitives.ReadInt16LittleEndian(bytes) : BinaryPrimitives.ReadInt16BigEndian(bytes);
-            case DataType.Int32:     
+                return MemoryEngine.ReadInt16FromBytes(bytes, isDataLittleEndian);
+            case DataType.Int32:
                 Debug.Assert(bytes.Length == 4);
                 return isDataLittleEndian ? BinaryPrimitives.ReadInt32LittleEndian(bytes) : BinaryPrimitives.ReadInt32BigEndian(bytes);
-            default:                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            default: throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
     }
-    
+
     public static T CreateFloat<T>(ReadOnlySpan<byte> bytes, bool isDataLittleEndian) where T : INumber<T> {
         if (typeof(T) == typeof(float))
             return CreateGeneric_float<T>(bytes, isDataLittleEndian);

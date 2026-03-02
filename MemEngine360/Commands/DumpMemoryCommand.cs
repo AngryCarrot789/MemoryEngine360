@@ -158,7 +158,7 @@ public class DumpMemoryCommand : BaseMemoryEngineCommand {
             this.downloadCompletion.CompletionValueChanged += (s, _) => {
                 CompletionState state = (CompletionState) s!;
                 this.Activity.Progress.CompletionState.TotalCompletion = state.TotalCompletion;
-                this.Activity.Progress.Text = $"Downloaded {ValueScannerUtils.ByteFormatter.ToString(this.countBytes * state.TotalCompletion, false)}/{ValueScannerUtils.ByteFormatter.ToString(this.countBytes, false)}";
+                this.Activity.Progress.Text = $"Downloaded {ValueScannerUtils.FormatBytes(this.countBytes * state.TotalCompletion)}/{ValueScannerUtils.FormatBytes(this.countBytes)}";
             };
 
             this.downloadCompletionToken = this.downloadCompletion.PushCompletionRange(0.0, 1.0 / this.countBytes);

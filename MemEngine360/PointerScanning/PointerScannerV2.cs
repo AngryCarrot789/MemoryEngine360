@@ -490,7 +490,7 @@ public class PointerScannerV2 {
             if (address >= this.virtualBaseAddress) {
                 uint bufferOffset = address - this.virtualBaseAddress; // within the memory dump file
                 if (bufferOffset <= (this.memoryDump!.Length - sizeof(uint))) {
-                    value = MemoryEngine.ReadValueFromBytes<uint>(this.memoryDump.AsSpan(unchecked((int) bufferOffset), sizeof(uint)), this.isMemoryLittleEndian);
+                    value = MemoryEngine.ReadUInt32FromBytes(this.memoryDump.AsSpan(unchecked((int) bufferOffset), sizeof(uint)), this.isMemoryLittleEndian);
                     return true;
                 }
             }
@@ -566,7 +566,7 @@ public class PointerScannerV2 {
                     for (int i = 0; i < dumpSpan.Length; i += align) {
                         cancellation.ThrowIfCancellationRequested();
 
-                        uint u32value = MemoryEngine.ReadValueFromBytes<uint>(dumpSpan.Slice(i, sizeof(uint)), bIsLittleEndian);
+                        uint u32value = MemoryEngine.ReadUInt32FromBytes(dumpSpan.Slice(i, sizeof(uint)), bIsLittleEndian);
                         if (u32value != 0 && this.addressableRange.Contains(u32value)) {
                             this.alignedVirtualAddressToValue[this.virtualBaseAddress + (uint) i] = u32value;
 

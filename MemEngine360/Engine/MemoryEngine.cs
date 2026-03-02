@@ -17,8 +17,10 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using MemEngine360.Configs;
@@ -52,7 +54,7 @@ namespace MemEngine360.Engine;
 [DebuggerDisplay("IsBusy = {IsConnectionBusy}, Connection = {Connection}")]
 public class MemoryEngine : IComponentManager, IUserLocalContext {
     public static readonly DataKey<MemoryEngine> DataKey = DataKeys.Create<MemoryEngine>("MemoryEngine");
-    
+
     /// <summary>
     /// A data key used by the connection change notification to tell whether a disconnection originated from the notification's "Disconnect" command
     /// </summary>
@@ -265,7 +267,7 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
         }
 
         Task allTasks = Task.WhenAll(tasks);
-        
+
         // ... should dialog to notify user
         if (!await allTasks.TryWaitAsync(250) && IForegroundActivityService.TryGetInstance(out IForegroundActivityService? service)) {
             await service.WaitForSubActivities(topLevel, progressions, CancellationToken.None);
@@ -613,46 +615,75 @@ public class MemoryEngine : IComponentManager, IUserLocalContext {
     public static IDataValue ReadDataValueFromFragmentBuffer(FragmentedMemoryBuffer buffer, IntegerRange<uint> range, DataType dataType, StringType stringType, int stringLength, int arrayLength, bool isDataLittleEndian) {
         using (ArrayPools.RentSpan((int) range.Length, out Span<byte> data)) {
             int readCount = buffer.Read(range.Start, data);
-            Debug.Assert(readCount == range.Length, "Not enough bytes in fragment buffer. This should not be possible");
+            if (readCount < range.Length)
+                Throw(readCount, range.Length);
 
             return ReadDataValueFromSpan(data, dataType, stringType, stringLength, arrayLength, isDataLittleEndian);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        [DoesNotReturn]
+        static void Throw(int got, uint needed) {
+            throw new Exception($"Failed to read enough data from the fragment buffer. Got {got} / {needed} bytes");
         }
     }
 
     public static IDataValue ReadDataValueFromSpan(Span<byte> buffer, DataType dataType, StringType stringType, int stringLength, int arrayLength, bool isDataLittleEndian) {
         switch (dataType) {
-            case DataType.Byte: {
-                Debug.Assert(buffer.Length >= sizeof(byte));
-                return new DataValueByte(buffer[0]);
+            case DataType.Byte:      return new DataValueByte(buffer[0]);
+            case DataType.Int16:     return new DataValueInt16(ReadInt16FromBytes(buffer, isDataLittleEndian));
+            case DataType.Int32:     return new DataValueInt32(ReadInt32FromBytes(buffer, isDataLittleEndian));
+            case DataType.Int64:     return new DataValueInt64(ReadInt64FromBytes(buffer, isDataLittleEndian));
+            case DataType.Float:     return new DataValueFloat(ReadFloatFromBytes(buffer, isDataLittleEndian));
+            case DataType.Double:    return new DataValueDouble(ReadDoubleFromBytes(buffer, isDataLittleEndian));
+            case DataType.String:    return new DataValueString(DecodeStringFromBytes(buffer, stringLength, stringType.ToEncoding(isDataLittleEndian)) ?? "", stringType);
+            case DataType.ByteArray: return new DataValueByteArray(buffer.Slice(0, arrayLength).ToArray());
+            default: {
+                throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
             }
-            case DataType.Int16: {
-                Debug.Assert(buffer.Length >= sizeof(short));
-                return new DataValueInt16(ReadValueFromBytes<short>(buffer, isDataLittleEndian));
-            }
-            case DataType.Int32: {
-                Debug.Assert(buffer.Length >= sizeof(int));
-                return new DataValueInt32(ReadValueFromBytes<int>(buffer, isDataLittleEndian));
-            }
-            case DataType.Int64: {
-                Debug.Assert(buffer.Length >= sizeof(long));
-                return new DataValueInt64(ReadValueFromBytes<long>(buffer, isDataLittleEndian));
-            }
-            case DataType.Float: {
-                Debug.Assert(buffer.Length >= sizeof(float));
-                return new DataValueFloat(ReadValueFromBytes<float>(buffer, isDataLittleEndian));
-            }
-            case DataType.Double: {
-                Debug.Assert(buffer.Length >= sizeof(double));
-                return new DataValueDouble(ReadValueFromBytes<double>(buffer, isDataLittleEndian));
-            }
-            case DataType.String: {
-                return new DataValueString(DecodeStringFromBytes(buffer, stringLength, stringType.ToEncoding(isDataLittleEndian)) ?? "", stringType);
-            }
-            case DataType.ByteArray: {
-                return new DataValueByteArray(buffer.Slice(0, arrayLength).ToArray());
-            }
-            default: throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null);
         }
+    }
+
+    public static short ReadInt16FromBytes(ReadOnlySpan<byte> bytes, bool isBufferLittleEndian) {
+        return isBufferLittleEndian != BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(MemoryMarshal.Read<short>(bytes)) : MemoryMarshal.Read<short>(bytes);
+    }
+
+    public static ushort ReadUInt16FromBytes(ReadOnlySpan<byte> bytes, bool isBufferLittleEndian) {
+        return isBufferLittleEndian != BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(MemoryMarshal.Read<ushort>(bytes)) : MemoryMarshal.Read<ushort>(bytes);
+    }
+
+    public static int ReadInt32FromBytes(ReadOnlySpan<byte> bytes, bool isBufferLittleEndian) {
+        return isBufferLittleEndian != BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(MemoryMarshal.Read<int>(bytes)) : MemoryMarshal.Read<int>(bytes);
+    }
+
+    public static uint ReadUInt32FromBytes(ReadOnlySpan<byte> bytes, bool isBufferLittleEndian) {
+        return isBufferLittleEndian != BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(MemoryMarshal.Read<uint>(bytes)) : MemoryMarshal.Read<uint>(bytes);
+    }
+
+    public static long ReadInt64FromBytes(ReadOnlySpan<byte> bytes, bool isBufferLittleEndian) {
+        return isBufferLittleEndian != BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(MemoryMarshal.Read<long>(bytes)) : MemoryMarshal.Read<long>(bytes);
+    }
+
+    public static ulong ReadUInt64FromBytes(ReadOnlySpan<byte> bytes, bool isBufferLittleEndian) {
+        return isBufferLittleEndian != BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(MemoryMarshal.Read<ulong>(bytes)) : MemoryMarshal.Read<ulong>(bytes);
+    }
+
+    public static float ReadFloatFromBytes(ReadOnlySpan<byte> bytes, bool isBufferLittleEndian) {
+        uint value = MemoryMarshal.Read<uint>(bytes);
+        if (BitConverter.IsLittleEndian != isBufferLittleEndian) {
+            value = BinaryPrimitives.ReverseEndianness(value);
+        }
+
+        return Unsafe.As<uint, float>(ref value);
+    }
+
+    public static double ReadDoubleFromBytes(ReadOnlySpan<byte> bytes, bool isBufferLittleEndian) {
+        ulong value = MemoryMarshal.Read<ulong>(bytes);
+        if (BitConverter.IsLittleEndian != isBufferLittleEndian) {
+            value = BinaryPrimitives.ReverseEndianness(value);
+        }
+
+        return Unsafe.As<ulong, double>(ref value);
     }
 
     public static T ReadValueFromBytes<T>(ReadOnlySpan<byte> bytes, bool isBufferLittleEndian) where T : unmanaged {

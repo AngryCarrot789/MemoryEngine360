@@ -99,6 +99,7 @@ using PFXToolKitUI.Themes;
 using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Events;
 using SkiaSharp;
+using Tmds.DBus.Protocol;
 
 namespace MemEngine360.Avalonia;
 
@@ -112,6 +113,12 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
     private static void TaskSchedulerOnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) {
         if (Debugger.IsAttached) {
+            // WTF linux???
+            if (e.Exception.InnerExceptions.All(x => x is DBusException)) {
+                e.SetObserved();
+                return;
+            }
+
             Debug.Fail("Unobserved task exception");
 
             Instance.Dispatcher.Post(() => ExceptionDispatchInfo.Throw(e.Exception), DispatchPriority.Send);
@@ -158,7 +165,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
         manager.Register("commands.memengine.MoveFileCommand", new MoveFileCommand());
         manager.Register("commands.memengine.DumpMemoryCommand", new DumpMemoryCommand());
         manager.Register("commands.memengine.GroupEntriesCommand", new GroupEntriesCommand());
-        manager.Register("commands.memengine.OpenXMLFileCommand", new OpenXMLFileCommand());
+        manager.Register("commands.memengine.OpenSaveAddressFileCommand", new OpenSaveAddressFileCommand());
         manager.Register("commands.memengine.SaveSavedAddressesToFileCommand", new SaveSavedAddressesToFileCommand());
         manager.Register("commands.memengine.ToggleSavedAddressAutoRefreshCommand", new ToggleSavedAddressAutoRefreshCommand());
         manager.Register("commands.memengine.ShowModulesCommand", new ShowModulesCommand());
@@ -294,13 +301,12 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
     protected override async Task OnSetupApplication(IApplicationStartupProgress progress) {
         await base.OnSetupApplication(progress);
-        bool isWindows = OperatingSystem.IsWindows();
         this.PluginLoader.AddCorePlugin(typeof(PluginXbox360Xbdm));
-
-        if (isWindows) {
+        if (OperatingSystem.IsWindows()) {
             this.PluginLoader.AddCorePlugin(typeof(PluginXbox360XDevkit));
-            this.PluginLoader.AddCorePlugin(typeof(PluginPS3));
         }
+
+        this.PluginLoader.AddCorePlugin(typeof(PluginPS3));
 
         MemoryEngineBrushLoader.Init();
         ThemeManagerImpl manager = (ThemeManagerImpl) this.ComponentStorage.GetComponent<ThemeManager>();
@@ -703,7 +709,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                         Content = new AboutView(),
                         TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone7.Background.Static"),
                         BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
-                        MinWidth = 500, MaxWidth = 700, 
+                        MinWidth = 500, MaxWidth = 700,
                         MinHeight = 200, MaxHeight = 300,
                         Width = 600, Height = 250,
                         Parent = parentWindow,

@@ -564,7 +564,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
             DataDownload = (_t, i, r) => {
                 ActivityTask t = (ActivityTask) _t!;
                 totalBytesRead += r.Length;
-                t.Progress.Text = $"Read {(i + 1)} / {set.Ranges.Count} fragments ({ValueScannerUtils.ByteFormatter.ToString(totalBytesRead, false)} / {ValueScannerUtils.ByteFormatter.ToString(set.GrandTotal, false)})...";
+                t.Progress.Text = $"Read {(i + 1)} / {set.Ranges.Count} fragments ({ValueScannerUtils.FormatBytes(totalBytesRead)} / {ValueScannerUtils.FormatBytes(set.GrandTotal)})...";
                 t.Progress.CompletionState.OnProgress(r.Length);
             }
         }, cancellationToken: task.CancellationToken);
@@ -785,7 +785,7 @@ public sealed class DataTypedScanningContext : ScanningContext {
                 DataDownload = (_t, i, r) => {
                     ActivityTask t = (ActivityTask) _t!;
                     totalBytesRead += r.Length;
-                    t.Progress.Text = $"Read {(i + 1)} / {set.Ranges.Count} fragments ({ValueScannerUtils.ByteFormatter.ToString(totalBytesRead, false)} / {ValueScannerUtils.ByteFormatter.ToString(set.GrandTotal, false)})...";
+                    t.Progress.Text = $"Read {(i + 1)} / {set.Ranges.Count} fragments ({ValueScannerUtils.FormatBytes(totalBytesRead)} / {ValueScannerUtils.FormatBytes(set.GrandTotal)})...";
                     t.Progress.CompletionState.OnProgress(r.Length);
                 }
             }, cancellationToken: task.CancellationToken);

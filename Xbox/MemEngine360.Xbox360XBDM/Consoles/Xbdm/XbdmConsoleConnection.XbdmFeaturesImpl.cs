@@ -179,7 +179,7 @@ public partial class XbdmConsoleConnection {
             int length;
             using (ArrayPools.Rent(sizeof(int), out byte[] array)) {
                 await this.connection.ReadFromBufferOrStreamAsync(array, 0, sizeof(int), CancellationToken.None);
-                length = MemoryEngine.ReadValueFromBytes<int>(array.AsSpan(0, sizeof(int)), isBufferLittleEndian: true /* this value is always LE...??? */);
+                length = MemoryEngine.ReadInt32FromBytes(array.AsSpan(0, sizeof(int)), isBufferLittleEndian: true /* this value is always LE...??? */);
             }
 
             using ErrorList errorList = new ErrorList("One or more exceptions during receive callback");
