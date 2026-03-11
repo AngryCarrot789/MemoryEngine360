@@ -29,7 +29,7 @@ namespace MemEngine360.Connections.Features;
 /// <para>
 /// For example, showing a custom notification via XBDM. This can technically be done through the <c>consolefeatures</c> XBDM command,
 /// however, it only works if JRPC2 is installed. Therefore, this feature (specifically <see cref="IFeatureXboxNotifications"/>) is only
-/// available when the connection determines it to be so.
+/// available when the connection determines it to be so (is JRPC2 installed?).
 /// </para>
 /// <para>
 /// Ideally, features should not be dynamically added or removed from a connection once fully constructed.

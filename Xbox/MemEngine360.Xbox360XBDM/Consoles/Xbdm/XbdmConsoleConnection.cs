@@ -183,20 +183,23 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
         }
 
         try {
-            Socket? socket = this.client.Client;
-
             // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-            if (socket != null && socket.Connected) {
-                try {
-                    this.client.Client.Send("bye\r\n"u8);
-                }
-                catch (Exception) {
-                    // ignored
-                }
+            if (this.client != null && this.client.Connected) {
+                // Send in a background task because we don't want to allow
+                // CloseOverride to halt waiting for I/O to complete,
+                // especially if the socket has an infinite timeout or something
+                Task.Run(() => {
+                    try {
+                        this.client.Client?.Send("bye\r\n"u8);
+                    }
+                    catch {
+                        // ignored
+                    }
+                    finally {
+                        this.client.Dispose();
+                    }
+                });
             }
-
-            socket?.Dispose();
-            this.client.Dispose();
         }
         catch (Exception e) {
             AppLogger.Instance.WriteLine("Exception while closing " + nameof(XbdmConsoleConnection));
@@ -548,7 +551,7 @@ public partial class XbdmConsoleConnection : BaseConsoleConnection, INetworkCons
     }
 
     protected override async Task ReadBytesCore(uint address, byte[] dstBuffer, int offset, int count) {
-        if (count < 128) {
+        if (count <= 128) {
             // For some reason, the old string-based reader is faster for small chunks of data.
             // However, once reading 1000s of bytes, the binary based one is twice as fast,
             // since the xbox isn't sending two bytes of ASCII for a single byte of data

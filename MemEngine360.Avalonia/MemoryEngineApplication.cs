@@ -450,7 +450,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                     change.Context.Set(MemoryEngine.DataKey, view.ViewState.Engine);
                 }
 
-                ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.MemoryEngine);
+                ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.ViewState);
             };
 
             window.ClosingAsync += static (s, e) => {
@@ -460,7 +460,7 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
             window.Closed += static (s, e) => {
                 EngineView view = (EngineView) ((OverlayContentHostRoot) ((IDesktopWindow) s!).Content!).Content!;
                 view.MemoryEngine.UserContext.Remove(ITopLevel.TopLevelDataKey);
-                ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.MemoryEngine);
+                ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.ViewState);
 
                 using (IMutableContextData.BatchToken change = DataManager.GetContextData(((IDesktopWindow) s).Control).BeginChange()) {
                     change.Context.Remove(MemoryEngineViewState.DataKey);

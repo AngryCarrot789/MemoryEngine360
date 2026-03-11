@@ -347,6 +347,11 @@ public interface IConsoleConnection {
     /// <returns>True when the feature was found, otherwise false</returns>
     bool TryGetFeature<T>([NotNullWhen(true)] out T? feature) where T : class, IConsoleFeature;
 
+    /// <summary>
+    /// Tries to get a feature, or null if no such feature exists
+    /// </summary>
+    /// <typeparam name="T">The type of feature</typeparam>
+    /// <returns>The feature, or null</returns>
     T? GetFeatureOrDefault<T>() where T : class, IConsoleFeature => this.TryGetFeature(out T? f) ? f : null;
 
     /// <summary>

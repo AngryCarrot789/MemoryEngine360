@@ -36,7 +36,9 @@ namespace MemEngine360.Connections;
 /// The base class for a console connection. This class implements the basic read/write value methods
 /// </summary>
 public abstract class BaseConsoleConnection : IConsoleConnection {
-    protected readonly byte[] sharedByteArray8 = new byte[8];
+    private static int[]? s_Vec2Fields, s_Vec3Fields;
+    
+    private readonly byte[] sharedByteArray4 = new byte[4];
     private volatile int busyStack;
     private volatile int isClosedState;
 
@@ -129,9 +131,9 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
             bool reverse = BitConverter.IsLittleEndian != this.IsLittleEndian;
             foreach (int offset in offsets) {
                 this.EnsureNotClosed();
-                await this.ReadBytesCoreWithNetworkThrowHelper((uint) address, this.sharedByteArray8, 0, sizeof(uint)).ConfigureAwait(false);
+                await this.ReadBytesCoreWithNetworkThrowHelper((uint) address, this.sharedByteArray4, 0, sizeof(uint)).ConfigureAwait(false);
 
-                Span<byte> span = this.sharedByteArray8.AsSpan(0, sizeof(uint));
+                Span<byte> span = this.sharedByteArray4.AsSpan(0, sizeof(uint));
                 if (reverse)
                     span.Reverse();
 
@@ -148,7 +150,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public async Task ReadBytes(uint address, byte[] dstBuffer, int offset, int count) {
-        ArrayUtils.ThrowIfOutOfBounds(dstBuffer, offset, count);
+        CollectionUtils.ThrowIfOutOfBounds(dstBuffer, offset, count);
 
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
@@ -157,8 +159,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public async Task ReadBytes(uint address, byte[] dstBuffer, int offset, int count, int chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
-        ArrayUtils.ThrowIfOutOfBounds(dstBuffer, offset, count);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(chunkSize, 0);
+        CollectionUtils.ThrowIfOutOfBounds(dstBuffer, offset, count);
 
         // Check+Obtain token before checking if count is zero, to maintain fail-fast behaviour
         this.EnsureNotClosed();
@@ -195,8 +197,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        await this.ReadBytesCoreWithNetworkThrowHelper(address, this.sharedByteArray8, 0, 1).ConfigureAwait(false);
-        return this.sharedByteArray8[0];
+        await this.ReadBytesCoreWithNetworkThrowHelper(address, this.sharedByteArray4, 0, 1).ConfigureAwait(false);
+        return this.sharedByteArray4[0];
     }
 
     public async Task<bool> ReadBool(uint address) => await this.ReadByte(address).ConfigureAwait(false) != 0;
@@ -313,7 +315,7 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     public Task WriteBytes(uint address, byte[] srcBuffer) => this.WriteBytes(address, srcBuffer, 0, srcBuffer.Length);
 
     public async Task WriteBytes(uint address, byte[] srcBuffer, int offset, int count) {
-        ArrayUtils.ThrowIfOutOfBounds(srcBuffer, offset, count);
+        CollectionUtils.ThrowIfOutOfBounds(srcBuffer, offset, count);
 
         // Check+Obtain token before checking if count is zero, to maintain fail-fast behaviour
         this.EnsureNotClosed();
@@ -325,8 +327,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public async Task WriteBytes(uint address, byte[] srcBuffer, int offset, int count, int chunkSize, CompletionState? completion = null, CancellationToken cancellationToken = default) {
-        ArrayUtils.ThrowIfOutOfBounds(srcBuffer, offset, count);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(chunkSize, 0);
+        CollectionUtils.ThrowIfOutOfBounds(srcBuffer, offset, count);
 
         // Check+Obtain token before checking if count is zero, to maintain fail-fast behaviour
         this.EnsureNotClosed();
@@ -357,8 +359,8 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
         this.EnsureNotClosed();
         using BusyToken x = this.CreateBusyToken();
 
-        this.sharedByteArray8[0] = value;
-        await this.WriteBytesCoreWithNetworkThrowHelper(address, this.sharedByteArray8, 0, 1).ConfigureAwait(false);
+        this.sharedByteArray4[0] = value;
+        await this.WriteBytesCoreWithNetworkThrowHelper(address, this.sharedByteArray4, 0, 1).ConfigureAwait(false);
     }
 
     public Task WriteBool(uint address, bool value) => this.WriteByte(address, (byte) (value ? 0x01 : 0x00));
@@ -413,11 +415,11 @@ public abstract class BaseConsoleConnection : IConsoleConnection {
     }
 
     public Task WriteVector2(uint address, Vector2 vec2) {
-        return this.WriteStruct(address, vec2, sizeof(float), sizeof(float));
+        return this.WriteStruct(address, vec2, s_Vec2Fields ??= [sizeof(float), sizeof(float)]);
     }
 
     public Task WriteVector3(uint Offset, Vector3 vec3) {
-        return this.WriteStruct(Offset, vec3, sizeof(float), sizeof(float), sizeof(float));
+        return this.WriteStruct(Offset, vec3, s_Vec3Fields ??= [sizeof(float), sizeof(float), sizeof(float)]);
     }
 
     protected async Task ReadBytesCoreWithNetworkThrowHelper(uint address, byte[] dstBuffer, int offset, int count) {

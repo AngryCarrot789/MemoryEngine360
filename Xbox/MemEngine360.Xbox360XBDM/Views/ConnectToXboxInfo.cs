@@ -45,13 +45,18 @@ public class ConnectToXboxInfo : UserConnectionInfo {
         set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsLittleEndianChanged);
     } /* = false // xbox is BE by default */
 
+    public bool IsDiscoveringConsoles {
+        get => field;
+        private set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsDiscoveringConsolesChanged);
+    }
+
     public ObservableList<DiscoveredConsole> DiscoveredConsoles { get; } = new ObservableList<DiscoveredConsole>();
 
     public event EventHandler? IpAddressChanged;
     public event EventHandler? IsLittleEndianChanged;
+    public event EventHandler? IsDiscoveringConsolesChanged;
 
     private CancellationTokenSource? refreshCts;
-    private ActivityTask? lastRefreshConsolesTask;
     private volatile bool hasCompletedDiscovery;
 
     public ConnectToXboxInfo() : base(ConnectionTypeXbox360Xbdm.Instance) {
@@ -74,30 +79,35 @@ public class ConnectToXboxInfo : UserConnectionInfo {
         }
 
         Debug.Assert(this.refreshCts == null);
-        Debug.Assert(this.lastRefreshConsolesTask == null);
 
         this.refreshCts = new CancellationTokenSource(3000);
-        this.lastRefreshConsolesTask = ActivityManager.Instance.RunTask(this.DiscoverLocalConsolesInActivity, this.refreshCts);
+        Task.Run(async () => {
+            this.IsDiscoveringConsoles = true;
+            try {
+                await this.DiscoverLocalConsolesInActivity(this.refreshCts.Token);
+            }
+            finally {
+                this.IsDiscoveringConsoles = false;
+            }
+        });
     }
 
-    private async Task DiscoverLocalConsolesInActivity() {
-        ActivityTask activity = ActivityTask.Current;
-        activity.Progress.SetCaptionAndText("Discover Consoles", "Discovering local xbox consoles", true);
-
-        IEnumerable<UnicastIPAddressInformation> unicastIps = NetworkInterface.GetAllNetworkInterfaces().
-                                                                               Where(nic => nic.OperationalStatus == OperationalStatus.Up && nic.Supports(NetworkInterfaceComponent.IPv4)).
-                                                                               SelectMany(x => x.GetIPProperties().UnicastAddresses).
-                                                                               Where(ip => ip.Address.AddressFamily != AddressFamily.InterNetworkV6 && !IPAddress.IsLoopback(ip.Address));
+    private async Task DiscoverLocalConsolesInActivity(CancellationToken cancellation) {
+        IEnumerable<UnicastIPAddressInformation> unicastIps =
+            NetworkInterface.GetAllNetworkInterfaces().
+                             Where(nic => nic.OperationalStatus == OperationalStatus.Up && nic.Supports(NetworkInterfaceComponent.IPv4)).
+                             SelectMany(x => x.GetIPProperties().UnicastAddresses).
+                             Where(ip => ip.Address.AddressFamily != AddressFamily.InterNetworkV6 && !IPAddress.IsLoopback(ip.Address));
 
         byte[] sendBuffer = BitConverter.GetBytes((short) 3);
         List<Task> tasks = new List<Task>();
 
         foreach (UnicastIPAddressInformation ip in unicastIps) {
-            tasks.Add(Task.Run(DiscoverConsoleOnNetworkInterface, activity.CancellationToken));
+            tasks.Add(Task.Run(DiscoverConsoleOnNetworkInterface, cancellation));
             continue;
 
             async Task DiscoverConsoleOnNetworkInterface() {
-                using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(activity.CancellationToken);
+                using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
                 cts.CancelAfter(1500);
 
                 byte[] dgBuf = new byte[1024];
@@ -122,7 +132,7 @@ public class ConnectToXboxInfo : UserConnectionInfo {
                         socket.Close(); // close early, otherwise it seems to sometimes mess up the TcpClient, or maybe it was from broken code that works now...
 
                         string xboxName = await GetConsoleName((IPEndPoint) result.RemoteEndPoint, cts.Token) ?? "";
-                        
+
                         DiscoveredConsole console = new DiscoveredConsole((IPEndPoint) result.RemoteEndPoint, xboxName);
                         await ApplicationPFX.Instance.Dispatcher.InvokeAsync(void () => this.DiscoveredConsoles.Add(console), token: CancellationToken.None);
                         return;
@@ -132,21 +142,19 @@ public class ConnectToXboxInfo : UserConnectionInfo {
         }
 
         try {
-            await Task.WhenAll(tasks).WaitAsync(activity.CancellationToken);
+            await Task.WhenAll(tasks).WaitAsync(cancellation);
             this.hasCompletedDiscovery = true;
         }
         catch (OperationCanceledException) {
             // ignored
         }
-        
+
         await ApplicationPFX.Instance.Dispatcher.InvokeAsync(void () => {
-            this.lastRefreshConsolesTask = null;
             this.refreshCts?.Dispose();
             this.refreshCts = null;
             if (!this.hasCompletedDiscovery) {
                 this.DiscoveredConsoles.Clear();
             }
-            
         }, DispatchPriority.Send, token: CancellationToken.None);
     }
 
@@ -180,8 +188,7 @@ public class ConnectToXboxInfo : UserConnectionInfo {
 
     protected override void OnHidden() {
         if (IsDiscoveryEnabled) {
-            this.lastRefreshConsolesTask?.TryCancel();
-            this.lastRefreshConsolesTask = null;
+            this.refreshCts?.Cancel();
             this.refreshCts?.Dispose();
             this.refreshCts = null;
         }

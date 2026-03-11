@@ -34,8 +34,6 @@ namespace MemEngine360.Commands;
 
 public class OpenConsoleConnectionDialogCommand : Command {
     private static readonly DataKey<IOpenConnectionView> ExistingOCVDataKey = DataKeys.Create<IOpenConnectionView>(nameof(OpenConsoleConnectionDialogCommand) + "_" + nameof(ExistingOCVDataKey));
-
-
     public const string AlreadyOpenDialogName = "dialog.AlreadyConnectedToConsole";
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {

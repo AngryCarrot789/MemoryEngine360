@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:views="clr-namespace:MemEngine360.Xbox360XBDM.Views"
              xmlns:toolTips="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
+             xmlns:avControls="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
              mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="320"
              x:Class="MemEngine360.Xbox360XBDM.Views.OpenXbdmConnectionView">
     <StackPanel Margin="10">
@@ -16,7 +17,7 @@
         <Separator/>
 
         <TextBlock Text="IP/Hostname Address" Padding="0,5"/>
-        <TextBox x:Name="PART_IpAddressTextBox" Padding="5,5" 
+        <TextBox x:Name="PART_IpAddressTextBox" Padding="5,5"
                  VerticalContentAlignment="Center"
                  ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
         <CheckBox x:Name="PART_IsLittleEndian" Content="Use Little Endian" Margin="0,5,0,0">
@@ -29,7 +30,10 @@
             </toolTips:ToolTipEx.Tip>
         </CheckBox>
         <Separator Margin="0,5"/>
-        <TextBlock Text="Discovered consoles" Padding="0,5"/>
+        <StackPanel Orientation="Horizontal" Spacing="5">
+            <TextBlock Text="Discovered consoles" Padding="0,5"/>
+            <avControls:IndeterminateSpinner x:Name="PART_DiscoveringSpinner"/>
+        </StackPanel>
         <views:DiscoveredConsoleListBox x:Name="PART_DiscoveredConsoles"/>
     </StackPanel>
 </UserControl>

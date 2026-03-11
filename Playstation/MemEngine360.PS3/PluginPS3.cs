@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using System.Runtime.Versioning;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
 using MemEngine360.Engine;
@@ -32,7 +31,6 @@ using PFXToolKitUI.Plugins;
 
 namespace MemEngine360.PS3;
 
-[SupportedOSPlatform("windows")]
 public class PluginPS3 : Plugin {
     protected override void OnInitialize() {
         base.OnInitialize();

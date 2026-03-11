@@ -105,7 +105,7 @@ public class Jrpc2FeaturesImpl : IFeatureXboxJRPC2 {
         throw new IOException("JRPC2 did not respond correctly");
     }
 
-    public async Task SetLEDs(bool p1, bool p2, bool p3, bool p4) {
+    public async Task SetSlimLEDStates(bool p1, bool p2, bool p3, bool p4) {
         int bits = ((p4 ? 1 : 0) << 3) | ((p3 ? 1 : 0) << 2) | ((p2 ? 1 : 0) << 1) | (p1 ? 1 : 0);
         string command = $"consolefeatures ver=2 type=14 params=\"A\\0\\A\\4\\1\\0\\1\\0\\1\\0\\1\\{bits * 16}\\\"";
         XbdmResponse response = await this.connection.SendCommand(command);

@@ -54,15 +54,14 @@ public abstract class BaseRemoteConsoleCommand : BaseMemoryEngineCommand {
         ConnectionChangeCause likelyCause = ConnectionChangeCause.LostConnection;
         IConsoleConnection? connection = engine.Connection;
         if (connection == null || connection.IsClosed) {
-            IReadOnlyCollection<ShortcutEntry> scList = ShortcutManager.Instance.GetShortcutsByCommandId("commands.memengine.OpenConsoleConnectionDialogCommand");
-            string shortcuts = string.Join(Environment.NewLine, scList.Select(x => x.Shortcut.ToString()));
-            if (!string.IsNullOrEmpty(shortcuts))
-                shortcuts = Environment.NewLine + " Use the shortcut(s) to connect: " + Environment.NewLine + shortcuts;
+            string? text = KeymapUtils.GetStringForCommandId("commands.memengine.OpenConsoleConnectionDialogCommand");
+            if (text != null)
+                text = Environment.NewLine + " Use the shortcut(s) to connect: " + Environment.NewLine + text;
 
             engine.CheckConnection(token);
 
             MessageBoxInfo info = (connection == null ? MessageBoxes.NoConnection : MessageBoxes.ClosedConnection).CreateInfo();
-            info.Message += shortcuts;
+            info.Message += text;
             await IMessageDialogService.Instance.ShowMessage(info);
         }
         else if (await this.TryBeginExecuteAsync(engine, connection, e)) {

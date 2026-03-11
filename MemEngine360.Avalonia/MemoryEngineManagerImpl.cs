@@ -18,10 +18,11 @@
 // 
 
 using MemEngine360.Engine;
+using MemEngine360.Engine.View;
 
 namespace MemEngine360.Avalonia;
 
 public class MemoryEngineManagerImpl : MemoryEngineManager {
-    internal new void OnEngineOpened(MemoryEngine engine) => base.OnEngineOpened(engine);
-    internal new void OnEngineClosed(MemoryEngine engine) => base.OnEngineClosed(engine);
+    internal new void OnEngineOpened(MemoryEngineViewState engine) => base.OnEngineOpened(engine);
+    internal new void OnEngineClosed(MemoryEngineViewState engine) => base.OnEngineClosed(engine);
 }

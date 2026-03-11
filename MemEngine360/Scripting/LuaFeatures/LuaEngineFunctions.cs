@@ -504,7 +504,7 @@ public sealed class LuaEngineFunctions {
             IFeatureXboxJRPC2 jrpc = this.functions.GetConsoleFeature<IFeatureXboxJRPC2>(in context, "JRPC2 not installed");
             using IBusyToken token = await this.functions.GetBusyToken(in context, ct);
 
-            await jrpc.SetLEDs(p1, p2, p3, p4);
+            await jrpc.SetSlimLEDStates(p1, p2, p3, p4);
             return 0;
         }
     }

@@ -25,11 +25,13 @@ using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Shortcuts;
-using PFXToolKitUI.Utils;
 using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Engine.View;
 
+/// <summary>
+/// The view state that represents the state of the memory engine view
+/// </summary>
 public sealed class MemoryEngineViewState {
     public static readonly DataKey<MemoryEngineViewState> DataKey = DataKeys.Create<MemoryEngineViewState>("MemoryEngineViewState");
     
@@ -124,15 +126,15 @@ public sealed class MemoryEngineViewState {
         
         this.RemoteControlsMenu = new MenuEntryGroup("_Remote Controls") {
             ProvideDisabledHint = static (ctx, registry) => {
-                if (!MemoryEngineViewState.DataKey.TryGetContext(ctx, out MemoryEngineViewState? engineVs))
+                if (!DataKey.TryGetContext(ctx, out MemoryEngineViewState? engineVs))
                     return null;
 
                 if (engineVs.Engine.Connection == null) {
-                    IReadOnlyCollection<ShortcutEntry> scList = ShortcutManager.Instance.GetShortcutsByCommandId("commands.memengine.OpenConsoleConnectionDialogCommand");
-                    string shortcuts = scList.Select(x => x.Shortcut.ToString()!).JoinString(", ", " or ");
-                    if (!string.IsNullOrEmpty(shortcuts))
-                        shortcuts = ". Use the shortcut(s) to connect: " + shortcuts;
-                    return new SimpleDisabledHintInfo("Not connected", "Connect to a console to use remote commands" + shortcuts);
+                    string? text = KeymapUtils.GetStringForCommandId("commands.memengine.OpenConsoleConnectionDialogCommand");
+                    if (text != null)
+                        text = ". Use the shortcut(s) to connect: " + text;
+                    
+                    return new SimpleDisabledHintInfo("Not connected", "Connect to a console to use remote commands" + text);
                 }
 
                 return null;
