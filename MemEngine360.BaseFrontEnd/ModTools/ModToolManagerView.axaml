@@ -107,7 +107,7 @@
                   x:Name="PART_ModToolPanel"
                   avalonia:UIInputManager.FocusPath="ModToolManagerWindow/ContentPanel">
                 <scripting:LuaTextEditor BorderThickness="0"
-                                         FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
+                                         FontFamily="{StaticResource FontJetBrainsMono}"
                                          Grid.Row="0"
                                          ShowLineNumbers="True"
                                          x:Name="PART_CodeEditor"
@@ -176,7 +176,7 @@
                         </DockPanel>
                     </c:GroupBox.Header>
                     <ListBox BorderThickness="0"
-                             FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
+                             FontFamily="{StaticResource FontJetBrainsMono}"
                              x:Name="PART_ConsoleTextList"
                              avalonia:UIInputManager.FocusPath="ModToolManagerWindow/ContentPanel/Console">
                         <ListBox.ItemContainerTheme>

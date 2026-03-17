@@ -23,7 +23,7 @@ using Avalonia.Data.Converters;
 using MemEngine360.Engine;
 using MemEngine360.ValueAbstraction;
 
-namespace MemEngine360.BaseFrontEnd;
+namespace MemEngine360.BaseFrontEnd.Engine;
 
 public class ScanResultCurrentValueConverter : IMultiValueConverter {
     public static ScanResultCurrentValueConverter Instance { get; } = new ScanResultCurrentValueConverter();

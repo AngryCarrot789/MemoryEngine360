@@ -96,7 +96,7 @@
                   avalonia:UIInputManager.FocusPath="ScriptingWindow/ContentPanel">
                 <local:LuaTextEditor Grid.Row="0" x:Name="PART_CodeEditor"
                                      ShowLineNumbers="True"
-                                     FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
+                                     FontFamily="{StaticResource FontJetBrainsMono}"
                                      BorderThickness="0"
                                      avalonia:UIInputManager.FocusPath="ScriptingWindow/ContentPanel/CodeEditor"/>
                 <c:GroupBox Grid.Row="2" BorderThickness="0" BorderBrush="{DynamicResource PanelBorderBrush}"
@@ -197,7 +197,7 @@
                             <c:TargetingGridSplitter TargetGrid="{Binding ElementName=PART_ScriptPanel}" TargetRow="1" ResizeDirection="Rows"/>
                         </DockPanel>
                     </c:GroupBox.Header>
-                    <ListBox x:Name="PART_ConsoleTextList" BorderThickness="0" FontFamily="Consolas,Cascadia Code,Menlo,Monospace"
+                    <ListBox x:Name="PART_ConsoleTextList" BorderThickness="0" FontFamily="{StaticResource FontJetBrainsMono}"
                              avalonia:UIInputManager.FocusPath="ScriptingWindow/ContentPanel/Console">
                         <ListBox.ItemContainerTheme>
                             <ControlTheme TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource {x:Type ListBoxItem}}">

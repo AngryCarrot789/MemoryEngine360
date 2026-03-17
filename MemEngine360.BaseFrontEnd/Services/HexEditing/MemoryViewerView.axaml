@@ -149,7 +149,7 @@
                 BorderBrush="{DynamicResource PanelBorderBrush}"
                 BorderThickness="0,1,1,1">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                <hex:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
+                <hex:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="{StaticResource FontJetBrainsMono}"
                                     Background="{DynamicResource ABrush.Tone2.Background.Static}"
                                     BorderThickness="0"
                                     ResetSelectionOnDocumentChange="False"/>

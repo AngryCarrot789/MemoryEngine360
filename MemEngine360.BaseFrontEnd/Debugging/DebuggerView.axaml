@@ -110,7 +110,7 @@
                         </Border>
                         <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto"
                                       x:Name="PART_HexEditorScrollViewer">
-                            <async:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="Consolas"
+                            <async:AsyncHexEditor x:Name="PART_HexEditor" FontFamily="{StaticResource FontJetBrainsMono}"
                                                   Background="{DynamicResource ABrush.Tone2.Background.Static}"
                                                   BorderThickness="0"
                                                   ResetSelectionOnDocumentChange="False"/>

@@ -5,5 +5,5 @@
                  xmlns:ah="clr-namespace:AvaloniaHex;assembly=AvaloniaHex"
                  mc:Ignorable="d" Width="1024" Height="620"
                  x:Class="MemEngine360.Xbox360XBDM.BinaryHexEditorView">
-    <ah:HexEditor x:Name="PART_HexEditor" FontFamily="Consolas"/>
+    <ah:HexEditor x:Name="PART_HexEditor" FontFamily="{StaticResource FontJetBrainsMono}"/>
 </UserControl>

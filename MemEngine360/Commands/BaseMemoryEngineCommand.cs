@@ -71,9 +71,9 @@ public abstract class BaseMemoryEngineCommand : Command, IDisabledHintProvider {
     
     public static bool TryProvideNotConnectedDisabledHintInfo(MemoryEngine engine, [NotNullWhen(true)] out DisabledHintInfo? hintInfo) {
         if (engine.Connection == null)
-            hintInfo = new SimpleDisabledHintInfo(StandardEngineMessages.Caption_NoConnection, StandardEngineMessages.Message_NoConnection);
+            hintInfo = new SimpleDisabledHintInfo(null, StandardEngineMessages.Message_NoConnection);
         else if (engine.Connection.IsClosed)
-            hintInfo = new SimpleDisabledHintInfo(StandardEngineMessages.Caption_ConnectionClosed, StandardEngineMessages.Message_ConnectionClosed);
+            hintInfo = new SimpleDisabledHintInfo(null, StandardEngineMessages.Message_ConnectionClosed);
         else
             hintInfo = null;
         return hintInfo != null;

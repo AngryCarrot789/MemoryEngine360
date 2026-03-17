@@ -46,7 +46,7 @@ public class ShowMemoryRegionsCommand : BaseMemoryEngineCommand {
         if (TryProvideNotConnectedDisabledHintInfo(engine, out DisabledHintInfo? hintInfo))
             return hintInfo;
         if (!engine.Connection!.HasFeature<IFeatureMemoryRegions>())
-            return new SimpleDisabledHintInfo("Unsupported", "This connection does not support reading memory regions");
+            return new SimpleDisabledHintInfo(null, "This connection does not support reading memory regions");
         return null;
     }
 

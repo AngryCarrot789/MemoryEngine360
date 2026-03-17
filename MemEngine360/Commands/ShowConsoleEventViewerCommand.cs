@@ -46,7 +46,7 @@ public class ShowConsoleEventViewerCommand : BaseMemoryEngineCommand, IDisabledH
         if (TryProvideNotConnectedDisabledHintInfo(engine, out DisabledHintInfo? hintInfo))
             return hintInfo;
         if (!engine.Connection!.HasFeature<IFeatureSystemEvents>())
-            return new SimpleDisabledHintInfo("Unsupported", "This connection does not support system event notifications");
+            return new SimpleDisabledHintInfo(null, "This connection does not support system event notifications");
         return null;
     }
 }

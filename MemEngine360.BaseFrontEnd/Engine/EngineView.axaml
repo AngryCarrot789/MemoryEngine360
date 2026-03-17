@@ -16,8 +16,9 @@
              xmlns:notifications="clr-namespace:PFXToolKitUI.Avalonia.Notifications;assembly=PFXToolKitUI.Avalonia"
              xmlns:pfxToolKitUi="clr-namespace:PFXToolKitUI;assembly=PFXToolKitUI"
              xmlns:baseFrontEnd="clr-namespace:MemEngine360.BaseFrontEnd"
+             xmlns:engine1="clr-namespace:MemEngine360.BaseFrontEnd.Engine"
              mc:Ignorable="d" d:DesignHeight="600"
-             x:Class="MemEngine360.BaseFrontEnd.EngineView"
+             x:Class="MemEngine360.BaseFrontEnd.Engine.EngineView"
              Background="{DynamicResource ABrush.MemEngine.MainView.Background}">
     <DockPanel>
         <ams:AdvancedTopLevelMenu x:Name="PART_TopLevelMenu"
@@ -119,7 +120,7 @@
                                         <TextBlock Text="Prev" FontSize="8" FontFamily="{StaticResource FontOxanium}" Padding="0" Margin="0,-1,0,0"/>
                                     </ToggleButton>
                                 </Grid>
-                                <TextBox x:Name="PART_Input_Value1" FontFamily="Consolas"
+                                <TextBox x:Name="PART_Input_Value1" FontFamily="{StaticResource FontJetBrainsMono}"
                                          Grid.Column="2" Grid.Row="0" Grid.ColumnSpan="2"
                                          Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Background}"
                                          BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Border}"
@@ -128,14 +129,14 @@
                                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
 
                                 <Grid x:Name="PART_Grid_Input_Between" Grid.ColumnSpan="2" Grid.Column="2" Grid.Row="0" ColumnDefinitions="*,3,*" IsVisible="False">
-                                    <TextBox x:Name="PART_Input_BetweenA" FontFamily="Consolas" Grid.Column="0"
+                                    <TextBox x:Name="PART_Input_BetweenA" FontFamily="{StaticResource FontJetBrainsMono}" Grid.Column="0"
                                              Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Background}"
                                              BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Border}"
                                              Foreground="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Foreground}"
                                              ScrollViewer.VerticalScrollBarVisibility="Disabled"
                                              ScrollViewer.HorizontalScrollBarVisibility="Hidden"/>
 
-                                    <TextBox x:Name="PART_Input_BetweenB" FontFamily="Consolas" Grid.Column="2"
+                                    <TextBox x:Name="PART_Input_BetweenB" FontFamily="{StaticResource FontJetBrainsMono}" Grid.Column="2"
                                              Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Background}"
                                              BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Border}"
                                              Foreground="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.TextBox.Foreground}"
@@ -145,7 +146,7 @@
 
                                 <ComboBox x:Name="PART_DataTypeCombo"
                                           Grid.Column="2" Grid.Row="2"
-                                          FontFamily="Consolas"
+                                          FontFamily="{StaticResource FontJetBrainsMono}"
                                           Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.ScanTypeComboBox.Background}"
                                           BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.ScanTypeComboBox.Border}"
                                           Padding="4,1" VerticalContentAlignment="Center"
@@ -242,9 +243,9 @@
                                     <TabItem x:Name="PART_TabItemUnknown" Header="Unknown" tt:ToolTipEx.Tip="Search options for unknown data types">
                                         <StackPanel>
                                             <TextBlock Text="Scanning order" Padding="3,2"/>
-                                            <baseFrontEnd:ScanningOrderListBox x:Name="PART_OrderListBox">
+                                            <engine1:ScanningOrderListBox x:Name="PART_OrderListBox">
                                                 <ListBox.Theme>
-                                                    <ControlTheme TargetType="{x:Type baseFrontEnd:ScanningOrderListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
+                                                    <ControlTheme TargetType="{x:Type engine1:ScanningOrderListBox}" BasedOn="{StaticResource {x:Type ListBox}}"/>
                                                 </ListBox.Theme>
                                                 <ListBox.ItemsPanel>
                                                     <ItemsPanelTemplate>
@@ -252,14 +253,14 @@
                                                     </ItemsPanelTemplate>
                                                 </ListBox.ItemsPanel>
                                                 <ListBox.ItemContainerTheme>
-                                                    <ControlTheme TargetType="{x:Type baseFrontEnd:ScanningOrderListBoxItem}">
+                                                    <ControlTheme TargetType="{x:Type engine1:ScanningOrderListBoxItem}">
                                                         <Setter Property="Background" Value="{DynamicResource ABrush.Tone4.Background.Static}"/>
                                                         <Setter Property="BorderBrush" Value="{DynamicResource ABrush.Tone1.Border.Static}"/>
                                                         <Setter Property="Foreground" Value="{DynamicResource ABrush.Foreground.Static}"/>
                                                         <Setter Property="BorderThickness" Value="0,0,0,1"/>
                                                         <Setter Property="Padding" Value="2,2"/>
                                                         <Setter Property="Template">
-                                                            <ControlTemplate TargetType="{x:Type baseFrontEnd:ScanningOrderListBoxItem}">
+                                                            <ControlTemplate TargetType="{x:Type engine1:ScanningOrderListBoxItem}">
                                                                 <Border Background="{TemplateBinding Background}"
                                                                         BorderBrush="{TemplateBinding BorderBrush}"
                                                                         BorderThickness="{TemplateBinding BorderThickness}"
@@ -286,7 +287,7 @@
                                                         </Style>
                                                     </ControlTheme>
                                                 </ListBox.ItemContainerTheme>
-                                            </baseFrontEnd:ScanningOrderListBox>
+                                            </engine1:ScanningOrderListBox>
                                             <Border Background="{DynamicResource ABrush.Tone6.Border.Static}">
                                                 <Grid ColumnDefinitions="2*,1,3*,1,3*" Margin="0,1,0,1">
                                                     <ToggleButton x:Name="PART_Toggle_Float" Grid.Column="0" Content="F32" BorderThickness="0" tt:ToolTipEx.Tip="Toggle scanning for float (32)"/>
@@ -356,7 +357,7 @@
                                         <TextBlock Grid.Column="0" Grid.Row="4" Text="Align" VerticalAlignment="Center" Padding="4,0"/>
                                         <TextBlock Grid.Column="0" Grid.Row="10" Text="O. Read" VerticalAlignment="Center" Padding="4,0"/>
 
-                                        <TextBox Grid.Column="2" Grid.Row="0" FontFamily="Consolas"
+                                        <TextBox Grid.Column="2" Grid.Row="0" FontFamily="{StaticResource FontJetBrainsMono}"
                                                  Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Background}"
                                                  BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Border}"
                                                  Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Foreground}"
@@ -376,7 +377,7 @@
                                                 </TextBlock>
                                             </tt:ToolTipEx.Tip>
                                         </TextBox>
-                                        <TextBox Grid.Column="2" Grid.Row="2" FontFamily="Consolas"
+                                        <TextBox Grid.Column="2" Grid.Row="2" FontFamily="{StaticResource FontJetBrainsMono}"
                                                  Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Background}"
                                                  BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Border}"
                                                  Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Foreground}"
@@ -396,7 +397,7 @@
                                                 </TextBlock>
                                             </tt:ToolTipEx.Tip>
                                         </TextBox>
-                                        <Label Grid.Column="2" Grid.Row="4" FontFamily="Consolas"
+                                        <Label Grid.Column="2" Grid.Row="4" FontFamily="{StaticResource FontJetBrainsMono}"
                                                Background="Transparent"
                                                BorderThickness="1"
                                                Padding="4,0"
@@ -443,7 +444,7 @@
                                                 </TextBlock>
                                             </tt:ToolTipEx.Tip>
                                         </CheckBox>
-                                        <TextBox Grid.Column="2" Grid.Row="10" FontFamily="Consolas"
+                                        <TextBox Grid.Column="2" Grid.Row="10" FontFamily="{StaticResource FontJetBrainsMono}"
                                                  Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Background}"
                                                  BorderBrush="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Border}"
                                                  Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.TextBox.Foreground}"
@@ -517,7 +518,7 @@
                                                      CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
                                                      CanUserResize="True" FontFamily="{StaticResource FontOxanium}">
                                 <c2:DataGridTextColumnEx.Binding>
-                                    <MultiBinding Converter="{x:Static baseFrontEnd:ScanResultCurrentValueConverter.Instance}">
+                                    <MultiBinding Converter="{x:Static engine1:ScanResultCurrentValueConverter.Instance}">
                                         <Binding Path="CurrentValue" Mode="OneWay"/>
                                         <Binding Path="NumericDisplayType" Mode="OneWay"/>
                                     </MultiBinding>
@@ -526,7 +527,7 @@
 
                             <DataGridTextColumn CanUserResize="True" Header="Previous" Width="85" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True">
                                 <DataGridTextColumn.Binding>
-                                    <MultiBinding Converter="{x:Static baseFrontEnd:ScanResultCurrentValueConverter.Instance}">
+                                    <MultiBinding Converter="{x:Static engine1:ScanResultCurrentValueConverter.Instance}">
                                         <Binding Path="PreviousValue" Mode="OneWay"/>
                                         <Binding Path="NumericDisplayType" Mode="OneWay"/>
                                     </MultiBinding>
@@ -534,7 +535,7 @@
                             </DataGridTextColumn>
                             <DataGridTextColumn CanUserResize="True" Header="First" Width="85" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True">
                                 <DataGridTextColumn.Binding>
-                                    <MultiBinding Converter="{x:Static baseFrontEnd:ScanResultCurrentValueConverter.Instance}">
+                                    <MultiBinding Converter="{x:Static engine1:ScanResultCurrentValueConverter.Instance}">
                                         <Binding Path="FirstValue" Mode="OneWay"/>
                                         <Binding Path="NumericDisplayType" Mode="OneWay"/>
                                     </MultiBinding>

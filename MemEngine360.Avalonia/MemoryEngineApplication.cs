@@ -32,6 +32,7 @@ using Avalonia.Styling;
 using MemEngine360.BaseFrontEnd;
 using MemEngine360.BaseFrontEnd.Connections;
 using MemEngine360.BaseFrontEnd.Debugging;
+using MemEngine360.BaseFrontEnd.Engine;
 using MemEngine360.BaseFrontEnd.EventViewing;
 using MemEngine360.BaseFrontEnd.FileBrowsing;
 using MemEngine360.BaseFrontEnd.FileConnections;
@@ -420,15 +421,14 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
 
             desktop?.ApplicationLifetime.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
-            EngineView engineView;
             IDesktopWindow window = manager.CreateWindow(new WindowBuilder() {
                 Title = "Memory Engine 360 v1.2.2",
                 FocusPath = "EngineWindow",
                 Content = new OverlayContentHostRoot() {
-                    Content = engineView = new EngineView()
+                    Content = new EngineView()
                 },
                 MinWidth = 600, MinHeight = 520,
-                Width = 680, Height = 630,
+                Width = 720, Height = 700,
                 // rely on default icon for the DesktopWindowManager
                 // Icon = new WindowIcon(new Uri("avares://MemoryEngine360/Icons/icon-16.bmp", UriKind.RelativeOrAbsolute)),
                 TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.MemEngine.MainView.TitleBarBackground"),

@@ -59,7 +59,7 @@
         <DependentUpon>OpenTestConnectionView.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>
-      <Compile Update="EngineView.axaml.cs">
+      <Compile Update="Engine\EngineView.axaml.cs">
         <DependentUpon>EngineView.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>

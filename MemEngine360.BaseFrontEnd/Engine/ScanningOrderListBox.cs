@@ -24,7 +24,7 @@ using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Utils;
 
-namespace MemEngine360.BaseFrontEnd;
+namespace MemEngine360.BaseFrontEnd.Engine;
 
 public class ScanningOrderListBox : ModelBasedListBox<ScanningOrderModel> {
     private UnknownDataTypeOptions? options;

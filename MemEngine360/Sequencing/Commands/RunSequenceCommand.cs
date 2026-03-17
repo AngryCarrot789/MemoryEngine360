@@ -53,7 +53,7 @@ public class RunSequenceCommand : Command, IDisabledHintProvider {
     public DisabledHintInfo? ProvideDisabledHint(IContextData context, ContextRegistry? sourceContextMenu) {
         if (TaskSequence.DataKey.TryGetContext(context, out TaskSequence? seq) && seq.Manager != null /* shouldn't be null... */) {
             if (seq.ctsTryingToStart != null)
-                return new SimpleDisabledHintInfo("Trying to run", "Already trying to start the sequence");
+                return new SimpleDisabledHintInfo(null, "Already trying to start the sequence");
             // Don't provide insight into why it's disabled when IsRunning is true, because that should be obvious
         }
 

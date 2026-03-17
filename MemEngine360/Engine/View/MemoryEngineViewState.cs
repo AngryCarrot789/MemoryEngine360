@@ -34,7 +34,7 @@ namespace MemEngine360.Engine.View;
 /// </summary>
 public sealed class MemoryEngineViewState {
     public static readonly DataKey<MemoryEngineViewState> DataKey = DataKeys.Create<MemoryEngineViewState>("MemoryEngineViewState");
-    
+
     /// <summary>
     /// Gets the engine model instance
     /// </summary>
@@ -67,12 +67,12 @@ public sealed class MemoryEngineViewState {
         get => field;
         set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsActivityListVisibleChanged);
     }
-    
+
     /// <summary>
     /// Gets the tools menu for memory engine
     /// </summary>
     public MenuEntryGroup ToolsMenu { get; }
-    
+
     /// <summary>
     /// Gets the Remote Controls menu for memory engine
     /// </summary>
@@ -89,7 +89,7 @@ public sealed class MemoryEngineViewState {
     public event EventHandler<BaseAddressTableEntry>? RequestFocusOnSavedAddress;
 
     public event EventHandler? IsActivityListVisibleChanged;
-    
+
     private MemoryEngineViewState(MemoryEngine engine, TopLevelIdentifier topLevelIdentifier) {
         this.Engine = engine;
         this.TopLevelIdentifier = topLevelIdentifier;
@@ -101,7 +101,7 @@ public sealed class MemoryEngineViewState {
             static arg => arg.AddressTableManager != null,
             static arg => arg.Parent,
             static arg => arg is AddressTableGroupEntry g ? g.Items : null);
-        
+
         this.ToolsMenu = new MenuEntryGroup("_Tools") {
             UniqueID = "memoryengine.tools",
             Items = {
@@ -123,7 +123,7 @@ public sealed class MemoryEngineViewState {
 
         // update all tools when connection changes, since most if not all tools rely on a connection
         this.ToolsMenu.AddCanExecuteChangeUpdaterForEventsEx(DataKey, vs => vs.Engine, nameof(MemoryEngine.ConnectionChanged));
-        
+
         this.RemoteControlsMenu = new MenuEntryGroup("_Remote Controls") {
             ProvideDisabledHint = static (ctx, registry) => {
                 if (!DataKey.TryGetContext(ctx, out MemoryEngineViewState? engineVs))
@@ -133,12 +133,13 @@ public sealed class MemoryEngineViewState {
                     string? text = KeymapUtils.GetStringForCommandId("commands.memengine.OpenConsoleConnectionDialogCommand");
                     if (text != null)
                         text = ". Use the shortcut(s) to connect: " + text;
-                    
-                    return new SimpleDisabledHintInfo("Not connected", "Connect to a console to use remote commands" + text);
+
+                    return new SimpleDisabledHintInfo(null, "Connect to a console to use remote commands" + text);
                 }
 
                 return null;
-            }
+            },
+            Description = "Custom console commands"
         };
 
         engine.ConnectionChanged += this.OnConnectionChanged;

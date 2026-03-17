@@ -9,7 +9,7 @@
                                           Width="175">
     <StackPanel Spacing="4" Margin="2">
         <ComboBox x:Name="PART_DataTypeCombo"
-                  FontFamily="Consolas"
+                  FontFamily="{StaticResource FontJetBrainsMono}"
                   Background="{DynamicResource ABrush.Tone3.Background.Static}"
                   Padding="4,1" VerticalContentAlignment="Center"/>
         <TabControl x:Name="PART_ModeTabControl">

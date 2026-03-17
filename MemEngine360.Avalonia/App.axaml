@@ -14,6 +14,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <FontFamily x:Key="FontOxanium">avares://PFXToolKitUI.Avalonia/Resources/Fonts/Oxanium/#Oxanium</FontFamily>
+            <FontFamily x:Key="FontJetBrainsMono">avares://PFXToolKitUI.Avalonia/Resources/Fonts/JetBrainsMono/#JetBrains Mono</FontFamily>
             
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Dark">
