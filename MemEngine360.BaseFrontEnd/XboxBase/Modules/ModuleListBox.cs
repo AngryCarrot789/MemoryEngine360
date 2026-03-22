@@ -18,7 +18,7 @@
 // 
 
 using MemEngine360.XboxBase.Modules;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Avalonia.Controls.ListBoxes;
 
 namespace MemEngine360.BaseFrontEnd.XboxBase.Modules;
 

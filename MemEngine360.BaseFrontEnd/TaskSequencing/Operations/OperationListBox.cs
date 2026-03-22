@@ -21,7 +21,7 @@ using Avalonia;
 using Avalonia.Input;
 using MemEngine360.BaseFrontEnd.TaskSequencing.Operations.ListContent;
 using MemEngine360.Sequencing;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Avalonia.Controls.ListBoxes;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations;
 

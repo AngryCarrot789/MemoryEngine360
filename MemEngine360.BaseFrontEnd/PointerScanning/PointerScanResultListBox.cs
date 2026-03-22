@@ -23,7 +23,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using MemEngine360.Engine.Addressing;
 using MemEngine360.PointerScanning;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes.Virtualizing;
+using PFXToolKitUI.Avalonia.Controls.ListBoxes.Virtualizing;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.ToolTips;
 using PFXToolKitUI.Interactivity.Contexts;

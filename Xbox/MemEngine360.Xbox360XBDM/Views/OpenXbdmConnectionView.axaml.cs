@@ -20,9 +20,9 @@
 using Avalonia.Controls;
 using MemEngine360.BaseFrontEnd.Services.Connectivity;
 using MemEngine360.Connections;
-using PFXToolKitUI.Avalonia.AvControls;
 using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
+using PFXToolKitUI.Avalonia.Controls;
 
 namespace MemEngine360.Xbox360XBDM.Views;
 

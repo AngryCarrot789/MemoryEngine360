@@ -34,9 +34,9 @@
             </ResourceDictionary.ThemeDictionaries>
 
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/AvControls/ControlStyles.axaml"/>
+                <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Controls/ControlStyles.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Interactivity/Windowing/Overlays/Impl/OverlayWindowStyles.axaml"/>
-                <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/AvControls/Dragger/NumberDraggerStyles.axaml"/>
+                <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Controls/Dragger/NumberDraggerStyles.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Shortcuts/Trees/ShortcutTreeThemes.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/PropertyEditing/PropertyEditorGridStyles.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/PropertyEditing/PropertyEditorSlotContentStyles.axaml"/>
@@ -45,7 +45,7 @@
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Themes/Configurations/ThemeConfigTreeThemes.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Activities/ActivityControlStyles.axaml"/>
                 <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Notifications/NotificationStyles.axaml"/>
-                <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/AvControls/Trees/Virtualizing/VirtualizingTreeStyles.axaml"/>
+                <ResourceInclude Source="avares://PFXToolKitUI.Avalonia/Controls/Trees/Virtualizing/VirtualizingTreeStyles.axaml"/>
                 <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/SavedAddressing/AddressTableTreeViewStyles.axaml"/>
                 <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/StructViewing/StructViewerTreeViewStyles.axaml"/>
                 <ResourceInclude Source="avares://MemEngine360.BaseFrontEnd/FileBrowsing/FileBrowserTreeViewStyles.axaml"/>

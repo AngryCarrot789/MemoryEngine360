@@ -22,7 +22,7 @@ using Avalonia.Controls.Primitives;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Contexts;
 using PFXToolKitUI.Avalonia.AdvancedMenuService;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Avalonia.Controls.ListBoxes;
 using PFXToolKitUI.Avalonia.Interactivity;
 using PFXToolKitUI.Avalonia.Utils;
 

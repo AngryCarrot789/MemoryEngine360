@@ -2,7 +2,6 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                 xmlns:av="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
                  xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.Debugging"
                  xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
                  xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
@@ -41,7 +40,7 @@
                 <TextBlock x:Name="PART_RunningState" Text="Running"
                            DockPanel.Dock="Right"
                            Padding="4,2" VerticalAlignment="Center"
-                           FontFamily="{StaticResource FontOxanium}"/>
+                           FontFamily="{StaticResource FontJetBrainsMono}"/>
                 <Border/>
             </DockPanel>
         </Border>
@@ -59,7 +58,7 @@
                 </WrapPanel>
                 <local:ThreadEntryListBox x:Name="PART_ThreadListBox"
                                           BorderThickness="0" Background="Transparent"
-                                          FontFamily="{StaticResource FontOxanium}"/>
+                                          FontFamily="{StaticResource FontJetBrainsMono}"/>
             </DockPanel>
         </controls:GroupBox>
         <Grid Grid.Row="2" Grid.Column="3">
@@ -81,7 +80,7 @@
                             <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="5,2"/>
                             <TextBox x:Name="PART_GotoTextBox" DockPanel.Dock="Left"
                                      VerticalAlignment="Center"
-                                     Width="80" Padding="2,2" FontFamily="{StaticResource FontOxanium}">
+                                     Width="90" Padding="2,2" FontFamily="{StaticResource FontJetBrainsMono}">
                                 <TextBox.InnerLeftContent>
                                     <TextBlock Text="0x" Opacity="0.7"/>
                                 </TextBox.InnerLeftContent>
@@ -102,10 +101,10 @@
                     <DockPanel>
                         <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0">
                             <Grid ColumnDefinitions="Auto,4,65,10,Auto,4,Auto" VerticalAlignment="Center" Margin="2">
-                                <TextBlock Grid.Column="0" Text="Caret: " VerticalAlignment="Center" FontFamily="{StaticResource FontOxanium}"/>
-                                <TextBlock Grid.Column="2" x:Name="PART_CaretText" Text="1" VerticalAlignment="Center" FontFamily="{StaticResource FontOxanium}"/>
-                                <TextBlock Grid.Column="4" Text="Selection: " VerticalAlignment="Center" FontFamily="{StaticResource FontOxanium}"/>
-                                <TextBlock Grid.Column="6" x:Name="PART_SelectionText" Text="2" VerticalAlignment="Center" FontFamily="{StaticResource FontOxanium}"/>
+                                <TextBlock Grid.Column="0" Text="Caret: " VerticalAlignment="Center" FontFamily="{StaticResource FontJetBrainsMono}"/>
+                                <TextBlock Grid.Column="2" x:Name="PART_CaretText" Text="1" VerticalAlignment="Center" FontFamily="{StaticResource FontJetBrainsMono}"/>
+                                <TextBlock Grid.Column="4" Text="Selection: " VerticalAlignment="Center" FontFamily="{StaticResource FontJetBrainsMono}"/>
+                                <TextBlock Grid.Column="6" x:Name="PART_SelectionText" Text="2" VerticalAlignment="Center" FontFamily="{StaticResource FontJetBrainsMono}"/>
                             </Grid>
                         </Border>
                         <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto"
@@ -141,7 +140,7 @@
                 <controls:GroupBox.Header>
                     <DockPanel>
                         <TextBlock Text="Registers" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                        <av:IconButton DockPanel.Dock="Right"
+                        <controls:IconButton DockPanel.Dock="Right"
                                        Icon="{x:Static pfxToolKitUi:StandardIcons.ResetIcon}"
                                        Width="20" Height="20"
                                        Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
@@ -157,7 +156,7 @@
                 </controls:GroupBox.Header>
                 <local:RegisterEntryListBox x:Name="PART_RegistersListBox"
                                             BorderThickness="0" Background="Transparent"
-                                            FontFamily="{StaticResource FontOxanium}"/>
+                                            FontFamily="{StaticResource FontJetBrainsMono}"/>
             </controls:GroupBox>
             <controls:GroupBox Grid.Row="2" Background="{DynamicResource ABrush.Tone3.Background.Static}"
                         BorderBrush="{DynamicResource PanelBorderBrush}"
@@ -171,7 +170,7 @@
                     <TextBlock DockPanel.Dock="Bottom" Text="Full frame support coming soon" Padding="2,4" Opacity="0.6" HorizontalAlignment="Center"/>
                     <local:FunctionEntryListBox x:Name="PART_FunctionCallFrame"
                                                 BorderThickness="0" Background="Transparent"
-                                                FontFamily="{StaticResource FontOxanium}"/>
+                                                FontFamily="{StaticResource FontJetBrainsMono}"/>
                 </DockPanel>
             </controls:GroupBox>
             <GridSplitter Grid.Row="1" Background="Transparent"/>
@@ -180,7 +179,7 @@
                 BorderThickness="0"
                 BorderBrush="{DynamicResource PanelBorderBrush}">
             <DockPanel HorizontalSpacing="3" LastChildFill="False">
-                <av:IconButton Width="24" Height="24"
+                <controls:IconButton Width="24" Height="24"
                                Background="Transparent" BorderThickness="0"
                                tt:ToolTipEx.Tip="Open a dedicated connection"
                                Icon="{x:Static memEngine360:SimpleIcons.ConnectToConsoleDedicatedIcon}"

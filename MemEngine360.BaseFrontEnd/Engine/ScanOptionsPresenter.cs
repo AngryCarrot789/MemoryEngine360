@@ -27,6 +27,7 @@ using PFXToolKitUI.Avalonia.Bindings;
 using PFXToolKitUI.Avalonia.Bindings.ComboBoxes;
 using PFXToolKitUI.Avalonia.Bindings.Enums;
 using PFXToolKitUI.Avalonia.Bindings.TextBoxes;
+using PFXToolKitUI.PropertyEditing.DataTransfer.Enums;
 using PFXToolKitUI.Services.Messaging;
 using PFXToolKitUI.Services.UserInputs;
 using PFXToolKitUI.Utils.Commands;
@@ -135,6 +136,17 @@ public class ScanOptionsPresenter {
             view.PART_ToggleUnknownDataType.IsEnabled = !b.Model.HasDoneFirstScan || scanAny;
             view.PART_ExpressionNamingHint.IsVisible = b.Model.UseExpressionParsing;
         });
+    
+    private static readonly DataParameterEnumInfo<NumericScanType> NumericScanTypeEnumInfo = DataParameterEnumInfo<NumericScanType>.All(new Dictionary<NumericScanType, string>() {
+        { NumericScanType.Equals, "Equals" },
+        { NumericScanType.NotEquals, "Not Equals" },
+        { NumericScanType.LessThan, "Less Than" },
+        { NumericScanType.LessThanOrEquals, "Less Than Or Equal" },
+        { NumericScanType.GreaterThan, "Greater Than" },
+        { NumericScanType.GreaterThanOrEquals, "Greater Than Or Equal" },
+        { NumericScanType.Between, "Between" },
+        { NumericScanType.NotBetween, "Not Between" }
+    });
 
     private DataType lastIntegerDataType = DataType.Int32, lastFloatDataType = DataType.Float;
     private readonly EngineView view;
@@ -179,8 +191,8 @@ public class ScanOptionsPresenter {
         this.useFirstValueBinder.Attach(this.view.PART_UseFirstValue, processor);
         this.usePrevValueBinder.Attach(this.view.PART_UsePreviousValue, processor);
         this.dataTypeBinder.Attach(this.view.PART_DataTypeCombo, processor);
-        this.scanTypeBinder1.Attach(this.view.PART_ScanTypeCombo1, processor);
-        this.scanTypeBinder2.Attach(this.view.PART_ScanTypeCombo2, processor);
+        this.scanTypeBinder1.Attach(this.view.PART_ScanTypeCombo1, processor, NumericScanTypeEnumInfo);
+        this.scanTypeBinder2.Attach(this.view.PART_ScanTypeCombo2, processor, NumericScanTypeEnumInfo);
         this.selectedTabIndexBinder.Attach(this.view.PART_ScanSettingsTabControl, processor);
         this.scanForAnyBinder.Attach(this.view.PART_ToggleUnknownDataType, processor);
         this.useExpressionBinder.Attach(this.view.PART_UseExpressions, processor);

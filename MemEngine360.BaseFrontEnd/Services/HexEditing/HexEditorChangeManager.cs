@@ -168,6 +168,6 @@ public class HexEditorChangeManager {
     }
 
     private static bool RangesOverlapOrNearby(BitRange a, BitRange b) {
-        return b.End.ByteIndex >= a.Start.ByteIndex && b.Start.ByteIndex <= Maths.SumAndClampOverflow(a.End.ByteIndex, 1);
+        return b.End.ByteIndex >= a.Start.ByteIndex && b.Start.ByteIndex <= Maths.AddClamped(a.End.ByteIndex, 1);
     }
 }

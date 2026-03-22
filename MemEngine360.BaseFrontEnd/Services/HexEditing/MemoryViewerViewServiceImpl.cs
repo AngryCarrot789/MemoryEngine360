@@ -38,7 +38,7 @@ public class MemoryViewerViewServiceImpl : IMemoryViewerViewService {
                 TitleBarBrush = BrushManager.Instance.GetDynamicThemeBrush("ABrush.Tone4.Background.Static"),
                 BorderBrush = BrushManager.Instance.CreateConstant(SKColors.DodgerBlue),
                 MinWidth = 800, MinHeight = 480,
-                Width = 1280, Height = 720,
+                Width = 1328, Height = 780,
                 FocusPath = "HexDisplayWindow"
             });
 

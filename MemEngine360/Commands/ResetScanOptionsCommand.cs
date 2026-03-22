@@ -32,7 +32,9 @@ public class ResetScanOptionsCommand : BaseMemoryEngineCommand {
     protected override Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
         if (!engine.ScanningProcessor.IsScanning) {
             engine.ScanningProcessor.SetScanRange(BasicApplicationConfiguration.StartAddressProperty.DefaultValue, BasicApplicationConfiguration.ScanLengthProperty.DefaultValue);
+            engine.ScanningProcessor.PauseConsoleDuringScan = BasicApplicationConfiguration.PauseConsoleDuringScanProperty.DefaultValue;
             engine.ScanningProcessor.ScanMemoryPages = BasicApplicationConfiguration.ScanMemoryPagesProperty.DefaultValue;
+            engine.ScanningProcessor.NextScanOverRead = BasicApplicationConfiguration.NextScanOverReadProperty.DefaultValue;
         }
 
         return Task.CompletedTask;

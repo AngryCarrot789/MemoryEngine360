@@ -19,7 +19,7 @@
 
 using Avalonia;
 using MemEngine360.Sequencing;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Avalonia.Controls.ListBoxes;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing;
 

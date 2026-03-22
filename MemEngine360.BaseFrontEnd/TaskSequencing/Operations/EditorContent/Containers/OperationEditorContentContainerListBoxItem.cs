@@ -19,7 +19,7 @@
 
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Avalonia.Controls.ListBoxes;
 using PFXToolKitUI.Avalonia.Utils;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Operations.EditorContent.Containers;

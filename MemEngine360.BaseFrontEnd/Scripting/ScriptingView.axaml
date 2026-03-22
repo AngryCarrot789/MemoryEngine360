@@ -4,7 +4,6 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.Scripting"
              xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
-             xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
              xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              xmlns:cmd="clr-namespace:MemEngine360.BaseFrontEnd.Scripting.Commands"
              xmlns:me360="clr-namespace:MemEngine360;assembly=MemEngine360"
@@ -106,7 +105,7 @@
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="4,2" Spacing="2">
                                 <TextBlock Text="Console" VerticalAlignment="Center" Padding="2,0"/>
                                 <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,2"/>
-                                <avc:IconButton x:Name="PART_RunButton"
+                                <c:IconButton x:Name="PART_RunButton"
                                                 DockPanel.Dock="Left" VerticalAlignment="Center"
                                                 Width="20" Height="20"
                                                 Background="Transparent"
@@ -115,22 +114,19 @@
                                                 cu:CommandUsageManager.UsageClassType="{x:Type cmd:RunScriptCommandUsage}"
                                                 attached:DisabledButtonExtras.IgnoreDisabledBackground="True"
                                                 ToolTip.ShowOnDisabled="True">
-                                    <avc:IconButton.Styles>
-                                        <Style Selector="avc|IconButton[IsEnabled=False]">
+                                    <c:IconButton.Styles>
+                                        <Style Selector="c|IconButton[IsEnabled=False]">
                                             <Setter Property="Icon" Value="{x:Static pfx:StandardIcons.LargeContinueActivityIconDisabled}"/>
                                         </Style>
-                                        <Style Selector="avc|IconButton[IsEnabled=True]">
+                                        <Style Selector="c|IconButton[IsEnabled=True]">
                                             <Setter Property="Icon" Value="{x:Static pfx:StandardIcons.LargeContinueActivityIconColourful}"/>
                                         </Style>
-                                    </avc:IconButton.Styles>
+                                    </c:IconButton.Styles>
                                     <tt:ToolTipEx.Tip>
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Run the script" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.scripting.RunScriptCommand"/>
-                                        </StackPanel>
+                                        <tt:CommandToolTip Text="Run the script" CommandId="commands.scripting.RunScriptCommand"/>
                                     </tt:ToolTipEx.Tip>
-                                </avc:IconButton>
-                                <avc:IconButton x:Name="PART_StopScriptButton"
+                                </c:IconButton>
+                                <c:IconButton x:Name="PART_StopScriptButton"
                                                 DockPanel.Dock="Left" VerticalAlignment="Center"
                                                 Width="20" Height="20"
                                                 Background="Transparent"
@@ -139,22 +135,19 @@
                                                 cu:CommandUsageManager.UsageClassType="{x:Type cmd:StopScriptCommandUsage}"
                                                 attached:DisabledButtonExtras.IgnoreDisabledBackground="True"
                                                 ToolTip.ShowOnDisabled="True">
-                                    <avc:IconButton.Styles>
-                                        <Style Selector="avc|IconButton[IsEnabled=False]">
+                                    <c:IconButton.Styles>
+                                        <Style Selector="c|IconButton[IsEnabled=False]">
                                             <Setter Property="Icon" Value="{x:Static pfx:StandardIcons.StopIconDisabled}"/>
                                         </Style>
-                                        <Style Selector="avc|IconButton[IsEnabled=True]">
+                                        <Style Selector="c|IconButton[IsEnabled=True]">
                                             <Setter Property="Icon" Value="{x:Static pfx:StandardIcons.StopIconColourful}"/>
                                         </Style>
-                                    </avc:IconButton.Styles>
+                                    </c:IconButton.Styles>
                                     <tt:ToolTipEx.Tip>
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Stop the script" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.scripting.StopScriptCommand"/>
-                                        </StackPanel>
+                                        <tt:CommandToolTip Text="Stop the script" CommandId="commands.scripting.StopScriptCommand"/>
                                     </tt:ToolTipEx.Tip>
-                                </avc:IconButton>
-                                <avc:IconButton DockPanel.Dock="Left" VerticalAlignment="Center"
+                                </c:IconButton>
+                                <c:IconButton DockPanel.Dock="Left" VerticalAlignment="Center"
                                                 Width="20" Height="20"
                                                 Background="Transparent"
                                                 BorderThickness="0"
@@ -162,14 +155,11 @@
                                                 Icon="{x:Static me360:SimpleIcons.ConnectToConsoleDedicatedIcon}"
                                                 cu:CommandUsageManager.UsageClassType="{x:Type cmd:ConnectScriptToConsoleCommandUsage}">
                                     <tt:ToolTipEx.Tip>
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Connect using a dedicated connection instead of using the engine's connection" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.scripting.ConnectScriptToConsoleCommand"/>
-                                        </StackPanel>
+                                        <tt:CommandToolTip Text="Connect using a dedicated connection instead of using the engine's connection" CommandId="commands.scripting.ConnectScriptToConsoleCommand"/>
                                     </tt:ToolTipEx.Tip>
-                                </avc:IconButton>
+                                </c:IconButton>
                                 <Separator Theme="{StaticResource VerticalSeparatorTheme}" Margin="4,2"/>
-                                <avc:IconButton DockPanel.Dock="Left" VerticalAlignment="Center"
+                                <c:IconButton DockPanel.Dock="Left" VerticalAlignment="Center"
                                                 Height="20"
                                                 Background="Transparent"
                                                 BorderThickness="0"
@@ -177,12 +167,9 @@
                                                 Icon="{x:Static me360:SimpleIcons.OpenedFolderIcon}"
                                                 cu:CommandUsageManager.SimpleButtonCommandId="commands.scripting.OpenScriptFileCommand">
                                     <tt:ToolTipEx.Tip>
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Open a script file" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.scripting.OpenScriptFileCommand"/>
-                                        </StackPanel>
+                                        <tt:CommandToolTip Text="Open a script file" CommandId="commands.scripting.OpenScriptFileCommand"/>
                                     </tt:ToolTipEx.Tip>
-                                </avc:IconButton>
+                                </c:IconButton>
                             </StackPanel>
                             <HyperlinkButton Content="Help (Wiki)"
                                              tt:ToolTipEx.Tip="Open the MemoryEngine360 wiki on the Lua Scripting page"

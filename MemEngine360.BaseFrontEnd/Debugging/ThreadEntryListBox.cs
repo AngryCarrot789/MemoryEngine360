@@ -23,7 +23,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using MemEngine360.Engine.Debugging;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Avalonia.Controls.ListBoxes;
 
 namespace MemEngine360.BaseFrontEnd.Debugging;
 

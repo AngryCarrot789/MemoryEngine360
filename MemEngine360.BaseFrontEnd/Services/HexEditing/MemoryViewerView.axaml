@@ -4,10 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:cu="clr-namespace:PFXToolKitUI.Avalonia.CommandUsages;assembly=PFXToolKitUI.Avalonia"
              xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.Services.HexEditing"
-             xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
              xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
              xmlns:hex="clr-namespace:AvaloniaHex.Async;assembly=AvaloniaHex"
              xmlns:memEngine360="clr-namespace:MemEngine360;assembly=MemEngine360"
+             xmlns:controls="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
              x:Class="MemEngine360.BaseFrontEnd.Services.HexEditing.MemoryViewerView">
     <Grid RowDefinitions="Auto,*,42">
@@ -84,18 +84,12 @@
 
                     <Button Grid.Column="7" x:Name="PART_Refresh" Content="Refresh Selection">
                         <tt:ToolTipEx.Tip>
-                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                <TextBlock Text="Read data from the console that is within your selection, rather than the entire set memory range" VerticalAlignment="Center"/>
-                                <avc:ShortcutLabel CommandId="commands.hexeditor.ReloadSelectionFromConsole"/>
-                            </StackPanel>
+                            <tt:CommandToolTip Text="Read data from the console that is within your selection, rather than the entire set memory range" CommandId="commands.hexeditor.ReloadSelectionFromConsole"/>
                         </tt:ToolTipEx.Tip>
                     </Button>
                     <Button Grid.Column="9" x:Name="PART_Upload" Content="Upload Selection">
                         <tt:ToolTipEx.Tip>
-                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                <TextBlock Text="Uploads your selection to the console" VerticalAlignment="Center"/>
-                                <avc:ShortcutLabel CommandId="commands.hexeditor.UploadSelectionToConsoleCommand"/>
-                            </StackPanel>
+                            <tt:CommandToolTip Text="Uploads your selection to the console" CommandId="commands.hexeditor.UploadSelectionToConsoleCommand"/>
                         </tt:ToolTipEx.Tip>
                     </Button>
                     <Border Grid.Column="10" Width="3" Background="Transparent"/>
@@ -121,26 +115,23 @@
                             <TextBlock Text="0x" Opacity="0.7"/>
                         </TextBox.InnerLeftContent>
                     </TextBox>
-                    <avc:IconButton Grid.Column="6" x:Name="PART_SetAutoRefreshRangeAsSelection"
+                    <controls:IconButton Grid.Column="6" x:Name="PART_SetAutoRefreshRangeAsSelection"
                                     Icon="{x:Static memEngine360:SimpleIcons.CopyHexSelectionToRefreshRangeIcon}"
                                     cu:CommandUsageManager.SimpleButtonCommandId="commands.hexeditor.SetAutoScanRangeAsSelectionCommand">
                         <tt:ToolTipEx.Tip>
-                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                <TextBlock Text="Set as current selection. Saves typing out by hand" VerticalAlignment="Center"/>
-                                <avc:ShortcutLabel CommandId="commands.hexeditor.SetAutoScanRangeAsSelectionCommand"/>
-                            </StackPanel>
+                            <tt:CommandToolTip CommandId="commands.hexeditor.SetAutoScanRangeAsSelectionCommand">
+                                <Run Text="Set as current selection. Saves typing out by hand."/>
+                                <Run Text="If the shortcut does not work, you may need to disable or replace hotkeys in AMD adrenaline software"/>
+                            </tt:CommandToolTip>
                         </tt:ToolTipEx.Tip>
-                    </avc:IconButton>
-                    <avc:IconButton Grid.Column="8" x:Name="PART_ClearAutoRefreshRange"
+                    </controls:IconButton>
+                    <controls:IconButton Grid.Column="8" x:Name="PART_ClearAutoRefreshRange"
                                     Icon="{x:Static memEngine360:SimpleIcons.ClearHexRefreshRangeIcon}"
                                     cu:CommandUsageManager.SimpleButtonCommandId="commands.hexeditor.ClearAutoScanRangeCommand">
                         <tt:ToolTipEx.Tip>
-                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                <TextBlock Text="Clears these two fields for the auto refresh" VerticalAlignment="Center"/>
-                                <avc:ShortcutLabel CommandId="commands.hexeditor.ClearAutoScanRangeCommand"/>
-                            </StackPanel>
+                            <tt:CommandToolTip Text="Clears these two fields for the auto refresh" CommandId="commands.hexeditor.ClearAutoScanRangeCommand"/>
                         </tt:ToolTipEx.Tip>
-                    </avc:IconButton>
+                    </controls:IconButton>
                     <CheckBox Grid.Column="10" x:Name="PART_ToggleShowChanges" IsChecked="True" Content="Show Changes" tt:ToolTipEx.Tip="Shows an outline of changes in bytes. This works during both auto-refresh and manual refresh"/>
                 </Grid>
             </StackPanel>

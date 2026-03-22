@@ -22,7 +22,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Avalonia.Controls.ListBoxes;
 using PFXToolKitUI.Avalonia.Utils;
 
 namespace MemEngine360.Xbox360XBDM.Views;

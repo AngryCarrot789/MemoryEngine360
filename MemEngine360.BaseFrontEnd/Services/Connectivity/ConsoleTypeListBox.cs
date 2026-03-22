@@ -19,7 +19,7 @@
 
 using Avalonia.Controls;
 using MemEngine360.Connections;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Avalonia.Controls.ListBoxes;
 
 namespace MemEngine360.BaseFrontEnd.Services.Connectivity;
 

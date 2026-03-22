@@ -20,7 +20,7 @@
 using Avalonia;
 using MemEngine360.Sequencing;
 using MemEngine360.Sequencing.Conditions;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
+using PFXToolKitUI.Avalonia.Controls.ListBoxes;
 
 namespace MemEngine360.BaseFrontEnd.TaskSequencing.Conditions;
 

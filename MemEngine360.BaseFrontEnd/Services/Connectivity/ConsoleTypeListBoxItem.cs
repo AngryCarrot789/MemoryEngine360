@@ -21,9 +21,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using MemEngine360.Connections;
-using PFXToolKitUI.Avalonia.AvControls;
-using PFXToolKitUI.Avalonia.AvControls.ListBoxes;
 using PFXToolKitUI.Avalonia.Bindings;
+using PFXToolKitUI.Avalonia.Controls;
+using PFXToolKitUI.Avalonia.Controls.ListBoxes;
 using PFXToolKitUI.Avalonia.ToolTips;
 using PFXToolKitUI.Avalonia.Utils;
 

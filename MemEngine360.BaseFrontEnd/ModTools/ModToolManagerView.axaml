@@ -2,7 +2,6 @@
              xmlns="https://github.com/avaloniaui"
              xmlns:ae="https://github.com/avaloniaui/avaloniaedit"
              xmlns:attached="clr-namespace:PFXToolKitUI.Avalonia.Themes.Attached;assembly=PFXToolKitUI.Avalonia"
-             xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
              xmlns:c="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:MemEngine360.BaseFrontEnd.ModTools"
@@ -140,7 +139,7 @@
                                         cu:CommandUsageManager.UsageClassType="{x:Type c2:RestartModToolCommandUsage}"
                                         x:Name="PART_RunButton">
                                 </Button>
-                                <avc:IconButton Background="Transparent"
+                                <c:IconButton Background="Transparent"
                                                 BorderThickness="0"
                                                 CornerRadius="2"
                                                 DockPanel.Dock="Left"
@@ -150,7 +149,7 @@
                                                 cu:CommandUsageManager.UsageClassType="{x:Type c2:ConnectModToolToConsoleCommandUsage}"
                                                 Width="20"/>
                                 <Separator Margin="4,2" Theme="{StaticResource VerticalSeparatorTheme}"/>
-                                <avc:IconButton Background="Transparent"
+                                <c:IconButton Background="Transparent"
                                                 BorderThickness="0"
                                                 CornerRadius="2"
                                                 DockPanel.Dock="Left"

@@ -10,7 +10,6 @@
              xmlns:cmds="clr-namespace:MemEngine360.BaseFrontEnd.Commands;assembly=MemEngine360.BaseFrontEnd"
              xmlns:sa="clr-namespace:MemEngine360.BaseFrontEnd.SavedAddressing;assembly=MemEngine360.BaseFrontEnd"
              xmlns:tt="clr-namespace:PFXToolKitUI.Avalonia.ToolTips;assembly=PFXToolKitUI.Avalonia"
-             xmlns:avc="clr-namespace:PFXToolKitUI.Avalonia.AvControls;assembly=PFXToolKitUI.Avalonia"
              xmlns:s="clr-namespace:MemEngine360;assembly=MemEngine360"
              xmlns:c2="clr-namespace:PFXToolKitUI.Avalonia.Controls;assembly=PFXToolKitUI.Avalonia"
              xmlns:notifications="clr-namespace:PFXToolKitUI.Avalonia.Notifications;assembly=PFXToolKitUI.Avalonia"
@@ -34,7 +33,7 @@
                 <TextBlock DockPanel.Dock="Right" x:Name="PART_ConnectedHostName" Padding="2,0" VerticalAlignment="Center"/>
                 <Separator DockPanel.Dock="Right" Theme="{StaticResource VerticalSeparatorTheme}" Margin="2,2" VerticalAlignment="Stretch"/>
                 <aa:ActivityStatusBarControl x:Name="PART_ActivityStatusBar" DockPanel.Dock="Right"/>
-                <avc:MarqueeTextBlock x:Name="PART_LatestActivity" Padding="2,0" VerticalAlignment="Center"
+                <c2:MarqueeTextBlock x:Name="PART_LatestActivity" Padding="2,0" VerticalAlignment="Center"
                                          tt:ToolTipEx.Tip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
             </DockPanel>
         </Border>
@@ -61,43 +60,32 @@
                                     cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:FirstScanCommandUsage}"
                                     ToolTip.ShowOnDisabled="true">
                                 <tt:ToolTipEx.Tip>
-                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                        <TextBlock Text="Search the console memory for the value, and display all found results" VerticalAlignment="Center"/>
-                                        <avc:ShortcutLabel CommandId="commands.memengine.FirstScanCommand"/>
-                                    </StackPanel>
+                                    <tt:CommandToolTip Text="Search the console memory for the value, and display all found results" 
+                                                       CommandId="commands.memengine.FirstScanCommand"/>
                                 </tt:ToolTipEx.Tip>
                             </Button>
                             <Button Grid.Column="2" Content="Next Scan"
                                     cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:NextScanCommandUsage}"
                                     ToolTip.ShowOnDisabled="true">
                                 <tt:ToolTipEx.Tip>
-                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                        <TextBlock Text="Search the scan result list for the value, and keeps results that still match" VerticalAlignment="Center"/>
-                                        <avc:ShortcutLabel CommandId="commands.memengine.NextScanCommand"/>
-                                    </StackPanel>
+                                    <tt:CommandToolTip Text="Search the scan result list for the value, and keeps results that still match" CommandId="commands.memengine.NextScanCommand"/>
                                 </tt:ToolTipEx.Tip>
                             </Button>
                             <Button Grid.Column="4" Content="Reset"
                                     cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:ResetScanCommandUsage}"
                                     ToolTip.ShowOnDisabled="true">
                                 <tt:ToolTipEx.Tip>
-                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                        <TextBlock Text="Clears the scan result list, allowing for the first scan to be performed again" VerticalAlignment="Center"/>
-                                        <avc:ShortcutLabel CommandId="commands.memengine.ResetScanCommand"/>
-                                    </StackPanel>
+                                    <tt:CommandToolTip Text="Clears the scan result list, allowing for the first scan to be performed again" CommandId="commands.memengine.ResetScanCommand"/>
                                 </tt:ToolTipEx.Tip>
                             </Button>
-                            <avc:IconButton Grid.Column="6" Width="22"
+                            <c2:IconButton Grid.Column="6" Width="22"
                                             cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:CancelScanCommandUsage}"
                                             Icon="{x:Static pfxToolKitUi:StandardIcons.CancelActivityIcon}"
                                             ToolTip.ShowOnDisabled="True">
                                 <tt:ToolTipEx.Tip>
-                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                        <TextBlock Text="Stop the scan" VerticalAlignment="Center"/>
-                                        <avc:ShortcutLabel CommandId="commands.memengine.CancelScanCommand"/>
-                                    </StackPanel>
+                                    <tt:CommandToolTip Text="Stop the scan" CommandId="commands.memengine.CancelScanCommand"/>
                                 </tt:ToolTipEx.Tip>
-                            </avc:IconButton>
+                            </c2:IconButton>
                         </Grid>
                         <Grid Grid.Row="2">
                             <Grid x:Name="PART_Grid_ScanInput" ColumnDefinitions="64,0,*,Auto,Auto" RowDefinitions="24,3,24,3,Auto,Auto" Margin="0">
@@ -110,14 +98,14 @@
                                                   VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"
                                                   tt:ToolTipEx.Tip="Use the rows' First Value as the search value"
                                                   ToolTip.ShowOnDisabled="true">
-                                        <TextBlock Text="First" FontSize="8" FontFamily="{StaticResource FontOxanium}" Padding="0" Margin="0,-1,0,0"/>
+                                        <TextBlock Text="First" FontSize="8" Margin="0,-1,0,0" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                     </ToggleButton>
                                     <ToggleButton Grid.Row="2" Padding="5,0" x:Name="PART_UsePreviousValue"
                                                   BorderBrush="{DynamicResource ABrush.Tone6.Border.Static}"
                                                   VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"
                                                   tt:ToolTipEx.Tip="Use the rows' Previous Value as the search value"
                                                   ToolTip.ShowOnDisabled="true">
-                                        <TextBlock Text="Prev" FontSize="8" FontFamily="{StaticResource FontOxanium}" Padding="0" Margin="0,-1,0,0"/>
+                                        <TextBlock Text="Prev" FontSize="8" Margin="0,-1,0,0" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                     </ToggleButton>
                                 </Grid>
                                 <TextBox x:Name="PART_Input_Value1" FontFamily="{StaticResource FontJetBrainsMono}"
@@ -193,7 +181,7 @@
 
                                             <DockPanel x:Name="PART_CompareModePanelInteger">
                                                 <TextBlock Text="Compare Mode" DockPanel.Dock="Left" Margin="2,0,5,0" VerticalAlignment="Center"/>
-                                                <ComboBox x:Name="PART_ScanTypeCombo1" FontFamily="{StaticResource FontOxanium}"
+                                                <ComboBox x:Name="PART_ScanTypeCombo1"
                                                           Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.CompareModeComboBox.Background}"
                                                           BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.CompareModeComboBox.Border}"
                                                           Padding="4,1" VerticalContentAlignment="Center"/>
@@ -222,7 +210,7 @@
                                             </RadioButton>
                                             <DockPanel x:Name="PART_CompareModePanelFloating">
                                                 <TextBlock Text="Compare Mode" DockPanel.Dock="Left" Margin="2,0,5,0" VerticalAlignment="Center"/>
-                                                <ComboBox x:Name="PART_ScanTypeCombo2" FontFamily="{StaticResource FontOxanium}"
+                                                <ComboBox x:Name="PART_ScanTypeCombo2"
                                                           Background="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.CompareModeComboBox.Background}"
                                                           BorderBrush="{DynamicResource ABrush.MemEngine.MainView.ScanOptions.CompareModeComboBox.Border}"
                                                           Padding="4,1" VerticalContentAlignment="Center"/>
@@ -267,7 +255,7 @@
                                                                         x:Name="PART_RootOLBI">
                                                                     <DockPanel>
                                                                         <Border x:Name="PART_DragGrip" Background="Transparent" Width="20" DockPanel.Dock="Right">
-                                                                            <avc:IconControl Icon="{x:Static pfxToolKitUi:StandardIcons.DragGripIcon}" Height="16"/>
+                                                                            <c2:IconControl Icon="{x:Static pfxToolKitUi:StandardIcons.DragGripIcon}" Height="16"/>
                                                                         </Border>
                                                                         <CheckBox x:Name="PART_Toggle"/>
                                                                     </DockPanel>
@@ -318,7 +306,7 @@
                                          VerticalHeaderAlignment="Stretch">
                                 <c2:GroupBox.Header>
                                     <DockPanel HorizontalSpacing="4">
-                                        <avc:IconButton DockPanel.Dock="Right"
+                                        <c2:IconButton DockPanel.Dock="Right"
                                                         Icon="{x:Static s:SimpleIcons.MemoryIconTable}"
                                                         Width="20" Height="20"
                                                         Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
@@ -332,8 +320,8 @@
                                                     <Run Text="Select one, click Select, and it sets that as the start/length fields"/>
                                                 </TextBlock>
                                             </tt:ToolTipEx.Tip>
-                                        </avc:IconButton>
-                                        <avc:IconButton DockPanel.Dock="Right"
+                                        </c2:IconButton>
+                                        <c2:IconButton DockPanel.Dock="Right"
                                                         Icon="{x:Static pfxToolKitUi:StandardIcons.ResetIcon}"
                                                         Width="20" Height="20"
                                                         Background="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Background}"
@@ -341,12 +329,9 @@
                                                         Foreground="{DynamicResource ABrush.MemEngine.MainView.AdditionOptions.Button.Foreground}"
                                                         cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:ResetScanOptionsCommandUsage}">
                                             <tt:ToolTipEx.Tip>
-                                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                                    <TextBlock TextWrapping="Wrap" Text="Resets the Start, Length and Scan Memory Pages options to default" VerticalAlignment="Center"/>
-                                                    <avc:ShortcutLabel CommandId="commands.memengine.ResetScanOptionsCommand"/>
-                                                </StackPanel>
+                                                <tt:CommandToolTip Text="Resets the Start, Length and Scan Memory Pages options to default" CommandId="commands.memengine.ResetScanOptionsCommand"/>
                                             </tt:ToolTipEx.Tip>
-                                        </avc:IconButton>
+                                        </c2:IconButton>
                                         <TextBlock Text="Additional Options" VerticalAlignment="Center"/>
                                     </DockPanel>
                                 </c2:GroupBox.Header>
@@ -510,13 +495,13 @@
                                                      Header="Address (hex)" Width="85" Binding="{Binding Address, Mode=OneTime, StringFormat=X}"
                                                      IsReadOnly="True" DoubleTapCommandId="commands.memengine.CopyScanResultsToClipboardCommand"
                                                      CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
-                                                     CanUserResize="False" FontFamily="{StaticResource FontOxanium}"/> <!-- No need to resize since it's formatted to X8 (fixed length) -->
+                                                     CanUserResize="False" FontFamily="{StaticResource FontJetBrainsMono}"/> <!-- No need to resize since it's formatted to X8 (fixed length) -->
 
                             <c2:DataGridTextColumnEx x:DataType="{x:Type engine:ScanResultViewModel}"
                                                      Header="Value" Width="85"
                                                      IsReadOnly="True" DoubleTapCommandId="commands.memengine.EditScanResultValueCommand"
                                                      CellDataKeyForDC="{x:Static engine:ScanResultViewModel.DataKey}"
-                                                     CanUserResize="True" FontFamily="{StaticResource FontOxanium}">
+                                                     CanUserResize="True" FontFamily="{StaticResource FontJetBrainsMono}">
                                 <c2:DataGridTextColumnEx.Binding>
                                     <MultiBinding Converter="{x:Static engine1:ScanResultCurrentValueConverter.Instance}">
                                         <Binding Path="CurrentValue" Mode="OneWay"/>
@@ -525,7 +510,10 @@
                                 </c2:DataGridTextColumnEx.Binding>
                             </c2:DataGridTextColumnEx>
 
-                            <DataGridTextColumn CanUserResize="True" Header="Previous" Width="85" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True">
+                            <DataGridTextColumn x:DataType="{x:Type engine:ScanResultViewModel}" 
+                                                CanUserResize="True" Header="Previous" Width="85" 
+                                                IsReadOnly="True"
+                                                FontFamily="{StaticResource FontJetBrainsMono}">
                                 <DataGridTextColumn.Binding>
                                     <MultiBinding Converter="{x:Static engine1:ScanResultCurrentValueConverter.Instance}">
                                         <Binding Path="PreviousValue" Mode="OneWay"/>
@@ -533,7 +521,11 @@
                                     </MultiBinding>
                                 </DataGridTextColumn.Binding>
                             </DataGridTextColumn>
-                            <DataGridTextColumn CanUserResize="True" Header="First" Width="85" x:DataType="{x:Type engine:ScanResultViewModel}" IsReadOnly="True">
+                            
+                            <DataGridTextColumn x:DataType="{x:Type engine:ScanResultViewModel}"
+                                                CanUserResize="True" Header="First" Width="85" 
+                                                IsReadOnly="True"
+                                                FontFamily="{StaticResource FontJetBrainsMono}">
                                 <DataGridTextColumn.Binding>
                                     <MultiBinding Converter="{x:Static engine1:ScanResultCurrentValueConverter.Instance}">
                                         <Binding Path="FirstValue" Mode="OneWay"/>
@@ -556,88 +548,70 @@
                         <DockPanel>
                             <TextBlock Text="Saved Addresses" DockPanel.Dock="Left" VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="5" Height="20">
-                                <avc:IconButton Icon="{x:Static s:SimpleIcons.OpenFileXMLIcon}" Width="20"
+                                <c2:IconButton Icon="{x:Static s:SimpleIcons.OpenFileXMLIcon}" Width="20"
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                 cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.OpenSaveAddressFileCommand">
                                     <tt:ToolTipEx.Tip>
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Open an XML file containing saved addresses" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.memengine.OpenSaveAddressFileCommand"/>
-                                        </StackPanel>
+                                        <tt:CommandToolTip Text="Open an XML file containing saved addresses" CommandId="commands.memengine.OpenSaveAddressFileCommand"/>
                                     </tt:ToolTipEx.Tip>
-                                </avc:IconButton>
+                                </c2:IconButton>
 
-                                <avc:IconButton Icon="{x:Static s:SimpleIcons.SaveFileIcon}" Width="20"
+                                <c2:IconButton Icon="{x:Static s:SimpleIcons.SaveFileIcon}" Width="20"
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                 cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.SaveSavedAddressesToFileCommand">
                                     <tt:ToolTipEx.Tip>
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Save these addresses to a file (including data type, display options, etc.)" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.memengine.SaveSavedAddressesToFileCommand"/>
-                                        </StackPanel>
+                                        <tt:CommandToolTip Text="Save these addresses to a file (including data type, display options, etc.)" CommandId="commands.memengine.SaveSavedAddressesToFileCommand"/>
                                     </tt:ToolTipEx.Tip>
-                                </avc:IconButton>
+                                </c2:IconButton>
 
-                                <avc:IconButton Width="20"
+                                <c2:IconButton Width="20"
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                 cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.AddSavedAddressCommand"
                                                 Icon="{x:Static pfxToolKitUi:StandardIcons.LargeGreenAddIcon}">
                                     <tt:ToolTipEx.Tip>
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Adds a row manually" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.memengine.AddSavedAddressCommand"/>
-                                        </StackPanel>
+                                        <tt:CommandToolTip Text="Adds a row manually" CommandId="commands.memengine.AddSavedAddressCommand"/>
                                     </tt:ToolTipEx.Tip>
-                                </avc:IconButton>
+                                </c2:IconButton>
 
-                                <avc:IconButton Width="20"
+                                <c2:IconButton Width="20"
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                 cmdu:CommandUsageManager.SimpleButtonCommandId="commands.memengine.ClearSavedAddressesCommand"
                                                 Icon="{x:Static s:SimpleIcons.DeleteAllRowsIcon}">
                                     <tt:ToolTipEx.Tip>
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Clears all rows" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.memengine.ClearSavedAddressesCommand"/>
-                                        </StackPanel>
+                                        <tt:CommandToolTip Text="Clears all rows" CommandId="commands.memengine.ClearSavedAddressesCommand"/>
                                     </tt:ToolTipEx.Tip>
-                                </avc:IconButton>
+                                </c2:IconButton>
 
                                 <Separator Theme="{StaticResource VerticalSeparatorTheme}"/>
 
-                                <avc:IconButton Icon="{x:Static s:SimpleIcons.MemoryIcon}" Width="20"
+                                <c2:IconButton Icon="{x:Static s:SimpleIcons.MemoryIcon}" Width="20"
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                 cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:ShowCommandUsage}">
                                     <tt:ToolTipEx.Tip>
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Opens a view of the console's memory" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.memengine.ShowMemoryViewCommand"/>
-                                        </StackPanel>
+                                        <tt:CommandToolTip Text="Opens a view of the console's memory" CommandId="commands.memengine.ShowMemoryViewCommand"/>
                                     </tt:ToolTipEx.Tip>
-                                </avc:IconButton>
+                                </c2:IconButton>
 
-                                <avc:IconButton Content="Add Scan Result(s)" Height="20"
+                                <c2:IconButton Content="Add Scan Result(s)" Height="20"
                                                 Icon="{x:Static s:SimpleIcons.RedArrowCopyToSavedResultsIcon}"
                                                 Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
                                                 BorderBrush="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Border}"
                                                 Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                                 cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:AddSelectedScanResultsToSavedAddressListCommandUsage}">
                                     <tt:ToolTipEx.Tip>
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Adds the selected results into the saved address list. Does not add addresses that are already present" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.memengine.AddSelectedScanResultsToSavedAddressListCommand"/>
-                                        </StackPanel>
+                                        <tt:CommandToolTip Text="Adds the selected results into the saved address list. Does not add addresses that are already present" CommandId="commands.memengine.AddSelectedScanResultsToSavedAddressListCommand"/>
                                     </tt:ToolTipEx.Tip>
-                                </avc:IconButton>
+                                </c2:IconButton>
 
                                 <Button Content="Refresh" Padding="4,1"
                                         Background="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Background}"
@@ -645,10 +619,7 @@
                                         Foreground="{DynamicResource ABrush.MemEngine.MainView.SavedAddresses.Button.Foreground}"
                                         cmdu:CommandUsageManager.UsageClassType="{x:Type cmds:RefreshSavedAddressesCommandUsage}">
                                     <tt:ToolTipEx.Tip>
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <TextBlock Text="Manually refresh the scan results and saved addresses values. Note, this will invalidate pointers' cached addresses (if used), so this may take longer than automatic refresh" VerticalAlignment="Center"/>
-                                            <avc:ShortcutLabel CommandId="commands.memengine.RefreshSavedAddressesCommand"/>
-                                        </StackPanel>
+                                        <tt:CommandToolTip Text="Manually refresh the scan results and saved addresses values. Note, this will invalidate pointers' cached addresses (if used), so this may take longer than automatic refresh" CommandId="commands.memengine.RefreshSavedAddressesCommand"/>
                                     </tt:ToolTipEx.Tip>
                                 </Button>
                             </StackPanel>

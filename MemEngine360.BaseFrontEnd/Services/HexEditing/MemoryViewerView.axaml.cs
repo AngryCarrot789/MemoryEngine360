@@ -276,13 +276,13 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         this.PART_Inspector.GoToAddressProcedure = (address, length) => {
             BitLocation caret = new BitLocation(address);
             this.CaretLocation = caret;
-            this.SelectionRange = new BitRange(caret, new BitLocation(Maths.SumAndClampOverflow(address, length)));
+            this.SelectionRange = new BitRange(caret, new BitLocation(Maths.AddClamped(address, length)));
         };
 
         this.PART_Inspector.MoveCaretProcedure = incr => {
-            BitLocation caret = new BitLocation(Maths.SumAndClampOverflow(this.CaretLocation.ByteIndex, incr));
+            BitLocation caret = new BitLocation(Maths.AddClamped(this.CaretLocation.ByteIndex, incr));
             this.CaretLocation = caret;
-            this.SelectionRange = new BitRange(caret, new BitLocation(Maths.SumAndClampOverflow(caret.ByteIndex, (ulong) Math.Abs(incr))));
+            this.SelectionRange = new BitRange(caret, new BitLocation(Maths.AddClamped(caret.ByteIndex, (ulong) Math.Abs(incr))));
         };
 
         this.PART_Inspector.UploadTextBoxText = this.ParseTextBoxAndUpload;
@@ -550,7 +550,10 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
         }
         else {
             ulong end = sel.Range.End.ByteIndex;
-            this.PART_SelectionText.Text = $"{sel.Range.ByteLength} bytes ({sel.Range.Start.ByteIndex:X8} -> {(end > 0 ? (end - 1) : 0):X8})";
+
+            Maths.SubClamped(2, 2);
+            
+            this.PART_SelectionText.Text = $"{sel.Range.ByteLength} (0x{sel.Range.ByteLength:X}) bytes. 0x{sel.Range.Start.ByteIndex:X8} -> 0x{(end > 0 ? (end - 1) : 0):X8}";
         }
 
         this.PART_Inspector.UpdateFields();
@@ -559,8 +562,7 @@ public partial class MemoryViewerView : UserControl, IHexEditorUI {
 
     private void UpdateCaretText() {
         Caret caret = this.PART_HexEditor.Caret;
-        BitLocation pos = caret.Location;
-        this.PART_CaretText.Text = $"{pos.ByteIndex:X8} ({pos.ByteIndex:X} from start)";
+        this.PART_CaretText.Text = $"0x{caret.Location.ByteIndex:X8}";
         this.PART_Inspector.UpdateFields();
         this.UpdateAutoRefreshSelectionDependentShit();
     }
