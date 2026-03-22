@@ -25,7 +25,7 @@ namespace MemEngine360.Scripting.Commands;
 
 public class ShowScriptingWindowCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return Executability.Invalid;
         }
 
@@ -33,7 +33,7 @@ public class ShowScriptingWindowCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return;
         }
 

@@ -27,14 +27,14 @@ namespace MemEngine360.Commands;
 
 public class DeleteSelectedScanResultsCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
             return Executability.Invalid;
 
         return engineVs.SelectedScanResults.Count < 1 ? Executability.ValidButCannotExecute : Executability.Valid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return Task.CompletedTask;
         }
 

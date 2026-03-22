@@ -59,9 +59,9 @@ public class ConnectionNotificationHelper {
 
     private void OnConnectionChanged(object? o, ConnectionChangedEventArgs args) {
         TextNotification notification = this.connectionNotification ??= new TextNotification() {
-            ContextData = new ContextData().Set(MemoryEngineViewState.DataKey, this.view!.ViewState).
-                                            Set(MemoryEngine.DataKey, this.view!.ViewState.Engine).
-                                            Set(ITopLevel.TopLevelDataKey, this.view!.myOwnerWindow_onLoaded)
+            ContextData = new ContextData().Set(CommonKeys.MemoryEngineViewStateDataKey, this.view!.ViewState).
+                                            Set(CommonKeys.MemoryEngineDataKey, this.view!.ViewState.Engine).
+                                            Set(ITopLevel.TopLevelDataKey, this.view!.myWindow)
         };
 
         if (args.OldConnection != null) {
@@ -84,7 +84,7 @@ public class ConnectionNotificationHelper {
 
             notification.Actions.Add(this.connectionNotificationCommandDisconnect ??= new LambdaNotificationAction("Disconnect", static async (c) => {
                 ITopLevel topLevel = ITopLevel.TopLevelDataKey.GetContext(c.ContextData!)!;
-                MemoryEngineViewState engine = MemoryEngineViewState.DataKey.GetContext(c.ContextData!)!;
+                MemoryEngineViewState engine = CommonKeys.MemoryEngineViewStateDataKey.GetContext(c.ContextData!)!;
                 if (engine.Engine.Connection != null) {
                     ((IMutableContextData) c.ContextData!).Set(MemoryEngine.IsDisconnectFromNotification, true);
                     await OpenConsoleConnectionDialogCommand.DisconnectInActivity(topLevel, engine.Engine, 0);
@@ -121,7 +121,7 @@ public class ConnectionNotificationHelper {
                     notification.CanAutoHide = false;
                     notification.Actions.Add(this.connectionNotificationCommandReconnect ??= new LambdaNotificationAction("Reconnect", static async (c) => {
                         // ContextData ensured non-null by LambdaNotificationCommand.requireContext
-                        MemoryEngineViewState engineVs = MemoryEngineViewState.DataKey.GetContext(c.ContextData!)!;
+                        MemoryEngineViewState engineVs = CommonKeys.MemoryEngineViewStateDataKey.GetContext(c.ContextData!)!;
                         if (engineVs.Engine.Connection != null) {
                             c.Notification?.Hide();
                             return;

@@ -37,8 +37,8 @@ using PFXToolKitUI.Utils;
 namespace MemEngine360.Commands.ATM;
 
 public class EditSavedAddressValueCommand : BaseSavedAddressSelectionCommand {
-    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
-        if (engine.Connection == null || engine.Connection.IsClosed)
+    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
+        if (engineVs.Engine.Connection == null || engineVs.Engine.Connection.IsClosed)
             return Executability.ValidButCannotExecute;
         if (entries.All(x => x is AddressTableGroupEntry))
             return Executability.ValidButCannotExecute;

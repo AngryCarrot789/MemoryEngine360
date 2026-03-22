@@ -27,7 +27,7 @@ namespace MemEngine360.Commands.ATM;
 
 public class AddSelectedScanResultsToSavedAddressListCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return Executability.Invalid;
         }
 
@@ -46,7 +46,7 @@ public class AddSelectedScanResultsToSavedAddressListCommand : Command {
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return Task.CompletedTask;
         }
 

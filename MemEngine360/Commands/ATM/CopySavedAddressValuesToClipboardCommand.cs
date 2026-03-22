@@ -19,33 +19,34 @@
 
 using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
-using MemEngine360.ValueAbstraction;
+using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
 using PFXToolKitUI.Interactivity;
 using PFXToolKitUI.Services.Messaging;
+using PFXToolKitUI.Utils;
 
 namespace MemEngine360.Commands.ATM;
 
 public class CopySavedAddressValuesToClipboardCommand : BaseCopyAddressTableEntryCommand {
-    protected override Executability CanExecute(BaseAddressTableEntry entry, MemoryEngine engine, CommandEventArgs e) {
-        return entry is AddressTableEntry ? Executability.Valid : Executability.Invalid;
+    protected override Executability CanExecute(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
+        return entries.Any(x => x is AddressTableEntry) ? Executability.Valid : Executability.Invalid;
     }
 
-    protected override async Task Copy(BaseAddressTableEntry _entry, MemoryEngine engine, IClipboardService clipboard) {
-        if (_entry is AddressTableEntry entry) {
-            IDataValue? value = entry.Value;
-            if (value != null) {
-                string text = DataValueUtils.GetStringFromDataValue(entry, value);
-                try {
-                    await clipboard.SetTextAsync(text);
-                }
-                catch (Exception ex) {
-                    await IMessageDialogService.Instance.ShowMessage("Clipboard unavailable", "Clipboard is in use. Value = " + text, ex.ToString());
+    protected override async Task Copy(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, IClipboardService clipboard) {
+        StringJoiner sj = new StringJoiner(Environment.NewLine);
+        foreach (BaseAddressTableEntry entry in entries) {
+            if (entry is AddressTableEntry ate) {
+                if (ate.Value != null) {
+                    sj.Append(DataValueUtils.GetStringFromDataValue(ate, ate.Value));
                 }
             }
-            else {
-                await clipboard.ClearAsync();
-            }
+        }
+
+        try {
+            await clipboard.SetTextAsync(sj.ToString());
+        }
+        catch {
+            await IMessageDialogService.Instance.ShowMessage("Clipboard unavailable", $"Clipboard is in use. Value(s) = {Environment.NewLine}{sj}");
         }
     }
 }

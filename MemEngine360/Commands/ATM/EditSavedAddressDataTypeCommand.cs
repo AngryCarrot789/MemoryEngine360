@@ -32,7 +32,7 @@ public class EditSavedAddressDataTypeCommand : BaseSavedAddressSelectionCommand 
         this.MaximumSelection = 1;
     }
 
-    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
         return entries[0] is AddressTableEntry ? Executability.Valid : Executability.ValidButCannotExecute;
     }
 

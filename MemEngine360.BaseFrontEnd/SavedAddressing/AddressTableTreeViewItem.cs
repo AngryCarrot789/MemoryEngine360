@@ -650,7 +650,7 @@ public static class AddressTableContextRegistry {
 
     static AddressTableContextRegistry() {
         Registry.Opened += static (_, context) => {
-            if (MemoryEngineViewState.DataKey.TryGetContext(context, out MemoryEngineViewState? engineVs)) {
+            if (CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(context, out MemoryEngineViewState? engineVs)) {
                 TreeSelectionModel<BaseAddressTableEntry> atsm = engineVs.AddressTableSelectionManager;
                 
                 if (atsm.HasOneSelectedItem) {

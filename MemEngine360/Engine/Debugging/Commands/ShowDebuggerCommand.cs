@@ -29,7 +29,7 @@ namespace MemEngine360.Engine.Debugging.Commands;
 
 public class ShowDebuggerCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
             return Executability.Invalid;
         if (OpenDebuggerConnectionCommand.ExistingOCVDataKey.TryGetContext(engineVs.Engine.UserContext, out IOpenConnectionView? view))
             return Executability.ValidButCannotExecute;
@@ -38,7 +38,7 @@ public class ShowDebuggerCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return;
         }
 

@@ -27,11 +27,11 @@ namespace MemEngine360.Avalonia;
 
 public class ShowActivityListCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return e.ContextData.ContainsKey(MemoryEngineViewState.DataKey) ? Executability.Valid : Executability.Invalid;
+        return e.ContextData.ContainsKey(CommonKeys.MemoryEngineViewStateDataKey) ? Executability.Valid : Executability.Invalid;
     }
 
     protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+        if (CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             engineVs.IsActivityListVisible = true;
         }
 

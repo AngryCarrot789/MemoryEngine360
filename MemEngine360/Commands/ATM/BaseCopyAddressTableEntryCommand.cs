@@ -28,34 +28,35 @@ namespace MemEngine360.Commands.ATM;
 
 public abstract class BaseCopyAddressTableEntryCommand : BaseSavedAddressSelectionCommand {
     protected BaseCopyAddressTableEntryCommand() {
-        this.MaximumSelection = 1;
     }
 
-    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
-        Executability exec = base.CanExecuteOverride(entries, engine, e);
+    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
+        Executability exec = base.CanExecuteOverride(entries, engineVs, e);
         if (exec != Executability.Valid)
             return exec;
         
         if (!ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel))
             return Executability.Invalid;
-        if (!IClipboardService.TryGet(topLevel, out _))
+        
+        if (!topLevel.TryGetClipboard(out _))
             return Executability.ValidButCannotExecute;
         
-        return this.CanExecute(entries[0], engine, e);
+        return this.CanExecute(entries, engineVs, e);
     }
 
     protected override async Task ExecuteCommandAsync(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
         if (!ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel))
             return;
-        if (!IClipboardService.TryGet(topLevel, out IClipboardService? clipboard))
+        
+        if (!topLevel.TryGetClipboard(out IClipboardService? clipboard))
             return;
 
-        await this.Copy(entries[0], engineVs.Engine, clipboard);
+        await this.Copy(entries, engineVs, clipboard);
     }
 
-    protected virtual Executability CanExecute(BaseAddressTableEntry entry, MemoryEngine engine, CommandEventArgs e) {
+    protected virtual Executability CanExecute(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
         return Executability.Valid;
     }
 
-    protected abstract Task Copy(BaseAddressTableEntry entry, MemoryEngine engine, IClipboardService clipboard);
+    protected abstract Task Copy(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, IClipboardService clipboard);
 }

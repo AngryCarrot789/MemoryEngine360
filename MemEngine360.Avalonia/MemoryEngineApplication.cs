@@ -446,8 +446,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 view.ViewState.IsActivityListVisible = false;
 
                 using (IMutableContextData.BatchToken change = DataManager.GetContextData(((IDesktopWindow) s).Control).BeginChange()) {
-                    change.Context.Set(MemoryEngineViewState.DataKey, view.ViewState);
-                    change.Context.Set(MemoryEngine.DataKey, view.ViewState.Engine);
+                    change.Context.Set(CommonKeys.MemoryEngineViewStateDataKey, view.ViewState);
+                    change.Context.Set(CommonKeys.MemoryEngineDataKey, view.ViewState.Engine);
                 }
 
                 ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineOpened(view.ViewState);
@@ -463,8 +463,8 @@ public class MemoryEngineApplication : AvaloniaApplicationPFX {
                 ((MemoryEngineManagerImpl) GetComponent<MemoryEngineManager>()).OnEngineClosed(view.ViewState);
 
                 using (IMutableContextData.BatchToken change = DataManager.GetContextData(((IDesktopWindow) s).Control).BeginChange()) {
-                    change.Context.Remove(MemoryEngineViewState.DataKey);
-                    change.Context.Remove(MemoryEngine.DataKey);
+                    change.Context.Remove(CommonKeys.MemoryEngineViewStateDataKey);
+                    change.Context.Remove(CommonKeys.MemoryEngineDataKey);
                 }
             };
 

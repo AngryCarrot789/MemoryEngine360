@@ -29,7 +29,7 @@ public class ShowModuleSectionInfoInDialogCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         if (!ConsoleModuleSection.DataKey.TryGetContext(e.ContextData, out ConsoleModuleSection? section))
             return;
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
             return;
 
         string sizeKb = ValueScannerUtils.FormatBytes(section.Size);

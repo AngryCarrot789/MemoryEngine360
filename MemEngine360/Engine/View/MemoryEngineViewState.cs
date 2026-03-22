@@ -18,13 +18,8 @@
 // 
 
 using MemEngine360.Engine.SavedAddressing;
-using MemEngine360.ModTools;
-using PFXToolKitUI.AdvancedMenuService;
-using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Contexts;
 using PFXToolKitUI.Interactivity.Selections;
 using PFXToolKitUI.Interactivity.Windowing;
-using PFXToolKitUI.Shortcuts;
 using PFXToolKitUI.Utils.Events;
 
 namespace MemEngine360.Engine.View;
@@ -33,8 +28,8 @@ namespace MemEngine360.Engine.View;
 /// The view state that represents the state of the memory engine view
 /// </summary>
 public sealed class MemoryEngineViewState {
-    public static readonly DataKey<MemoryEngineViewState> DataKey = DataKeys.Create<MemoryEngineViewState>("MemoryEngineViewState");
-
+    public const string TopLevelId = "toplevels.MemoryEngine";
+    
     /// <summary>
     /// Gets the engine model instance
     /// </summary>
@@ -44,12 +39,7 @@ public sealed class MemoryEngineViewState {
     /// Gets the top level identifier that identifies which top level this view state is associated with
     /// </summary>
     public TopLevelIdentifier TopLevelIdentifier { get; }
-
-    /// <summary>
-    /// Gets the menu registry for the engine window
-    /// </summary>
-    public TopLevelMenuRegistry TopLevelMenuRegistry { get; } = new TopLevelMenuRegistry();
-
+    
     /// <summary>
     /// Returns the selection model for the scan results
     /// </summary>
@@ -67,16 +57,6 @@ public sealed class MemoryEngineViewState {
         get => field;
         set => PropertyHelper.SetAndRaiseINE(ref field, value, this, this.IsActivityListVisibleChanged);
     }
-
-    /// <summary>
-    /// Gets the tools menu for memory engine
-    /// </summary>
-    public MenuEntryGroup ToolsMenu { get; }
-
-    /// <summary>
-    /// Gets the Remote Controls menu for memory engine
-    /// </summary>
-    public MenuEntryGroup RemoteControlsMenu { get; }
 
     /// <summary>
     /// Fired when someone requests for the engine window to be focused
@@ -101,55 +81,6 @@ public sealed class MemoryEngineViewState {
             static arg => arg.AddressTableManager != null,
             static arg => arg.Parent,
             static arg => arg is AddressTableGroupEntry g ? g.Items : null);
-
-        this.ToolsMenu = new MenuEntryGroup("_Tools") {
-            UniqueID = "memoryengine.tools",
-            Items = {
-                new CommandMenuEntry("commands.memengine.ShowMemoryViewCommand", "_Memory View", "Opens the memory viewer/hex editor"),
-                new CommandMenuEntry("commands.memengine.ShowTaskSequencerCommand", "_Task Sequencer", "Opens the task sequencer"),
-                new CommandMenuEntry("commands.memengine.ShowDebuggerCommand", "_Debugger"),
-                new CommandMenuEntry("commands.memengine.ShowPointerScannerCommand", "_Pointer Scanner"),
-                new CommandMenuEntry("commands.memengine.ShowConsoleEventViewerCommand", "_Event Viewer", "Shows the event viewer window for viewing console system events"),
-                new CommandMenuEntry("commands.scripting.ShowScriptingWindowCommand", "_Scripting"),
-                // new CommandMenuEntry("commands.structviewer.ShowStructViewerWindowCommand", "Struct Viewer"),
-                new SeparatorEntry(),
-                new CommandMenuEntry("commands.memengine.ShowModulesCommand", "Module E_xplorer", "Opens a window which presents the modules"),
-                new CommandMenuEntry("commands.memengine.remote.ShowMemoryRegionsCommand", "Memory Region Explorer", "Opens a window which presents all memory regions"),
-                new CommandMenuEntry("commands.memengine.ShowFileBrowserCommand", "File Explorer"),
-                new SeparatorEntry(),
-                ModToolManagerViewState.GetInstance(engine.ModToolManager).ModToolMenu
-            }
-        };
-
-        // update all tools when connection changes, since most if not all tools rely on a connection
-        this.ToolsMenu.AddCanExecuteChangeUpdaterForEventsEx(DataKey, vs => vs.Engine, nameof(MemoryEngine.ConnectionChanged));
-
-        this.RemoteControlsMenu = new MenuEntryGroup("_Remote Controls") {
-            ProvideDisabledHint = static (ctx, registry) => {
-                if (!DataKey.TryGetContext(ctx, out MemoryEngineViewState? engineVs))
-                    return null;
-
-                if (engineVs.Engine.Connection == null) {
-                    string? text = KeymapUtils.GetStringForCommandId("commands.memengine.OpenConsoleConnectionDialogCommand");
-                    if (text != null)
-                        text = ". Use the shortcut(s) to connect: " + text;
-
-                    return new SimpleDisabledHintInfo(null, "Connect to a console to use remote commands" + text);
-                }
-
-                return null;
-            },
-            Description = "Custom console commands"
-        };
-
-        engine.ConnectionChanged += this.OnConnectionChanged;
-    }
-
-    private void OnConnectionChanged(object? sender, ConnectionChangedEventArgs e) {
-        this.RemoteControlsMenu.Items.Clear();
-        if (e.NewConnection != null) {
-            this.RemoteControlsMenu.Items.AddRange(e.NewConnection.ConnectionType.GetRemoteContextOptions());
-        }
     }
 
     public void RaiseRequestWindowFocus() => this.RequestWindowFocus?.Invoke(this, EventArgs.Empty);
@@ -163,7 +94,7 @@ public sealed class MemoryEngineViewState {
     /// <summary>
     /// Gets the singleton view state associated with the memory engine model. Only one view per model is supported
     /// </summary>
-    public static MemoryEngineViewState GetInstance(MemoryEngine engine, TopLevelIdentifier topLevelIdentifier) {
-        return TopLevelDataMap.GetInstance(engine).GetOrCreate(topLevelIdentifier, engine, static (s, i) => new MemoryEngineViewState((MemoryEngine) s!, i));
+    public static MemoryEngineViewState GetInstance(MemoryEngine engine) {
+        return TopLevelDataMap.GetInstance(engine).GetOrCreate(TopLevelIdentifier.Single(TopLevelId), engine, static (s, i) => new MemoryEngineViewState((MemoryEngine) s!, i));
     }
 }

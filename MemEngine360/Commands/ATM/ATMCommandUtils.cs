@@ -1,5 +1,5 @@
 ﻿// 
-// Copyright (c) 2024-2025 REghZy
+// Copyright (c) 2026-2026 REghZy
 // 
 // This file is part of MemoryEngine360.
 // 
@@ -17,22 +17,19 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine.View;
-using PFXToolKitUI.CommandSystem;
-using PFXToolKitUI.Interactivity.Contexts;
+using MemEngine360.Engine.SavedAddressing;
+using PFXToolKitUI.Interactivity.Selections;
 
 namespace MemEngine360.Commands.ATM;
 
-public class ClearSavedAddressesCommand : Command {
-    protected override Executability CanExecuteCore(CommandEventArgs e) {
-        return e.ContextData.ContainsKey(CommonKeys.MemoryEngineViewStateDataKey) ? Executability.Valid : Executability.Invalid;
-    }
-
-    protected override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
-            engineVs.Engine.AddressTableManager.RootEntry.Clear();
+public static class ATMCommandUtils {
+    public static AddressTableGroupEntry GetTargetGroupForAddItem(TreeSelectionModel<BaseAddressTableEntry> selectionModel) {
+        AddressTableGroupEntry? target = null;
+        if (selectionModel.HasOneSelectedItem) {
+            BaseAddressTableEntry entry = selectionModel.SelectedItems.First();
+            target = entry as AddressTableGroupEntry ?? entry.Parent;
         }
-        
-        return Task.CompletedTask;
+
+        return target ?? (AddressTableGroupEntry) selectionModel.RootItem;
     }
 }

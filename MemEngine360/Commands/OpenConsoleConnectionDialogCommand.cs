@@ -37,7 +37,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
     public const string AlreadyOpenDialogName = "dialog.AlreadyConnectedToConsole";
 
     protected override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
             return Executability.Invalid;
         if (ExistingOCVDataKey.TryGetContext(engineVs.Engine.UserContext, out IOpenConnectionView? view))
             return Executability.ValidButCannotExecute;
@@ -46,7 +46,7 @@ public class OpenConsoleConnectionDialogCommand : Command {
     }
 
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
             return;
         if (!ITopLevel.TopLevelDataKey.TryGetContext(e.ContextData, out ITopLevel? topLevel))
             return;

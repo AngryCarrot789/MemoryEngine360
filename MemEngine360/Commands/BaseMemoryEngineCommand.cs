@@ -31,7 +31,7 @@ namespace MemEngine360.Commands;
 /// </summary>
 public abstract class BaseMemoryEngineCommand : Command, IDisabledHintProvider {
     protected sealed override Executability CanExecuteCore(CommandEventArgs e) {
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             return Executability.Invalid;
         }
 
@@ -39,7 +39,7 @@ public abstract class BaseMemoryEngineCommand : Command, IDisabledHintProvider {
     }
 
     protected sealed override Task ExecuteCommandAsync(CommandEventArgs e) {
-        if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
+        if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs))
             return Task.CompletedTask;
 
         return this.ExecuteCommandAsync(engineVs, engineVs.Engine, e);
@@ -51,7 +51,7 @@ public abstract class BaseMemoryEngineCommand : Command, IDisabledHintProvider {
     protected abstract Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e);
 
     public virtual DisabledHintInfo? ProvideDisabledHint(IContextData context, ContextRegistry? sourceContextMenu) {
-        if (MemoryEngineViewState.DataKey.TryGetContext(context, out MemoryEngineViewState? engineVs)) {
+        if (CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(context, out MemoryEngineViewState? engineVs)) {
             return this.ProvideDisabledHintOverride(engineVs.Engine, context, sourceContextMenu);
         }
 

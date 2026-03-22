@@ -278,7 +278,7 @@ public class ScanOptionsPresenter {
             }
         });
 
-        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, this.view.myOwnerWindow_onLoaded) == true) {
+        if (await IUserInputDialogService.Instance.ShowInputDialogAsync(info, this.view.myWindow) == true) {
             p.Alignment = AddressParsing.Parse32(info.Text, canParseAsExpression: true, hexByDefault: false);
         }
     }

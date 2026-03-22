@@ -1,5 +1,5 @@
 ﻿// 
-// Copyright (c) 2024-2026 REghZy
+// Copyright (c) 2026-2026 REghZy
 // 
 // This file is part of MemoryEngine360.
 // 
@@ -39,37 +39,34 @@ using PFXToolKitUI.Interactivity.Windowing;
 using PFXToolKitUI.Notifications;
 using PFXToolKitUI.Themes;
 using PFXToolKitUI.Utils.Collections.Observable;
+using PFXToolKitUI.Utils.Events;
+using PFXToolKitUI.Utils.Reactive;
 
 namespace MemEngine360.BaseFrontEnd.Engine;
 
 public partial class EngineView : UserControl {
-    public const string TopLevelId = "toplevels.MemoryEngine";
-
     public MemoryEngine MemoryEngine => this.ViewState.Engine;
 
     public MemoryEngineViewState ViewState { get; }
 
-    public TopLevelMenuRegistry TopLevelMenuRegistry => this.ViewState.TopLevelMenuRegistry;
-
-    private readonly MenuEntryGroup themesSubList;
-    internal IDesktopWindow? myOwnerWindow_onLoaded;
-    private ObservableItemProcessorIndexing<Theme>? themeListHandler;
+    internal IDesktopWindow? myWindow;
     private readonly DataGridSelectionModelBinder<ScanResultViewModel> scanResultSelectionBinder;
     private readonly TreeViewSelectionModelBinder<BaseAddressTableEntry> addressTableSelectionBinder;
 
     private readonly ColourBrushHandler titleBarToMenuBackgroundBrushHandler;
     private readonly ScanOptionsPresenter myScanOptionsPresenter;
+    private readonly EngineMenuController menuController;
     private ConnectionNotificationHelper? myConnectionNotificationHelper;
 
-    public EngineView() : this(MemoryEngineViewState.GetInstance(new MemoryEngine(), TopLevelIdentifier.Single(TopLevelId))) {
+    public EngineView() : this(MemoryEngineViewState.GetInstance(new MemoryEngine())) {
     }
 
     public EngineView(MemoryEngineViewState viewState) {
         this.InitializeComponent();
 
-        this.themesSubList = new MenuEntryGroup("Themes");
         this.ViewState = viewState;
-        this.SetupMainMenu();
+        this.menuController = new EngineMenuController(viewState);
+        this.PART_TopLevelMenu.TopLevelMenuRegistry = this.menuController.Menu;
 
         this.titleBarToMenuBackgroundBrushHandler = new ColourBrushHandler(BackgroundProperty);
 
@@ -83,7 +80,6 @@ public partial class EngineView : UserControl {
         this.PART_LatestActivity.Text = "Welcome to MemoryEngine360.";
         this.PART_ScanListResults.ItemsSource = this.MemoryEngine.ScanningProcessor.ScanResults;
         this.PART_SavedAddressTree.AddressTableManager = this.MemoryEngine.AddressTableManager;
-        // this.PART_FileBrowser.FileTreeManager = this.MemoryEngine.FileTreeManager;
 
         this.MemoryEngine.ScanningProcessor.ScanResults.CollectionChanged += (sender, args) => {
             this.UpdateScanResultCounterText();
@@ -97,7 +93,7 @@ public partial class EngineView : UserControl {
                 e.Handled = true;
                 this.ViewState.IsActivityListVisible = false;
             }
-        }, RoutingStrategies.Tunnel);
+        }, RoutingStrategies.Bubble);
 
         NotificationManager notificationManager = new NotificationManager();
         ((IComponentManager) this.MemoryEngine).ComponentStorage.AddComponent(notificationManager);
@@ -107,62 +103,9 @@ public partial class EngineView : UserControl {
     }
 
     private void NotificationManagerOnIsAlertActiveChanged(object? sender, EventArgs e) {
-        if (this.myOwnerWindow_onLoaded != null && this.myOwnerWindow_onLoaded.TryGetFeature(out IWindowFeatureUserAlert? alert)) {
+        if (this.myWindow != null && this.myWindow.TryGetFeature(out IWindowFeatureUserAlert? alert)) {
             alert.IsAlertEnabled = this.PART_NotificationListBox.NotificationManager!.IsAlertActive;
         }
-    }
-
-    private void SetupMainMenu() {
-        TopLevelMenuRegistry menu = this.TopLevelMenuRegistry;
-
-        // ### File ###
-        MenuEntryGroup fileEntry = new MenuEntryGroup("_File");
-        fileEntry.Items.Add(new CommandMenuEntry("commands.memengine.OpenConsoleConnectionDialogCommand", "_Connect to console...", icon: SimpleIcons.ConnectToConsoleIcon));
-        fileEntry.Items.Add(new CommandMenuEntry("commands.memengine.DumpMemoryCommand", "Memory _Dump...", icon: SimpleIcons.DownloadMemoryIcon));
-        fileEntry.Items.Add(new SeparatorEntry());
-        fileEntry.Items.Add(new CommandMenuEntry("commands.memengine.remote.SendCmdCommand", "Send Custom Command...", "This lets you send a completely custom Xbox Debug Monitor command. Please be careful with it."));
-        fileEntry.Items.Add(
-            new CommandMenuEntry("commands.memengine.remote.SendNotificationCommand", "Send Notification", icon: SimpleIcons.Xbox360Icon).
-                AddCanExecuteChangeUpdaterForEventsEx(MemoryEngineViewState.DataKey, x => x.Engine, nameof(MemEngine360.Engine.MemoryEngine.ConnectionChanged)));
-        fileEntry.Items.Add(new SeparatorEntry());
-        fileEntry.Items.Add(new CommandMenuEntry("commands.mainWindow.OpenEditorSettings", "_Preferences"));
-        menu.Items.Add(fileEntry);
-
-        MemoryEngineViewState viewState = this.ViewState;
-
-        // ### Remote Commands ###
-        menu.Items.Add(viewState.RemoteControlsMenu);
-
-        // ### Tools ###
-        menu.Items.Add(viewState.ToolsMenu);
-
-        // ### Themes ###
-        menu.Items.Add(this.themesSubList);
-
-        // ### Help ###
-        MenuEntryGroup helpEntry = new MenuEntryGroup("_Help");
-        helpEntry.Items.Add(new CommandMenuEntry("commands.application.ShowLogsCommand", "Show _Logs"));
-        helpEntry.Items.Add(new SeparatorEntry());
-        helpEntry.Items.Add(new CustomLambdaMenuEntry("Open Wiki", (c) => {
-            if (!ITopLevel.TopLevelDataKey.TryGetContext(c, out ITopLevel? topLevel))
-                return Task.CompletedTask;
-            if (!IWebLauncher.TryGet(topLevel, out IWebLauncher? webLauncher))
-                return Task.CompletedTask;
-
-            const string url = "https://github.com/AngryCarrot789/MemoryEngine360/wiki#quick-start";
-            return webLauncher.LaunchUriAsync(new Uri(url));
-        }, (c) => {
-            if (!ITopLevel.TopLevelDataKey.TryGetContext(c, out ITopLevel? window))
-                return false;
-            if (!window.TryGetWebLauncher(out _))
-                return false;
-            return true;
-        }));
-
-        helpEntry.Items.Add(new CommandMenuEntry("commands.application.AboutApplicationCommand", "About MemoryEngine360"));
-        menu.Items.Add(helpEntry);
-
-        this.PART_TopLevelMenu.TopLevelMenuRegistry = menu;
     }
 
     internal void UpdateScanResultCounterText() {
@@ -186,18 +129,12 @@ public partial class EngineView : UserControl {
         this.myScanOptionsPresenter.OnViewLoaded();
         this.UpdateStatusBarConnectionText(this.MemoryEngine.Connection);
 
-        this.themeListHandler = ObservableItemProcessor.MakeIndexable(ThemeManager.Instance.Themes, (args) => {
-            this.themesSubList.Items.Insert(args.Index, new SetThemeMenuEntry(args.Item));
-        }, (args) => {
-            this.themesSubList.Items.RemoveAt(args.Index);
-        }, (args) => {
-            this.themesSubList.Items.Move(args.OldIndex, args.NewIndex);
-        }).AddExistingItems();
+        this.menuController.OnTopLevelLoaded();
 
         if (IWindowManager.TryGetWindow(this, out IDesktopWindow? window)) {
-            this.myOwnerWindow_onLoaded = window;
+            this.myWindow = window;
             this.titleBarToMenuBackgroundBrushHandler.SetTarget(this.PART_TopLevelMenu);
-            this.titleBarToMenuBackgroundBrushHandler.Brush = this.myOwnerWindow_onLoaded.TitleBarBrush;
+            this.titleBarToMenuBackgroundBrushHandler.Brush = this.myWindow.TitleBarBrush;
         }
     }
 
@@ -208,9 +145,7 @@ public partial class EngineView : UserControl {
         MemoryEngineViewState vs = this.ViewState;
         vs.RequestWindowFocus -= this.OnRequestWindowFocus;
         vs.RequestFocusOnSavedAddress -= this.OnRequestFocusOnSavedAddress;
-        this.themeListHandler?.RemoveExistingItems();
-        this.themeListHandler?.Dispose();
-        this.themeListHandler = null;
+        this.menuController.OnTopLevelUnloaded();
 
         this.myScanOptionsPresenter.OnViewUnloaded();
 
@@ -256,19 +191,6 @@ public partial class EngineView : UserControl {
     private void OnHeaderPointerClicked(object? sender, PointerPressedEventArgs e) {
         if (e.GetCurrentPoint(this).Properties.PointerUpdateKind == PointerUpdateKind.MiddleButtonPressed) {
             this.ViewState.IsActivityListVisible = false;
-        }
-    }
-    
-    private class SetThemeMenuEntry : CustomMenuEntry {
-        private readonly Theme theme;
-
-        public SetThemeMenuEntry(Theme theme, Icon? icon = null) : base(theme.Name, $"Sets the application's theme to '{theme.Name}'", icon) {
-            this.theme = theme;
-        }
-
-        public override Task OnExecute(IContextData context) {
-            this.theme.ThemeManager.SetTheme(this.theme);
-            return Task.CompletedTask;
         }
     }
 }

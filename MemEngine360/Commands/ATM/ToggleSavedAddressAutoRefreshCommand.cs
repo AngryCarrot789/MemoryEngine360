@@ -17,7 +17,6 @@
 // along with MemoryEngine360. If not, see <https://www.gnu.org/licenses/>.
 // 
 
-using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
@@ -25,9 +24,9 @@ using PFXToolKitUI.CommandSystem;
 namespace MemEngine360.Commands.ATM;
 
 public class ToggleSavedAddressAutoRefreshCommand : BaseSavedAddressSelectionCommand {
-    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
+    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
         return entries.Any(x => x is AddressTableEntry)
-            ? base.CanExecuteOverride(entries, engine, e)
+            ? base.CanExecuteOverride(entries, engineVs, e)
             : Executability.ValidButCannotExecute;
     }
 

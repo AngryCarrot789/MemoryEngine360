@@ -30,12 +30,12 @@ public class NextScanCommand : BaseMemoryEngineCommand {
     }
 
     protected override async Task ExecuteCommandAsync(MemoryEngineViewState engineVs, MemoryEngine engine, CommandEventArgs e) {
-        if (engine.ScanningProcessor.CanPerformNextScan) {
+        if (engineVs.Engine.ScanningProcessor.CanPerformNextScan) {
             // Save original selection state
             List<ScanResultViewModel> selection = engineVs.SelectedScanResults.SelectedItems.ToList();
             engineVs.SelectedScanResults.DeselectAll();
             
-            await engine.ScanningProcessor.ScanFirstOrNext();
+            await engineVs.Engine.ScanningProcessor.ScanFirstOrNext();
             
             // Try to restore any items that still exist, since their references will
             // be maintained unless for some reason the ScanningContext is kerfuckled

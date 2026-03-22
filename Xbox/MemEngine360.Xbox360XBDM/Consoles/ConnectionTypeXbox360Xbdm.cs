@@ -67,7 +67,7 @@ public class ConnectionTypeXbox360Xbdm : RegisteredConnectionType {
 
         yield return new DynamicGroupPlaceholderMenuEntry(new DynamicWeightedMenuEntryGroup((group, ctx, items) => {
             IConsoleConnection? connection;
-            if (!MemoryEngineViewState.DataKey.TryGetContext(ctx, out MemoryEngineViewState? engineVs))
+            if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(ctx, out MemoryEngineViewState? engineVs))
                 return;
             if ((connection = engineVs.Engine.Connection) == null || !connection.HasFeature<IFeatureXboxJRPC2>())
                 return;

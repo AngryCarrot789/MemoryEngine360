@@ -34,7 +34,7 @@ public abstract class EngineButtonCommandUsage : SimpleButtonCommandUsage {
 
     protected override void OnContextChanged() {
         base.OnContextChanged();
-        this.GetContextData().SetAndRaiseINE(ref this.myEngine, MemoryEngineViewState.DataKey, this, static (t, e) => t.OnEngineChanged(e.OldValue, e.NewValue));
+        this.GetContextData().SetAndRaiseINE(ref this.myEngine, CommonKeys.MemoryEngineViewStateDataKey, this, static (t, e) => t.OnEngineChanged(e.OldValue, e.NewValue));
     }
 
     protected virtual void OnEngineChanged(MemoryEngineViewState? oldEngineVs, MemoryEngineViewState? newEngineVs) {

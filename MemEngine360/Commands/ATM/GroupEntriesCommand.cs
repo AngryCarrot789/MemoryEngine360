@@ -18,7 +18,6 @@
 // 
 
 using System.Diagnostics;
-using MemEngine360.Engine;
 using MemEngine360.Engine.SavedAddressing;
 using MemEngine360.Engine.View;
 using PFXToolKitUI.CommandSystem;
@@ -27,8 +26,8 @@ using PFXToolKitUI.Services.Messaging;
 namespace MemEngine360.Commands.ATM;
 
 public class GroupEntriesCommand : BaseSavedAddressSelectionCommand {
-    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngine engine, CommandEventArgs e) {
-        Executability exec = base.CanExecuteOverride(entries, engine, e);
+    protected override Executability CanExecuteOverride(List<BaseAddressTableEntry> entries, MemoryEngineViewState engineVs, CommandEventArgs e) {
+        Executability exec = base.CanExecuteOverride(entries, engineVs, e);
         if (exec != Executability.Valid) {
             return exec;
         }

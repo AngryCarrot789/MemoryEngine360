@@ -224,7 +224,7 @@ public partial class ModuleViewerView : UserControl {
             newEngineVs.Engine.ConnectionChanged += this.OnEngineConnectionChanged;
         
         // Allow commands to also access the memory engine, i.e. set scanner start+length as a module section
-        DataManager.GetContextData(this).Set(MemoryEngineViewState.DataKey, newEngineVs);
+        DataManager.GetContextData(this).Set(CommonKeys.MemoryEngineViewStateDataKey, newEngineVs);
     }
 
     private void OnEngineConnectionChanged(object? o, ConnectionChangedEventArgs args) {

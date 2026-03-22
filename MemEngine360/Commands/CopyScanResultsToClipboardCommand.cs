@@ -31,7 +31,7 @@ namespace MemEngine360.Commands;
 public class CopyScanResultsToClipboardCommand : Command {
     protected override Executability CanExecuteCore(CommandEventArgs e) {
         if (!ScanResultViewModel.DataKey.TryGetContext(e.ContextData, out ScanResultViewModel? _)) {
-            if (!MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+            if (!CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
                 return Executability.Invalid;
             }
             else if (engineVs.SelectedScanResults.Count < 1) {
@@ -45,7 +45,7 @@ public class CopyScanResultsToClipboardCommand : Command {
     protected override async Task ExecuteCommandAsync(CommandEventArgs e) {
         MemoryEngine? engine = null;
         List<ScanResultViewModel> scanResults = new List<ScanResultViewModel>();
-        if (MemoryEngineViewState.DataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
+        if (CommonKeys.MemoryEngineViewStateDataKey.TryGetContext(e.ContextData, out MemoryEngineViewState? engineVs)) {
             scanResults.AddRange(engineVs.SelectedScanResults.SelectedItems);
             engine = engineVs.Engine;
         }
